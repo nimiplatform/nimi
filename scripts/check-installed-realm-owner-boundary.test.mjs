@@ -44,7 +44,7 @@ const a0SplitRules = [
   ['K-ACCSVC-022', '.nimi/spec/runtime/kernel/account-session-contract.md', '`K-PLOCAL-001..007` admit only the prerequisite', '`K-PLOCAL-001..007` do not admit the prerequisite'],
   ['K-ACCSVC-024', '.nimi/spec/runtime/kernel/account-session-contract.md', '**A.0 authority disposition:**', '**A.0 authority disposition removed:**'],
   ['K-ACCSVC-025', '.nimi/spec/runtime/kernel/account-session-contract.md', 'A.0 establishes only that', 'A.0 does not establish that'],
-  ['P-NAPP-034', '.nimi/spec/platform/kernel/nimi-app-admission-contract.md', '**A.0 authority disposition:** Admitted:', '**A.0 authority disposition:** Removed:'],
+  ['P-NAPP-034', '.nimi/spec/platform/kernel/nimi-app-admission-contract.md', '**A.0 authority disposition:** Admitted per OS platform:', '**A.0 authority disposition:** Removed:'],
 ];
 
 const expectedFixtureCodes = [

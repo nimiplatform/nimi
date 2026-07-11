@@ -49,8 +49,9 @@ token transport as a Desktop bridge surface.
 ## D-IPC-002 — Daemon 生命周期命令
 
 Install, uninstall, update, repair, local adoption/removal, and `OpenApp`
-commands require Runtime's `desktop_lifecycle_host` origin and the anchored
-K-PLOCAL-007 lifecycle challenge/intent. A UI confirmation boolean is display
+commands require Runtime's `desktop_lifecycle_host` origin and K-PLOCAL-007
+transactional operation admission with current target/generation
+checks. A UI confirmation boolean is display
 intent only. A.0 cannot claim positive Avatar/Zhiyu child launch until A.1
 protected child-channel authority and implementation land; no nonce, metadata,
 or portable bearer fallback is allowed.
@@ -59,13 +60,13 @@ The shared Kit protected-local host carrier exposes exactly three typed product
 operations: `status`, `start`, and `restart`. The authoritative product surface
 has no `runtime_bridge_stop`; product registration/export of that command must
 be removed by the A.0 implementation cut. No operation accepts a binary path,
-argv, endpoint, config path, service name, release-record path, or environment
+argv, endpoint, config path, service name, code-signing policy, or environment
 override.
 
 The common redacted result is `{ state, releaseId?, reasonCode?, retryable }`,
 where state is exactly `stopped | start_pending | running | restart_pending |
 unavailable`. It exposes no PID, gRPC/HTTP address, process path, service ACL,
-trust record, account material, or credential.
+code-signing detail, account material, or credential.
 
 On Windows, `status` queries SCM for fixed service `NimiRuntime` and requires a
 verified Runtime protected handshake before reporting `running`; `start` uses
@@ -164,11 +165,11 @@ audit store.
 版本协商引用 SDK `S-TRANSPORT-005`，并受 `self-update-contract.md` 约束：
 
 Desktop and Runtime releases may be serviced independently, but production
-compatibility is never inferred from semver. Mutual verification requires both
-signed release records to name the same `protected_local_protocol_version` and
-each record's exact `compatible_peer_release_ids` to include the observed peer
-release. Missing, expired, rollback, unparseable, one-way-only, or mismatched
-compatibility blocks protected control. Typed `status` may return the verified
+compatibility is never inferred from semver. After mutual OS process/code-signing
+verification, the protected handshake negotiates the exact
+`protected_local_protocol_version`; unsupported versions block protected
+control. Installer-owned activation and rollback policy remain release truth
+and are not duplicated in peer-auth records. Typed `status` may return the verified
 Runtime `releaseId`; it never executes a candidate binary to discover version.
 Synthetic non-product fixtures use distinct trust roots and cannot relax the
 production check.

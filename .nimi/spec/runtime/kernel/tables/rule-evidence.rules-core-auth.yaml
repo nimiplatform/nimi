@@ -439,7 +439,7 @@ rules:
   - rule_id: K-PLOCAL-007
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: Structural lifecycle challenge, boot epoch, and anti-rollback ledger authority; durable implementation and crash-recovery evidence is pending.
+    note: Structural transactional lifecycle operation, boot epoch, and limited durable-anchor authority; platform-native implementation and closeout evidence remain per-platform.
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

@@ -75,12 +75,13 @@ const ruleClauses = new Map([
     /seccomp.*execve/isu,
   ]],
   ['K-PLOCAL-005', [
-    /same opened.*file/isu,
+    /same running process.*opened executable object/isu,
     /WinVerifyTrust/iu,
     /volume serial/iu,
     /file ID/iu,
     /dynamic.*SecCode/isu,
     /Desktop\/control carrier validates the Runtime/iu,
+    /does not introduce a second RFC8785\/Ed25519/iu,
   ]],
   ['K-PLOCAL-006', [
     /OpenDesktopSession/iu,
@@ -89,12 +90,11 @@ const ruleClauses = new Map([
     /rebind.*forbidden/isu,
   ]],
   ['K-PLOCAL-007', [
-    /dedicated.*security ledger/isu,
-    /secure store.*anchor/isu,
+    /service-owned transactional database/isu,
+    /durable anchoring is limited/isu,
     /boot epoch/iu,
-    /no automatic.*backup/isu,
-    /challenge.*intent.*same.*transaction/isu,
-    /service-principal-only ACL/iu,
+    /one database transaction/isu,
+    /does not HMAC-chain every/iu,
     /generic user-session.*forbidden/isu,
   ]],
 ]);
@@ -258,7 +258,7 @@ function validateCore(bundle, issues) {
   }
   if (
     principalAuthority?.production_user_session_generic_keyring_allowed !== false
-    || !equalArray(principalAuthority?.protected_credential_domains, ['account_tokens', 'connector_provider_secrets', 'protected_ledger_keys', 'authenticated_realm_credentials'])
+    || !equalArray(principalAuthority?.protected_credential_domains, ['account_tokens', 'connector_provider_secrets', 'durable_anchor_keys', 'authenticated_realm_credentials'])
     || !String(principalAuthority?.retired_user_keyring_import ?? '').startsWith('forbidden_hardcut')
   ) {
     issues.push(issue('USER_SCOPED_CUSTODY_FORBIDDEN', paths.principalProfiles, 'Production account/provider credentials and ledger keys cannot use the interactive user keyring or import the retired store.'));
@@ -266,11 +266,15 @@ function validateCore(bundle, issues) {
   if (principalFields.length === 0 || principalRows.some((row) => !hasExactKeys(row, principalFields))) {
     issues.push(issue('RUNTIME_PRINCIPAL_PROFILE_SCHEMA_INVALID', paths.principalProfiles, 'Runtime principal profiles must match one closed row schema.'));
   }
-  if (principalAuthority?.automatic_backup_restore !== 'forbidden') {
-    issues.push(issue('SECURITY_LEDGER_ANTI_ROLLBACK_REQUIRED', paths.principalProfiles, 'Protected security state cannot restore an older automatic backup.'));
+  if (
+    principalAuthority?.automatic_backup_restore !== 'forbidden'
+    || principalAuthority?.ordinary_session_or_lifecycle_row_hmac_chain !== 'forbidden'
+    || !equalArray(principalAuthority?.durable_anchor_scope, ['installer_owned_active_release_generation', 'credential_custody_generation', 'explicitly_admitted_revocation_floor'])
+  ) {
+    issues.push(issue('LIMITED_DURABLE_ANCHOR_REQUIRED', paths.principalProfiles, 'Durable anchors must be limited to release, credential-custody, and explicitly admitted revocation generations; ordinary rows cannot form a second HMAC truth.'));
   }
-  if (principalAuthority?.challenge_consume_intent_transaction !== 'atomic_anchored') {
-    issues.push(issue('LIFECYCLE_CHALLENGE_TRANSACTION_REQUIRED', paths.principalProfiles, 'Challenge consumption and durable lifecycle intent creation must share one anchored transaction.'));
+  if (principalAuthority?.lifecycle_operation_transaction !== 'validate_bindings_consume_idempotency_key_create_operation_atomic_database_commit') {
+    issues.push(issue('LIFECYCLE_OPERATION_TRANSACTION_REQUIRED', paths.principalProfiles, 'Lifecycle admission must validate bindings, consume idempotency, and create the operation in one database transaction.'));
   }
   const desktopServiceControl = principalAuthority?.desktop_service_control;
   if (
@@ -314,22 +318,25 @@ function validateCore(bundle, issues) {
   const lifecycleActionFields = lifecycleIntent?.action_schema?.fields ?? [];
   const requiredLifecycleActions = ['INSTALL', 'UNINSTALL', 'UPDATE', 'HEALTH_REPAIR', 'ADOPT_LOCAL_APP', 'REMOVE_LOCAL_APP_ADOPTION', 'OPEN_APP'];
   if (
-    lifecycleIntent?.rpc_vocabulary?.prepare !== 'PrepareAppLifecycleIntent'
-    || lifecycleIntent?.rpc_vocabulary?.status !== 'GetAppLifecycleIntentStatus'
+    lifecycleIntent?.rpc_vocabulary?.transitional_prepare !== 'PrepareAppLifecycleIntent'
+    || lifecycleIntent?.rpc_vocabulary?.operation_status !== 'GetAppLifecycleIntentStatus'
     || !equalArray(lifecycleIntent?.action_enum, requiredLifecycleActions)
     || !equalArray(lifecycleIntent?.status_enum, ['PREPARED', 'CONSUMED', 'SIDE_EFFECT_STARTED', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'EXPIRED'])
-    || lifecycleIntent?.canonicalization?.format !== 'RFC8785_JSON'
-    || lifecycleIntent?.canonicalization?.digest !== 'SHA-256'
-    || lifecycleIntent?.prepare_response?.intent_id_authorizes !== false
-    || lifecycleIntent?.mutation_consumption?.same_protected_desktop_session_required !== true
-    || lifecycleIntent?.mutation_consumption?.consume_and_durable_intent_commit !== 'atomic_anchored'
-    || lifecycleIntent?.mutation_consumption?.side_effect_before_anchor_advance !== 'forbidden'
-    || lifecycleIntent?.status_query?.intent_id_authorizes_mutation !== false
+    || lifecycleIntent?.platform_admission?.closeout_unit !== 'os_platform'
+    || lifecycleIntent?.platform_admission?.unadmitted_platform_disposition !== 'fail_closed'
+    || lifecycleIntent?.transitional_prepare_projection?.intent_id_authorizes !== false
+    || lifecycleIntent?.transitional_prepare_projection?.required_for_open_app !== false
+    || lifecycleIntent?.operation_admission?.security_authority !== 'live_protected_desktop_connection'
+    || lifecycleIntent?.operation_admission?.database_transaction !== 'validate_bindings_consume_idempotency_key_create_operation'
+    || lifecycleIntent?.operation_admission?.hmac_chain_required !== false
+    || lifecycleIntent?.operation_admission?.anti_rollback_anchor_required !== false
+    || lifecycleIntent?.operation_admission?.side_effect_before_transaction_commit !== 'forbidden'
+    || lifecycleIntent?.status_query?.identifier_authorizes_mutation !== false
     || lifecycleIntent?.renderer_projection?.renderer_receives_authorizing_material !== false
     || lifecycleActionRows.length !== requiredLifecycleActions.length
     || lifecycleActionRows.some((row) => !hasExactKeys(row, lifecycleActionFields))
   ) {
-    issues.push(issue('LIFECYCLE_INTENT_PROTOCOL_REQUIRED', paths.lifecycleIntent, 'Lifecycle confirmation requires one closed prepare/display/consume/status protocol with non-authorizing renderer projection and anchored replay protection.'));
+    issues.push(issue('LIFECYCLE_OPERATION_PROTOCOL_REQUIRED', paths.lifecycleIntent, 'Lifecycle mutation requires live protected bindings, transactional idempotency, non-authorizing UX/status projections, and no per-row anchor chain.'));
   }
 
   const osProfiles = parseYaml(bundle, paths.osProfiles, issues);
@@ -520,15 +527,19 @@ function validateRpcPosture(bundle, issues) {
   }
   for (const method of ['PrepareAppLifecycleIntent', 'GetAppLifecycleIntentStatus']) {
     const row = rows.find((candidate) => candidate.method_id?.endsWith(`/${method}`));
-    if (!row || row.operation_class !== 'desktop_lifecycle_intent' || !equalArray(row.required_origin_roles, ['desktop_lifecycle_host']) || row.lifecycle_challenge_required !== false) {
-      issues.push(issue('LIFECYCLE_INTENT_PROTOCOL_REQUIRED', paths.transportMatrix, `${method} must use the protected Desktop lifecycle intent origin without recursively requiring an intent.`));
+    if (!row || row.operation_class !== 'desktop_lifecycle_ux_projection' || !equalArray(row.required_origin_roles, ['desktop_lifecycle_host']) || row.lifecycle_challenge_required !== false) {
+      issues.push(issue('LIFECYCLE_OPERATION_PROTOCOL_REQUIRED', paths.transportMatrix, `${method} must remain a non-authorizing protected Desktop UX/status projection.`));
     }
   }
-  for (const method of ['InstallApp', 'UninstallApp', 'UpdateApp', 'HealthRepairApp', 'AdoptLocalApp', 'RemoveLocalAppAdoption', 'OpenApp']) {
+  for (const method of ['InstallApp', 'UninstallApp', 'UpdateApp', 'HealthRepairApp', 'AdoptLocalApp', 'RemoveLocalAppAdoption']) {
     const row = rows.find((candidate) => candidate.method_id?.endsWith(`/${method}`));
     if (!row || row.lifecycle_challenge_required !== true || row.source_rule !== 'K-PLOCAL-007') {
-      issues.push(issue('LIFECYCLE_INTENT_PROTOCOL_REQUIRED', paths.transportMatrix, `${method} must consume one protected lifecycle intent before mutation.`));
+      issues.push(issue('LIFECYCLE_OPERATION_PROTOCOL_REQUIRED', paths.transportMatrix, `${method} must retain transactional lifecycle-operation binding while the legacy field name is migrated.`));
     }
+  }
+  const openApp = rows.find((candidate) => candidate.method_id?.endsWith('/OpenApp'));
+  if (!openApp || openApp.lifecycle_challenge_required !== false || openApp.source_rule !== 'K-PLOCAL-007') {
+    issues.push(issue('LIFECYCLE_OPERATION_PROTOCOL_REQUIRED', paths.transportMatrix, 'OpenApp must use direct protected transactional admission without a prepare challenge.'));
   }
   const refresh = rows.find((candidate) => candidate.method_id?.endsWith('/RefreshAccountSession'));
   if (refresh) {
@@ -658,9 +669,9 @@ function validateRpcPosture(bundle, issues) {
   }
   for (const method of ['PrepareAppLifecycleIntent', 'GetAppLifecycleIntentStatus', 'InstallApp', 'UninstallApp', 'UpdateApp', 'HealthRepairApp', 'AdoptLocalApp', 'RemoveLocalAppAdoption', 'OpenApp']) {
     const row = identityMethods.find((candidate) => candidate.method_id?.endsWith(`/${method}`));
-    const mustConsumeIntent = !['PrepareAppLifecycleIntent', 'GetAppLifecycleIntentStatus'].includes(method);
+    const mustConsumeIntent = !['PrepareAppLifecycleIntent', 'GetAppLifecycleIntentStatus', 'OpenApp'].includes(method);
     if (!row || row.posture !== 'protected_origin_required' || row.protected_transport_class !== 'desktop_control' || row.required_origin_role !== 'desktop_lifecycle_host' || row.lifecycle_challenge_required !== mustConsumeIntent) {
-      issues.push(issue('LIFECYCLE_INTENT_PROTOCOL_REQUIRED', paths.identityAccess, `${method} identity posture must match the protected Desktop lifecycle intent protocol.`));
+      issues.push(issue('LIFECYCLE_OPERATION_PROTOCOL_REQUIRED', paths.identityAccess, `${method} identity posture must match the protected Desktop lifecycle operation protocol.`));
     }
   }
 
@@ -762,31 +773,29 @@ function validateTrustIsolation(bundle, issues) {
       || row.runtime_configuration_mutable !== false
       || !String(row.launch_authority ?? '').trim()
       || !String(row.configuration_authority ?? '').trim()
-      || !String(row.trust_record_profile_ref ?? '').trim()
+      || !String(row.platform_code_signing_policy_ref ?? '').trim()
+      || !String(row.installer_release_authority ?? '').trim()
     ) {
       const code = role === 'nimi_runtime_service' ? 'RUNTIME_EXECUTABLE_TRUST_REQUIRED' : environment === 'production' ? 'PRODUCTION_TRUST_SET_INVALID' : 'TEST_TRUST_SET_INVALID';
       issues.push(issue(code, paths.trustSets, `Required executable trust row ${trustSetId} is missing or unsafe.`));
     }
   }
-  const recordFields = trust?.release_trust_record_schema?.fields ?? [];
-  const recordProfiles = new Map((trust?.release_trust_record_profiles ?? []).map((row) => [row.profile_id, row]));
-  const requiredRecordFields = ['artifact_sha256', 'executable_role', 'trust_set_id', 'os_profile', 'protected_local_protocol_version', 'compatible_peer_release_ids', 'root_key_id', 'signature', 'windows_leaf_spki_sha256', 'os_service_principal'];
-  const recordArtifact = trust?.release_trust_record_artifact;
+  const nativeVerification = trust?.platform_native_release_verification;
   if (
-    trust?.release_trust_record_schema?.canonicalization !== 'RFC8785_JSON'
-    || !equalArray(trust?.release_trust_record_schema?.signature_algorithms, ['Ed25519'])
-    || requiredRecordFields.some((field) => !recordFields.includes(field))
-    || recordProfiles.get('production-protected-local-release-record')?.missing_or_placeholder_root_disposition !== 'production_build_fail'
-    || recordProfiles.get('non-product-protected-local-release-record')?.environment !== 'non_product_test'
+    trust?.platform_admission?.closeout_unit !== 'os_platform'
+    || trust?.platform_admission?.independent_admission_allowed !== true
+    || trust?.platform_admission?.unadmitted_platform_disposition !== 'fail_closed'
+    || trust?.platform_admission?.cross_platform_parity_required_before_first_platform_positive_chain !== false
     || trust?.trust_direction_requirements?.desktop_or_control_carrier_verifies_runtime !== 'required'
-    || recordArtifact?.format !== 'RFC8785_canonical_JSON_with_inline_Ed25519_signature'
-    || recordArtifact?.relative_layout !== 'trust/protected-local/v1/<executable_role>.release-trust-record.json'
-    || recordArtifact?.path_override !== 'forbidden'
-    || recordArtifact?.environment_or_argv_override !== 'forbidden'
-    || recordArtifact?.symlink_reparse_or_alias_traversal !== 'reject'
-    || recordArtifact?.update_coherency !== 'service_definition_record_and_executable_activate_as_one_release_generation'
+    || !String(nativeVerification?.windows ?? '').includes('WinVerifyTrust')
+    || !String(nativeVerification?.macos ?? '').includes('SecCode')
+    || !String(nativeVerification?.linux ?? '').includes('signed_package_repository_identity')
+    || nativeVerification?.caller_selected_path_release_or_policy !== 'forbidden'
+    || nativeVerification?.peer_owned_release_generation !== 'forbidden'
+    || nativeVerification?.custom_peer_release_record !== 'absent'
+    || nativeVerification?.same_open_object_required !== true
   ) {
-    issues.push(issue('RUNTIME_EXECUTABLE_TRUST_REQUIRED', paths.trustSets, 'Client-side Runtime trust requires a concrete signed release-record schema, root profile, service principal, and fail-closed build policy.'));
+    issues.push(issue('RUNTIME_EXECUTABLE_TRUST_REQUIRED', paths.trustSets, 'Client-side Runtime trust requires platform-native same-object code-signing verification, installer-owned rollback authority, and per-platform fail-close admission.'));
   }
   if (trust?.production_runtime_accepts_test_trust_set !== false) {
     issues.push(issue('PRODUCTION_TEST_TRUST_ISOLATION_REQUIRED', paths.trustSets, 'Production Runtime must structurally reject test trust sets.'));
@@ -799,9 +808,8 @@ function validateTrustIsolation(bundle, issues) {
   }
   const signerPolicies = new Map((trust?.signer_policies ?? []).map((row) => [row.signer_policy_id, row]));
   for (const row of rows) {
-    const policy = signerPolicies.get(row.signer_policy_ref);
-    const recordProfile = recordProfiles.get(row.trust_record_profile_ref);
-    if (!policy || policy.environment !== row.environment || policy.runtime_build_allowance !== row.runtime_build_allowance || recordProfile?.environment !== row.environment) {
+    const policy = signerPolicies.get(row.platform_code_signing_policy_ref);
+    if (!policy || policy.environment !== row.environment || policy.runtime_build_allowance !== row.runtime_build_allowance || !policy.platform_native_constraints) {
       issues.push(issue('SIGNER_POLICY_REFERENCE_INVALID', paths.trustSets, `${row.trust_set_id} must resolve a same-environment closed signer policy.`));
     }
   }

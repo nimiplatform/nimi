@@ -129,7 +129,7 @@ must not enter ordinary shell or default to Runtime as normal product use.
 
 packaged desktop release 校验补充：
 
-- Desktop signed release metadata、installed Runtime service release record、
+- Desktop OS code-signing identity、installer-owned active Runtime service release、
   running executable identity 或互验结果缺失/过期/不匹配时，不得由 renderer /
   backend 合成 fallback release info。
 - Desktop 不尝试 staging 或替换 Runtime；修复动作交给 signed installer/service

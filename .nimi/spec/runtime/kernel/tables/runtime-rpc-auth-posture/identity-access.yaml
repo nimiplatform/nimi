@@ -183,8 +183,8 @@ methods:
     protected_transport_class: desktop_control
     required_origin_role: desktop_lifecycle_host
     lifecycle_challenge_required: false
-    authority_status: admitted_design_pending_a0_proto_and_runtime_implementation
-    rationale: resolves and freezes the canonical Desktop lifecycle impact; public TCP, installed, developer, bundled and renderer callers are denied
+    authority_status: transitional_fail_closed_ux_projection
+    rationale: returns a non-authorizing Desktop lifecycle impact projection; public TCP, installed, developer, bundled and renderer callers are denied
     kernel_refs:
       - K-PLOCAL-006
       - K-PLOCAL-007
@@ -194,7 +194,7 @@ methods:
     protected_transport_class: desktop_control
     required_origin_role: desktop_lifecycle_host
     lifecycle_challenge_required: false
-    authority_status: admitted_design_pending_a0_proto_and_runtime_implementation
+    authority_status: transitional_reconciliation_projection
     rationale: returns non-authorizing lifecycle reconciliation status only to a verified Desktop lifecycle origin
     kernel_refs:
       - K-PLOCAL-006
@@ -300,7 +300,7 @@ methods:
     protected_transport_class: desktop_control
     required_origin_role: desktop_lifecycle_host
     lifecycle_challenge_required: true
-    rationale: removing local adoption is a lifecycle mutation and requires anchored displayed intent
+    rationale: removing local adoption requires the live protected Desktop origin, current generation and transactional idempotency; UX intent is non-authorizing
     kernel_refs:
       - K-PLOCAL-006
       - K-PLOCAL-007
@@ -309,8 +309,8 @@ methods:
     posture: protected_origin_required
     protected_transport_class: desktop_control
     required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: true
-    rationale: app launch (Open flow) write; requires admitted caller identity to drive the Runtime-owned app launch supervision
+    lifecycle_challenge_required: false
+    rationale: app launch requires the live protected Desktop origin, current target/generation and transactional idempotency but no prepare challenge
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006

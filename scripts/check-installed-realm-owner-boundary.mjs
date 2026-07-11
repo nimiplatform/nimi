@@ -118,7 +118,7 @@ const authorityPostures = new Map([
     blocked: /installed-host carrier\/envelope schema is deliberately\s+absent and requires A\.1 authority[\s\S]*deny-all for installed account access/iu,
   }],
   ['P-NAPP-034', {
-    admitted: /\*\*A\.0 authority disposition:\*\* Admitted:[\s\S]*protected-local-executable-trust-sets\.yaml/iu,
+    admitted: /\*\*A\.0 authority disposition:\*\* Admitted per OS platform:[\s\S]*protected-local-executable-trust-sets\.yaml[\s\S]*unadmitted platform remains fail-closed/iu,
     blocked: /\*\*Remaining authority disposition:\*\* blocked pending A\.1\.[\s\S]*A\.0 defines no\s+launch-resolution fields[\s\S]*`OpenApp` cannot report launched\/create a child/iu,
   }],
 ]);

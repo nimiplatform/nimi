@@ -89,7 +89,7 @@ protected_local_authority_gate:
   type: static_gate
   command: pnpm check:protected-local-authority && pnpm check:protected-rpc-posture && pnpm check:no-portable-privileged-session && pnpm check:protected-local-trust-set-isolation
   path: scripts/check-protected-local-authority.mjs
-  description: Structural A.0 authority gate for mutually verified process origin, privileged transport posture, non-portable privilege, trust-set isolation, lifecycle challenge, and anti-rollback ledger requirements.
+  description: Structural A.0 authority gate for per-platform mutually verified process origin, privileged transport posture, non-portable privilege, OS-native code-signing isolation, transactional lifecycle admission, and limited durable-anchor requirements.
 public_raw_token_authority_hardcut_gate:
   type: static_gate
   command: pnpm check:public-raw-token-authority-hardcut

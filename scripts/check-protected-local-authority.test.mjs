@@ -33,9 +33,9 @@ const expectedCodes = [
   'PRODUCTION_TEST_TRUST_ISOLATION_REQUIRED',
   'SAME_FILE_EXECUTABLE_VERIFICATION_REQUIRED',
   'PROCESS_LIVENESS_REQUIRED',
-  'SECURITY_LEDGER_ANTI_ROLLBACK_REQUIRED',
-  'LIFECYCLE_CHALLENGE_TRANSACTION_REQUIRED',
-  'LIFECYCLE_INTENT_PROTOCOL_REQUIRED',
+  'LIMITED_DURABLE_ANCHOR_REQUIRED',
+  'LIFECYCLE_OPERATION_TRANSACTION_REQUIRED',
+  'LIFECYCLE_OPERATION_PROTOCOL_REQUIRED',
   'A1_CHILD_CHANNEL_DEPENDENCY_REQUIRED',
   'BINDING_ONLY_APP_MODE_CEILING_REQUIRED',
   'PUBLIC_REFRESH_FORBIDDEN',
@@ -129,7 +129,7 @@ test('workspace binding RPCs remain blocked until an exact protected origin is a
   }
 });
 
-test('Desktop session, Windows service control, and release-record artifacts have frozen minimal shapes', () => {
+test('Desktop session, Windows service control, and native trust admission have frozen minimal shapes', () => {
   const transport = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
   const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
   const trust = parseAuthority('.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml');
@@ -143,8 +143,10 @@ test('Desktop session, Windows service control, and release-record artifacts hav
   assert.equal(principals.desktop_service_control?.product_stop_operation, 'absent');
   assert.equal(principals.desktop_service_control?.windows?.service_name, 'NimiRuntime');
   assert.equal(principals.desktop_service_control?.windows?.restart_semantics, 'runtime_self_exit_then_scm_recovery_start_and_new_boot_epoch_verification');
-  assert.equal(trust.release_trust_record_artifact?.relative_layout, 'trust/protected-local/v1/<executable_role>.release-trust-record.json');
-  assert.equal(trust.release_trust_record_artifact?.path_override, 'forbidden');
+  assert.equal(trust.platform_native_release_verification?.custom_peer_release_record, 'absent');
+  assert.equal(trust.platform_native_release_verification?.peer_owned_release_generation, 'forbidden');
+  assert.equal(trust.platform_admission?.closeout_unit, 'os_platform');
+  assert.equal(trust.platform_admission?.unadmitted_platform_disposition, 'fail_closed');
 });
 
 test('negative fixture inputs are independent and cover every stable security code', () => {

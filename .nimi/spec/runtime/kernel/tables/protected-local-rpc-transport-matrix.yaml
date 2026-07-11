@@ -1,4 +1,4 @@
-version: 1
+version: 2
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
@@ -31,7 +31,7 @@ operation_classes:
   - desktop_account_control
   - desktop_binding_control
   - realm_broker_transport
-  - desktop_lifecycle_intent
+  - desktop_lifecycle_ux_projection
   - desktop_lifecycle_mutation
   - blocked_pending_separate_authority
   - ordinary_projection
@@ -46,10 +46,15 @@ matrix_schema:
     - public_tcp_disposition
     - lifecycle_challenge_required
     - source_rule
+legacy_lifecycle_challenge_field:
+  authority_status: transitional_schema_name
+  false_semantics: no_prepare_projection_required
+  true_semantics: lifecycle_operation_binding_and_transaction_required_not_anchored_challenge
+  removal_owner: proto_and_generator_migration
 public_tcp_privileged_disposition: deny
 request_role_selection: forbidden
 portable_privileged_session: forbidden
-authority_admitted_pending_proto_projection: [OpenDesktopSession, PrepareAppLifecycleIntent, GetAppLifecycleIntentStatus]
+authority_admitted_pending_proto_projection: []
 open_desktop_session_wire:
   request:
     message: OpenDesktopSessionRequest
@@ -200,7 +205,7 @@ methods:
     lifecycle_challenge_required: true
     source_rule: K-PLOCAL-007
   - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
-    operation_class: desktop_lifecycle_intent
+    operation_class: desktop_lifecycle_ux_projection
     allowed_transport_classes: [desktop_control]
     required_origin_roles: [desktop_lifecycle_host]
     request_may_select_role: false
@@ -209,7 +214,7 @@ methods:
     lifecycle_challenge_required: false
     source_rule: K-APP-026
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus
-    operation_class: desktop_lifecycle_intent
+    operation_class: desktop_lifecycle_ux_projection
     allowed_transport_classes: [desktop_control]
     required_origin_roles: [desktop_lifecycle_host]
     request_may_select_role: false
@@ -269,7 +274,7 @@ methods:
     request_may_select_role: false
     portable_session_allowed: false
     public_tcp_disposition: deny
-    lifecycle_challenge_required: true
+    lifecycle_challenge_required: false
     source_rule: K-PLOCAL-007
   - method_id: /nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal
     operation_class: blocked_pending_separate_authority

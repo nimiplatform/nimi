@@ -17,7 +17,7 @@ cannot elevate a caller.
 
 Before sending login/account/lifecycle material, Desktop also verifies the
 Runtime service SID/UID/audit principal, live same-object executable identity,
-signed per-release trust record, and OS service-manager launch authority. A
+platform-native code-signing policy and OS service-manager launch authority. A
 correctly signed Runtime binary started by the interactive user, a squatted
 pipe/socket, or an environment/argv-selected endpoint is rejected. Production
 Desktop never directly spawns Runtime; start/restart invokes the typed OS

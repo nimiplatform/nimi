@@ -6,6 +6,11 @@ surfaces: [windows, linux, macos]
 entries: [windows, linux, macos]
 description: Closed OS primitive profiles for mutually authenticated protected-local process origins.
 authority_refs: [K-PLOCAL-003, K-PLOCAL-004, K-PLOCAL-005]
+platform_admission:
+  closeout_unit: os_platform
+  independent_admission_allowed: true
+  unadmitted_platform_disposition: fail_closed
+  forbidden_fallbacks: [localhost_grpc, same_user_daemon, compile_only_carrier_success]
 profile_schema:
   fields:
     - os
@@ -29,8 +34,8 @@ profiles:
     process_marker: process_creation_time
     liveness_monitor: retained_process_handle_synchronize_and_query_limited_information
     post_bind_exec_control: windows_has_no_in_place_exec_and_all_inherited_handles_are_explicitly_noninheritable
-    client_executable_verification: same_open_hfile_volume_serial_file_id_sha256_win_verify_trust
-    server_executable_verification: same_open_hfile_volume_serial_file_id_sha256_win_verify_trust_and_service_sid
+    client_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy
+    server_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy_and_service_sid
     runtime_principal_profile_ref: windows
     source_rule: K-PLOCAL-003
   - os: linux
@@ -41,8 +46,8 @@ profiles:
     process_marker: proc_starttime_bound_to_pidfd
     liveness_monitor: pidfd_required_no_pid_polling_fallback
     post_bind_exec_control: signed_static_control_carrier_seccomp_denies_execve_execveat_and_channel_is_cloexec
-    client_executable_verification: opened_proc_pid_exe_fd_device_inode_sha256_release_digest
-    server_executable_verification: opened_proc_pid_exe_fd_device_inode_sha256_runtime_release_digest
+    client_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
+    server_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
     runtime_principal_profile_ref: linux
     source_rule: K-PLOCAL-003
   - os: macos
@@ -53,8 +58,8 @@ profiles:
     process_marker: audit_token_pidversion
     liveness_monitor: EVFILT_PROC_NOTE_EXIT_NOTE_EXEC
     post_bind_exec_control: EVFILT_PROC_NOTE_EXEC_immediate_revocation
-    client_executable_verification: running_process_dynamic_SecCode_designated_requirement_team_id_cdhash_sha256
-    server_executable_verification: running_runtime_dynamic_SecCode_designated_requirement_team_id_cdhash_sha256
+    client_executable_verification: running_process_dynamic_SecCode_designated_requirement_team_id_cdhash
+    server_executable_verification: running_runtime_dynamic_SecCode_designated_requirement_team_id_cdhash
     runtime_principal_profile_ref: macos
     source_rule: K-PLOCAL-003
 handshake_binding:

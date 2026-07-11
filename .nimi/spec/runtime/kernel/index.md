@@ -37,7 +37,7 @@
 | `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
 | `account-session-contract.md` | `K-ACCSVC-*` | RuntimeAccountService 契约：local account session、login lifecycle、secure custody、private refresh、Runtime-mediated Realm broker、logout、user switch、daemon restart recovery、scoped binding issuance；public token RPC 仅保留待删除 deny-all tombstone |
-| `protected-local-session-contract.md` | `K-PLOCAL-*` | Isolated Runtime service principal、protected-local mutual process/executable identity、Desktop control origin、lifecycle challenge、boot epoch 与 anti-rollback security ledger 唯一 authority |
+| `protected-local-session-contract.md` | `K-PLOCAL-*` | Isolated Runtime service principal、per-platform protected-local mutual process/executable identity、Desktop control origin、transactional lifecycle operation、boot epoch 与 limited durable-anchor authority |
 | `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Desktop binding 规则 |
 | `workspace-binding-contract.md` | `K-BIND-*` | Runtime-issued workspace knowledge binding：Realm membership projection consumption、workspace-specific relation/attachment、issue/revoke lifecycle、internal resolver、decision/audit/fail-close matrix |
 | `grant-service.md` | `K-GRANT-*` | public RuntimeGrantService deny-all tombstones、Runtime-private evaluation boundary 与 A.3d removal tracking |

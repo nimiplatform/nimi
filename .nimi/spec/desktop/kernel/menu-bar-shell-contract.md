@@ -43,7 +43,7 @@ Phase 1 menu bar 菜单固定包含以下区块：
 5. **退出区**：`Quit Nimi`
 
 `Start Runtime` and `Restart Runtime` are enabled only when the fixed installed
-service and signed release records are valid. There is no external-daemon mode,
+service and platform-native code-signing verification are valid. There is no external-daemon mode,
 binary selector, or stop action in production. Unverified/hung service state
 routes to signed installer/service-updater repair.
 

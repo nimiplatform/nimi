@@ -39,7 +39,7 @@ not choose or spawn the Runtime executable.
 
 Daemon 启动固定为以下阶段：
 
-1. **Service identity**：验证 service principal、signed service definition、Runtime release trust/digest、account partition 和 production/test isolation。
+1. **Service identity**：验证 service principal、signed service definition、connected-process platform code-signing identity、account partition 和 production/test isolation。
 2. **Config**：仅从 signed service definition 与 signed release projection 加载 production 配置（`K-DAEMON-009`），校验地址与超时；env/argv/user-writable override 被拒绝。
 3. **Protected state**：验证 service-owned custody/ledger/anchor 并提交 boot-epoch revocation。
 4. **Servers**：并行启动 public gRPC/HTTP 与 protected local listeners。
@@ -154,7 +154,7 @@ AI 执行路径使用双层信号量控制并发：
 Production configuration has two disjoint classes:
 
 1. **Boot security configuration** — service principal, service definition,
-   protected/public listener identity, release trust root/record, Realm account
+   protected/public listener identity, installer-owned active release identity, Realm account
    endpoints, custody locations, and test/production posture come only from the
    signed OS service definition and signed Runtime release projection. They are
    immutable at runtime.

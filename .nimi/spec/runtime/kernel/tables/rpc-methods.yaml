@@ -18,13 +18,7 @@ surfaces:
   - RuntimeAppService
   - RuntimeArtifactService
   - RuntimeAgentService
-authority_pending_methods:
-  - service: RuntimeAuthService
-    name: OpenDesktopSession
-    type: unary
-    authority_status: admitted_a0_pending_proto_and_runtime_implementation
-    protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
-    source_rule: K-PLOCAL-006
+authority_pending_methods: []
 services:
   - name: AIService
     source_rule: K-RPC-002
@@ -247,6 +241,9 @@ services:
       - name: OpenSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenSession
+      - name: OpenDesktopSession
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
       - name: RefreshSession
         type: unary
       - name: RevokeSession
@@ -482,6 +479,12 @@ services:
       - name: OpenApp
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/OpenApp
+      - name: PrepareAppLifecycleIntent
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
+      - name: GetAppLifecycleIntentStatus
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus
   - name: RuntimeArtifactService
     source_rule: K-AGCORE-053
     methods:

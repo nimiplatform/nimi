@@ -95,7 +95,7 @@
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "    client_executable_verification: same_open_hfile_volume_serial_file_id_sha256_win_verify_trust",
+      "from": "    client_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy",
       "to": "    client_executable_verification: pathname_reopen_sha256_win_verify_trust"
     }
   },
@@ -110,28 +110,28 @@
     }
   },
   {
-    "fixture_id": "security-ledger-backup-rollback",
-    "code": "SECURITY_LEDGER_ANTI_ROLLBACK_REQUIRED",
+    "fixture_id": "ordinary-rows-become-second-hmac-truth",
+    "code": "LIMITED_DURABLE_ANCHOR_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "automatic_backup_restore: forbidden",
-      "to": "automatic_backup_restore: allowed"
+      "from": "ordinary_session_or_lifecycle_row_hmac_chain: forbidden",
+      "to": "ordinary_session_or_lifecycle_row_hmac_chain: required"
     }
   },
   {
-    "fixture_id": "challenge-intent-split-commit",
-    "code": "LIFECYCLE_CHALLENGE_TRANSACTION_REQUIRED",
+    "fixture_id": "lifecycle-operation-split-commit",
+    "code": "LIFECYCLE_OPERATION_TRANSACTION_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "challenge_consume_intent_transaction: atomic_anchored",
-      "to": "challenge_consume_intent_transaction: separate_commits"
+      "from": "lifecycle_operation_transaction: validate_bindings_consume_idempotency_key_create_operation_atomic_database_commit",
+      "to": "lifecycle_operation_transaction: validate_then_consume_in_separate_commits"
     }
   },
   {
     "fixture_id": "renderer-receives-authorizing-lifecycle-material",
-    "code": "LIFECYCLE_INTENT_PROTOCOL_REQUIRED",
+    "code": "LIFECYCLE_OPERATION_PROTOCOL_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-lifecycle-intent-protocol.yaml",
     "mutation": {
       "kind": "replace_exact",
@@ -175,8 +175,8 @@
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-security-limits.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  - limit_id: proof-hmac-digest\n    default: SHA-256\n    hard_bound: SHA-256",
-      "to": "  - limit_id: proof-hmac-digest\n    default: SHA-256\n    hard_bound: null"
+      "from": "  - limit_id: boot-epoch-bytes\n    default: 32\n    hard_bound: 32",
+      "to": "  - limit_id: boot-epoch-bytes\n    default: 32\n    hard_bound: null"
     }
   }
 ]

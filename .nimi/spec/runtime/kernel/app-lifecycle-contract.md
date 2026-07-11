@@ -123,15 +123,16 @@ success；不得 admit 上述四个 token 之外的 action。
 
 Before package or launch-resolution work, the current `desktop_control`
 connection must carry Runtime-derived `desktop_lifecycle_host` origin and a
-matching anchored lifecycle intent. A.0 does not admit the installed child
+matching current account/release/adoption generation. A.0 does not admit the installed child
 channel or installed app session; positive bundled/installed launch closeout
 waits for A.1 without a temporary fallback.
 
 In A.0, `OpenApp` is admitted only as a protected Desktop lifecycle mutation
-that consumes the exact anchored lifecycle intent. Because the installed child
+with transactional idempotency and exact target/generation checks. It does not
+require a prepare challenge. Because the installed child
 transport/session and launch projection are not admitted, it must not create a
 process/window or return `APP_OPEN_STATE_LAUNCHED`. It fails closed with the
-typed protected-transport-unavailable reason after intent validation and before
+typed protected-transport-unavailable reason after operation validation and before
 child side effects.
 
 A.0 defines no installed app caller enum, launch nonce/ticket, release/storage
@@ -196,29 +197,29 @@ change updates `K-APP-001`, `rpc-methods.yaml`,
 and consumer tests together. A rule body outside `K-APP-001` MUST NOT
 amend the service method set by implication.
 
-## K-APP-026 Protected Desktop Lifecycle Intent Protocol
+## K-APP-026 Protected Desktop Lifecycle Operation Protocol
 
-`tables/protected-local-lifecycle-intent-protocol.yaml` is the sole method,
-action, canonical-impact, state, renderer-projection, replay, and
-reconciliation authority for lifecycle confirmation. Runtime admits one generic
-`PrepareAppLifecycleIntent` plus `GetAppLifecycleIntentStatus`; it does not
-duplicate prepare/status RPCs per lifecycle action.
+`tables/protected-local-lifecycle-intent-protocol.yaml` is the sole action,
+operation-admission, renderer-projection, idempotency, replay, and
+reconciliation authority. `PrepareAppLifecycleIntent` is a transitional UX
+projection, not security authority; `GetAppLifecycleIntentStatus` reconciles a
+non-authorizing operation identifier.
 
-`PrepareAppLifecycleIntent` is available only on the live
+When used, `PrepareAppLifecycleIntent` is available only on the live
 `desktop_lifecycle_host` connection. Runtime resolves current release,
 artifact/adoption generation, account generation, destructive options, and
-impact flags before returning the typed canonical impact and its RFC8785/SHA-256
-digest. `intent_id` and any job id are correlation-only and non-authorizing.
+impact flags before returning a typed canonical impact. `intent_id`, impact
+digest, and any job id are correlation-only and non-authorizing.
 Renderer may receive only the table's safe projection; it never receives a
-portable proof, process tuple, boot epoch, ledger anchor, account generation
+portable proof, process tuple, boot epoch, durable anchor, account generation
 material, or credential.
 
-Every consuming lifecycle request carries `lifecycle_intent_id` and
-`displayed_impact_digest`. Runtime revalidates the same protected Desktop
-session/process/account/boot epoch, consumes the intent and creates its durable
-side-effect record in one anchored transaction, and starts no external side
-effect before the anchor advances. Caller `confirmed=true` is display state and
-never authorization. Missing, replaced, expired, replayed, wrong-target,
-wrong-release/digest, wrong-process, wrong-account, or wrong-display intent
-fails closed. Lost responses reconcile through the typed status RPC; status
-never authorizes a new mutation.
+Every lifecycle mutation revalidates the same protected Desktop
+session/process/account/boot epoch and exact target generation, consumes a
+non-secret idempotency key, and creates its durable operation record in one
+service-owned database transaction. No external side effect starts before that
+transaction commits. Caller `confirmed=true`, an intent id, or a displayed
+digest never authorizes. Conflicting idempotency reuse, wrong target/release,
+wrong process/account/epoch, revoked session, or stale generation fails closed.
+Lost responses reconcile through the typed status RPC; status never authorizes
+a new mutation.

@@ -4,8 +4,8 @@
 
 This contract is the sole normative owner for OS peer/process identity,
 protected-local transport identity, process-bound Desktop control sessions,
-lifecycle challenges, the Runtime boot epoch, and the protected security
-ledger. Account, app-lifecycle, Platform trust-set, Desktop UX, Kit carrier,
+lifecycle operation admission, the Runtime boot epoch, and security-critical
+generation state. Account, app-lifecycle, Platform release, Desktop UX, Kit carrier,
 and SDK contracts reference these facts; they do not restate or replace them.
 
 ## K-PLOCAL-001 Sole Authority, Binding-Only Bootstrap, and Non-Fallback
@@ -43,6 +43,13 @@ binding and MUST NOT derive account-control, Realm broker, AI, artifact,
 realtime, media, lifecycle, or `OpenApp` authority. A portable value cannot and
 MUST NOT establish Desktop, bundled-app, installed-app, or developer-installed
 privilege on the same or another connection.
+
+A.0 is admitted and closed per OS platform. Windows, macOS, and Linux share
+the same security semantics but do not block one another's first positive
+production chain. An unadmitted platform remains explicitly fail-closed and
+cannot use localhost gRPC, a same-user daemon, or a compile-only carrier as a
+product fallback. Global Wave A closeout declares the supported platform set
+and carries real evidence for every platform claimed supported.
 
 A.0 may be submitted and independently audited before A.1, and anonymous or
 public-TCP privilege must fail closed as soon as A.0 is enforced. A.0 complete
@@ -112,7 +119,7 @@ sets `no_new_privs`, installs the admitted seccomp filter that denies
 On macOS, the only production control endpoint is the privileged XPC Mach
 service installed with the hardened LaunchDaemon. Both directions consume the
 XPC audit token and validate the running peer's dynamic `SecCode`, designated
-requirement, Team ID, cdhash and release trust row. A filesystem UDS, ad-hoc
+requirement, Team ID and cdhash. A filesystem UDS, ad-hoc
 Mach service, user LaunchAgent or app-created listener is non-product and
 cannot fall back when privileged XPC verification is unavailable.
 
@@ -124,8 +131,9 @@ data is accepted.
 ## K-PLOCAL-004 Process Identity and Liveness
 
 The canonical process tuple is `{os, pid, creation_marker, os_login_session,
-canonical_executable_identity, executable_digest,
-executable_trust_set_id}`. PID alone never authorizes.
+canonical_executable_identity, code_signing_identity}`. A release digest is
+bound separately by installed launch/session admission; PID alone never
+authorizes.
 
 Windows retains a process handle with `SYNCHRONIZE |
 PROCESS_QUERY_LIMITED_INFORMATION`. Linux requires a usable `pidfd`, the
@@ -142,37 +150,34 @@ to obtain or retain the required liveness primitive fails closed.
 
 ## K-PLOCAL-005 Executable Identity and Trust
 
-Each peer performs executable verification while Platform owns only named
-trust-set rows and their release/signing references. Runtime validates the
-Desktop/control carrier; the Desktop/control carrier validates the Runtime
-service. Signature, digest, executable role, service/launch authority, and file
-identity are verified against the same opened executable file object; pathname
-re-open, app self-description, environment-selected binaries, and static-file
-claims are not proof.
+Each peer performs executable verification through the platform-native code
+signing and process APIs. Runtime validates the Desktop/control carrier; the
+Desktop/control carrier validates the Runtime service. The process identity,
+executable file identity, executable role, service/launch authority, and
+system code-signing identity are evaluated against the same running process
+and opened executable object. Pathname re-open, app self-description,
+environment-selected binaries, and static-file claims are not proof.
 
-The signed installer/service updater materializes the Platform release-record
-artifact at the exact OS release root and relative layout in
-`protected-local-executable-trust-sets.yaml`. Runtime selects its release root
-only from the signed OS service definition; Desktop selects it only from its
-own signed bundle release metadata; the Linux carrier inherits that signed
-Desktop release identity. Callers cannot submit a record path or release id.
-Peers canonicalize the record, verify its Ed25519 root signature, release id,
-role and signer policy, then match the record against the already-open running
-executable file object. Symlink/reparse/alias traversal, mutable ownership,
-expired or rollback generations, incomplete release activation, and any
-record/executable mismatch fail protected control closed.
+The signed installer/service updater owns the fixed service definition,
+release activation, downgrade policy and rollback protection. Protected IPC
+does not introduce a second RFC8785/Ed25519 release-record authority or a
+second peer-maintained release-generation ledger. Runtime/Kit/Desktop may
+consume the installer-owned active release identity and an installed release
+digest, but cannot select or reinterpret either value. Missing platform code
+signing, a service/process mismatch, a replaceable executable object, or a
+signer-policy mismatch fails protected control closed.
 
-On Windows, SHA-256, volume serial, file ID, and `WinVerifyTrust` are evaluated
-against the same opened `hFile`, and the exact admitted signer and digest must
-match. The production process runs under the restricted Nimi Runtime service
+On Windows, volume serial, file ID and `WinVerifyTrust` are evaluated against
+the same opened `hFile`; the leaf signing identity must match the installer-owned
+Nimi signer policy. The production process runs under the restricted Nimi Runtime service
 SID; DPAPI-NG protectors, state ACLs and the process DACL name that exact SID
 and deny interactive VM read/write/operation, handle duplication and remote
 thread creation. On Linux, Runtime opens `/proc/<pid>/exe`, binds device/inode,
-hashes that FD, and matches the Platform-signed release digest; the service uses
+and verifies the package/repository signature identity selected by the signed
+system service definition; the service uses
 the dedicated non-login system UID. On macOS,
 `SecCodeCopyGuestWithAttributes` targets the running process and validates its
-dynamic `SecCode`, designated requirement, Team ID, cdhash/SHA-256, and exact
-trust-set entry, while Runtime custody/anchor keys use code-identity Keychain
+dynamic `SecCode`, designated requirement, Team ID and cdhash, while Runtime custody keys use code-identity Keychain
 ACLs. A pathname-only `SecStaticCode` claim is insufficient.
 
 ## K-PLOCAL-006 Desktop Control Session
@@ -200,64 +205,52 @@ forbidden, and a new connection must repeat the full mutual endpoint, process,
 and executable verification. At most one live Desktop control session exists
 per process tuple.
 
-## K-PLOCAL-007 Lifecycle Challenge, Ledger, Boot Epoch, and Recovery
+## K-PLOCAL-007 Lifecycle Transactions, Boot Epoch, and Recovery
 
-Each lifecycle challenge is opaque, single-use, and bound to Desktop session,
-Desktop process-tuple hash, account generation, action, app id, release ref,
-artifact digest, displayed-intent hash, Runtime boot epoch, issue time, and
-deadline. A caller-provided `confirmed=true` is not authorization. Challenge
-consumption and durable lifecycle intent creation commit in the same anchored
-transaction, and the external side effect begins only after that transaction
-advances the anti-rollback anchor. A non-authorizing job id/status reconciles a
-lost response. A replacement challenge atomically cancels the old one, and at
-most one challenge is outstanding per session/action/app tuple.
+Every lifecycle mutation requires the same live protected Desktop connection,
+the current account generation, the current Runtime boot epoch, and an exact
+target tuple. A caller-provided `confirmed=true`, renderer-held identifier, or
+job id never authorizes. Runtime executes mutation admission, idempotency-key
+consume, session/generation checks, and durable operation creation in one
+ordinary service-owned database transaction before beginning an external side
+effect. The non-authorizing operation id/status reconciles a lost response.
 
-`PrepareAppLifecycleIntent` and `GetAppLifecycleIntentStatus` are the only
-generic issuance/reconciliation methods; their exact typed shapes, action/state
-vocabularies, canonical impact digest, renderer allowlist, and consuming request
-fields are owned by
-`tables/protected-local-lifecycle-intent-protocol.yaml`. An `intent_id` or job
-id is non-authorizing. Existing lifecycle mutations require the same live
-Desktop connection plus `lifecycle_intent_id` and `displayed_impact_digest`;
-caller `confirmed=true` never authorizes. No intent proof, process tuple, boot
-epoch, account-generation material, or ledger anchor enters renderer IPC.
+`PrepareAppLifecycleIntent` remains a transitional Desktop UX projection while
+existing consumers migrate. It may return canonical impact text/digest, but
+the returned intent is not security authority and consumption does not require
+an HMAC chain or anti-rollback anchor. Non-destructive `OpenApp` does not need a
+prepare challenge. Destructive uninstall/data deletion may require an explicit
+Desktop UX confirmation policy, but security authorization still comes only
+from the live protected connection and current target/generation checks. Exact
+operation fields and transitional surfaces are owned by
+`tables/protected-local-lifecycle-intent-protocol.yaml`.
 
-Runtime stores this state in a dedicated protected-local security ledger named
-`protected_local.db`, never in `memory.db`, Desktop/app storage, a general
-application database, or the interactive user's profile. Account custody,
-ledger, anchor, and their keys are owned by the isolated Runtime service
-principal and are unreadable, unwritable, and non-enumerable by the interactive
-user and app principals. Production `go-keyring`/generic user-session
-credentials for account or connector/provider material are forbidden; because
-the product is pre-release, the hardcut does not import them and requires fresh
-login plus connector credential re-entry. The ledger uses a
-service-principal-only ACL, WAL,
-`synchronous=FULL`, foreign keys, `BEGIN IMMEDIATE`, a fixed schema version, and
-HMAC records using SHA-256 and a secure-storage key. Raw credentials are forbidden.
-Its A.0 logical records are `protected_runtime_epoch`,
-`protected_desktop_session`, `protected_lifecycle_challenge`,
-`protected_lifecycle_intent`, `protected_security_commit`, and
-`protected_security_audit_outbox`. Launch tickets, installed child sessions,
-and carrier records are absent until A.1 authority is independently admitted.
+Runtime stores Desktop sessions, lifecycle operations, A.1 launch-ticket
+consumption, child sessions, generations and revocation state in one
+service-owned transactional database protected by the isolated Runtime
+principal. This database uses a fixed schema, foreign keys, WAL and durable
+transactions; it is not a second credential store and does not HMAC-chain every
+ordinary row. Account and connector/provider credentials remain exclusively in
+the service-owned OS credential store. Production generic user-session
+keyrings, automatic legacy import, Desktop/app storage and user-writable backup
+restore remain forbidden.
 
-The service-principal secure store contains the anti-rollback anchor `{ledger_uuid,
-commit_sequence, commit_chain_head}` outside SQLite. A commit first fsyncs a
-pending DB head, then advances the secure store anchor, then marks the DB head
-complete. Exact committed equality is accepted; an anchor at the one pending
-next head completes recovery; an unadvanced pending head is discarded before
-side effects. Every other UUID/counter/head mismatch reports rollback and
-fails protected features closed. There is no automatic backup restore after
-corruption or rollback detection. Explicit operator reset revokes all
-protected state and requires fresh login and launch.
+Additional durable anchoring is limited to state whose rollback would recreate
+security authority after a valid transition: installer-owned active release
+generation, credential-custody generation, and explicitly admitted
+non-rollbackable revocation floors. Session rows, UX intents, ordinary
+install/open/repair/adopt operations, audit outbox rows and crash-recovery
+bookkeeping do not each advance a separate HMAC chain.
 
 Every Runtime start creates a 32-byte CSPRNG boot epoch. Before any listener is
-opened, an anchored transaction revokes all nonterminal state from older boot
-epochs and writes a sanitized startup audit. Integer generations may order
-records but never replace the random boot epoch identity.
+opened, one database transaction revokes nonterminal sessions, launch tickets
+and operations from older boot epochs and writes a sanitized startup audit.
+Integer generations may order records but never replace the random boot epoch
+identity.
 
 Typed failures use the `PROTECTED_LOCAL_*`, `DESKTOP_*`, and
 `LIFECYCLE_CHALLENGE_*` rows in `tables/reason-codes.yaml` and
 `tables/error-mapping-matrix.yaml`. Error detail contains only the stable
 reason, retryability, and a non-secret action hint; it never includes endpoint
-material, executable path, process tuple, challenge, ledger anchor, account
+material, executable path, process tuple, operation id, durable anchor, account
 material, or credential values.

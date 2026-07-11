@@ -8,7 +8,7 @@ description: Closed production isolation profiles for Runtime custody, protected
 authority_refs: [K-PLOCAL-001, K-PLOCAL-003, K-PLOCAL-007]
 production_runtime_execution_mode: isolated_os_service_principal
 production_user_session_generic_keyring_allowed: false
-protected_credential_domains: [account_tokens, connector_provider_secrets, protected_ledger_keys, authenticated_realm_credentials]
+protected_credential_domains: [account_tokens, connector_provider_secrets, durable_anchor_keys, authenticated_realm_credentials]
 production_same_interactive_user_daemon_allowed: false
 interactive_app_state_enumeration: forbidden
 service_install_authority: signed_nimi_installer_only
@@ -41,7 +41,13 @@ mutable_product_configuration_authority: typed_protected_desktop_control_write_t
 production_environment_or_argv_override: forbidden
 retired_user_keyring_import: forbidden_hardcut_requires_fresh_login_and_connector_credential_reentry
 automatic_backup_restore: forbidden
-challenge_consume_intent_transaction: atomic_anchored
+lifecycle_operation_transaction: validate_bindings_consume_idempotency_key_create_operation_atomic_database_commit
+ordinary_session_or_lifecycle_row_hmac_chain: forbidden
+durable_anchor_scope: [installer_owned_active_release_generation, credential_custody_generation, explicitly_admitted_revocation_floor]
+platform_admission:
+  closeout_unit: os_platform
+  unadmitted_platform_disposition: fail_closed
+  cross_platform_parity_required_before_first_platform_positive_chain: false
 account_partition_source: verified_interactive_os_principal_and_login_session
 non_product_same_user_fixture:
   allowed: true
@@ -57,7 +63,7 @@ profile_schema:
     - service_installation
     - account_partition_derivation
     - custody_store
-    - ledger_and_anchor_store
+    - transaction_store_and_durable_anchor
     - process_isolation
     - endpoint_connect_boundary
     - non_product_e2e_principal
@@ -70,7 +76,7 @@ profiles:
     service_installation: signed_installer_creates_restricted_windows_service_no_interactive_logon
     account_partition_derivation: verified_pipe_client_user_sid_and_logon_luid
     custody_store: dpapi_ng_exact_service_sid_protector_in_service_sid_acl_state
-    ledger_and_anchor_store: service_sid_acl_with_dpapi_ng_exact_service_sid_anchor_key
+    transaction_store_and_durable_anchor: service_sid_acl_transaction_db_plus_dpapi_ng_anchor_only_for_admitted_nonrollbackable_generation
     process_isolation: service_process_dacl_denies_interactive_vm_read_vm_write_vm_operation_dup_handle_create_thread
     endpoint_connect_boundary: named_pipe_acl_grants_connect_only_to_active_interactive_sid_and_service_sid
     non_product_e2e_principal: NT_SERVICE_NimiRuntimeE2E_separate_service_sid
@@ -82,7 +88,7 @@ profiles:
     service_installation: signed_package_creates_systemd_system_service_with_no_login_uid
     account_partition_derivation: verified_so_peercred_uid_and_login_session
     custody_store: dedicated_uid_0600_encrypted_store_with_root_loaded_system_credential_key
-    ledger_and_anchor_store: dedicated_uid_0700_state_with_separate_hmac_anchor_file_and_root_loaded_system_credential_key
+    transaction_store_and_durable_anchor: dedicated_uid_transaction_db_plus_root_loaded_anchor_only_for_admitted_nonrollbackable_generation
     process_isolation: systemd_protect_proc_invisible_no_new_privileges_protect_system_strict_private_tmp
     endpoint_connect_boundary: service_owned_socket_acl_grants_connect_only_to_active_interactive_uid
     non_product_e2e_principal: dedicated_nimi_runtime_e2e_system_uid
@@ -94,7 +100,7 @@ profiles:
     service_installation: signed_installer_creates_hardened_launchdaemon_and_privileged_xpc_service
     account_partition_derivation: verified_audit_token_euid_and_audit_session
     custody_store: code_identity_acl_system_keychain_item_for_runtime_designated_requirement
-    ledger_and_anchor_store: launchdaemon_principal_state_with_code_identity_acl_keychain_anchor_key
+    transaction_store_and_durable_anchor: launchdaemon_transaction_db_plus_code_identity_keychain_anchor_only_for_admitted_nonrollbackable_generation
     process_isolation: hardened_runtime_library_validation_and_task_for_pid_denial
     endpoint_connect_boundary: privileged_xpc_mach_service_validates_client_audit_token_and_code_identity
     non_product_e2e_principal: dedicated_nimi_runtime_e2e_launchdaemon_principal

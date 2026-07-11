@@ -66,7 +66,7 @@ SDK 与 Runtime 的版本协商必须显式可判定：
 - 降级仅限于 Phase 2 deferred 方法标记为不可用，不改变 Phase 1 方法语义。
 
 **Protected protocol**：Production Desktop/Runtime compatibility is proven
-before SDK traffic by mutual signed release records: exact
+before SDK traffic by mutual platform-native process and code-signing verification: exact
 `protected_local_protocol_version` plus reciprocal peer release-id admission.
 Typed status returns the verified release id. Semver metadata is advisory for
 ordinary public transports only; missing protected compatibility never uses

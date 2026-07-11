@@ -155,10 +155,10 @@ the service unavailable. Desktop/CLI/SDK never execute or select transitions.
 
 ## K-CFG-016 Transition Backup & Drift Boundary
 
-Automatic backups cannot restore older security ledger, executable trust,
+Automatic backups cannot restore older security-critical generations, executable trust,
 listener, or custody authority. Recovery material is version-bound and
 service-principal protected; restoration requires the same or newer admitted
-release record. User files and old generic keyring/vault entries are not
+installer-owned active release. User files and old generic keyring/vault entries are not
 recovery inputs.
 
 ## K-CFG-017 Phase 1 Field Authority

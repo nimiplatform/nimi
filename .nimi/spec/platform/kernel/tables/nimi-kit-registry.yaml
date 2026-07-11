@@ -193,7 +193,7 @@ modules:
     admission_status: authority_admitted_implementation_pending
     owner: platform
     source_rule: P-KIT-041
-    notes: Non-npm Rust crate/native host contract. No renderer import or npm export. A.0 admits the shared carrier boundary only; implementation must consume Runtime K-PLOCAL tables and Platform signed release trust rows without copying authority. Product stop, binary/service/path selection, generic config JSON, bearer-based privilege, and app-child carrier are absent.
+    notes: Non-npm Rust crate/native host contract. No renderer import or npm export. A.0 admits the shared carrier boundary per OS platform; implementation consumes Runtime K-PLOCAL process/session semantics and the platform-native code-signing policy without copying installer release authority. Unadmitted OS adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer-based privilege, and app-child carrier are absent.
   - id: kit.shell.tauri
     subpath: /shell/tauri
     kind: infra

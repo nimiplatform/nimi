@@ -28,7 +28,7 @@ binary selector, service owner, or stop authority.
 ## Installed Runtime Truth Source (D-BOOT-001, D-IPC-002)
 
 - Typed service status derives from the fixed OS service definition, running
-  service principal, protected mutual handshake, signed release record, and
+  service principal, protected mutual handshake, platform-native code signing, and
   same-open-file executable verification.
 - Desktop never executes a stopped/candidate Runtime for version discovery and
   never reads `~/.nimi/runtime/versions`, `current.json`, a user config path, or
