@@ -11,7 +11,7 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app update --dir path/to/app
 
 `nimi-app create` emits a publishable Tauri app-authoring scaffold. The
 generated project is designed to install its own dependencies with
-`pnpm install`, initialize with `pnpm run init`, run with `pnpm dev:shell`, run local checks, produce a
+`pnpm install`, initialize with `pnpm run init`, run with `pnpm dev`, run local checks, produce a
 developer-submitted Nimi listing packet, and remain directly usable without
 hand-editing scaffold-managed glue.
 
@@ -20,13 +20,24 @@ pinned local `nimicoding sync --apply` projection for `.nimi/{config,contracts,m
 and writes app-scaffold admission/build-profile/lock state. It does not use
 `npx` or mutate `.nimi/**` from package install side effects.
 
-`pnpm dev:shell` launches the Tauri shell (`tauri dev`). The generated app
-authenticates through the in-app Runtime account login, exactly like a shipped
-app — there is no standalone developer session. For a not-yet-admitted local
-app, enable Developer Mode in the desktop app; the Runtime developer-registration
-gate then admits the local app under a real logged-in account. This is local
-development material only; it is not listing admission, installed-app truth, or a
-permission grant.
+`pnpm dev` enters the official `nimi-app dev` launcher and selects Tauri by
+default. `pnpm dev:shell -- --shell electron` and `pnpm dev:shell -- --shell
+tauri` select a shell explicitly. On the first Windows run, Nimi Desktop shows
+the canonical project, app identity, shell, current account, and requested
+capabilities. The user may allow only this run, remember the project, or deny.
+Desktop then owns the dev server and native host lifecycle; ordinary direct
+shell launches remain untrusted.
+
+Remembered authorization is bound to the canonical project, app id, shell,
+account, and capability fingerprint. Renderer HMR and Desktop-controlled native
+host rebuilds do not prompt again. App id, project root, shell, account, or
+capability expansion requires a new decision. Runtime credentials and protected
+session material never enter the project, terminal, or renderer. The current
+local-development surface admits only typed Runtime artifact reads requested in
+`nimi.app.yaml`; other protected surfaces remain fail-closed. Local-development
+authorization is not listing admission, a production release, installed-app
+truth, signing evidence, or a permission grant. Non-Windows development
+admission currently fails closed.
 
 When `--profile tester-reference` is used, the generator emits the explicit
 non-first-party developer reference tester product surface: Runtime-authenticated
@@ -54,6 +65,7 @@ pnpm add @nimiplatform/sdk @nimiplatform/kit
 
 ```bash
 nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]
+nimi-app dev [--dir path] [--shell electron|tauri]
 nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]
 nimi-app update [--dir path] [--json]

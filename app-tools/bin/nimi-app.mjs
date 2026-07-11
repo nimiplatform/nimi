@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import process from 'node:process';
-import { createApp, doctorAppScaffold, initAppScaffold, updateAppScaffold } from '../lib/index.mjs';
+import { createApp, doctorAppScaffold, initAppScaffold, runDevShell, updateAppScaffold } from '../lib/index.mjs';
 
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
@@ -11,6 +11,7 @@ function parseArgs(argv) {
   let title = '';
   let packageName = '';
   let author = '';
+  let shell = '';
   let json = false;
   for (let index = 0; index < rest.length; index += 1) {
     if (rest[index] === '--dir') {
@@ -43,6 +44,11 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (rest[index] === '--shell') {
+      shell = String(rest[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
     if (rest[index] === '--json') {
       json = true;
       continue;
@@ -57,6 +63,7 @@ function parseArgs(argv) {
     title,
     packageName,
     author,
+    shell,
     json,
   };
 }
@@ -69,13 +76,14 @@ function printUsage() {
       '  nimi-app init [--dir path] [--json]',
       '  nimi-app doctor [--dir path] [--json]',
       '  nimi-app update [--dir path] [--json]',
+      '  nimi-app dev [--dir path] [--shell electron|tauri]',
       '',
     ].join('\n'),
   );
 }
 
 try {
-  const { command, dir, profile, appId, title, packageName, author, json } = parseArgs(process.argv.slice(2));
+  const { command, dir, profile, appId, title, packageName, author, shell, json } = parseArgs(process.argv.slice(2));
   if (!command || command === '--help' || command === '-h') {
     printUsage();
     process.exit(0);
@@ -107,6 +115,12 @@ try {
       updateAppScaffold(process.cwd(), {
         dir,
         json,
+      });
+      break;
+    case 'dev':
+      await runDevShell(process.cwd(), {
+        dir,
+        shell: shell || 'tauri',
       });
       break;
     default:

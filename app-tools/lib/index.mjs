@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { createAppScaffold } from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
+export { runDevShell } from '../scripts/dev-shell.mjs';
 
 const SDK_VERSION = '^0.6.0';
 const NIMICODING_VERSION = '0.2.5';

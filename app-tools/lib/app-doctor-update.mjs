@@ -14,7 +14,24 @@ import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
 
-const SCAN_EXCLUDED_DIRS = new Set(['.git', 'node_modules', 'dist', 'target', '.turbo', '.vite']);
+const SCAN_EXCLUDED_DIRS = new Set([
+  '.git',
+  '.turbo',
+  '.vite',
+  'build',
+  'coverage',
+  'dist',
+  'dist-electron',
+  'docs',
+  'node_modules',
+  'target',
+]);
+const SCAN_EXCLUDED_FILES = new Set([
+  'Cargo.lock',
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+]);
 const TEXT_EXTENSIONS = new Set([
   '',
   '.cjs',
@@ -84,6 +101,30 @@ const CLOSED_PERMISSION_SCOPES = new Set([
   'ai_profile.selection.consume',
 ]);
 const APP_LOCAL_DRAFTS_SCOPES = new Set(['file.read.scoped', 'file.write.scoped']);
+const RUNTIME_ARTIFACT_SCOPES = new Set(['data.scope.read']);
+const CANONICAL_PERMISSION_QUALIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,158}[A-Za-z0-9])?$/;
+const LOCAL_DEVELOPMENT_BYPASS_LABELS = new Set([
+  'generic platform auth helper in scaffold',
+  'Realm login bypass endpoint',
+  'Realm refresh bypass endpoint',
+  'Realm permission grant REST bypass endpoint',
+  'Realm raw request bypass',
+  'Realm API path literal bypass',
+  'Realm API url literal bypass',
+  'Realm API fetch bypass',
+  'OpenAI-compatible Runtime REST endpoint assumption',
+  'app-owned session store',
+  'app-owned refresh token provider',
+  'app-owned protected Runtime gRPC client',
+  'app-owned Runtime endpoint custody',
+  'renderer or app storage of protected material',
+  'environment custody of protected material',
+  'renderer launch binding custody',
+  'installed-app developer registration bypass',
+  'Desktop private import',
+  'Runtime private import',
+  'generated private Runtime client',
+]);
 
 function resolveTargetDir(cwd, options = {}) {
   return path.resolve(cwd, String(options.dir || '').trim() || '.');
@@ -215,6 +256,9 @@ function collectTextFiles(rootDir) {
         continue;
       }
       const relativePath = path.relative(rootDir, fullPath).split(path.sep).join('/');
+      if (SCAN_EXCLUDED_FILES.has(entry.name)) {
+        continue;
+      }
       if (
         relativePath.startsWith('.nimi/config/')
         || relativePath.startsWith('.nimi/contracts/')
@@ -291,6 +335,10 @@ function buildForbiddenPatterns() {
     ['OpenAI-compatible Runtime REST endpoint assumption', /\/v1\/(?:chat\/completions|responses|embeddings|audio|images|models)\b/],
     ['app-owned session store', /sessionStore/],
     ['app-owned refresh token provider', /refreshTokenProvider/],
+    ['app-owned protected Runtime gRPC client', /@grpc\/grpc-js|\bgrpc\.credentials\.createInsecure\s*\(/],
+    ['app-owned Runtime endpoint custody', /\b(?:NIMI_RUNTIME_ENDPOINT|runtimeEndpoint)\b/],
+    ['renderer or app storage of protected material', /\b(?:localStorage|sessionStorage)\.setItem\s*\([^\n]{0,160}(?:access[_-]?token|refresh[_-]?token|launch[_-]?ticket|protected[_-]?session|credential)/i],
+    ['environment custody of protected material', /\bNIMI_[A-Z0-9_]*(?:TOKEN|TICKET|SESSION|CREDENTIAL)(?:_ID|_SECRET)?\b/],
     ['raw bearer token custody wording', /raw JWT/i],
     ['model-test import', new RegExp(modelTestImport.replace('/', '\\/'))],
     ['stale Runtime shell API', new RegExp(runtimeBridgeName)],
@@ -325,7 +373,7 @@ function buildForbiddenPatterns() {
   ];
 }
 
-function scanForbiddenPatterns(targetDir, profile) {
+function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
   const findings = [];
   const patterns = buildForbiddenPatterns();
   const testFileAllowedLabels = new Set([
@@ -336,6 +384,10 @@ function scanForbiddenPatterns(targetDir, profile) {
     'Runtime private import',
     'generated private Runtime client',
     'external principal installed-app posture',
+    'app-owned protected Runtime gRPC client',
+    'app-owned Runtime endpoint custody',
+    'renderer or app storage of protected material',
+    'environment custody of protected material',
   ]);
   const testerReferenceAllowedLabels = new Set([
     'renderer launch binding custody',
@@ -344,8 +396,14 @@ function scanForbiddenPatterns(targetDir, profile) {
   for (const filePath of collectTextFiles(targetDir)) {
     const relativePath = path.relative(targetDir, filePath).split(path.sep).join('/');
     const text = readFileSync(filePath, 'utf8');
-    const isTestFile = relativePath.startsWith('test/') || relativePath.endsWith('.test.mjs');
+    const isTestFile = relativePath.startsWith('test/') || /(?:^|\/)\w[^/]*\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(relativePath);
     for (const [label, pattern] of patterns) {
+      if (selectedLabels && !selectedLabels.has(label)) {
+        continue;
+      }
+      if (selectedLabels && isTestFile) {
+        continue;
+      }
       // Test files reference provider/model names to assert behavior (including
       // negative assertions that forbid hardcoding); only product/glue source is
       // product truth, so the hardcoding pattern is scoped out of tests.
@@ -399,11 +457,14 @@ function assertManifestPermissionDeclarations(manifest, manifestPath) {
     if (typeof declaration.qualifier === 'string' && qualifier.length === 0) {
       throw new Error(`Submitted manifest permission declaration ${index} qualifier must be omitted or non-empty`);
     }
-    if (qualifier && qualifier !== 'app-local-drafts') {
-      throw new Error(`Submitted manifest permission declaration ${index} uses unsupported qualifier: ${qualifier}`);
+    if (qualifier && !CANONICAL_PERMISSION_QUALIFIER.test(qualifier)) {
+      throw new Error(`Submitted manifest permission declaration ${index} uses non-canonical qualifier: ${qualifier}`);
     }
     if (qualifier === 'app-local-drafts' && !APP_LOCAL_DRAFTS_SCOPES.has(scope)) {
       throw new Error(`Submitted manifest permission declaration ${index} app-local-drafts qualifier is only admitted for file.read.scoped or file.write.scoped`);
+    }
+    if (qualifier === 'runtime.artifacts' && !RUNTIME_ARTIFACT_SCOPES.has(scope)) {
+      throw new Error(`Submitted manifest permission declaration ${index} runtime.artifacts qualifier is only admitted for data.scope.read`);
     }
     for (const grantField of ['grantId', 'grant_id', 'state', 'granted', 'granted_permissions']) {
       if (Object.hasOwn(declaration, grantField)) {
@@ -466,7 +527,7 @@ function assertSemanticMarkers(targetDir) {
   for (const marker of [
     'submission_role: developer-submitted-input',
     'init_command: pnpm run init',
-    'dev_shell_command: pnpm dev:shell',
+    'dev_command: pnpm dev',
     'admission_truth: platform-owned-after-review',
   ]) {
     if (!submission.includes(marker)) {
@@ -518,6 +579,8 @@ function assertSemanticMarkers(targetDir) {
     throw new Error(`CI enables pnpm cache before lockfile exists: ${lockfilePath}`);
   }
 
+  assertOfficialDevelopmentEntrypoints(targetDir);
+
   const agents = readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
   for (const marker of [
     'app-scaffold intent and lock',
@@ -528,6 +591,33 @@ function assertSemanticMarkers(targetDir) {
   ]) {
     if (!agents.includes(marker)) {
       throw new Error(`AGENTS.md boundary text missing: ${marker}`);
+    }
+  }
+}
+
+function assertOfficialDevelopmentEntrypoints(targetDir) {
+  const packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json');
+  const scripts = packageJson?.scripts;
+  if (!scripts || typeof scripts !== 'object' || Array.isArray(scripts)) {
+    throw new Error('package.json scripts are required');
+  }
+  const required = {
+    dev: 'nimi-app dev --shell tauri',
+    'dev:shell': 'nimi-app dev',
+    'dev:electron': 'nimi-app dev --shell electron',
+  };
+  for (const [name, command] of Object.entries(required)) {
+    if (scripts[name] !== command) {
+      throw new Error(`package.json ${name} must use the official local-development launcher: ${command}`);
+    }
+  }
+  for (const [name, value] of Object.entries(scripts)) {
+    const command = typeof value === 'string' ? value.trim() : '';
+    if (/(?:^|\s)(?:(?:pnpm\s+(?:exec\s+)?)|(?:npx\s+))?tauri\s+dev(?:\s|$)/i.test(command)) {
+      throw new Error(`package.json ${name} bypasses the Desktop-owned Tauri development supervisor`);
+    }
+    if (/^(?:(?:pnpm\s+(?:exec\s+)?)|(?:npx\s+))?electron(?:\.cmd)?(?:\s|$)/i.test(command)) {
+      throw new Error(`package.json ${name} bypasses the Desktop-owned Electron development supervisor`);
     }
   }
 }
@@ -561,6 +651,12 @@ function assertManagedFilesCurrent(targetDir, lock) {
 }
 
 function validateDoctorState(targetDir, versions, runners = {}) {
+  if (!existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH))) {
+    if (existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH))) {
+      readLock(targetDir);
+    }
+    return validateExistingSubmittedApp(targetDir);
+  }
   const lock = readLock(targetDir);
   const snapshot = expectedSnapshotFromLock(lock, versions);
   ensureLockMatchesCurrentGenerator(lock, snapshot);
@@ -576,6 +672,41 @@ function validateDoctorState(targetDir, versions, runners = {}) {
     targetDir,
     lock,
     snapshot,
+  };
+}
+
+function validateExistingSubmittedApp(targetDir) {
+  const manifestPath = path.join(targetDir, 'nimi.app.yaml');
+  if (!existsSync(manifestPath)) {
+    throw new Error('Existing submitted app requires nimi.app.yaml');
+  }
+  const manifest = readFileSync(manifestPath, 'utf8');
+  let parsed;
+  try {
+    parsed = parseYaml(manifest);
+  } catch (error) {
+    throw new Error(`Submitted manifest YAML cannot be parsed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const appId = typeof parsed?.app_id === 'string' ? parsed.app_id.trim() : '';
+  const profile = typeof parsed?.profile === 'string' ? parsed.profile.trim() : '';
+  if (!appId || appId !== parsed?.app_id || !SUPPORTED_APP_SCAFFOLD_PROFILES.includes(profile)) {
+    throw new Error('Existing submitted app requires canonical app_id and supported profile');
+  }
+  if (parsed?.manifest_role !== 'submitted-input') {
+    throw new Error('Submitted manifest marker missing');
+  }
+  assertManifestPermissionDeclarations(manifest, manifestPath);
+  assertOfficialDevelopmentEntrypoints(targetDir);
+  const forbiddenFindings = scanForbiddenPatterns(targetDir, profile, LOCAL_DEVELOPMENT_BYPASS_LABELS);
+  if (forbiddenFindings.length > 0) {
+    throw new Error(`Forbidden local-development bypasses detected: ${forbiddenFindings.join('; ')}`);
+  }
+  return {
+    targetDir,
+    managed: false,
+    appId,
+    profile,
+    checkedFiles: collectTextFiles(targetDir).length,
   };
 }
 
@@ -616,10 +747,11 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
     ok: true,
     command: 'doctor',
     dir: targetDir,
-    scaffoldVersion: result.lock.scaffoldVersion,
-    profile: result.lock.profile,
-    appId: result.lock.appId,
-    checkedManagedFiles: Object.keys(result.lock.managedFileHashes || {}).length,
+    scaffoldVersion: result.lock?.scaffoldVersion ?? null,
+    profile: result.lock?.profile ?? result.profile,
+    appId: result.lock?.appId ?? result.appId,
+    checkedManagedFiles: result.lock ? Object.keys(result.lock.managedFileHashes || {}).length : 0,
+    checkedExistingFiles: result.managed === false ? result.checkedFiles : 0,
   };
   if (options.json) {
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);

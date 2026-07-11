@@ -7,7 +7,7 @@ This document is a developer-submitted listing request. It is not an approval, r
 ```bash
 pnpm install
 pnpm run init
-pnpm dev:shell
+pnpm dev
 pnpm run check
 pnpm run pack
 ```

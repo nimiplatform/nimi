@@ -76,10 +76,6 @@
       "class": "scaffold-managed glue"
     },
     {
-      "path": "src/shell/account/account-panel.tsx",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "src/shell/App.tsx",
       "class": "scaffold-managed glue"
     },
@@ -100,19 +96,7 @@
       "class": "scaffold-managed glue"
     },
     {
-      "path": "src/shell/auth/runtime-account-auth.ts",
-      "class": "scaffold-managed glue"
-    },
-    {
-      "path": "src/shell/auth/runtime-login-page.tsx",
-      "class": "scaffold-managed glue"
-    },
-    {
       "path": "src/shell/auth/runtime-platform.ts",
-      "class": "scaffold-managed glue"
-    },
-    {
-      "path": "src/shell/auth/runtime-transport.ts",
       "class": "scaffold-managed glue"
     },
     {

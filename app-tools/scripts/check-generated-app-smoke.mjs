@@ -300,14 +300,16 @@ function assertNoDefaultProfileLeak(target) {
   for (const relativePath of [
     'src/tester',
     'src/shell/ai',
-    'src/shell/routes/settings.tsx',
+    'src/shell/routes/settings-route.tsx',
     'src/shell/routes/settings',
-    'src-electron',
     'scripts/run-electron-dev.mjs',
     'scripts/check-kit-first-style.mjs',
     'test/electron-acceptance.mjs',
   ]) {
     assertPath(target, relativePath, false);
+  }
+  for (const relativePath of ['src-electron/main.ts', 'src-electron/preload.cts']) {
+    assertPath(target, relativePath, true);
   }
   const viteConfig = readFileSync(path.join(target, 'vite.config.ts'), 'utf8');
   if (/repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/.test(viteConfig)) {
@@ -324,7 +326,6 @@ function assertTesterReference(target) {
     'src/tester/tester-runtime.ts',
     'src/shell/ai/tester-ai-config-settings.tsx',
     'src-electron/main.ts',
-    'scripts/run-electron-dev.mjs',
     'test/electron-acceptance.mjs',
   ]) {
     assertPath(target, relativePath, true);

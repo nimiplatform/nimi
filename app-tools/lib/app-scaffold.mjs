@@ -10,7 +10,7 @@ import {
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_VERSION = '2026-05-29.app-source-snapshot';
+export const SCAFFOLD_VERSION = '2026-07-12.local-development-v1';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
@@ -20,6 +20,7 @@ const LOCKFILE_POLICY = 'author-install-generates-lockfile';
 const GENERATED_GITIGNORE = [
   'node_modules/',
   'dist/',
+  'dist-electron/',
   'src-tauri/target/',
   '.env.local',
   '.env.*.local',
@@ -34,14 +35,9 @@ const MINIMAL_TAURI_ICON_ICO = Buffer.from('AAABAAEAAQEAAAEAIABEAAAAFgAAAIlQTkcN
 const CANONICAL_PERMISSION_SCOPES = new Set('account.read account.session.read data.scope.read data.scope.write agent.identity.project agent.identity.bind ai.spend.meter ai.spend.delegate memory.read.bounded memory.write.admitted knowledge.read.bounded knowledge.write.admitted notification.send notification.subscribe file.read.scoped file.write.scoped device.use.scoped audit.read.scoped ai_profile.selection.consume'.split(' '));
 const DEFAULT_PERMISSION_DECLARATIONS = Object.freeze([
   Object.freeze({
-    scope: 'file.read.scoped',
-    qualifier: 'app-local-drafts',
-    purpose: 'Read drafts owned by this app during author testing.',
-  }),
-  Object.freeze({
-    scope: 'file.write.scoped',
-    qualifier: 'app-local-drafts',
-    purpose: 'Store drafts owned by this app during author testing.',
+    scope: 'data.scope.read',
+    qualifier: 'runtime.artifacts',
+    purpose: 'Read Runtime-owned bootstrap artifacts through the typed app-host surface.',
   }),
 ]);
 
@@ -279,12 +275,14 @@ function buildPackageJson(profile, versions, identity) {
       access: 'public',
     },
     scripts: {
-      dev: 'pnpm run dev:renderer',
+      dev: 'nimi-app dev --shell tauri',
       'dev:renderer': `vite --host 127.0.0.1 --port ${identity.devPort} --strictPort`,
-      'dev:shell': 'tauri dev',
+      'dev:shell': 'nimi-app dev',
+      'dev:electron': 'nimi-app dev --shell electron',
       init: 'nimi-app init',
       typecheck: 'tsc --noEmit',
       build: 'tsc --noEmit && vite build',
+      'build:electron': 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs',
       'build:shell': 'tauri build',
       test: 'node --test test/*.test.mjs',
       check: 'pnpm run doctor && pnpm run test && pnpm run validate',
@@ -314,6 +312,8 @@ function buildPackageJson(profile, versions, identity) {
       '@types/react-dom': versions.reactDomTypesVersion,
       '@types/three': versions.threeTypesVersion,
       '@vitejs/plugin-react': versions.viteReactPluginVersion,
+      electron: versions.electronVersion,
+      esbuild: versions.esbuildVersion,
       tailwindcss: versions.tailwindcssVersion,
       typescript: versions.typescriptVersion,
       vite: versions.viteVersion,
@@ -321,11 +321,7 @@ function buildPackageJson(profile, versions, identity) {
     },
   };
   if (isTesterReferenceProfile(profile)) {
-    packageJson.scripts['dev:electron'] = 'pnpm run build:electron && node scripts/run-electron-dev.mjs';
-    packageJson.scripts['build:electron'] = 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs';
     packageJson.scripts['test:e2e:electron'] = 'pnpm run build && pnpm run build:electron && node --test test/electron-acceptance.mjs';
-    packageJson.devDependencies.electron = versions.electronVersion;
-    packageJson.devDependencies.esbuild = versions.esbuildVersion;
     packageJson.devDependencies.playwright = versions.playwrightVersion;
   }
   if (identity.author) {
@@ -540,7 +536,7 @@ function buildScaffoldSubmissionFile(identity) {
       'publish_readiness:',
       '  install_command: pnpm install',
       '  init_command: pnpm run init',
-      '  dev_shell_command: pnpm dev:shell',
+      '  dev_command: pnpm dev',
       '  build_command: pnpm run build',
       '  pack_command: pnpm run pack',
       'review_inputs:',
@@ -620,6 +616,8 @@ function buildDependencyMatrix(profile, versions) {
       '@tailwindcss/vite': versions.tailwindcssViteVersion,
       '@types/three': versions.threeTypesVersion,
       '@vitejs/plugin-react': versions.viteReactPluginVersion,
+      electron: versions.electronVersion,
+      esbuild: versions.esbuildVersion,
       yaml: versions.yamlVersion,
     },
     cargo: {
