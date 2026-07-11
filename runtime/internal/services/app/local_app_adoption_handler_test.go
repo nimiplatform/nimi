@@ -204,7 +204,7 @@ func TestAdoptLocalAppUpdatesAccountInventoryAndOpenUsesLocalMaterialization(t *
 	}
 	if openResp.GetProjection().GetReleaseDescriptorRef() != "" ||
 		openResp.GetProjection().GetCallerMode() != "" ||
-		openResp.GetProjection().GetLaunchNonce() != "" ||
+		len(openResp.GetProjection().GetLaunchId()) != 0 ||
 		openResp.GetProjection().GetProductReadinessClaimAllowed() {
 		t.Fatalf("local adoption must not emit installed-app launch proof: %+v", openResp.GetProjection())
 	}

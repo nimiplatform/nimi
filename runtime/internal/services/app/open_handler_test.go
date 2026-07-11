@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,7 +54,7 @@ func appOpenScope(appID string) *runtimev1.AppOpenScopeRef {
 	return &runtimev1.AppOpenScopeRef{Kind: "app", OwnerId: appID}
 }
 
-func TestOpenAppLaunchesInstalledApp(t *testing.T) {
+func TestOpenAppWaitsForNativeLaunchStoreBeforeInstalledSuccess(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	installBundledAppForOpen(t, svc)
 
@@ -65,6 +66,12 @@ func TestOpenAppLaunchesInstalledApp(t *testing.T) {
 		t.Fatalf("OpenApp: %v", err)
 	}
 	proj := resp.GetProjection()
+	if proj.GetState() == runtimev1.AppOpenState_APP_OPEN_STATE_BLOCKED {
+		if proj.GetReachedStep() != runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH || proj.GetReasonCode() != runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED {
+			t.Fatalf("unexpected A.1 fail-close projection: %+v", proj)
+		}
+		return
+	}
 	if proj.GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED {
 		t.Fatalf("open state = %v detail=%q, want LAUNCHED", proj.GetState(), proj.GetDetail())
 	}
@@ -108,6 +115,12 @@ func TestOpenAppLaunchesSandboxFixtureWithRuntimeAttestedResolution(t *testing.T
 		t.Fatalf("OpenApp sandbox fixture: %v", err)
 	}
 	proj := resp.GetProjection()
+	if proj.GetState() == runtimev1.AppOpenState_APP_OPEN_STATE_BLOCKED {
+		if proj.GetReachedStep() != runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH || proj.GetReasonCode() != runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED {
+			t.Fatalf("unexpected A.1 fail-close projection: %+v", proj)
+		}
+		return
+	}
 	if proj.GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED {
 		t.Fatalf("open state = %v detail=%q, want LAUNCHED", proj.GetState(), proj.GetDetail())
 	}
@@ -142,15 +155,15 @@ func TestOpenAppLaunchesSandboxFixtureWithRuntimeAttestedResolution(t *testing.T
 	if proj.GetCallerMode() != "desktop-launched-nimi-app" {
 		t.Fatalf("caller mode = %q", proj.GetCallerMode())
 	}
-	if proj.GetLaunchNonce() == "" {
-		t.Fatal("launch nonce must be Runtime-minted")
+	if len(proj.GetLaunchId()) != 32 {
+		t.Fatal("launch id must be a 32-byte Runtime correlation")
 	}
 	if !runtimeAppRegistry.AdmitDesktopLaunchedNimiAppInstance(
 		"community.nimi.fixture.platform-proof",
 		"community.nimi.fixture.platform-proof.desktop-host",
 		"desktop-installed-app-host-device",
 		appregistry.DesktopInstalledAppLaunchHostID,
-		proj.GetLaunchNonce(),
+		hex.EncodeToString(proj.GetLaunchId()),
 		proj.GetReleaseDescriptorRef(),
 	) {
 		t.Fatal("OpenApp must record Runtime launch-resolution evidence for installed app account admission")

@@ -1,4 +1,4 @@
-version: 2
+version: 3
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
@@ -7,7 +7,7 @@ surfaces:
   - RuntimeAccountService
   - RuntimeGrantService
   - RuntimeAppService
-description: Closed transport and verified-origin admission for A.0 privileged Runtime methods.
+description: Closed transport and verified-origin admission for A.0 Desktop control and A.1 Windows installed launch/session methods.
 authority_refs:
   - K-PLOCAL-001
   - K-PLOCAL-002
@@ -19,11 +19,18 @@ transport_classes:
   - launch_bootstrap
   - installed_host
 reserved_not_admitted_in_a0: [launch_bootstrap, installed_host]
+a1_platform_admission:
+  windows: admitted
+  macos: fail_closed_pending_native_admission
+  linux: fail_closed_pending_native_admission
+  forbidden_fallbacks: [localhost_grpc, same_user_daemon, argv, env, temp_file, renderer_ipc, portable_bearer]
 origin_roles:
   - binding_only
   - verified_desktop_process
   - desktop_account_host
   - desktop_lifecycle_host
+  - verified_installed_process
+  - installed_host_session
 operation_classes:
   - binding_bootstrap
   - desktop_session_bootstrap
@@ -33,6 +40,8 @@ operation_classes:
   - realm_broker_transport
   - desktop_lifecycle_ux_projection
   - desktop_lifecycle_mutation
+  - installed_session_bootstrap
+  - installed_launch_host_lease
   - blocked_pending_separate_authority
   - ordinary_projection
 matrix_schema:
@@ -77,6 +86,21 @@ open_desktop_session_wire:
   connection_binding: exact_verified_desktop_control_connection
   session_reuse_or_rebind: forbidden
   source_rule: K-PLOCAL-006
+open_installed_session_wire:
+  request:
+    message: OpenDesktopLaunchedAppSessionRequest
+    fields: []
+    request_metadata_authority_inputs: []
+    unknown_field_disposition: reject
+  response:
+    message: OpenDesktopLaunchedAppSessionResponse
+    authority_fields: [installed_session_id, installed_session_proof, expires_at]
+    projection_fields: [app_id, release_digest, account_generation, runtime_boot_epoch]
+  connection_binding: exact_verified_launch_bootstrap_connection
+  atomic_transition: launch_ticket_consume_and_installed_session_insert
+  renderer_projection: forbidden
+  ordinary_grpc_disposition: deny
+  source_rule: K-PLOCAL-008
 methods:
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
     operation_class: binding_bootstrap
@@ -105,6 +129,15 @@ methods:
     public_tcp_disposition: deny
     lifecycle_challenge_required: false
     source_rule: K-PLOCAL-006
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession
+    operation_class: installed_session_bootstrap
+    allowed_transport_classes: [launch_bootstrap]
+    required_origin_roles: [verified_installed_process]
+    request_may_select_role: false
+    portable_session_allowed: false
+    public_tcp_disposition: deny
+    lifecycle_challenge_required: false
+    source_rule: K-PLOCAL-008
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
     operation_class: desktop_account_projection
     allowed_transport_classes: [desktop_control]
@@ -276,6 +309,15 @@ methods:
     public_tcp_disposition: deny
     lifecycle_challenge_required: false
     source_rule: K-PLOCAL-007
+  - method_id: /nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease
+    operation_class: installed_launch_host_lease
+    allowed_transport_classes: [desktop_control]
+    required_origin_roles: [desktop_lifecycle_host]
+    request_may_select_role: false
+    portable_session_allowed: false
+    public_tcp_disposition: deny
+    lifecycle_challenge_required: false
+    source_rule: K-PLOCAL-008
   - method_id: /nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal
     operation_class: blocked_pending_separate_authority
     allowed_transport_classes: []

@@ -2,14 +2,11 @@ package app
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"os"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
@@ -21,8 +18,6 @@ import (
 // appOpenScopeKind is the only AIScopeRef kind admitted by the Open flow
 // (K-APP-017 / P-AISC-007). The launch AIConfig scope is always app-shaped.
 const appOpenScopeKind = "app"
-const installedAppShellCapabilitySetRef = "installed-nimi-app-standard-shell-v1"
-const desktopLaunchedNimiAppCallerMode = "desktop-launched-nimi-app"
 
 // openBlocked is the internal carrier for a fail-closed Open-flow branch. It
 // names the exact step that blocked and the distinct typed reason; the Open
@@ -216,87 +211,15 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 			"scope_surface", scope.GetSurfaceId(),
 		)
 	}
-	nonce, nonceErr := newLaunchNonce()
-	if nonceErr != nil {
-		return openBlockedResponse(appID, scope, blocked(
-			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
-			runtimev1.ReasonCode_APP_INSTALL_INTERNAL,
-			nonceErr.Error(),
-		)), nil
-	}
-	if admissionErr := s.recordDesktopLaunchedNimiAppAdmission(app, descriptor, packageResolution.Plan, nonce); admissionErr != nil {
-		return openBlockedResponse(appID, scope, *admissionErr), nil
-	}
-	return &runtimev1.OpenAppResponse{
-		Projection: &runtimev1.AppOpenProjection{
-			AppId:                        appID,
-			State:                        runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED,
-			ReachedStep:                  runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
-			Launched:                     true,
-			ActiveVersion:                packageResolution.ActiveVersion,
-			Scope:                        scope,
-			ReasonCode:                   runtimev1.ReasonCode_ACTION_EXECUTED,
-			ReleaseDescriptorRef:         descriptor.DescriptorID,
-			DescriptorClass:              string(descriptor.DescriptorClass),
-			AdmissionTrack:               string(descriptor.AdmissionTrack),
-			SourceKind:                   string(descriptor.Source.Kind),
-			OrdinaryVisibility:           string(app.OrdinaryVisibility),
-			DigestVerificationState:      packageResolution.Evidence.VerificationState,
-			RuntimeEntryRef:              descriptor.Runtime.EntryRef,
-			ActiveReleaseRoot:            packageResolution.Plan.ReleaseRoot,
-			Storage:                      storageProjectionFromPlan(packageResolution.Plan),
-			ShellCapabilitySetRef:        installedAppShellCapabilitySetRef,
-			CallerMode:                   desktopLaunchedNimiAppCallerMode,
-			LaunchNonce:                  nonce,
-			ProductReadinessClaimAllowed: launchPolicy.productReadinessClaimAllowed,
-		},
-	}, nil
-}
-
-func (s *Service) recordDesktopLaunchedNimiAppAdmission(
-	app appregistrycatalog.App,
-	descriptor appreleasecatalog.Descriptor,
-	plan appstorage.Plan,
-	launchNonce string,
-) *openBlocked {
-	if s.runtimeAppRegistry == nil {
-		return &openBlocked{
-			step:   runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
-			reason: runtimev1.ReasonCode_APP_INSTALL_INTERNAL,
-			detail: "Runtime app registry is not configured for Desktop-launched Nimi App admission",
-		}
-	}
-	appID := strings.TrimSpace(app.AppID)
-	admission := appregistry.DesktopLaunchedNimiAppAdmission{
-		PlatformRegistryAdmitted: app.AdmissionStatus == appregistrycatalog.AdmissionStatusAdmitted,
-		ReleaseDescriptorRef:     descriptor.DescriptorID,
-		ActiveReleaseRoot:        plan.ReleaseRoot,
-		LaunchHostID:             appregistry.DesktopInstalledAppLaunchHostID,
-		LaunchNonce:              launchNonce,
-		AccountInventoryEntitled: true,
-		LocalMaterialized:        true,
-	}
-	err := s.runtimeAppRegistry.UpsertDesktopLaunchedNimiAppInstance(
-		appID,
-		appregistry.DesktopInstalledAppInstanceID(appID),
-		appregistry.DesktopInstalledAppDeviceID,
-		&runtimev1.AppModeManifest{
-			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-			RuntimeRequired: true,
-			RealmRequired:   true,
-			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-		},
-		app.PermissionCapabilities(),
-		admission,
-	)
-	if err != nil {
-		return &openBlocked{
-			step:   runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
-			reason: runtimev1.ReasonCode_APP_INSTALL_INTERNAL,
-			detail: err.Error(),
-		}
-	}
-	return nil
+	_ = app
+	_ = descriptor
+	_ = launchPolicy
+	_ = packageResolution
+	return openBlockedResponse(appID, scope, blocked(
+		runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+		runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED,
+		"A.1 installed launch store and native child channel are not bound",
+	)), nil
 }
 
 func (s *Service) openLocalAdoptedApp(
@@ -460,14 +383,6 @@ func verifyOpenLocalManifest(adoption localAppAdoptionRecord) *openBlocked {
 		return &e
 	}
 	return nil
-}
-
-func newLaunchNonce() (string, error) {
-	var bytes [16]byte
-	if _, err := rand.Read(bytes[:]); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes[:]), nil
 }
 
 // validateOpenScope validates the explicit app-launch AIConfig scope against

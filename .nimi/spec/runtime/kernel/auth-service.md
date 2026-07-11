@@ -75,10 +75,10 @@ validation never upgrades protected origin、caller role、transport class、
 account posture 或 token custody。
 For `BINDING_ONLY`, effective domains and effective scopes are empty.
 
-Before A.1 protected child-channel authority and implementation, ordinary
-`OpenSession` has no broker, AI, artifact, realtime, media, lifecycle, or
-`OpenApp` authority。下表仅定义未来独立准入 session 可被进一步收窄的 ceiling，
-不表达当前 effective rights：
+Ordinary `OpenSession` has no broker, AI, artifact, realtime, media, lifecycle,
+or `OpenApp` authority. A.1 installed sessions are created only by
+`OpenDesktopLaunchedAppSession` on a verified launch-bootstrap connection; the
+following table remains a ceiling, not blanket effective rights：
 
 | AppMode | runtime.* ceiling | realm.* ceiling | 静态上限说明 |
 |---|---|---|---|

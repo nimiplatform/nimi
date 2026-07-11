@@ -357,8 +357,8 @@ rules:
       - desktop_boundary_test
       - protected_local_authority_gate
     evidence_requirement: required
-    note: A.0 admits only the verified Desktop process-origin prerequisite; installed caller posture, child channel, and session remain blocked pending A.1.
-    evidence_scope_note: The protected-local gate is structural A.0 authority evidence. Runtime/SDK/Kit/Desktop tests remain implementation compatibility evidence only and do not admit A.1 launch/session details.
+    note: A.1 admits the Windows verified child origin and Runtime-owned installed session; installed operations remain denied pending their policy rows.
+    evidence_scope_note: The protected-local gate covers A.0 Desktop and A.1 Windows launch/session structure. Blocked installed operations remain denied, and Runtime/SDK/Kit/Desktop positive evidence remains required before product closeout.
     test_files:
       - runtime/internal/services/account/service_test.go
       - sdks/typescript/runtime/app-session.test.ts
@@ -400,8 +400,8 @@ rules:
       - desktop_boundary_test
       - protected_local_authority_gate
     evidence_requirement: required
-    note: A.0 admits the rejection of self-asserted envelope fields as origin proof; installed envelope, child carrier, and replay posture remain blocked pending A.1.
-    evidence_scope_note: The protected-local gate is structural A.0 authority evidence. Runtime/SDK/Kit tests remain implementation compatibility evidence only and do not admit installed envelope or replay fields.
+    note: A.1 admits only inherited native-channel origin proof; every self-asserted envelope and portable replay field remains denied.
+    evidence_scope_note: The protected-local gate is structural A.1 authority evidence. Blocked portable envelopes remain denied; Runtime/SDK/Kit tests must prove native origin and ordinary gRPC/renderer denial.
     test_files:
       - runtime/internal/services/account/realm_unary_test.go
       - runtime/internal/appregistry/registry_test.go
@@ -440,6 +440,10 @@ rules:
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
     note: Structural transactional lifecycle operation, boot epoch, and limited durable-anchor authority; platform-native implementation and closeout evidence remain per-platform.
+  - rule_id: K-PLOCAL-008
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: A.1 structurally admits Windows process-bound launch bootstrap and atomic Runtime-owned installed sessions; product positive evidence and macOS/Linux admission remain open.
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

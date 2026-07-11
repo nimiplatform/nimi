@@ -123,9 +123,9 @@ success；不得 admit 上述四个 token 之外的 action。
 
 Before package or launch-resolution work, the current `desktop_control`
 connection must carry Runtime-derived `desktop_lifecycle_host` origin and a
-matching current account/release/adoption generation. A.0 does not admit the installed child
-channel or installed app session; positive bundled/installed launch closeout
-waits for A.1 without a temporary fallback.
+matching current account/release/adoption generation. A.1 admits the Windows
+installed child channel under K-PLOCAL-008; unadmitted platforms remain
+fail-closed without a temporary fallback.
 
 In A.0, `OpenApp` is admitted only as a protected Desktop lifecycle mutation
 with transactional idempotency and exact target/generation checks. It does not
@@ -135,12 +135,11 @@ process/window or return `APP_OPEN_STATE_LAUNCHED`. It fails closed with the
 typed protected-transport-unavailable reason after operation validation and before
 child side effects.
 
-A.0 defines no installed app caller enum, launch nonce/ticket, release/storage
-projection, host binding, renderer bridge, capability set, or sandbox positive
-path. A separate A.1 cross-owner admission must add all exact request/response,
-transport, process, replay, lifetime and failure semantics before positive
-launch implementation. Filesystem guesses, process liveness, local adoption,
-account inventory, tester registration, Desktop identity, app metadata,
+A.1 defines the process-bound Windows launch record and installed session in
+K-PLOCAL-008. `OpenApp` may expose only the non-authorizing launch correlation
+id in its renderer-safe projection; the native handle lease is host-only.
+Filesystem guesses, process liveness alone, local adoption, account inventory,
+tester registration, Desktop identity, app metadata,
 ordinary gRPC and prior implementation cannot approximate launch success.
 
 `MUST`：`UninstallApp`（`K-APP-014`）必须发射一个可被 watch 的 lifecycle

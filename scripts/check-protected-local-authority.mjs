@@ -47,7 +47,7 @@ const ruleClauses = new Map([
     /sole authority/iu,
     /RegisterApp.*OpenSession.*BINDING_ONLY/isu,
     /app id.*caller enum.*source host.*manifest.*portable/isu,
-    /A\.0.*A\.1.*protected child channel/isu,
+    /A\.1.*Windows child channel/isu,
     /isolated OS service.*principal/isu,
   ]],
   ['K-PLOCAL-002', [
@@ -227,7 +227,7 @@ function validateCore(bundle, issues) {
     /AppMode.*static upper bound/isu,
     /BINDING_ONLY.*effective domains.*effective scopes.*empty/isu,
     /never.*upgrades protected origin/isu,
-    /Before A\.1.*OpenSession.*no broker.*AI.*artifact.*realtime.*media.*lifecycle/isu,
+    /Ordinary.*OpenSession.*no broker.*AI.*artifact.*realtime.*media.*lifecycle/isu,
   ]) {
     if (!required.test(appModeRule)) {
       issues.push(issue('BINDING_ONLY_APP_MODE_CEILING_REQUIRED', `${paths.authService}#K-AUTHSVC-009`, 'AppMode must remain a non-authorizing ceiling for binding-only bootstrap.'));
@@ -430,11 +430,11 @@ function validateCore(bundle, issues) {
     || !(electronModule?.dependencies ?? []).includes('kit.shell.protected-local')
     || !equalArray((lifecycleCapability?.operations ?? []).map((row) => row.id), ['status', 'start', 'restart'])
     || standardShell?.protected_service_control_policy?.product_stop_operation !== 'absent'
-    || installedSet?.authority_status !== 'blocked_pending_a1'
+    || installedSet?.authority_status !== 'a1_windows_admitted_implementation_pending'
     || (installedSet?.allowed_operations ?? []).length !== 0
-    || installedSet?.planned_operations_disposition !== 'deny_until_a1_authority_and_implementation'
+    || installedSet?.planned_operations_disposition !== 'deny_until_a4_carrier_and_operation_admission'
   ) {
-    issues.push(issue('KIT_PROTECTED_LOCAL_CARRIER_REQUIRED', paths.kitRegistry, 'Kit must register one shared native protected carrier, expose only typed status/start/restart, and keep the installed-app child surface blocked pending A.1.'));
+    issues.push(issue('KIT_PROTECTED_LOCAL_CARRIER_REQUIRED', paths.kitRegistry, 'Kit must register one shared native protected carrier, expose only typed status/start/restart, and keep A.1 installed operations denied pending A.4 carrier implementation.'));
   }
 
   const limits = parseYaml(bundle, paths.limits, issues);

@@ -22,6 +22,7 @@ const (
 	RuntimeAuthService_RegisterApp_FullMethodName                    = "/nimi.runtime.v1.RuntimeAuthService/RegisterApp"
 	RuntimeAuthService_OpenSession_FullMethodName                    = "/nimi.runtime.v1.RuntimeAuthService/OpenSession"
 	RuntimeAuthService_OpenDesktopSession_FullMethodName             = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession"
+	RuntimeAuthService_OpenDesktopLaunchedAppSession_FullMethodName  = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession"
 	RuntimeAuthService_RefreshSession_FullMethodName                 = "/nimi.runtime.v1.RuntimeAuthService/RefreshSession"
 	RuntimeAuthService_RevokeSession_FullMethodName                  = "/nimi.runtime.v1.RuntimeAuthService/RevokeSession"
 	RuntimeAuthService_RegisterExternalPrincipal_FullMethodName      = "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal"
@@ -36,6 +37,7 @@ type RuntimeAuthServiceClient interface {
 	RegisterApp(ctx context.Context, in *RegisterAppRequest, opts ...grpc.CallOption) (*RegisterAppResponse, error)
 	OpenSession(ctx context.Context, in *OpenSessionRequest, opts ...grpc.CallOption) (*OpenSessionResponse, error)
 	OpenDesktopSession(ctx context.Context, in *OpenDesktopSessionRequest, opts ...grpc.CallOption) (*OpenDesktopSessionResponse, error)
+	OpenDesktopLaunchedAppSession(ctx context.Context, in *OpenDesktopLaunchedAppSessionRequest, opts ...grpc.CallOption) (*OpenDesktopLaunchedAppSessionResponse, error)
 	RefreshSession(ctx context.Context, in *RefreshSessionRequest, opts ...grpc.CallOption) (*RefreshSessionResponse, error)
 	RevokeSession(ctx context.Context, in *RevokeSessionRequest, opts ...grpc.CallOption) (*Ack, error)
 	RegisterExternalPrincipal(ctx context.Context, in *RegisterExternalPrincipalRequest, opts ...grpc.CallOption) (*RegisterExternalPrincipalResponse, error)
@@ -75,6 +77,16 @@ func (c *runtimeAuthServiceClient) OpenDesktopSession(ctx context.Context, in *O
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(OpenDesktopSessionResponse)
 	err := c.cc.Invoke(ctx, RuntimeAuthService_OpenDesktopSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAuthServiceClient) OpenDesktopLaunchedAppSession(ctx context.Context, in *OpenDesktopLaunchedAppSessionRequest, opts ...grpc.CallOption) (*OpenDesktopLaunchedAppSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenDesktopLaunchedAppSessionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAuthService_OpenDesktopLaunchedAppSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +150,7 @@ type RuntimeAuthServiceServer interface {
 	RegisterApp(context.Context, *RegisterAppRequest) (*RegisterAppResponse, error)
 	OpenSession(context.Context, *OpenSessionRequest) (*OpenSessionResponse, error)
 	OpenDesktopSession(context.Context, *OpenDesktopSessionRequest) (*OpenDesktopSessionResponse, error)
+	OpenDesktopLaunchedAppSession(context.Context, *OpenDesktopLaunchedAppSessionRequest) (*OpenDesktopLaunchedAppSessionResponse, error)
 	RefreshSession(context.Context, *RefreshSessionRequest) (*RefreshSessionResponse, error)
 	RevokeSession(context.Context, *RevokeSessionRequest) (*Ack, error)
 	RegisterExternalPrincipal(context.Context, *RegisterExternalPrincipalRequest) (*RegisterExternalPrincipalResponse, error)
@@ -160,6 +173,9 @@ func (UnimplementedRuntimeAuthServiceServer) OpenSession(context.Context, *OpenS
 }
 func (UnimplementedRuntimeAuthServiceServer) OpenDesktopSession(context.Context, *OpenDesktopSessionRequest) (*OpenDesktopSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenDesktopSession not implemented")
+}
+func (UnimplementedRuntimeAuthServiceServer) OpenDesktopLaunchedAppSession(context.Context, *OpenDesktopLaunchedAppSessionRequest) (*OpenDesktopLaunchedAppSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenDesktopLaunchedAppSession not implemented")
 }
 func (UnimplementedRuntimeAuthServiceServer) RefreshSession(context.Context, *RefreshSessionRequest) (*RefreshSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshSession not implemented")
@@ -246,6 +262,24 @@ func _RuntimeAuthService_OpenDesktopSession_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAuthServiceServer).OpenDesktopSession(ctx, req.(*OpenDesktopSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAuthService_OpenDesktopLaunchedAppSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenDesktopLaunchedAppSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAuthServiceServer).OpenDesktopLaunchedAppSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAuthService_OpenDesktopLaunchedAppSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAuthServiceServer).OpenDesktopLaunchedAppSession(ctx, req.(*OpenDesktopLaunchedAppSessionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -358,6 +392,10 @@ var RuntimeAuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OpenDesktopSession",
 			Handler:    _RuntimeAuthService_OpenDesktopSession_Handler,
+		},
+		{
+			MethodName: "OpenDesktopLaunchedAppSession",
+			Handler:    _RuntimeAuthService_OpenDesktopLaunchedAppSession_Handler,
 		},
 		{
 			MethodName: "RefreshSession",

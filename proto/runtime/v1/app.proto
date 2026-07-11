@@ -723,12 +723,33 @@ message AppOpenProjection {
   // authority lands in Task 6; this field carries the OpenApp launch-resolution
   // string without reusing external-principal posture.
   string caller_mode = 19;
-  string launch_nonce = 20;
+  // Non-authorizing 32-byte correlation id. The host-only native handle lease
+  // is acquired separately over protected Desktop control.
+  bytes launch_id = 20;
   bool product_readiness_claim_allowed = 21;
 }
 
 message OpenAppResponse {
   AppOpenProjection projection = 1;
+}
+
+enum InstalledLaunchHandleKind {
+  INSTALLED_LAUNCH_HANDLE_KIND_UNSPECIFIED = 0;
+  INSTALLED_LAUNCH_HANDLE_KIND_WINDOWS_NAMED_PIPE_CLIENT = 1;
+}
+
+message AcquireInstalledLaunchLeaseRequest {
+  bytes launch_id = 1;
+}
+
+// inherited_handle is meaningful only in the verified Desktop process into
+// which Runtime duplicated it. The protected carrier keeps this response
+// host-private and transfers the handle through an explicit child handle list.
+message AcquireInstalledLaunchLeaseResponse {
+  bytes launch_id = 1;
+  InstalledLaunchHandleKind handle_kind = 2;
+  fixed64 inherited_handle = 3;
+  google.protobuf.Timestamp bind_deadline = 4;
 }
 
 service RuntimeAppService {
@@ -759,4 +780,5 @@ service RuntimeAppService {
   // entry for launching a Nimi App; it requires an explicit app-shape
   // AIScopeRef and never infers launch scope.
   rpc OpenApp(OpenAppRequest) returns (OpenAppResponse);
+  rpc AcquireInstalledLaunchLease(AcquireInstalledLaunchLeaseRequest) returns (AcquireInstalledLaunchLeaseResponse);
 }

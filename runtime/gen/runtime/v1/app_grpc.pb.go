@@ -37,6 +37,7 @@ const (
 	RuntimeAppService_UpdateApp_FullMethodName                   = "/nimi.runtime.v1.RuntimeAppService/UpdateApp"
 	RuntimeAppService_HealthRepairApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp"
 	RuntimeAppService_OpenApp_FullMethodName                     = "/nimi.runtime.v1.RuntimeAppService/OpenApp"
+	RuntimeAppService_AcquireInstalledLaunchLease_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -66,6 +67,7 @@ type RuntimeAppServiceClient interface {
 	// entry for launching a Nimi App; it requires an explicit app-shape
 	// AIScopeRef and never infers launch scope.
 	OpenApp(ctx context.Context, in *OpenAppRequest, opts ...grpc.CallOption) (*OpenAppResponse, error)
+	AcquireInstalledLaunchLease(ctx context.Context, in *AcquireInstalledLaunchLeaseRequest, opts ...grpc.CallOption) (*AcquireInstalledLaunchLeaseResponse, error)
 }
 
 type runtimeAppServiceClient struct {
@@ -274,6 +276,16 @@ func (c *runtimeAppServiceClient) OpenApp(ctx context.Context, in *OpenAppReques
 	return out, nil
 }
 
+func (c *runtimeAppServiceClient) AcquireInstalledLaunchLease(ctx context.Context, in *AcquireInstalledLaunchLeaseRequest, opts ...grpc.CallOption) (*AcquireInstalledLaunchLeaseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcquireInstalledLaunchLeaseResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_AcquireInstalledLaunchLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAppServiceServer is the server API for RuntimeAppService service.
 // All implementations should embed UnimplementedRuntimeAppServiceServer
 // for forward compatibility.
@@ -301,6 +313,7 @@ type RuntimeAppServiceServer interface {
 	// entry for launching a Nimi App; it requires an explicit app-shape
 	// AIScopeRef and never infers launch scope.
 	OpenApp(context.Context, *OpenAppRequest) (*OpenAppResponse, error)
+	AcquireInstalledLaunchLease(context.Context, *AcquireInstalledLaunchLeaseRequest) (*AcquireInstalledLaunchLeaseResponse, error)
 }
 
 // UnimplementedRuntimeAppServiceServer should be embedded to have
@@ -363,6 +376,9 @@ func (UnimplementedRuntimeAppServiceServer) HealthRepairApp(context.Context, *He
 }
 func (UnimplementedRuntimeAppServiceServer) OpenApp(context.Context, *OpenAppRequest) (*OpenAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenApp not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) AcquireInstalledLaunchLease(context.Context, *AcquireInstalledLaunchLeaseRequest) (*AcquireInstalledLaunchLeaseResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AcquireInstalledLaunchLease not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) testEmbeddedByValue() {}
 
@@ -694,6 +710,24 @@ func _RuntimeAppService_OpenApp_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppService_AcquireInstalledLaunchLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcquireInstalledLaunchLeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).AcquireInstalledLaunchLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_AcquireInstalledLaunchLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).AcquireInstalledLaunchLease(ctx, req.(*AcquireInstalledLaunchLeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAppService_ServiceDesc is the grpc.ServiceDesc for RuntimeAppService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -764,6 +798,10 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OpenApp",
 			Handler:    _RuntimeAppService_OpenApp_Handler,
+		},
+		{
+			MethodName: "AcquireInstalledLaunchLease",
+			Handler:    _RuntimeAppService_AcquireInstalledLaunchLease_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

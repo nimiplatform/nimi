@@ -41,9 +41,9 @@ const detailedRules = [
 ];
 
 const a0SplitRules = [
-  ['K-ACCSVC-022', '.nimi/spec/runtime/kernel/account-session-contract.md', '`K-PLOCAL-001..007` admit only the prerequisite', '`K-PLOCAL-001..007` do not admit the prerequisite'],
+  ['K-ACCSVC-022', '.nimi/spec/runtime/kernel/account-session-contract.md', '`K-PLOCAL-008` admits a Windows installed session', '`K-PLOCAL-008` does not admit a Windows installed session'],
   ['K-ACCSVC-024', '.nimi/spec/runtime/kernel/account-session-contract.md', '**A.0 authority disposition:**', '**A.0 authority disposition removed:**'],
-  ['K-ACCSVC-025', '.nimi/spec/runtime/kernel/account-session-contract.md', 'A.0 establishes only that', 'A.0 does not establish that'],
+  ['K-ACCSVC-025', '.nimi/spec/runtime/kernel/account-session-contract.md', 'A.1\nauthority comes only from the inherited native channel', 'A.1\nauthority does not come from the inherited native channel'],
   ['P-NAPP-034', '.nimi/spec/platform/kernel/nimi-app-admission-contract.md', '**A.0 authority disposition:** Admitted per OS platform:', '**A.0 authority disposition:** Removed:'],
 ];
 
@@ -200,7 +200,7 @@ for (const fixture of evidenceRemovalCases) {
   });
 }
 
-test('Runtime A.0 rows retain structural evidence without promoting A.1 implementation evidence', async () => {
+test('Runtime rows retain structural A.1 evidence without claiming product closeout', async () => {
   const source = await fs.readFile(
     path.join(repoRoot, '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml'),
     'utf8',
@@ -210,7 +210,7 @@ test('Runtime A.0 rows retain structural evidence without promoting A.1 implemen
     'protected_local_authority_gate',
     'scripts/check-installed-realm-owner-boundary.mjs',
     'evidence_scope_note:',
-    'do not admit A.1 launch/session details',
+    'positive evidence remains required before product closeout',
   ]) {
     assert.match(row, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
   }

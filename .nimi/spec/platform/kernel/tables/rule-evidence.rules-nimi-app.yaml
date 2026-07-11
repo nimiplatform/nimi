@@ -269,7 +269,7 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: A.0 structurally admits only Platform-owned Desktop production/test executable trust-set identity and isolation; installed launch/session/carrier fields remain blocked pending A.1 owner admissions and implementation.
+  evidence_scope_note: A.0 admits platform executable trust and A.1 admits Windows process-bound launch/session ownership; unsupported platforms remain blocked, while positive implementation and macOS/Linux admission remain independently open.
   test_files:
   - scripts/check-installed-realm-owner-boundary.mjs
   - scripts/check-protected-local-authority.mjs

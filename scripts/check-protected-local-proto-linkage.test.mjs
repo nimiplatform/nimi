@@ -168,7 +168,7 @@ test('every lifecycle mutation carries the same intent id and displayed digest',
     const fields = messageFields(appProto, requestName);
     const [intentNumber, digestNumber] = expectedNumbers.get(requestName);
     assert.deepEqual(
-      fields.filter(({ name }) => lifecycleAuthority.mutation_consumption.request_fields.includes(name)),
+      fields.filter(({ name }) => ['lifecycle_intent_id', 'displayed_impact_digest'].includes(name)),
       [
         { repeated: false, type: 'string', name: 'lifecycle_intent_id', number: intentNumber },
         { repeated: false, type: 'string', name: 'displayed_impact_digest', number: digestNumber },

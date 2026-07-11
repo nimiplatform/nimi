@@ -117,9 +117,9 @@ capability_sets:
   - set_id: installed-nimi-app-standard-shell-v1
     host_class: desktop-electron-installed-app-host
     app_package_kind: nimi-app
-    launch_resolution: blocked_pending_a1_no_product_launch
-    auth_binding: binding_only_no_protected_session
-    authority_status: blocked_pending_a1
+    launch_resolution: runtime_launch_record_windows_pending_a4_host_consumption
+    auth_binding: runtime_owned_installed_session_host_carried
+    authority_status: a1_windows_admitted_implementation_pending
     allowed_operations: []
     planned_operations:
       - runtime.unary
@@ -138,7 +138,7 @@ capability_sets:
       - shell-ui.confirmDialog
       - shell-ui.startWindowDrag
       - shell-ui.focusMainWindow
-    planned_operations_disposition: deny_until_a1_authority_and_implementation
+    planned_operations_disposition: deny_until_a4_carrier_and_operation_admission
     forbidden_operations:
       - runtime-lifecycle.status
       - runtime-lifecycle.start

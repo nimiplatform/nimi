@@ -244,6 +244,9 @@ services:
       - name: OpenDesktopSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
+      - name: OpenDesktopLaunchedAppSession
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession
       - name: RefreshSession
         type: unary
       - name: RevokeSession
@@ -479,6 +482,9 @@ services:
       - name: OpenApp
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/OpenApp
+      - name: AcquireInstalledLaunchLease
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease
       - name: PrepareAppLifecycleIntent
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent

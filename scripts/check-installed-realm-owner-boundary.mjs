@@ -103,8 +103,8 @@ const detailedRules = [
 
 const authorityPostures = new Map([
   ['K-ACCSVC-022', {
-    admitted: /`K-PLOCAL-001\.\.007` admit only the prerequisite that protected authority must\s+come from a mutually verified live-process connection/iu,
-    blocked: /A\.0 admits no installed\s+caller enum[\s\S]*independent A\.1 Runtime\/Platform\/Desktop\/Kit\/SDK authority batch[\s\S]*every installed-app account method is deny-all/iu,
+    admitted: /`K-PLOCAL-008` admits a Windows installed session only from an atomically\s+consumed Runtime launch record on the verified child channel/iu,
+    blocked: /Account-control and credential-bearing\s+methods remain denied[\s\S]*Other installed operations remain deny-all/iu,
   }],
   ['K-ACCSVC-023', {
     blocked: /Exact per-operation Realm unary authority remains blocked pending a separate\s+Runtime admission[\s\S]*no public grant,\s+portable envelope, renderer\/app token provider, or direct Realm path is a\s+fallback/iu,
@@ -114,12 +114,12 @@ const authorityPostures = new Map([
     blocked: /\*\*Remaining authority disposition:\*\* Blocked detailed authority conflict\./iu,
   }],
   ['K-ACCSVC-025', {
-    admitted: /A\.0 establishes only that[\s\S]*are\s+non-authorizing/iu,
-    blocked: /installed-host carrier\/envelope schema is deliberately\s+absent and requires A\.1 authority[\s\S]*deny-all for installed account access/iu,
+    admitted: /A\.1\s+authority comes only from the inherited native channel and its verified live\s+peer/iu,
+    blocked: /Direct local gRPC and Electron\/Tauri renderer envelopes remain deny-all/iu,
   }],
   ['P-NAPP-034', {
     admitted: /\*\*A\.0 authority disposition:\*\* Admitted per OS platform:[\s\S]*protected-local-executable-trust-sets\.yaml[\s\S]*unadmitted platform remains fail-closed/iu,
-    blocked: /\*\*Remaining authority disposition:\*\* blocked pending A\.1\.[\s\S]*A\.0 defines no\s+launch-resolution fields[\s\S]*`OpenApp` cannot report launched\/create a child/iu,
+    blocked: /\*\*A\.1 authority disposition:\*\*[\s\S]*macOS\/Linux remain fail-closed until separately admitted/iu,
   }],
 ]);
 
@@ -298,7 +298,7 @@ const negativeFixtures = [
       const source = files.get(authBindingTable) ?? '';
       files.set(
         authBindingTable,
-        source.replace('auth_binding: binding_only_no_protected_session', 'auth_binding: host-owned-runtime-app-session'),
+        source.replace('auth_binding: runtime_owned_installed_session_host_carried', 'auth_binding: host-owned-runtime-app-session'),
       );
     },
   },
@@ -427,8 +427,8 @@ function validateBundle(files) {
   const bindingSource = files.get(authBindingTable) ?? '';
   if (/^\s+auth_binding:\s+host-owned-runtime-app-session\s*$/mu.test(bindingSource)) {
     issues.push(issue('HOST_OWNED_RUNTIME_SESSION_FORBIDDEN', authBindingTable, 'The Runtime app session remains Runtime-owned and host-carried.'));
-  } else if (!/^\s+auth_binding:\s+binding_only_no_protected_session\s*$/mu.test(bindingSource)) {
-    issues.push(issue('AUTH_BINDING_OWNER_INVALID', authBindingTable, 'auth_binding must remain binding-only with no protected installed-app session before A.1 admission.'));
+  } else if (!/^\s+auth_binding:\s+runtime_owned_installed_session_host_carried\s*$/mu.test(bindingSource)) {
+    issues.push(issue('AUTH_BINDING_OWNER_INVALID', authBindingTable, 'auth_binding must remain Runtime-owned and host-carried after A.1 admission.'));
   }
   return issues;
 }

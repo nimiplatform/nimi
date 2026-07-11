@@ -318,7 +318,7 @@ binding 在 daemon 重启时全部失效；调用方必须重新申请。Runtime
 | Binding-only Avatar mode | 不允许直接 account registration | N/A | Runtime-issued scoped binding from owner surface | account access token、refresh token、anchor 创建、independent auth truth |
 | Web / cloud app | 显式 Web/cloud adapter | Web/cloud session | Web/cloud adapter | local Runtime account authority claim |
 | External principal | binding-only external-principal session | N/A for local account | none; public Grant family deny-all | every local protected account claim |
-| Desktop-launched installed Nimi App | no caller/host/session admitted in A.0 | N/A | none pending A.1 | every protected account/Realm method and all launch metadata approximations |
+| Desktop-launched installed Nimi App | A.1 verified child channel + atomic installed session | current Runtime-owned account generation | Runtime launch record and verified child process | account control, raw token/refresh/grant, metadata or app-asserted caller/release/session |
 
 ## K-ACCSVC-013 Activation Boundary
 
@@ -494,14 +494,13 @@ app-owned prompts. The only Realm-backed exception is the Runtime-owned
 
 ## K-ACCSVC-022 Desktop-Launched Installed Nimi App Caller Posture
 
-`K-PLOCAL-001..007` admit only the prerequisite that protected authority must
-come from a mutually verified live-process connection. A.0 admits no installed
-caller enum, launch ticket/nonce, child channel, installed session, carrier
-envelope, token, or metadata schema. All such detail is reserved to an
-independent A.1 Runtime/Platform/Desktop/Kit/SDK authority batch. Until that
-batch is admitted, every installed-app account method is deny-all and no
-metadata, nonce, host stamp, bearer, ordinary gRPC connection, test fixture, or
-existing implementation can approximate positive product evidence.
+`K-PLOCAL-008` admits a Windows installed session only from an atomically
+consumed Runtime launch record on the verified child channel. The installed
+caller class is Runtime-derived; the request cannot select caller class,
+account, release or capabilities. Account-control and credential-bearing
+methods remain denied. Other installed operations remain deny-all until their
+own capability/policy rows are admitted; a valid installed session is origin
+proof, not blanket authorization.
 
 ## K-ACCSVC-023 Runtime Shared Auth Broker
 
@@ -536,10 +535,7 @@ is a non-RPC internal capability.
 
 ## K-ACCSVC-025 Host-Bound Caller Envelope
 
-A.0 establishes only that app id, source host, caller enum, manifest, renderer
-metadata, host self-description, session id, nonce, and portable bearer are
-non-authorizing. The installed-host carrier/envelope schema is deliberately
-absent and requires A.1 authority before any implementation or SDK projection.
-Until then, direct local gRPC and any Electron/Tauri metadata envelope are
-deny-all for installed account access; implementation-shaped evidence is not
-authority or product acceptance.
+App id, source host, caller enum, manifest, renderer metadata, host
+self-description, launch id and portable bearer remain non-authorizing. A.1
+authority comes only from the inherited native channel and its verified live
+peer. Direct local gRPC and Electron/Tauri renderer envelopes remain deny-all.

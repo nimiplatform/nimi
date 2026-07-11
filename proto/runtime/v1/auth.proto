@@ -86,6 +86,23 @@ message OpenDesktopSessionResponse {
   bytes runtime_boot_epoch = 2;
 }
 
+// Empty by design: the Runtime-owned launch record is selected by the exact
+// verified launch_bootstrap connection, never by request data or metadata.
+message OpenDesktopLaunchedAppSessionRequest {
+}
+
+// Host-only installed session proof. It is returned only on the inherited
+// native child channel and must never cross renderer IPC.
+message OpenDesktopLaunchedAppSessionResponse {
+  bytes installed_session_id = 1;
+  bytes installed_session_proof = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string app_id = 4;
+  bytes release_digest = 5;
+  uint64 account_generation = 6;
+  bytes runtime_boot_epoch = 7;
+}
+
 message RefreshSessionRequest {
   string session_id = 1;
   int32 ttl_seconds = 2;
@@ -139,6 +156,7 @@ service RuntimeAuthService {
   rpc RegisterApp(RegisterAppRequest) returns (RegisterAppResponse);
   rpc OpenSession(OpenSessionRequest) returns (OpenSessionResponse);
   rpc OpenDesktopSession(OpenDesktopSessionRequest) returns (OpenDesktopSessionResponse);
+  rpc OpenDesktopLaunchedAppSession(OpenDesktopLaunchedAppSessionRequest) returns (OpenDesktopLaunchedAppSessionResponse);
   rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
   rpc RevokeSession(RevokeSessionRequest) returns (Ack);
   rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);

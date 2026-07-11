@@ -69,8 +69,9 @@
   `OpenDesktopSession` bootstrap, and typed fixed-service
   `status/start/restart`. Kit carries typed calls only; Runtime/OS own endpoint,
   origin, custody, service lifecycle and security truth. Product stop, binary /
-  service/path selection, generic config JSON, bearer privilege, and A.1 app
-  child carrier are absent.
+  service/path selection, generic config JSON and bearer privilege are absent.
+  The A.1 Windows child carrier is host-only and cannot be exported to renderer
+  or npm surfaces.
 - `shell/tauri` is an infra module that consumes `shell/protected-local` and
   implements app-agnostic Tauri shell capabilities. It must not implement a
   parallel daemon manager, stage/execute Runtime, own credentials, exchange
@@ -208,8 +209,9 @@
 
 **Owner-only authority allocation.** Kit owns typed shell APIs and trusted carrier implementation only. A Kit host adapter may carry opaque Runtime/Platform/Desktop attestations across a trusted shell boundary, but it cannot create account, catalog, release, grant, launch, unary, realtime, or media truth. A host or renderer MUST NOT supply or retain authenticated Realm credentials, signed upload credentials, refresh material, or self-certified privilege evidence.
 
-Installed-app child carrier, launch binding, account/session envelope and
-capability allowlist are absent from A.0 and require independent A.1 authority.
+The A.1 Windows installed-app child carrier consumes only the Runtime-created
+launch correlation and duplicated native pipe handle defined by K-PLOCAL-008.
+It cannot create launch, release, account/session or capability truth.
 `tables/standard-shell-capabilities.yaml` records
 `installed-nimi-app-standard-shell-v1` as `blocked_pending_a1`, with an empty
 `allowed_operations` list. Its planned operation list is conflict/planning

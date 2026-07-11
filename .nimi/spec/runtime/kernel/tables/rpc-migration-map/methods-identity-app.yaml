@@ -19,7 +19,7 @@ services:
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
-method_count: 49
+method_count: 51
 method_mappings:
   - design_service: RuntimeAuthService
     design_method: RegisterApp
@@ -60,6 +60,11 @@ method_mappings:
     design_method: OpenDesktopSession
     proto_service: RuntimeAuthService
     proto_method: OpenDesktopSession
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: OpenDesktopLaunchedAppSession
+    proto_service: RuntimeAuthService
+    proto_method: OpenDesktopLaunchedAppSession
     mapping_posture: aligned
   - design_service: RuntimeGrantService
     design_method: AuthorizeExternalPrincipal
@@ -255,4 +260,9 @@ method_mappings:
     design_method: OpenApp
     proto_service: RuntimeAppService
     proto_method: OpenApp
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: AcquireInstalledLaunchLease
+    proto_service: RuntimeAppService
+    proto_method: AcquireInstalledLaunchLease
     mapping_posture: aligned

@@ -51,22 +51,18 @@ cannot use localhost gRPC, a same-user daemon, or a compile-only carrier as a
 product fallback. Global Wave A closeout declares the supported platform set
 and carries real evidence for every platform claimed supported.
 
-A.0 may be submitted and independently audited before A.1, and anonymous or
-public-TCP privilege must fail closed as soon as A.0 is enforced. A.0 complete
-closeout, including positive Avatar and Zhiyu launch evidence, depends on the
-A.1 admitted and implemented protected child channel. No temporary nonce,
-metadata, portable bearer, app-owned host stamp, or compatibility path may be
-used to manufacture that positive result. This dependency does not admit the
-future A.1 rule range or any A.1 carrier/session behavior in A.0.
+A.0 and A.1 are independently auditable. A.1 admits the Windows child channel
+defined below; macOS and Linux remain fail-closed until independently admitted.
+No temporary nonce, metadata, portable bearer, app-owned host stamp, localhost
+fallback, or compatibility path may manufacture installed-host authority.
 
 ## K-PLOCAL-002 Transport Classes and Immutable Origin Roles
 
 The closed RPC transport-class vocabulary is `public_tcp`, `desktop_control`,
-`launch_bootstrap`, and `installed_host`. In A.0, `public_tcp` and
-`desktop_control` have admitted rows; `launch_bootstrap` and `installed_host`
-are reserved for an independent A.1 admission and have no active A.0 method
-rows. Runtime-private refresh is a direct in-process helper call and is never a
-transport class or an invocation of the public `RefreshAccountSession` RPC.
+`launch_bootstrap`, and `installed_host`. A.1 admits `launch_bootstrap` and
+`installed_host` on Windows only. Runtime-private refresh is a direct
+in-process helper call and is never a transport class or an invocation of a
+public refresh RPC.
 
 The admitted A.0 origin roles are `binding_only`,
 `verified_desktop_process`, `desktop_account_host`, and
@@ -76,9 +72,38 @@ context before protocol parsing, authentication, authorization, token access,
 or business request parsing. Requests and metadata cannot select, override, or
 upgrade a role. Public TCP cannot construct a protected role.
 
-Desktop control and a future installed host never share a portable session.
-Any future `launch_bootstrap` to `installed_host` promotion requires its own A.1
-authority and must be atomic on one already verified connection.
+Desktop control and an installed host never share a portable session.
+`launch_bootstrap` to `installed_host` promotion is atomic on the same verified
+child connection and the same service-owned transaction that consumes the
+launch ticket.
+
+## K-PLOCAL-008 Windows Installed Launch Bootstrap
+
+`OpenApp` may create one service-owned launch record only after protected
+Desktop lifecycle admission resolves the exact installed app, active release
+digest, account generation and current Runtime boot epoch. The renderer-safe
+projection carries only a non-authorizing 32-byte launch correlation id.
+
+The protected host carrier exchanges that id for a short-lived Windows named
+pipe client handle already duplicated into the verified Desktop process.
+Desktop may transfer that handle only through an explicit child handle list;
+argv, env, files, stdout, preload and renderer IPC are forbidden. Runtime owns
+the server handle and binds the connected child with
+`GetNamedPipeClientProcessId`, process creation time, login session, locked
+executable identity, active release digest and platform code-signing policy.
+
+`OpenDesktopLaunchedAppSession` has an empty request and exists only on that
+verified `launch_bootstrap` connection. Success atomically consumes the launch
+record and creates the installed session bound to app, release, PID/creation
+marker, account generation and Runtime boot epoch. The ticket TTL is 30 seconds
+and process-bind deadline is 10 seconds. Duplicate, expired, revoked, wrong
+process/release/account/epoch and ordinary-gRPC calls fail closed. Logout,
+switch-account, uninstall, release revoke, session revoke, process exit and
+Runtime restart revoke the applicable launch/session rows transactionally.
+
+Windows is admitted independently. macOS/Linux implementations remain
+`protected-carrier-required` and cannot claim A.1 completion until their native
+handle-transfer, peer verification and signed-release evidence are admitted.
 
 ## K-PLOCAL-003 Mutual Endpoint Authentication
 
