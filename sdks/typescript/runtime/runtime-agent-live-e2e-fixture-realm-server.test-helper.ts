@@ -306,6 +306,15 @@ async function handleRealmFixtureRequest(
     return;
   }
 
+  if (request.method === 'GET' && url.pathname === '/api/world') {
+    if (String(request.headers.authorization || '') !== `Bearer ${RUNTIME_ACCOUNT_ACCESS_TOKEN}`) {
+      writeJSON(response, 401, { message: 'Runtime Realm mediation token missing' });
+      return;
+    }
+    writeJSON(response, 200, []);
+    return;
+  }
+
   if (request.method === 'POST' && url.pathname === '/api/realm/core/source-materialization-packets') {
     if (String(request.headers.authorization || '') !== `Bearer ${RUNTIME_ACCOUNT_ACCESS_TOKEN}`) {
       writeJSON(response, 401, { message: 'Runtime Realm mediation token missing' });

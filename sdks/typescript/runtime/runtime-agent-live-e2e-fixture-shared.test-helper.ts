@@ -51,11 +51,6 @@ export type RuntimeAgentLiveE2EFixtureContext = {
   readonly sourceMaterializationPacket: NimiRealmSourceMaterializationPacket;
   readonly createSourceMaterializationPacket: () => Promise<NimiRealmSourceMaterializationPacket>;
   readonly sendTurn: (text: string) => Promise<SendAppMessageResponse>;
-  readonly refreshRuntimeAccountSession: () => Promise<{
-    readonly previousAccessToken: string;
-    readonly accessToken: string;
-    readonly sessionId: string;
-  }>;
   readonly admitDeveloperRegisteredRuntimeAccountCaller: (
     input: RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
   ) => Promise<AccountCaller>;
