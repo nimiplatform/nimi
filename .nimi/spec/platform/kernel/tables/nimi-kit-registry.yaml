@@ -183,7 +183,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalHostCarrier
-    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession/bootstrap, typed fixed-service status/start/restart, and the host-only installed read_artifact_bytes method. Kit carries typed calls only; Runtime and the OS remain security, account, grant, artifact, and lifecycle authorities.
+    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession/bootstrap, typed fixed-service status/start/restart, and the host-only installed read_artifact_bytes method, including its fixed Windows x64 Node-API ABI projection for Electron main. Kit carries typed calls only; Runtime and the OS remain security, account, grant, artifact, and lifecycle authorities.
     dependencies: []
     peer_dependencies: []
     exports: []
@@ -193,7 +193,24 @@ modules:
     admission_status: authority_admitted_implementation_pending
     owner: platform
     source_rule: P-KIT-041
-    notes: Non-npm Rust crate/native host contract. No renderer import or npm export. A.0 admits the shared carrier boundary per OS platform; implementation consumes Runtime K-PLOCAL process/session semantics and the platform-native code-signing policy without copying installer release authority. Unadmitted OS adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer-based privilege, and app-child carrier are absent.
+    notes: Non-npm Rust crate/native transport and trust owner with no renderer import or generic npm API. The fixed @nimiplatform/kit-protected-local-win32-x64 optional package is only its Node-API ABI projection for Electron main and exports exactly installed session open plus typed artifact read. A.0 admits the shared carrier boundary per OS platform; implementation consumes Runtime K-PLOCAL process/session semantics and the platform-native code-signing policy without copying installer release authority. Unadmitted OS/architecture adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer-based privilege, method-id/bytes proxy, and portable app-child session material are absent.
+  - id: kit.shell.protected-local-node
+    subpath: /shell/protected-local-node
+    kind: infra
+    surface_level: infra
+    adapter_contract: NimiProtectedLocalNodeAbiProjection
+    description: Host-only Node-API ABI projection of kit.shell.protected-local for Electron main; the Windows x64 package exports only installed session open and typed artifact read while all transport, peer, executable, launch, session, account, grant, and artifact authority remains in the shared Rust carrier and Runtime.
+    dependencies:
+      - kit.shell.protected-local
+    peer_dependencies: []
+    exports: []
+    headless_exports: []
+    ui_exports: []
+    reuse_entrypoints: []
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-041E
+    notes: Non-npm Rust crate with a fixed platform npm binary package consumed only by kit.shell.electron. The package is admitted for Windows x64, has no renderer/preload import or direct public Kit export, and cannot add methods beyond the underlying typed carrier contract. Windows arm64, macOS, and Linux have no package and fail closed.
   - id: kit.shell.tauri
     subpath: /shell/tauri
     kind: infra
@@ -247,7 +264,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Electron main/preload host glue that consumes the native protected-local carrier for typed Runtime access while keeping renderer IPC narrowed; it owns no external daemon mode, executable/service selection, stop/config authority, bearer custody, or protected origin truth.
+    description: Shared Electron main/preload host glue that consumes the native protected-local carrier for typed Runtime access while keeping renderer IPC narrowed; its Windows x64 main-process adapter reuses one opaque installed session for typed artifact reads and owns no external daemon mode, executable/service selection, stop/config authority, bearer custody, or protected origin truth.
     dependencies:
       - kit.shell.capabilities
       - kit.shell.protected-local
@@ -272,7 +289,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. Installed-app child carrier/session behavior remains absent pending A.1 and must fail closed rather than approximating it with launch metadata.
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. The admitted Windows x64 installed adapter loads only the fixed protected-local Node-API package and exposes a host-only typed artifact reader; session/proof/account/release/grant fields and renderer IPC remain absent. Windows arm64, macOS, and Linux remain fail-closed pending independent native admission.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic

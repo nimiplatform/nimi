@@ -6,5 +6,11 @@ export * from './ai-config-store.js';
 export * from './agent-center.js';
 export * from './runtime-account-auth.js';
 export * from './desktop-open.js';
+export {
+  createNimiElectronInstalledHost,
+  NimiElectronInstalledHostError,
+  type NimiElectronInstalledArtifactBytes,
+  type NimiElectronInstalledHost,
+} from './installed-host.js';
 export { resolveElectronRuntimeDefaults } from './runtime.js';
 export * from './types.js';

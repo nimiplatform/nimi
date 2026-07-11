@@ -1,0 +1,21 @@
+[package]
+name = "nimi-shell-protected-local-node"
+version = "0.1.0"
+edition = "2021"
+description = "Node-API projection of the Nimi protected-local installed host carrier."
+license = "MIT"
+repository = "https://github.com/nimiplatform/nimi"
+readme = "README.md"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+napi = { version = "3", features = ["napi8", "tokio_rt"] }
+napi-derive = "3"
+nimi-shell-protected-local = { path = "../protected-local" }
+tokio = { version = "1", features = ["sync"] }
+
+[build-dependencies]
+napi-build = "2"

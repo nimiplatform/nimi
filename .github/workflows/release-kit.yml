@@ -73,8 +73,127 @@ jobs:
             echo "publish=${publish}"
           } >> "${GITHUB_OUTPUT}"
 
-  release:
+  native-windows-x64:
     needs: resolve
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Verify native package version and metadata
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Get-Content 'kit/shell/protected-local-node/npm/win32-x64/package.json' -Raw | ConvertFrom-Json
+          if ($pkg.name -ne '@nimiplatform/kit-protected-local-win32-x64') {
+            throw "unexpected native package name: $($pkg.name)"
+          }
+          if ($pkg.version -ne $env:RELEASE_VERSION) {
+            throw "native package version $($pkg.version) does not match release $env:RELEASE_VERSION"
+          }
+          if ($pkg.os.Count -ne 1 -or $pkg.os[0] -ne 'win32') {
+            throw 'native package must be restricted to win32'
+          }
+          if ($pkg.cpu.Count -ne 1 -or $pkg.cpu[0] -ne 'x64') {
+            throw 'native package must be restricted to x64'
+          }
+          if ($pkg.publishConfig.access -ne 'public' -or $pkg.publishConfig.provenance -ne $true) {
+            throw 'native package must retain public provenance publication metadata'
+          }
+
+      - name: Test and build native carrier
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo test --manifest-path kit/shell/protected-local-node/Cargo.toml --locked
+          node kit/shell/protected-local-node/scripts/build-windows-x64-package.mjs
+
+      - name: Smoke test native exports
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          const binding = require('./kit/shell/protected-local-node/npm/win32-x64');
+          const keys = Object.keys(binding).sort();
+          const expected = ['openInstalledAppSession', 'readInstalledArtifactBytes'];
+          if (JSON.stringify(keys) !== JSON.stringify(expected)) {
+            throw new Error(`unexpected native exports: ${keys.join(',')}`);
+          }
+          (async () => {
+            const readOutcome = await binding.readInstalledArtifactBytes('artifact-without-session');
+            if (readOutcome.status !== 'error'
+              || readOutcome.reasonCode !== 'installed-artifact-forbidden'
+              || readOutcome.retryable !== false) {
+              throw new Error(`native read did not fail closed: ${JSON.stringify(readOutcome)}`);
+            }
+            const openOutcome = await binding.openInstalledAppSession();
+            const admittedOpenReasons = new Set([
+              'protected-carrier-required',
+              'runtime-service-unavailable',
+              'runtime-service-untrusted',
+              'runtime-service-repair-required',
+            ]);
+            if (openOutcome.status !== 'error'
+              || !admittedOpenReasons.has(openOutcome.reasonCode)
+              || typeof openOutcome.retryable !== 'boolean') {
+              throw new Error(`ordinary release runner unexpectedly opened an installed session: ${JSON.stringify(openOutcome)}`);
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          '@ | node -
+
+      - name: Check duplicate native package version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm view "@nimiplatform/kit-protected-local-win32-x64@$env:RELEASE_VERSION" version *> $null
+          if ($LASTEXITCODE -eq 0) {
+            if ($env:PUBLISH -eq 'true') {
+              throw "native package $env:RELEASE_VERSION already exists on npm"
+            }
+            Write-Output "native package $env:RELEASE_VERSION already exists; dry-run will not publish"
+          } else {
+            Write-Output "native package $env:RELEASE_VERSION is not published on npm"
+          }
+
+      - name: Native npm publish dry-run
+        if: needs.resolve.outputs.publish != 'true'
+        shell: pwsh
+        run: npm publish kit/shell/protected-local-node/npm/win32-x64 --access public --dry-run
+
+      - name: Publish native package
+        if: needs.resolve.outputs.publish == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:NODE_AUTH_TOKEN)) {
+            throw 'NPM_TOKEN is required for native package publish'
+          }
+          npm publish kit/shell/protected-local-node/npm/win32-x64 --access public --provenance
+
+  release:
+    needs: [resolve, native-windows-x64]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -153,6 +272,9 @@ jobs:
           }
           if (normalizedSdkDependency !== expectedSdkDependency) {
             throw new Error(`@nimiplatform/kit SDK dependency ${sdkDependency} does not match published SDK ${expectedSdkDependency}`);
+          }
+          if (pkg.optionalDependencies?.['@nimiplatform/kit-protected-local-win32-x64'] !== 'workspace:*') {
+            throw new Error('@nimiplatform/kit must consume the fixed Windows x64 protected-local optional package');
           }
           NODE
 

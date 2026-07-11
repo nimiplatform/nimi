@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'kit'
+  - 'kit/shell/protected-local-node/npm/win32-x64'
   - 'docs'
   - 'examples'
   - 'app-tools'

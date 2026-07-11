@@ -244,6 +244,19 @@ typed errors, but no `#[tauri::command]`, preload/renderer bridge, portable
 `RuntimeBridgeAppSession`, session bytes, or generic unary hook is admitted in
 this slice.
 
+The Electron A.4 host adapter has the same host-only artifact surface. On the
+independently admitted Windows x64 target it loads the fixed
+`@nimiplatform/kit-protected-local-win32-x64` Node-API package; that package is
+an ABI projection of `shell/protected-local`, not a second transport or trust
+implementation. Its native export set is exactly session open plus typed
+artifact read, and one successful opaque session is reused for the Electron
+main process. The package and the TypeScript adapter expose no method-id/bytes
+proxy, endpoint, metadata, session proof, account, release, grant, credential,
+preload, or renderer surface. Missing packages, malformed native projections,
+Windows arm64, macOS, and Linux remain `protected-carrier-required` or
+`runtime-service-untrusted` as applicable; they cannot fall back to ordinary
+gRPC. The standard-shell `allowed_operations` list remains empty.
+
 ## P-KIT-045 - Desktop Open Intent Kit Surfaces
 
 - `core/desktop-open` is a pure-logic Kit surface that wraps SDK
