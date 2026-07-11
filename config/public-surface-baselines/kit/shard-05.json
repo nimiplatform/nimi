@@ -173,6 +173,7 @@
         "export * from './runtime-account-auth.js';",
         "export * from './types.js';",
         "export { createNimiElectronInstalledHost, NimiElectronInstalledHostError, type NimiElectronInstalledArtifactBytes, type NimiElectronInstalledHost, } from './installed-host.js';",
+        "export { registerNimiElectronInstalledAppBridge, type RegisterNimiElectronInstalledAppBridgeInput, } from './installed-app-bridge.js';",
         "export { resolveElectronRuntimeDefaults} from './runtime.js';"
       ],
       "expandedExports": [
@@ -182,6 +183,7 @@
         "const NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME",
         "export { assertAllowedElectronRendererOrigin, assertAllowedElectronRendererUrl, createElectronCapabilityUnavailableError, createElectronExternalDaemonRequiredError, createElectronRuntimeBridgeCommandNames, createElectronRuntimeBridgeEventName, createElectronRuntimeEndpointUnavailableError, getElectronStandardShellCapabilityIds, isAllowedElectronRendererOrigin, isAllowedElectronRendererUrl, normalizeElectronShellAppId, assertOpaqueElectronLocalAgentRef, };",
         "export { createNimiElectronInstalledHost, NimiElectronInstalledHostError, type NimiElectronInstalledArtifactBytes, type NimiElectronInstalledHost, } from './installed-host.js';",
+        "export { registerNimiElectronInstalledAppBridge, type RegisterNimiElectronInstalledAppBridgeInput, } from './installed-app-bridge.js';",
         "export { resolveElectronRuntimeDefaults} from './runtime.js';",
         "function bindElectronStandardDataRootRuntimeResolver",
         "function createElectronShellFileProtocolHost",

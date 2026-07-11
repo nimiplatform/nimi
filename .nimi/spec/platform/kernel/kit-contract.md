@@ -188,6 +188,11 @@
   `shell/protected-local` for exact typed protected calls and fixed-service
   status/start/restart while keeping preload IPC narrowed. There is no
   production external-daemon mode.
+- Installed app hosts use the Kit-owned artifact-only registration entrypoint;
+  app input is limited to app id, exact renderer URLs, and Electron IPC
+  registration. Runtime endpoint, ordinary gRPC client, native carrier,
+  capability-set, command-handler, and installed-session selection are not
+  app inputs.
 - Authority id and source location are `kit.shell.electron` at `kit/shell/electron/`.
 - Delivered as subpath exports of the single `@nimiplatform/kit` package: `./shell/electron/main` and `./shell/electron/preload`.
 - This module is Node/Electron-host only. Renderer application code must consume host-neutral renderer APIs from `shell/renderer` and standard command/error contracts from `shell/capabilities`, not import `shell/electron` directly.

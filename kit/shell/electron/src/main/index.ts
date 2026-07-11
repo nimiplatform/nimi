@@ -7,6 +7,10 @@ export * from './agent-center.js';
 export * from './runtime-account-auth.js';
 export * from './desktop-open.js';
 export {
+  registerNimiElectronInstalledAppBridge,
+  type RegisterNimiElectronInstalledAppBridgeInput,
+} from './installed-app-bridge.js';
+export {
   createNimiElectronInstalledHost,
   NimiElectronInstalledHostError,
   type NimiElectronInstalledArtifactBytes,

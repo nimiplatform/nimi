@@ -14,6 +14,7 @@ const fileUrlAllowlist = new Set([
   'apps/avatar/src-electron/main.ts',
   'apps/tester/src-electron/main.ts',
   'apps/tester/src/tester/tester-runtime-invokers-media-speech.ts',
+  'kit/shell/electron/src/main/installed-app-bridge.ts',
 ]);
 
 const scanRoots = [

@@ -10,6 +10,22 @@ Renderer application code must not import this module. Renderer code consumes
 host-neutral bridge APIs from `@nimiplatform/kit/shell/renderer/*` and SDK
 Runtime access through the explicit `electron-ipc` transport.
 
+Installed apps register the fixed artifact-only host from their Electron main
+process:
+
+```ts
+import { registerNimiElectronInstalledAppBridge } from '@nimiplatform/kit/shell/electron/main';
+
+registerNimiElectronInstalledAppBridge({
+  appId: 'nimi.example.installed-app',
+  allowedRendererUrls: [rendererUrl],
+  ipcMain,
+});
+```
+
+This entrypoint deliberately has no Runtime endpoint, ordinary gRPC factory,
+native-host injection, capability-set selection, or command-handler input.
+
 ## Boundary
 
 - Main process code owns app-scoped IPC command registration, origin
@@ -23,6 +39,6 @@ Runtime access through the explicit `electron-ipc` transport.
   `status/start/restart` and protected calls. Stop, external-daemon fallback,
   executable/service/path selection, generic config JSON, bearer injection and
   renderer-visible protected material are forbidden.
-- Installed-app protected child carrier/session behavior is absent pending A.1;
-  launch metadata and generic gRPC proxying must fail closed for protected
-  methods.
+- The installed-app entrypoint owns the narrowed protected carrier/session and
+  admits only the catalogued artifact operation. Launch metadata, app-selected
+  carrier authority, and generic gRPC proxying fail closed.
