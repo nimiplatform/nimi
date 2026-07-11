@@ -196,9 +196,6 @@ checkAuditEventFieldSemantics(eventNames);
 // ========================================================
 
 const presets = Array.isArray(presetsTable?.presets) ? presetsTable.presets : [];
-const requiredPresets = new Set(['readOnly', 'full', 'delegate']);
-const foundPresets = new Set();
-const presetsByName = new Map();
 
 for (const preset of presets) {
   const name = String(preset?.name || '').trim();
@@ -206,21 +203,12 @@ for (const preset of presets) {
     fail('app-authorization-presets.yaml: entry missing name');
     continue;
   }
-  foundPresets.add(name);
-  presetsByName.set(name, preset);
-
   const source = String(preset?.source_rule || '').trim();
   if (source && !isPlatformRuleId(source)) {
     fail(`app-authorization-presets.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
-
-for (const required of requiredPresets) {
-  if (!foundPresets.has(required)) {
-    fail(`app-authorization-presets.yaml: missing required preset: ${required}`);
-  }
-}
-checkAuthorizationPresetSemantics(presetsByName);
+checkAuthorizationPresetSemantics();
 
 function checkAuditEventFieldSemantics(eventNames) {
   const rel = '.nimi/spec/platform/kernel/tables/audit-events.yaml';
@@ -678,63 +666,29 @@ function checkErrorCodeMapping(definedRuleIds) {
   }
 }
 
-function checkAuthorizationPresetSemantics(presetsByName) {
+function checkAuthorizationPresetSemantics() {
   const rel = '.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml';
-  const expected = {
-    readOnly: {
-      default_scopes_pattern: 'app.<appId>.*.read',
-      can_delegate: false,
-      max_delegation_depth: 0,
-      source_rule: 'P-PROTO-030',
-    },
-    full: {
-      default_scopes_pattern: 'app.<appId>.*.read, app.<appId>.*.write',
-      can_delegate: false,
-      max_delegation_depth: 0,
-      source_rule: 'P-PROTO-030',
-    },
-    delegate: {
-      default_scopes_pattern: 'app.<appId>.*.read, app.<appId>.*.write',
-      can_delegate: true,
-      max_delegation_depth: 1,
-      source_rule: 'P-PROTO-035',
-    },
-  };
-
-  for (const [name, rules] of Object.entries(expected)) {
-    const preset = presetsByName.get(name);
-    if (!preset) continue;
-    for (const [field, expectedValue] of Object.entries(rules)) {
-      if (preset?.[field] !== expectedValue) {
-        fail(`${rel} ${name}: ${field} must be ${JSON.stringify(expectedValue)}`);
-      }
-    }
-  }
-
   const delegationRules = Array.isArray(presetsTable?.delegation_rules) ? presetsTable.delegation_rules : [];
-  if (delegationRules.length === 0) {
-    fail(`${rel}: delegation_rules must not be empty`);
-    return;
+  if (String(presetsTable?.authority_status || '').trim() !== 'deny_all_tombstone_pending_a3d_removal') {
+    fail(`${rel}: authority_status must remain deny_all_tombstone_pending_a3d_removal`);
   }
-  const text = delegationRules.map((entry) => String(entry?.rule || '')).join('\n');
-  for (const entry of delegationRules) {
-    const source = String(entry?.source_rule || '').trim();
-    if (source !== 'P-PROTO-035') {
-      fail(`${rel}: delegation rule must use source_rule P-PROTO-035`);
+  if (String(presetsTable?.production_consumption || '').trim() !== 'forbidden') {
+    fail(`${rel}: production_consumption must remain forbidden`);
+  }
+  if (presets.length !== 0) {
+    fail(`${rel}: presets must remain empty while the public grant family is a deny-all tombstone`);
+  }
+  if (delegationRules.length !== 0) {
+    fail(`${rel}: delegation_rules must remain empty while delegation is non-authoritative`);
+  }
+  const retiredValues = stringList(presetsTable?.retired_value_inventory);
+  for (const retired of ['readOnly', 'full', 'delegate']) {
+    if (!retiredValues.includes(retired)) {
+      fail(`${rel}: retired_value_inventory missing ${retired}`);
     }
   }
-  const requiredDelegationSemantics = [
-    [/canDelegate=true/u, 'parent token must require canDelegate=true'],
-    [/scopes[\s\S]*子集/u, 'child token scopes must be parent subset'],
-    [/expiresAt[\s\S]*早/u, 'child token expiresAt must be earlier than parent'],
-    [/撤销[\s\S]*级联失效/u, 'parent revocation must cascade to child token'],
-    [/maxDelegationDepth=1/u, 'delegate preset must default maxDelegationDepth=1'],
-    [/resourceSelectors[\s\S]*子集/u, 'child token resourceSelectors must be parent subset'],
-  ];
-  for (const [pattern, description] of requiredDelegationSemantics) {
-    if (!pattern.test(text)) {
-      fail(`${rel}: delegation_rules missing semantic guardrail: ${description}`);
-    }
+  if (String(presetsTable?.retired_value_disposition || '').trim() !== 'no_authority_no_issuance_no_validation_no_compatibility') {
+    fail(`${rel}: retired_value_disposition must reject authority, issuance, validation, and compatibility`);
   }
 }
 

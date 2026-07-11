@@ -1,0 +1,191 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '..');
+const gatePath = path.join(scriptDir, 'check-protected-local-authority.mjs');
+const fixtures = JSON.parse(fs.readFileSync(
+  path.join(scriptDir, 'testdata/protected-local-authority/negative-fixtures.json'),
+  'utf8',
+));
+
+const modes = [
+  'protected-local-authority',
+  'protected-rpc-posture',
+  'no-portable-privileged-session',
+  'protected-local-trust-set-isolation',
+];
+
+const expectedCodes = [
+  'RUNTIME_OS_PRINCIPAL_ISOLATION_REQUIRED',
+  'USER_SCOPED_CUSTODY_FORBIDDEN',
+  'MUTUAL_ENDPOINT_AUTH_REQUIRED',
+  'RUNTIME_EXECUTABLE_TRUST_REQUIRED',
+  'TRANSPORT_ROLE_MATRIX_REQUIRED',
+  'PUBLIC_PRIVILEGED_RPC_FORBIDDEN',
+  'PORTABLE_PRIVILEGE_FORBIDDEN',
+  'BINDING_ONLY_REQUIRED',
+  'PRODUCTION_TEST_TRUST_ISOLATION_REQUIRED',
+  'SAME_FILE_EXECUTABLE_VERIFICATION_REQUIRED',
+  'PROCESS_LIVENESS_REQUIRED',
+  'SECURITY_LEDGER_ANTI_ROLLBACK_REQUIRED',
+  'LIFECYCLE_CHALLENGE_TRANSACTION_REQUIRED',
+  'LIFECYCLE_INTENT_PROTOCOL_REQUIRED',
+  'A1_CHILD_CHANNEL_DEPENDENCY_REQUIRED',
+  'BINDING_ONLY_APP_MODE_CEILING_REQUIRED',
+  'PUBLIC_REFRESH_FORBIDDEN',
+  'SECURITY_LIMIT_SCHEMA_INVALID',
+];
+
+function runGate(args) {
+  return spawnSync(process.execPath, [gatePath, ...args], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+}
+
+function parseAuthority(relative) {
+  return YAML.parse(fs.readFileSync(path.join(repoRoot, relative), 'utf8'));
+}
+
+test('supported OS authority uses exact isolated principals and macOS privileged XPC', () => {
+  const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
+  const profiles = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml');
+  assert.deepEqual(principals.profiles.map((row) => row.production_principal), [
+    'NT_SERVICE_NimiRuntime_restricted_service_sid',
+    'dedicated_nimi_runtime_system_uid',
+    'dedicated_nimi_runtime_launchdaemon_principal',
+  ]);
+  const macos = profiles.profiles.find((row) => row.os === 'macos');
+  assert.equal(macos.endpoint_kind, 'privileged_xpc_service');
+  assert.equal(macos.endpoint_ownership, 'launchdaemon_privileged_xpc_mach_service');
+});
+
+test('production config and Desktop service lifecycle have one closed authority', () => {
+  const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
+  const config = parseAuthority('.nimi/spec/runtime/kernel/tables/config-schema.yaml');
+  assert.deepEqual(principals.desktop_service_control, {
+    status_authority: 'os_service_manager_and_verified_runtime_control',
+    start_or_restart_authority: 'typed_os_service_control_gateway',
+    operations: ['status', 'start', 'restart'],
+    product_stop_operation: 'absent',
+    desktop_direct_spawn: 'forbidden',
+    desktop_direct_stop: 'forbidden',
+    desktop_quit_disposition: 'service_remains_running',
+    release_staging_authority: 'signed_installer_service_updater',
+    runtime_binary_selection_by_desktop: 'forbidden',
+    common_response_fields: ['state', 'release_id', 'reason_code', 'retryable'],
+    state_values: ['stopped', 'start_pending', 'running', 'restart_pending', 'unavailable'],
+    windows: {
+      service_name: 'NimiRuntime',
+      status_semantics: 'scm_query_status_then_verified_runtime_health_when_running',
+      start_semantics: 'scm_start_fixed_service_name_without_binary_path_or_arguments',
+      restart_semantics: 'runtime_self_exit_then_scm_recovery_start_and_new_boot_epoch_verification',
+      desktop_scm_access: ['SERVICE_QUERY_STATUS', 'SERVICE_START'],
+      desktop_scm_stop_access: 'forbidden',
+      service_binary_path_or_arguments_input: 'forbidden',
+      running_success_requirement: 'verified_new_or_existing_runtime_process_and_protected_handshake',
+      restart_success_requirement: 'new_pid_creation_marker_and_runtime_boot_epoch_verified',
+      hung_runtime_recovery: 'signed_installer_service_updater_or_administrator_only',
+    },
+  });
+  assert.equal(config.production_authority?.closed_field_partition, true);
+  assert.equal(config.production_authority?.interactive_user_config_file, 'forbidden');
+  assert.equal(config.production_authority?.retired_import, 'forbidden_pre_release_hardcut');
+});
+
+test('every protected Desktop method uses the closed protected-origin posture', () => {
+  const identity = parseAuthority('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml');
+  const protectedRows = identity.methods.filter((row) => row.protected_transport_class === 'desktop_control');
+  assert.ok(protectedRows.length > 0);
+  assert.deepEqual(new Set(protectedRows.map((row) => row.posture)), new Set(['protected_origin_required']));
+});
+
+test('public Runtime grant token family is deny-only and cannot bypass binding-only bootstrap', () => {
+  const identity = parseAuthority('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml');
+  const grantRows = identity.methods.filter((row) => row.method_id.includes('RuntimeGrantService/'));
+  assert.equal(grantRows.length, 5);
+  assert.deepEqual(new Set(grantRows.map((row) => row.posture)), new Set(['deny_all_tombstone']));
+  assert.deepEqual(new Set(grantRows.map((row) => row.transport_disposition)), new Set(['deny_all']));
+});
+
+test('workspace binding RPCs remain blocked until an exact protected origin is admitted', () => {
+  const identity = parseAuthority('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml');
+  const transport = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
+  for (const method of ['IssueWorkspaceBinding', 'RevokeWorkspaceBinding']) {
+    const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
+    const posture = identity.methods.find((row) => row.method_id === methodId);
+    const route = transport.methods.find((row) => row.method_id === methodId);
+    assert.equal(posture?.posture, 'blocked_pending_authority');
+    assert.equal(posture?.authority_status, 'blocked_pending_separate_authority');
+    assert.deepEqual(route?.allowed_transport_classes, []);
+    assert.deepEqual(route?.required_origin_roles, []);
+    assert.equal(route?.operation_class, 'blocked_pending_separate_authority');
+  }
+});
+
+test('Desktop session, Windows service control, and release-record artifacts have frozen minimal shapes', () => {
+  const transport = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
+  const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
+  const trust = parseAuthority('.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml');
+  assert.deepEqual(transport.open_desktop_session_wire?.request?.fields, []);
+  assert.deepEqual(transport.open_desktop_session_wire?.response?.fields?.map((row) => row.name), [
+    'desktop_session_id',
+    'runtime_boot_epoch',
+  ]);
+  assert.equal(transport.open_desktop_session_wire?.renderer_projection, 'forbidden');
+  assert.deepEqual(principals.desktop_service_control?.operations, ['status', 'start', 'restart']);
+  assert.equal(principals.desktop_service_control?.product_stop_operation, 'absent');
+  assert.equal(principals.desktop_service_control?.windows?.service_name, 'NimiRuntime');
+  assert.equal(principals.desktop_service_control?.windows?.restart_semantics, 'runtime_self_exit_then_scm_recovery_start_and_new_boot_epoch_verification');
+  assert.equal(trust.release_trust_record_artifact?.relative_layout, 'trust/protected-local/v1/<executable_role>.release-trust-record.json');
+  assert.equal(trust.release_trust_record_artifact?.path_override, 'forbidden');
+});
+
+test('negative fixture inputs are independent and cover every stable security code', () => {
+  assert.deepEqual(fixtures.map((fixture) => fixture.code), expectedCodes);
+  assert.equal(new Set(fixtures.map((fixture) => fixture.fixture_id)).size, fixtures.length);
+  assert.equal(new Set(fixtures.map((fixture) => fixture.mutation.to)).size, fixtures.length);
+  for (const fixture of fixtures) {
+    assert.match(fixture.target, /^\.nimi\/spec\//u);
+    assert.equal(fixture.mutation.kind, 'replace_exact');
+    assert.match(fixture.mutation.from, /\S/u);
+    assert.match(fixture.mutation.to, /\S/u);
+    assert.notEqual(fixture.mutation.from, fixture.mutation.to);
+    assert.doesNotMatch(fixture.mutation.from, new RegExp(fixture.code, 'iu'));
+    assert.doesNotMatch(fixture.mutation.to, new RegExp(fixture.code, 'iu'));
+  }
+});
+
+test('gate rejects every independent negative fixture with one stable code', () => {
+  const result = runGate(['--fixture-report-json']);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.fixtures.map((fixture) => fixture.code), expectedCodes);
+  assert.equal(new Set(report.fixtures.map((fixture) => fixture.code)).size, fixtures.length);
+  for (const [index, fixture] of report.fixtures.entries()) {
+    assert.equal(fixture.fixture_id, fixtures[index].fixture_id);
+    assert.equal(fixture.target, fixtures[index].target);
+    assert.equal(fixture.issue_count, 1);
+    assert.match(fixture.reason, /\S/u);
+  }
+});
+
+for (const mode of modes) {
+  test(`${mode} accepts the admitted A.0 authority bundle`, () => {
+    const result = runGate(['--mode', mode]);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, new RegExp(`${mode}: OK`, 'u'));
+  });
+}
+
+test('unknown gate modes fail closed with a stable argument code', () => {
+  const result = runGate(['--mode', 'unknown-mode']);
+  assert.equal(result.status, 1, result.stdout || result.stderr);
+  assert.match(result.stderr, /ARGUMENT_ERROR/u);
+});
