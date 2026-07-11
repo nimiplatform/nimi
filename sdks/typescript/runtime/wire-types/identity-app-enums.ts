@@ -196,6 +196,7 @@ export enum AppOpenState {
   UNSPECIFIED = 0,
   LAUNCHED = 1,
   BLOCKED = 2,
+  LAUNCH_PREPARED = 3,
 }
 
 export enum AppPackageReadinessState {

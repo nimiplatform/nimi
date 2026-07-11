@@ -52,6 +52,38 @@ export enum LocalBundleState {
   REMOVED = 5,
 }
 
+export enum LocalDevelopmentAuthorizationState {
+  UNSPECIFIED = 0,
+  CONFIRMATION_REQUIRED = 1,
+  ACTIVE = 2,
+  REAPPROVAL_REQUIRED = 3,
+  DENIED = 4,
+  REVOKED = 5,
+}
+
+export enum LocalDevelopmentBootstrapState {
+  UNSPECIFIED = 0,
+  READY = 1,
+  AUTHORIZATION_REQUIRED = 2,
+  DENIED = 3,
+  RUNTIME_UNAVAILABLE = 4,
+  REVOKED = 5,
+  PROJECT_CHANGED = 6,
+}
+
+export enum LocalDevelopmentDecision {
+  UNSPECIFIED = 0,
+  DENY = 1,
+  ALLOW_RUN_ONCE = 2,
+  ALLOW_REMEMBER_PROJECT = 3,
+}
+
+export enum LocalDevelopmentShellKind {
+  UNSPECIFIED = 0,
+  ELECTRON = 1,
+  TAURI = 2,
+}
+
 export enum LocalEngineRuntimeMode {
   UNSPECIFIED = 0,
   SUPERVISED = 1,

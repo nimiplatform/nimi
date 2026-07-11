@@ -775,6 +775,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AdoptLocalAppResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
+    "service": "RuntimeAppService",
+    "method": "BindInstalledLaunchProcess",
+    "kind": "unary",
+    "requestType": "BindInstalledLaunchProcessRequest",
+    "responseType": "BindInstalledLaunchProcessResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
     "service": "RuntimeAppService",
     "method": "GetAccountAppInventory",
@@ -981,6 +989,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "SubscribeRuntimeHealthEventsRequest",
     "responseType": "RuntimeHealthEvent"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession",
+    "service": "RuntimeAuthService",
+    "method": "OpenDesktopLaunchedAppSession",
+    "kind": "unary",
+    "requestType": "OpenDesktopLaunchedAppSessionRequest",
+    "responseType": "OpenDesktopLaunchedAppSessionResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
@@ -1397,6 +1413,78 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UpsertModelCatalogProviderRequest",
     "responseType": "UpsertModelCatalogProviderResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
+    "service": "RuntimeDevelopmentService",
+    "method": "BindLocalDevelopmentHostProcess",
+    "kind": "unary",
+    "requestType": "BindLocalDevelopmentHostProcessRequest",
+    "responseType": "BindLocalDevelopmentHostProcessResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
+    "service": "RuntimeDevelopmentService",
+    "method": "DecideLocalDevelopmentProject",
+    "kind": "unary",
+    "requestType": "DecideLocalDevelopmentProjectRequest",
+    "responseType": "DecideLocalDevelopmentProjectResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
+    "service": "RuntimeDevelopmentService",
+    "method": "EndLocalDevelopmentRun",
+    "kind": "unary",
+    "requestType": "EndLocalDevelopmentRunRequest",
+    "responseType": "EndLocalDevelopmentRunResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
+    "service": "RuntimeDevelopmentService",
+    "method": "EvaluateLocalDevelopmentProject",
+    "kind": "unary",
+    "requestType": "EvaluateLocalDevelopmentProjectRequest",
+    "responseType": "EvaluateLocalDevelopmentProjectResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus",
+    "service": "RuntimeDevelopmentService",
+    "method": "GetLocalDevelopmentSessionStatus",
+    "kind": "unary",
+    "requestType": "GetLocalDevelopmentSessionStatusRequest",
+    "responseType": "GetLocalDevelopmentSessionStatusResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+    "service": "RuntimeDevelopmentService",
+    "method": "ListLocalDevelopmentAuthorizations",
+    "kind": "unary",
+    "requestType": "ListLocalDevelopmentAuthorizationsRequest",
+    "responseType": "ListLocalDevelopmentAuthorizationsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession",
+    "service": "RuntimeDevelopmentService",
+    "method": "OpenLocalDevelopmentAppSession",
+    "kind": "unary",
+    "requestType": "OpenLocalDevelopmentAppSessionRequest",
+    "responseType": "OpenLocalDevelopmentAppSessionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
+    "service": "RuntimeDevelopmentService",
+    "method": "PrepareLocalDevelopmentLaunch",
+    "kind": "unary",
+    "requestType": "PrepareLocalDevelopmentLaunchRequest",
+    "responseType": "PrepareLocalDevelopmentLaunchResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
+    "service": "RuntimeDevelopmentService",
+    "method": "RevokeLocalDevelopmentAuthorization",
+    "kind": "unary",
+    "requestType": "RevokeLocalDevelopmentAuthorizationRequest",
+    "responseType": "RevokeLocalDevelopmentAuthorizationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",

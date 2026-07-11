@@ -1072,7 +1072,46 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: LIFECYCLE_INTENT_EXPIRED = 641;
      */
-    LIFECYCLE_INTENT_EXPIRED = 641
+    LIFECYCLE_INTENT_EXPIRED = 641,
+    /**
+     * LOCAL_DEVELOPMENT family (642+). These values are reserved for the
+     * explicit non-production mutable-project trust class (K-PLOCAL-009).
+     *
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED = 642;
+     */
+    LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED = 642,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED = 643;
+     */
+    LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED = 643,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_PROJECT_CHANGED = 644;
+     */
+    LOCAL_DEVELOPMENT_PROJECT_CHANGED = 644,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED = 645;
+     */
+    LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED = 645,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_SESSION_REVOKED = 646;
+     */
+    LOCAL_DEVELOPMENT_SESSION_REVOKED = 646,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED = 647;
+     */
+    LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED = 647,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN = 648;
+     */
+    LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN = 648,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED = 649;
+     */
+    LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED = 649,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_APPROVAL_DENIED = 650;
+     */
+    LOCAL_DEVELOPMENT_APPROVAL_DENIED = 650
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

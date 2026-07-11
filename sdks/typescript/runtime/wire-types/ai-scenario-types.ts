@@ -292,6 +292,52 @@ export type {
 };
 
 import type {
+  BindLocalDevelopmentHostProcessRequest,
+  BindLocalDevelopmentHostProcessResponse,
+  DecideLocalDevelopmentProjectRequest,
+  DecideLocalDevelopmentProjectResponse,
+  EndLocalDevelopmentRunRequest,
+  EndLocalDevelopmentRunResponse,
+  EvaluateLocalDevelopmentProjectRequest,
+  EvaluateLocalDevelopmentProjectResponse,
+  GetLocalDevelopmentSessionStatusRequest,
+  GetLocalDevelopmentSessionStatusResponse,
+  ListLocalDevelopmentAuthorizationsRequest,
+  ListLocalDevelopmentAuthorizationsResponse,
+  LocalDevelopmentAuthorizationProjection,
+  LocalDevelopmentProjectProjection,
+  OpenLocalDevelopmentAppSessionRequest,
+  OpenLocalDevelopmentAppSessionResponse,
+  PrepareLocalDevelopmentLaunchRequest,
+  PrepareLocalDevelopmentLaunchResponse,
+  RevokeLocalDevelopmentAuthorizationRequest,
+  RevokeLocalDevelopmentAuthorizationResponse,
+} from "../../core-generated/runtime-protobuf/runtime/v1/development";
+
+export type {
+  BindLocalDevelopmentHostProcessRequest,
+  BindLocalDevelopmentHostProcessResponse,
+  DecideLocalDevelopmentProjectRequest,
+  DecideLocalDevelopmentProjectResponse,
+  EndLocalDevelopmentRunRequest,
+  EndLocalDevelopmentRunResponse,
+  EvaluateLocalDevelopmentProjectRequest,
+  EvaluateLocalDevelopmentProjectResponse,
+  GetLocalDevelopmentSessionStatusRequest,
+  GetLocalDevelopmentSessionStatusResponse,
+  ListLocalDevelopmentAuthorizationsRequest,
+  ListLocalDevelopmentAuthorizationsResponse,
+  LocalDevelopmentAuthorizationProjection,
+  LocalDevelopmentProjectProjection,
+  OpenLocalDevelopmentAppSessionRequest,
+  OpenLocalDevelopmentAppSessionResponse,
+  PrepareLocalDevelopmentLaunchRequest,
+  PrepareLocalDevelopmentLaunchResponse,
+  RevokeLocalDevelopmentAuthorizationRequest,
+  RevokeLocalDevelopmentAuthorizationResponse,
+};
+
+import type {
   DeleteVoiceAssetRequest,
   DeleteVoiceAssetResponse,
   GetVoiceAssetRequest,

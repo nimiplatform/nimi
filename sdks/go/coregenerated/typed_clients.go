@@ -618,6 +618,7 @@ const (
 	APPOPENSTATEUNSPECIFIED AppOpenState = "APP_OPEN_STATE_UNSPECIFIED"
 	APPOPENSTATELAUNCHED AppOpenState = "APP_OPEN_STATE_LAUNCHED"
 	APPOPENSTATEBLOCKED AppOpenState = "APP_OPEN_STATE_BLOCKED"
+	APPOPENSTATELAUNCHPREPARED AppOpenState = "APP_OPEN_STATE_LAUNCH_PREPARED"
 )
 
 type AppPackageReadinessState string
@@ -1036,6 +1037,46 @@ const (
 	LOCALBUNDLESTATEDEGRADED LocalBundleState = "LOCAL_BUNDLE_STATE_DEGRADED"
 	LOCALBUNDLESTATEINVALID LocalBundleState = "LOCAL_BUNDLE_STATE_INVALID"
 	LOCALBUNDLESTATEREMOVED LocalBundleState = "LOCAL_BUNDLE_STATE_REMOVED"
+)
+
+type LocalDevelopmentAuthorizationState string
+
+const (
+	LOCALDEVELOPMENTAUTHORIZATIONSTATEUNSPECIFIED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_UNSPECIFIED"
+	LOCALDEVELOPMENTAUTHORIZATIONSTATECONFIRMATIONREQUIRED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED"
+	LOCALDEVELOPMENTAUTHORIZATIONSTATEACTIVE LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE"
+	LOCALDEVELOPMENTAUTHORIZATIONSTATEREAPPROVALREQUIRED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED"
+	LOCALDEVELOPMENTAUTHORIZATIONSTATEDENIED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED"
+	LOCALDEVELOPMENTAUTHORIZATIONSTATEREVOKED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED"
+)
+
+type LocalDevelopmentBootstrapState string
+
+const (
+	LOCALDEVELOPMENTBOOTSTRAPSTATEUNSPECIFIED LocalDevelopmentBootstrapState = "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_UNSPECIFIED"
+	LOCALDEVELOPMENTBOOTSTRAPSTATEREADY LocalDevelopmentBootstrapState = "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_READY"
+	LOCALDEVELOPMENTBOOTSTRAPSTATEAUTHORIZATIONREQUIRED LocalDevelopmentBootstrapState = "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_AUTHORIZATION_REQUIRED"
+	LOCALDEVELOPMENTBOOTSTRAPSTATEDENIED LocalDevelopmentBootstrapState = "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_DENIED"
+	LOCALDEVELOPMENTBOOTSTRAPSTATERUNTIMEUNAVAILABLE LocalDevelopmentBootstrapState = "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_RUNTIME_UNAVAILABLE"
+	LOCALDEVELOPMENTBOOTSTRAPSTATEREVOKED LocalDevelopmentBootstrapState = "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_REVOKED"
+	LOCALDEVELOPMENTBOOTSTRAPSTATEPROJECTCHANGED LocalDevelopmentBootstrapState = "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_PROJECT_CHANGED"
+)
+
+type LocalDevelopmentDecision string
+
+const (
+	LOCALDEVELOPMENTDECISIONUNSPECIFIED LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED"
+	LOCALDEVELOPMENTDECISIONDENY LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_DENY"
+	LOCALDEVELOPMENTDECISIONALLOWRUNONCE LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE"
+	LOCALDEVELOPMENTDECISIONALLOWREMEMBERPROJECT LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT"
+)
+
+type LocalDevelopmentShellKind string
+
+const (
+	LOCALDEVELOPMENTSHELLKINDUNSPECIFIED LocalDevelopmentShellKind = "LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED"
+	LOCALDEVELOPMENTSHELLKINDELECTRON LocalDevelopmentShellKind = "LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON"
+	LOCALDEVELOPMENTSHELLKINDTAURI LocalDevelopmentShellKind = "LOCAL_DEVELOPMENT_SHELL_KIND_TAURI"
 )
 
 type LocalEngineRuntimeMode string
@@ -1708,6 +1749,15 @@ const (
 	LIFECYCLEINTENTMISMATCH ReasonCode = "LIFECYCLE_INTENT_MISMATCH"
 	LIFECYCLEINTENTREPLAY ReasonCode = "LIFECYCLE_INTENT_REPLAY"
 	LIFECYCLEINTENTEXPIRED ReasonCode = "LIFECYCLE_INTENT_EXPIRED"
+	LOCALDEVELOPMENTAUTHORIZATIONREQUIRED ReasonCode = "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED"
+	LOCALDEVELOPMENTREAPPROVALREQUIRED ReasonCode = "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED"
+	LOCALDEVELOPMENTPROJECTCHANGED ReasonCode = "LOCAL_DEVELOPMENT_PROJECT_CHANGED"
+	LOCALDEVELOPMENTSUPERVISORREQUIRED ReasonCode = "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED"
+	LOCALDEVELOPMENTSESSIONREVOKED ReasonCode = "LOCAL_DEVELOPMENT_SESSION_REVOKED"
+	LOCALDEVELOPMENTPLATFORMUNSUPPORTED ReasonCode = "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED"
+	LOCALDEVELOPMENTOPERATIONFORBIDDEN ReasonCode = "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN"
+	LOCALDEVELOPMENTDEVSERVERUNCONTROLLED ReasonCode = "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED"
+	LOCALDEVELOPMENTAPPROVALDENIED ReasonCode = "LOCAL_DEVELOPMENT_APPROVAL_DENIED"
 )
 
 type ReasoningMode string
@@ -2840,7 +2890,7 @@ type AppOpenProjection struct {
 	Storage *AppInstallStorageProjection `json:"storage,omitempty"`
 	ShellCapabilitySetRef string `json:"shell_capability_set_ref,omitempty"`
 	CallerMode string `json:"caller_mode,omitempty"`
-	LaunchNonce string `json:"launch_nonce,omitempty"`
+	LaunchId []byte `json:"launch_id,omitempty"`
 	ProductReadinessClaimAllowed bool `json:"product_readiness_claim_allowed,omitempty"`
 }
 
@@ -3108,6 +3158,27 @@ type BeginSourceMaterializationUploadResponse struct {
 	ChallengeState AgentSourceMaterializationChallengeState `json:"challenge_state,omitempty"`
 	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
+}
+
+type BindInstalledLaunchProcessRequest struct {
+	LaunchId []byte `json:"launch_id,omitempty"`
+	ChildProcessId uint32 `json:"child_process_id,omitempty"`
+}
+
+type BindInstalledLaunchProcessResponse struct {
+	LaunchId []byte `json:"launch_id,omitempty"`
+	BindDeadline string `json:"bind_deadline,omitempty"`
+}
+
+type BindLocalDevelopmentHostProcessRequest struct {
+	LaunchId []byte `json:"launch_id,omitempty"`
+	ChildProcessId uint32 `json:"child_process_id,omitempty"`
+}
+
+type BindLocalDevelopmentHostProcessResponse struct {
+	LaunchId []byte `json:"launch_id,omitempty"`
+	BindDeadline string `json:"bind_deadline,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type BranchNodeConfig struct {
@@ -3613,6 +3684,16 @@ type CreateSourceMaterializationChallengeResponse struct {
 	MaterializerAccountId string `json:"materializer_account_id,omitempty"`
 }
 
+type DecideLocalDevelopmentProjectRequest struct {
+	EvaluationId []byte `json:"evaluation_id,omitempty"`
+	Decision LocalDevelopmentDecision `json:"decision,omitempty"`
+}
+
+type DecideLocalDevelopmentProjectResponse struct {
+	Authorization *LocalDevelopmentAuthorizationProjection `json:"authorization,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type DelegatedApprovalRequest struct {
 	ApprovalRequestId string `json:"approval_request_id,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -3836,6 +3917,15 @@ type EnableAutonomyResponse struct {
 	Autonomy *AgentAutonomyState `json:"autonomy,omitempty"`
 }
 
+type EndLocalDevelopmentRunRequest struct {
+	AuthorizationId []byte `json:"authorization_id,omitempty"`
+	SupervisorRunId []byte `json:"supervisor_run_id,omitempty"`
+}
+
+type EndLocalDevelopmentRunResponse struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type EnsureEngineRequest struct {
 	Engine string `json:"engine,omitempty"`
 	Version string `json:"version,omitempty"`
@@ -3859,6 +3949,23 @@ type ErrorInfo struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	ActionHint string `json:"action_hint,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+type EvaluateLocalDevelopmentProjectRequest struct {
+	ExpectedAppId string `json:"expected_app_id,omitempty"`
+	ProjectRoot string `json:"project_root,omitempty"`
+	ShellKind LocalDevelopmentShellKind `json:"shell_kind,omitempty"`
+	SupervisorRunId []byte `json:"supervisor_run_id,omitempty"`
+}
+
+type EvaluateLocalDevelopmentProjectResponse struct {
+	EvaluationId []byte `json:"evaluation_id,omitempty"`
+	Project *LocalDevelopmentProjectProjection `json:"project,omitempty"`
+	State LocalDevelopmentAuthorizationState `json:"state,omitempty"`
+	ConfirmationRequired bool `json:"confirmation_required,omitempty"`
+	Authorization *LocalDevelopmentAuthorizationProjection `json:"authorization,omitempty"`
+	EvaluationExpiresAt string `json:"evaluation_expires_at,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type ExecuteDelegatedCapabilityRequest struct {
@@ -4284,6 +4391,17 @@ type GetKnowledgeBankRequest struct {
 
 type GetKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
+}
+
+type GetLocalDevelopmentSessionStatusRequest struct {
+
+}
+
+type GetLocalDevelopmentSessionStatusResponse struct {
+	State LocalDevelopmentBootstrapState `json:"state,omitempty"`
+	AppId string `json:"app_id,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type GetPageRequest struct {
@@ -5087,6 +5205,15 @@ type ListLocalAuditsResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type ListLocalDevelopmentAuthorizationsRequest struct {
+
+}
+
+type ListLocalDevelopmentAuthorizationsResponse struct {
+	Authorizations []LocalDevelopmentAuthorizationProjection `json:"authorizations,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type ListLocalEnvironmentDependencyJobsRequest struct {
 	EnvironmentKey string `json:"environment_key,omitempty"`
 	State string `json:"state,omitempty"`
@@ -5445,6 +5572,29 @@ type LocalCatalogVariantDescriptor struct {
 	Format string `json:"format,omitempty"`
 	SizeBytes int64 `json:"size_bytes,omitempty"`
 	Sha256 string `json:"sha256,omitempty"`
+}
+
+type LocalDevelopmentAuthorizationProjection struct {
+	AuthorizationId []byte `json:"authorization_id,omitempty"`
+	Project *LocalDevelopmentProjectProjection `json:"project,omitempty"`
+	State LocalDevelopmentAuthorizationState `json:"state,omitempty"`
+	Persistence LocalDevelopmentDecision `json:"persistence,omitempty"`
+	AuthorizationGeneration uint64 `json:"authorization_generation,omitempty"`
+	ApprovedAt string `json:"approved_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalDevelopmentProjectProjection struct {
+	AppId string `json:"app_id,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	CanonicalProjectRoot string `json:"canonical_project_root,omitempty"`
+	CanonicalManifestPath string `json:"canonical_manifest_path,omitempty"`
+	ShellKind LocalDevelopmentShellKind `json:"shell_kind,omitempty"`
+	AccountId string `json:"account_id,omitempty"`
+	RequestedCapabilities []string `json:"requested_capabilities,omitempty"`
+	CapabilityFingerprint []byte `json:"capability_fingerprint,omitempty"`
+	TrustClass string `json:"trust_class,omitempty"`
 }
 
 type LocalDeviceProfile struct {
@@ -6390,6 +6540,20 @@ type OpenConversationAnchorResponse struct {
 	Snapshot *ConversationAnchorSnapshot `json:"snapshot,omitempty"`
 }
 
+type OpenDesktopLaunchedAppSessionRequest struct {
+
+}
+
+type OpenDesktopLaunchedAppSessionResponse struct {
+	InstalledSessionId []byte `json:"installed_session_id,omitempty"`
+	InstalledSessionProof []byte `json:"installed_session_proof,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+	AppId string `json:"app_id,omitempty"`
+	ReleaseDigest []byte `json:"release_digest,omitempty"`
+	AccountGeneration uint64 `json:"account_generation,omitempty"`
+	RuntimeBootEpoch []byte `json:"runtime_boot_epoch,omitempty"`
+}
+
 type OpenDesktopSessionRequest struct {
 
 }
@@ -6410,6 +6574,20 @@ type OpenExternalPrincipalSessionResponse struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
 	SessionToken string `json:"session_token,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type OpenLocalDevelopmentAppSessionRequest struct {
+
+}
+
+type OpenLocalDevelopmentAppSessionResponse struct {
+	State LocalDevelopmentBootstrapState `json:"state,omitempty"`
+	AppId string `json:"app_id,omitempty"`
+	BootstrapArtifactId string `json:"bootstrap_artifact_id,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+	AccountGeneration uint64 `json:"account_generation,omitempty"`
+	RuntimeBootEpoch []byte `json:"runtime_boot_epoch,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
@@ -6606,6 +6784,20 @@ type PrepareAppLifecycleIntentResponse struct {
 	CanonicalImpact *AppLifecycleCanonicalImpact `json:"canonical_impact,omitempty"`
 	CanonicalImpactDigest string `json:"canonical_impact_digest,omitempty"`
 	Deadline string `json:"deadline,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type PrepareLocalDevelopmentLaunchRequest struct {
+	AuthorizationId []byte `json:"authorization_id,omitempty"`
+	SupervisorRunId []byte `json:"supervisor_run_id,omitempty"`
+	ShellKind LocalDevelopmentShellKind `json:"shell_kind,omitempty"`
+	HostExecutablePath string `json:"host_executable_path,omitempty"`
+	RendererOrigin string `json:"renderer_origin,omitempty"`
+}
+
+type PrepareLocalDevelopmentLaunchResponse struct {
+	LaunchId []byte `json:"launch_id,omitempty"`
+	BindDeadline string `json:"bind_deadline,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
@@ -7296,6 +7488,15 @@ type RevokeAppAccessTokenRequest struct {
 
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
+}
+
+type RevokeLocalDevelopmentAuthorizationRequest struct {
+	AuthorizationId []byte `json:"authorization_id,omitempty"`
+}
+
+type RevokeLocalDevelopmentAuthorizationResponse struct {
+	Authorization *LocalDevelopmentAuthorizationProjection `json:"authorization,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type RevokeScopedAppBindingRequest struct {
@@ -9625,6 +9826,14 @@ func (c RuntimeTypedClient) AdoptLocalApp(ctx context.Context, request AdoptLoca
 	return decodeRuntimeTypedResponse[AdoptLocalAppResponse](raw, "AdoptLocalAppResponse")
 }
 
+func (c RuntimeTypedClient) BindInstalledLaunchProcess(ctx context.Context, request BindInstalledLaunchProcessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BindInstalledLaunchProcessResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess", request, metadata, timeoutMS)
+	if err != nil {
+		return BindInstalledLaunchProcessResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[BindInstalledLaunchProcessResponse](raw, "BindInstalledLaunchProcessResponse")
+}
+
 func (c RuntimeTypedClient) GetAccountAppInventory(ctx context.Context, request GetAccountAppInventoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountAppInventoryResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory", request, metadata, timeoutMS)
 	if err != nil {
@@ -9831,6 +10040,14 @@ func (c RuntimeTypedClient) SubscribeRuntimeHealthEvents(ctx context.Context, re
 		return nil, err
 	}
 	return &RuntimeTypedStream[RuntimeHealthEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) OpenDesktopLaunchedAppSession(ctx context.Context, request OpenDesktopLaunchedAppSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenDesktopLaunchedAppSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenDesktopLaunchedAppSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenDesktopLaunchedAppSessionResponse](raw, "OpenDesktopLaunchedAppSessionResponse")
 }
 
 func (c RuntimeTypedClient) OpenDesktopSession(ctx context.Context, request OpenDesktopSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenDesktopSessionResponse, error) {
@@ -10247,6 +10464,78 @@ func (c RuntimeTypedClient) UpsertModelCatalogProvider(ctx context.Context, requ
 		return UpsertModelCatalogProviderResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpsertModelCatalogProviderResponse](raw, "UpsertModelCatalogProviderResponse")
+}
+
+func (c RuntimeTypedClient) BindLocalDevelopmentHostProcess(ctx context.Context, request BindLocalDevelopmentHostProcessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BindLocalDevelopmentHostProcessResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess", request, metadata, timeoutMS)
+	if err != nil {
+		return BindLocalDevelopmentHostProcessResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[BindLocalDevelopmentHostProcessResponse](raw, "BindLocalDevelopmentHostProcessResponse")
+}
+
+func (c RuntimeTypedClient) DecideLocalDevelopmentProject(ctx context.Context, request DecideLocalDevelopmentProjectRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DecideLocalDevelopmentProjectResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject", request, metadata, timeoutMS)
+	if err != nil {
+		return DecideLocalDevelopmentProjectResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DecideLocalDevelopmentProjectResponse](raw, "DecideLocalDevelopmentProjectResponse")
+}
+
+func (c RuntimeTypedClient) EndLocalDevelopmentRun(ctx context.Context, request EndLocalDevelopmentRunRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EndLocalDevelopmentRunResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun", request, metadata, timeoutMS)
+	if err != nil {
+		return EndLocalDevelopmentRunResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[EndLocalDevelopmentRunResponse](raw, "EndLocalDevelopmentRunResponse")
+}
+
+func (c RuntimeTypedClient) EvaluateLocalDevelopmentProject(ctx context.Context, request EvaluateLocalDevelopmentProjectRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EvaluateLocalDevelopmentProjectResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject", request, metadata, timeoutMS)
+	if err != nil {
+		return EvaluateLocalDevelopmentProjectResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[EvaluateLocalDevelopmentProjectResponse](raw, "EvaluateLocalDevelopmentProjectResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalDevelopmentSessionStatus(ctx context.Context, request GetLocalDevelopmentSessionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalDevelopmentSessionStatusResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalDevelopmentSessionStatusResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalDevelopmentSessionStatusResponse](raw, "GetLocalDevelopmentSessionStatusResponse")
+}
+
+func (c RuntimeTypedClient) ListLocalDevelopmentAuthorizations(ctx context.Context, request ListLocalDevelopmentAuthorizationsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalDevelopmentAuthorizationsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalDevelopmentAuthorizationsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalDevelopmentAuthorizationsResponse](raw, "ListLocalDevelopmentAuthorizationsResponse")
+}
+
+func (c RuntimeTypedClient) OpenLocalDevelopmentAppSession(ctx context.Context, request OpenLocalDevelopmentAppSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenLocalDevelopmentAppSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenLocalDevelopmentAppSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenLocalDevelopmentAppSessionResponse](raw, "OpenLocalDevelopmentAppSessionResponse")
+}
+
+func (c RuntimeTypedClient) PrepareLocalDevelopmentLaunch(ctx context.Context, request PrepareLocalDevelopmentLaunchRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareLocalDevelopmentLaunchResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch", request, metadata, timeoutMS)
+	if err != nil {
+		return PrepareLocalDevelopmentLaunchResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PrepareLocalDevelopmentLaunchResponse](raw, "PrepareLocalDevelopmentLaunchResponse")
+}
+
+func (c RuntimeTypedClient) RevokeLocalDevelopmentAuthorization(ctx context.Context, request RevokeLocalDevelopmentAuthorizationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeLocalDevelopmentAuthorizationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization", request, metadata, timeoutMS)
+	if err != nil {
+		return RevokeLocalDevelopmentAuthorizationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RevokeLocalDevelopmentAuthorizationResponse](raw, "RevokeLocalDevelopmentAuthorizationResponse")
 }
 
 func (c RuntimeTypedClient) GetExternalAgentGatewayStatus(ctx context.Context, request ExternalAgentGatewayStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExternalAgentGatewayStatusResponse, error) {

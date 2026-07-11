@@ -81,6 +81,8 @@ import type {
   AppPackageReadinessProjection,
   AppStorageProjection,
   AppUninstallResult,
+  BindInstalledLaunchProcessRequest,
+  BindInstalledLaunchProcessResponse,
   GetAccountAppInventoryRequest,
   GetAccountAppInventoryResponse,
   GetAppInstallJobRequest,
@@ -132,6 +134,8 @@ export type {
   AppPackageReadinessProjection,
   AppStorageProjection,
   AppUninstallResult,
+  BindInstalledLaunchProcessRequest,
+  BindInstalledLaunchProcessResponse,
   GetAccountAppInventoryRequest,
   GetAccountAppInventoryResponse,
   GetAppInstallJobRequest,
@@ -225,6 +229,8 @@ export type {
 
 import type {
   AppModeManifest,
+  OpenDesktopLaunchedAppSessionRequest,
+  OpenDesktopLaunchedAppSessionResponse,
   OpenDesktopSessionRequest,
   OpenDesktopSessionResponse,
   OpenExternalPrincipalSessionRequest,
@@ -243,6 +249,8 @@ import type {
 
 export type {
   AppModeManifest,
+  OpenDesktopLaunchedAppSessionRequest,
+  OpenDesktopLaunchedAppSessionResponse,
   OpenDesktopSessionRequest,
   OpenDesktopSessionResponse,
   OpenExternalPrincipalSessionRequest,

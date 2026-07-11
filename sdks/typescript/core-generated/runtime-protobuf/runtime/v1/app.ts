@@ -1234,8 +1234,9 @@ export interface AppOpenProjection {
     detail: string;
     /**
      * release_descriptor_ref is Runtime-attested descriptor identity used for
-     * the installed launch. It is empty for local adoption launches, which do
-     * not satisfy P-NAPP-034 installed third-party launch proof.
+     * the installed launch. It is empty for blocked local-adoption projections;
+     * adoption inventory alone cannot satisfy either production installed or
+     * P-NAPP-035 local-development launch authority.
      *
      * @generated from protobuf field: string release_descriptor_ref = 9
      */
@@ -1289,9 +1290,12 @@ export interface AppOpenProjection {
      */
     callerMode: string;
     /**
-     * @generated from protobuf field: string launch_nonce = 20
+     * Non-authorizing 32-byte correlation id. The host-only verified process
+     * binding is established separately over protected Desktop control.
+     *
+     * @generated from protobuf field: bytes launch_id = 20
      */
-    launchNonce: string;
+    launchId: Uint8Array;
     /**
      * @generated from protobuf field: bool product_readiness_claim_allowed = 21
      */
@@ -1305,6 +1309,36 @@ export interface OpenAppResponse {
      * @generated from protobuf field: nimi.runtime.v1.AppOpenProjection projection = 1
      */
     projection?: AppOpenProjection;
+}
+/**
+ * Desktop sends only selectors observed from its suspended exact-executable
+ * launch. Runtime independently opens and verifies the process before binding
+ * it to the launch record; neither field is authority by itself.
+ *
+ * @generated from protobuf message nimi.runtime.v1.BindInstalledLaunchProcessRequest
+ */
+export interface BindInstalledLaunchProcessRequest {
+    /**
+     * @generated from protobuf field: bytes launch_id = 1
+     */
+    launchId: Uint8Array;
+    /**
+     * @generated from protobuf field: uint32 child_process_id = 2
+     */
+    childProcessId: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.BindInstalledLaunchProcessResponse
+ */
+export interface BindInstalledLaunchProcessResponse {
+    /**
+     * @generated from protobuf field: bytes launch_id = 1
+     */
+    launchId: Uint8Array;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp bind_deadline = 2
+     */
+    bindDeadline?: Timestamp;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AppMessageEventType
@@ -1876,7 +1910,14 @@ export enum AppOpenState {
      *
      * @generated from protobuf enum value: APP_OPEN_STATE_BLOCKED = 2;
      */
-    BLOCKED = 2
+    BLOCKED = 2,
+    /**
+     * Runtime created a short-lived launch record, but no verified child has
+     * consumed it yet. This is never projected as launched=true.
+     *
+     * @generated from protobuf enum value: APP_OPEN_STATE_LAUNCH_PREPARED = 3;
+     */
+    LAUNCH_PREPARED = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class SendAppMessageRequest$Type extends MessageType<SendAppMessageRequest> {
@@ -5228,7 +5269,7 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
             { no: 17, name: "storage", kind: "message", T: () => AppInstallStorageProjection },
             { no: 18, name: "shell_capability_set_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 19, name: "caller_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "launch_nonce", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 21, name: "product_readiness_claim_allowed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
@@ -5251,7 +5292,7 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
         message.activeReleaseRoot = "";
         message.shellCapabilitySetRef = "";
         message.callerMode = "";
-        message.launchNonce = "";
+        message.launchId = new Uint8Array(0);
         message.productReadinessClaimAllowed = false;
         if (value !== undefined)
             reflectionMergePartial<AppOpenProjection>(this, message, value);
@@ -5319,8 +5360,8 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
                 case /* string caller_mode */ 19:
                     message.callerMode = reader.string();
                     break;
-                case /* string launch_nonce */ 20:
-                    message.launchNonce = reader.string();
+                case /* bytes launch_id */ 20:
+                    message.launchId = reader.bytes();
                     break;
                 case /* bool product_readiness_claim_allowed */ 21:
                     message.productReadinessClaimAllowed = reader.bool();
@@ -5394,9 +5435,9 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
         /* string caller_mode = 19; */
         if (message.callerMode !== "")
             writer.tag(19, WireType.LengthDelimited).string(message.callerMode);
-        /* string launch_nonce = 20; */
-        if (message.launchNonce !== "")
-            writer.tag(20, WireType.LengthDelimited).string(message.launchNonce);
+        /* bytes launch_id = 20; */
+        if (message.launchId.length)
+            writer.tag(20, WireType.LengthDelimited).bytes(message.launchId);
         /* bool product_readiness_claim_allowed = 21; */
         if (message.productReadinessClaimAllowed !== false)
             writer.tag(21, WireType.Varint).bool(message.productReadinessClaimAllowed);
@@ -5456,3 +5497,112 @@ class OpenAppResponse$Type extends MessageType<OpenAppResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.OpenAppResponse
  */
 export const OpenAppResponse = new OpenAppResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class BindInstalledLaunchProcessRequest$Type extends MessageType<BindInstalledLaunchProcessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.BindInstalledLaunchProcessRequest", [
+            { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "child_process_id", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<BindInstalledLaunchProcessRequest>): BindInstalledLaunchProcessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchId = new Uint8Array(0);
+        message.childProcessId = 0;
+        if (value !== undefined)
+            reflectionMergePartial<BindInstalledLaunchProcessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BindInstalledLaunchProcessRequest): BindInstalledLaunchProcessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_id */ 1:
+                    message.launchId = reader.bytes();
+                    break;
+                case /* uint32 child_process_id */ 2:
+                    message.childProcessId = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: BindInstalledLaunchProcessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_id = 1; */
+        if (message.launchId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchId);
+        /* uint32 child_process_id = 2; */
+        if (message.childProcessId !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.childProcessId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.BindInstalledLaunchProcessRequest
+ */
+export const BindInstalledLaunchProcessRequest = new BindInstalledLaunchProcessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class BindInstalledLaunchProcessResponse$Type extends MessageType<BindInstalledLaunchProcessResponse> {
+    constructor() {
+        super("nimi.runtime.v1.BindInstalledLaunchProcessResponse", [
+            { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "bind_deadline", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<BindInstalledLaunchProcessResponse>): BindInstalledLaunchProcessResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchId = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<BindInstalledLaunchProcessResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BindInstalledLaunchProcessResponse): BindInstalledLaunchProcessResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_id */ 1:
+                    message.launchId = reader.bytes();
+                    break;
+                case /* google.protobuf.Timestamp bind_deadline */ 2:
+                    message.bindDeadline = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.bindDeadline);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: BindInstalledLaunchProcessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_id = 1; */
+        if (message.launchId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchId);
+        /* google.protobuf.Timestamp bind_deadline = 2; */
+        if (message.bindDeadline)
+            Timestamp.internalBinaryWrite(message.bindDeadline, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.BindInstalledLaunchProcessResponse
+ */
+export const BindInstalledLaunchProcessResponse = new BindInstalledLaunchProcessResponse$Type();

@@ -169,6 +169,50 @@ export interface OpenDesktopSessionResponse {
     runtimeBootEpoch: Uint8Array;
 }
 /**
+ * Empty by design: the Runtime-owned launch record is selected by the exact
+ * verified launch_bootstrap connection, never by request data or metadata.
+ *
+ * @generated from protobuf message nimi.runtime.v1.OpenDesktopLaunchedAppSessionRequest
+ */
+export interface OpenDesktopLaunchedAppSessionRequest {
+}
+/**
+ * Host-only installed session proof. It is returned only on the inherited
+ * native child channel and must never cross renderer IPC.
+ *
+ * @generated from protobuf message nimi.runtime.v1.OpenDesktopLaunchedAppSessionResponse
+ */
+export interface OpenDesktopLaunchedAppSessionResponse {
+    /**
+     * @generated from protobuf field: bytes installed_session_id = 1
+     */
+    installedSessionId: Uint8Array;
+    /**
+     * @generated from protobuf field: bytes installed_session_proof = 2
+     */
+    installedSessionProof: Uint8Array;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 3
+     */
+    expiresAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string app_id = 4
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: bytes release_digest = 5
+     */
+    releaseDigest: Uint8Array;
+    /**
+     * @generated from protobuf field: uint64 account_generation = 6
+     */
+    accountGeneration: string;
+    /**
+     * @generated from protobuf field: bytes runtime_boot_epoch = 7
+     */
+    runtimeBootEpoch: Uint8Array;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RefreshSessionRequest
  */
 export interface RefreshSessionRequest {
@@ -840,6 +884,138 @@ class OpenDesktopSessionResponse$Type extends MessageType<OpenDesktopSessionResp
  * @generated MessageType for protobuf message nimi.runtime.v1.OpenDesktopSessionResponse
  */
 export const OpenDesktopSessionResponse = new OpenDesktopSessionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenDesktopLaunchedAppSessionRequest$Type extends MessageType<OpenDesktopLaunchedAppSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OpenDesktopLaunchedAppSessionRequest", []);
+    }
+    create(value?: PartialMessage<OpenDesktopLaunchedAppSessionRequest>): OpenDesktopLaunchedAppSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<OpenDesktopLaunchedAppSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenDesktopLaunchedAppSessionRequest): OpenDesktopLaunchedAppSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenDesktopLaunchedAppSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenDesktopLaunchedAppSessionRequest
+ */
+export const OpenDesktopLaunchedAppSessionRequest = new OpenDesktopLaunchedAppSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenDesktopLaunchedAppSessionResponse$Type extends MessageType<OpenDesktopLaunchedAppSessionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OpenDesktopLaunchedAppSessionResponse", [
+            { no: 1, name: "installed_session_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "installed_session_proof", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "expires_at", kind: "message", T: () => Timestamp },
+            { no: 4, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "release_digest", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 6, name: "account_generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "runtime_boot_epoch", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<OpenDesktopLaunchedAppSessionResponse>): OpenDesktopLaunchedAppSessionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.installedSessionId = new Uint8Array(0);
+        message.installedSessionProof = new Uint8Array(0);
+        message.appId = "";
+        message.releaseDigest = new Uint8Array(0);
+        message.accountGeneration = "0";
+        message.runtimeBootEpoch = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<OpenDesktopLaunchedAppSessionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenDesktopLaunchedAppSessionResponse): OpenDesktopLaunchedAppSessionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes installed_session_id */ 1:
+                    message.installedSessionId = reader.bytes();
+                    break;
+                case /* bytes installed_session_proof */ 2:
+                    message.installedSessionProof = reader.bytes();
+                    break;
+                case /* google.protobuf.Timestamp expires_at */ 3:
+                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
+                case /* string app_id */ 4:
+                    message.appId = reader.string();
+                    break;
+                case /* bytes release_digest */ 5:
+                    message.releaseDigest = reader.bytes();
+                    break;
+                case /* uint64 account_generation */ 6:
+                    message.accountGeneration = reader.uint64().toString();
+                    break;
+                case /* bytes runtime_boot_epoch */ 7:
+                    message.runtimeBootEpoch = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenDesktopLaunchedAppSessionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes installed_session_id = 1; */
+        if (message.installedSessionId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.installedSessionId);
+        /* bytes installed_session_proof = 2; */
+        if (message.installedSessionProof.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.installedSessionProof);
+        /* google.protobuf.Timestamp expires_at = 3; */
+        if (message.expiresAt)
+            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string app_id = 4; */
+        if (message.appId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.appId);
+        /* bytes release_digest = 5; */
+        if (message.releaseDigest.length)
+            writer.tag(5, WireType.LengthDelimited).bytes(message.releaseDigest);
+        /* uint64 account_generation = 6; */
+        if (message.accountGeneration !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.accountGeneration);
+        /* bytes runtime_boot_epoch = 7; */
+        if (message.runtimeBootEpoch.length)
+            writer.tag(7, WireType.LengthDelimited).bytes(message.runtimeBootEpoch);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenDesktopLaunchedAppSessionResponse
+ */
+export const OpenDesktopLaunchedAppSessionResponse = new OpenDesktopLaunchedAppSessionResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RefreshSessionRequest$Type extends MessageType<RefreshSessionRequest> {
     constructor() {

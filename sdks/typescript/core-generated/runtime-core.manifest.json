@@ -21,6 +21,7 @@
     "proto/runtime/v1/common.proto",
     "proto/runtime/v1/connector.proto",
     "proto/runtime/v1/delegated_control.proto",
+    "proto/runtime/v1/development.proto",
     "proto/runtime/v1/external_agent.proto",
     "proto/runtime/v1/grant.proto",
     "proto/runtime/v1/knowledge.proto",
@@ -1079,6 +1080,15 @@
           "response_type": "OpenAppResponse",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "BindInstalledLaunchProcess",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
+          "kind": "unary",
+          "request_type": "BindInstalledLaunchProcessRequest",
+          "response_type": "BindInstalledLaunchProcessResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -1203,6 +1213,15 @@
           "kind": "unary",
           "request_type": "OpenDesktopSessionRequest",
           "response_type": "OpenDesktopSessionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OpenDesktopLaunchedAppSession",
+          "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession",
+          "kind": "unary",
+          "request_type": "OpenDesktopLaunchedAppSessionRequest",
+          "response_type": "OpenDesktopLaunchedAppSessionResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -1656,6 +1675,93 @@
           "kind": "unary",
           "request_type": "DeleteCatalogModelOverlayRequest",
           "response_type": "DeleteCatalogModelOverlayResponse",
+          "request_stream": false,
+          "response_stream": false
+        }
+      ]
+    },
+    {
+      "name": "RuntimeDevelopmentService",
+      "source_file": "proto/runtime/v1/development.proto",
+      "methods": [
+        {
+          "name": "EvaluateLocalDevelopmentProject",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
+          "kind": "unary",
+          "request_type": "EvaluateLocalDevelopmentProjectRequest",
+          "response_type": "EvaluateLocalDevelopmentProjectResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "DecideLocalDevelopmentProject",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
+          "kind": "unary",
+          "request_type": "DecideLocalDevelopmentProjectRequest",
+          "response_type": "DecideLocalDevelopmentProjectResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListLocalDevelopmentAuthorizations",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+          "kind": "unary",
+          "request_type": "ListLocalDevelopmentAuthorizationsRequest",
+          "response_type": "ListLocalDevelopmentAuthorizationsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RevokeLocalDevelopmentAuthorization",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
+          "kind": "unary",
+          "request_type": "RevokeLocalDevelopmentAuthorizationRequest",
+          "response_type": "RevokeLocalDevelopmentAuthorizationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "PrepareLocalDevelopmentLaunch",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
+          "kind": "unary",
+          "request_type": "PrepareLocalDevelopmentLaunchRequest",
+          "response_type": "PrepareLocalDevelopmentLaunchResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "BindLocalDevelopmentHostProcess",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
+          "kind": "unary",
+          "request_type": "BindLocalDevelopmentHostProcessRequest",
+          "response_type": "BindLocalDevelopmentHostProcessResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OpenLocalDevelopmentAppSession",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession",
+          "kind": "unary",
+          "request_type": "OpenLocalDevelopmentAppSessionRequest",
+          "response_type": "OpenLocalDevelopmentAppSessionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalDevelopmentSessionStatus",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus",
+          "kind": "unary",
+          "request_type": "GetLocalDevelopmentSessionStatusRequest",
+          "response_type": "GetLocalDevelopmentSessionStatusResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "EndLocalDevelopmentRun",
+          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
+          "kind": "unary",
+          "request_type": "EndLocalDevelopmentRunRequest",
+          "response_type": "EndLocalDevelopmentRunResponse",
           "request_stream": false,
           "response_stream": false
         }
@@ -2544,6 +2650,7 @@
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
+    "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
     "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
     "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
     "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
@@ -2570,6 +2677,7 @@
     "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
+    "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
@@ -2622,6 +2730,15 @@
     "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
     "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay",
     "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
+    "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
     "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
     "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
     "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens",
@@ -3469,6 +3586,14 @@
       "response_type": "AdoptLocalAppResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
+      "service": "RuntimeAppService",
+      "method": "BindInstalledLaunchProcess",
+      "kind": "unary",
+      "request_type": "BindInstalledLaunchProcessRequest",
+      "response_type": "BindInstalledLaunchProcessResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
       "service": "RuntimeAppService",
       "method": "GetAccountAppInventory",
@@ -3675,6 +3800,14 @@
       "kind": "server_stream",
       "request_type": "SubscribeRuntimeHealthEventsRequest",
       "response_type": "RuntimeHealthEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession",
+      "service": "RuntimeAuthService",
+      "method": "OpenDesktopLaunchedAppSession",
+      "kind": "unary",
+      "request_type": "OpenDesktopLaunchedAppSessionRequest",
+      "response_type": "OpenDesktopLaunchedAppSessionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
@@ -4091,6 +4224,78 @@
       "kind": "unary",
       "request_type": "UpsertModelCatalogProviderRequest",
       "response_type": "UpsertModelCatalogProviderResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
+      "service": "RuntimeDevelopmentService",
+      "method": "BindLocalDevelopmentHostProcess",
+      "kind": "unary",
+      "request_type": "BindLocalDevelopmentHostProcessRequest",
+      "response_type": "BindLocalDevelopmentHostProcessResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
+      "service": "RuntimeDevelopmentService",
+      "method": "DecideLocalDevelopmentProject",
+      "kind": "unary",
+      "request_type": "DecideLocalDevelopmentProjectRequest",
+      "response_type": "DecideLocalDevelopmentProjectResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
+      "service": "RuntimeDevelopmentService",
+      "method": "EndLocalDevelopmentRun",
+      "kind": "unary",
+      "request_type": "EndLocalDevelopmentRunRequest",
+      "response_type": "EndLocalDevelopmentRunResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
+      "service": "RuntimeDevelopmentService",
+      "method": "EvaluateLocalDevelopmentProject",
+      "kind": "unary",
+      "request_type": "EvaluateLocalDevelopmentProjectRequest",
+      "response_type": "EvaluateLocalDevelopmentProjectResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus",
+      "service": "RuntimeDevelopmentService",
+      "method": "GetLocalDevelopmentSessionStatus",
+      "kind": "unary",
+      "request_type": "GetLocalDevelopmentSessionStatusRequest",
+      "response_type": "GetLocalDevelopmentSessionStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+      "service": "RuntimeDevelopmentService",
+      "method": "ListLocalDevelopmentAuthorizations",
+      "kind": "unary",
+      "request_type": "ListLocalDevelopmentAuthorizationsRequest",
+      "response_type": "ListLocalDevelopmentAuthorizationsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession",
+      "service": "RuntimeDevelopmentService",
+      "method": "OpenLocalDevelopmentAppSession",
+      "kind": "unary",
+      "request_type": "OpenLocalDevelopmentAppSessionRequest",
+      "response_type": "OpenLocalDevelopmentAppSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
+      "service": "RuntimeDevelopmentService",
+      "method": "PrepareLocalDevelopmentLaunch",
+      "kind": "unary",
+      "request_type": "PrepareLocalDevelopmentLaunchRequest",
+      "response_type": "PrepareLocalDevelopmentLaunchResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
+      "service": "RuntimeDevelopmentService",
+      "method": "RevokeLocalDevelopmentAuthorization",
+      "kind": "unary",
+      "request_type": "RevokeLocalDevelopmentAuthorizationRequest",
+      "response_type": "RevokeLocalDevelopmentAuthorizationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
@@ -5527,6 +5732,14 @@
       "response_type": "AdoptLocalAppResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
+      "service": "RuntimeAppService",
+      "method": "BindInstalledLaunchProcess",
+      "kind": "unary",
+      "request_type": "BindInstalledLaunchProcessRequest",
+      "response_type": "BindInstalledLaunchProcessResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
       "service": "RuntimeAppService",
       "method": "GetAccountAppInventory",
@@ -5733,6 +5946,14 @@
       "kind": "server_stream",
       "request_type": "SubscribeRuntimeHealthEventsRequest",
       "response_type": "RuntimeHealthEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession",
+      "service": "RuntimeAuthService",
+      "method": "OpenDesktopLaunchedAppSession",
+      "kind": "unary",
+      "request_type": "OpenDesktopLaunchedAppSessionRequest",
+      "response_type": "OpenDesktopLaunchedAppSessionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
@@ -6149,6 +6370,78 @@
       "kind": "unary",
       "request_type": "UpsertModelCatalogProviderRequest",
       "response_type": "UpsertModelCatalogProviderResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
+      "service": "RuntimeDevelopmentService",
+      "method": "BindLocalDevelopmentHostProcess",
+      "kind": "unary",
+      "request_type": "BindLocalDevelopmentHostProcessRequest",
+      "response_type": "BindLocalDevelopmentHostProcessResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
+      "service": "RuntimeDevelopmentService",
+      "method": "DecideLocalDevelopmentProject",
+      "kind": "unary",
+      "request_type": "DecideLocalDevelopmentProjectRequest",
+      "response_type": "DecideLocalDevelopmentProjectResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
+      "service": "RuntimeDevelopmentService",
+      "method": "EndLocalDevelopmentRun",
+      "kind": "unary",
+      "request_type": "EndLocalDevelopmentRunRequest",
+      "response_type": "EndLocalDevelopmentRunResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
+      "service": "RuntimeDevelopmentService",
+      "method": "EvaluateLocalDevelopmentProject",
+      "kind": "unary",
+      "request_type": "EvaluateLocalDevelopmentProjectRequest",
+      "response_type": "EvaluateLocalDevelopmentProjectResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus",
+      "service": "RuntimeDevelopmentService",
+      "method": "GetLocalDevelopmentSessionStatus",
+      "kind": "unary",
+      "request_type": "GetLocalDevelopmentSessionStatusRequest",
+      "response_type": "GetLocalDevelopmentSessionStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+      "service": "RuntimeDevelopmentService",
+      "method": "ListLocalDevelopmentAuthorizations",
+      "kind": "unary",
+      "request_type": "ListLocalDevelopmentAuthorizationsRequest",
+      "response_type": "ListLocalDevelopmentAuthorizationsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession",
+      "service": "RuntimeDevelopmentService",
+      "method": "OpenLocalDevelopmentAppSession",
+      "kind": "unary",
+      "request_type": "OpenLocalDevelopmentAppSessionRequest",
+      "response_type": "OpenLocalDevelopmentAppSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
+      "service": "RuntimeDevelopmentService",
+      "method": "PrepareLocalDevelopmentLaunch",
+      "kind": "unary",
+      "request_type": "PrepareLocalDevelopmentLaunchRequest",
+      "response_type": "PrepareLocalDevelopmentLaunchResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
+      "service": "RuntimeDevelopmentService",
+      "method": "RevokeLocalDevelopmentAuthorization",
+      "kind": "unary",
+      "request_type": "RevokeLocalDevelopmentAuthorizationRequest",
+      "response_type": "RevokeLocalDevelopmentAuthorizationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
@@ -6922,6 +7215,10 @@
       "BeginLoginResponse",
       "BeginSourceMaterializationUploadRequest",
       "BeginSourceMaterializationUploadResponse",
+      "BindInstalledLaunchProcessRequest",
+      "BindInstalledLaunchProcessResponse",
+      "BindLocalDevelopmentHostProcessRequest",
+      "BindLocalDevelopmentHostProcessResponse",
       "BranchNodeConfig",
       "BundleTransportManifestV1",
       "CancelCompanionParticipationRequest",
@@ -6988,6 +7285,8 @@
       "CreateRealmGroupMessageCandidateResponse",
       "CreateSourceMaterializationChallengeRequest",
       "CreateSourceMaterializationChallengeResponse",
+      "DecideLocalDevelopmentProjectRequest",
+      "DecideLocalDevelopmentProjectResponse",
       "DelegatedApprovalRequest",
       "DelegatedControlSurfaceSnapshot",
       "DelegatedDiagnostic",
@@ -7022,11 +7321,15 @@
       "EmbeddingVector",
       "EnableAutonomyRequest",
       "EnableAutonomyResponse",
+      "EndLocalDevelopmentRunRequest",
+      "EndLocalDevelopmentRunResponse",
       "EnsureEngineRequest",
       "EnsureEngineResponse",
       "EnsureProductControlRecordCreatedRequest",
       "EpisodicMemoryRecord",
       "ErrorInfo",
+      "EvaluateLocalDevelopmentProjectRequest",
+      "EvaluateLocalDevelopmentProjectResponse",
       "ExecuteDelegatedCapabilityRequest",
       "ExecuteDelegatedCapabilityResponse",
       "ExecuteLocalStateCutoverRequest",
@@ -7096,6 +7399,8 @@
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
       "GetKnowledgeBankResponse",
+      "GetLocalDevelopmentSessionStatusRequest",
+      "GetLocalDevelopmentSessionStatusResponse",
       "GetPageRequest",
       "GetPageResponse",
       "GetParticipationCandidateRequest",
@@ -7223,6 +7528,8 @@
       "ListLocalAssetsResponse",
       "ListLocalAuditsRequest",
       "ListLocalAuditsResponse",
+      "ListLocalDevelopmentAuthorizationsRequest",
+      "ListLocalDevelopmentAuthorizationsResponse",
       "ListLocalEnvironmentDependencyJobsRequest",
       "ListLocalEnvironmentDependencyJobsResponse",
       "ListLocalEnvironmentSelectedSourcesRequest",
@@ -7268,6 +7575,8 @@
       "LocalCatalogModelDescriptor",
       "LocalCatalogRecommendation",
       "LocalCatalogVariantDescriptor",
+      "LocalDevelopmentAuthorizationProjection",
+      "LocalDevelopmentProjectProjection",
       "LocalDeviceProfile",
       "LocalEngineDescriptor",
       "LocalEnvironmentActivationGate",
@@ -7360,10 +7669,14 @@
       "OpenCompanionParticipationReplayResponse",
       "OpenConversationAnchorRequest",
       "OpenConversationAnchorResponse",
+      "OpenDesktopLaunchedAppSessionRequest",
+      "OpenDesktopLaunchedAppSessionResponse",
       "OpenDesktopSessionRequest",
       "OpenDesktopSessionResponse",
       "OpenExternalPrincipalSessionRequest",
       "OpenExternalPrincipalSessionResponse",
+      "OpenLocalDevelopmentAppSessionRequest",
+      "OpenLocalDevelopmentAppSessionResponse",
       "OpenRealtimeSessionRequest",
       "OpenRealtimeSessionResponse",
       "OpenSessionRequest",
@@ -7386,6 +7699,8 @@
       "PendingHook",
       "PrepareAppLifecycleIntentRequest",
       "PrepareAppLifecycleIntentResponse",
+      "PrepareLocalDevelopmentLaunchRequest",
+      "PrepareLocalDevelopmentLaunchResponse",
       "PrepareProfileRuntimeDescriptorRequest",
       "PrepareProfileRuntimeDescriptorResponse",
       "ProductControlProjectionJson",
@@ -7488,6 +7803,8 @@
       "RetryLocalEnvironmentDependencyJobResponse",
       "RevokeAppAccessTokenRequest",
       "RevokeExternalPrincipalSessionRequest",
+      "RevokeLocalDevelopmentAuthorizationRequest",
+      "RevokeLocalDevelopmentAuthorizationResponse",
       "RevokeScopedAppBindingRequest",
       "RevokeScopedAppBindingResponse",
       "RevokeSessionRequest",
@@ -7798,6 +8115,10 @@
       "LocalAssetKind",
       "LocalAssetStatus",
       "LocalBundleState",
+      "LocalDevelopmentAuthorizationState",
+      "LocalDevelopmentBootstrapState",
+      "LocalDevelopmentDecision",
+      "LocalDevelopmentShellKind",
       "LocalEngineRuntimeMode",
       "LocalEngineStatus",
       "LocalExecutionEntryKind",
@@ -12070,8 +12391,8 @@
             "number": 19
           },
           {
-            "name": "launch_nonce",
-            "type": "string",
+            "name": "launch_id",
+            "type": "bytes",
             "repeated": false,
             "optional": false,
             "number": 20
@@ -13360,6 +13681,93 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "BindInstalledLaunchProcessRequest",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "child_process_id",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "BindInstalledLaunchProcessResponse",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bind_deadline",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "BindLocalDevelopmentHostProcessRequest",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "child_process_id",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "BindLocalDevelopmentHostProcessResponse",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bind_deadline",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "BranchNodeConfig",
@@ -15878,6 +16286,46 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "DecideLocalDevelopmentProjectRequest",
+        "fields": [
+          {
+            "name": "evaluation_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "decision",
+            "type": "LocalDevelopmentDecision",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "DecideLocalDevelopmentProjectResponse",
+        "fields": [
+          {
+            "name": "authorization",
+            "type": "LocalDevelopmentAuthorizationProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
         "name": "DelegatedApprovalRequest",
         "fields": [
           {
@@ -16921,6 +17369,39 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "EndLocalDevelopmentRunRequest",
+        "fields": [
+          {
+            "name": "authorization_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "supervisor_run_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "EndLocalDevelopmentRunResponse",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
         "name": "EnsureEngineRequest",
         "fields": [
           {
@@ -17011,6 +17492,95 @@
           }
         ],
         "source_file": "proto/runtime/v1/common.proto"
+      },
+      {
+        "name": "EvaluateLocalDevelopmentProjectRequest",
+        "fields": [
+          {
+            "name": "expected_app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "project_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "shell_kind",
+            "type": "LocalDevelopmentShellKind",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "supervisor_run_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "EvaluateLocalDevelopmentProjectResponse",
+        "fields": [
+          {
+            "name": "evaluation_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "project",
+            "type": "LocalDevelopmentProjectProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "state",
+            "type": "LocalDevelopmentAuthorizationState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "confirmation_required",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "authorization",
+            "type": "LocalDevelopmentAuthorizationProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "evaluation_expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "ExecuteDelegatedCapabilityRequest",
@@ -18935,6 +19505,45 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "GetLocalDevelopmentSessionStatusRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "GetLocalDevelopmentSessionStatusResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "LocalDevelopmentBootstrapState",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "GetPageRequest",
@@ -22583,6 +23192,31 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "ListLocalDevelopmentAuthorizationsRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "ListLocalDevelopmentAuthorizationsResponse",
+        "fields": [
+          {
+            "name": "authorizations",
+            "type": "LocalDevelopmentAuthorizationProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
         "name": "ListLocalEnvironmentDependencyJobsRequest",
         "fields": [
           {
@@ -24396,6 +25030,137 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "LocalDevelopmentAuthorizationProjection",
+        "fields": [
+          {
+            "name": "authorization_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "project",
+            "type": "LocalDevelopmentProjectProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "state",
+            "type": "LocalDevelopmentAuthorizationState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "persistence",
+            "type": "LocalDevelopmentDecision",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "authorization_generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "approved_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "LocalDevelopmentProjectProjection",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "canonical_project_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "canonical_manifest_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "shell_kind",
+            "type": "LocalDevelopmentShellKind",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "account_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "requested_capabilities",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "capability_fingerprint",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "trust_class",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "LocalDeviceProfile",
@@ -29617,6 +30382,66 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "OpenDesktopLaunchedAppSessionRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/auth.proto"
+      },
+      {
+        "name": "OpenDesktopLaunchedAppSessionResponse",
+        "fields": [
+          {
+            "name": "installed_session_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "installed_session_proof",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "release_digest",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "account_generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "runtime_boot_epoch",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/auth.proto"
+      },
+      {
         "name": "OpenDesktopSessionRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/auth.proto"
@@ -29708,6 +30533,66 @@
           }
         ],
         "source_file": "proto/runtime/v1/auth.proto"
+      },
+      {
+        "name": "OpenLocalDevelopmentAppSessionRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "OpenLocalDevelopmentAppSessionResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "LocalDevelopmentBootstrapState",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bootstrap_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "account_generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "runtime_boot_epoch",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "OpenRealtimeSessionRequest",
@@ -30750,6 +31635,74 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "PrepareLocalDevelopmentLaunchRequest",
+        "fields": [
+          {
+            "name": "authorization_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "supervisor_run_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "shell_kind",
+            "type": "LocalDevelopmentShellKind",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "host_executable_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "renderer_origin",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "PrepareLocalDevelopmentLaunchResponse",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bind_deadline",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "PrepareProfileRuntimeDescriptorRequest",
@@ -34037,6 +34990,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/auth.proto"
+      },
+      {
+        "name": "RevokeLocalDevelopmentAuthorizationRequest",
+        "fields": [
+          {
+            "name": "authorization_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "RevokeLocalDevelopmentAuthorizationResponse",
+        "fields": [
+          {
+            "name": "authorization",
+            "type": "LocalDevelopmentAuthorizationProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "RevokeScopedAppBindingRequest",
@@ -41856,7 +42842,8 @@
         "values": [
           "APP_OPEN_STATE_UNSPECIFIED",
           "APP_OPEN_STATE_LAUNCHED",
-          "APP_OPEN_STATE_BLOCKED"
+          "APP_OPEN_STATE_BLOCKED",
+          "APP_OPEN_STATE_LAUNCH_PREPARED"
         ],
         "source_file": "proto/runtime/v1/app.proto"
       },
@@ -42323,6 +43310,50 @@
           "LOCAL_BUNDLE_STATE_REMOVED"
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
+      },
+      {
+        "name": "LocalDevelopmentAuthorizationState",
+        "values": [
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_UNSPECIFIED",
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED",
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE",
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED",
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED",
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED"
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "LocalDevelopmentBootstrapState",
+        "values": [
+          "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_UNSPECIFIED",
+          "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_READY",
+          "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_AUTHORIZATION_REQUIRED",
+          "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_DENIED",
+          "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_RUNTIME_UNAVAILABLE",
+          "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_REVOKED",
+          "LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_PROJECT_CHANGED"
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "LocalDevelopmentDecision",
+        "values": [
+          "LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED",
+          "LOCAL_DEVELOPMENT_DECISION_DENY",
+          "LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE",
+          "LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT"
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "LocalDevelopmentShellKind",
+        "values": [
+          "LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED",
+          "LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON",
+          "LOCAL_DEVELOPMENT_SHELL_KIND_TAURI"
+        ],
+        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "LocalEngineRuntimeMode",
@@ -43040,7 +44071,16 @@
           "LIFECYCLE_INTENT_REQUIRED",
           "LIFECYCLE_INTENT_MISMATCH",
           "LIFECYCLE_INTENT_REPLAY",
-          "LIFECYCLE_INTENT_EXPIRED"
+          "LIFECYCLE_INTENT_EXPIRED",
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED",
+          "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED",
+          "LOCAL_DEVELOPMENT_PROJECT_CHANGED",
+          "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED",
+          "LOCAL_DEVELOPMENT_SESSION_REVOKED",
+          "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED",
+          "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN",
+          "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED",
+          "LOCAL_DEVELOPMENT_APPROVAL_DENIED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },
