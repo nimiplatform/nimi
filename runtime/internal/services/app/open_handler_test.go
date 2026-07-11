@@ -11,6 +11,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 )
 
 type allowOpenReadinessVerifier struct{}
@@ -89,6 +91,50 @@ func TestOpenAppWaitsForNativeLaunchStoreBeforeInstalledSuccess(t *testing.T) {
 	}
 	if proj.GetActiveVersion() == "" {
 		t.Fatal("expected resolved active version")
+	}
+}
+
+func TestOpenAppCreatesRuntimeOwnedLaunchRecordWithoutClaimingChildSuccess(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	installBundledAppForOpen(t, svc)
+	boot := protectedlocal.Identifier{1}
+	store, err := authservice.OpenInstalledLaunchStore(filepath.Join(t.TempDir(), "installed-launch.db"), boot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	svc.installedLaunches = store
+	svc.accountSecurity = &lifecycleIntentTestAccount{generation: 7}
+
+	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{AppId: "nimi.example-app", Scope: appOpenScope("nimi.example-app")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	projection := resp.GetProjection()
+	if projection.GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCH_PREPARED || projection.GetLaunched() || len(projection.GetLaunchId()) != protectedlocal.IdentifierBytes {
+		t.Fatalf("invalid launch-prepared projection: %+v", projection)
+	}
+	_, descriptor, err := svc.installRuntime.resolveDescriptor("nimi.example-app")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := svc.installRuntime.plan(descriptor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, blocked := verifyOpenPackage(svc.installRuntime, plan, descriptor)
+	if blocked != nil {
+		t.Fatal(blocked)
+	}
+	digest, err := installedReleaseDigest(resolved.Evidence.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var launchID protectedlocal.Identifier
+	copy(launchID[:], projection.GetLaunchId())
+	session, err := store.Consume(context.Background(), authservice.InstalledLaunchProcess{LaunchID: launchID, PID: 4401, CreationMarker: "01dc-installed", ReleaseDigest: digest, AccountGeneration: 7})
+	if err != nil || session.AppID != "nimi.example-app" || session.RuntimeBootEpoch != boot {
+		t.Fatalf("atomic installed session = %+v, error = %v", session, err)
 	}
 }
 

@@ -350,6 +350,13 @@ type DesktopSessionManager struct {
 	sessions map[Identifier]*desktopSessionAuthority
 }
 
+func (manager *DesktopSessionManager) BootEpoch() Identifier {
+	if manager == nil {
+		return Identifier{}
+	}
+	return manager.bootEpoch
+}
+
 func NewDesktopSessionManager(bootEpoch Identifier, random io.Reader) (*DesktopSessionManager, error) {
 	if bootEpoch == (Identifier{}) {
 		return nil, fail(ReasonProtectedLocalBootEpochMismatch, false, "reconnect_desktop", fmt.Errorf("create desktop session manager: boot epoch is empty"))

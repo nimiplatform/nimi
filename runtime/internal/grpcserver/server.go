@@ -45,23 +45,24 @@ import (
 
 // Server wraps the gRPC serving stack for the runtime daemon.
 type Server struct {
-	addr             string
-	state            *health.State
-	logger           *slog.Logger
-	grpcServer       *grpc.Server
-	protectedServer  *grpc.Server
-	healthServer     *grpcHealth.Server
-	rpcRegistry      *activeRPCRegistry
-	aiHealth         *providerhealth.Tracker
-	auditStore       *auditlog.Store
-	accountService   *accountservice.Service
-	authService      *authservice.Service
-	aiSvc            *aiservice.Service
-	appService       *appservice.Service
-	localService     *localservice.Service
-	memoryService    *memoryservice.Service
-	cognitionService *cognitionservice.Service
-	agentService     *runtimeagentservice.Service
+	addr                 string
+	state                *health.State
+	logger               *slog.Logger
+	grpcServer           *grpc.Server
+	protectedServer      *grpc.Server
+	healthServer         *grpcHealth.Server
+	rpcRegistry          *activeRPCRegistry
+	aiHealth             *providerhealth.Tracker
+	auditStore           *auditlog.Store
+	accountService       *accountservice.Service
+	authService          *authservice.Service
+	aiSvc                *aiservice.Service
+	appService           *appservice.Service
+	localService         *localservice.Service
+	memoryService        *memoryservice.Service
+	cognitionService     *cognitionservice.Service
+	agentService         *runtimeagentservice.Service
+	installedLaunchStore *authservice.InstalledLaunchStore
 }
 
 const (
@@ -176,6 +177,22 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("configure idempotency store: %w", err)
 	}
 	appRegistry := appregistry.New()
+	var installedLaunchStore *authservice.InstalledLaunchStore
+	if protected != nil {
+		installedLaunchStore, err = authservice.OpenInstalledLaunchStore(
+			filepath.Join(protected.ServiceStateRoot, "installed-launch.db"),
+			protected.DesktopSessions.BootEpoch(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("open installed launch store: %w", err)
+		}
+	}
+	keepInstalledLaunchStore := false
+	defer func() {
+		if !keepInstalledLaunchStore && installedLaunchStore != nil {
+			_ = installedLaunchStore.Close()
+		}
+	}()
 	nimiAppRegistry, nimiAppReleases, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
 	if err != nil {
 		return nil, err
@@ -529,7 +546,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appservice.WithOpenAppReadinessVerifier(appservice.NewAccountProjectionOpenAppReadinessVerifier(accountSvc)),
 	}
 	if protected != nil {
-		appOptions = append(appOptions, appservice.WithLifecycleIntentManager(protected.LifecycleIntents))
+		appOptions = append(appOptions,
+			appservice.WithLifecycleIntentManager(protected.LifecycleIntents),
+			appservice.WithInstalledLaunchStore(installedLaunchStore),
+		)
 	}
 	appSvc := appservice.New(logger, appOptions...)
 	if protected != nil {
@@ -549,25 +569,27 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
 
 	s := &Server{
-		addr:             addr,
-		state:            state,
-		logger:           logger,
-		grpcServer:       g,
-		protectedServer:  protectedGRPCServer,
-		healthServer:     h,
-		rpcRegistry:      rpcRegistry,
-		aiHealth:         aiHealth,
-		auditStore:       auditStore,
-		accountService:   accountSvc,
-		authService:      authSvc,
-		aiSvc:            aiSvc,
-		appService:       appSvc,
-		localService:     localSvc,
-		memoryService:    memorySvc,
-		cognitionService: cognitionSvc,
-		agentService:     agentSvc,
+		addr:                 addr,
+		state:                state,
+		logger:               logger,
+		grpcServer:           g,
+		protectedServer:      protectedGRPCServer,
+		healthServer:         h,
+		rpcRegistry:          rpcRegistry,
+		aiHealth:             aiHealth,
+		auditStore:           auditStore,
+		accountService:       accountSvc,
+		authService:          authSvc,
+		aiSvc:                aiSvc,
+		appService:           appSvc,
+		localService:         localSvc,
+		memoryService:        memorySvc,
+		cognitionService:     cognitionSvc,
+		agentService:         agentSvc,
+		installedLaunchStore: installedLaunchStore,
 	}
 	s.SyncServingState()
+	keepInstalledLaunchStore = true
 	return s, nil
 }
 
@@ -658,6 +680,11 @@ func (s *Server) BeginShutdown() []activeRPCSnapshot {
 }
 
 func (s *Server) Stop(ctx context.Context) StopResult {
+	defer func() {
+		if s.installedLaunchStore != nil {
+			_ = s.installedLaunchStore.Close()
+		}
+	}()
 	if s.rpcRegistry != nil {
 		s.rpcRegistry.BeginShutdown()
 	}

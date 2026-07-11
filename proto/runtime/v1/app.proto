@@ -664,6 +664,9 @@ enum AppOpenState {
   // (package/library/app-data/permission/AIConfig/manifest). It carries the
   // distinct typed reason_code; it is never collapsed into a generic value.
   APP_OPEN_STATE_BLOCKED = 2;
+  // Runtime created a short-lived launch record, but no verified child has
+  // consumed it yet. This is never projected as launched=true.
+  APP_OPEN_STATE_LAUNCH_PREPARED = 3;
 }
 
 message OpenAppRequest {

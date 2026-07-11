@@ -14,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
@@ -94,6 +95,7 @@ type Service struct {
 	accountInventory   *accountAppInventoryStore
 	localAdoptions     *localAppAdoptionStore
 	lifecycleIntents   *protectedlocal.LifecycleIntentManager
+	installedLaunches  *authservice.InstalledLaunchStore
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -161,6 +163,12 @@ func WithRuntimeAppRegistry(registry *appregistry.Registry) Option {
 func WithLifecycleIntentManager(manager *protectedlocal.LifecycleIntentManager) Option {
 	return func(s *Service) {
 		s.lifecycleIntents = manager
+	}
+}
+
+func WithInstalledLaunchStore(store *authservice.InstalledLaunchStore) Option {
+	return func(s *Service) {
+		s.installedLaunches = store
 	}
 }
 

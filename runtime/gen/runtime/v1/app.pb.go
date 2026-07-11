@@ -985,6 +985,9 @@ const (
 	// (package/library/app-data/permission/AIConfig/manifest). It carries the
 	// distinct typed reason_code; it is never collapsed into a generic value.
 	AppOpenState_APP_OPEN_STATE_BLOCKED AppOpenState = 2
+	// Runtime created a short-lived launch record, but no verified child has
+	// consumed it yet. This is never projected as launched=true.
+	AppOpenState_APP_OPEN_STATE_LAUNCH_PREPARED AppOpenState = 3
 )
 
 // Enum value maps for AppOpenState.
@@ -993,11 +996,13 @@ var (
 		0: "APP_OPEN_STATE_UNSPECIFIED",
 		1: "APP_OPEN_STATE_LAUNCHED",
 		2: "APP_OPEN_STATE_BLOCKED",
+		3: "APP_OPEN_STATE_LAUNCH_PREPARED",
 	}
 	AppOpenState_value = map[string]int32{
-		"APP_OPEN_STATE_UNSPECIFIED": 0,
-		"APP_OPEN_STATE_LAUNCHED":    1,
-		"APP_OPEN_STATE_BLOCKED":     2,
+		"APP_OPEN_STATE_UNSPECIFIED":     0,
+		"APP_OPEN_STATE_LAUNCHED":        1,
+		"APP_OPEN_STATE_BLOCKED":         2,
+		"APP_OPEN_STATE_LAUNCH_PREPARED": 3,
 	}
 )
 
@@ -5215,11 +5220,12 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"%APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS\x10\x05\x12&\n" +
 	"\"APP_OPEN_FLOW_STEP_ENSURE_AICONFIG\x10\x06\x12(\n" +
 	"$APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST\x10\a\x12\x1d\n" +
-	"\x19APP_OPEN_FLOW_STEP_LAUNCH\x10\b*g\n" +
+	"\x19APP_OPEN_FLOW_STEP_LAUNCH\x10\b*\x8b\x01\n" +
 	"\fAppOpenState\x12\x1e\n" +
 	"\x1aAPP_OPEN_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APP_OPEN_STATE_LAUNCHED\x10\x01\x12\x1a\n" +
-	"\x16APP_OPEN_STATE_BLOCKED\x10\x02*\x85\x01\n" +
+	"\x16APP_OPEN_STATE_BLOCKED\x10\x02\x12\"\n" +
+	"\x1eAPP_OPEN_STATE_LAUNCH_PREPARED\x10\x03*\x85\x01\n" +
 	"\x19InstalledLaunchHandleKind\x12,\n" +
 	"(INSTALLED_LAUNCH_HANDLE_KIND_UNSPECIFIED\x10\x00\x12:\n" +
 	"6INSTALLED_LAUNCH_HANDLE_KIND_WINDOWS_NAMED_PIPE_CLIENT\x10\x012\xad\x10\n" +

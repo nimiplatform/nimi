@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc/codes"
 )
 
@@ -211,15 +213,76 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 			"scope_surface", scope.GetSurfaceId(),
 		)
 	}
-	_ = app
-	_ = descriptor
-	_ = launchPolicy
-	_ = packageResolution
-	return openBlockedResponse(appID, scope, blocked(
-		runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
-		runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED,
-		"A.1 installed launch store and native child channel are not bound",
-	)), nil
+	if s.installedLaunches == nil {
+		return openBlockedResponse(appID, scope, blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED,
+			"A.1 installed launch store and native child channel are not bound",
+		)), nil
+	}
+	_, accountGeneration, accountReady := s.authenticatedLifecycleAccount(ctx)
+	if !accountReady {
+		return openBlockedResponse(appID, scope, blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			"authenticated Runtime account generation is required for installed launch",
+		)), nil
+	}
+	releaseDigest, digestErr := installedReleaseDigest(packageResolution.Evidence.SHA256)
+	if digestErr != nil {
+		return openBlockedResponse(appID, scope, blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			runtimev1.ReasonCode_APP_INSTALL_DIGEST_MISMATCH,
+			digestErr.Error(),
+		)), nil
+	}
+	ticket, ticketErr := s.installedLaunches.Issue(ctx, authservice.InstalledLaunchIssue{
+		AppID:             appID,
+		ReleaseDigest:     releaseDigest,
+		AccountGeneration: accountGeneration,
+	})
+	if ticketErr != nil {
+		return openBlockedResponse(appID, scope, blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			runtimev1.ReasonCode_APP_INSTALL_INTERNAL,
+			"installed launch transaction failed",
+		)), nil
+	}
+	return &runtimev1.OpenAppResponse{Projection: &runtimev1.AppOpenProjection{
+		AppId:                        appID,
+		State:                        runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCH_PREPARED,
+		ReachedStep:                  runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+		Launched:                     false,
+		ActiveVersion:                packageResolution.ActiveVersion,
+		Scope:                        scope,
+		ReasonCode:                   runtimev1.ReasonCode_ACTION_EXECUTED,
+		ReleaseDescriptorRef:         descriptor.DescriptorID,
+		DescriptorClass:              string(descriptor.DescriptorClass),
+		AdmissionTrack:               string(descriptor.AdmissionTrack),
+		SourceKind:                   string(descriptor.Source.Kind),
+		OrdinaryVisibility:           string(app.OrdinaryVisibility),
+		DigestVerificationState:      packageResolution.Evidence.VerificationState,
+		RuntimeEntryRef:              descriptor.Runtime.EntryRef,
+		ActiveReleaseRoot:            packageResolution.Plan.ReleaseRoot,
+		Storage:                      storageProjectionFromPlan(packageResolution.Plan),
+		ShellCapabilitySetRef:        "installed-nimi-app-standard-shell-v1",
+		CallerMode:                   "desktop-launched-nimi-app",
+		LaunchId:                     append([]byte(nil), ticket.LaunchID[:]...),
+		ProductReadinessClaimAllowed: launchPolicy.productReadinessClaimAllowed,
+	}}, nil
+}
+
+func installedReleaseDigest(value string) (protectedlocal.Identifier, error) {
+	var digest protectedlocal.Identifier
+	decoded, err := hex.DecodeString(strings.TrimSpace(value))
+	if err != nil || len(decoded) != len(digest) {
+		return digest, errors.New("installed release requires an exact SHA-256 digest")
+	}
+	copy(digest[:], decoded)
+	if digest == (protectedlocal.Identifier{}) {
+		return digest, errors.New("installed release digest is empty")
+	}
+	return digest, nil
 }
 
 func (s *Service) openLocalAdoptedApp(
