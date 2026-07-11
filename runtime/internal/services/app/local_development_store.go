@@ -34,6 +34,7 @@ var (
 	errLocalDevelopmentInvalid           = errors.New("local-development authority input is invalid")
 	errLocalDevelopmentEvaluationExpired = errors.New("local-development evaluation expired or consumed")
 	errLocalDevelopmentAuthorization     = errors.New("local-development authorization is not active")
+	errLocalDevelopmentReapproval        = errors.New("local-development account changed after evaluation")
 	errLocalDevelopmentProjectChanged    = errors.New("local-development project authority changed")
 	errLocalDevelopmentLaunchMismatch    = errors.New("local-development launch binding mismatch")
 	errLocalDevelopmentLaunchExpired     = errors.New("local-development launch expired")
@@ -229,8 +230,11 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 	return localDevelopmentEvaluation{EvaluationID: evaluationID, Project: project, RunID: runID, State: state, ExpiresAt: expiresAt}, nil
 }
 
-func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID protectedlocal.Identifier, decision runtimev1.LocalDevelopmentDecision) (localDevelopmentAuthorization, error) {
-	if store == nil || store.db == nil || evaluationID == (protectedlocal.Identifier{}) || !validLocalDevelopmentDecision(decision) {
+func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID protectedlocal.Identifier, decision runtimev1.LocalDevelopmentDecision, currentAccountID string, currentAccountGeneration uint64) (localDevelopmentAuthorization, error) {
+	allow := decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE ||
+		decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT
+	if store == nil || store.db == nil || evaluationID == (protectedlocal.Identifier{}) || !validLocalDevelopmentDecision(decision) ||
+		(allow && (strings.TrimSpace(currentAccountID) == "" || currentAccountID != strings.TrimSpace(currentAccountID) || currentAccountGeneration == 0)) {
 		return localDevelopmentAuthorization{}, errLocalDevelopmentInvalid
 	}
 	store.mu.Lock()
@@ -251,6 +255,19 @@ func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID pro
 	if state != "pending" || !now.Before(evaluation.ExpiresAt) {
 		return localDevelopmentAuthorization{}, errLocalDevelopmentEvaluationExpired
 	}
+	if allow && (evaluation.Project.AccountID != currentAccountID || evaluation.Project.AccountGeneration != currentAccountGeneration) {
+		result, err := tx.ExecContext(ctx, `UPDATE local_development_evaluation SET state = 'expired' WHERE evaluation_id = ? AND state = 'pending'`, evaluationID[:])
+		if err != nil {
+			return localDevelopmentAuthorization{}, err
+		}
+		if err := requireLocalDevelopmentRowsAffected(result); err != nil {
+			return localDevelopmentAuthorization{}, err
+		}
+		if err := tx.Commit(); err != nil {
+			return localDevelopmentAuthorization{}, err
+		}
+		return localDevelopmentAuthorization{}, errLocalDevelopmentReapproval
+	}
 	authorizationID, err := store.readIdentifier()
 	if err != nil {
 		return localDevelopmentAuthorization{}, err
@@ -265,7 +282,7 @@ func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID pro
 		authorizationState = localDevelopmentAuthorizationDenied
 		evaluationState = "denied"
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE state = 'active' AND (project_root = ? OR app_id = ?)`, now.UnixNano(), evaluation.Project.ProjectRoot, evaluation.Project.AppID); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE state = 'active' AND account_id = ? AND (project_root = ? OR app_id = ?)`, now.UnixNano(), evaluation.Project.AccountID, evaluation.Project.ProjectRoot, evaluation.Project.AppID); err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
 	capabilities, _ := json.Marshal(evaluation.Project.Capabilities)
@@ -359,6 +376,9 @@ func (store *localDevelopmentStore) RevokeAccountAuthority(ctx context.Context, 
 	}
 	defer tx.Rollback()
 	now := store.now().UTC().UnixNano()
+	if _, err := tx.ExecContext(ctx, `UPDATE local_development_evaluation SET state = 'expired' WHERE account_id = ? AND state = 'pending'`, normalized); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE account_id = ? AND state = 'active'`, now, normalized); err != nil {
 		return err
 	}

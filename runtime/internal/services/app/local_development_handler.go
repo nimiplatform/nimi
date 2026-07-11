@@ -83,7 +83,17 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 	if !ok || !validLocalDevelopmentDecision(req.GetDecision()) {
 		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED)
 	}
-	authorization, err := s.localDevelopment.Decide(ctx, evaluationID, req.GetDecision())
+	currentAccountID := ""
+	var currentAccountGeneration uint64
+	if req.GetDecision() != runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_DENY {
+		account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
+		if !authenticated {
+			return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		}
+		currentAccountID = account.GetAccountId()
+		currentAccountGeneration = generation
+	}
+	authorization, err := s.localDevelopment.Decide(ctx, evaluationID, req.GetDecision(), currentAccountID, currentAccountGeneration)
 	if err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
@@ -479,6 +489,8 @@ func localDevelopmentStoreError(err error) error {
 	switch {
 	case errors.Is(err, errLocalDevelopmentProjectChanged):
 		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
+	case errors.Is(err, errLocalDevelopmentReapproval):
+		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED)
 	case errors.Is(err, errLocalDevelopmentAuthorization), errors.Is(err, errLocalDevelopmentEvaluationExpired):
 		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED)
 	case errors.Is(err, errLocalDevelopmentLaunchExpired), errors.Is(err, errLocalDevelopmentSessionRevoked):

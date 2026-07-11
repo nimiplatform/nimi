@@ -12,7 +12,73 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+func TestLocalDevelopmentHandlerRejectsAllowAfterAccountSwitchAndConsumesEvaluation(t *testing.T) {
+	ctx := context.Background()
+	boot := localDevelopmentTestIdentifier(0x81)
+	store, err := openLocalDevelopmentStore(filepath.Join(t.TempDir(), "local-development.db"), boot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	registry, err := protectedlocal.NewInstalledLaunchRegistry(boot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectRoot := filepath.Join(t.TempDir(), "account-switch-app")
+	if err := os.MkdirAll(projectRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "nimi.app.yaml"), []byte(`app_id: account.switch.app
+display_name: Account Switch App
+permissions:
+  declared_nimi_api_scopes:
+    - scope: data.scope.read
+      qualifier: runtime.artifacts
+      purpose: Read Runtime artifacts during local development.
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	account := &localDevelopmentHandlerAccount{accountID: "account-development", generation: 12}
+	service := New(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		WithRuntimeAccountProjectionProvider(account),
+		WithLocalDevelopmentAuthority(store, registry, &localDevelopmentHandlerProcessVerifier{}, runtimeartifactservice.NewMemoryStore()),
+	)
+	desktopConnection := newLocalDevelopmentHandlerDesktopConnection(t, boot)
+	t.Cleanup(desktopConnection.Revoke)
+	desktopContext := protectedlocal.ContextWithDesktopConnection(ctx, desktopConnection)
+	runID := localDevelopmentTestIdentifier(0x82)
+	evaluation, err := service.EvaluateLocalDevelopmentProject(desktopContext, &runtimev1.EvaluateLocalDevelopmentProjectRequest{
+		ExpectedAppId: "account.switch.app", ProjectRoot: projectRoot,
+		ShellKind:       runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+		SupervisorRunId: runID[:],
+	})
+	if err != nil {
+		t.Fatalf("EvaluateLocalDevelopmentProject: %v", err)
+	}
+	account.accountID = "account-after-switch"
+	account.generation++
+	_, err = service.DecideLocalDevelopmentProject(desktopContext, &runtimev1.DecideLocalDevelopmentProjectRequest{
+		EvaluationId: evaluation.GetEvaluationId(),
+		Decision:     runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+	})
+	if status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != runtimev1.ReasonCode_LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED.String() {
+		t.Fatalf("account-switched allow decision must require reapproval, got %v", err)
+	}
+	account.accountID = "account-development"
+	account.generation = 12
+	_, err = service.DecideLocalDevelopmentProject(desktopContext, &runtimev1.DecideLocalDevelopmentProjectRequest{
+		EvaluationId: evaluation.GetEvaluationId(),
+		Decision:     runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+	})
+	if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != runtimev1.ReasonCode_LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED.String() {
+		t.Fatalf("stale evaluation must remain consumed after switching back, got %v", err)
+	}
+}
 
 func TestLocalDevelopmentHandlerCompletesBootstrapAndRevokesTechnicalSessionWithDesktopSupervisor(t *testing.T) {
 	ctx := context.Background()
@@ -56,7 +122,7 @@ permissions:
 		ExecutableDigest: localDevelopmentTestIdentifier(0x92), ExecutableTrustSetID: protectedlocal.WindowsLocalDevelopmentTrustSetID,
 	}
 	processVerifier := &localDevelopmentHandlerProcessVerifier{process: process, liveness: newLocalDevelopmentHandlerLiveness()}
-	account := localDevelopmentHandlerAccount{generation: 12}
+	account := &localDevelopmentHandlerAccount{accountID: "account-development", generation: 12}
 	service := New(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		WithRuntimeAccountProjectionProvider(account),
@@ -154,13 +220,16 @@ permissions:
 	}
 }
 
-type localDevelopmentHandlerAccount struct{ generation uint64 }
-
-func (account localDevelopmentHandlerAccount) AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool) {
-	return &runtimev1.AccountProjection{AccountId: "account-development", RealmEnvironmentId: "realm-development"}, true
+type localDevelopmentHandlerAccount struct {
+	accountID  string
+	generation uint64
 }
 
-func (account localDevelopmentHandlerAccount) AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool) {
+func (account *localDevelopmentHandlerAccount) AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool) {
+	return &runtimev1.AccountProjection{AccountId: account.accountID, RealmEnvironmentId: "realm-development"}, true
+}
+
+func (account *localDevelopmentHandlerAccount) AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool) {
 	projection, ok := account.AuthenticatedRuntimeProjection(context.Background())
 	return projection, account.generation, ok
 }

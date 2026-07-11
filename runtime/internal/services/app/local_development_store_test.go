@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -9,6 +10,34 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
+
+func TestLocalDevelopmentStoreConsumesAllowDecisionWhenAccountChangesAfterEvaluation(t *testing.T) {
+	ctx := context.Background()
+	store := openLocalDevelopmentStoreForTest(t, time.Date(2026, time.July, 12, 10, 0, 0, 0, time.UTC))
+	project := localDevelopmentTestProject(t)
+	evaluation, err := store.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x09))
+	if err != nil {
+		t.Fatalf("Evaluate project: %v", err)
+	}
+	if _, err := store.Decide(
+		ctx,
+		evaluation.EvaluationID,
+		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+		"account-b",
+		project.AccountGeneration+1,
+	); !errors.Is(err, errLocalDevelopmentReapproval) {
+		t.Fatalf("allow decision after account switch must require reapproval, got %v", err)
+	}
+	if _, err := store.Decide(
+		ctx,
+		evaluation.EvaluationID,
+		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+		project.AccountID,
+		project.AccountGeneration,
+	); !errors.Is(err, errLocalDevelopmentEvaluationExpired) {
+		t.Fatalf("account-mismatched evaluation must be consumed permanently, got %v", err)
+	}
+}
 
 func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapprovalOnAuthorityChange(t *testing.T) {
 	ctx := context.Background()
@@ -24,7 +53,7 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 	if first.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED || first.EvaluationID == (protectedlocal.Identifier{}) {
 		t.Fatalf("first evaluation must require confirmation, got %#v", first)
 	}
-	authorization, err := store.Decide(ctx, first.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT)
+	authorization, err := store.Decide(ctx, first.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT, project.AccountID, project.AccountGeneration)
 	if err != nil {
 		t.Fatalf("Decide remembered project: %v", err)
 	}
@@ -64,6 +93,15 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 	if err := store.RevokeAccountAuthority(ctx, project.AccountID); err != nil {
 		t.Fatalf("RevokeAccountAuthority: %v", err)
 	}
+	if _, err := store.Decide(
+		ctx,
+		expanded.EvaluationID,
+		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_DENY,
+		"",
+		0,
+	); !errors.Is(err, errLocalDevelopmentEvaluationExpired) {
+		t.Fatalf("logout/switch must consume pending approval evaluations, got %v", err)
+	}
 	afterLogout, err := store.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x15))
 	if err != nil {
 		t.Fatalf("Evaluate after account authority revocation: %v", err)
@@ -83,7 +121,7 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	authorization, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE)
+	authorization, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE, project.AccountID, project.AccountGeneration)
 	if err != nil {
 		t.Fatal(err)
 	}
