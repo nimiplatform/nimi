@@ -94,6 +94,16 @@ not when they coordinate an ephemeral AI turn. Conversely, Runtime placement
 must be rejected for ordinary product chat history unless the session is tied to
 Runtime Agent lifecycle or another explicit Runtime authority domain.
 
+For Runtime Agent lifecycle chat, SDK may correlate and render the bounded
+`LocalAgentSourceContextStatus` and `AgentTurnContextSummary` projections. SDK
+must not assemble LocalAgent prompts, attach source/world/memory/context, or
+turn either summary back into provider-visible content; Runtime owns that
+composition. Ordinary Nimi Chat and ordinary app AI loops retain their existing
+caller/app prompt authority and are not narrowed by the LocalAgent context cut.
+
+- AUTHORITY-RELATION subject=ordinary-nimi-chat action=preserve object=prompt-authority value=unchanged polarity=require
+- AUTHORITY-RELATION subject=sdk action=assemble object=localagent-prompts value=denied polarity=forbid
+
 Runtime Agent lifecycle chat may still have SDK developer-experience helpers
 over public Runtime Agent surfaces. Under `S-SURFACE-021`, SDK can own
 request-id correlation, public consume-event stream assembly, abort-to-interrupt

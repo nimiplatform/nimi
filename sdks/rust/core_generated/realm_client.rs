@@ -512,6 +512,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/resources/{resourceId}"),
     },
     RealmOperationDescriptor {
+        operation_id: "getSourceMaterializationJwks",
+        service: "Jwks",
+        method: "GET",
+        path: Some("/api/auth/jwks/source-materialization"),
+    },
+    RealmOperationDescriptor {
         operation_id: "getUnreadCount",
         service: "Notifications",
         method: "GET",

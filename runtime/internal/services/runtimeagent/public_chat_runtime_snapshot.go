@@ -67,6 +67,10 @@ func (r publicChatRuntime) buildSessionSnapshotFromState(
 	lastTurn *publicChatTurnProjectionState,
 	pendingFollowUp *publicChatFollowUpState,
 ) (*structpb.Struct, publicChatAnchorState, bool, bool, bool, error) {
+	transcript, err := publicChatTranscriptProjection(session.CommittedTranscript)
+	if err != nil {
+		return nil, publicChatAnchorState{}, false, false, false, status.Error(codes.DataLoss, err.Error())
+	}
 	// Full public chat session snapshot is a unary query projection. Runtime
 	// carrier execution truth (model_resolved, trace_id, transcript metadata,
 	// follow-up state, etc.) lives in this snapshot, never on turn delta events.
@@ -74,8 +78,8 @@ func (r publicChatRuntime) buildSessionSnapshotFromState(
 		"thread_id":                session.ThreadID,
 		"subject_user_id":          session.SubjectUserID,
 		"session_status":           publicChatSessionStatus(activeTurn, pendingFollowUp),
-		"transcript_message_count": len(session.Transcript),
-		"transcript":               publicChatMessageEnvelopePayloads(session.Transcript, session.ConversationAnchorID, session.CreatedAt, session.UpdatedAt),
+		"transcript_message_count": len(transcript),
+		"transcript":               publicChatMessageEnvelopePayloads(transcript, session.ConversationAnchorID, session.CreatedAt, session.UpdatedAt),
 		"execution_bindings":       publicChatExecutionBindingsProjectionPayload(session.Bindings, session.Binding),
 		// config_revision is the committed Runtime Agent AI Config revision fixed at
 		// the most recent turn admission (K-AGCORE-147).

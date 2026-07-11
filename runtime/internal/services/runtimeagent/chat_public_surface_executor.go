@@ -77,15 +77,6 @@ func publicChatAPMLOutputContractPrompt(actions publicChatAvailableActions) stri
 	)
 }
 
-func publicChatSystemPromptWithAPMLOutputContract(base string, actions publicChatAvailableActions) string {
-	trimmed := strings.TrimSpace(base)
-	contract := publicChatAPMLOutputContractPrompt(actions)
-	if trimmed == "" {
-		return contract
-	}
-	return trimmed + "\n\n" + contract
-}
-
 func publicChatSortedSetKeys(values map[string]struct{}) []string {
 	keys := make([]string, 0, len(values))
 	for key := range values {
@@ -163,7 +154,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					Input:        cloneChatMessages(req.Messages),
-					SystemPrompt: publicChatSystemPromptWithAPMLOutputContract(req.SystemPrompt, req.AvailableActions),
+					SystemPrompt: strings.TrimSpace(req.SystemPrompt),
 					MaxTokens:    req.MaxTokens,
 					Reasoning:    toProtoReasoningConfig(req.Reasoning),
 				},

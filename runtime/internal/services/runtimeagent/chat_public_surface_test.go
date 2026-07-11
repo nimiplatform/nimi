@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -186,7 +187,24 @@ func publicChatScenarioSystemPromptForImageConfig(t *testing.T, imageBinding *ru
 	if streamer.request == nil || streamer.request.GetSpec().GetTextGenerate() == nil {
 		t.Fatalf("expected captured text generate stream request")
 	}
-	return streamer.request.GetSpec().GetTextGenerate().GetSystemPrompt()
+	var composed strings.Builder
+	for _, message := range streamer.request.GetSpec().GetTextGenerate().GetInput() {
+		if message.GetRole() == "system" {
+			for _, line := range strings.Split(message.GetContent(), "\n") {
+				encoded, found := strings.CutPrefix(line, "content_json_string=")
+				if !found {
+					continue
+				}
+				decoded, err := strconv.Unquote(encoded)
+				if err != nil {
+					t.Fatalf("decode typed context item: %v", err)
+				}
+				composed.WriteString(decoded)
+				composed.WriteByte('\n')
+			}
+		}
+	}
+	return composed.String()
 }
 
 type stubChatTrackSidecarExecutor struct {
@@ -344,6 +362,14 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 			t.Fatalf("InitializeAgent: %v", err)
 		}
 	}
+	candidate := sourceMaterializationTransportTestCandidate(t, "worldCharacter", "packet-public-chat-fixture")
+	svc.publicChatSourceSnapshotResolve = func(_ context.Context, localAgentRef string) (localAgentSourceSnapshotV1, bool, error) {
+		if strings.TrimSpace(localAgentRef) == "" {
+			return localAgentSourceSnapshotV1{}, false, nil
+		}
+		snapshot, err := finalizeLocalAgentSourceSnapshotV1(candidate, localAgentRef, time.Date(2026, 7, 11, 0, 0, 0, 0, time.UTC))
+		return snapshot, err == nil, err
+	}
 	svc.SetPublicChatBindingResolver(stubPublicChatBindingResolver{
 		resolve: func(_ context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
 			route := req.RouteHint
@@ -356,9 +382,14 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 				}
 			}
 			return PublicChatBindingResolution{
-				ModelID:     strings.TrimSpace(req.ModelID),
-				RoutePolicy: route,
-				ConnectorID: strings.TrimSpace(req.ConnectorID),
+				ModelID:             strings.TrimSpace(req.ModelID),
+				RoutePolicy:         route,
+				ConnectorID:         strings.TrimSpace(req.ConnectorID),
+				ContextWindowTokens: 32768,
+				CatalogRevision:     "public-chat-test-catalog-v1",
+				ModelRevision:       "public-chat-test-model-v1",
+				ProviderID:          "public-chat-test-provider",
+				RouteDigest:         sourceMaterializationBytesDigest([]byte("public-chat-test-route:" + strings.TrimSpace(req.ModelID))),
 			}, nil
 		},
 	})
@@ -631,7 +662,7 @@ func TestPublicChatSessionSnapshotAcceptsDefaultAvatarWithLiveInstanceBinding(t 
 	}
 }
 
-func TestPublicChatSessionSnapshotRejectsCrossAppWithoutAvatarLiveInstanceBinding(t *testing.T) {
+func TestPublicChatSessionSnapshotUsesAnchorScopeAcrossAppsWithoutAppPartition(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -639,18 +670,18 @@ func TestPublicChatSessionSnapshotRejectsCrossAppWithoutAvatarLiveInstanceBindin
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), defaultAvatarRuntimeAppID, runtimeAgentReadScope)
 	avatarCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	avatarCtx.AppId = defaultAvatarRuntimeAppID
-	_, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
+	resp, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
 		Context:              avatarCtx,
 		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorID,
 		RequestId:            "avatar-unbound-snapshot",
 	})
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected avatar snapshot without live instance binding to fail closed, got %v", err)
+	if err != nil || resp.GetSnapshot() == nil {
+		t.Fatalf("expected authenticated cross-app anchor snapshot, got response=%v err=%v", resp, err)
 	}
 }
 
-func TestPublicChatSessionSnapshotRejectsNonAvatarCrossAppWithLiveInstanceBinding(t *testing.T) {
+func TestPublicChatSessionSnapshotDoesNotUseAvatarBindingAsAppPartition(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -667,14 +698,14 @@ func TestPublicChatSessionSnapshotRejectsNonAvatarCrossAppWithLiveInstanceBindin
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "other.app", runtimeAgentReadScope)
 	otherCtx := testRuntimeAgentIdentityContext("agent-alpha")
 	otherCtx.AppId = "other.app"
-	_, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
+	resp, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
 		Context:              otherCtx,
 		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
 		ConversationAnchorId: anchorID,
 		RequestId:            "other-app-snapshot",
 	})
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected non-avatar cross-app snapshot to fail closed, got %v", err)
+	if err != nil || resp.GetSnapshot() == nil {
+		t.Fatalf("expected authenticated anchor-scoped snapshot independent of app id, got response=%v err=%v", resp, err)
 	}
 }
 
@@ -817,14 +848,20 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("timed out waiting for captured public chat execution request")
 	}
-	if got := strings.TrimSpace(captured.SystemPrompt); !strings.Contains(got, "Runtime recalled memory context:") ||
-		!strings.Contains(got, "User prefers concise cartography answers") {
-		t.Fatalf("expected runtime pre-turn memory context in system prompt, got=%q", got)
+	if captured.MaxTokens != int32(publicChatContextDefaultOutputTokens) {
+		t.Fatalf("provider default max_tokens=%d want manifest reserve=%d", captured.MaxTokens, publicChatContextDefaultOutputTokens)
 	}
+	memoryLaneObserved := false
 	for _, message := range captured.Messages {
 		if strings.Contains(message.GetContent(), "User prefers concise cartography answers") {
-			t.Fatalf("runtime pre-turn memory context must not pollute transcript messages: %#v", captured.Messages)
+			if message.GetRole() != "system" || !strings.Contains(message.GetContent(), "lane=canonical_memory") {
+				t.Fatalf("canonical memory must remain a typed Runtime system lane: %#v", message)
+			}
+			memoryLaneObserved = true
 		}
+	}
+	if !memoryLaneObserved {
+		t.Fatalf("expected canonical memory canary in provider-visible typed context: %#v", captured.Messages)
 	}
 	capture.waitForMessageType(t, publicChatTurnCompletedType)
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-pre-turn-memory")
@@ -891,14 +928,13 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 func TestPublicChatPreTurnMemoryRequiresSubjectContext(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	_, err := (publicChatRuntime{svc: svc}).assemblePublicChatSystemPrompt(context.Background(), publicChatAnchorState{
+	_, err := (publicChatRuntime{svc: svc}).loadPublicChatPreTurnMemoryInputs(context.Background(), publicChatAnchorState{
 		AgentID:          testRuntimeAgentLocalRef("agent-alpha"),
 		LocalAgentRef:    testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:      "user-1",
 		RuntimeSourceRef: "agent-alpha",
 		CallerAppID:      "desktop.app",
 	}, publicChatTurnRequestPayload{
-		SystemPrompt: "You are Alpha.",
 		Messages: []publicChatMessagePayload{
 			{Role: "user", Content: "hello"},
 		},
@@ -1101,8 +1137,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	}
 }
 
-func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
-	t.Parallel()
+func TestPublicChatTurnMessageCommitDeliveryFailurePreservesDurableCommit(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
@@ -1170,35 +1205,167 @@ func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
-	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
-	failedDetail := publicChatTurnDetail(t, failed)
-	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_STREAM_BROKEN.String() {
-		t.Fatalf("expected AI_STREAM_BROKEN failed.detail.reason_code, got=%v", failedDetail)
-	}
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	for _, messageType := range capture.messageTypes() {
 		switch messageType {
-		case publicChatTurnTextDeltaType, publicChatTurnPostTurnType, publicChatTurnCompletedType:
-			t.Fatalf("message commit failure must suppress %s; emitted=%v", messageType, capture.messageTypes())
+		case publicChatTurnMessageCommittedType,
+			publicChatTurnTextDeltaType,
+			publicChatTurnPostTurnType,
+			publicChatTurnCompletedType,
+			publicChatTurnFailedType,
+			publicChatTurnInterruptedType:
+			t.Fatalf("message commit delivery failure must not emit %s; emitted=%v", messageType, capture.messageTypes())
 		}
 	}
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-commit-failure")
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
-	if got := lastTurn["status"]; got != publicChatTurnStatusFailed {
-		t.Fatalf("expected failed last_turn after commit delivery failure, got=%v", lastTurn)
+	if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
+		t.Fatalf("durably committed turn must remain completed after delivery failure, got=%v", lastTurn)
 	}
 	if got := lastTurn["reason_code"]; got != runtimev1.ReasonCode_AI_STREAM_BROKEN.String() {
-		t.Fatalf("expected snapshot last_turn.reason_code=AI_STREAM_BROKEN, got=%v", lastTurn)
+		t.Fatalf("expected bounded post-commit diagnostic reason, got=%v", lastTurn)
 	}
-	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+	if got := publicChatSessionSnapshotDetail(t, snapshot)["transcript_message_count"]; got != float64(2) {
+		t.Fatalf("message delivery failure must not erase durable transcript, got snapshot=%v", publicChatSessionSnapshotDetail(t, snapshot))
+	}
 }
 
-func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
+func TestPublicChatPostCommitEmissionFailuresPreserveCompletedTurnAcrossRestart(t *testing.T) {
+	tests := []struct {
+		name               string
+		rejectedType       string
+		rejectedMessage    string
+		expectPostTurnSeen bool
+	}{
+		{name: "post_turn", rejectedType: publicChatTurnPostTurnType, rejectedMessage: "post-turn delivery rejected"},
+		{name: "completed", rejectedType: publicChatTurnCompletedType, rejectedMessage: "completion delivery rejected", expectPostTurnSeen: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			statePath := t.TempDir() + "/runtime-state.json"
+			svc, closeSvc := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+			firstClosed := false
+			defer func() {
+				if !firstClosed {
+					closeSvc()
+				}
+			}()
+			anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+			capture := newPublicChatEmitCapture()
+			svc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+				if req.GetMessageType() == tt.rejectedType {
+					return nil, fmt.Errorf("%s", tt.rejectedMessage)
+				}
+				return capture.emit(ctx, req)
+			})
+			svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+			svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+				stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+					if err := emit(&runtimev1.StreamScenarioEvent{
+						EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+						TraceId:   "trace-" + tt.name + "-failure",
+						Payload: &runtimev1.StreamScenarioEvent_Started{
+							Started: &runtimev1.ScenarioStreamStarted{ModelResolved: "qwen3-chat", RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+						},
+					}); err != nil {
+						return err
+					}
+					if err := emit(&runtimev1.StreamScenarioEvent{
+						EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+						TraceId:   "trace-" + tt.name + "-failure",
+						Payload: &runtimev1.StreamScenarioEvent_Delta{
+							Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_Text{
+								Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-"+tt.name+"-failure", "committed before delivery failure")},
+							}},
+						},
+					}); err != nil {
+						return err
+					}
+					return emit(&runtimev1.StreamScenarioEvent{
+						EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+						TraceId:   "trace-" + tt.name + "-failure",
+						Payload: &runtimev1.StreamScenarioEvent_Completed{
+							Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
+						},
+					})
+				},
+			})
+			if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+				ToAppId:       publicChatRuntimeAppID,
+				FromAppId:     "desktop.app",
+				SubjectUserId: "user-1",
+				MessageType:   publicChatTurnRequestType,
+				Payload: publicChatStructPayload(t, map[string]any{
+					"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+					"owner_user_id":          "user-1",
+					"runtime_source_ref":     "agent-alpha",
+					"conversation_anchor_id": anchorID,
+					"messages":               []any{map[string]any{"role": "user", "content": "hello"}},
+				}),
+			}); err != nil {
+				t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+			}
+			_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+			_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+			_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
+			_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+			if tt.expectPostTurnSeen {
+				_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
+			}
+			waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+			for _, messageType := range capture.messageTypes() {
+				if messageType == publicChatTurnFailedType || messageType == publicChatTurnInterruptedType || messageType == tt.rejectedType {
+					t.Fatalf("post-commit delivery failure emitted forbidden %s: %v", messageType, capture.messageTypes())
+				}
+			}
+			snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-"+tt.name+"-failure")
+			lastTurn := publicChatLastTurnSnapshot(t, snapshot)
+			if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
+				t.Fatalf("post-commit delivery failure changed committed truth: %v", lastTurn)
+			}
+			if !strings.Contains(fmt.Sprint(lastTurn["message"]), tt.rejectedMessage) {
+				t.Fatalf("expected bounded delivery diagnostic, got=%v", lastTurn)
+			}
+
+			closeSvc()
+			firstClosed = true
+			restarted, closeRestarted := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+			defer closeRestarted()
+			restartedCapture := newPublicChatEmitCapture()
+			restarted.SetPublicChatAppEmitter(restartedCapture.emit)
+			recovered := requestPublicChatSessionSnapshot(t, restarted, restartedCapture, anchorID, "snapshot-"+tt.name+"-restarted")
+			if got := publicChatSessionSnapshotDetail(t, recovered)["transcript_message_count"]; got != float64(2) {
+				t.Fatalf("restart lost durably committed transcript: %v", publicChatSessionSnapshotDetail(t, recovered))
+			}
+			if got := publicChatLastTurnSnapshot(t, recovered)["status"]; got != publicChatTurnStatusCompleted {
+				t.Fatalf("restart changed completed projection truth: %v", publicChatLastTurnSnapshot(t, recovered))
+			}
+		})
+	}
+}
+
+func TestPublicChatInterruptAfterDurableCommitCannotReclassifyTurn(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
+	interruptInjected := false
 	svc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
-		if req.GetMessageType() == publicChatTurnCompletedType {
-			return nil, fmt.Errorf("completion delivery rejected")
+		if req.GetMessageType() == publicChatTurnMessageCommittedType && !interruptInjected {
+			interruptInjected = true
+			turnID := strings.TrimSpace(fmt.Sprint(req.GetPayload().AsMap()["turn_id"]))
+			if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+				ToAppId:       publicChatRuntimeAppID,
+				FromAppId:     "desktop.app",
+				SubjectUserId: "user-1",
+				MessageType:   publicChatTurnInterruptType,
+				Payload: publicChatStructPayload(t, map[string]any{
+					"conversation_anchor_id": anchorID,
+					"turn_id":                turnID,
+					"reason":                 "user_cancel",
+				}),
+			}); err != nil {
+				return nil, fmt.Errorf("inject post-commit interrupt: %w", err)
+			}
 		}
 		return capture.emit(ctx, req)
 	})
@@ -1207,36 +1374,35 @@ func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-				TraceId:   "trace-completion-failure",
-				Payload: &runtimev1.StreamScenarioEvent_Started{
-					Started: &runtimev1.ScenarioStreamStarted{ModelResolved: "qwen3-chat", RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
-				},
+				TraceId:   "trace-post-commit-interrupt",
+				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+					ModelResolved: "qwen3-chat",
+					RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				}},
 			}); err != nil {
 				return err
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				TraceId:   "trace-completion-failure",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-completion-failure", "committed but completion delivery fails")},
-						},
-					},
-				},
+				TraceId:   "trace-post-commit-interrupt",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
+						Text: publicChatStructuredEnvelopeAPML("message-post-commit-interrupt", "durable before interrupt"),
+					}},
+				}},
 			}); err != nil {
 				return err
 			}
 			return emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-				TraceId:   "trace-completion-failure",
-				Payload: &runtimev1.StreamScenarioEvent_Completed{
-					Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
-				},
+				TraceId:   "trace-post-commit-interrupt",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
+					FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+				}},
 			})
 		},
 	})
-	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
 		FromAppId:     "desktop.app",
 		SubjectUserId: "user-1",
@@ -1246,35 +1412,28 @@ func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"messages": []any{
-				map[string]any{"role": "user", "content": "hello"},
-			},
+			"messages":               []any{map[string]any{"role": "user", "content": "commit then cancel"}},
 		}),
-	})
-	if err != nil {
+	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
 	}
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
-	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
+	_ = capture.waitForMessageType(t, publicChatTurnInterruptAckType)
 	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
-	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
-	failedDetail := publicChatTurnDetail(t, failed)
-	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_STREAM_BROKEN.String() {
-		t.Fatalf("expected AI_STREAM_BROKEN failed.detail.reason_code, got=%v", failedDetail)
-	}
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatTurnCompletedType {
-			t.Fatalf("completion delivery failure must not capture completed event; emitted=%v", capture.messageTypes())
+		if messageType == publicChatTurnFailedType || messageType == publicChatTurnInterruptedType {
+			t.Fatalf("post-commit interrupt created forbidden terminal truth %s: %v", messageType, capture.messageTypes())
 		}
 	}
-	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-completion-failure")
-	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
-	if got := lastTurn["status"]; got != publicChatTurnStatusFailed {
-		t.Fatalf("expected failed last_turn after completion delivery failure, got=%v", lastTurn)
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-post-commit-interrupt")
+	if got := publicChatLastTurnSnapshot(t, snapshot)["status"]; got != publicChatTurnStatusCompleted {
+		t.Fatalf("post-commit interrupt reclassified durable turn: %v", publicChatLastTurnSnapshot(t, snapshot))
 	}
-	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+	if got := publicChatSessionSnapshotDetail(t, snapshot)["transcript_message_count"]; got != float64(2) {
+		t.Fatalf("post-commit interrupt erased durable transcript: %v", publicChatSessionSnapshotDetail(t, snapshot))
+	}
 }
 
 func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) {

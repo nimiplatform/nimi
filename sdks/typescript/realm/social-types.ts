@@ -1,7 +1,7 @@
 import type {
   RealmTypedClient,
   CreateSourceMaterializationPacketDto,
-  SourceMaterializationPacketDto,
+  SourceMaterializationPacketV2Dto,
   UserProfileDto,
 } from '../core-generated/realm-typed-client';
 import type { JsonObject } from '../types';
@@ -35,7 +35,8 @@ export interface NimiRealmPendingFriendRequestListDto {
 
 export type NimiRealmSocialProfileView = JsonObject & Partial<UserProfileDto>;
 export type NimiRealmCoreSourceRef = CreateSourceMaterializationPacketDto['sourceRef'];
-export type NimiRealmSourceMaterializationPacket = SourceMaterializationPacketDto;
+export type NimiRealmSourceMaterializationRequest = CreateSourceMaterializationPacketDto;
+export type NimiRealmSourceMaterializationPacket = SourceMaterializationPacketV2Dto;
 
 export interface NimiRealmSocialApi {
   readonly account: Pick<RealmTypedClient, 'getMe' | 'updateMe'>;

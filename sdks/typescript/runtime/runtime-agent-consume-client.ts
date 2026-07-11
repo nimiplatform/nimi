@@ -9,6 +9,8 @@ import {
   type AgentEvent,
   type AppMessageEvent,
   type CompanionParticipationProjection,
+  type ConversationAnchorSnapshot,
+  type AgentConversationSummary,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import {
@@ -39,7 +41,14 @@ import type {
   NimiRuntimeAgentConsumeContextInput,
   NimiRuntimeAgentConsumeEvent,
   NimiRuntimeAgentCompanionParticipationProjection,
+  NimiRuntimeAgentConversationAnchorSnapshot,
+  NimiRuntimeAgentConversationSummary,
 } from './runtime-agent-consume-types';
+import {
+  assertNimiRuntimeAgentContextProjectionCorrelation,
+  decodeNimiRuntimeAgentSourceContextStatus,
+  decodeNimiRuntimeAgentTurnContextSummary,
+} from './runtime-agent-context-projections';
 
 const RUNTIME_AGENT_APP_ID = 'runtime.agent';
 
@@ -81,7 +90,10 @@ export function createNimiRuntimeAgentConsumeClient(
           runtimeSourceRef: context.runtimeSourceRef,
           ...(input.metadata ? { metadata: toNimiRuntimeProtoStruct(input.metadata) } : {}),
         }, callOptions);
-        return requireProjection(response.snapshot, 'Runtime Agent open conversation anchor returned no snapshot');
+        return decodeNimiRuntimeAgentConversationAnchorSnapshot(
+          requireProjection(response.snapshot, 'Runtime Agent open conversation anchor returned no snapshot'),
+          context.localAgentRef,
+        );
       },
       getSnapshot: async (input, callOptions) => {
         const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
@@ -90,7 +102,11 @@ export function createNimiRuntimeAgentConsumeClient(
           agentId: context.localAgentRef,
           conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
         }, callOptions);
-        return requireProjection(response.snapshot, 'Runtime Agent conversation anchor snapshot is missing');
+        return decodeNimiRuntimeAgentConversationAnchorSnapshot(
+          requireProjection(response.snapshot, 'Runtime Agent conversation anchor snapshot is missing'),
+          context.localAgentRef,
+          requireText(input.conversationAnchorId, 'conversationAnchorId'),
+        );
       },
       listSummaries: async (input, callOptions) => {
         const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
@@ -114,7 +130,7 @@ export function createNimiRuntimeAgentConsumeClient(
         }
         const nextPageToken = normalizeText(response.nextPageToken);
         return {
-          summaries: response.summaries,
+          summaries: response.summaries.map((summary) => decodeConversationSummary(summary, context.localAgentRef)),
           ...(nextPageToken ? { nextPageToken } : {}),
         };
       },
@@ -127,7 +143,11 @@ export function createNimiRuntimeAgentConsumeClient(
         }, callOptions);
         return {
           binding: requireProjection(response.binding, 'Runtime Agent Avatar live instance binding is missing'),
-          snapshot: requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
+          snapshot: decodeNimiRuntimeAgentConversationAnchorSnapshot(
+            requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
+            context.localAgentRef,
+            requireText(input.conversationAnchorId, 'conversationAnchorId'),
+          ),
         };
       },
       resolveAvatarLiveInstance: async (input, callOptions) => {
@@ -136,9 +156,17 @@ export function createNimiRuntimeAgentConsumeClient(
           context: context.requestContext,
           avatarInstanceId: requireText(input.avatarInstanceId, 'avatarInstanceId'),
         }, callOptions);
+        const binding = requireProjection(
+          response.binding,
+          'Runtime Agent Avatar live instance binding is missing',
+        );
         return {
-          binding: requireProjection(response.binding, 'Runtime Agent Avatar live instance binding is missing'),
-          snapshot: requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
+          binding,
+          snapshot: decodeNimiRuntimeAgentConversationAnchorSnapshot(
+            requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
+            context.localAgentRef,
+            requireText(binding.conversationAnchorId, 'binding.conversationAnchorId'),
+          ),
         };
       },
     },
@@ -353,6 +381,82 @@ export function decodeNimiRuntimeAgentCompanionParticipationProjection(
     ...(normalizeText(projection.turnId) ? { turnId: normalizeText(projection.turnId) } : {}),
     ...(normalizeText(projection.streamId) ? { streamId: normalizeText(projection.streamId) } : {}),
   };
+}
+
+export function decodeNimiRuntimeAgentConversationAnchorSnapshot(
+  snapshot: ConversationAnchorSnapshot,
+  expectedLocalAgentRef: string,
+  expectedConversationAnchorId?: string,
+): NimiRuntimeAgentConversationAnchorSnapshot {
+  const sourceContextStatus = snapshot.sourceContextStatus
+    ? decodeNimiRuntimeAgentSourceContextStatus(snapshot.sourceContextStatus)
+    : undefined;
+  const turnContextSummary = snapshot.turnContextSummary
+    ? decodeNimiRuntimeAgentTurnContextSummary(snapshot.turnContextSummary)
+    : undefined;
+  const anchorId = requireConversationAnchorCorrelation(
+    snapshot.anchor,
+    expectedLocalAgentRef,
+    expectedConversationAnchorId,
+  );
+  assertNimiRuntimeAgentContextProjectionCorrelation({
+    sourceContextStatus,
+    turnContextSummary,
+    expectedLocalAgentRef,
+    expectedConversationAnchorId: expectedConversationAnchorId || anchorId || undefined,
+  });
+  const { sourceContextStatus: _rawSource, turnContextSummary: _rawTurn, ...bounded } = snapshot;
+  return {
+    ...bounded,
+    ...(sourceContextStatus ? { sourceContextStatus } : {}),
+    ...(turnContextSummary ? { turnContextSummary } : {}),
+  };
+}
+
+function decodeConversationSummary(
+  summary: AgentConversationSummary,
+  expectedLocalAgentRef: string,
+): NimiRuntimeAgentConversationSummary {
+  const sourceContextStatus = summary.sourceContextStatus
+    ? decodeNimiRuntimeAgentSourceContextStatus(summary.sourceContextStatus)
+    : undefined;
+  const lastTurnContextSummary = summary.lastTurnContextSummary
+    ? decodeNimiRuntimeAgentTurnContextSummary(summary.lastTurnContextSummary)
+    : undefined;
+  const anchorId = requireConversationAnchorCorrelation(summary.anchor, expectedLocalAgentRef);
+  assertNimiRuntimeAgentContextProjectionCorrelation({
+    sourceContextStatus,
+    turnContextSummary: lastTurnContextSummary,
+    expectedLocalAgentRef,
+    expectedConversationAnchorId: anchorId,
+  });
+  const { sourceContextStatus: _rawSource, lastTurnContextSummary: _rawTurn, ...bounded } = summary;
+  return {
+    ...bounded,
+    ...(sourceContextStatus ? { sourceContextStatus } : {}),
+    ...(lastTurnContextSummary ? { lastTurnContextSummary } : {}),
+  };
+}
+
+function requireConversationAnchorCorrelation(
+  anchor: ConversationAnchorSnapshot['anchor'],
+  expectedLocalAgentRef: string,
+  expectedConversationAnchorId?: string,
+): string {
+  const anchorId = normalizeText(anchor?.conversationAnchorId);
+  const localAgentRef = normalizeText(anchor?.localAgentRef);
+  const agentId = normalizeText(anchor?.agentId);
+  if (!anchorId
+      || localAgentRef !== expectedLocalAgentRef
+      || agentId !== expectedLocalAgentRef
+      || expectedConversationAnchorId && anchorId !== expectedConversationAnchorId) {
+    runtimeAgentError(
+      'Runtime Agent conversation anchor snapshot identity mismatch',
+      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+      'check_runtime_agent_conversation_anchor_snapshot',
+    );
+  }
+  return anchorId;
 }
 
 function requireProjection<T>(value: T | undefined | null, message: string): T {

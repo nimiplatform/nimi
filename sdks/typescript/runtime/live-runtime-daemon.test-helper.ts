@@ -12,6 +12,7 @@ import { createRuntime } from './index';
 export type RuntimeDaemonRunContext = {
   readonly endpoint: string;
   readonly stateRoot: string;
+  readonly runtimeConfigPath: string;
   readonly localModelsPath: string;
   readonly localStatePath: string;
   readonly modelRegistryPath: string;
@@ -236,11 +237,14 @@ export async function withRuntimeDaemon(
   const localModelsPath = join(stateRoot, 'local-models');
   const localStatePath = join(stateRoot, 'local-state.json');
   const modelRegistryPath = join(stateRoot, 'model-registry.json');
+  const runtimeConfigPath = String(input.runtimeEnv?.NIMI_RUNTIME_CONFIG_PATH || '').trim()
+    || join(stateRoot, 'config.json');
 
   await input.prepareState?.({
     endpoint,
     httpEndpoint,
     stateRoot,
+    runtimeConfigPath,
     localModelsPath,
     localStatePath,
     modelRegistryPath,
@@ -255,7 +259,7 @@ export async function withRuntimeDaemon(
       NIMI_RUNTIME_HTTP_ADDR: httpEndpoint,
       NIMI_RUNTIME_ENABLE_WORKERS: '0',
       NIMI_RUNTIME_LOCK_PATH: join(stateRoot, 'runtime.lock'),
-      NIMI_RUNTIME_CONFIG_PATH: join(stateRoot, 'config.json'),
+      NIMI_RUNTIME_CONFIG_PATH: runtimeConfigPath,
       NIMI_RUNTIME_MODEL_REGISTRY_PATH: modelRegistryPath,
       NIMI_RUNTIME_MODEL_CATALOG_CUSTOM_DIR: join(stateRoot, 'model-catalog-custom'),
       NIMI_RUNTIME_LOCAL_STATE_PATH: localStatePath,
@@ -301,6 +305,7 @@ export async function withRuntimeDaemon(
     await input.run({
       endpoint,
       stateRoot,
+      runtimeConfigPath,
       localModelsPath,
       localStatePath,
       modelRegistryPath,

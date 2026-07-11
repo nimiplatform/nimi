@@ -10,6 +10,18 @@ import {
   type BeginLoginRequest,
 } from '../../typescript/core-generated/runtime-typed-client';
 import { RealmTypedClient } from '../../typescript/core-generated/realm-typed-client';
+import {
+  AgentLocalSourceContextState,
+  AgentSourceMaterializationComponentKind,
+  AgentSourceMaterializationSourceKind,
+  AgentSourceMaterializationUploadState,
+  AgentTurnContextLaneId,
+  assertKnownAgentLocalSourceContextState,
+  assertKnownAgentSourceMaterializationComponentKind,
+  assertKnownAgentSourceMaterializationSourceKind,
+  assertKnownAgentSourceMaterializationUploadState,
+  assertKnownAgentTurnContextLaneId,
+} from '../../typescript/runtime/wire-types';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../../typescript/types';
 
 class FakeTransport implements CoreTransport {
@@ -40,22 +52,38 @@ class FakeTransport implements CoreTransport {
     if (request.methodId === 'WorldCoreController_createSourceMaterializationPacket') {
       if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
         return {
-          packetSchemaVersion: 'realm.source-materialization-packet/v1',
+          packetSchemaVersion: 'realm.source-materialization-packet/v2',
           packetId: 'packet-conformance',
-          runtimeSourceRef: 'runtime-source:realmPersona:persona-conformance:hash-conformance',
-          sourceKind: 'realmPersona',
-          sourceId: 'persona-conformance',
-          sourceWorldId: 'oasis',
-          sourceContentHash: 'hash-conformance',
-          sourceContentRevision: 1,
+          issuer: 'https://realm.conformance',
+          keyId: 'materialization-rs256-conformance',
+          algorithm: 'RS256',
+          keyUse: 'sig',
           issuedAt: '2026-01-01T00:00:00Z',
           expiresAt: '2026-01-01T00:05:00Z',
           nonce: 'nonce-conformance',
-          packetHash: 'packet-hash-conformance',
-          packetProof: 'hmac-sha256:proof-conformance',
           intendedRuntimeAudience: 'sdk.conformance',
-          sourceDisplayMetadata: { displayName: 'Conformance Persona' },
-          payload: { displayName: 'Conformance Persona' },
+          challengeId: 'challenge_conformance_0001',
+          challengeDigest: 'a'.repeat(64),
+          challengeLimits: {
+            maxBundleBytes: 1_048_576,
+            maxComponentCount: 128,
+            maxChunkBytes: 65_536,
+            maxChunks: 512,
+          },
+          materializerAccountId: 'account-conformance',
+          sourceRef: {
+            kind: 'realmPersona',
+            worldId: 'oasis',
+            sourceId: 'persona-conformance',
+            sourceContentHash: 'e'.repeat(64),
+          },
+          payloadHash: 'b'.repeat(64),
+          bundleManifestHash: 'c'.repeat(64),
+          packetHash: 'd'.repeat(64),
+          packetProof: 'eyJhbGciOiJSUzI1NiJ9..conformance-signature',
+          semanticPayload: { source: { kind: 'realmPersona' } },
+          bundleTransportManifest: { manifestSchemaVersion: 'realm.materialization-bundle-manifest/v1' },
+          orderedComponentChunks: [],
         } as Response;
       }
       return fixtures.cases.realm_operation.response_body as Response;
@@ -95,6 +123,41 @@ async function main() {
   const typedRealm = new RealmTypedClient(core);
 
   if (profile === 'typed-core') {
+    assert.equal(
+      assertKnownAgentSourceMaterializationSourceKind(
+        AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
+      ),
+      AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
+    );
+    assert.equal(
+      assertKnownAgentSourceMaterializationComponentKind(
+        AgentSourceMaterializationComponentKind.WORLD_CORE,
+      ),
+      AgentSourceMaterializationComponentKind.WORLD_CORE,
+    );
+    assert.equal(
+      assertKnownAgentSourceMaterializationUploadState(
+        AgentSourceMaterializationUploadState.COMMITTED,
+      ),
+      AgentSourceMaterializationUploadState.COMMITTED,
+    );
+    assert.equal(
+      assertKnownAgentLocalSourceContextState(AgentLocalSourceContextState.READY),
+      AgentLocalSourceContextState.READY,
+    );
+    assert.equal(
+      assertKnownAgentTurnContextLaneId(AgentTurnContextLaneId.CURRENT_USER_TURN),
+      AgentTurnContextLaneId.CURRENT_USER_TURN,
+    );
+    for (const validator of [
+      assertKnownAgentSourceMaterializationSourceKind,
+      assertKnownAgentSourceMaterializationComponentKind,
+      assertKnownAgentSourceMaterializationUploadState,
+      assertKnownAgentLocalSourceContextState,
+      assertKnownAgentTurnContextLaneId,
+    ]) {
+      assert.throws(() => validator(2_147_483_647), /Unknown .* numeric value/u);
+    }
     const runtimeRequest: BeginLoginRequest = {
       caller: { appId: 'app-conformance', mode: AccountCallerMode.DESKTOP_SHELL, scopes: ['account.login'] },
       redirectUri: 'https://app.example/callback',
@@ -123,15 +186,27 @@ async function main() {
       path: {},
       body: {
         intendedRuntimeAudience: 'sdk.conformance',
+        materializerAccountId: 'account-conformance',
+        challengeId: 'challenge_conformance_0001',
+        challengeDigest: 'a'.repeat(64),
+        challengeExpiresAt: '2026-01-01T00:05:00.000Z',
+        challengeLimits: {
+          maxBundleBytes: 1_048_576,
+          maxComponentCount: 128,
+          maxChunkBytes: 65_536,
+          maxChunks: 512,
+        },
         sourceRef: {
           kind: 'realmPersona',
           sourceId: 'persona-conformance',
-          sourceContentHash: 'hash-conformance',
+          sourceContentHash: 'e'.repeat(64),
           worldId: 'oasis',
         },
       },
     });
-    assert.equal(typedRealmResponse.runtimeSourceRef, 'runtime-source:realmPersona:persona-conformance:hash-conformance');
+    assert.equal(typedRealmResponse.packetSchemaVersion, 'realm.source-materialization-packet/v2');
+    assert.equal(typedRealmResponse.algorithm, 'RS256');
+    assert.equal(typedRealmResponse.semanticPayload.source.kind, 'realmPersona');
 
     assert.equal(transport.unaryCalls[0].methodId, fixtures.cases.runtime_unary.method_id);
     assert.deepEqual(transport.unaryCalls[0].body, runtimeRequest);
@@ -140,10 +215,20 @@ async function main() {
       path: {},
       body: {
         intendedRuntimeAudience: 'sdk.conformance',
+        materializerAccountId: 'account-conformance',
+        challengeId: 'challenge_conformance_0001',
+        challengeDigest: 'a'.repeat(64),
+        challengeExpiresAt: '2026-01-01T00:05:00.000Z',
+        challengeLimits: {
+          maxBundleBytes: 1_048_576,
+          maxComponentCount: 128,
+          maxChunkBytes: 65_536,
+          maxChunks: 512,
+        },
         sourceRef: {
           kind: 'realmPersona',
           sourceId: 'persona-conformance',
-          sourceContentHash: 'hash-conformance',
+          sourceContentHash: 'e'.repeat(64),
           worldId: 'oasis',
         },
       },

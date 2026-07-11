@@ -247,6 +247,9 @@ func (b *Backend) ensureSchema() error {
 	preflightStmts := []string{
 		"DROP TABLE IF EXISTS " + "memory_embedding_" + "intent",
 		"DROP TABLE IF EXISTS " + "runtime_agent_" + "execution_" + "config",
+		// K-AGCORE-139 hard cut: the v1 nonce/HMAC ledger cannot coexist with
+		// the packet-v2 Runtime challenge/upload authority.
+		"DROP TABLE IF EXISTS " + "runtime_source_materialization_" + "nonce",
 	}
 	for _, stmt := range preflightStmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
@@ -449,13 +452,110 @@ func (b *Backend) ensureSchema() error {
 			checkpoint_basis TEXT,
 			completed_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_nonce (
-			nonce TEXT PRIMARY KEY,
-			packet_hash TEXT NOT NULL,
-			local_agent_ref TEXT NOT NULL,
-			runtime_source_ref TEXT NOT NULL,
+		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_challenge (
+			challenge_id TEXT PRIMARY KEY,
+			challenge_digest TEXT NOT NULL UNIQUE,
+			intended_runtime_audience TEXT NOT NULL UNIQUE,
+			runtime_instance_id TEXT NOT NULL,
+			materializer_account_id TEXT NOT NULL,
+			request_id TEXT NOT NULL,
+			source_kind INTEGER NOT NULL,
+			world_id TEXT NOT NULL,
+			source_id TEXT NOT NULL,
+			source_content_hash TEXT NOT NULL,
+			max_bundle_bytes INTEGER NOT NULL,
+			max_component_count INTEGER NOT NULL,
+			max_chunk_bytes INTEGER NOT NULL,
+			max_chunks INTEGER NOT NULL,
+			state INTEGER NOT NULL,
+			leased_upload_id TEXT,
+			packet_hash TEXT,
+			bundle_manifest_hash TEXT,
+			issued_at TEXT NOT NULL,
 			expires_at TEXT NOT NULL,
-			consumed_at TEXT NOT NULL
+			updated_at TEXT NOT NULL,
+			UNIQUE(runtime_instance_id, materializer_account_id, request_id),
+			CHECK(state BETWEEN 1 AND 5),
+			CHECK(max_bundle_bytes > 0 AND max_component_count > 0 AND max_chunk_bytes > 0 AND max_chunks > 0)
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_nonce_replay (
+			runtime_instance_id TEXT NOT NULL,
+			issuer TEXT NOT NULL,
+			nonce_digest TEXT NOT NULL,
+			packet_hash TEXT NOT NULL,
+			challenge_id TEXT NOT NULL UNIQUE,
+			first_seen_at TEXT NOT NULL,
+			expires_at TEXT NOT NULL,
+			PRIMARY KEY(runtime_instance_id, issuer, nonce_digest),
+			FOREIGN KEY(challenge_id) REFERENCES runtime_source_materialization_challenge(challenge_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_upload (
+			upload_id TEXT PRIMARY KEY,
+			challenge_id TEXT NOT NULL UNIQUE,
+			materializer_account_id TEXT NOT NULL,
+			begin_request_id TEXT NOT NULL,
+			begin_control_digest TEXT NOT NULL,
+			packet_hash TEXT NOT NULL,
+			bundle_manifest_hash TEXT NOT NULL,
+			state INTEGER NOT NULL,
+			control_bytes BLOB,
+			commit_request_id TEXT,
+			abort_request_id TEXT,
+			committed_local_agent_ref TEXT,
+			committed_source_context_status BLOB,
+			terminal_reason_code INTEGER NOT NULL DEFAULT 1,
+			created_at TEXT NOT NULL,
+			expires_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			UNIQUE(materializer_account_id, begin_request_id),
+			CHECK(state BETWEEN 1 AND 6),
+			FOREIGN KEY(challenge_id) REFERENCES runtime_source_materialization_challenge(challenge_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_chunk (
+			upload_id TEXT NOT NULL,
+			global_ordinal INTEGER NOT NULL,
+			put_request_id TEXT NOT NULL,
+			component_id TEXT NOT NULL,
+			component_offset INTEGER NOT NULL,
+			chunk_sha256 TEXT NOT NULL,
+			chunk_bytes BLOB NOT NULL,
+			created_at TEXT NOT NULL,
+			PRIMARY KEY(upload_id, global_ordinal),
+			UNIQUE(upload_id, put_request_id),
+			FOREIGN KEY(upload_id) REFERENCES runtime_source_materialization_upload(upload_id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_source_snapshot (
+			local_agent_ref TEXT PRIMARY KEY,
+			snapshot_schema_version INTEGER NOT NULL,
+			snapshot_hash TEXT NOT NULL,
+			captured_at TEXT NOT NULL,
+			packet_id TEXT NOT NULL,
+			packet_hash TEXT NOT NULL,
+			issuer TEXT NOT NULL,
+			key_fingerprint TEXT NOT NULL,
+			source_kind INTEGER NOT NULL,
+			world_id TEXT NOT NULL,
+			source_id TEXT NOT NULL,
+			source_content_hash TEXT NOT NULL,
+			world_content_hash TEXT NOT NULL,
+			coverage_manifest_hash TEXT NOT NULL,
+			materialization_context_hash TEXT NOT NULL,
+			normalization_version TEXT NOT NULL,
+			compiler_compatibility_version TEXT NOT NULL,
+			typed_snapshot_json BLOB NOT NULL,
+			CHECK(snapshot_schema_version = 1),
+			FOREIGN KEY(local_agent_ref) REFERENCES runtime_local_agent(local_agent_ref) DEFERRABLE INITIALLY DEFERRED
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_source_provenance (
+			source_kind INTEGER NOT NULL,
+			world_id TEXT NOT NULL,
+			source_id TEXT NOT NULL,
+			source_content_hash TEXT NOT NULL,
+			materialization_context_hash TEXT NOT NULL,
+			local_agent_ref TEXT NOT NULL UNIQUE,
+			snapshot_hash TEXT NOT NULL,
+			PRIMARY KEY(source_kind, world_id, source_id, source_content_hash, materialization_context_hash, local_agent_ref),
+			FOREIGN KEY(local_agent_ref) REFERENCES runtime_local_agent_source_snapshot(local_agent_ref) ON DELETE CASCADE
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_agent_ai_config (
 			agent_instance_id TEXT PRIMARY KEY,
@@ -468,6 +568,19 @@ func (b *Backend) ensureSchema() error {
 	for _, stmt := range stmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
 			return fmt.Errorf("ensure sqlite schema: %w", err)
+		}
+	}
+	immutableStmts := []string{
+		`CREATE TRIGGER IF NOT EXISTS runtime_local_agent_source_snapshot_no_update
+		BEFORE UPDATE ON runtime_local_agent_source_snapshot
+		BEGIN SELECT RAISE(ABORT, 'source snapshot is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS runtime_local_agent_source_provenance_no_update
+		BEFORE UPDATE ON runtime_local_agent_source_provenance
+		BEGIN SELECT RAISE(ABORT, 'source provenance is immutable'); END`,
+	}
+	for _, stmt := range immutableStmts {
+		if _, err := b.writeDB.Exec(stmt); err != nil {
+			return fmt.Errorf("ensure immutable source snapshot schema: %w", err)
 		}
 	}
 	if _, err := b.writeDB.Exec(`INSERT INTO memory_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {

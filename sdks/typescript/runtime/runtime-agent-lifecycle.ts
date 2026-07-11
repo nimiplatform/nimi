@@ -12,7 +12,6 @@ import {
   type TerminateAgentResponse,
 } from '../core-generated/runtime-typed-client';
 import { asNimiError, createNimiError, ReasonCode } from '../types';
-import type { JsonObject } from '../types';
 import { buildRuntimeAgentRequestContext, isRuntimeLocalAgentRef } from './agent-local-identity';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
@@ -21,7 +20,11 @@ import {
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
-import { fromNimiRuntimeProtoStruct, normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
+import {
+  decodeNimiRuntimeAgentSourceContextStatus,
+  type NimiRuntimeAgentSourceContextStatus,
+} from './runtime-agent-context-projections';
 
 export interface NimiRuntimeAgentLifecycleSurface {
   listLocalAgents(input?: NimiRuntimeAgentListLocalAgentsInput): Promise<NimiRuntimeAgentDiscoveredLocalAgent[]>;
@@ -37,7 +40,6 @@ export interface NimiRuntimeAgentInitializeLocalAgentInput {
   readonly runtimeSourceRef: unknown;
   readonly displayName?: unknown;
   readonly worldId?: unknown;
-  readonly sourceMaterializationPacket?: unknown;
 }
 
 export interface NimiRuntimeAgentEnsureLocalAgentInitializedInput extends NimiRuntimeAgentInitializeLocalAgentInput {
@@ -49,6 +51,7 @@ export interface NimiRuntimeAgentInitializedLocalAgent {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
   readonly agent: AgentRecord;
+  readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
 }
 
 export interface NimiRuntimeAgentSourceRefInput {
@@ -74,6 +77,12 @@ export interface NimiRuntimeAgentDiscoveredLocalAgent {
   readonly sourceWorldName: string | null;
   readonly sourceId: string | null;
   readonly sourceContentHash: string | null;
+  readonly sourceSchemaVersion: string | null;
+  readonly snapshotHash: string | null;
+  readonly worldContentHash: string | null;
+  readonly materializationContextHash: string | null;
+  readonly capturedAt: string | null;
+  readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
   readonly agent: AgentRecord;
 }
 
@@ -123,20 +132,6 @@ function requireLifecycleText(value: unknown, reasonCode: string, actionHint: st
   return normalized;
 }
 
-function normalizeSourceMaterializationPacket(value: unknown): JsonObject | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    lifecycleError(
-      'Runtime Agent lifecycle sourceMaterializationPacket must be an object.',
-      'SDK_RUNTIME_AGENT_SOURCE_PACKET_INVALID',
-      'provide_source_materialization_packet',
-    );
-  }
-  return value as JsonObject;
-}
-
 function buildLifecycleRequest(
   input: NimiRuntimeAgentInitializeLocalAgentInput,
   options: { readonly requireLocalAgentRef: boolean },
@@ -157,7 +152,6 @@ function buildLifecycleRequest(
     runtimeSourceRef,
     displayName: normalizeNimiRuntimeAgentText(input.displayName) || runtimeSourceRef,
     worldId: normalizeNimiRuntimeAgentText(input.worldId),
-    sourceMaterializationPacket: normalizeSourceMaterializationPacket(input.sourceMaterializationPacket),
   };
 }
 
@@ -218,29 +212,53 @@ function normalizeInitializeAgentResponse(
     localAgentRef,
     ownerUserId: normalizeNimiRuntimeAgentText(agent.ownerUserId) || request.ownerUserId,
     runtimeSourceRef: normalizeNimiRuntimeAgentText(agent.runtimeSourceRef) || request.runtimeSourceRef,
+    sourceContextStatus: agent.sourceContextStatus
+      ? decodeNimiRuntimeAgentSourceContextStatus(agent.sourceContextStatus)
+      : null,
     agent,
   };
 }
 
 function readSourceMaterializationProvenance(agent: AgentRecord) {
-  const metadata = fromNimiRuntimeProtoStruct(agent.metadata);
-  const sourceMaterialization = metadata.sourceMaterialization;
-  if (!sourceMaterialization || typeof sourceMaterialization !== 'object' || Array.isArray(sourceMaterialization)) {
+  const status = agent.sourceContextStatus;
+  if (!status) {
     return {
       sourceKind: null,
       sourceWorldId: null,
       sourceWorldName: null,
       sourceId: null,
       sourceContentHash: null,
+      sourceSchemaVersion: null,
+      snapshotHash: null,
+      worldContentHash: null,
+      materializationContextHash: null,
+      capturedAt: null,
+      sourceContextStatus: null,
     };
   }
-  const record = sourceMaterialization as JsonObject;
+  let projection: NimiRuntimeAgentSourceContextStatus;
+  try {
+    projection = decodeNimiRuntimeAgentSourceContextStatus(status);
+  } catch {
+    lifecycleError(
+      'Runtime Agent bounded source context status is invalid.',
+      'SDK_RUNTIME_AGENT_SOURCE_STATUS_INVALID',
+      'check_runtime_agent_source_context_status',
+    );
+  }
+  const sourceRef = projection.sourceRef;
   return {
-    sourceKind: normalizeNimiRuntimeAgentText(record.sourceKind) || null,
-    sourceWorldId: normalizeNimiRuntimeAgentText(record.sourceWorldId) || null,
-    sourceWorldName: normalizeNimiRuntimeAgentText(record.sourceWorldName) || null,
-    sourceId: normalizeNimiRuntimeAgentText(record.sourceId) || null,
-    sourceContentHash: normalizeNimiRuntimeAgentText(record.sourceContentHash) || null,
+    sourceKind: sourceRef?.kind ?? null,
+    sourceWorldId: sourceRef?.worldId ?? null,
+    sourceWorldName: null,
+    sourceId: sourceRef?.sourceId ?? null,
+    sourceContentHash: sourceRef?.sourceContentHash ?? null,
+    sourceSchemaVersion: projection.sourceSchemaVersion,
+    snapshotHash: projection.snapshotHash,
+    worldContentHash: projection.worldContentHash,
+    materializationContextHash: projection.materializationContextHash,
+    capturedAt: projection.capturedAt,
+    sourceContextStatus: projection,
   };
 }
 
@@ -349,9 +367,7 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
         displayName: request.displayName,
         autonomyConfig: undefined,
         worldId: request.worldId,
-        metadata: request.sourceMaterializationPacket
-          ? toNimiRuntimeProtoStruct({ sourceMaterializationPacket: request.sourceMaterializationPacket })
-          : undefined,
+        metadata: undefined,
       }, callOptions));
       return normalizeInitializeAgentResponse(response, request);
     } catch (error) {
@@ -440,6 +456,9 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
             localAgentRef: request.localAgentRef,
             ownerUserId: request.ownerUserId,
             runtimeSourceRef: request.runtimeSourceRef,
+            sourceContextStatus: agent.sourceContextStatus
+              ? decodeNimiRuntimeAgentSourceContextStatus(agent.sourceContextStatus)
+              : null,
             agent,
           };
         }

@@ -133,13 +133,14 @@ func TestAIBackedPublicChatTurnExecutorReturnsWhenScenarioIgnoresContext(t *test
 	}
 }
 
-func TestAIBackedPublicChatTurnExecutorAddsAPMLOutputContract(t *testing.T) {
+func TestAIBackedPublicChatTurnExecutorPreservesRuntimeComposedAPMLOutputContract(t *testing.T) {
 	streamer := &capturePublicChatScenarioStreamer{}
 	executor := NewAIBackedPublicChatTurnExecutor(streamer)
+	composedPrompt := publicChatAPMLOutputContractPrompt(publicChatAvailableActions{ImageGenerate: publicChatImageActionAvailable})
 	err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
 		AppID:         "desktop.app",
 		SubjectUserID: "user-1",
-		SystemPrompt:  "You are Alpha.",
+		SystemPrompt:  composedPrompt,
 		Messages: []*runtimev1.ChatMessage{{
 			Role:    "user",
 			Content: "hello",
@@ -158,8 +159,8 @@ func TestAIBackedPublicChatTurnExecutorAddsAPMLOutputContract(t *testing.T) {
 		t.Fatalf("expected text generate spec")
 	}
 	prompt := strings.TrimSpace(spec.GetSystemPrompt())
-	if !strings.Contains(prompt, "You are Alpha.") {
-		t.Fatalf("expected base prompt to be preserved, got %q", prompt)
+	if prompt != composedPrompt {
+		t.Fatalf("provider adapter mutated the Runtime-composed output contract")
 	}
 	if !strings.Contains(prompt, "Return APML only") || !strings.Contains(prompt, `<message id="message-0">`) {
 		t.Fatalf("expected APML output contract in system prompt, got %q", prompt)
@@ -176,18 +177,16 @@ func TestAIBackedPublicChatTurnExecutorAddsAPMLOutputContract(t *testing.T) {
 	if !strings.Contains(prompt, "agent photo/avatar/selfie request") {
 		t.Fatalf("expected APML agent portrait image rule in system prompt, got %q", prompt)
 	}
-	if strings.Index(prompt, "You are Alpha.") > strings.Index(prompt, "Return APML only") {
-		t.Fatalf("expected APML contract to follow base prompt for recency, got %q", prompt)
-	}
 }
 
-func TestAIBackedPublicChatTurnExecutorDisablesImageAPMLWhenImageActionUnavailable(t *testing.T) {
+func TestPublicChatAPMLOutputContractDisablesUnavailableImageAction(t *testing.T) {
 	streamer := &capturePublicChatScenarioStreamer{}
 	executor := NewAIBackedPublicChatTurnExecutor(streamer)
+	composedPrompt := publicChatAPMLOutputContractPrompt(publicChatAvailableActions{ImageGenerate: publicChatImageActionNotConfigured})
 	err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
 		AppID:         "desktop.app",
 		SubjectUserID: "user-1",
-		SystemPrompt:  "You are Alpha.",
+		SystemPrompt:  composedPrompt,
 		Messages: []*runtimev1.ChatMessage{{
 			Role:    "user",
 			Content: "generate a photo",
@@ -205,6 +204,9 @@ func TestAIBackedPublicChatTurnExecutorDisablesImageAPMLWhenImageActionUnavailab
 		t.Fatalf("expected text generate spec")
 	}
 	prompt := strings.TrimSpace(spec.GetSystemPrompt())
+	if prompt != composedPrompt {
+		t.Fatalf("provider adapter mutated the Runtime-composed unavailable-image contract")
+	}
 	if strings.Contains(prompt, `include exactly one sibling <action kind="image">`) {
 		t.Fatalf("default APML contract must not expose image action routing, got %q", prompt)
 	}

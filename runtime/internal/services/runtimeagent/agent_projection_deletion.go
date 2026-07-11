@@ -3,35 +3,44 @@ package runtimeagent
 import (
 	"database/sql"
 	"fmt"
+	"math"
+	"sort"
 	"strings"
-
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-// deleteAgent forwards to the agent state runtime hard delete. See
-// agentStateRuntime.deleteAgent for the K-AGCORE-141 semantics.
-func (s *Service) deleteAgent(localAgentRef string, txHook runtimeAgentStateTxHook, liveEvents ...*runtimev1.AgentEvent) error {
-	return s.agentStateRuntime().deleteAgent(localAgentRef, txHook, liveEvents...)
+// agentChatSurfaceDeletionRollback is a shallow snapshot of the Runtime-owned
+// chat maps. Hard deletion only removes map entries, so retaining the original
+// pointers is sufficient to restore the exact pre-transaction in-memory state
+// when the shared SQLite commit fails.
+type agentChatSurfaceDeletionRollback struct {
+	version        uint64
+	anchors        map[string]*publicChatAnchorState
+	turns          map[string]*publicChatTurnState
+	followUps      map[string]*publicChatFollowUpState
+	activeByAgent  map[string]string
+	avatarBindings map[string]*avatarLiveInstanceBindingState
 }
 
-// purgeAgentScopedChatSurfaceState cancels every in-flight chat turn and armed
-// follow-up for localAgentRef and removes the agent's ConversationAnchor /
-// turn / follow-up projection from the public chat surface, then persists the
-// surface state.
-//
-// This satisfies the K-AGCORE-141 requirement to cancel in-flight execution
-// before the projection row is removed: a public chat turn owns a cancelable
-// execution context and a follow-up owns an armed timer context, so deletion
-// must not strand them. The anchors/turns/follow-ups themselves are per-agent
-// projection that would otherwise reference a deleted local_agent_ref, so they
-// are removed in the same pass to avoid an orphaned chat projection.
-func (s *Service) purgeAgentScopedChatSurfaceState(localAgentRef string) {
+// prepareAgentScopedChatSurfaceDeletionLocked removes the target Agent's chat
+// projection while the caller holds chatSurfaceMu. It performs no I/O; the
+// returned snapshot is persisted by the Memory-owned outer transaction. The
+// caller invokes the collected cancels before committing so in-flight work
+// cannot race a successfully deleted projection back into storage.
+func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef string) (
+	persistedPublicChatSurfaceState,
+	[]string,
+	[]func(),
+	agentChatSurfaceDeletionRollback,
+	error,
+) {
 	ref := strings.TrimSpace(localAgentRef)
+	rollback := s.captureAgentChatSurfaceDeletionRollbackLocked()
 	if ref == "" {
-		return
+		return persistedPublicChatSurfaceState{}, nil, nil, rollback, fmt.Errorf("agent chat deletion local_agent_ref is required")
 	}
 	cancels := make([]func(), 0)
-	s.chatSurfaceMu.Lock()
+	anchorIDs := make([]string, 0)
+	changed := false
 	for turnID, turn := range s.chatTurns {
 		if turn == nil || strings.TrimSpace(turn.AgentID) != ref {
 			continue
@@ -40,6 +49,7 @@ func (s *Service) purgeAgentScopedChatSurfaceState(localAgentRef string) {
 			cancels = append(cancels, turn.Cancel)
 		}
 		delete(s.chatTurns, turnID)
+		changed = true
 	}
 	for followUpID, followUp := range s.chatFollowUps {
 		if followUp == nil || strings.TrimSpace(followUp.AgentID) != ref {
@@ -49,6 +59,7 @@ func (s *Service) purgeAgentScopedChatSurfaceState(localAgentRef string) {
 			cancels = append(cancels, followUp.Cancel)
 		}
 		delete(s.chatFollowUps, followUpID)
+		changed = true
 	}
 	for anchorID, anchor := range s.chatAnchors {
 		if anchor == nil {
@@ -58,8 +69,13 @@ func (s *Service) purgeAgentScopedChatSurfaceState(localAgentRef string) {
 			continue
 		}
 		delete(s.chatAnchors, anchorID)
+		anchorIDs = append(anchorIDs, anchorID)
+		changed = true
 	}
-	delete(s.chatActiveByAgent, ref)
+	if _, exists := s.chatActiveByAgent[ref]; exists {
+		delete(s.chatActiveByAgent, ref)
+		changed = true
+	}
 	for instanceID, binding := range s.avatarLiveInstanceBindings {
 		if binding == nil {
 			continue
@@ -68,12 +84,58 @@ func (s *Service) purgeAgentScopedChatSurfaceState(localAgentRef string) {
 			continue
 		}
 		delete(s.avatarLiveInstanceBindings, instanceID)
+		changed = true
 	}
-	s.chatSurfaceMu.Unlock()
-	for _, cancel := range cancels {
-		cancel()
+	if changed {
+		if s.chatSurfaceVersion == math.MaxUint64 {
+			s.restoreAgentChatSurfaceDeletionLocked(rollback)
+			return persistedPublicChatSurfaceState{}, nil, nil, rollback, fmt.Errorf("public chat surface version exhausted")
+		}
+		s.chatSurfaceVersion++
 	}
-	s.persistCurrentPublicChatSurfaceState()
+	snapshot, err := s.capturePublicChatSurfaceSnapshotLocked()
+	if err != nil {
+		s.restoreAgentChatSurfaceDeletionLocked(rollback)
+		return persistedPublicChatSurfaceState{}, nil, nil, rollback, err
+	}
+	sort.Strings(anchorIDs)
+	return snapshot, anchorIDs, cancels, rollback, nil
+}
+
+func (s *Service) captureAgentChatSurfaceDeletionRollbackLocked() agentChatSurfaceDeletionRollback {
+	rollback := agentChatSurfaceDeletionRollback{
+		version:        s.chatSurfaceVersion,
+		anchors:        make(map[string]*publicChatAnchorState, len(s.chatAnchors)),
+		turns:          make(map[string]*publicChatTurnState, len(s.chatTurns)),
+		followUps:      make(map[string]*publicChatFollowUpState, len(s.chatFollowUps)),
+		activeByAgent:  make(map[string]string, len(s.chatActiveByAgent)),
+		avatarBindings: make(map[string]*avatarLiveInstanceBindingState, len(s.avatarLiveInstanceBindings)),
+	}
+	for key, value := range s.chatAnchors {
+		rollback.anchors[key] = value
+	}
+	for key, value := range s.chatTurns {
+		rollback.turns[key] = value
+	}
+	for key, value := range s.chatFollowUps {
+		rollback.followUps[key] = value
+	}
+	for key, value := range s.chatActiveByAgent {
+		rollback.activeByAgent[key] = value
+	}
+	for key, value := range s.avatarLiveInstanceBindings {
+		rollback.avatarBindings[key] = value
+	}
+	return rollback
+}
+
+func (s *Service) restoreAgentChatSurfaceDeletionLocked(rollback agentChatSurfaceDeletionRollback) {
+	s.chatSurfaceVersion = rollback.version
+	s.chatAnchors = rollback.anchors
+	s.chatTurns = rollback.turns
+	s.chatFollowUps = rollback.followUps
+	s.chatActiveByAgent = rollback.activeByAgent
+	s.avatarLiveInstanceBindings = rollback.avatarBindings
 }
 
 // agentProjectionPurgeHook physically deletes the runtime-agent-side

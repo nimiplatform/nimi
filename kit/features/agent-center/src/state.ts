@@ -1,4 +1,5 @@
 import { AGENT_CENTER_CAPABILITY_LABELS, AGENT_CENTER_SECTIONS } from './sections.js';
+import { projectAgentCenterSourceContext } from './source-context-projection.js';
 import type {
   AgentCenterAppearanceProjection,
   AgentCenterCapabilityId,
@@ -6,6 +7,7 @@ import type {
   AgentCenterState,
   AgentCenterStateInput,
   AgentCenterStatusTone,
+  AgentCenterSourceContextStatus,
 } from './types.js';
 
 const CAPABILITIES: readonly AgentCenterCapabilityId[] = [
@@ -37,9 +39,7 @@ function readinessSummary(state: AgentCenterCapabilityState): string {
       : `${state.label} optional route not configured`;
   }
   if (state.readinessState === 'unavailable') {
-    return state.reasonCode === 'unknown'
-      ? `${state.label} unavailable`
-      : `${state.label} unavailable: ${state.reasonCode}`;
+    return `${state.label} unavailable`;
   }
   return `${state.label} readiness unknown`;
 }
@@ -56,7 +56,6 @@ function buildCapabilityState(
     label: AGENT_CENTER_CAPABILITY_LABELS[capability],
     required,
     readinessState: readiness?.state || 'unknown',
-    reasonCode: readiness?.reasonCode || (readiness ? '' : 'unknown'),
     probedAt: readiness?.probedAt || null,
     binding,
     blocksTextTurns: required && readiness?.state !== 'ready',
@@ -69,11 +68,22 @@ function buildCapabilityState(
   };
 }
 
-function statusTone(input: AgentCenterStateInput, baseTextReady: boolean): AgentCenterStatusTone {
+function statusTone(
+  input: AgentCenterStateInput,
+  baseTextReady: boolean,
+  sourceContextStatus: AgentCenterSourceContextStatus,
+): AgentCenterStatusTone {
   if (input.runtimeError) {
     return 'failed';
   }
-  if (!input.readiness && !input.agentAIConfig && !input.inspect) {
+  if (sourceContextStatus === 'failed') {
+    return 'failed';
+  }
+  if (sourceContextStatus === 'blocked') {
+    return 'attention';
+  }
+  if (!input.readiness && !input.agentAIConfig && !input.inspect
+    && !input.sourceContextStatus && !input.turnContextSummary) {
     return 'disabled';
   }
   if (!baseTextReady) {
@@ -86,7 +96,8 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   const capabilities = CAPABILITIES.map((capability) => buildCapabilityState(input, capability));
   const text = capabilities.find((capability) => capability.capability === 'text.generate');
   const baseTextReady = text?.readinessState === 'ready';
-  const tone = statusTone(input, baseTextReady);
+  const sourceContext = projectAgentCenterSourceContext(input);
+  const tone = statusTone(input, baseTextReady, sourceContext.status);
   const inspect = input.inspect || null;
   const memory = input.memory || null;
   const autonomyMutationAvailable = input.autonomyMutationAvailable === true;
@@ -97,7 +108,8 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   return {
     runtimeStatus: input.runtimeError
       ? 'failed'
-      : (!input.readiness && !input.agentAIConfig && !inspect ? 'disabled' : 'ready'),
+      : (!input.readiness && !input.agentAIConfig && !inspect
+          && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
     statusTone: tone,
     baseTextReady,
     baseTextDisabledReason: baseTextReady ? null : (text?.summary || 'Text readiness unavailable'),
@@ -143,10 +155,11 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     diagnostics: {
       source: input.runtimeError ? 'unavailable' : 'runtime-projection',
       configRevision: input.readiness?.configRevision ?? input.agentAIConfig?.revision ?? null,
-      runtimeTurnId: null,
+      runtimeTurnId: sourceContext.context?.turnId || null,
       runtimeStreamId: null,
       runtimeError: input.runtimeError || null,
     },
+    sourceContext,
     sections: AGENT_CENTER_SECTIONS,
   };
 }

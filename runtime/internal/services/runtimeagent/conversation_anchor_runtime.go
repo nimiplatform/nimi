@@ -63,7 +63,6 @@ func (s *Service) OpenConversationAnchor(_ context.Context, req *runtimev1.OpenC
 		LocalAgentRef:        localAgentRef,
 		CallerAppID:          callerAppID,
 		SubjectUserID:        subjectUserID,
-		SystemPrompt:         publicChatAnchorSystemPromptFromMetadata(metadata),
 		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
 		CreatedAt:            now,
 		UpdatedAt:            now,
@@ -159,8 +158,7 @@ func (s *Service) ListAgentConversationSummaries(_ context.Context, req *runtime
 	if requestedAgentID := strings.TrimSpace(req.GetAgentId()); requestedAgentID != "" && requestedAgentID != localAgentRef {
 		return nil, status.Error(codes.FailedPrecondition, "agent_id local_agent_ref mismatch")
 	}
-	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
-	if callerAppID == "" {
+	if strings.TrimSpace(req.GetContext().GetAppId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
 
@@ -199,15 +197,18 @@ func (s *Service) ListAgentConversationSummaries(_ context.Context, req *runtime
 		if len(statusFilter) > 0 && !statusFilter[statusValue] {
 			continue
 		}
-		if anchor.CallerAppID != callerAppID ||
-			anchor.LocalAgentRef != identity.LocalAgentRef ||
+		if anchor.LocalAgentRef != identity.LocalAgentRef ||
 			anchor.AgentID != localAgentRef ||
 			anchor.OwnerUserID != identity.OwnerUserID ||
 			anchor.RuntimeSourceRef != identity.RuntimeSourceRef {
 			continue
 		}
+		if err := validatePublicChatCommittedTranscript(anchor.CommittedTranscript); err != nil {
+			s.chatSurfaceMu.Unlock()
+			return nil, status.Error(codes.DataLoss, err.Error())
+		}
 		cloned := *anchor
-		cloned.Transcript = append([]*runtimev1.ChatMessage(nil), anchor.Transcript...)
+		cloned.CommittedTranscript = clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
 		cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
 		cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(anchor.LastTurnSnapshot)
 		cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
@@ -285,28 +286,41 @@ func (s *Service) buildConversationAnchorSnapshotLocked(anchor *publicChatAnchor
 	if metadata != nil {
 		record.Metadata = cloneConversationAnchorMetadata(metadata)
 	}
-	return &runtimev1.ConversationAnchorSnapshot{
+	snapshot := &runtimev1.ConversationAnchorSnapshot{
 		Anchor:         record,
 		ActiveTurnId:   activeTurnID,
 		ActiveStreamId: activeStreamID,
 	}
+	if entry, err := s.agentByID(anchor.LocalAgentRef); err == nil && entry != nil && entry.Agent.GetSourceContextStatus() != nil {
+		snapshot.SourceContextStatus = proto.Clone(entry.Agent.GetSourceContextStatus()).(*runtimev1.LocalAgentSourceContextStatus)
+	}
+	if anchor.LastTurnSnapshot != nil {
+		snapshot.TurnContextSummary = cloneAgentTurnContextSummary(anchor.LastTurnSnapshot.ContextSummary)
+	}
+	return snapshot
 }
 
 func (s *Service) agentConversationSummary(anchor *publicChatAnchorState, metadata *structpb.Struct) *runtimev1.AgentConversationSummary {
 	if anchor == nil {
 		return nil
 	}
+	transcript, err := publicChatTranscriptProjection(anchor.CommittedTranscript)
+	if err != nil {
+		return nil
+	}
 	snapshot := s.buildConversationAnchorSnapshotLocked(anchor, metadata)
 	summary := &runtimev1.AgentConversationSummary{
 		Anchor:                 snapshot.GetAnchor(),
-		Title:                  deriveAgentConversationSummaryTitle(metadata, anchor.Transcript),
+		Title:                  deriveAgentConversationSummaryTitle(metadata, transcript),
 		LastMessageId:          strings.TrimSpace(anchor.LastMessageID),
-		TranscriptMessageCount: int32(len(anchor.Transcript)),
+		TranscriptMessageCount: int32(len(transcript)),
+		SourceContextStatus:    snapshot.GetSourceContextStatus(),
+		LastTurnContextSummary: snapshot.GetTurnContextSummary(),
 	}
 	if updatedAt := conversationSummaryUpdatedAt(anchor); !updatedAt.IsZero() {
 		summary.UpdatedAt = timestamppb.New(updatedAt)
 	}
-	if last := lastAgentConversationMessage(anchor.Transcript); last != nil {
+	if last := lastAgentConversationMessage(transcript); last != nil {
 		summary.LastMessageRole = strings.TrimSpace(last.GetRole())
 		summary.LastMessageText = compactAgentConversationSummaryText(last.GetContent(), 280)
 	}

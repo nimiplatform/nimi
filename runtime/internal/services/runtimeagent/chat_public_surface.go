@@ -57,10 +57,15 @@ const publicChatTurnTrackLabel = "chat"
 
 type publicChatAppMessageEmitter func(context.Context, *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error)
 type publicChatExecutionBinding struct {
-	ModelID     string
-	RoutePolicy runtimev1.RoutePolicy
-	ConnectorID string
-	TargetRef   *runtimev1.RuntimeDurableTargetRef
+	ModelID             string
+	RoutePolicy         runtimev1.RoutePolicy
+	ConnectorID         string
+	TargetRef           *runtimev1.RuntimeDurableTargetRef
+	ContextWindowTokens uint64
+	CatalogRevision     string
+	ModelRevision       string
+	ProviderID          string
+	RouteDigest         string
 }
 type publicChatExecutionBindings map[string]publicChatExecutionBinding
 type publicChatReasoningConfig struct {
@@ -83,6 +88,18 @@ const (
 
 type publicChatAvailableActions struct {
 	ImageGenerate publicChatImageActionAvailability
+}
+
+// publicChatCommittedTranscriptTurn is the single Runtime-owned conversation
+// history record for a ConversationAnchor. User turns and Runtime-admitted
+// follow-up turns share this one ordered transcript; app-facing ChatMessage
+// history is derived from user-origin records and is never stored separately.
+type publicChatCommittedTranscriptTurn struct {
+	TurnID        string `json:"turnId"`
+	Sequence      uint64 `json:"sequence"`
+	Origin        string `json:"origin"`
+	InputText     string `json:"inputText"`
+	AssistantText string `json:"assistantText"`
 }
 
 type avatarLiveInstanceBindingState struct {
@@ -119,12 +136,10 @@ type publicChatAnchorState struct {
 	// per-turn admission truth projected on the session snapshot; the anchor
 	// does not own binding truth.
 	ConfigRevision         uint64
-	ExecutionParams        map[string]map[string]any
 	ActiveTurnID           string
-	SystemPrompt           string
 	MaxTokens              int32
 	Reasoning              *publicChatReasoningConfig
-	Transcript             []*runtimev1.ChatMessage
+	CommittedTranscript    []publicChatCommittedTranscriptTurn
 	ActiveTurnSnapshot     *publicChatTurnProjectionState
 	LastTurnSnapshot       *publicChatTurnProjectionState
 	CompletedTurnSnapshots map[string]*publicChatTurnProjectionState

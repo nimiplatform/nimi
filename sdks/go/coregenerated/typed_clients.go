@@ -92,6 +92,15 @@ const (
 	ACCOUNTREASONCODEBINDINGREPLAY AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_REPLAY"
 	ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE AccountReasonCode = "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"
 	ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE AccountReasonCode = "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE"
+	ACCOUNTREASONCODEBROKEROPERATIONNOTADMITTED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED"
+	ACCOUNTREASONCODEBROKERCAPABILITYMISSING AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING"
+	ACCOUNTREASONCODEBROKERREALMBASEDENIED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED"
+	ACCOUNTREASONCODEBROKERREQUESTINVALID AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID"
+	ACCOUNTREASONCODEBROKERUPSTREAMFAILED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED"
+	ACCOUNTREASONCODEBROKERRESPONSETOOLARGE AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE"
+	ACCOUNTREASONCODEBROKERCREDENTIALRESPONSEFORBIDDEN AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN"
+	ACCOUNTREASONCODECALLERENVELOPEMISMATCH AccountReasonCode = "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH"
+	ACCOUNTREASONCODELAUNCHNONCEREPLAY AccountReasonCode = "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY"
 )
 
 type AccountSessionState string
@@ -139,6 +148,19 @@ const (
 	AGENTCANONICALMEMORYREVIEWREADINESSBANKUNAVAILABLE AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"
 )
 
+type AgentContextProjectionReasonCode string
+
+const (
+	AGENTCONTEXTPROJECTIONREASONCODEUNSPECIFIED AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED"
+	AGENTCONTEXTPROJECTIONREASONCODENONE AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE"
+	AGENTCONTEXTPROJECTIONREASONCODESOURCENOTMATERIALIZED AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED"
+	AGENTCONTEXTPROJECTIONREASONCODESOURCEVALIDATIONPENDING AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING"
+	AGENTCONTEXTPROJECTIONREASONCODESOURCESNAPSHOTINVALID AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID"
+	AGENTCONTEXTPROJECTIONREASONCODECONTEXTNOTCOMPOSED AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED"
+	AGENTCONTEXTPROJECTIONREASONCODECONTEXTCAPACITYEXCEEDED AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED"
+	AGENTCONTEXTPROJECTIONREASONCODECONTEXTMANIFESTINVALID AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"
+)
+
 type AgentEventType string
 
 const (
@@ -155,6 +177,63 @@ type AgentLifecycleStatus string
 
 const (
 	AGENTLIFECYCLESTATUSUNSPECIFIED AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_UNSPECIFIED"
+)
+
+type AgentLocalSourceContextSchemaVersion string
+
+const (
+	AGENTLOCALSOURCECONTEXTSCHEMAVERSIONUNSPECIFIED AgentLocalSourceContextSchemaVersion = "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED"
+	AGENTLOCALSOURCECONTEXTSCHEMAVERSIONV1 AgentLocalSourceContextSchemaVersion = "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1"
+)
+
+type AgentLocalSourceContextState string
+
+const (
+	AGENTLOCALSOURCECONTEXTSTATEUNSPECIFIED AgentLocalSourceContextState = "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED"
+	AGENTLOCALSOURCECONTEXTSTATENOTMATERIALIZED AgentLocalSourceContextState = "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED"
+	AGENTLOCALSOURCECONTEXTSTATEVALIDATING AgentLocalSourceContextState = "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING"
+	AGENTLOCALSOURCECONTEXTSTATEREADY AgentLocalSourceContextState = "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY"
+	AGENTLOCALSOURCECONTEXTSTATEINVALID AgentLocalSourceContextState = "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID"
+	AGENTLOCALSOURCECONTEXTSTATEDELETED AgentLocalSourceContextState = "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED"
+)
+
+type AgentLocalSourceCoverageSection string
+
+const (
+	AGENTLOCALSOURCECOVERAGESECTIONUNSPECIFIED AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED"
+	AGENTLOCALSOURCECOVERAGESECTIONIDENTITY AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY"
+	AGENTLOCALSOURCECOVERAGESECTIONPRESENTATION AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION"
+	AGENTLOCALSOURCECOVERAGESECTIONPLACEMENT AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT"
+	AGENTLOCALSOURCECOVERAGESECTIONBIOGRAPHY AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY"
+	AGENTLOCALSOURCECOVERAGESECTIONPSYCHOLOGY AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY"
+	AGENTLOCALSOURCECOVERAGESECTIONKNOWLEDGE AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE"
+	AGENTLOCALSOURCECOVERAGESECTIONRELATIONSHIPS AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS"
+	AGENTLOCALSOURCECOVERAGESECTIONCAPABILITIES AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES"
+	AGENTLOCALSOURCECOVERAGESECTIONINTERACTIONPROFILE AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE"
+	AGENTLOCALSOURCECOVERAGESECTIONASSETS AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS"
+	AGENTLOCALSOURCECOVERAGESECTIONAUTHORING AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING"
+	AGENTLOCALSOURCECOVERAGESECTIONPERSONASTYLE AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE"
+	AGENTLOCALSOURCECOVERAGESECTIONCONTENTPROFILE AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE"
+	AGENTLOCALSOURCECOVERAGESECTIONWORLDCORE AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE"
+	AGENTLOCALSOURCECOVERAGESECTIONBOUNDENTITY AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY"
+	AGENTLOCALSOURCECOVERAGESECTIONDEPENDENCYCLOSURE AgentLocalSourceCoverageSection = "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"
+)
+
+type AgentLocalSourceCoverageState string
+
+const (
+	AGENTLOCALSOURCECOVERAGESTATEUNSPECIFIED AgentLocalSourceCoverageState = "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED"
+	AGENTLOCALSOURCECOVERAGESTATECOMPLETE AgentLocalSourceCoverageState = "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE"
+	AGENTLOCALSOURCECOVERAGESTATENOTAPPLICABLE AgentLocalSourceCoverageState = "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE"
+	AGENTLOCALSOURCECOVERAGESTATEOPTIONALOMITTED AgentLocalSourceCoverageState = "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED"
+	AGENTLOCALSOURCECOVERAGESTATEINVALID AgentLocalSourceCoverageState = "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID"
+)
+
+type AgentLocalSourceSnapshotSchemaVersion string
+
+const (
+	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONUNSPECIFIED AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED"
+	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV1 AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1"
 )
 
 type AgentPresentationBackendKind string
@@ -222,6 +301,120 @@ const (
 	AGENTPROACTIVETRIGGERSOURCEUNSPECIFIED AgentProactiveTriggerSource = "AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED"
 )
 
+type AgentSourceMaterializationBundleManifestSchemaVersion string
+
+const (
+	AGENTSOURCEMATERIALIZATIONBUNDLEMANIFESTSCHEMAVERSIONUNSPECIFIED AgentSourceMaterializationBundleManifestSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONBUNDLEMANIFESTSCHEMAVERSIONV1 AgentSourceMaterializationBundleManifestSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1"
+)
+
+type AgentSourceMaterializationChallengeState string
+
+const (
+	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEUNSPECIFIED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEISSUED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED"
+	AGENTSOURCEMATERIALIZATIONCHALLENGESTATELEASED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED"
+	AGENTSOURCEMATERIALIZATIONCHALLENGESTATECONSUMED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED"
+	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEINVALIDATED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED"
+	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEEXPIRED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED"
+)
+
+type AgentSourceMaterializationComponentKind string
+
+const (
+	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDUNSPECIFIED AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDCHARACTER AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER"
+	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDREALMPERSONA AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA"
+	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDCORE AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE"
+	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDENTITY AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY"
+	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDRELATIONSHIP AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP"
+	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDCOVERAGEMANIFEST AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST"
+)
+
+type AgentSourceMaterializationKeyUse string
+
+const (
+	AGENTSOURCEMATERIALIZATIONKEYUSEUNSPECIFIED AgentSourceMaterializationKeyUse = "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONKEYUSESIG AgentSourceMaterializationKeyUse = "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG"
+)
+
+type AgentSourceMaterializationPacketSchemaVersion string
+
+const (
+	AGENTSOURCEMATERIALIZATIONPACKETSCHEMAVERSIONUNSPECIFIED AgentSourceMaterializationPacketSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONPACKETSCHEMAVERSIONV2 AgentSourceMaterializationPacketSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2"
+)
+
+type AgentSourceMaterializationPayloadAssemblyVersion string
+
+const (
+	AGENTSOURCEMATERIALIZATIONPAYLOADASSEMBLYVERSIONUNSPECIFIED AgentSourceMaterializationPayloadAssemblyVersion = "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONPAYLOADASSEMBLYVERSIONV1 AgentSourceMaterializationPayloadAssemblyVersion = "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1"
+)
+
+type AgentSourceMaterializationProofAlgorithm string
+
+const (
+	AGENTSOURCEMATERIALIZATIONPROOFALGORITHMUNSPECIFIED AgentSourceMaterializationProofAlgorithm = "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONPROOFALGORITHMRS256 AgentSourceMaterializationProofAlgorithm = "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256"
+)
+
+type AgentSourceMaterializationReasonCode string
+
+const (
+	AGENTSOURCEMATERIALIZATIONREASONCODEUNSPECIFIED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONREASONCODENONE AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE"
+	AGENTSOURCEMATERIALIZATIONREASONCODEINVALIDREQUEST AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
+	AGENTSOURCEMATERIALIZATIONREASONCODEACCOUNTBINDINGMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH"
+	AGENTSOURCEMATERIALIZATIONREASONCODESOURCEBINDINGMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGENOTFOUND AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEEXPIRED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGECONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEALREADYLEASED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEALREADYCONSUMED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED"
+	AGENTSOURCEMATERIALIZATIONREASONCODEAUDIENCEMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH"
+	AGENTSOURCEMATERIALIZATIONREASONCODEBUNDLECAPACITYEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED"
+	AGENTSOURCEMATERIALIZATIONREASONCODECOMPONENTCAPACITYEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCAPACITYEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCOUNTEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED"
+	AGENTSOURCEMATERIALIZATIONREASONCODEMANIFESTINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID"
+	AGENTSOURCEMATERIALIZATIONREASONCODEPACKETINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
+	AGENTSOURCEMATERIALIZATIONREASONCODEPROOFINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
+	AGENTSOURCEMATERIALIZATIONREASONCODEUPLOADNOTFOUND AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND"
+	AGENTSOURCEMATERIALIZATIONREASONCODEUPLOADSTATECONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT"
+	AGENTSOURCEMATERIALIZATIONREASONCODEREQUESTIDCONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKDESCRIPTORINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKDIGESTMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH"
+	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT"
+	AGENTSOURCEMATERIALIZATIONREASONCODECOMMITINPROGRESS AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS"
+	AGENTSOURCEMATERIALIZATIONREASONCODEALREADYCOMMITTED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED"
+	AGENTSOURCEMATERIALIZATIONREASONCODECOMMITCONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT"
+	AGENTSOURCEMATERIALIZATIONREASONCODEADMISSIONFAILED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED"
+	AGENTSOURCEMATERIALIZATIONREASONCODEABORTED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED"
+	AGENTSOURCEMATERIALIZATIONREASONCODEEXPIRED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED"
+	AGENTSOURCEMATERIALIZATIONREASONCODEPERSISTENCEFAILED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
+)
+
+type AgentSourceMaterializationSourceKind string
+
+const (
+	AGENTSOURCEMATERIALIZATIONSOURCEKINDUNSPECIFIED AgentSourceMaterializationSourceKind = "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONSOURCEKINDWORLDCHARACTER AgentSourceMaterializationSourceKind = "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER"
+	AGENTSOURCEMATERIALIZATIONSOURCEKINDREALMPERSONA AgentSourceMaterializationSourceKind = "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA"
+)
+
+type AgentSourceMaterializationUploadState string
+
+const (
+	AGENTSOURCEMATERIALIZATIONUPLOADSTATEUNSPECIFIED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED"
+	AGENTSOURCEMATERIALIZATIONUPLOADSTATEOPEN AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN"
+	AGENTSOURCEMATERIALIZATIONUPLOADSTATECOMMITTING AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING"
+	AGENTSOURCEMATERIALIZATIONUPLOADSTATECOMMITTED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED"
+	AGENTSOURCEMATERIALIZATIONUPLOADSTATEFAILED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED"
+	AGENTSOURCEMATERIALIZATIONUPLOADSTATEABORTED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED"
+	AGENTSOURCEMATERIALIZATIONUPLOADSTATEEXPIRED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED"
+)
+
 type AgentStateEventFamily string
 
 const (
@@ -232,6 +425,75 @@ type AgentTrackType string
 
 const (
 	AGENTTRACKTYPEUNSPECIFIED AgentTrackType = "AGENT_TRACK_TYPE_UNSPECIFIED"
+)
+
+type AgentTurnContextCompilerSchemaVersion string
+
+const (
+	AGENTTURNCONTEXTCOMPILERSCHEMAVERSIONUNSPECIFIED AgentTurnContextCompilerSchemaVersion = "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED"
+	AGENTTURNCONTEXTCOMPILERSCHEMAVERSIONV1 AgentTurnContextCompilerSchemaVersion = "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1"
+)
+
+type AgentTurnContextLaneId string
+
+const (
+	AGENTTURNCONTEXTLANEIDUNSPECIFIED AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED"
+	AGENTTURNCONTEXTLANEIDRUNTIMEPOLICY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY"
+	AGENTTURNCONTEXTLANEIDOUTPUTCONTRACT AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT"
+	AGENTTURNCONTEXTLANEIDSOURCEIDENTITY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY"
+	AGENTTURNCONTEXTLANEIDSOURCEBEHAVIOR AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR"
+	AGENTTURNCONTEXTLANEIDWORLDCONTEXT AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT"
+	AGENTTURNCONTEXTLANEIDRELATIONSHIPCONTEXT AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT"
+	AGENTTURNCONTEXTLANEIDSOURCEKNOWLEDGE AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE"
+	AGENTTURNCONTEXTLANEIDCANONICALMEMORY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY"
+	AGENTTURNCONTEXTLANEIDCONVERSATIONHISTORY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY"
+	AGENTTURNCONTEXTLANEIDCAPABILITYCONTEXT AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT"
+	AGENTTURNCONTEXTLANEIDCURRENTUSERTURN AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN"
+)
+
+type AgentTurnContextLaneState string
+
+const (
+	AGENTTURNCONTEXTLANESTATEUNSPECIFIED AgentTurnContextLaneState = "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED"
+	AGENTTURNCONTEXTLANESTATEINCLUDED AgentTurnContextLaneState = "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED"
+	AGENTTURNCONTEXTLANESTATEEMPTY AgentTurnContextLaneState = "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY"
+	AGENTTURNCONTEXTLANESTATEOMITTED AgentTurnContextLaneState = "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED"
+	AGENTTURNCONTEXTLANESTATETRUNCATED AgentTurnContextLaneState = "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED"
+	AGENTTURNCONTEXTLANESTATEINVALID AgentTurnContextLaneState = "AGENT_TURN_CONTEXT_LANE_STATE_INVALID"
+)
+
+type AgentTurnContextManifestSchemaVersion string
+
+const (
+	AGENTTURNCONTEXTMANIFESTSCHEMAVERSIONUNSPECIFIED AgentTurnContextManifestSchemaVersion = "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED"
+	AGENTTURNCONTEXTMANIFESTSCHEMAVERSIONV1 AgentTurnContextManifestSchemaVersion = "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1"
+)
+
+type AgentTurnContextState string
+
+const (
+	AGENTTURNCONTEXTSTATEUNSPECIFIED AgentTurnContextState = "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED"
+	AGENTTURNCONTEXTSTATENOTCOMPOSED AgentTurnContextState = "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED"
+	AGENTTURNCONTEXTSTATEREADY AgentTurnContextState = "AGENT_TURN_CONTEXT_STATE_READY"
+	AGENTTURNCONTEXTSTATECONTEXTCAPACITYEXCEEDED AgentTurnContextState = "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED"
+	AGENTTURNCONTEXTSTATEINVALID AgentTurnContextState = "AGENT_TURN_CONTEXT_STATE_INVALID"
+)
+
+type AgentTurnContextSummarySchemaVersion string
+
+const (
+	AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONUNSPECIFIED AgentTurnContextSummarySchemaVersion = "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED"
+	AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONV1 AgentTurnContextSummarySchemaVersion = "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1"
+)
+
+type AgentTurnContextTruncationReason string
+
+const (
+	AGENTTURNCONTEXTTRUNCATIONREASONUNSPECIFIED AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED"
+	AGENTTURNCONTEXTTRUNCATIONREASONNONE AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE"
+	AGENTTURNCONTEXTTRUNCATIONREASONINPUTBUDGETEXHAUSTED AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED"
+	AGENTTURNCONTEXTTRUNCATIONREASONOPTIONALCONTENTOMITTED AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED"
+	AGENTTURNCONTEXTTRUNCATIONREASONCONTEXTCAPACITYEXCEEDED AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
 )
 
 type AppHealthRepairAction string
@@ -1838,6 +2100,22 @@ type AIProviderSubHealth struct {
 	LastCheckedAt string `json:"last_checked_at,omitempty"`
 }
 
+type AbortSourceMaterializationUploadRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AbortRequestId string `json:"abort_request_id,omitempty"`
+	UploadId string `json:"upload_id,omitempty"`
+	PacketHash string `json:"packet_hash,omitempty"`
+	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
+}
+
+type AbortSourceMaterializationUploadResponse struct {
+	UploadId string `json:"upload_id,omitempty"`
+	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
+	ChallengeState AgentSourceMaterializationChallengeState `json:"challenge_state,omitempty"`
+	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
+	IdempotentReplay bool `json:"idempotent_replay,omitempty"`
+}
+
 type AccountAppInventoryRecord struct {
 	SchemaVersion uint32 `json:"schema_version,omitempty"`
 	AccountId string `json:"account_id,omitempty"`
@@ -1986,6 +2264,8 @@ type AgentConversationSummary struct {
 	LastMessageId string `json:"last_message_id,omitempty"`
 	TranscriptMessageCount int32 `json:"transcript_message_count,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
+	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
+	LastTurnContextSummary *AgentTurnContextSummary `json:"last_turn_context_summary,omitempty"`
 }
 
 type AgentCoreBankOwner struct {
@@ -2156,6 +2436,7 @@ type AgentRecord struct {
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
+	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
 }
 
 type AgentReplicationEventDetail struct {
@@ -2242,6 +2523,59 @@ type AgentStateSetStatusText struct {
 
 type AgentStateSetWorldContext struct {
 	WorldId string `json:"world_id,omitempty"`
+}
+
+type AgentTurnContextBudgetSummary struct {
+	ContextWindowTokens uint64 `json:"context_window_tokens,omitempty"`
+	ReservedOutputTokens uint64 `json:"reserved_output_tokens,omitempty"`
+	ReservedSafetyTokens uint64 `json:"reserved_safety_tokens,omitempty"`
+	ReservedAdapterTokens uint64 `json:"reserved_adapter_tokens,omitempty"`
+	InputBudgetTokens uint64 `json:"input_budget_tokens,omitempty"`
+	UsedTokens uint64 `json:"used_tokens,omitempty"`
+}
+
+type AgentTurnContextLaneSummary struct {
+	LaneId AgentTurnContextLaneId `json:"lane_id,omitempty"`
+	State AgentTurnContextLaneState `json:"state,omitempty"`
+	IncludedItemCount uint32 `json:"included_item_count,omitempty"`
+	OmittedItemCount uint32 `json:"omitted_item_count,omitempty"`
+	TruncatedItemCount uint32 `json:"truncated_item_count,omitempty"`
+	AllocatedTokens uint64 `json:"allocated_tokens,omitempty"`
+	UsedTokens uint64 `json:"used_tokens,omitempty"`
+}
+
+type AgentTurnContextSummary struct {
+	SchemaVersion AgentTurnContextSummarySchemaVersion `json:"schema_version,omitempty"`
+	Ready bool `json:"ready,omitempty"`
+	State AgentTurnContextState `json:"state,omitempty"`
+	ReasonCode AgentContextProjectionReasonCode `json:"reason_code,omitempty"`
+	ManifestSchemaVersion AgentTurnContextManifestSchemaVersion `json:"manifest_schema_version,omitempty"`
+	CompilerSchemaVersion AgentTurnContextCompilerSchemaVersion `json:"compiler_schema_version,omitempty"`
+	ManifestInstanceHash string `json:"manifest_instance_hash,omitempty"`
+	ContextContentHash string `json:"context_content_hash,omitempty"`
+	PromptHash string `json:"prompt_hash,omitempty"`
+	SourceSnapshotHash string `json:"source_snapshot_hash,omitempty"`
+	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
+	WorldContentHash string `json:"world_content_hash,omitempty"`
+	MaterializationContextHash string `json:"materialization_context_hash,omitempty"`
+	Lanes []AgentTurnContextLaneSummary `json:"lanes,omitempty"`
+	Budget *AgentTurnContextBudgetSummary `json:"budget,omitempty"`
+	Truncation []AgentTurnContextTruncationSummary `json:"truncation,omitempty"`
+	TranscriptTurnCount uint32 `json:"transcript_turn_count,omitempty"`
+	MemoryItemCount uint32 `json:"memory_item_count,omitempty"`
+	MediaCount uint32 `json:"media_count,omitempty"`
+	ToolCount uint32 `json:"tool_count,omitempty"`
+	RouteDigest string `json:"route_digest,omitempty"`
+	CatalogRevisionDigest string `json:"catalog_revision_digest,omitempty"`
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	TurnId string `json:"turn_id,omitempty"`
+}
+
+type AgentTurnContextTruncationSummary struct {
+	Reason AgentTurnContextTruncationReason `json:"reason,omitempty"`
+	OmittedItemCount uint32 `json:"omitted_item_count,omitempty"`
+	TruncatedItemCount uint32 `json:"truncated_item_count,omitempty"`
 }
 
 type AgentVoiceStreamEvent struct {
@@ -2691,10 +3025,38 @@ type BeginLoginResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
+type BeginSourceMaterializationUploadRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	BeginRequestId string `json:"begin_request_id,omitempty"`
+	Control *SourceMaterializationBeginControl `json:"control,omitempty"`
+}
+
+type BeginSourceMaterializationUploadResponse struct {
+	UploadId string `json:"upload_id,omitempty"`
+	PacketHash string `json:"packet_hash,omitempty"`
+	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
+	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
+	ChallengeState AgentSourceMaterializationChallengeState `json:"challenge_state,omitempty"`
+	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+}
+
 type BranchNodeConfig struct {
 	Condition string `json:"condition,omitempty"`
 	TrueTarget string `json:"true_target,omitempty"`
 	FalseTarget string `json:"false_target,omitempty"`
+}
+
+type BundleTransportManifestV1 struct {
+	ManifestSchemaVersion AgentSourceMaterializationBundleManifestSchemaVersion `json:"manifest_schema_version,omitempty"`
+	PayloadAssemblyVersion AgentSourceMaterializationPayloadAssemblyVersion `json:"payload_assembly_version,omitempty"`
+	PacketId string `json:"packet_id,omitempty"`
+	ChallengeDigest string `json:"challenge_digest,omitempty"`
+	TotalCanonicalBytes uint64 `json:"total_canonical_bytes,omitempty"`
+	ComponentCount uint32 `json:"component_count,omitempty"`
+	ChunkCount uint32 `json:"chunk_count,omitempty"`
+	Components []SourceMaterializationBundleComponentDescriptorV1 `json:"components,omitempty"`
+	Chunks []SourceMaterializationBundleChunkDescriptorV1 `json:"chunks,omitempty"`
 }
 
 type CancelCompanionParticipationRequest struct {
@@ -2987,6 +3349,23 @@ type CollectDeviceProfileResponse struct {
 	Profile *LocalDeviceProfile `json:"profile,omitempty"`
 }
 
+type CommitSourceMaterializationRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	CommitRequestId string `json:"commit_request_id,omitempty"`
+	UploadId string `json:"upload_id,omitempty"`
+	PacketHash string `json:"packet_hash,omitempty"`
+	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
+}
+
+type CommitSourceMaterializationResponse struct {
+	UploadId string `json:"upload_id,omitempty"`
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
+	ChallengeState AgentSourceMaterializationChallengeState `json:"challenge_state,omitempty"`
+	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
+	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
+}
+
 type CompanionParticipationProjection struct {
 	ProjectionId string `json:"projection_id,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -3086,6 +3465,8 @@ type ConversationAnchorSnapshot struct {
 	Anchor *ConversationAnchor `json:"anchor,omitempty"`
 	ActiveTurnId string `json:"active_turn_id,omitempty"`
 	ActiveStreamId string `json:"active_stream_id,omitempty"`
+	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
+	TurnContextSummary *AgentTurnContextSummary `json:"turn_context_summary,omitempty"`
 }
 
 type CreateBankRequest struct {
@@ -3143,6 +3524,24 @@ type CreateRealmGroupMessageCandidateRequest struct {
 
 type CreateRealmGroupMessageCandidateResponse struct {
 	Candidate *RealmGroupMessageCandidateCommitHandle `json:"candidate,omitempty"`
+}
+
+type CreateSourceMaterializationChallengeRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
+}
+
+type CreateSourceMaterializationChallengeResponse struct {
+	ChallengeId string `json:"challenge_id,omitempty"`
+	IntendedRuntimeAudience string `json:"intended_runtime_audience,omitempty"`
+	ChallengeDigest string `json:"challenge_digest,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+	Limits *SourceMaterializationChallengeLimits `json:"limits,omitempty"`
+	State AgentSourceMaterializationChallengeState `json:"state,omitempty"`
+	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
+	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
+	MaterializerAccountId string `json:"materializer_account_id,omitempty"`
 }
 
 type DelegatedApprovalRequest struct {
@@ -4815,6 +5214,30 @@ type ListVoiceAssetsResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type LocalAgentSourceContextStatus struct {
+	SchemaVersion AgentLocalSourceContextSchemaVersion `json:"schema_version,omitempty"`
+	Ready bool `json:"ready,omitempty"`
+	State AgentLocalSourceContextState `json:"state,omitempty"`
+	ReasonCode AgentContextProjectionReasonCode `json:"reason_code,omitempty"`
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
+	SourceSchemaVersion string `json:"source_schema_version,omitempty"`
+	SnapshotSchemaVersion AgentLocalSourceSnapshotSchemaVersion `json:"snapshot_schema_version,omitempty"`
+	SnapshotHash string `json:"snapshot_hash,omitempty"`
+	CapturedAt string `json:"captured_at,omitempty"`
+	WorldContentHash string `json:"world_content_hash,omitempty"`
+	MaterializationContextHash string `json:"materialization_context_hash,omitempty"`
+	CoverageSections []LocalAgentSourceCoverageSectionStatus `json:"coverage_sections,omitempty"`
+}
+
+type LocalAgentSourceCoverageSectionStatus struct {
+	Section AgentLocalSourceCoverageSection `json:"section,omitempty"`
+	State AgentLocalSourceCoverageState `json:"state,omitempty"`
+	RequiredCount uint32 `json:"required_count,omitempty"`
+	ResolvedCount uint32 `json:"resolved_count,omitempty"`
+	OmittedCount uint32 `json:"omitted_count,omitempty"`
+}
+
 type LocalAppAdoption struct {
 	AppId string `json:"app_id,omitempty"`
 	RootPath string `json:"root_path,omitempty"`
@@ -6165,6 +6588,28 @@ type PutPageResponse struct {
 	Page *KnowledgePage `json:"page,omitempty"`
 }
 
+type PutSourceMaterializationChunkRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	PutRequestId string `json:"put_request_id,omitempty"`
+	UploadId string `json:"upload_id,omitempty"`
+	PacketHash string `json:"packet_hash,omitempty"`
+	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
+	GlobalOrdinal uint32 `json:"global_ordinal,omitempty"`
+	ComponentId string `json:"component_id,omitempty"`
+	ComponentOffset uint64 `json:"component_offset,omitempty"`
+	ChunkSha256 string `json:"chunk_sha256,omitempty"`
+	Bytes []byte `json:"bytes,omitempty"`
+}
+
+type PutSourceMaterializationChunkResponse struct {
+	UploadId string `json:"upload_id,omitempty"`
+	GlobalOrdinal uint32 `json:"global_ordinal,omitempty"`
+	ComponentId string `json:"component_id,omitempty"`
+	IdempotentReplay bool `json:"idempotent_replay,omitempty"`
+	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
+	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
+}
+
 type QueryAgentMemoryRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -7262,6 +7707,64 @@ type SetDelegatedProviderStateResponse struct {
 type SetProductControlFirstRunInstallLevelRequest struct {
 	InstallLevel string `json:"install_level,omitempty"`
 	AiProfileAlias string `json:"ai_profile_alias,omitempty"`
+}
+
+type SourceMaterializationBeginControl struct {
+	PacketEnvelope *SourceMaterializationPacketEnvelopeV2 `json:"packet_envelope,omitempty"`
+	PacketProof string `json:"packet_proof,omitempty"`
+	BundleTransportManifest *BundleTransportManifestV1 `json:"bundle_transport_manifest,omitempty"`
+}
+
+type SourceMaterializationBundleChunkDescriptorV1 struct {
+	GlobalOrdinal uint32 `json:"global_ordinal,omitempty"`
+	ComponentOffset uint64 `json:"component_offset,omitempty"`
+	Length uint64 `json:"length,omitempty"`
+	ChunkSha256 string `json:"chunk_sha256,omitempty"`
+}
+
+type SourceMaterializationBundleComponentDescriptorV1 struct {
+	ComponentId string `json:"component_id,omitempty"`
+	Kind AgentSourceMaterializationComponentKind `json:"kind,omitempty"`
+	SchemaVersion string `json:"schema_version,omitempty"`
+	Revision uint64 `json:"revision,omitempty"`
+	ContentHash string `json:"content_hash,omitempty"`
+	CanonicalBytesHash string `json:"canonical_bytes_hash,omitempty"`
+	CanonicalByteLength uint64 `json:"canonical_byte_length,omitempty"`
+}
+
+type SourceMaterializationChallengeLimits struct {
+	MaxBundleBytes uint64 `json:"max_bundle_bytes,omitempty"`
+	MaxComponentCount uint32 `json:"max_component_count,omitempty"`
+	MaxChunkBytes uint64 `json:"max_chunk_bytes,omitempty"`
+	MaxChunks uint32 `json:"max_chunks,omitempty"`
+}
+
+type SourceMaterializationPacketEnvelopeV2 struct {
+	PacketSchemaVersion AgentSourceMaterializationPacketSchemaVersion `json:"packet_schema_version,omitempty"`
+	PacketId string `json:"packet_id,omitempty"`
+	Issuer string `json:"issuer,omitempty"`
+	KeyId string `json:"key_id,omitempty"`
+	Algorithm AgentSourceMaterializationProofAlgorithm `json:"algorithm,omitempty"`
+	KeyUse AgentSourceMaterializationKeyUse `json:"key_use,omitempty"`
+	IssuedAt string `json:"issued_at,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+	Nonce string `json:"nonce,omitempty"`
+	IntendedRuntimeAudience string `json:"intended_runtime_audience,omitempty"`
+	ChallengeId string `json:"challenge_id,omitempty"`
+	ChallengeDigest string `json:"challenge_digest,omitempty"`
+	ChallengeLimits *SourceMaterializationChallengeLimits `json:"challenge_limits,omitempty"`
+	MaterializerAccountId string `json:"materializer_account_id,omitempty"`
+	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
+	PayloadHash string `json:"payload_hash,omitempty"`
+	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
+	PacketHash string `json:"packet_hash,omitempty"`
+}
+
+type SourceMaterializationSourceRef struct {
+	Kind AgentSourceMaterializationSourceKind `json:"kind,omitempty"`
+	WorldId string `json:"world_id,omitempty"`
+	SourceId string `json:"source_id,omitempty"`
+	SourceContentHash string `json:"source_content_hash,omitempty"`
 }
 
 type SpeechAlignment struct {
@@ -8385,6 +8888,22 @@ func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAcc
 	return decodeRuntimeTypedResponse[SwitchAccountResponse](raw, "SwitchAccountResponse")
 }
 
+func (c RuntimeTypedClient) AbortSourceMaterializationUpload(ctx context.Context, request AbortSourceMaterializationUploadRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AbortSourceMaterializationUploadResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload", request, metadata, timeoutMS)
+	if err != nil {
+		return AbortSourceMaterializationUploadResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[AbortSourceMaterializationUploadResponse](raw, "AbortSourceMaterializationUploadResponse")
+}
+
+func (c RuntimeTypedClient) BeginSourceMaterializationUpload(ctx context.Context, request BeginSourceMaterializationUploadRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BeginSourceMaterializationUploadResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload", request, metadata, timeoutMS)
+	if err != nil {
+		return BeginSourceMaterializationUploadResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[BeginSourceMaterializationUploadResponse](raw, "BeginSourceMaterializationUploadResponse")
+}
+
 func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, request CancelCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelCompanionParticipationResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", request, metadata, timeoutMS)
 	if err != nil {
@@ -8401,12 +8920,28 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
 }
 
+func (c RuntimeTypedClient) CommitSourceMaterialization(ctx context.Context, request CommitSourceMaterializationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CommitSourceMaterializationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization", request, metadata, timeoutMS)
+	if err != nil {
+		return CommitSourceMaterializationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CommitSourceMaterializationResponse](raw, "CommitSourceMaterializationResponse")
+}
+
 func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context, request CreateRealmGroupMessageCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateRealmGroupMessageCandidateResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", request, metadata, timeoutMS)
 	if err != nil {
 		return CreateRealmGroupMessageCandidateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[CreateRealmGroupMessageCandidateResponse](raw, "CreateRealmGroupMessageCandidateResponse")
+}
+
+func (c RuntimeTypedClient) CreateSourceMaterializationChallenge(ctx context.Context, request CreateSourceMaterializationChallengeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateSourceMaterializationChallengeResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge", request, metadata, timeoutMS)
+	if err != nil {
+		return CreateSourceMaterializationChallengeResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CreateSourceMaterializationChallengeResponse](raw, "CreateSourceMaterializationChallengeResponse")
 }
 
 func (c RuntimeTypedClient) DescribeParticipationContextBlocks(ctx context.Context, request DescribeParticipationContextBlocksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationContextBlocksResponse, error) {
@@ -8687,6 +9222,14 @@ func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request 
 		return OpenConversationAnchorResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[OpenConversationAnchorResponse](raw, "OpenConversationAnchorResponse")
+}
+
+func (c RuntimeTypedClient) PutSourceMaterializationChunk(ctx context.Context, request PutSourceMaterializationChunkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutSourceMaterializationChunkResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk", request, metadata, timeoutMS)
+	if err != nil {
+		return PutSourceMaterializationChunkResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PutSourceMaterializationChunkResponse](raw, "PutSourceMaterializationChunkResponse")
 }
 
 func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (QueryAgentMemoryResponse, error) {
@@ -10277,6 +10820,13 @@ func (c RuntimeTypedClient) SubscribeWorkflowEvents(ctx context.Context, request
 	return &RuntimeTypedStream[WorkflowEvent]{reader: reader}, nil
 }
 
+type AccountGrantsViewDto struct {
+	AccountId string `json:"accountId,omitempty"`
+	Grants []AccountGrantViewRowDto `json:"grants,omitempty"`
+	SchemaVersion float64 `json:"schemaVersion,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
 type AccountGrantViewRowDto struct {
 	AppId string `json:"appId,omitempty"`
 	ExpiresAt string `json:"expiresAt,omitempty"`
@@ -10290,13 +10840,6 @@ type AccountGrantViewRowDto struct {
 }
 
 type AccountGrantViewState string
-
-type AccountGrantsViewDto struct {
-	AccountId string `json:"accountId,omitempty"`
-	Grants []AccountGrantViewRowDto `json:"grants,omitempty"`
-	SchemaVersion float64 `json:"schemaVersion,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
 
 type AccountRelationType string
 
@@ -10526,9 +11069,38 @@ type BundleListDto struct {
 	Items []BundleDetailDto `json:"items,omitempty"`
 }
 
+type BundleManifestChunkDescriptorV1Dto struct {
+	ChunkSha256 string `json:"chunkSha256,omitempty"`
+	ComponentOffset float64 `json:"componentOffset,omitempty"`
+	GlobalOrdinal float64 `json:"globalOrdinal,omitempty"`
+	Length float64 `json:"length,omitempty"`
+}
+
+type BundleManifestComponentV1Dto struct {
+	CanonicalByteLength float64 `json:"canonicalByteLength,omitempty"`
+	CanonicalBytesHash string `json:"canonicalBytesHash,omitempty"`
+	ComponentId string `json:"componentId,omitempty"`
+	ContentHash string `json:"contentHash,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Revision float64 `json:"revision,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+}
+
 type BundleMemberDto struct {
 	AssetId string `json:"assetId,omitempty"`
 	SortOrder float64 `json:"sortOrder,omitempty"`
+}
+
+type BundleTransportManifestV1Dto struct {
+	ChallengeDigest string `json:"challengeDigest,omitempty"`
+	ChunkCount float64 `json:"chunkCount,omitempty"`
+	Chunks []BundleManifestChunkDescriptorV1Dto `json:"chunks,omitempty"`
+	ComponentCount float64 `json:"componentCount,omitempty"`
+	Components []BundleManifestComponentV1Dto `json:"components,omitempty"`
+	ManifestSchemaVersion string `json:"manifestSchemaVersion,omitempty"`
+	PacketId string `json:"packetId,omitempty"`
+	PayloadAssemblyVersion string `json:"payloadAssemblyVersion,omitempty"`
+	TotalCanonicalBytes float64 `json:"totalCanonicalBytes,omitempty"`
 }
 
 type CanWithdrawDto struct {
@@ -10661,6 +11233,53 @@ type ConnectOnboardingResponseDto struct {
 
 type ContentRatingString string
 
+type CoverageComponentV1Dto struct {
+	ComponentId string `json:"componentId,omitempty"`
+	ContentHash string `json:"contentHash,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Revision float64 `json:"revision,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+}
+
+type CoverageCrossReferenceCheckV1Dto struct {
+	CheckId string `json:"checkId,omitempty"`
+	SourceRef string `json:"sourceRef,omitempty"`
+	State string `json:"state,omitempty"`
+	TargetRef string `json:"targetRef,omitempty"`
+}
+
+type CoverageManifestV1Dto struct {
+	AggregateStatus string `json:"aggregateStatus,omitempty"`
+	ClosurePolicyVersion string `json:"closurePolicyVersion,omitempty"`
+	Components []CoverageComponentV1Dto `json:"components,omitempty"`
+	CoverageManifestHash string `json:"coverageManifestHash,omitempty"`
+	CrossReferenceChecks []CoverageCrossReferenceCheckV1Dto `json:"crossReferenceChecks,omitempty"`
+	ManifestSchemaVersion string `json:"manifestSchemaVersion,omitempty"`
+	OptionalRefs []CoverageOptionalRefV1Dto `json:"optionalRefs,omitempty"`
+	RequiredRefs []CoverageRequiredRefV1Dto `json:"requiredRefs,omitempty"`
+	RequiredSections []CoverageRequiredSectionV1Dto `json:"requiredSections,omitempty"`
+}
+
+type CoverageOptionalRefV1Dto struct {
+	OmissionReason string `json:"omissionReason,omitempty"`
+	Path string `json:"path,omitempty"`
+	RefId string `json:"refId,omitempty"`
+	RefKind string `json:"refKind,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
+type CoverageRequiredRefV1Dto struct {
+	Path string `json:"path,omitempty"`
+	RefId string `json:"refId,omitempty"`
+	RefKind string `json:"refKind,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
+type CoverageRequiredSectionV1Dto struct {
+	Path string `json:"path,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
 type CreateAssetDto struct {
 	AuthorId string `json:"authorId,omitempty"`
 	ClonePolicy string `json:"clonePolicy,omitempty"`
@@ -10771,7 +11390,12 @@ type CreateReviewDto struct {
 }
 
 type CreateSourceMaterializationPacketDto struct {
+	ChallengeDigest string `json:"challengeDigest,omitempty"`
+	ChallengeExpiresAt string `json:"challengeExpiresAt,omitempty"`
+	ChallengeId string `json:"challengeId,omitempty"`
+	ChallengeLimits *SourceMaterializationChallengeLimitsDto `json:"challengeLimits,omitempty"`
 	IntendedRuntimeAudience string `json:"intendedRuntimeAudience,omitempty"`
+	MaterializerAccountId string `json:"materializerAccountId,omitempty"`
 	SourceRef *TypedSourceRefDto `json:"sourceRef,omitempty"`
 }
 
@@ -11180,6 +11804,65 @@ type MarkNotificationsReadInputDto struct {
 	MarkAllBefore string `json:"markAllBefore,omitempty"`
 }
 
+type MaterializationContextV1Dto struct {
+	ClosurePolicyVersion string `json:"closurePolicyVersion,omitempty"`
+	ContextSchemaVersion string `json:"contextSchemaVersion,omitempty"`
+	CoverageManifestHash string `json:"coverageManifestHash,omitempty"`
+	DependencyClosure *MaterializationContextV1DtoDependencyClosure `json:"dependencyClosure,omitempty"`
+	MaterializationContextHash string `json:"materializationContextHash,omitempty"`
+	OwningWorld *WorldCoreDto `json:"owningWorld,omitempty"`
+	SourceComponentDigests []SourceMaterializationComponentDigestV1Dto `json:"sourceComponentDigests,omitempty"`
+	SourceRef *TypedSourceRefDto `json:"sourceRef,omitempty"`
+	WorldAndClosureComponentDigests []SourceMaterializationComponentDigestV1Dto `json:"worldAndClosureComponentDigests,omitempty"`
+}
+
+type MaterializationContextV1DtoDependencyClosure struct {
+	WorldCharacter *WorldCharacterDependencyClosureV1Dto `json:"-"`
+	RealmPersona *RealmPersonaDependencyClosureV1Dto `json:"-"`
+}
+
+func (value MaterializationContextV1DtoDependencyClosure) MarshalJSON() ([]byte, error) {
+	var selected any
+	selectedCount := 0
+	if value.WorldCharacter != nil {
+		selected = value.WorldCharacter
+		selectedCount++
+	}
+	if value.RealmPersona != nil {
+		selected = value.RealmPersona
+		selectedCount++
+	}
+	if selectedCount != 1 {
+		return nil, fmt.Errorf("encode MaterializationContextV1DtoDependencyClosure: exactly one typed variant is required")
+	}
+	return json.Marshal(selected)
+}
+
+func (value *MaterializationContextV1DtoDependencyClosure) UnmarshalJSON(data []byte) error {
+	var probe struct { Kind string `json:"kind"` }
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return fmt.Errorf("decode MaterializationContextV1DtoDependencyClosure discriminator: %w", err)
+	}
+	switch probe.Kind {
+	case "worldCharacter":
+		var decoded WorldCharacterDependencyClosureV1Dto
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode MaterializationContextV1DtoDependencyClosure worldCharacter: %w", err)
+		}
+		*value = MaterializationContextV1DtoDependencyClosure{WorldCharacter: &decoded}
+		return nil
+	case "realmPersona":
+		var decoded RealmPersonaDependencyClosureV1Dto
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode MaterializationContextV1DtoDependencyClosure realmPersona: %w", err)
+		}
+		*value = MaterializationContextV1DtoDependencyClosure{RealmPersona: &decoded}
+		return nil
+	default:
+		return fmt.Errorf("decode MaterializationContextV1DtoDependencyClosure: unknown discriminator %q", probe.Kind)
+	}
+}
+
 type Me2faOperationResultDto struct {
 	Success bool `json:"success,omitempty"`
 }
@@ -11326,22 +12009,6 @@ type OAuthTokenResponseDto struct {
 	TokenType string `json:"token_type,omitempty"`
 }
 
-type PPSlotConfigDto struct {
-	Slot1 *PPSlotItemDto `json:"slot1,omitempty"`
-	Slot2 *PPSlotItemDto `json:"slot2,omitempty"`
-	Slot3 *PPSlotItemDto `json:"slot3,omitempty"`
-	Slot4 *PPSlotItemDto `json:"slot4,omitempty"`
-}
-
-type PPSlotConfigResponseDto struct {
-	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
-}
-
-type PPSlotItemDto struct {
-	Id string `json:"id,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
 type PasswordLoginDto struct {
 	Identifier string `json:"identifier,omitempty"`
 	Password string `json:"password,omitempty"`
@@ -11409,6 +12076,22 @@ type PostSourceRefDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
+type PPSlotConfigDto struct {
+	Slot1 *PPSlotItemDto `json:"slot1,omitempty"`
+	Slot2 *PPSlotItemDto `json:"slot2,omitempty"`
+	Slot3 *PPSlotItemDto `json:"slot3,omitempty"`
+	Slot4 *PPSlotItemDto `json:"slot4,omitempty"`
+}
+
+type PPSlotConfigResponseDto struct {
+	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
+}
+
+type PPSlotItemDto struct {
+	Id string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
 type PresenceStatus string
 
 type PublicAccountRole string
@@ -11439,6 +12122,11 @@ type RealmGroupMessageCandidateCommitResultDto struct {
 	Status string `json:"status,omitempty"`
 }
 
+type RealmPersonaDependencyClosureV1Dto struct {
+	ExplicitDependencies []SourceMaterializationDependencyRefV1Dto `json:"explicitDependencies,omitempty"`
+	Kind string `json:"kind,omitempty"`
+}
+
 type RealmPersonaDto struct {
 	ContentHash string `json:"contentHash,omitempty"`
 	ContentRevision float64 `json:"contentRevision,omitempty"`
@@ -11451,6 +12139,128 @@ type RealmPersonaDto struct {
 	SchemaVersion string `json:"schemaVersion,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 	Visibility string `json:"visibility,omitempty"`
+}
+
+type RealmPersonaMaterializationPayloadV2Dto struct {
+	CoverageManifest *CoverageManifestV1Dto `json:"coverageManifest,omitempty"`
+	CoverageManifestHash string `json:"coverageManifestHash,omitempty"`
+	MaterializationContext *MaterializationContextV1Dto `json:"materializationContext,omitempty"`
+	MaterializationContextHash string `json:"materializationContextHash,omitempty"`
+	PayloadAssemblyVersion string `json:"payloadAssemblyVersion,omitempty"`
+	PayloadSchemaVersion string `json:"payloadSchemaVersion,omitempty"`
+	Source *RealmPersonaMaterializationSourceV2Dto `json:"source,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2Dto struct {
+	ContentHash string `json:"contentHash,omitempty"`
+	ContentRevision float64 `json:"contentRevision,omitempty"`
+	Core *RealmPersonaMaterializationSourceV2DtoCore `json:"core,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	HomeWorldId string `json:"homeWorldId,omitempty"`
+	Id string `json:"id,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	OwnerId string `json:"ownerId,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCore struct {
+	Assets *RealmPersonaMaterializationSourceV2DtoCoreAssets `json:"assets,omitempty"`
+	Authoring *RealmPersonaMaterializationSourceV2DtoCoreAuthoring `json:"authoring,omitempty"`
+	ContentProfile *RealmPersonaMaterializationSourceV2DtoCoreContentProfile `json:"contentProfile,omitempty"`
+	Identity *RealmPersonaMaterializationSourceV2DtoCoreIdentity `json:"identity,omitempty"`
+	InteractionProfile *RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile `json:"interactionProfile,omitempty"`
+	PersonaStyle *RealmPersonaMaterializationSourceV2DtoCorePersonaStyle `json:"personaStyle,omitempty"`
+	Presentation *RealmPersonaMaterializationSourceV2DtoCorePresentation `json:"presentation,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreAssets struct {
+	ExternalRefs []RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem `json:"externalRefs,omitempty"`
+	Intents []RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem `json:"intents,omitempty"`
+	ResourceRefs []RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem `json:"resourceRefs,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+	Uri string `json:"uri,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem struct {
+	IntentId string `json:"intentId,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreAuthoring struct {
+	Extensions map[string]any `json:"extensions,omitempty"`
+	Maintainers []string `json:"maintainers,omitempty"`
+	Notes []string `json:"notes,omitempty"`
+	Review *RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview struct {
+	ReviewedAt string `json:"reviewedAt,omitempty"`
+	ReviewedBy string `json:"reviewedBy,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreContentProfile struct {
+	Boundaries []string `json:"boundaries,omitempty"`
+	Guidelines []RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem `json:"guidelines,omitempty"`
+	Topics []string `json:"topics,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem struct {
+	GuidelineId string `json:"guidelineId,omitempty"`
+	Source string `json:"source,omitempty"`
+	Statement string `json:"statement,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreIdentity struct {
+	Aliases []string `json:"aliases,omitempty"`
+	Concept string `json:"concept,omitempty"`
+	Handle string `json:"handle,omitempty"`
+	Name string `json:"name,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile struct {
+	DialogueExemplars []string `json:"dialogueExemplars,omitempty"`
+	Greeting string `json:"greeting,omitempty"`
+	GreetingVariants []string `json:"greetingVariants,omitempty"`
+	HomeWorldId string `json:"homeWorldId,omitempty"`
+	InteractionModes []string `json:"interactionModes,omitempty"`
+	Scenario string `json:"scenario,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCorePersonaStyle struct {
+	Archetype string `json:"archetype,omitempty"`
+	CommunicationStyle string `json:"communicationStyle,omitempty"`
+	DialogueExemplars []string `json:"dialogueExemplars,omitempty"`
+	Pacing string `json:"pacing,omitempty"`
+	Traits []string `json:"traits,omitempty"`
+	Voice string `json:"voice,omitempty"`
+}
+
+type RealmPersonaMaterializationSourceV2DtoCorePresentation struct {
+	AvatarResourceRef string `json:"avatarResourceRef,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	ProfileCoverResourceRef string `json:"profileCoverResourceRef,omitempty"`
+	ProfileLine string `json:"profileLine,omitempty"`
+	ShortBio string `json:"shortBio,omitempty"`
 }
 
 type RealmSourceCapabilitiesDto struct {
@@ -11666,23 +12476,115 @@ type SocialProfileDto struct {
 	VerifiedAt string `json:"verifiedAt,omitempty"`
 }
 
-type SourceMaterializationPacketDto struct {
+type SourceMaterializationChallengeLimitsDto struct {
+	MaxBundleBytes float64 `json:"maxBundleBytes,omitempty"`
+	MaxChunkBytes float64 `json:"maxChunkBytes,omitempty"`
+	MaxChunks float64 `json:"maxChunks,omitempty"`
+	MaxComponentCount float64 `json:"maxComponentCount,omitempty"`
+}
+
+type SourceMaterializationComponentChunkV1Dto struct {
+	BytesBase64 string `json:"bytesBase64,omitempty"`
+	ChunkSha256 string `json:"chunkSha256,omitempty"`
+	ComponentOffset float64 `json:"componentOffset,omitempty"`
+	GlobalOrdinal float64 `json:"globalOrdinal,omitempty"`
+	Length float64 `json:"length,omitempty"`
+}
+
+type SourceMaterializationComponentDigestV1Dto struct {
+	ComponentId string `json:"componentId,omitempty"`
+	ContentHash string `json:"contentHash,omitempty"`
+	Kind string `json:"kind,omitempty"`
+}
+
+type SourceMaterializationComponentV1Dto struct {
+	CanonicalByteLength float64 `json:"canonicalByteLength,omitempty"`
+	CanonicalBytes []SourceMaterializationComponentChunkV1Dto `json:"canonicalBytes,omitempty"`
+	CanonicalBytesHash string `json:"canonicalBytesHash,omitempty"`
+	ComponentId string `json:"componentId,omitempty"`
+	ContentHash string `json:"contentHash,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Revision float64 `json:"revision,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+}
+
+type SourceMaterializationDependencyRefV1Dto struct {
+	ContentHash string `json:"contentHash,omitempty"`
+	Id string `json:"id,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type SourceMaterializationPacketV2Dto struct {
+	Algorithm string `json:"algorithm,omitempty"`
+	BundleManifestHash string `json:"bundleManifestHash,omitempty"`
+	BundleTransportManifest *BundleTransportManifestV1Dto `json:"bundleTransportManifest,omitempty"`
+	ChallengeDigest string `json:"challengeDigest,omitempty"`
+	ChallengeId string `json:"challengeId,omitempty"`
+	ChallengeLimits *SourceMaterializationChallengeLimitsDto `json:"challengeLimits,omitempty"`
 	ExpiresAt string `json:"expiresAt,omitempty"`
 	IntendedRuntimeAudience string `json:"intendedRuntimeAudience,omitempty"`
 	IssuedAt string `json:"issuedAt,omitempty"`
+	Issuer string `json:"issuer,omitempty"`
+	KeyId string `json:"keyId,omitempty"`
+	KeyUse string `json:"keyUse,omitempty"`
+	MaterializerAccountId string `json:"materializerAccountId,omitempty"`
 	Nonce string `json:"nonce,omitempty"`
+	OrderedComponentChunks []SourceMaterializationComponentV1Dto `json:"orderedComponentChunks,omitempty"`
 	PacketHash string `json:"packetHash,omitempty"`
 	PacketId string `json:"packetId,omitempty"`
 	PacketProof string `json:"packetProof,omitempty"`
 	PacketSchemaVersion string `json:"packetSchemaVersion,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	SourceContentHash string `json:"sourceContentHash,omitempty"`
-	SourceContentRevision float64 `json:"sourceContentRevision,omitempty"`
-	SourceDisplayMetadata map[string]any `json:"sourceDisplayMetadata,omitempty"`
-	SourceId string `json:"sourceId,omitempty"`
-	SourceKind string `json:"sourceKind,omitempty"`
-	SourceWorldId string `json:"sourceWorldId,omitempty"`
+	PayloadHash string `json:"payloadHash,omitempty"`
+	SemanticPayload *SourceMaterializationPacketV2DtoSemanticPayload `json:"semanticPayload,omitempty"`
+	SourceRef *TypedSourceRefDto `json:"sourceRef,omitempty"`
+}
+
+type SourceMaterializationPacketV2DtoSemanticPayload struct {
+	WorldCharacter *WorldCharacterMaterializationPayloadV2Dto `json:"-"`
+	RealmPersona *RealmPersonaMaterializationPayloadV2Dto `json:"-"`
+}
+
+func (value SourceMaterializationPacketV2DtoSemanticPayload) MarshalJSON() ([]byte, error) {
+	var selected any
+	selectedCount := 0
+	if value.WorldCharacter != nil {
+		selected = value.WorldCharacter
+		selectedCount++
+	}
+	if value.RealmPersona != nil {
+		selected = value.RealmPersona
+		selectedCount++
+	}
+	if selectedCount != 1 {
+		return nil, fmt.Errorf("encode SourceMaterializationPacketV2DtoSemanticPayload: exactly one typed variant is required")
+	}
+	return json.Marshal(selected)
+}
+
+func (value *SourceMaterializationPacketV2DtoSemanticPayload) UnmarshalJSON(data []byte) error {
+	var probe struct { Source struct { Kind string `json:"kind"` } `json:"source"` }
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV2DtoSemanticPayload discriminator: %w", err)
+	}
+	switch probe.Source.Kind {
+	case "worldCharacter":
+		var decoded WorldCharacterMaterializationPayloadV2Dto
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode SourceMaterializationPacketV2DtoSemanticPayload worldCharacter: %w", err)
+		}
+		*value = SourceMaterializationPacketV2DtoSemanticPayload{WorldCharacter: &decoded}
+		return nil
+	case "realmPersona":
+		var decoded RealmPersonaMaterializationPayloadV2Dto
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode SourceMaterializationPacketV2DtoSemanticPayload realmPersona: %w", err)
+		}
+		*value = SourceMaterializationPacketV2DtoSemanticPayload{RealmPersona: &decoded}
+		return nil
+	default:
+		return fmt.Errorf("decode SourceMaterializationPacketV2DtoSemanticPayload: unknown discriminator %q", probe.Source.Kind)
+	}
 }
 
 type SourceOriginDto struct {
@@ -11845,10 +12747,6 @@ type UpdateMyHandleDto struct {
 	Handle string `json:"handle,omitempty"`
 }
 
-type UpdatePPSlotConfigDto struct {
-	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
-}
-
 type UpdateParticipantRoleInputDto struct {
 	Role string `json:"role,omitempty"`
 }
@@ -11860,6 +12758,10 @@ type UpdatePasswordRequestDto struct {
 
 type UpdatePostDto struct {
 	Visibility *Visibility `json:"visibility,omitempty"`
+}
+
+type UpdatePPSlotConfigDto struct {
+	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
 }
 
 type UpdateRelationshipDto struct {
@@ -12169,18 +13071,183 @@ type WorldCharacterCoreDto struct {
 	ContentRevision float64 `json:"contentRevision,omitempty"`
 	Core map[string]any `json:"core,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
+	CreatorId string `json:"creatorId,omitempty"`
 	EntityId string `json:"entityId,omitempty"`
 	Id string `json:"id,omitempty"`
 	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
 	SchemaVersion string `json:"schemaVersion,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type WorldCharacterDependencyClosureV1Dto struct {
+	BoundEntity *WorldEntityCoreDto `json:"boundEntity,omitempty"`
+	EndpointEntities []WorldEntityCoreDto `json:"endpointEntities,omitempty"`
+	ExplicitDependencies []SourceMaterializationDependencyRefV1Dto `json:"explicitDependencies,omitempty"`
+	IncidentRelationships []WorldRelationshipCoreDto `json:"incidentRelationships,omitempty"`
+	Kind string `json:"kind,omitempty"`
+}
+
+type WorldCharacterMaterializationPayloadV2Dto struct {
+	CoverageManifest *CoverageManifestV1Dto `json:"coverageManifest,omitempty"`
+	CoverageManifestHash string `json:"coverageManifestHash,omitempty"`
+	MaterializationContext *MaterializationContextV1Dto `json:"materializationContext,omitempty"`
+	MaterializationContextHash string `json:"materializationContextHash,omitempty"`
+	PayloadAssemblyVersion string `json:"payloadAssemblyVersion,omitempty"`
+	PayloadSchemaVersion string `json:"payloadSchemaVersion,omitempty"`
+	Source *WorldCharacterMaterializationSourceV2Dto `json:"source,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2Dto struct {
+	ContentHash string `json:"contentHash,omitempty"`
+	ContentRevision float64 `json:"contentRevision,omitempty"`
+	Core *WorldCharacterMaterializationSourceV2DtoCore `json:"core,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	CreatorId string `json:"creatorId,omitempty"`
+	EntityId string `json:"entityId,omitempty"`
+	Id string `json:"id,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCore struct {
+	Assets *WorldCharacterMaterializationSourceV2DtoCoreAssets `json:"assets,omitempty"`
+	Authoring *WorldCharacterMaterializationSourceV2DtoCoreAuthoring `json:"authoring,omitempty"`
+	Biography *WorldCharacterMaterializationSourceV2DtoCoreBiography `json:"biography,omitempty"`
+	Capabilities *WorldCharacterMaterializationSourceV2DtoCoreCapabilities `json:"capabilities,omitempty"`
+	Identity *WorldCharacterMaterializationSourceV2DtoCoreIdentity `json:"identity,omitempty"`
+	InteractionProfile *WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile `json:"interactionProfile,omitempty"`
+	Knowledge *WorldCharacterMaterializationSourceV2DtoCoreKnowledge `json:"knowledge,omitempty"`
+	Placement *WorldCharacterMaterializationSourceV2DtoCorePlacement `json:"placement,omitempty"`
+	Presentation *WorldCharacterMaterializationSourceV2DtoCorePresentation `json:"presentation,omitempty"`
+	Psychology *WorldCharacterMaterializationSourceV2DtoCorePsychology `json:"psychology,omitempty"`
+	Relationships []WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem `json:"relationships,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreAssets struct {
+	ExternalRefs []WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem `json:"externalRefs,omitempty"`
+	Intents []WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem `json:"intents,omitempty"`
+	ResourceRefs []WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem `json:"resourceRefs,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+	Uri string `json:"uri,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem struct {
+	IntentId string `json:"intentId,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreAuthoring struct {
+	Extensions map[string]any `json:"extensions,omitempty"`
+	Maintainers []string `json:"maintainers,omitempty"`
+	Notes []string `json:"notes,omitempty"`
+	Review *WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview struct {
+	ReviewedAt string `json:"reviewedAt,omitempty"`
+	ReviewedBy string `json:"reviewedBy,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreBiography struct {
+	Milestones []WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem `json:"milestones,omitempty"`
+	SourceNotes []string `json:"sourceNotes,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem struct {
+	MilestoneId string `json:"milestoneId,omitempty"`
+	Sequence float64 `json:"sequence,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Title string `json:"title,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreCapabilities struct {
+	InteractionModes []string `json:"interactionModes,omitempty"`
+	Tools []string `json:"tools,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreIdentity struct {
+	Aliases []string `json:"aliases,omitempty"`
+	Name string `json:"name,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile struct {
+	Cadence string `json:"cadence,omitempty"`
+	DialogueExemplars []string `json:"dialogueExemplars,omitempty"`
+	Greeting string `json:"greeting,omitempty"`
+	GreetingVariants []string `json:"greetingVariants,omitempty"`
+	Scenario string `json:"scenario,omitempty"`
+	Tone string `json:"tone,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreKnowledge struct {
+	Constraints []string `json:"constraints,omitempty"`
+	Topics []string `json:"topics,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCorePlacement struct {
+	EntityId string `json:"entityId,omitempty"`
+	Faction string `json:"faction,omitempty"`
+	Rank string `json:"rank,omitempty"`
+	Role string `json:"role,omitempty"`
+	SceneRefs []string `json:"sceneRefs,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCorePresentation struct {
+	AvatarResourceRef string `json:"avatarResourceRef,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	ProfileCoverResourceRef string `json:"profileCoverResourceRef,omitempty"`
+	ShortBio string `json:"shortBio,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCorePsychology struct {
+	Boundaries []string `json:"boundaries,omitempty"`
+	Drives []string `json:"drives,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem struct {
+	Note string `json:"note,omitempty"`
+	RelationLabel string `json:"relationLabel,omitempty"`
+	RelationType string `json:"relationType,omitempty"`
+	RelationshipId string `json:"relationshipId,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	TargetLabel string `json:"targetLabel,omitempty"`
+	TargetRef *WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef `json:"targetRef,omitempty"`
+}
+
+type WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef struct {
+	EntityId string `json:"entityId,omitempty"`
+	Kind string `json:"kind,omitempty"`
 	WorldId string `json:"worldId,omitempty"`
 }
 
 type WorldCoreDto struct {
 	ContentHash string `json:"contentHash,omitempty"`
 	ContentRevision float64 `json:"contentRevision,omitempty"`
-	Core map[string]any `json:"core,omitempty"`
+	Core *WorldCoreDtoCore `json:"core,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	CreatorId string `json:"creatorId,omitempty"`
 	Id string `json:"id,omitempty"`
@@ -12190,10 +13257,165 @@ type WorldCoreDto struct {
 	Visibility string `json:"visibility,omitempty"`
 }
 
+type WorldCoreDtoCore struct {
+	Assets *WorldCoreDtoCoreAssets `json:"assets,omitempty"`
+	Authoring *WorldCoreDtoCoreAuthoring `json:"authoring,omitempty"`
+	Entities []WorldCoreDtoCoreEntitiesItem `json:"entities,omitempty"`
+	Identity *WorldCoreDtoCoreIdentity `json:"identity,omitempty"`
+	Ontology *WorldCoreDtoCoreOntology `json:"ontology,omitempty"`
+	Presentation *WorldCoreDtoCorePresentation `json:"presentation,omitempty"`
+	Relationships []WorldCoreDtoCoreRelationshipsItem `json:"relationships,omitempty"`
+	Scenes []WorldCoreDtoCoreScenesItem `json:"scenes,omitempty"`
+	Systems []WorldCoreDtoCoreSystemsItem `json:"systems,omitempty"`
+	TimeModel *WorldCoreDtoCoreTimeModel `json:"timeModel,omitempty"`
+	Timeline *WorldCoreDtoCoreTimeline `json:"timeline,omitempty"`
+}
+
+type WorldCoreDtoCoreAssets struct {
+	ExternalRefs []WorldCoreDtoCoreAssetsExternalRefsItem `json:"externalRefs,omitempty"`
+	Intents []WorldCoreDtoCoreAssetsIntentsItem `json:"intents,omitempty"`
+	ResourceRefs []WorldCoreDtoCoreAssetsResourceRefsItem `json:"resourceRefs,omitempty"`
+}
+
+type WorldCoreDtoCoreAssetsExternalRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+	Uri string `json:"uri,omitempty"`
+}
+
+type WorldCoreDtoCoreAssetsIntentsItem struct {
+	IntentId string `json:"intentId,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldCoreDtoCoreAssetsResourceRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+}
+
+type WorldCoreDtoCoreAuthoring struct {
+	Extensions map[string]any `json:"extensions,omitempty"`
+	Maintainers []string `json:"maintainers,omitempty"`
+	Notes []string `json:"notes,omitempty"`
+	Review *WorldCoreDtoCoreAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source,omitempty"`
+}
+
+type WorldCoreDtoCoreAuthoringReview struct {
+	ReviewedAt string `json:"reviewedAt,omitempty"`
+	ReviewedBy string `json:"reviewedBy,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type WorldCoreDtoCoreEntitiesItem struct {
+	EntityId string `json:"entityId,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldCoreDtoCoreIdentity struct {
+	Divergences []string `json:"divergences,omitempty"`
+	Era string `json:"era,omitempty"`
+	Genre string `json:"genre,omitempty"`
+	Name string `json:"name,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Tagline string `json:"tagline,omitempty"`
+	Themes []string `json:"themes,omitempty"`
+	WorldType string `json:"worldType,omitempty"`
+}
+
+type WorldCoreDtoCoreOntology struct {
+	Concepts []WorldCoreDtoCoreOntologyConceptsItem `json:"concepts,omitempty"`
+	EntityKinds []string `json:"entityKinds,omitempty"`
+	RelationshipTypes []string `json:"relationshipTypes,omitempty"`
+}
+
+type WorldCoreDtoCoreOntologyConceptsItem struct {
+	ConceptId string `json:"conceptId,omitempty"`
+	Name string `json:"name,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldCoreDtoCorePresentation struct {
+	BannerResourceRef string `json:"bannerResourceRef,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	IconResourceRef string `json:"iconResourceRef,omitempty"`
+	Palette []string `json:"palette,omitempty"`
+	Tagline string `json:"tagline,omitempty"`
+	Title string `json:"title,omitempty"`
+}
+
+type WorldCoreDtoCoreRelationshipsItem struct {
+	Attributes map[string]any `json:"attributes,omitempty"`
+	RelationshipId string `json:"relationshipId,omitempty"`
+	SourceEntityId string `json:"sourceEntityId,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	TargetEntityId string `json:"targetEntityId,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
+type WorldCoreDtoCoreScenesItem struct {
+	AssetRefs []string `json:"assetRefs,omitempty"`
+	EntityRefs []string `json:"entityRefs,omitempty"`
+	Name string `json:"name,omitempty"`
+	SceneId string `json:"sceneId,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldCoreDtoCoreSystemsItem struct {
+	Name string `json:"name,omitempty"`
+	Parameters map[string]any `json:"parameters,omitempty"`
+	Principles []string `json:"principles,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	SystemId string `json:"systemId,omitempty"`
+}
+
+type WorldCoreDtoCoreTimeline struct {
+	Events []WorldCoreDtoCoreTimelineEventsItem `json:"events,omitempty"`
+}
+
+type WorldCoreDtoCoreTimelineEventsItem struct {
+	CharacterRefs []string `json:"characterRefs,omitempty"`
+	EndsAt string `json:"endsAt,omitempty"`
+	EntityRefs []string `json:"entityRefs,omitempty"`
+	EventId string `json:"eventId,omitempty"`
+	Importance float64 `json:"importance,omitempty"`
+	LocationRefs []string `json:"locationRefs,omitempty"`
+	SceneRefs []string `json:"sceneRefs,omitempty"`
+	Sequence float64 `json:"sequence,omitempty"`
+	SourceRefs []string `json:"sourceRefs,omitempty"`
+	StartsAt string `json:"startsAt,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
+	Title string `json:"title,omitempty"`
+}
+
+type WorldCoreDtoCoreTimeModel struct {
+	Anchor *WorldCoreDtoCoreTimeModelAnchor `json:"anchor,omitempty"`
+	Calendar string `json:"calendar,omitempty"`
+	DisplayFormat string `json:"displayFormat,omitempty"`
+	FlowRatio float64 `json:"flowRatio,omitempty"`
+	IsPaused bool `json:"isPaused,omitempty"`
+	Mode string `json:"mode,omitempty"`
+	PausedWorldTime string `json:"pausedWorldTime,omitempty"`
+}
+
+type WorldCoreDtoCoreTimeModelAnchor struct {
+	RealStartedAt string `json:"realStartedAt,omitempty"`
+	WorldStartedAt string `json:"worldStartedAt,omitempty"`
+	WorldStartedAtDisplay string `json:"worldStartedAtDisplay,omitempty"`
+}
+
 type WorldEntityCoreDto struct {
 	ContentHash string `json:"contentHash,omitempty"`
 	ContentRevision float64 `json:"contentRevision,omitempty"`
-	Core map[string]any `json:"core,omitempty"`
+	Core *WorldEntityCoreDtoCore `json:"core,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	Id string `json:"id,omitempty"`
 	Kind string `json:"kind,omitempty"`
@@ -12201,6 +13423,83 @@ type WorldEntityCoreDto struct {
 	SchemaVersion string `json:"schemaVersion,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 	WorldId string `json:"worldId,omitempty"`
+}
+
+type WorldEntityCoreDtoCore struct {
+	Assets *WorldEntityCoreDtoCoreAssets `json:"assets,omitempty"`
+	Authoring *WorldEntityCoreDtoCoreAuthoring `json:"authoring,omitempty"`
+	Classification *WorldEntityCoreDtoCoreClassification `json:"classification,omitempty"`
+	Evidence *WorldEntityCoreDtoCoreEvidence `json:"evidence,omitempty"`
+	Facts []WorldEntityCoreDtoCoreFactsItem `json:"facts,omitempty"`
+	Identity *WorldEntityCoreDtoCoreIdentity `json:"identity,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreAssets struct {
+	ExternalRefs []WorldEntityCoreDtoCoreAssetsExternalRefsItem `json:"externalRefs,omitempty"`
+	Intents []WorldEntityCoreDtoCoreAssetsIntentsItem `json:"intents,omitempty"`
+	ResourceRefs []WorldEntityCoreDtoCoreAssetsResourceRefsItem `json:"resourceRefs,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreAssetsExternalRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+	Uri string `json:"uri,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreAssetsIntentsItem struct {
+	IntentId string `json:"intentId,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreAssetsResourceRefsItem struct {
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreAuthoring struct {
+	Extensions map[string]any `json:"extensions,omitempty"`
+	Maintainers []string `json:"maintainers,omitempty"`
+	Notes []string `json:"notes,omitempty"`
+	Review *WorldEntityCoreDtoCoreAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreAuthoringReview struct {
+	ReviewedAt string `json:"reviewedAt,omitempty"`
+	ReviewedBy string `json:"reviewedBy,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreClassification struct {
+	SourceCategories []string `json:"sourceCategories,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreEvidence struct {
+	Completeness string `json:"completeness,omitempty"`
+	SourceRefs []string `json:"sourceRefs,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreFactsItem struct {
+	Attributes map[string]any `json:"attributes,omitempty"`
+	Confidence string `json:"confidence,omitempty"`
+	FactId string `json:"factId,omitempty"`
+	Label string `json:"label,omitempty"`
+	SourceRefs []string `json:"sourceRefs,omitempty"`
+	Type string `json:"type,omitempty"`
+	Value any `json:"value,omitempty"`
+}
+
+type WorldEntityCoreDtoCoreIdentity struct {
+	Aliases []string `json:"aliases,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Name string `json:"name,omitempty"`
+	Summary string `json:"summary,omitempty"`
 }
 
 type WorldPublicAssetDto struct {
@@ -12221,6 +13520,21 @@ type WorldPublicAssetProvenanceDto struct {
 	PublicationId string `json:"publicationId,omitempty"`
 	PublicationRecordId string `json:"publicationRecordId,omitempty"`
 	StorageRef string `json:"storageRef,omitempty"`
+}
+
+type WorldPublicCharacterBiographyDto struct {
+	LifeEvents []WorldPublicCharacterLifeEventDto `json:"lifeEvents,omitempty"`
+	SourceNotes []string `json:"sourceNotes,omitempty"`
+}
+
+type WorldPublicCharacterLifeEventDto struct {
+	Id string `json:"id,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	PeriodLabel string `json:"periodLabel,omitempty"`
+	Sequence float64 `json:"sequence,omitempty"`
+	Source string `json:"source,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Title string `json:"title,omitempty"`
 }
 
 type WorldPublicDetailDto struct {
@@ -12317,6 +13631,7 @@ type WorldPublicSceneResourceDto struct {
 }
 
 type WorldPublicSourceCardDto struct {
+	CharacterBiography *WorldPublicCharacterBiographyDto `json:"characterBiography,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
 	Handle string `json:"handle,omitempty"`
 	Id string `json:"id,omitempty"`
@@ -12372,20 +13687,6 @@ type WorldPublicStatsDto struct {
 	TimelineEventCount float64 `json:"timelineEventCount,omitempty"`
 }
 
-type WorldPublicTimeSnapshotDto struct {
-	AnchorRealStartedAt string `json:"anchorRealStartedAt,omitempty"`
-	AnchorWorldStartedAt string `json:"anchorWorldStartedAt,omitempty"`
-	AnchorWorldStartedAtDisplay string `json:"anchorWorldStartedAtDisplay,omitempty"`
-	Calendar string `json:"calendar,omitempty"`
-	ComputedAt string `json:"computedAt,omitempty"`
-	CurrentWorldTime string `json:"currentWorldTime,omitempty"`
-	CurrentWorldTimeDisplay string `json:"currentWorldTimeDisplay,omitempty"`
-	DisplayFormat string `json:"displayFormat,omitempty"`
-	FlowRatio float64 `json:"flowRatio,omitempty"`
-	IsPaused bool `json:"isPaused,omitempty"`
-	Mode string `json:"mode,omitempty"`
-}
-
 type WorldPublicTimelineEventDto struct {
 	CharacterRefs []string `json:"characterRefs,omitempty"`
 	EndsAt string `json:"endsAt,omitempty"`
@@ -12402,6 +13703,20 @@ type WorldPublicTimelineEventDto struct {
 	Title string `json:"title,omitempty"`
 }
 
+type WorldPublicTimeSnapshotDto struct {
+	AnchorRealStartedAt string `json:"anchorRealStartedAt,omitempty"`
+	AnchorWorldStartedAt string `json:"anchorWorldStartedAt,omitempty"`
+	AnchorWorldStartedAtDisplay string `json:"anchorWorldStartedAtDisplay,omitempty"`
+	Calendar string `json:"calendar,omitempty"`
+	ComputedAt string `json:"computedAt,omitempty"`
+	CurrentWorldTime string `json:"currentWorldTime,omitempty"`
+	CurrentWorldTimeDisplay string `json:"currentWorldTimeDisplay,omitempty"`
+	DisplayFormat string `json:"displayFormat,omitempty"`
+	FlowRatio float64 `json:"flowRatio,omitempty"`
+	IsPaused bool `json:"isPaused,omitempty"`
+	Mode string `json:"mode,omitempty"`
+}
+
 type WorldPublicViewerRelationDto struct {
 	ConnectionId string `json:"connectionId,omitempty"`
 	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
@@ -12411,7 +13726,7 @@ type WorldPublicViewerRelationDto struct {
 type WorldRelationshipCoreDto struct {
 	ContentHash string `json:"contentHash,omitempty"`
 	ContentRevision float64 `json:"contentRevision,omitempty"`
-	Core map[string]any `json:"core,omitempty"`
+	Core *WorldRelationshipCoreDtoCore `json:"core,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	Id string `json:"id,omitempty"`
 	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
@@ -12421,6 +13736,43 @@ type WorldRelationshipCoreDto struct {
 	Type string `json:"type,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 	WorldId string `json:"worldId,omitempty"`
+}
+
+type WorldRelationshipCoreDtoCore struct {
+	Attributes map[string]any `json:"attributes,omitempty"`
+	Authoring *WorldRelationshipCoreDtoCoreAuthoring `json:"authoring,omitempty"`
+	Endpoints *WorldRelationshipCoreDtoCoreEndpoints `json:"endpoints,omitempty"`
+	Evidence *WorldRelationshipCoreDtoCoreEvidence `json:"evidence,omitempty"`
+	Presentation *WorldRelationshipCoreDtoCorePresentation `json:"presentation,omitempty"`
+}
+
+type WorldRelationshipCoreDtoCoreAuthoring struct {
+	Extensions map[string]any `json:"extensions,omitempty"`
+	Maintainers []string `json:"maintainers,omitempty"`
+	Notes []string `json:"notes,omitempty"`
+	Review *WorldRelationshipCoreDtoCoreAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source,omitempty"`
+}
+
+type WorldRelationshipCoreDtoCoreAuthoringReview struct {
+	ReviewedAt string `json:"reviewedAt,omitempty"`
+	ReviewedBy string `json:"reviewedBy,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type WorldRelationshipCoreDtoCoreEndpoints struct {
+	SourceEntityId string `json:"sourceEntityId,omitempty"`
+	TargetEntityId string `json:"targetEntityId,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
+type WorldRelationshipCoreDtoCoreEvidence struct {
+	Confidence string `json:"confidence,omitempty"`
+	SourceRefs []string `json:"sourceRefs,omitempty"`
+}
+
+type WorldRelationshipCoreDtoCorePresentation struct {
+	Summary string `json:"summary,omitempty"`
 }
 
 type RealmAddFriendOperationPath struct {
@@ -14015,6 +15367,25 @@ type RealmGetResourceOperationRequest struct {
 	Path    RealmGetResourceOperationPath `json:"path,omitempty"`
 	Query   RealmGetResourceOperationQuery `json:"query,omitempty"`
 	Headers RealmGetResourceOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetSourceMaterializationJwksOperationPath struct {
+
+}
+
+type RealmGetSourceMaterializationJwksOperationQuery struct {
+
+}
+
+type RealmGetSourceMaterializationJwksOperationHeaders struct {
+
+}
+
+type RealmGetSourceMaterializationJwksOperationRequest struct {
+	Path    RealmGetSourceMaterializationJwksOperationPath `json:"path,omitempty"`
+	Query   RealmGetSourceMaterializationJwksOperationQuery `json:"query,omitempty"`
+	Headers RealmGetSourceMaterializationJwksOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -17062,6 +18433,14 @@ func (c RealmTypedClient) GetResource(ctx context.Context, request RealmGetResou
 	return decodeTypedResponse[ResourceDetailDto](raw)
 }
 
+func (c RealmTypedClient) GetSourceMaterializationJwks(ctx context.Context, request RealmGetSourceMaterializationJwksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+	raw, err := c.operationTyped(ctx, "getSourceMaterializationJwks", request, metadata, timeoutMS)
+	if err != nil {
+		return map[string]any{}, err
+	}
+	return decodeTypedResponse[map[string]any](raw)
+}
+
 func (c RealmTypedClient) GetUnreadCount(ctx context.Context, request RealmGetUnreadCountOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnreadNotificationCountDto, error) {
 	raw, err := c.operationTyped(ctx, "getUnreadCount", request, metadata, timeoutMS)
 	if err != nil {
@@ -17822,12 +19201,12 @@ func (c RealmTypedClient) WorldCoreControllerCreateRealmPersona(ctx context.Cont
 	return decodeTypedResponse[RealmPersonaDto](raw)
 }
 
-func (c RealmTypedClient) WorldCoreControllerCreateSourceMaterializationPacket(ctx context.Context, request RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SourceMaterializationPacketDto, error) {
+func (c RealmTypedClient) WorldCoreControllerCreateSourceMaterializationPacket(ctx context.Context, request RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SourceMaterializationPacketV2Dto, error) {
 	raw, err := c.operationTyped(ctx, "WorldCoreController_createSourceMaterializationPacket", request, metadata, timeoutMS)
 	if err != nil {
-		return SourceMaterializationPacketDto{}, err
+		return SourceMaterializationPacketV2Dto{}, err
 	}
-	return decodeTypedResponse[SourceMaterializationPacketDto](raw)
+	return decodeTypedResponse[SourceMaterializationPacketV2Dto](raw)
 }
 
 func (c RealmTypedClient) WorldCoreControllerCreateWorldCharacter(ctx context.Context, request RealmWorldCoreControllerCreateWorldCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCharacterCoreDto, error) {

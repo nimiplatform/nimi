@@ -1,7 +1,5 @@
 export type RuntimeAgentLiveE2EChatScenario = {
   readonly apml: string;
-  readonly key?: string;
-  readonly repairApml?: string;
   readonly reasoningChunks?: readonly string[];
   readonly chunks?: readonly string[] | `char-split-${number}`;
   readonly usage?: {
@@ -109,9 +107,7 @@ export const RUNTIME_AGENT_LIVE_E2E_CHAT_SCENARIOS: Readonly<Record<string, Runt
     chunks: 'char-split-7',
   },
   'a-malformed-apml': {
-    key: 'a-malformed-apml',
     apml: '<message id="message-a-malformed-apml"><activity>thinking</activity>A-09 malformed APML.',
-    repairApml: '<message id="message-a-malformed-apml-repair"><activity>thinking</message>',
   },
   'a-negative-unknown-activity': {
     apml: '<message id="message-a-negative-unknown-activity"><activity>wave</activity>A-10 invalid activity.</message>',

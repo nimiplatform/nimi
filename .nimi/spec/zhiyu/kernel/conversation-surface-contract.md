@@ -8,6 +8,13 @@ headless Runtime Agent projection helpers. Zhiyu must not implement raw turn
 transport, event stream assembly, terminal recovery, snapshot replay, or
 conversation projection reducers.
 
+The turn surface may render/correlate only bounded
+`LocalAgentSourceContextStatus` and `AgentTurnContextSummary` fields. It must
+preserve typed ready/blocked/truncated/failed states, budgets/truncation, lane
+ids/status/counts, and safe hashes without reading raw source/world/prompt/lane,
+transcript/private-memory, packet/proof, provider/tool payload, or free-form
+diagnostics.
+
 During the Desktop Agent Chat parity hardcut, Zhiyu may host a bounded
 app-local presentation implementation under `apps/zhiyu/src/shell/agent-chat/**`
 until real app acceptance stabilizes and a later upstream review decides what
@@ -16,6 +23,10 @@ identity, copy, layout, local partner selection, failure projection, and
 diagnostics entries, but it must not become Runtime transport truth, stream
 terminal truth, snapshot replay truth, route/provider/model truth, memory truth,
 avatar truth, voice/lipsync truth, or direct AI execution truth.
+
+The bounded local parity presentation must use shared SDK/Kit state mapping and
+cannot introduce a second source/context reducer, prompt assembler,
+`realmProfileContext`, profile-metadata context, or execution binding.
 
 ## Z-CHAT-002 Scoped Binding
 
@@ -29,12 +40,21 @@ exact evidence chain and fail-closed semantics before any Runtime Agent turn,
 snapshot read, interrupt, or agent event subscription uses it. A Zhiyu-local
 spec clause alone cannot weaken Runtime binding requirements.
 
+Binding proves caller admission only. It does not authorize Zhiyu to attach or
+override LocalAgent context; turn requests contain typed user intent and
+Runtime-owned identities only.
+
 ## Z-CHAT-003 Forbidden Direct AI Chat
 
 In partner conversation and partner activities, Zhiyu must not use direct AI
 chat helpers such as `useAppAiChatSession`, `createAppAiChatComposerAdapter`,
 `streamNimiTextResponse`, `runNimiTextGenerate`, raw `sendAppMessage` to the
 `runtime.agent` target, `client.writeMemory`, or `renderVoice`.
+
+Zhiyu must also reject app-composed LocalAgent prompt/context, caller
+system/developer roles, raw source/world/profile metadata, lane text/order,
+memory payload, tool schema, forged context manifests, and
+`realmProfileContext` attachment.
 
 ## Z-CHAT-004 Composer During Response
 

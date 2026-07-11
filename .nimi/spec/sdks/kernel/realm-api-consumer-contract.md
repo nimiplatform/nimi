@@ -36,6 +36,12 @@ mutation, or duplicated response-shape declarations.
 Handwritten SDK facades are allowed only when they wrap generated operations
 with typed fail-closed behavior and do not restore a second Realm contract.
 
+Source materialization uses only the generated Realm packet-v2 and challenge
+transport. The generated operation families own the request, response,
+challenge, packet, manifest, component, closure, and detached-proof shapes.
+SDK and apps must not introduce a handwritten packet-v1 DTO, anonymous source
+payload, fixed audience, raw bundle DTO, or parallel packet decoder.
+
 ## S-REALMAPI-003 SDK Owns Consumer Semantics Only
 
 SDK may own:
@@ -46,6 +52,8 @@ SDK may own:
 - retry and refresh orchestration
 - generated client composition
 - consumer availability and fail-closed states
+- opaque forwarding of the Runtime-issued challenge and audience through the
+  generated Realm v2 request surface
 
 SDK must not own:
 
@@ -54,6 +62,8 @@ SDK must not own:
 - Realm social/chat/economy/domain invariants
 - Realm OpenAPI source authority
 - server compatibility promises outside the generated API input
+- source-materialization packet, audience, proof, manifest, component, or
+  world-closure shape semantics
 
 ## S-REALMAPI-004 Runtime/Desktop Projection Boundary
 
@@ -64,6 +74,11 @@ When a local projection cannot be reconciled with Realm API output, the
 consumer must fail closed or expose an explicit unavailable/error projection.
 It must not synthesize Realm success.
 
+Runtime/Desktop may submit a Runtime-issued opaque challenge through the
+generated SDK operation and receive the generated packet-v2 result, but may
+not replace the challenge audience, decode raw bundle truth into app-owned
+records, or accept packet-v1/unknown packet schema as a local success path.
+
 ## S-REALMAPI-005 Version Drift Handling
 
 `MUST`: Realm API drift is handled by regenerating the SDK core from the
@@ -72,6 +87,10 @@ configured Realm OpenAPI input and updating SDK consumer contracts/tests.
 `MUST NOT`: Nimi must not patch drift by copying Realm spec text into
 `.nimi/spec/realm/**`, freezing stale DTOs in handwritten clients, or adding
 compatibility aliases that hide server contract changes.
+
+An unknown packet/challenge schema, enum, proof family, component kind, or
+closure branch is version drift and fails closed until the configured Realm
+OpenAPI input is regenerated. Handwritten compatibility readers are forbidden.
 
 ## S-REALMAPI-006 Pointer-Only Realm Subtree
 

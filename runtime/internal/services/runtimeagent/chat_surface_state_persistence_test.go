@@ -1,12 +1,311 @@
 package runtimeagent
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/proto"
 )
+
+func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T) {
+	statePath := t.TempDir() + "/runtime-state.json"
+	first, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	anchorID := openPublicChatTestAnchor(t, first, "agent-alpha", "desktop.app", "user-1")
+	for _, pair := range [][2]string{{"first user", "first assistant"}, {"second user", "second assistant"}} {
+		if err := first.commitPublicChatTurnTranscript(anchorID, &runtimev1.ChatMessage{Role: "user", Content: pair[0]}, pair[1]); err != nil {
+			t.Fatalf("commit transcript pair: %v", err)
+		}
+	}
+	if err := first.commitPublicChatFollowUpTranscript(anchorID, "turn-follow-up", "continue after a pause", "follow-up assistant"); err != nil {
+		t.Fatalf("commit follow-up transcript: %v", err)
+	}
+	summary := &runtimev1.AgentTurnContextSummary{
+		SchemaVersion:       runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+		Ready:               true,
+		State:               runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_READY,
+		ReasonCode:          runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,
+		ContextContentHash:  strings.Repeat("d", 64),
+		PromptHash:          strings.Repeat("e", 64),
+		LocalAgentRef:       testRuntimeAgentLocalRef("agent-alpha"),
+		TranscriptTurnCount: 2,
+	}
+	first.chatSurfaceMu.Lock()
+	first.chatAnchors[anchorID].LastTurnSnapshot = &publicChatTurnProjectionState{
+		TurnID:         "turn-second",
+		Status:         publicChatTurnStatusCompleted,
+		ContextSummary: summary,
+	}
+	first.chatSurfaceMu.Unlock()
+	first.persistCurrentPublicChatSurfaceState()
+	var persistedRaw string
+	if err := first.backend.DB().QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, runtimeAgentMetaPublicChatSurfaceStateKey).Scan(&persistedRaw); err != nil {
+		t.Fatalf("load persisted public chat state: %v", err)
+	}
+	if !strings.Contains(persistedRaw, `"committedTranscript"`) || strings.Contains(persistedRaw, `"transcript"`) || strings.Contains(persistedRaw, `"contextHistory"`) {
+		t.Fatalf("persistence must contain only canonical committed transcript truth: %s", persistedRaw)
+	}
+	closeFirst()
+
+	restarted, closeRestarted := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	defer closeRestarted()
+	recovered, _, lastTurn, _, err := restarted.snapshotPublicChatAnchorForCaller("zhiyu.app", anchorID)
+	if err != nil {
+		t.Fatalf("cross-app recovered snapshot: %v", err)
+	}
+	recoveredPublicTranscript, projectionErr := publicChatTranscriptProjection(recovered.CommittedTranscript)
+	if projectionErr != nil {
+		t.Fatalf("project recovered transcript: %v", projectionErr)
+	}
+	if len(recoveredPublicTranscript) != 4 || recoveredPublicTranscript[0].GetContent() != "first user" || recoveredPublicTranscript[3].GetContent() != "second assistant" {
+		t.Fatalf("recovered transcript mismatch: %v", recoveredPublicTranscript)
+	}
+	privateHistory, err := publicChatAgentTurnTranscriptInput(recovered)
+	if err != nil {
+		t.Fatalf("compile recovered private history: %v", err)
+	}
+	if len(privateHistory) != 3 || privateHistory[2].TurnID != "turn-follow-up" || !strings.Contains(privateHistory[2].UserText, "continue after a pause") || privateHistory[2].AssistantText != "follow-up assistant" {
+		t.Fatalf("recovered follow-up transcript mismatch: %+v", privateHistory)
+	}
+	if !proto.Equal(lastTurn.ContextSummary, summary) {
+		t.Fatalf("recovered context summary mismatch: got=%+v want=%+v", lastTurn.ContextSummary, summary)
+	}
+	ctx := testLocalAgentContext("user-1", "agent-alpha")
+	ctx.AppId = "zhiyu.app"
+	anchorSnapshot, err := restarted.GetConversationAnchorSnapshot(context.Background(), &runtimev1.GetConversationAnchorSnapshotRequest{
+		Context: ctx, AgentId: ctx.GetLocalAgentRef(), ConversationAnchorId: anchorID,
+	})
+	if err != nil {
+		t.Fatalf("GetConversationAnchorSnapshot after restart: %v", err)
+	}
+	if !proto.Equal(anchorSnapshot.GetSnapshot().GetTurnContextSummary(), summary) {
+		t.Fatalf("anchor snapshot context summary mismatch: %+v", anchorSnapshot.GetSnapshot().GetTurnContextSummary())
+	}
+	if err := restarted.commitPublicChatTurnTranscript(anchorID, &runtimev1.ChatMessage{Role: "user", Content: "third user"}, "third assistant"); err != nil {
+		t.Fatalf("commit third pair after restart: %v", err)
+	}
+	restarted.chatSurfaceMu.Lock()
+	thirdTranscript, projectionErr := publicChatTranscriptProjection(restarted.chatAnchors[anchorID].CommittedTranscript)
+	restarted.chatSurfaceMu.Unlock()
+	if projectionErr != nil {
+		t.Fatalf("project third-turn transcript: %v", projectionErr)
+	}
+	if len(thirdTranscript) != 6 || thirdTranscript[4].GetContent() != "third user" || thirdTranscript[5].GetContent() != "third assistant" {
+		t.Fatalf("third turn continuity mismatch: %v", thirdTranscript)
+	}
+}
+
+func TestPublicChatStrictTranscriptPersistenceFailureRollsBackBeforeCommitEvent(t *testing.T) {
+	statePath := t.TempDir() + "/runtime-state.json"
+	svc, closeSvc := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	firstClosed := false
+	defer func() {
+		if !firstClosed {
+			closeSvc()
+		}
+	}()
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	if _, err := svc.backend.DB().Exec(`
+		CREATE TRIGGER runtime_test_reject_public_chat_transcript_commit
+		BEFORE UPDATE OF value ON runtime_local_agent_meta
+		WHEN OLD.key = 'public_chat_surface_state'
+		BEGIN
+			SELECT RAISE(FAIL, 'injected public chat transcript persistence failure');
+		END
+	`); err != nil {
+		t.Fatalf("create strict transcript persistence trigger: %v", err)
+	}
+	triggerActive := true
+	dropTrigger := func() {
+		if !triggerActive {
+			return
+		}
+		if _, err := svc.backend.DB().Exec(`DROP TRIGGER IF EXISTS runtime_test_reject_public_chat_transcript_commit`); err != nil {
+			t.Errorf("drop strict transcript persistence trigger: %v", err)
+			return
+		}
+		triggerActive = false
+	}
+	defer dropTrigger()
+
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-strict-persist-failure",
+				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+					ModelResolved: "qwen3-chat",
+					RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				}},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-strict-persist-failure",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
+						Text: publicChatStructuredEnvelopeAPML("message-strict-persist-failure", "must not become committed"),
+					}},
+				}},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				TraceId:   "trace-strict-persist-failure",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
+					FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+				}},
+			})
+		},
+	})
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"runtime_source_ref":     "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"messages":               []any{map[string]any{"role": "user", "content": "strict persist input"}},
+		}),
+	}); err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
+	_ = capture.waitForMessageType(t, publicChatTurnFailedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+	for _, messageType := range capture.messageTypes() {
+		if messageType == publicChatTurnMessageCommittedType {
+			t.Fatalf("strict persistence failure emitted message_committed: %v", capture.messageTypes())
+		}
+	}
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-strict-persist-failure")
+	if got := publicChatSessionSnapshotDetail(t, snapshot)["transcript_message_count"]; got != float64(0) {
+		t.Fatalf("strict persistence failure must roll transcript back to zero: %v", publicChatSessionSnapshotDetail(t, snapshot))
+	}
+	if got := publicChatLastTurnSnapshot(t, snapshot)["status"]; got != publicChatTurnStatusFailed {
+		t.Fatalf("pre-boundary persistence failure must remain failed: %v", publicChatLastTurnSnapshot(t, snapshot))
+	}
+	var persistedRaw string
+	if err := svc.backend.DB().QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, runtimeAgentMetaPublicChatSurfaceStateKey).Scan(&persistedRaw); err != nil {
+		t.Fatalf("load state after strict persistence failure: %v", err)
+	}
+	if strings.Contains(persistedRaw, "strict persist input") || strings.Contains(persistedRaw, "must not become committed") {
+		t.Fatalf("failed strict transaction leaked transcript into SQLite: %s", persistedRaw)
+	}
+
+	dropTrigger()
+	svc.persistCurrentPublicChatSurfaceState()
+	closeSvc()
+	firstClosed = true
+	restarted, closeRestarted := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, statePath)
+	defer closeRestarted()
+	restartedCapture := newPublicChatEmitCapture()
+	restarted.SetPublicChatAppEmitter(restartedCapture.emit)
+	recovered := requestPublicChatSessionSnapshot(t, restarted, restartedCapture, anchorID, "snapshot-strict-persist-restarted")
+	if got := publicChatSessionSnapshotDetail(t, recovered)["transcript_message_count"]; got != float64(0) {
+		t.Fatalf("restart recovered a rolled-back transcript: %v", publicChatSessionSnapshotDetail(t, recovered))
+	}
+}
+
+func TestPublicChatSurfaceStateRejectsInvalidCommittedTranscript(t *testing.T) {
+	t.Parallel()
+	tests := map[string][]publicChatCommittedTranscriptTurn{
+		"sequence": {{TurnID: "turn-1", Sequence: 1, Origin: publicChatTurnOriginUser, InputText: "user", AssistantText: "assistant"}},
+		"origin":   {{TurnID: "turn-1", Sequence: 0, Origin: "caller", InputText: "user", AssistantText: "assistant"}},
+		"duplicate": {
+			{TurnID: "turn-1", Sequence: 0, Origin: publicChatTurnOriginUser, InputText: "user", AssistantText: "assistant"},
+			{TurnID: "turn-1", Sequence: 1, Origin: publicChatTurnOriginFollowUp, InputText: "continue", AssistantText: "continued"},
+		},
+	}
+	for name, transcript := range tests {
+		name, transcript := name, transcript
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			svc := newRuntimeAgentServiceForPublicChatTest(t)
+			state := persistedPublicChatSurfaceState{
+				Version: 100,
+				Anchors: []persistedPublicChatAnchor{{
+					ConversationAnchorID: "agent_anchor_invalid_" + name,
+					AgentID:              testRuntimeAgentLocalRef("agent-alpha"),
+					LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
+					OwnerUserID:          "user-1",
+					RuntimeSourceRef:     "agent-alpha",
+					SubjectUserID:        "user-1",
+					CommittedTranscript:  transcript,
+				}},
+			}
+			if err := svc.chatStateRepo.persistPublicChatSurfaceState(state); err != nil {
+				t.Fatalf("persist forged transcript: %v", err)
+			}
+			if err := svc.loadPublicChatSurfaceStateFromDB(); err == nil {
+				t.Fatal("invalid persisted committed transcript must fail closed")
+			}
+		})
+	}
+}
+
+func TestPublicChatSurfaceStateStrictlyRoundTripsTurnContextSummary(t *testing.T) {
+	summary := &runtimev1.AgentTurnContextSummary{
+		SchemaVersion:        runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+		Ready:                true,
+		State:                runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_READY,
+		ReasonCode:           runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,
+		ManifestInstanceHash: strings.Repeat("a", 64),
+		ContextContentHash:   strings.Repeat("b", 64),
+		PromptHash:           strings.Repeat("c", 64),
+		LocalAgentRef:        "local-agent:user-1:alpha",
+		TranscriptTurnCount:  3,
+		MemoryItemCount:      2,
+	}
+	state := persistedPublicChatSurfaceState{
+		Version: 1,
+		Anchors: []persistedPublicChatAnchor{{
+			ConversationAnchorID: "agent_anchor_summary",
+			AgentID:              "local-agent:user-1:alpha",
+			LocalAgentRef:        "local-agent:user-1:alpha",
+			OwnerUserID:          "user-1",
+			RuntimeSourceRef:     "alpha",
+			SubjectUserID:        "user-1",
+			LastTurnSnapshot: toPersistedPublicChatTurnSnapshot(&publicChatTurnProjectionState{
+				TurnID:         "turn-summary",
+				Status:         publicChatTurnStatusCompleted,
+				ContextSummary: summary,
+			}),
+		}},
+	}
+	raw, err := json.Marshal(state)
+	if err != nil {
+		t.Fatalf("marshal state: %v", err)
+	}
+	if strings.Contains(string(raw), "systemPrompt") || strings.Contains(string(raw), "executionParams") || !strings.Contains(string(raw), "context_content_hash") {
+		t.Fatalf("summary persistence must use bounded proto JSON, got %s", raw)
+	}
+	var restored persistedPublicChatSurfaceState
+	if err := json.Unmarshal(raw, &restored); err != nil {
+		t.Fatalf("unmarshal state: %v", err)
+	}
+	projection := fromPersistedPublicChatTurnSnapshot(restored.Anchors[0].LastTurnSnapshot)
+	if !proto.Equal(projection.ContextSummary, summary) {
+		t.Fatalf("context summary round trip mismatch: got=%+v want=%+v", projection.ContextSummary, summary)
+	}
+
+	forged := strings.Replace(string(raw), `"context_content_hash":`, `"unknown_private_lane":"forged","context_content_hash":`, 1)
+	if err := json.Unmarshal([]byte(forged), &persistedPublicChatSurfaceState{}); err == nil {
+		t.Fatal("unknown persisted context summary fields must fail closed")
+	}
+}
 
 func TestPublicChatSurfaceStateRoundTripsDurableTargetRef(t *testing.T) {
 	targetRef := &runtimev1.RuntimeDurableTargetRef{
@@ -195,7 +494,7 @@ func TestPublicChatSurfaceStateReadsPersistedGoStructDurableTargetRef(t *testing
 					}
 				}
 			},
-			"transcript": []
+			"committedTranscript": []
 		}],
 		"followUps": [],
 		"avatarLiveInstances": []
@@ -234,7 +533,7 @@ func TestPublicChatSurfaceStateReadsPersistedGoStructReadinessTargetRef(t *testi
 					}
 				}
 			},
-			"transcript": []
+			"committedTranscript": []
 		}],
 		"followUps": [],
 		"avatarLiveInstances": []
@@ -273,7 +572,7 @@ func TestPublicChatSurfaceStateReadsPersistedGoStructCloudDurableTargetRef(t *te
 					}
 				}
 			},
-			"transcript": []
+			"committedTranscript": []
 		}],
 		"followUps": [],
 		"avatarLiveInstances": []

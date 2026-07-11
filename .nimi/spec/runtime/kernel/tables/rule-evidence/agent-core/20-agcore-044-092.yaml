@@ -1,3 +1,80 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_agent_core_044_092_fragment
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-AGCORE-044
+  - K-AGCORE-045
+  - K-AGCORE-046
+  - K-AGCORE-047
+  - K-AGCORE-048
+  - K-AGCORE-049
+  - K-AGCORE-050
+  - K-AGCORE-051
+  - K-AGCORE-052
+  - K-AGCORE-053
+  - K-AGCORE-054
+  - K-AGCORE-055
+  - K-AGCORE-056
+  - K-AGCORE-057
+  - K-AGCORE-058
+  - K-AGCORE-059
+  - K-AGCORE-060
+  - K-AGCORE-133
+  - K-AGCORE-061
+  - K-AGCORE-062
+  - K-AGCORE-063
+  - K-AGCORE-064
+  - K-AGCORE-065
+  - K-AGCORE-066
+  - K-AGCORE-067
+  - K-AGCORE-068
+  - K-AGCORE-069
+  - K-AGCORE-070
+  - K-AGCORE-071
+  - K-AGCORE-072
+  - K-AGCORE-073
+  - K-AGCORE-074
+  - K-AGCORE-075
+  - K-AGCORE-076
+  - K-AGCORE-077
+  - K-AGCORE-078
+  - K-AGCORE-079
+  - K-AGCORE-080
+  - K-AGCORE-081
+  - K-AGCORE-082
+  - K-AGCORE-083
+  - K-AGCORE-084
+  - K-AGCORE-085
+  - K-AGCORE-086
+  - K-AGCORE-087
+  - K-AGCORE-088
+  - K-AGCORE-089
+  - K-AGCORE-090
+  - K-AGCORE-091
+  - K-AGCORE-092
+
 rules:
   - rule_id: K-AGCORE-044
     evidence_refs:

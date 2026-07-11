@@ -62,6 +62,12 @@ entries:
 - D-LLM-006
 - D-LLM-007
 - D-LLM-008
+- D-LLM-022
+- D-LLM-023
+- D-LLM-024
+- D-LLM-025
+- D-LLM-026
+- D-LLM-107
 - D-LLM-065
 - D-LLM-053
 - D-LLM-054
@@ -271,6 +277,41 @@ rules:
   - desktop_test_gate
   - desktop_cloud_runtime_only_gate
   evidence_requirement: required
+- rule_id: D-LLM-022
+  evidence_refs: &agent_chat_projection_evidence
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+  note: Desktop renders only bounded AgentTurnContextSummary and rejects realmProfileContext/source metadata as source authority.
+  test_files:
+  - apps/desktop/test/agent-chat-projection-boundary.test.ts
+- rule_id: D-LLM-023
+  evidence_refs: *agent_chat_projection_evidence
+  evidence_requirement: required
+  note: Desktop owns no Agent Chat prompt/context assembly; realmProfileContext cannot influence turn context authority.
+  test_files:
+  - apps/desktop/test/agent-chat-projection-boundary.test.ts
+- rule_id: D-LLM-024
+  evidence_refs: *agent_chat_projection_evidence
+  evidence_requirement: required
+  note: Message/action/voice presentation remains downstream of Runtime and cannot promote profile metadata into source or turn context.
+  test_files:
+  - apps/desktop/test/agent-chat-projection-boundary.test.ts
+- rule_id: D-LLM-025
+  evidence_refs: *agent_chat_projection_evidence
+  evidence_requirement: required
+  note: Missing, invalid, unknown, or partial Runtime projections fail closed as presentation state.
+  test_files:
+  - apps/desktop/test/agent-chat-projection-boundary.test.ts
+- rule_id: D-LLM-026
+  evidence_refs: *agent_chat_projection_evidence
+  evidence_requirement: required
+  note: Adjacent Runtime/SDK/Avatar/Desktop owners remain explicit and non-overlapping.
+- rule_id: D-LLM-107
+  evidence_refs: *agent_chat_projection_evidence
+  evidence_requirement: required
+  note: Runtime/SDK session snapshots replace Desktop-local Agent Chat transcript recovery truth.
 - rule_id: D-LLM-002
   evidence_refs:
   - desktop_kernel_consistency

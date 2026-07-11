@@ -15,6 +15,7 @@ defaults:
   default_text_model: mimo-v2.5-pro
   model_type: chat
   capabilities: []
+  context_window_tokens: 8192
   pricing:
     unit: token
     input: unknown

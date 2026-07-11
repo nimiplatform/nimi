@@ -21,23 +21,23 @@ states:
     exit_conditions: [current_partner_selected]
   - id: model_config_not_ready
     user_visible_copy_floor: "需要先配置伙伴使用的模型"
-    entry_conditions: [current_partner_selected, runtime_ai_config_missing_or_invalid]
+    entry_conditions: [current_partner_selected, bounded_source_projection_ready, runtime_ai_config_missing_or_invalid]
     primary_actions: [open_ai_model_config]
     exit_conditions: [runtime_ai_config_ready]
   - id: partner_ready
     user_visible_copy_floor: "可以和伙伴开始对话"
-    entry_conditions: [current_partner_ready, runtime_agent_turn_surface_available]
+    entry_conditions: [current_partner_ready, bounded_source_projection_ready, no_present_context_projection_blocked_failed_unknown_or_partial, runtime_agent_turn_surface_available]
     primary_actions: [send_message, configure_ai_model, configure_avatar, launch_avatar]
     exit_conditions: [turn_started, upstream_failure]
   - id: partner_responding
     user_visible_copy_floor: "伙伴正在回应"
-    entry_conditions: [runtime_agent_turn_in_progress]
+    entry_conditions: [runtime_agent_turn_in_progress, bounded_context_projection_ready_or_truncated]
     primary_actions: [edit_draft, wait_for_response]
     disabled_actions: [send_message]
     exit_conditions: [turn_completed, turn_failed]
   - id: recoverable_failure
     user_visible_copy_floor: "刚才没有成功，可以重试"
-    entry_conditions: [owner_aware_recoverable_failure]
+    entry_conditions: [owner_aware_recoverable_failure_including_bounded_source_or_context_projection_blocked_failed_unknown_or_partial]
     primary_actions: [retry, open_diagnostics]
     exit_conditions: [retry_started, user_changes_state]
   - id: broker_login_required

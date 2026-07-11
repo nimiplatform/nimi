@@ -19,7 +19,6 @@ This guide points to the desktop authority surfaces for notification. It does no
 
 ## Tables
 
-- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
 - `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
 - `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
 - `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`

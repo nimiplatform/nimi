@@ -36,7 +36,7 @@ import { normalizeNimiRuntimeAgentText, toNimiRuntimeIsoFromTimestamp, toNimiRun
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import type {
   NimiRuntimeAgentConsumeRequest,
-  NimiRuntimeAgentMessage,
+  NimiRuntimeAgentCurrentUserMessage,
   NimiRuntimeAgentSessionSnapshotRequest,
   NimiRuntimeAgentTurnInterruptRequest,
   NimiRuntimeAgentTurnRequest,
@@ -52,6 +52,31 @@ const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
 const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
 const TURN_VOICE_RENDER_TYPE = 'runtime.agent.turn.voice_render';
 const VOICE_RENDER_TIMEOUT_MS = 1500;
+const TURN_REQUEST_FIELDS = new Set([
+  'ownerUserId',
+  'runtimeSourceRef',
+  'localAgentRef',
+  'conversationAnchorId',
+  'requestId',
+  'threadId',
+  'maxOutputTokens',
+  'messages',
+  'reasoning',
+  'scopedBinding',
+]);
+const TURN_MESSAGE_FIELDS = new Set(['role', 'content']);
+const TURN_REASONING_FIELDS = new Set(['mode', 'traceMode', 'budgetTokens']);
+const SCOPED_BINDING_FIELDS = new Set([
+  'bindingId',
+  'bindingHandle',
+  'runtimeAppId',
+  'appInstanceId',
+  'windowId',
+  'avatarInstanceId',
+  'agentId',
+  'conversationAnchorId',
+  'worldId',
+]);
 
 export interface NimiRuntimeAgentTurnsRuntime {
   readonly appId: string;
@@ -101,6 +126,58 @@ function optionalString(value: unknown): string | undefined {
 
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function assertExactObjectFields(
+  value: unknown,
+  allowedFields: ReadonlySet<string>,
+  label: string,
+): asserts value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    runtimeAgentInputError(`${label} must be an object`, 'provide_valid_runtime_agent_turn_input');
+  }
+  for (const field of Reflect.ownKeys(value)) {
+    if (typeof field !== 'string' || !allowedFields.has(field)) {
+      runtimeAgentInputError(
+        `${label} contains unsupported field ${typeof field === 'string' ? field : String(field)}`,
+        'remove_unsupported_runtime_agent_turn_field',
+      );
+    }
+  }
+}
+
+function validateTurnScopedBinding(value: unknown): void {
+  if (value === undefined) {
+    return;
+  }
+  assertExactObjectFields(value, SCOPED_BINDING_FIELDS, 'runtime agent turn scopedBinding');
+}
+
+function normalizeTurnReasoning(value: unknown): JsonObject | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  assertExactObjectFields(value, TURN_REASONING_FIELDS, 'runtime agent turn reasoning');
+  const mode = optionalString(value.mode);
+  const traceMode = optionalString(value.traceMode);
+  const budgetTokens = optionalNumber(value.budgetTokens);
+  if (value.mode !== undefined && !mode) {
+    runtimeAgentInputError('runtime agent turn reasoning mode must be a non-empty string', 'provide_valid_runtime_agent_reasoning');
+  }
+  if (value.traceMode !== undefined && !traceMode) {
+    runtimeAgentInputError('runtime agent turn reasoning traceMode must be a non-empty string', 'provide_valid_runtime_agent_reasoning');
+  }
+  if (value.budgetTokens !== undefined && (budgetTokens === undefined || budgetTokens < 0)) {
+    runtimeAgentInputError('runtime agent turn reasoning budgetTokens must be non-negative', 'provide_valid_runtime_agent_reasoning');
+  }
+  if (!mode && !traceMode && budgetTokens === undefined) {
+    return undefined;
+  }
+  return {
+    ...(mode ? { mode } : {}),
+    ...(traceMode ? { trace_mode: traceMode } : {}),
+    ...(budgetTokens !== undefined ? { budget_tokens: budgetTokens } : {}),
+  };
 }
 
 function mergeRuntimeAgentTurnCallOptions(
@@ -162,26 +239,37 @@ function toScopedBindingAttachment(
   };
 }
 
-function normalizeTurnMessages(messages: readonly NimiRuntimeAgentMessage[]): NimiRuntimeAgentMessage[] {
-  if (!Array.isArray(messages)) {
-    return [];
+function normalizeCurrentUserMessage(messages: unknown): NimiRuntimeAgentCurrentUserMessage {
+  if (!Array.isArray(messages) || messages.length !== 1) {
+    runtimeAgentInputError(
+      'runtime agent turn request requires exactly one current user message',
+      'provide_one_runtime_agent_current_user_message',
+    );
   }
-  return messages
-    .map((message) => ({
-      role: message.role,
-      content: optionalString(message.content) || '',
-      ...(optionalString(message.name) ? { name: optionalString(message.name) } : {}),
-    }))
-    .filter((message) => Boolean(message.role && message.content));
+  const message: unknown = messages[0];
+  assertExactObjectFields(message, TURN_MESSAGE_FIELDS, 'runtime agent turn message');
+  if (message.role !== 'user') {
+    runtimeAgentInputError(
+      'runtime agent turn message role must be user',
+      'provide_one_runtime_agent_current_user_message',
+    );
+  }
+  const content = optionalString(message.content);
+  if (!content) {
+    runtimeAgentInputError(
+      'runtime agent turn message content must be non-empty',
+      'provide_one_runtime_agent_current_user_message',
+    );
+  }
+  return { role: 'user', content };
 }
 
 export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRequest): JsonObject {
+  assertExactObjectFields(request, TURN_REQUEST_FIELDS, 'runtime agent turn request');
+  validateTurnScopedBinding(request.scopedBinding);
   const identity = projectRuntimeLocalAgentIdentity(request);
   const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
-  const messages = normalizeTurnMessages(request.messages);
-  if (messages.length === 0) {
-    runtimeAgentInputError('runtime agent turn request requires at least one non-empty message', 'provide_runtime_agent_turn_message');
-  }
+  const message = normalizeCurrentUserMessage(request.messages);
   // Turn requests never carry execution bindings: the runtime resolves the
   // turn against the committed Runtime Agent AI Config (K-AGCORE-147) and
   // rejects any request-level execution_bindings as InvalidArgument.
@@ -189,6 +277,10 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
   if (maxOutputTokens !== undefined && maxOutputTokens < 0) {
     runtimeAgentInputError('runtime agent turn request maxOutputTokens must be non-negative', 'provide_non_negative_max_output_tokens');
   }
+  if (request.maxOutputTokens !== undefined && maxOutputTokens === undefined) {
+    runtimeAgentInputError('runtime agent turn request maxOutputTokens must be a finite number', 'provide_non_negative_max_output_tokens');
+  }
+  const reasoning = normalizeTurnReasoning(request.reasoning);
   return {
     local_agent_ref: identity.localAgentRef,
     owner_user_id: identity.ownerUserId,
@@ -196,24 +288,9 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
     conversation_anchor_id: conversationAnchorId,
     ...(optionalString(request.requestId) ? { request_id: optionalString(request.requestId) } : {}),
     ...(optionalString(request.threadId) ? { thread_id: optionalString(request.threadId) } : {}),
-    ...(optionalString(request.systemPrompt) ? { system_prompt: optionalString(request.systemPrompt) } : {}),
-    ...(optionalString(request.worldId) ? { world_id: optionalString(request.worldId) } : {}),
     ...(maxOutputTokens !== undefined ? { max_output_tokens: maxOutputTokens } : {}),
-    messages: messages.map((message) => ({
-      role: message.role,
-      content: message.content,
-      ...(optionalString(message.name) ? { name: optionalString(message.name) } : {}),
-    })),
-    ...(request.executionParams ? { execution_params: request.executionParams as JsonObject } : {}),
-    ...(request.reasoning ? {
-      reasoning: {
-        ...(optionalString(request.reasoning.mode) ? { mode: optionalString(request.reasoning.mode) } : {}),
-        ...(optionalString(request.reasoning.traceMode) ? { trace_mode: optionalString(request.reasoning.traceMode) } : {}),
-        ...(optionalNumber(request.reasoning.budgetTokens) !== undefined
-          ? { budget_tokens: optionalNumber(request.reasoning.budgetTokens) }
-          : {}),
-      },
-    } : {}),
+    messages: [message],
+    ...(reasoning ? { reasoning } : {}),
   };
 }
 
@@ -529,14 +606,13 @@ export function createNimiRuntimeAgentTurnsModule(
       return mergeAsyncIterables(sources);
     },
     async request(request) {
+      const payload = toNimiRuntimeProtoStruct(buildNimiRuntimeAgentTurnPayload(request));
       const identity = localIdentity(request);
       const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
         runtimeAppId: runtime.appId,
         localAgentRef: identity.localAgentRef,
         conversationAnchorId: request.conversationAnchorId,
-        worldId: request.worldId,
       });
-      const payload = toNimiRuntimeProtoStruct(buildNimiRuntimeAgentTurnPayload(request));
       const subjectUserId = await resolveSubjectUserId(options, identity.ownerUserId);
       const response = await withTurnScopes(options, subjectUserId, [TURN_WRITE_SCOPE], async (callOptions) =>
         runtime.appMessages.sendAppMessage({
@@ -689,7 +765,10 @@ export function createNimiRuntimeAgentTurnsModule(
           }),
         }, callOptions),
       );
-      return parseNimiRuntimeAgentSessionSnapshot(response.snapshot);
+      return parseNimiRuntimeAgentSessionSnapshot(response.snapshot, {
+        localAgentRef: identity.localAgentRef,
+        conversationAnchorId,
+      });
     },
   };
 }

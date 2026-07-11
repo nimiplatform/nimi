@@ -506,6 +506,12 @@ REALM_OPERATIONS = [
     "path": "/api/resources/{resourceId}"
   },
   {
+    "operation_id": "getSourceMaterializationJwks",
+    "service": "Jwks",
+    "method": "GET",
+    "path": "/api/auth/jwks/source-materialization"
+  },
+  {
     "operation_id": "getUnreadCount",
     "service": "Notifications",
     "method": "GET",

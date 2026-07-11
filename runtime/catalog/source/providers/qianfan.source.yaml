@@ -14,6 +14,7 @@ defaults:
   default_text_model: ernie-5.1
   model_type: chat
   capabilities: []
+  context_window_tokens: 8192
   pricing:
     unit: token
     input: unknown
@@ -109,6 +110,7 @@ models:
     source_ids: [qianfan_model_list_doc, qianfan_pricing_doc, qianfan_model_updates_doc]
 
   - model_id: ernie-4.5-turbo-128k
+    context_window_tokens: 131072
     model_type: chat
     updated_at: 2026-04-18
     capabilities: [text.generate]
@@ -122,6 +124,7 @@ models:
     source_ids: [qianfan_model_list_doc, qianfan_pricing_doc, qianfan_text_api_doc]
 
   - model_id: ernie-4.5-turbo-32k
+    context_window_tokens: 32768
     model_type: chat
     updated_at: 2026-04-18
     capabilities: [text.generate]

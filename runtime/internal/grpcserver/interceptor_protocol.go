@@ -26,7 +26,7 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 		}
 		ctx = envelope.WithMetadata(ctx, meta)
 
-		if requireIdempotency && store != nil {
+		if requireIdempotency && store != nil && !usesDomainDurableIdempotency(info.FullMethod) {
 			appID := strings.TrimSpace(meta.AppID)
 			if appID == "" {
 				appID = appIDFromRequest(req)
@@ -51,6 +51,22 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 		}
 
 		return handler(ctx, req)
+	}
+}
+
+// Materialization request/replay truth is durable domain state. The protocol
+// envelope still requires an idempotency key, but the process-local generic
+// response cache must never bypass challenge/upload/snapshot lifecycle checks.
+func usesDomainDurableIdempotency(fullMethod string) bool {
+	switch fullMethod {
+	case "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
+		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
+		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
+		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -135,6 +151,11 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAgentService/CancelHook",
 		"/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
+		"/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
+		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
+		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
+		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
 		"/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
 		"/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
 		"/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",

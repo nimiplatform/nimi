@@ -178,8 +178,19 @@ entries:
   - K-AGCORE-148
   - K-AGCORE-149
   - K-AGCORE-150
+  - K-AGCORE-151
+  - K-AGCORE-152
+  - K-AGCORE-153
+  - K-AGCORE-154
+  - K-AGCORE-155
+  - K-AGCORE-156
+  - K-AGCORE-157
+  - K-AGCORE-158
+  - K-AGCORE-159
+  - K-AGCORE-160
 fragments:
   rules:
     - rule-evidence/agent-core/10-agcore-001-043.yaml
     - rule-evidence/agent-core/20-agcore-044-092.yaml
     - rule-evidence/agent-core/30-agcore-093-150.yaml
+    - rule-evidence/agent-core/40-agcore-151-160.yaml

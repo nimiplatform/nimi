@@ -1,3 +1,63 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_core_protocol_runtime_target_workflow_rpc_fragment
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-RTARGET-001
+  - K-RTARGET-002
+  - K-RTARGET-003
+  - K-RTARGET-004
+  - K-RTARGET-005
+  - K-RTARGET-006
+  - K-RTARGET-007
+  - K-RTARGET-008
+  - K-RTARGET-009
+  - K-RTARGET-010
+  - K-RTARGET-011
+  - K-WF-000
+  - K-WF-001
+  - K-WF-002
+  - K-WF-003
+  - K-WF-004
+  - K-WF-005
+  - K-WF-006
+  - K-WF-007
+  - K-WF-008
+  - K-WF-009
+  - K-WF-010
+  - K-WF-011
+  - K-WF-012
+  - K-RPC-012a
+  - K-RPC-012b
+  - K-RPC-012c
+  - K-RPC-004a
+  - K-RPC-004b
+  - K-RPC-004c
+  - K-RPC-024
+  - K-RPC-025
+  - K-RPC-026
+
 rules:
   - rule_id: K-RTARGET-001
     evidence_refs:

@@ -32,6 +32,12 @@ entries:
   - P-TEST-006
   - P-TEST-007
   - P-TEST-008
+  - P-TEST-009
+  - P-TEST-010
+  - P-TEST-011
+  - P-TEST-012
+  - P-TEST-013
+  - P-TEST-014
 rules:
   - rule_id: P-TEST-001
     evidence_requirement: test-governance-policy.yaml
@@ -49,3 +55,29 @@ rules:
     evidence_requirement: test-governance-policy.yaml
   - rule_id: P-TEST-008
     evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-009
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/lib/platform-spec-test-governance-checks.mjs
+  - rule_id: P-TEST-010
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/lib/platform-spec-test-governance-checks.mjs
+  - rule_id: P-TEST-011
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/lib/platform-spec-test-governance-checks.mjs
+  - rule_id: P-TEST-012
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/lib/platform-spec-test-governance-checks.mjs
+      - scripts/check-local-agent-full-chain-hardcut.mjs
+  - rule_id: P-TEST-013
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/lib/platform-spec-test-governance-checks.mjs
+  - rule_id: P-TEST-014
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/lib/platform-spec-test-governance-checks.mjs
+      - scripts/check-local-agent-full-chain-hardcut.mjs

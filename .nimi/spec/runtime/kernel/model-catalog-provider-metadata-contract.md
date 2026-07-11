@@ -25,6 +25,13 @@ Source-provider entries under `runtime/catalog/source/providers/` 必须在合�
   必填
 - 当 `runtime.inventory_mode=dynamic_endpoint` 时，`models`、`selection_profiles`
   与 `defaults.default_text_model` 都可以省略
+- 当 `runtime.inventory_mode=static_source`、`runtime.runtime_plane=remote` 且
+  任一 `models[]` row 声明 `text.generate` 时，source 必须以正整数声明
+  `defaults.context_window_tokens`，或在每个 text row 上声明正整数
+  `models[].context_window_tokens`。该值是 catalog review 明确接纳的保守
+  request-capacity floor，不是 Runtime/provider/app 推测的通用默认值；model
+  row override 优先于 provider source default，alias expansion 必须继承 canonical
+  model 的同一值。
 
 ## K-MCAT-020 Single Catalog Layout
 

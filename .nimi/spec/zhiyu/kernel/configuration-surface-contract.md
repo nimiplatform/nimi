@@ -7,6 +7,11 @@ operate the Runtime Agent AI Config used by Runtime execution for the current
 partner. Zhiyu does not own app-scope persisted `AIConfig`, provider routing,
 execution, credential custody, prompt assembly, or spend truth.
 
+The placement may display bounded source/context ready, blocked, truncated, or
+failed status from `LocalAgentSourceContextStatus` and
+`AgentTurnContextSummary`; these projections are read-only and are not model
+configuration, prompt content, or execution bindings.
+
 ## Z-CONFIG-002 AI Config Persistence
 
 Runtime Agent AI Config changes initiated from Zhiyu must be submitted through
@@ -30,6 +35,10 @@ Configuration surfaces must fail closed on missing upstream facade, permission,
 binding, validation, or owner admission. A local UI control is not proof that
 the config change is admitted or persisted.
 
+Unknown/partial source/context summary schema, enum, state, lane, or reason is
+a typed unavailable state. Configuration UI must not derive readiness from
+profile metadata, raw diagnostics, hashes alone, or locally assembled context.
+
 ## Z-CONFIG-005 Retired Agent Center Local Config Bridge
 
 The bounded Zhiyu Electron local config/import bridge is retired by the Agent
@@ -49,6 +58,11 @@ allowing admitted Runtime selection edits.
 Zhiyu consumes `kit.features.agent-center` as a partner-settings or secondary
 surface. Zhiyu remains partner-first: partner selection, partner header, close
 button, side-sheet chrome, and developer tools stay outside Kit Agent Center.
+
+For LocalAgent source/context, Kit Agent Center receives only typed bounded
+`LocalAgentSourceContextStatus` and `AgentTurnContextSummary` adapters. Zhiyu
+must not inject raw context, prompt/profile metadata, execution bindings, a
+second reducer, or a context assembler.
 
 Zhiyu may provide:
 

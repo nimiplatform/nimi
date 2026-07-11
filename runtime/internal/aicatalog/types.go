@@ -29,11 +29,12 @@ const (
 )
 
 var (
-	ErrModelNotFound            = errors.New("model catalog entry not found")
-	ErrVoiceSetEmpty            = errors.New("voice set has no entries")
-	ErrProviderUnsupported      = errors.New("catalog provider is not supported")
-	ErrCatalogMutationDisabled  = errors.New("catalog custom directory is not configured")
-	ErrVoiceWorkflowUnsupported = errors.New("voice workflow is not supported by model")
+	ErrModelNotFound                 = errors.New("model catalog entry not found")
+	ErrVoiceSetEmpty                 = errors.New("voice set has no entries")
+	ErrProviderUnsupported           = errors.New("catalog provider is not supported")
+	ErrCatalogMutationDisabled       = errors.New("catalog custom directory is not configured")
+	ErrVoiceWorkflowUnsupported      = errors.New("voice workflow is not supported by model")
+	ErrModelContextWindowUnavailable = errors.New("model catalog context window is unavailable")
 )
 
 type Pricing struct {
@@ -216,12 +217,16 @@ type LocalPlaneCompanion struct {
 }
 
 type ModelEntry struct {
-	Provider            string                     `yaml:"provider" json:"provider"`
-	ModelID             string                     `yaml:"model_id" json:"model_id"`
-	ApiModelID          string                     `yaml:"api_model_id,omitempty" json:"api_model_id,omitempty"`
-	ModelType           string                     `yaml:"model_type" json:"model_type"`
-	UpdatedAt           string                     `yaml:"updated_at" json:"updated_at"`
-	Capabilities        []string                   `yaml:"capabilities" json:"capabilities"`
+	Provider     string   `yaml:"provider" json:"provider"`
+	ModelID      string   `yaml:"model_id" json:"model_id"`
+	ApiModelID   string   `yaml:"api_model_id,omitempty" json:"api_model_id,omitempty"`
+	ModelType    string   `yaml:"model_type" json:"model_type"`
+	UpdatedAt    string   `yaml:"updated_at" json:"updated_at"`
+	Capabilities []string `yaml:"capabilities" json:"capabilities"`
+	// ContextWindowTokens is the provider/model catalog authority for remote
+	// text models. Local-plane rows continue to use Fitness.ContextLength; the
+	// resolver projects both through one fail-closed metadata surface.
+	ContextWindowTokens uint64                     `yaml:"context_window_tokens,omitempty" json:"context_window_tokens,omitempty"`
 	Pricing             Pricing                    `yaml:"pricing" json:"pricing"`
 	VoiceSetID          string                     `yaml:"voice_set_id,omitempty" json:"voice_set_id,omitempty"`
 	VoiceDiscoveryMode  string                     `yaml:"voice_discovery_mode,omitempty" json:"voice_discovery_mode,omitempty"`
@@ -244,6 +249,17 @@ type ModelEntry struct {
 	// present only on rows whose engine genuinely requires companions (image /
 	// video workflow models); core text/speech rows carry none.
 	Companions []LocalPlaneCompanion `yaml:"companions,omitempty" json:"companions,omitempty"`
+}
+
+// TextContextMetadata is the bounded catalog input consumed by Runtime Agent
+// context composition. It deliberately excludes provider credentials and
+// transport state.
+type TextContextMetadata struct {
+	Provider            string
+	ModelID             string
+	ModelRevision       string
+	CatalogVersion      string
+	ContextWindowTokens uint64
 }
 
 // PresetSlot is one K-MCAT-033 curated slot binding a capability to a model.

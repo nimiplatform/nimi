@@ -12,6 +12,9 @@ Kit owns:
 - typed adapter contracts for Runtime Agent AI Config, readiness, inspect, autonomy, memory projection, and shell-backed appearance transport
 - complete Agent Center appearance feature behavior that composes Runtime-owned presentation selection truth with Kit Shell-owned host-local asset custody
 - failure-state, disabled-state, loading-state, and narrow-layout behavior
+- typed rendering/state mapping for Runtime-admitted
+  `LocalAgentSourceContextStatus` only; source readiness remains a bounded
+  read-only projection
 
 Kit does not own:
 
@@ -42,6 +45,12 @@ Apps may not:
 - pass arbitrary `ReactNode` feature panels into Kit Agent Center as `modelContent`, `diagnosticsContent`, `renderGatedSurface`, capability studio, or technical surfaces
 - include app-specific developer/product features inside Agent Center sections
 
+Kit never receives raw source/world/core/closure data, prompt or lane text,
+transcript/private memory, packet/proof/chunks, provider payloads, credentials,
+tool arguments/results, or a LocalAgent context assembler.
+
+- AUTHORITY-RELATION subject=kit-agent-center action=consume-status object=localagent-source value=bounded-only polarity=require
+
 ## P-AGENT-CENTER-002 Product Sections
 
 Kit Agent Center provides the complete generic Agent Center surface:
@@ -54,6 +63,13 @@ Kit Agent Center provides the complete generic Agent Center surface:
 - Advanced: Runtime-derived diagnostics, event stream health, runtime source identity, app binding scopes, accepted turn/config revision, and audit references.
 
 Zhiyu may place the same Kit sections only as a partner-settings or secondary surface. Advanced diagnostics and event stream detail are secondary or developer-facing surfaces, not first-viewport product narrative.
+
+Overview and Advanced may render the closed read-only
+`AgentTurnContextSummary` state/reason, versions/hashes, ordered lane
+ids/status/counts, budget/truncation, transcript/memory/media/tool counts, and
+route/catalog digest. They must not render or reconstruct raw context.
+
+- AUTHORITY-RELATION subject=kit-agent-center action=consume-status object=localagent-context value=bounded-only polarity=require
 
 ## P-AGENT-CENTER-003 Local Config Retired World
 
@@ -78,6 +94,14 @@ Fixed rules:
 
 Kit Agent Center consumes Runtime/SDK truth only through `kit/core/src/sdk-contract.ts` or explicitly injected typed adapters. Kit Agent Center production code must not import `runtime/internal/**`, `apps/**`, SDK-private paths, or app aliases.
 
+Its LocalAgent adapter inputs are limited to
+`LocalAgentSourceContextStatus` and `AgentTurnContextSummary`. Unknown/partial
+schema, enum, state, lane, or reason is an unavailable/failed UI state. Kit
+must not accept raw context or expose an adapter that assembles, overrides, or
+attaches LocalAgent context.
+
+- AUTHORITY-RELATION subject=kit-agent-center action=assemble object=localagent-context value=denied polarity=forbid
+
 ## P-AGENT-CENTER-006 Surface Ownership Matrix
 
 | Current Surface | Required Owner | Required Handling |
@@ -95,3 +119,12 @@ Kit Agent Center consumes Runtime/SDK truth only through `kit/core/src/sdk-contr
 | Zhiyu/desktop local avatar/background file bridge | Kit Shell standard `agent-center` capability plus Runtime `AgentPresentationProfile` selection writes | Delete private app bridges and consume the shared Kit shell-backed appearance adapter. |
 
 Every current Agent Center child/panel must map to Kit core, Runtime projection/setting, host-transport adapter, Avatar/Runtime resource boundary, or app-only outside-Agent-Center placement. Unmapped surfaces block implementation.
+
+Apps own LocalAgent intent capture, placement, copy, navigation, and bounded
+presentation state only. Runtime owns source snapshot/context execution truth;
+Kit owns reusable rendering only. Neither Kit nor apps may promote bounded
+summary fields into a source, prompt, context, memory, proof, or execution
+authority.
+
+- AUTHORITY-RELATION subject=apps action=own object=localagent-intent-and-presentation value=app-owned polarity=require
+- AUTHORITY-RELATION subject=kit-agent-center action=assemble object=localagent-context value=denied polarity=forbid

@@ -4,6 +4,16 @@ owner: zhiyu
 matrix_id: zhiyu_sdk_kit_consumption_surface
 rows:
   - kind: required_surface
+    symbol: LocalAgentSourceContextStatus
+    package: "@nimiplatform/sdk/runtime"
+    allowed_use: bounded_ready_blocked_truncated_failed_source_projection
+    source_rule: Z-AUTH-005
+  - kind: required_surface
+    symbol: AgentTurnContextSummary
+    package: "@nimiplatform/sdk/runtime"
+    allowed_use: bounded_ready_blocked_truncated_failed_context_projection
+    source_rule: Z-AUTH-005
+  - kind: required_surface
     symbol: createNimiRuntimeAgentClient
     package: "@nimiplatform/sdk/runtime"
     allowed_use: runtime_agent_client_factory
@@ -69,6 +79,18 @@ rows:
     symbol: renderVoice
     reason: app_local_voice_render_bypasses_runtime_sdk_voice_truth
     source_rule: Z-AV-003
+  - kind: forbidden_surface
+    symbol: realmProfileContext
+    reason: profile_metadata_is_not_localagent_source_or_turn_context_authority
+    source_rule: Z-AUTH-004
+  - kind: forbidden_surface
+    symbol: app_localagent_context_assembler
+    reason: runtime_owns_localagent_context_composition
+    source_rule: Z-CHAT-003
+  - kind: forbidden_surface
+    symbol: raw_localagent_source_context_diagnostics
+    reason: public_projection_is_bounded_typed_status_only
+    source_rule: Z-AUTH-005
   - kind: forbidden_surface
     symbol: __nimiZhiyuAgentCenterLocalConfig
     reason: private_agent_center_local_config_bridge_retired_by_kit_shell_hardcut

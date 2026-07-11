@@ -21,6 +21,7 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
       retrieved_at: 2026-04-18
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+    context_window_tokens: 8192
   - model_id: glm-5
     provider: glm
     model_type: chat
@@ -38,6 +39,7 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
       retrieved_at: 2026-04-18
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+    context_window_tokens: 8192
   - model_id: glm-5-turbo
     provider: glm
     model_type: chat
@@ -55,6 +57,7 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
       retrieved_at: 2026-04-18
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+    context_window_tokens: 8192
   - model_id: glm-4.7
     provider: glm
     model_type: chat
@@ -72,6 +75,7 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
       retrieved_at: 2026-04-18
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+    context_window_tokens: 8192
   - model_id: glm-5v-turbo
     provider: glm
     model_type: chat

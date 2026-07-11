@@ -11,6 +11,11 @@ Discipline.
 
 ### Added
 
+- Added the Agent Center bounded LocalAgent source/context projection. Kit now
+  consumes the SDK-validated source status and latest turn summary through its
+  core SDK contract, maps them to the closed `ready`, `blocked`, `truncated`,
+  `failed`, or `unknown` UI states, and renders read-only Overview/Advanced
+  diagnostics without raw context or machine reason copy.
 - Added `@nimiplatform/kit/auth/shell` as a lightweight public auth entry
   that exports `ShellAuthPage` and its adapter/type contracts without the
   desktop shell particle background or Three.js dependencies.
@@ -85,6 +90,10 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Agent Center capability state no longer retains Runtime
+  readiness reason codes. Readiness is rendered through closed human copy;
+  consumers that displayed `AgentCenterCapabilityState.reasonCode` must use the
+  bounded readiness state and their own admitted copy namespace instead.
 - **Breaking (0.x):** Agent Center Shell preview resolution now returns
   `previewMaterialRef` only. Consumers must pass that material to an
   Avatar-owned `AgentCenterAvatarPreviewAdapter` and require its render

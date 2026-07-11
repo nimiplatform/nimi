@@ -28,7 +28,6 @@ func (r publicChatRuntime) applyPostTurn(
 	if strings.TrimSpace(assistantText) == "" {
 		return outcome
 	}
-	r.svc.appendPublicChatAssistantMessage(session.ConversationAnchorID, assistantText)
 	memoryStartedAt := time.Now()
 	outcome.AssistantMemory = r.applyAssistantTurnMemory(ctx, session, turn, assistantText)
 	r.svc.observeCounter("runtime_agent_post_turn_memory_write_total", 1,

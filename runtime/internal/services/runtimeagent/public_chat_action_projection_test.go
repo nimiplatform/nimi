@@ -127,13 +127,6 @@ func publicChatImageActionTurnPayload(t *testing.T, anchorID string) *structpb.S
 		"messages": []any{
 			map[string]any{"role": "user", "content": "draw a studio portrait"},
 		},
-		"execution_params": map[string]any{
-			"image.generate": map[string]any{
-				"size":      "512x512",
-				"steps":     15,
-				"timeoutMs": 1000,
-			},
-		},
 	})
 }
 
@@ -157,6 +150,29 @@ func submitPublicChatImageActionTurn(t *testing.T, svc *Service, anchorID string
 	})
 	if err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(image action request): %v", err)
+	}
+}
+
+func assertPublicChatActionFailurePreservesCommittedTurn(t *testing.T, svc *Service, capture *publicChatEmitCapture, anchorID string, messageFragment string) {
+	t.Helper()
+	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+	for _, messageType := range capture.messageTypes() {
+		if messageType == publicChatTurnFailedType || messageType == publicChatTurnInterruptedType {
+			t.Fatalf("post-commit action failure must not emit %s: %v", messageType, capture.messageTypes())
+		}
+	}
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-action-failure")
+	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
+	if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
+		t.Fatalf("post-commit action failure changed committed turn truth: %v", lastTurn)
+	}
+	if !strings.Contains(fmt.Sprint(lastTurn["message"]), messageFragment) {
+		t.Fatalf("completed turn must retain bounded action diagnostic %q: %v", messageFragment, lastTurn)
+	}
+	if got := publicChatSessionSnapshotDetail(t, snapshot)["transcript_message_count"]; got != float64(2) {
+		t.Fatalf("post-commit action failure erased transcript: %v", publicChatSessionSnapshotDetail(t, snapshot))
 	}
 }
 
@@ -245,7 +261,6 @@ func TestPublicChatImageActionFailsClosedWithoutImageBinding(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnActionPlannedType)
 	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
 	actionFailed := capture.waitForMessageType(t, publicChatTurnActionFailedType)
-	turnFailed := capture.waitForMessageType(t, publicChatTurnFailedType)
 
 	if actionExecutor.calls != 0 {
 		t.Fatalf("image action executor must not run without a committed image.generate binding")
@@ -254,12 +269,10 @@ func TestPublicChatImageActionFailsClosedWithoutImageBinding(t *testing.T) {
 	if got := actionFailedDetail["reason"]; got != publicChatActionFailedReasonImageBindingMissing {
 		t.Fatalf("expected action_failed.detail.reason=image_binding_missing, got=%v", actionFailedDetail)
 	}
-	for _, req := range []*runtimev1.SendAppMessageRequest{actionFailed, turnFailed} {
-		detail := publicChatTurnDetail(t, req)
-		if !strings.Contains(fmt.Sprint(detail["message"]), "no committed image.generate Runtime Agent AI Config binding") {
-			t.Fatalf("expected missing image binding failure, got=%v", detail)
-		}
+	if !strings.Contains(fmt.Sprint(actionFailedDetail["message"]), "no committed image.generate Runtime Agent AI Config binding") {
+		t.Fatalf("expected missing image binding failure, got=%v", actionFailedDetail)
 	}
+	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "no committed image.generate Runtime Agent AI Config binding")
 }
 
 // TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable proves
@@ -301,7 +314,6 @@ func TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable(t *testi
 	_ = capture.waitForMessageType(t, publicChatTurnActionPlannedType)
 	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
 	actionFailed := capture.waitForMessageType(t, publicChatTurnActionFailedType)
-	_ = capture.waitForMessageType(t, publicChatTurnFailedType)
 
 	if actionExecutor.calls != 0 {
 		t.Fatalf("image action executor must not run over an unavailable configured route")
@@ -313,6 +325,7 @@ func TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable(t *testi
 	if !strings.Contains(fmt.Sprint(detail["message"]), "currently unavailable") {
 		t.Fatalf("expected route-unavailable failure message, got=%v", detail)
 	}
+	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "currently unavailable")
 }
 
 func TestPublicChatImageActionFailsClosedWhenExecutorFails(t *testing.T) {
@@ -336,7 +349,6 @@ func TestPublicChatImageActionFailsClosedWhenExecutorFails(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnActionPlannedType)
 	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
 	actionFailed := capture.waitForMessageType(t, publicChatTurnActionFailedType)
-	turnFailed := capture.waitForMessageType(t, publicChatTurnFailedType)
 
 	if !strings.Contains(fmt.Sprint(publicChatTurnDetail(t, actionFailed)["message"]), "image job failed") {
 		t.Fatalf("expected action_failed to preserve executor error, got=%v", publicChatTurnDetail(t, actionFailed))
@@ -344,9 +356,7 @@ func TestPublicChatImageActionFailsClosedWhenExecutorFails(t *testing.T) {
 	if got := publicChatTurnDetail(t, actionFailed)["reason"]; got != publicChatActionFailedReasonImageExecutionFailed {
 		t.Fatalf("expected action_failed.detail.reason=image_execution_failed, got=%v", publicChatTurnDetail(t, actionFailed))
 	}
-	if !strings.Contains(fmt.Sprint(publicChatTurnDetail(t, turnFailed)["message"]), "image job failed") {
-		t.Fatalf("expected turn failed to preserve executor error, got=%v", publicChatTurnDetail(t, turnFailed))
-	}
+	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "image job failed")
 }
 
 func TestPublicChatImageActionFailsClosedWhenArtifactMissing(t *testing.T) {
@@ -378,12 +388,9 @@ func TestPublicChatImageActionFailsClosedWhenArtifactMissing(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnActionPlannedType)
 	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
 	actionFailed := capture.waitForMessageType(t, publicChatTurnActionFailedType)
-	turnFailed := capture.waitForMessageType(t, publicChatTurnFailedType)
 
 	if !strings.Contains(fmt.Sprint(publicChatTurnDetail(t, actionFailed)["message"]), "was not stored") {
 		t.Fatalf("expected artifact storage failure, got=%v", publicChatTurnDetail(t, actionFailed))
 	}
-	if !strings.Contains(fmt.Sprint(publicChatTurnDetail(t, turnFailed)["message"]), "was not stored") {
-		t.Fatalf("expected turn failed to preserve artifact storage failure, got=%v", publicChatTurnDetail(t, turnFailed))
-	}
+	assertPublicChatActionFailurePreservesCommittedTurn(t, svc, capture, anchorID, "was not stored")
 }

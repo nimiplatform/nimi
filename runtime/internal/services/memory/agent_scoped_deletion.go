@@ -11,6 +11,16 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// AgentScopedDeletionTxHook extends an agent-scoped memory deletion with
+// caller-owned projection deletes in the same persistence transaction. The
+// locator keys are a sorted, de-duplicated snapshot and must be treated as
+// read-only by the hook.
+//
+// Hooks must restrict themselves to transaction-local database work. Calling
+// back into Service methods would attempt to re-enter the memory service while
+// its mutation lock is held.
+type AgentScopedDeletionTxHook func(context.Context, *sql.Tx, []string) error
+
 // DeleteAgentScopedBanks hard-deletes every memory bank owned by the supplied
 // agent: the singular `MEMORY_BANK_SCOPE_AGENT_CORE` bank and every
 // `MEMORY_BANK_SCOPE_AGENT_DYADIC` bank keyed `(agentId, userId)`. This is the
@@ -35,13 +45,36 @@ import (
 // is rolled back and a typed error is returned. An agent with no materialized
 // banks is a typed no-op (idempotent).
 //
-// It returns the sorted bank locator keys that were removed so the caller can
-// purge any caller-owned tables keyed by those same locator keys inside its
-// own deletion transaction.
+// It returns the sorted bank locator keys that were removed for compatibility
+// and diagnostics. Callers that must delete their own projections atomically
+// use DeleteAgentScopedBanksWithTxHook instead of starting a second
+// transaction from the returned keys.
 func (s *Service) DeleteAgentScopedBanks(ctx context.Context, agentID string) ([]string, error) {
+	return s.DeleteAgentScopedBanksWithTxHook(ctx, agentID, nil)
+}
+
+// DeleteAgentScopedBanksWithTxHook hard-deletes agent-scoped memory and lets a
+// Runtime-owned caller delete its projections in the exact same Backend
+// transaction. The hook runs after the memory snapshot rewrite and Memory's
+// non-snapshot projections have been purged, but before the transaction can
+// commit. It also runs with an empty locator-key list when the agent has no
+// materialized memory banks so a retry can still atomically remove remaining
+// caller-owned projections.
+//
+// A hook failure rolls back both its own database writes and every Memory
+// database change. Memory's banks, replication backlog, and event sequence are
+// restored in-memory, and bank-deleted events are published only after a
+// successful commit.
+func (s *Service) DeleteAgentScopedBanksWithTxHook(ctx context.Context, agentID string, callerHook AgentScopedDeletionTxHook) ([]string, error) {
 	trimmedAgentID := strings.TrimSpace(agentID)
 	if trimmedAgentID == "" {
 		return nil, fmt.Errorf("delete agent-scoped banks: agent id is required")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if callerHook != nil && s.backend == nil {
+		return nil, fmt.Errorf("delete agent-scoped banks: persistence backend is required for caller hook")
 	}
 
 	corePrefix := "agent-core::" + trimmedAgentID
@@ -62,7 +95,7 @@ func (s *Service) DeleteAgentScopedBanks(ctx context.Context, agentID string) ([
 		removedKeys = append(removedKeys, key)
 		removedStates[key] = state
 	}
-	if len(removedKeys) == 0 {
+	if len(removedKeys) == 0 && callerHook == nil {
 		return nil, nil
 	}
 	sort.Strings(removedKeys)
@@ -96,7 +129,7 @@ func (s *Service) DeleteAgentScopedBanks(ctx context.Context, agentID string) ([
 		events = append(events, event)
 	}
 
-	if err := s.persistLockedWithTxHook(agentScopedBankProjectionPurgeHook(removedKeys)); err != nil {
+	if err := s.persistLockedWithTxHook(agentScopedDeletionCombinedTxHook(ctx, removedKeys, callerHook)); err != nil {
 		for key, state := range removedStates {
 			s.banks[key] = state
 		}
@@ -115,6 +148,30 @@ func (s *Service) DeleteAgentScopedBanks(ctx context.Context, agentID string) ([
 		s.broadcast(event, targetsByEvent[i])
 	}
 	return removedKeys, nil
+}
+
+func agentScopedDeletionCombinedTxHook(ctx context.Context, bankLocatorKeys []string, callerHook AgentScopedDeletionTxHook) persistTxHook {
+	keys := uniqueTrimmedStrings(bankLocatorKeys)
+	sort.Strings(keys)
+	memoryHook := agentScopedBankProjectionPurgeHook(keys)
+	if memoryHook == nil && callerHook == nil {
+		return nil
+	}
+	return func(txContext context.Context, tx *sql.Tx) error {
+		if memoryHook != nil {
+			if err := memoryHook(txContext, tx); err != nil {
+				return err
+			}
+		}
+		if callerHook == nil {
+			return nil
+		}
+		stableKeys := append([]string(nil), keys...)
+		if err := callerHook(ctx, tx, stableKeys); err != nil {
+			return fmt.Errorf("run agent-scoped deletion caller hook: %w", err)
+		}
+		return nil
+	}
 }
 
 // agentScopedBankKeyMatches reports whether a bank locator key belongs to the

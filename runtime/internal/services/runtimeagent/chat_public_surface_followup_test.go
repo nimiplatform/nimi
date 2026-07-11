@@ -11,6 +11,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *testing.T) {
@@ -78,6 +80,135 @@ func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *test
 	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
+
+func TestPublicChatReserveKeepsRuntimeTranscriptAndCommitsCurrentPairAtomically(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	committed := []*runtimev1.ChatMessage{
+		{Role: "user", Content: "first user"},
+		{Role: "assistant", Content: "first assistant"},
+	}
+	svc.chatSurfaceMu.Lock()
+	svc.chatAnchors[anchorID].CommittedTranscript = testPublicChatCommittedTranscript([2]string{"first user", "first assistant"})
+	svc.chatSurfaceMu.Unlock()
+
+	req := publicChatTurnRequestPayload{
+		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
+		OwnerUserID:          "user-1",
+		RuntimeSourceRef:     "agent-alpha",
+		ConversationAnchorID: anchorID,
+		Messages: []publicChatMessagePayload{
+			{Role: "user", Content: "forged caller replay"},
+			{Role: "assistant", Content: "forged caller assistant"},
+			{Role: "user", Content: "second user"},
+		},
+	}
+	_, turn, _, err := svc.reservePublicChatTurn(context.Background(), "zhiyu.app", "user-1", req)
+	if err != nil {
+		t.Fatalf("reservePublicChatTurn: %v", err)
+	}
+	defer turn.Cancel()
+	defer svc.releasePublicChatTurn(anchorID, turn.TurnID)
+
+	svc.chatSurfaceMu.Lock()
+	afterReserve, projectionErr := publicChatTranscriptProjection(svc.chatAnchors[anchorID].CommittedTranscript)
+	svc.chatSurfaceMu.Unlock()
+	if projectionErr != nil {
+		t.Fatalf("project committed transcript after reserve: %v", projectionErr)
+	}
+	if len(afterReserve) != len(committed) || !proto.Equal(afterReserve[0], committed[0]) || !proto.Equal(afterReserve[1], committed[1]) {
+		t.Fatalf("reserve must not reconcile caller history into Runtime transcript: got=%v", afterReserve)
+	}
+	current := &runtimev1.ChatMessage{Role: "user", Content: "second user"}
+	if err := svc.commitPublicChatTurnTranscript(anchorID, current, "second assistant"); err != nil {
+		t.Fatalf("commitPublicChatTurnTranscript: %v", err)
+	}
+	if err := svc.commitPublicChatTurnTranscript(anchorID, current, "second assistant"); err != nil {
+		t.Fatalf("commitPublicChatTurnTranscript replay: %v", err)
+	}
+	svc.chatSurfaceMu.Lock()
+	transcript, projectionErr := publicChatTranscriptProjection(svc.chatAnchors[anchorID].CommittedTranscript)
+	svc.chatSurfaceMu.Unlock()
+	if projectionErr != nil {
+		t.Fatalf("project committed transcript after commit: %v", projectionErr)
+	}
+	if len(transcript) != 4 || transcript[2].GetContent() != "second user" || transcript[3].GetContent() != "second assistant" {
+		t.Fatalf("expected one atomic current user/assistant pair, got=%v", transcript)
+	}
+}
+
+func TestPublicChatCommittedTranscriptTurnReplayIsIdempotentAcrossLaterTurns(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	first := &runtimev1.ChatMessage{Role: "user", Content: "first user"}
+	second := &runtimev1.ChatMessage{Role: "user", Content: "second user"}
+	if err := svc.commitPublicChatTurnTranscriptForTurn(anchorID, "turn-first", first, "first assistant"); err != nil {
+		t.Fatalf("commit first transcript turn: %v", err)
+	}
+	if err := svc.commitPublicChatTurnTranscriptForTurn(anchorID, "turn-second", second, "second assistant"); err != nil {
+		t.Fatalf("commit second transcript turn: %v", err)
+	}
+	if err := svc.commitPublicChatTurnTranscriptForTurn(anchorID, "turn-first", first, "first assistant"); err != nil {
+		t.Fatalf("replay first transcript turn: %v", err)
+	}
+	svc.chatSurfaceMu.Lock()
+	turnCount := len(svc.chatAnchors[anchorID].CommittedTranscript)
+	svc.chatSurfaceMu.Unlock()
+	if turnCount != 2 {
+		t.Fatalf("exact replay must not append a duplicate committed turn, got=%d", turnCount)
+	}
+	if err := svc.commitPublicChatTurnTranscriptForTurn(anchorID, "turn-first", first, "conflicting assistant"); err == nil {
+		t.Fatal("conflicting replay must fail closed")
+	}
+}
+
+func TestPublicChatAnchorContinuityCrossesAppsButEventsStayWithTurnCaller(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	req := publicChatTurnRequestPayload{
+		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
+		OwnerUserID:          "user-1",
+		RuntimeSourceRef:     "agent-alpha",
+		ConversationAnchorID: anchorID,
+		Messages:             []publicChatMessagePayload{{Role: "user", Content: "continue from Zhiyu"}},
+	}
+	session, turn, _, err := svc.reservePublicChatTurn(context.Background(), "zhiyu.app", "user-1", req)
+	if err != nil {
+		t.Fatalf("cross-app reservePublicChatTurn: %v", err)
+	}
+	defer turn.Cancel()
+	defer svc.releasePublicChatTurn(anchorID, turn.TurnID)
+	if session.CallerAppID != "zhiyu.app" || turn.CallerAppID != "zhiyu.app" {
+		t.Fatalf("turn caller projection mismatch: session=%q turn=%q", session.CallerAppID, turn.CallerAppID)
+	}
+	if err := svc.emitPublicChatTurnEvent(session, turn.TurnID, publicChatTurnAcceptedType, publicChatAcceptedDetail("cross-app")); err != nil {
+		t.Fatalf("emitPublicChatTurnEvent: %v", err)
+	}
+	if emitted := capture.waitForMessageType(t, publicChatTurnAcceptedType); emitted.GetToAppId() != "zhiyu.app" {
+		t.Fatalf("turn event delivered to %q, want current turn caller", emitted.GetToAppId())
+	}
+	if _, _, _, _, err := svc.snapshotPublicChatAnchorForCaller("third-surface.app", anchorID); err != nil {
+		t.Fatalf("cross-app snapshot: %v", err)
+	}
+	if _, gotTurn, err := svc.lookupPublicChatTurnForInterrupt("third-surface.app", "user-1", publicChatTurnInterruptPayload{
+		ConversationAnchorID: anchorID,
+		TurnID:               turn.TurnID,
+	}); err != nil || gotTurn.TurnID != turn.TurnID {
+		t.Fatalf("cross-app interrupt lookup: turn=%q err=%v", gotTurn.TurnID, err)
+	}
+	if _, _, err := svc.lookupPublicChatTurnForInterrupt("third-surface.app", "other-user", publicChatTurnInterruptPayload{
+		ConversationAnchorID: anchorID,
+		TurnID:               turn.TurnID,
+	}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("cross-subject interrupt lookup must fail closed, got %v", err)
+	}
+}
+
 func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -169,7 +300,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	requirePublicChatPostTurnHookIntent(t, firstPostTurn, "action-follow-up-1", "pending", 150)
 	secondErr := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
+		FromAppId:     "zhiyu.app",
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
@@ -242,11 +373,11 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 			case 1:
 				envelope = publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "persist me", "action-recover", "resume after restart", 200)
 			case 2:
-				if got := strings.TrimSpace(req.SystemPrompt); !strings.Contains(got, "resume after restart") {
-					t.Fatalf("expected recovered follow-up system prompt, got=%q", got)
+				if got := strings.TrimSpace(req.SystemPrompt); strings.Contains(got, "resume after restart") {
+					t.Fatalf("follow-up instruction must not own a special system prompt path, got=%q", got)
 				}
-				if len(req.Messages) < 2 || req.Messages[len(req.Messages)-1].GetContent() != "persist me" {
-					t.Fatalf("expected recovered follow-up transcript to include persisted assistant text, got=%v", req.Messages)
+				if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].GetRole() != "user" || req.Messages[len(req.Messages)-1].GetContent() != "Runtime-admitted follow-up instruction: resume after restart" {
+					t.Fatalf("expected composed context to end with the Runtime-admitted follow-up instruction, got=%v", req.Messages)
 				}
 				envelope = publicChatStructuredEnvelopeAPML("message-2", "recovered follow up")
 			default:

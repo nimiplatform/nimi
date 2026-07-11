@@ -14,8 +14,10 @@ Split authority map:
 - `runtime-agent-life-autonomy-contract.md`: K-AGCORE-011..015 and K-AGCORE-027..031
 - `runtime-agent-canonical-memory-contract.md`: K-AGCORE-016..021
 - `runtime-agent-app-consume-contract.md`: K-AGCORE-032 and K-AGCORE-052
-- `runtime-local-agent-materialization-contract.md`: K-AGCORE-139..143
+- `runtime-local-agent-materialization-contract.md`: K-AGCORE-139..143 and K-AGCORE-151..153
 - `runtime-agent-ai-config-contract.md`: K-AGCORE-144..150
+- `runtime-agent-context-composition-contract.md`: K-AGCORE-154..158
+
 ## K-AGCORE-001 RuntimeAgentService Authority Home
 
 `RuntimeAgentService` is the runtime-owned authority for live agent execution.
@@ -120,11 +122,22 @@ Apps may not:
 - directly schedule life-track execution
 - directly mutate canonical agent bank scopes through Memory Service
 - write thread-local avatar interaction state back as runtime-owned presentation truth
+- attach LocalAgent source/world/relationship/knowledge, transcript, memory,
+  policy, tool, media, or output-contract context to a turn
+- submit system/developer roles, execution bindings, or a context manifest for
+  Runtime Agent Chat
+
+- AUTHORITY-RELATION subject=runtime action=accept object=consumer-attached-localagent-turn-context value=denied polarity=forbid
 
 ## K-AGCORE-006 Public Surface
 
 `RuntimeAgentService` admits the following public operations:
 
+- `CreateSourceMaterializationChallenge`
+- `BeginSourceMaterializationUpload`
+- `PutSourceMaterializationChunk`
+- `CommitSourceMaterialization`
+- `AbortSourceMaterializationUpload`
 - `InitializeAgent`
 - `TerminateAgent`
 - `GetAgent`
@@ -154,6 +167,12 @@ Apps may not:
 - `SetAgentPresentationProfile`
 - `SubscribeAgentEvents`
 
+The source-materialization operations above register the K-AGCORE-151..153
+semantic surface only. Their concrete Proto messages and fields are not defined
+by this authority iteration; the implementation-facing transport must be added
+through the later Proto/codegen authority cut without weakening the state
+machine, typed limits, immutable record, or public privacy boundary.
+
 Primary semantic outputs on this surface must use Nimi-owned typed messages:
 
 - hook trigger detail must remain typed rather than free-form execution payload
@@ -168,6 +187,9 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
   continuation is governed by `agent-output-wire-contract.md`; APML output must
   be validated and projected into typed runtime events before apps treat it as
   product truth
+- LocalAgent turn composition is governed by K-AGCORE-154..158; public reads and
+  events may carry only `LocalAgentSourceContextStatus` and
+  `AgentTurnContextSummary`, never the private manifest or lane content
 - dynamic envelopes remain limited to auxiliary details / extensions fields
 - implementation-facing transport must distinguish read projections from mutation commands; public agent state mutation may not devolve into arbitrary blob replacement
 - implementation-facing transport must reserve typed families for `HookIntent`,
@@ -183,6 +205,24 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
   `runtime.agent.state.posture_changed` projections may be exposed on read or
   subscription surfaces, but renderer-local session state must remain out of
   the public runtime truth model
+
+Canonical LocalAgent public-surface relations:
+
+- AUTHORITY-RELATION subject=runtime action=compose object=agentturncontextmanifestv1 value=runtime-owned polarity=require
+- AUTHORITY-RELATION subject=agentturncontextmanifestv1 action=use-lanes object=turn-context value=fixed-typed polarity=require
+- AUTHORITY-RELATION subject=localagent-source-content-and-prompt-hashes action=set-stability object=equivalent-source-content value=stable polarity=require
+- AUTHORITY-RELATION subject=localagent-source-snapshot-hash action=set-stability object=identical-normalized-materialization value=cross-materialization-stable polarity=require
+- AUTHORITY-RELATION subject=manifest-instance-hash action=set-specificity object=request-turn-instance value=instance-specific polarity=require
+- AUTHORITY-RELATION subject=agentturncontextmanifestv1 action=carry object=transcript-context value=runtime-owned polarity=require
+- AUTHORITY-RELATION subject=agentturncontextmanifestv1 action=carry object=memory-context value=bounded polarity=require
+- AUTHORITY-RELATION subject=agentturncontextmanifestv1 action=carry object=token-budget value=explicit polarity=require
+- AUTHORITY-RELATION subject=agentturncontextmanifestv1 action=carry object=truncation-decisions value=observable polarity=require
+- AUTHORITY-RELATION subject=runtime action=project object=invalid-apml value=denied-fail-closed polarity=forbid
+- AUTHORITY-RELATION subject=runtime-public-localagent-summaries action=project object=public-summary value=safe-bounded polarity=require
+- AUTHORITY-RELATION subject=runtime-public-localagent-summaries action=expose object=raw-source value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime-public-localagent-summaries action=expose object=raw-prompt value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime-public-localagent-summaries action=expose object=raw-memory value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime-public-localagent-summaries action=expose object=raw-proof value=denied polarity=forbid
 
 Typed family registry is defined by
 `tables/runtime-agent-service-typed-family.yaml`.

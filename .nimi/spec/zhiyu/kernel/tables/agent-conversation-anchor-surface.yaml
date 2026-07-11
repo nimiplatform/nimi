@@ -3,6 +3,18 @@ table_family: owner_matrix
 owner: zhiyu
 matrix_id: zhiyu_agent_conversation_anchor_surface
 rows:
+  - surface: localagent_source_readiness
+    zhiyu_role: display_bounded_ready_blocked_failed_state
+    required_source: LocalAgentSourceContextStatus
+    forbidden_sources: [raw_source, raw_world, profile_metadata, app_local_cache]
+    owner: runtime_sdk
+    source_rule: Z-AUTH-005
+  - surface: turn_context_summary
+    zhiyu_role: display_bounded_ready_blocked_truncated_failed_state
+    required_source: AgentTurnContextSummary
+    forbidden_sources: [raw_prompt, lane_text, transcript_text, private_memory, raw_diagnostics, app_context_assembler]
+    owner: runtime_sdk
+    source_rule: Z-AUTH-005
   - surface: conversation_anchor_obtain
     zhiyu_role: consume_admitted_runtime_sdk_surface
     forbidden_sources: [subjectUserId, partner_id, app_local_state, account_session]
@@ -17,6 +29,6 @@ rows:
   - surface: terminal_recovery
     zhiyu_role: show_retry_or_failure
     required_source: sdk_runner_and_runtime_snapshot
-    forbidden_sources: [synthetic_terminal_success, app_local_status_inference]
+    forbidden_sources: [synthetic_terminal_success, app_local_status_inference, context_summary_reinterpretation]
     owner: runtime_sdk
     source_rule: Z-CHAT-001

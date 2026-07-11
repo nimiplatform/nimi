@@ -24,6 +24,19 @@ import type {
 
 export type NimiElectronRuntimeAccountAuthRuntime = Pick<Runtime, 'account' | 'auth' | 'grants'>;
 
+export type NimiElectronRuntimeRawAccessProbeRuntime = Pick<Runtime, 'account' | 'auth'>;
+
+export type NimiElectronRuntimeRawAccessPosture = 'first-party' | 'binding-only';
+
+export type NimiElectronRuntimeRawAccessPostureResult = {
+  readonly posture: NimiElectronRuntimeRawAccessPosture;
+  readonly accepted: boolean;
+  readonly materialPresent: boolean;
+  readonly materialProjected: false;
+  readonly reasonCode: unknown;
+  readonly accountReasonCode: unknown;
+};
+
 export type NimiElectronRuntimeAccountAppSessionInput = {
   readonly appInstanceId: string;
   readonly deviceId: string;
@@ -88,6 +101,15 @@ export type NimiElectronRuntimeAccountTrustedMetadataProviderInput = {
   readonly runtime?: NimiElectronRuntimeAccountAuthRuntime;
 };
 
+export type NimiElectronRuntimeRawAccessPostureProbeInput = {
+  readonly appId: string;
+  readonly runtimeEndpoint: string;
+  readonly posture: NimiElectronRuntimeRawAccessPosture;
+  readonly accountCaller: NimiRuntimeAccountCaller;
+  readonly appSession?: NimiElectronRuntimeAccountAppSessionInput;
+  readonly runtime?: NimiElectronRuntimeRawAccessProbeRuntime;
+};
+
 export type NimiElectronInstalledAppLaunchBinding = {
   readonly appInstanceId: string;
   readonly deviceId: string;
@@ -110,6 +132,80 @@ export type NimiElectronInstalledAppRuntimeAccountTrustedMetadataProviderInput =
 const DEFAULT_PROTECTED_ACCESS_DOMAIN = 'app-auth';
 const DEFAULT_PROTECTED_ACCESS_TTL_SECONDS = 3600;
 const DEFAULT_PROTECTED_ACCESS_REFRESH_SKEW_MS = 60_000;
+
+export async function probeNimiElectronRuntimeRawAccessPosture(
+  input: NimiElectronRuntimeRawAccessPostureProbeInput,
+): Promise<NimiElectronRuntimeRawAccessPostureResult> {
+  const appId = requireText(input.appId, 'appId');
+  const runtimeEndpoint = requireText(input.runtimeEndpoint, 'runtimeEndpoint');
+  const accountCaller = input.accountCaller;
+  const callerAppId = requireText(accountCaller.appId, 'accountCaller.appId');
+  const callerAppInstanceId = requireText(accountCaller.appInstanceId, 'accountCaller.appInstanceId');
+  const callerDeviceId = requireText(accountCaller.deviceId, 'accountCaller.deviceId');
+  if (callerAppId !== appId) {
+    throw new Error('Electron Runtime raw access posture probe requires accountCaller.appId to match appId');
+  }
+
+  const accountRuntime = input.runtime ?? new Runtime({
+    appId,
+    transport: { endpoint: runtimeEndpoint },
+  });
+  let metadata: CoreMetadata | undefined;
+  if (input.posture === 'first-party') {
+    if (accountCaller.mode !== AccountCallerMode.LOCAL_FIRST_PARTY_APP) {
+      throw new Error('Electron Runtime first-party raw access posture requires a local first-party account caller');
+    }
+    const appSession = input.appSession;
+    if (!appSession) {
+      throw new Error('Electron Runtime first-party raw access posture requires an app session');
+    }
+    if (appSession.developerRegistration === true) {
+      throw new Error('Electron Runtime first-party raw access posture forbids developer registration');
+    }
+    if (
+      requireText(appSession.appInstanceId, 'appSession.appInstanceId') !== callerAppInstanceId
+      || requireText(appSession.deviceId, 'appSession.deviceId') !== callerDeviceId
+    ) {
+      throw new Error('Electron Runtime first-party raw access posture requires app session identity to match the account caller');
+    }
+    metadata = await createNimiRuntimeAppSessionMetadataProvider({
+      appId,
+      appInstanceId: callerAppInstanceId,
+      deviceId: callerDeviceId,
+      appVersion: appSession.appVersion,
+      capabilities: normalizeStrings([
+        ...(accountCaller.scopes ?? []),
+        ...appSession.capabilities,
+      ]),
+      developerRegistration: false,
+      ttlSeconds: appSession.ttlSeconds,
+      refreshSkewMs: appSession.refreshSkewMs,
+      auth: accountRuntime.auth,
+    })();
+  } else if (input.posture === 'binding-only') {
+    if (accountCaller.mode !== AccountCallerMode.DESKTOP_LAUNCHED_AVATAR) {
+      throw new Error('Electron Runtime binding-only raw access posture requires a binding-only Avatar account caller');
+    }
+    if (input.appSession) {
+      throw new Error('Electron Runtime binding-only raw access posture forbids an app session');
+    }
+  } else {
+    throw new Error('Electron Runtime raw access posture is invalid');
+  }
+
+  const response = await accountRuntime.account.getAccessToken(
+    { caller: accountCaller, requestedScopes: [] },
+    metadata ? { metadata } : undefined,
+  );
+  return {
+    posture: input.posture,
+    accepted: response.accepted,
+    materialPresent: Boolean(normalizeText(response.accessToken)),
+    materialProjected: false,
+    reasonCode: response.reasonCode,
+    accountReasonCode: response.accountReasonCode,
+  };
+}
 
 export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
   input: NimiElectronRuntimeAccountTrustedMetadataProviderInput,

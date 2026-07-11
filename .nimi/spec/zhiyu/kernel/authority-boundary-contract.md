@@ -39,6 +39,11 @@ Zhiyu must not own:
 - Avatar resource/config truth, carrier lifecycle, or rendering truth
 - voice route, audio artifact truth, playback/lipsync truth
 - image generation route, provider/model truth, retry semantics, or artifact truth
+- LocalAgent source snapshot/context composition, raw source/world data,
+  prompt/lane/transcript text, private memory, packet/proof, provider payload,
+  tool payload, or a `realmProfileContext`/profile-metadata prompt path
+
+- AUTHORITY-RELATION subject=zhiyu action=assemble object=localagent-prompts value=denied polarity=forbid
 
 ## Z-AUTH-005 App Adapter Boundary
 
@@ -53,6 +58,16 @@ layout placement, fail-closed reason projection, and diagnostics presentation.
 presentation boundary for Desktop Agent Chat parity. It remains subject to
 post-acceptance SDK/Kit upstream or deletion review and must not become a
 parallel Runtime/SDK/Kit authority surface.
+
+The adapter may consume only the closed, read-only Runtime/SDK
+`LocalAgentSourceContextStatus` and `AgentTurnContextSummary` projections. It
+may map ready/blocked/truncated/failed states and typed reasons to product copy,
+but unknown/partial schema, enum, state, lane, or reason fails closed and never
+becomes `partner_ready`. It must not expose raw diagnostics or reconstruct
+source/context from hashes, refs, counts, or profile metadata.
+
+- AUTHORITY-RELATION subject=zhiyu action=consume-status object=localagent-source value=bounded-only polarity=require
+- AUTHORITY-RELATION subject=zhiyu action=consume-status object=localagent-context value=bounded-only polarity=require
 
 ## Z-AUTH-006 Runtime AI Consumption Projection Posture
 
@@ -71,6 +86,12 @@ distinction is normative:
   route projections, or app-local state. Readiness truth arrives only as the
   Runtime Agent AI Config readiness projection.
 - Zhiyu must not carry execution bindings on turn requests (K-AGCORE-147).
+- Zhiyu must not attach source/world/profile/prompt/context, system/developer
+  roles, lane order/text, memory, tool schema, or a forged context manifest to
+  turn requests. Runtime composes every LocalAgent turn.
+- Source/context readiness UI consumes only `LocalAgentSourceContextStatus` and
+  `AgentTurnContextSummary`; hashes/counts are display/correlation fields, not
+  prompt or execution inputs.
 - Zhiyu product shell must not persist app-scope AIConfig, register Electron
   AIConfig stores, call direct Runtime AI consume helpers, or keep Capability
   Studio as a product runtime path. Developer harnesses, if reintroduced, must

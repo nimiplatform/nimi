@@ -43,6 +43,7 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     'hard_blocks',
     'census',
     'module_owner_map',
+    'local_agent_behavior_evaluation',
   ], 'entries');
 
   const expectedClassifications = new Map([
@@ -110,12 +111,29 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     'unreviewed_in_release_gate',
     'owner_mismatch',
     'tier_classification_mismatch',
+    'behavior_expectation_not_source_derived',
+    'deterministic_context_admission_wrong_classification',
+    'electron_behavior_acceptance_wrong_classification',
+    'live_behavior_or_evaluator_without_t7_env_evidence',
+    'subject_evaluator_route_fingerprint_missing_or_equal',
+    'direct_provider_or_provider_model_constant',
+    'evaluator_schema_or_calibration_invalid',
+    'behavior_batch_retry_or_mutable_inputs',
+    'behavior_trial_not_retained',
+    'evaluator_product_state_or_personality_mutation',
   ], 'hard_blocks.id');
   for (const row of hardBlocks) {
     const id = String(row?.id || '').trim() || '<empty>';
     if (!String(row?.condition || '').trim()) fail(`${rel} hard block ${id} must declare condition`);
     checkAuthorityRefs(fail, rel, `hard_blocks.${id}.authority_refs`, row?.authority_refs, definedRuleIds);
   }
+
+  checkLocalAgentBehaviorEvaluation({
+    contract: testGovernancePolicyTable.local_agent_behavior_evaluation,
+    definedRuleIds,
+    fail,
+    rel,
+  });
 
   checkCensus({
     definedRuleIds,
@@ -129,6 +147,227 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     rel,
     moduleRows: testGovernancePolicyTable.module_owner_map,
   });
+}
+
+function checkLocalAgentBehaviorEvaluation({ contract, definedRuleIds, fail, rel }) {
+  const base = 'local_agent_behavior_evaluation';
+  if (!contract || typeof contract !== 'object' || Array.isArray(contract)) {
+    fail(`${rel} must declare ${base}`);
+    return;
+  }
+  expectScalar(fail, rel, `${base}.contract_version`, contract.contract_version, 1);
+
+  const expectation = contract.expectation_manifest;
+  expectObject(fail, rel, `${base}.expectation_manifest`, expectation);
+  expectScalar(fail, rel, `${base}.expectation_manifest.source`, expectation?.source, 'typed_source_snapshot');
+  expectExactSet(fail, rel, expectation?.required_domains, [
+    'identity',
+    'behavior',
+    'world',
+    'relationship',
+    'knowledge',
+  ], `${base}.expectation_manifest.required_domains`);
+  expectExactSet(fail, rel, expectation?.prohibited_sources, [
+    'app_metadata',
+    'evaluator_score',
+    'raw_system_prompt',
+  ], `${base}.expectation_manifest.prohibited_sources`);
+  checkAuthorityRefs(fail, rel, `${base}.expectation_manifest.authority_refs`, expectation?.authority_refs, definedRuleIds);
+
+  const bindings = contract.classification_bindings;
+  expectObject(fail, rel, `${base}.classification_bindings`, bindings);
+  const expectedBindings = new Map([
+    ['deterministic_context_admission', ['behavior_unit', 'T4', null, ['P-TEST-010']]],
+    ['electron_product_acceptance', ['product_acceptance', 'T6', 'after_real_shell_evidence', ['P-TEST-010']]],
+    ['live_subject_behavior', ['live_provider_proof', 'T7', 'after_env_evidence', ['P-TEST-006', 'P-TEST-011']]],
+    ['semantic_evaluator', ['live_provider_proof', 'T7', 'after_env_evidence', ['P-TEST-006', 'P-TEST-011']]],
+  ]);
+  expectExactSet(fail, rel, Object.keys(bindings || {}), [...expectedBindings.keys()], `${base}.classification_bindings keys`);
+  for (const [id, [classification, tier, releaseEligibility, authorityRefs]] of expectedBindings) {
+    const binding = bindings?.[id];
+    expectObject(fail, rel, `${base}.classification_bindings.${id}`, binding);
+    expectScalar(fail, rel, `${base}.classification_bindings.${id}.classification`, binding?.classification, classification);
+    expectScalar(fail, rel, `${base}.classification_bindings.${id}.tier`, binding?.tier, tier);
+    if (releaseEligibility === null) {
+      if (Object.hasOwn(binding || {}, 'release_eligibility')) {
+        fail(`${rel} ${base}.classification_bindings.${id}.release_eligibility must be absent`);
+      }
+    } else {
+      expectScalar(
+        fail,
+        rel,
+        `${base}.classification_bindings.${id}.release_eligibility`,
+        binding?.release_eligibility,
+        releaseEligibility,
+      );
+    }
+    expectExactSet(
+      fail,
+      rel,
+      binding?.authority_refs,
+      authorityRefs,
+      `${base}.classification_bindings.${id}.authority_refs`,
+    );
+    checkAuthorityRefs(
+      fail,
+      rel,
+      `${base}.classification_bindings.${id}.authority_refs`,
+      binding?.authority_refs,
+      definedRuleIds,
+    );
+  }
+
+  const contextAdmission = contract.deterministic_context_admission;
+  expectObject(fail, rel, `${base}.deterministic_context_admission`, contextAdmission);
+  expectScalar(
+    fail,
+    rel,
+    `${base}.deterministic_context_admission.evidence_source`,
+    contextAdmission?.evidence_source,
+    'provider_visible_runtime_request_capture',
+  );
+  expectExactSet(fail, rel, contextAdmission?.required_domains, [
+    'identity',
+    'behavior',
+    'boundary',
+    'world',
+    'relationship',
+    'knowledge',
+    'transcript',
+    'memory',
+  ], `${base}.deterministic_context_admission.required_domains`);
+  expectExactSet(fail, rel, contextAdmission?.required_assertions, [
+    'typed_lane',
+    'lane_order',
+    'content_hash',
+    'token_budget',
+    'forbidden_canary_absence',
+    'exact_provider_call_count',
+  ], `${base}.deterministic_context_admission.required_assertions`);
+  expectScalar(
+    fail,
+    rel,
+    `${base}.deterministic_context_admission.fixture_substitutes_live_behavior`,
+    contextAdmission?.fixture_substitutes_live_behavior,
+    false,
+  );
+  checkAuthorityRefs(
+    fail,
+    rel,
+    `${base}.deterministic_context_admission.authority_refs`,
+    contextAdmission?.authority_refs,
+    definedRuleIds,
+  );
+
+  const route = contract.route_independence;
+  expectObject(fail, rel, `${base}.route_independence`, route);
+  expectScalar(fail, rel, `${base}.route_independence.executor`, route?.executor, 'runtime_ai_execution');
+  expectExactSet(fail, rel, route?.fingerprint_fields, [
+    'providerId',
+    'modelId',
+    'modelRevisionOrFingerprint',
+  ], `${base}.route_independence.fingerprint_fields`);
+  expectScalar(
+    fail,
+    rel,
+    `${base}.route_independence.comparison`,
+    route?.comparison,
+    'complete_fingerprint_must_differ',
+  );
+  expectScalar(
+    fail,
+    rel,
+    `${base}.route_independence.unresolved_or_equal_outcome`,
+    route?.unresolved_or_equal_outcome,
+    'blocked_live_provider_admission',
+  );
+  expectScalar(fail, rel, `${base}.route_independence.app_or_test_direct_provider`, route?.app_or_test_direct_provider, 'forbidden');
+  expectScalar(fail, rel, `${base}.route_independence.provider_model_constants`, route?.provider_model_constants, 'forbidden');
+  checkAuthorityRefs(fail, rel, `${base}.route_independence.authority_refs`, route?.authority_refs, definedRuleIds);
+
+  const evaluator = contract.evaluator_contract;
+  expectObject(fail, rel, `${base}.evaluator_contract`, evaluator);
+  expectExactSet(fail, rel, evaluator?.input_allowlist, [
+    'expectation_manifest',
+    'rubric',
+    'transcript',
+  ], `${base}.evaluator_contract.input_allowlist`);
+  expectExactSet(fail, rel, evaluator?.input_forbidden, [
+    'raw_system_prompt',
+    'private_context_lanes',
+    'product_anchor',
+    'product_memory_scope',
+  ], `${base}.evaluator_contract.input_forbidden`);
+  expectScalar(fail, rel, `${base}.evaluator_contract.result_format`, evaluator?.result_format, 'strict_json_schema');
+  expectScalar(
+    fail,
+    rel,
+    `${base}.evaluator_contract.unknown_or_malformed_outcome`,
+    evaluator?.unknown_or_malformed_outcome,
+    'fail_closed',
+  );
+  expectExactSet(fail, rel, evaluator?.deterministic_dimensions, [
+    'facts',
+    'boundaries',
+    'ids',
+    'hashes',
+    'leakage',
+  ], `${base}.evaluator_contract.deterministic_dimensions`);
+  expectExactSet(fail, rel, evaluator?.semantic_dimensions, [
+    'style',
+    'cadence',
+    'voice',
+    'pacing',
+  ], `${base}.evaluator_contract.semantic_dimensions`);
+  checkAuthorityRefs(fail, rel, `${base}.evaluator_contract.authority_refs`, evaluator?.authority_refs, definedRuleIds);
+
+  const calibration = contract.calibration;
+  expectObject(fail, rel, `${base}.calibration`, calibration);
+  expectExactSet(fail, rel, calibration?.controls_per_dimension, [
+    'known_pass',
+    'deliberate_fail',
+  ], `${base}.calibration.controls_per_dimension`);
+  expectScalar(fail, rel, `${base}.calibration.timing`, calibration?.timing, 'before_subject_trials');
+  expectExactSet(fail, rel, calibration?.block_on, [
+    'control_misclassification',
+    'constant_scoring',
+    'schema_mismatch',
+    'reason_code_mismatch',
+    'route_collision',
+  ], `${base}.calibration.block_on`);
+  expectExactSet(fail, rel, calibration?.fixed_within_batch, [
+    'thresholds',
+    'controls',
+    'rubric',
+    'result_schema',
+  ], `${base}.calibration.fixed_within_batch`);
+  expectScalar(fail, rel, `${base}.calibration.retry_policy`, calibration?.retry_policy, 'none');
+  checkAuthorityRefs(fail, rel, `${base}.calibration.authority_refs`, calibration?.authority_refs, definedRuleIds);
+
+  const evidence = contract.evidence_and_state;
+  expectObject(fail, rel, `${base}.evidence_and_state`, evidence);
+  expectScalar(fail, rel, `${base}.evidence_and_state.raw_trial_retention`, evidence?.raw_trial_retention, 'all');
+  expectScalar(fail, rel, `${base}.evidence_and_state.denominator`, evidence?.denominator, 'all_original_trials');
+  expectScalar(fail, rel, `${base}.evidence_and_state.product_state_mutation`, evidence?.product_state_mutation, 'forbidden');
+  expectExactSet(fail, rel, evidence?.mutation_targets, [
+    'realm_source',
+    'runtime_source_snapshot',
+    'local_agent',
+    'turn',
+    'message',
+    'transcript',
+    'memory',
+    'anchor',
+  ], `${base}.evidence_and_state.mutation_targets`);
+  expectScalar(
+    fail,
+    rel,
+    `${base}.evidence_and_state.score_truth_role`,
+    evidence?.score_truth_role,
+    'non_authoritative_evaluation_evidence',
+  );
+  expectScalar(fail, rel, `${base}.evidence_and_state.score_context_influence`, evidence?.score_context_influence, 'forbidden');
+  checkAuthorityRefs(fail, rel, `${base}.evidence_and_state.authority_refs`, evidence?.authority_refs, definedRuleIds);
 }
 
 function checkCensus({ definedRuleIds, fail, rel, census }) {
@@ -256,6 +495,12 @@ function checkTestGovernanceRuleEvidenceFragment({
     'P-TEST-006',
     'P-TEST-007',
     'P-TEST-008',
+    'P-TEST-009',
+    'P-TEST-010',
+    'P-TEST-011',
+    'P-TEST-012',
+    'P-TEST-013',
+    'P-TEST-014',
   ];
   expectExactSet(fail, fragmentRel, testGovernanceRuleEvidenceFragment.entries, expectedRules, 'entries');
   const rows = Array.isArray(testGovernanceRuleEvidenceFragment.rules) ? testGovernanceRuleEvidenceFragment.rules : [];
@@ -291,6 +536,18 @@ function checkAuthorityRefs(fail, rel, label, refs, definedRuleIds) {
   }
   for (const ref of values) {
     if (!definedRuleIds.has(ref)) fail(`${rel} ${label} references unknown rule ${ref}`);
+  }
+}
+
+function expectObject(fail, rel, label, value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    fail(`${rel} ${label} must be an object`);
+  }
+}
+
+function expectScalar(fail, rel, label, actual, expected) {
+  if (actual !== expected) {
+    fail(`${rel} ${label} must be ${JSON.stringify(expected)}`);
   }
 }
 

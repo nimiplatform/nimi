@@ -101,6 +101,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "getPost", Service: "Posts", Method: "GET", Path: "/api/world/posts/by-id/{id}"},
 	{OperationID: "getPublicPost", Service: "Posts", Method: "GET", Path: "/api/world/posts/public/{id}"},
 	{OperationID: "getResource", Service: "Resources", Method: "GET", Path: "/api/resources/{resourceId}"},
+	{OperationID: "getSourceMaterializationJwks", Service: "Jwks", Method: "GET", Path: "/api/auth/jwks/source-materialization"},
 	{OperationID: "getUnreadCount", Service: "Notifications", Method: "GET", Path: "/api/human/notifications/unread-count"},
 	{OperationID: "getUser", Service: "User", Method: "GET", Path: "/api/human/accounts/{id}"},
 	{OperationID: "getUserByHandle", Service: "User", Method: "GET", Path: "/api/human/handle/{handle}"},

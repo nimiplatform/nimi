@@ -15,6 +15,7 @@ defaults:
   default_text_model: qwen3.7-max
   model_type: tts
   capabilities: []
+  context_window_tokens: 8192
   pricing:
     unit: char
     input: unknown

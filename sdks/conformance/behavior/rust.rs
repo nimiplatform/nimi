@@ -9,7 +9,9 @@ use crate::core_generated::typed_clients::{
     AccountCaller, BeginLoginRequest, CoreTypedStream, CreateSourceMaterializationPacketDto,
     RealmTypedClient, RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath,
     RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, RuntimeTypedClient,
-    SubscribeAccountSessionEventsRequest, TypedSourceRefDto,
+    SourceMaterializationChallengeLimitsDto,
+    SourceMaterializationPacketV2DtoSemanticPayload, SubscribeAccountSessionEventsRequest,
+    TypedSourceRefDto,
 };
 use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
@@ -157,16 +159,36 @@ fn generated_clients_use_fake_transport() {
         let realm_core =
             crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
         let realm = RealmTypedClient::new(realm_core);
+        assert!(SourceMaterializationPacketV2DtoSemanticPayload::try_from_discriminator(
+            "realmPersona"
+        )
+        .is_ok());
+        assert!(SourceMaterializationPacketV2DtoSemanticPayload::try_from_discriminator(
+            "worldCharacter"
+        )
+        .is_ok());
+        assert!(SourceMaterializationPacketV2DtoSemanticPayload::try_from_discriminator("profile")
+            .is_err());
         let realm_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             realm.world_core_controller_create_source_materialization_packet(
                 RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
                     path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath {},
                     body: CreateSourceMaterializationPacketDto {
                         intended_runtime_audience: "sdk.conformance".to_string(),
+                        materializer_account_id: "account-conformance".to_string(),
+                        challenge_id: "challenge_conformance_0001".to_string(),
+                        challenge_digest: "a".repeat(64),
+                        challenge_expires_at: "2026-01-01T00:05:00.000Z".to_string(),
+                        challenge_limits: Box::new(SourceMaterializationChallengeLimitsDto {
+                            max_bundle_bytes: 1_048_576.0,
+                            max_component_count: 128.0,
+                            max_chunk_bytes: 65_536.0,
+                            max_chunks: 512.0,
+                        }),
                         source_ref: Box::new(TypedSourceRefDto {
                             kind: "realmPersona".to_string(),
                             source_id: "persona-conformance".to_string(),
-                            source_content_hash: "hash-conformance".to_string(),
+                            source_content_hash: "e".repeat(64),
                             world_id: "oasis".to_string(),
                         }),
                     },

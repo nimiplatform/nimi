@@ -140,6 +140,32 @@ function runtimeEnumValueEntries(schema) {
     .map((entry) => ({ name: entry[1], number: Number(entry[2]) }));
 }
 
+const failClosedRuntimeWireEnumNames = new Set([
+  'AgentSourceMaterializationSourceKind',
+  'AgentSourceMaterializationChallengeState',
+  'AgentSourceMaterializationUploadState',
+  'AgentSourceMaterializationComponentKind',
+  'AgentSourceMaterializationProofAlgorithm',
+  'AgentSourceMaterializationKeyUse',
+  'AgentSourceMaterializationPacketSchemaVersion',
+  'AgentSourceMaterializationBundleManifestSchemaVersion',
+  'AgentSourceMaterializationPayloadAssemblyVersion',
+  'AgentSourceMaterializationReasonCode',
+  'AgentLocalSourceContextState',
+  'AgentLocalSourceCoverageSection',
+  'AgentLocalSourceCoverageState',
+  'AgentTurnContextState',
+  'AgentTurnContextLaneId',
+  'AgentTurnContextLaneState',
+  'AgentTurnContextTruncationReason',
+  'AgentContextProjectionReasonCode',
+  'AgentLocalSourceContextSchemaVersion',
+  'AgentLocalSourceSnapshotSchemaVersion',
+  'AgentTurnContextSummarySchemaVersion',
+  'AgentTurnContextManifestSchemaVersion',
+  'AgentTurnContextCompilerSchemaVersion',
+]);
+
 function renderRuntimeWireEnum(schema) {
   const entries = runtimeEnumValueEntries(schema);
   const used = new Set();
@@ -151,7 +177,12 @@ function renderRuntimeWireEnum(schema) {
     used.add(memberName);
     return `  ${memberName} = ${entry.number},`;
   }).join('\n');
-  return `export enum ${schema.name} {\n${members}\n}`;
+  const enumDeclaration = `export enum ${schema.name} {\n${members}\n}`;
+  if (!failClosedRuntimeWireEnumNames.has(schema.name)) {
+    return enumDeclaration;
+  }
+  const knownValues = entries.map((entry) => entry.number).join(', ');
+  return `${enumDeclaration}\n\nconst KNOWN_${upperSnakeCase(schema.name)}_VALUES: ReadonlySet<number> = new Set([${knownValues}]);\n\nexport function isKnown${schema.name}(value: unknown): value is ${schema.name} {\n  return typeof value === 'number' && Number.isInteger(value) && KNOWN_${upperSnakeCase(schema.name)}_VALUES.has(value);\n}\n\nexport function assertKnown${schema.name}(value: unknown): ${schema.name} {\n  if (!isKnown${schema.name}(value)) {\n    throw new TypeError(${quote(`Unknown ${schema.name} numeric value`)} + ': ' + String(value));\n  }\n  return value;\n}`;
 }
 
 const runtimeWireEnumShardDefinitions = [

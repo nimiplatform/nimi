@@ -13,7 +13,7 @@ surfaces:
 services:
   - RuntimeCognitionService
   - RuntimeAgentService
-method_count: 91
+method_count: 93
 method_mappings:
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank
@@ -159,6 +159,31 @@ method_mappings:
     design_method: RequestMemoryEmbeddingRuntimeCutover
     proto_service: RuntimeCognitionService
     proto_method: RequestMemoryEmbeddingRuntimeCutover
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: CreateSourceMaterializationChallenge
+    proto_service: RuntimeAgentService
+    proto_method: CreateSourceMaterializationChallenge
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: BeginSourceMaterializationUpload
+    proto_service: RuntimeAgentService
+    proto_method: BeginSourceMaterializationUpload
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: PutSourceMaterializationChunk
+    proto_service: RuntimeAgentService
+    proto_method: PutSourceMaterializationChunk
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: CommitSourceMaterialization
+    proto_service: RuntimeAgentService
+    proto_method: CommitSourceMaterialization
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: AbortSourceMaterializationUpload
+    proto_service: RuntimeAgentService
+    proto_method: AbortSourceMaterializationUpload
     mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: InitializeAgent

@@ -38,7 +38,8 @@ operations.
 
 ## D-LLM-079 Retired Configuration Record
 
-`tables/agent-avatar-configuration.schema.yaml` is retired without replacement.
+The former Desktop-owned Agent Center avatar configuration record is retired
+without replacement.
 The retired fields are not migrated:
 
 - `local_avatar_asset_ref`

@@ -2,177 +2,180 @@ package runtimeagent
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
-// guideRuntimeSourceRef is the `~archivist` Nimi guide runtime_source_ref.
-//
-// It is referenced here only as an ordinary hash-bearing runtime source
-// identifier carried by a SourceMaterializationPacket. This is not a
-// runtime-local guide constant: it carries no welcome copy, no prompt, and no
-// guide branch. The anti-regression guard in guide_localagent_no_constant_test.go
-// deliberately exempts `_test.go` files for exactly this reason.
-const guideRuntimeSourceRef = "runtime-source:worldCharacter:nimi-system:nimi-guide-archivist:hash-1"
-
-// TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent is the K-AGCORE-139 /
-// K-AGCORE-140 runtime conformance evidence: it proves the `~archivist` guide
-// runtime source materializes through SourceMaterializationPacket validation
-// into a runtime-owned opaque LocalAgent via the identical ordinary code path as
-// any non-guide runtime source.
+// TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent is the service-level
+// K-AGCORE-139/K-AGCORE-140 guide proof. The guide is admitted through the
+// packet-v2 challenge/begin/put/commit/abort surface and the Runtime production
+// product committer. No InitializeAgent metadata lane, retired shared-secret
+// proof, or fixed audience participates in this path.
 func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
-	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
+	svc, closeService := openSourceMaterializationTransportTestService(t, filepath.Join(t.TempDir(), "state.json"))
+	defer closeService()
+	svc.SetSourceMaterializationProductCommitter(svc)
+	ctx := sourceMaterializationTransportTestContext(sourceMaterializationTransportTestAccount)
 
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	ownerUserID := "user-guide-owner"
-	packet := testSourceMaterializationPacket(
-		t,
-		ownerUserID,
-		guideRuntimeSourceRef,
-		"nonce-guide-materialization-1",
-		time.Now().UTC().Add(5*time.Minute),
-		sourceMaterializationAudienceDesktop,
-	)
-
-	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: &runtimev1.AgentRequestContext{
-			AppId:            "runtime-agent-guide-packet-test",
-			SubjectUserId:    ownerUserID,
-			OwnerUserId:      ownerUserID,
-			RuntimeSourceRef: guideRuntimeSourceRef,
-		},
-		OwnerUserId:      ownerUserID,
-		RuntimeSourceRef: guideRuntimeSourceRef,
-		DisplayName:      "Archivist",
-		Metadata:         testSourceMaterializationMetadata(t, packet),
+	// Exercise the fifth packet-v2 RPC explicitly: an abandoned guide upload
+	// must invalidate its challenge and erase every raw transport byte without
+	// creating product state.
+	abortCandidate := sourceMaterializationTransportTestCandidate(t, "worldCharacter", "packet-guide-abort")
+	svc.SetSourceMaterializationAdmission(&sourceMaterializationTransportTestAdmission{candidate: abortCandidate})
+	abortChallenge, _, _, abortBegin := sourceMaterializationTransportTestBeginPutCandidate(t, svc, ctx, abortCandidate, "guide-abort")
+	aborted, err := svc.AbortSourceMaterializationUpload(ctx, &runtimev1.AbortSourceMaterializationUploadRequest{
+		Context:            sourceMaterializationTransportTestRequestContext(abortChallenge.GetSourceRef()),
+		AbortRequestId:     "abort-guide-upload",
+		UploadId:           abortBegin.GetUploadId(),
+		PacketHash:         abortBegin.GetPacketHash(),
+		BundleManifestHash: abortBegin.GetBundleManifestHash(),
 	})
 	if err != nil {
-		t.Fatalf("InitializeAgent(guide): %v", err)
+		t.Fatalf("AbortSourceMaterializationUpload(guide): %v", err)
 	}
-	agent := initResp.GetAgent()
-	localAgentRef := agent.GetLocalAgentRef()
-	if !strings.HasPrefix(localAgentRef, runtimeGeneratedLocalAgentRefPrefix) {
-		t.Fatalf("local_agent_ref = %q, want Runtime-generated opaque ref", localAgentRef)
+	if aborted.GetUploadState() != runtimev1.AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED ||
+		aborted.GetChallengeState() != runtimev1.AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED ||
+		aborted.GetReasonCode() != runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE {
+		t.Fatalf("guide abort response = %+v", aborted)
 	}
-	if strings.Contains(localAgentRef, ownerUserID) || strings.Contains(localAgentRef, guideRuntimeSourceRef) {
-		t.Fatalf("local_agent_ref is source-derived: %q", localAgentRef)
-	}
-	if agent.GetRuntimeSourceRef() != guideRuntimeSourceRef {
-		t.Fatalf("runtime_source_ref = %q, want %q", agent.GetRuntimeSourceRef(), guideRuntimeSourceRef)
-	}
-	if agent.GetOwnerUserId() != ownerUserID {
-		t.Fatalf("owner_user_id = %q, want %q", agent.GetOwnerUserId(), ownerUserID)
-	}
-	if agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
-		t.Fatalf("guide lifecycle = %s, want ACTIVE", agent.GetLifecycleStatus())
-	}
+	assertSourceMaterializationNoRawUploadBytes(t, svc, abortBegin.GetUploadId())
 
-	guideCtx := &runtimev1.AgentRequestContext{
-		AppId:            "runtime-agent-guide-packet-test",
-		SubjectUserId:    ownerUserID,
-		OwnerUserId:      ownerUserID,
-		RuntimeSourceRef: guideRuntimeSourceRef,
-		LocalAgentRef:    localAgentRef,
-	}
+	firstCandidate := sourceMaterializationTransportTestCandidate(t, "worldCharacter", "packet-guide-1")
+	first := materializeGuideV2(t, svc, ctx, firstCandidate, "guide-1")
+	firstRef := first.GetLocalAgentRef()
+	assertOpaqueGuideLocalAgentRef(t, firstRef, firstCandidate)
+	assertBoundedGuideSourceStatus(t, first.GetSourceContextStatus(), firstRef, firstCandidate)
 
-	anchorResp, err := svc.OpenConversationAnchor(ctx, &runtimev1.OpenConversationAnchorRequest{
-		Context:          guideCtx,
-		LocalAgentRef:    localAgentRef,
-		OwnerUserId:      ownerUserID,
-		RuntimeSourceRef: guideRuntimeSourceRef,
-		SubjectUserId:    ownerUserID,
-	})
+	guideContext := sourceMaterializationTransportTestRequestContext(sourceMaterializationProtoRef(firstCandidate.Normalized.SourceRef))
+	guideContext.LocalAgentRef = firstRef
+	got, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: guideContext})
 	if err != nil {
-		t.Fatalf("OpenConversationAnchor(guide): %v", err)
+		t.Fatalf("GetAgent(guide): %v", err)
 	}
-	anchor := anchorResp.GetSnapshot().GetAnchor()
-	if anchor.GetLocalAgentRef() != localAgentRef {
-		t.Fatalf("anchor local_agent_ref = %q, want %q", anchor.GetLocalAgentRef(), localAgentRef)
+	agent := got.GetAgent()
+	if agent.GetOwnerUserId() != sourceMaterializationTransportTestAccount ||
+		agent.GetRuntimeSourceRef() != runtimeSourceRefForMaterialization(sourceMaterializationProtoRef(firstCandidate.Normalized.SourceRef)) ||
+		agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
+		t.Fatalf("guide agent identity/lifecycle = %+v", agent)
 	}
-	if anchor.GetStatus() != runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE {
-		t.Fatalf("anchor status = %s, want ACTIVE", anchor.GetStatus())
+	if agent.GetMetadata() != nil {
+		t.Fatalf("guide agent exposed a metadata side channel: %+v", agent.GetMetadata())
 	}
-	if anchorResp.GetSnapshot().GetActiveTurnId() != "" {
-		t.Fatalf("guide anchor seeded an active turn %q; runtime must not seed welcome copy", anchorResp.GetSnapshot().GetActiveTurnId())
-	}
-	if anchor.GetLastTurnId() != "" || anchor.GetLastMessageId() != "" {
-		t.Fatalf("guide anchor carries seeded turn/message linkage; runtime must not seed welcome copy")
+	if !proto.Equal(agent.GetSourceContextStatus(), first.GetSourceContextStatus()) {
+		t.Fatalf("guide Agent status diverged from commit status: agent=%+v commit=%+v", agent.GetSourceContextStatus(), first.GetSourceContextStatus())
 	}
 
-	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
-		Context: guideCtx,
-		Reason:  "conformance teardown",
-	}); err != nil {
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: guideContext, Reason: "guide conformance teardown"}); err != nil {
 		t.Fatalf("TerminateAgent(guide): %v", err)
 	}
-	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: guideCtx}); status.Code(err) != codes.NotFound {
-		t.Fatalf("GetAgent(guide) after terminate: status = %s, want NotFound (%v)", status.Code(err), err)
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: guideContext}); status.Code(err) != codes.NotFound {
+		t.Fatalf("GetAgent(guide) after terminate: status=%s err=%v, want NotFound", status.Code(err), err)
 	}
-	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
-		Context: guideCtx,
-		Reason:  "conformance teardown repeat",
-	}); err != nil {
-		t.Fatalf("TerminateAgent(guide) idempotent repeat: %v", err)
+	if snapshot, found, err := svc.sourceMaterializationRepo.sourceSnapshot(context.Background(), firstRef); err != nil || found {
+		t.Fatalf("terminated guide retained immutable source product: found=%v snapshot=%+v err=%v", found, snapshot, err)
+	}
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: guideContext, Reason: "guide conformance teardown replay"}); err != nil {
+		t.Fatalf("TerminateAgent(guide) idempotent replay: %v", err)
 	}
 
-	nextPacket := testSourceMaterializationPacket(
-		t,
-		ownerUserID,
-		guideRuntimeSourceRef,
-		"nonce-guide-materialization-2",
-		time.Now().UTC().Add(5*time.Minute),
-		sourceMaterializationAudienceDesktop,
-	)
-	nextResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: &runtimev1.AgentRequestContext{
-			AppId:            "runtime-agent-guide-packet-test",
-			SubjectUserId:    ownerUserID,
-			OwnerUserId:      ownerUserID,
-			RuntimeSourceRef: guideRuntimeSourceRef,
-		},
-		OwnerUserId:      ownerUserID,
-		RuntimeSourceRef: guideRuntimeSourceRef,
-		DisplayName:      "Archivist",
-		Metadata:         testSourceMaterializationMetadata(t, nextPacket),
+	// Issuance metadata is excluded from semantic snapshot truth: a new packet
+	// for the same source must reproduce the snapshot hash while materializing
+	// a fresh opaque Runtime identity after termination.
+	secondCandidate := sourceMaterializationTransportTestCandidate(t, "worldCharacter", "packet-guide-2")
+	if !sameSourceMaterializationSourceRef(
+		sourceMaterializationProtoRef(firstCandidate.Normalized.SourceRef),
+		sourceMaterializationProtoRef(secondCandidate.Normalized.SourceRef),
+	) || firstCandidate.Normalized.SnapshotHash != secondCandidate.Normalized.SnapshotHash {
+		t.Fatalf("guide reissuance changed semantic source truth: first=%+v second=%+v", firstCandidate.Normalized, secondCandidate.Normalized)
+	}
+	second := materializeGuideV2(t, svc, ctx, secondCandidate, "guide-2")
+	if second.GetLocalAgentRef() == firstRef {
+		t.Fatalf("guide rematerialization reused terminated local_agent_ref %q", firstRef)
+	}
+	assertOpaqueGuideLocalAgentRef(t, second.GetLocalAgentRef(), secondCandidate)
+	assertBoundedGuideSourceStatus(t, second.GetSourceContextStatus(), second.GetLocalAgentRef(), secondCandidate)
+}
+
+func materializeGuideV2(
+	t *testing.T,
+	svc *Service,
+	ctx context.Context,
+	candidate localAgentSourceSnapshotCandidateV1,
+	suffix string,
+) *runtimev1.CommitSourceMaterializationResponse {
+	t.Helper()
+	svc.SetSourceMaterializationAdmission(&sourceMaterializationTransportTestAdmission{candidate: candidate})
+	challenge, _, _, begin := sourceMaterializationTransportTestBeginPutCandidate(t, svc, ctx, candidate, suffix)
+	committed, err := svc.CommitSourceMaterialization(ctx, &runtimev1.CommitSourceMaterializationRequest{
+		Context:            sourceMaterializationTransportTestRequestContext(challenge.GetSourceRef()),
+		CommitRequestId:    "commit-" + suffix,
+		UploadId:           begin.GetUploadId(),
+		PacketHash:         begin.GetPacketHash(),
+		BundleManifestHash: begin.GetBundleManifestHash(),
 	})
 	if err != nil {
-		t.Fatalf("re-init guide after terminate (clean re-materialize): %v", err)
+		t.Fatalf("CommitSourceMaterialization(%s): %v", suffix, err)
 	}
-	if nextResp.GetAgent().GetLocalAgentRef() == localAgentRef {
-		t.Fatalf("fresh guide materialization reused deleted local_agent_ref %q", localAgentRef)
+	if committed.GetUploadState() != runtimev1.AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED ||
+		committed.GetChallengeState() != runtimev1.AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED ||
+		committed.GetReasonCode() != runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE {
+		t.Fatalf("guide commit %s = %+v", suffix, committed)
+	}
+	assertSourceMaterializationNoRawUploadBytes(t, svc, begin.GetUploadId())
+	return committed
+}
+
+func assertOpaqueGuideLocalAgentRef(t *testing.T, localAgentRef string, candidate localAgentSourceSnapshotCandidateV1) {
+	t.Helper()
+	if !strings.HasPrefix(localAgentRef, runtimeGeneratedLocalAgentRefPrefix) {
+		t.Fatalf("guide local_agent_ref = %q, want Runtime-generated opaque ref", localAgentRef)
+	}
+	for _, sourceValue := range []string{
+		sourceMaterializationTransportTestAccount,
+		candidate.Normalized.SourceRef.WorldID,
+		candidate.Normalized.SourceRef.SourceID,
+		candidate.Normalized.SourceRef.SourceContentHash,
+	} {
+		if strings.Contains(localAgentRef, sourceValue) {
+			t.Fatalf("guide local_agent_ref %q leaks source value %q", localAgentRef, sourceValue)
+		}
 	}
 }
 
-// TestRuntimeAgentGuideRuntimeSourceRefTakesNoSpecialBranch asserts the guide
-// runtime_source_ref is treated identically to an arbitrary non-guide id by the
-// projection identity layer. There is no privileged-id recognition anywhere in
-// the LocalAgent identity surface.
-func TestRuntimeAgentGuideRuntimeSourceRefTakesNoSpecialBranch(t *testing.T) {
-	t.Parallel()
-
-	ownerUserID := "user-branch-check"
-	guideIdentity, err := validateLocalAgentIdentity(
-		ownerUserID, guideRuntimeSourceRef, testOpaqueLocalAgentRef(ownerUserID, guideRuntimeSourceRef),
-	)
+func assertBoundedGuideSourceStatus(
+	t *testing.T,
+	projection *runtimev1.LocalAgentSourceContextStatus,
+	localAgentRef string,
+	candidate localAgentSourceSnapshotCandidateV1,
+) {
+	t.Helper()
+	if projection == nil ||
+		projection.GetSchemaVersion() != runtimev1.AgentLocalSourceContextSchemaVersion_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1 ||
+		!projection.GetReady() ||
+		projection.GetState() != runtimev1.AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY ||
+		projection.GetReasonCode() != runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE ||
+		projection.GetLocalAgentRef() != localAgentRef ||
+		projection.GetSnapshotSchemaVersion() != runtimev1.AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1 ||
+		projection.GetSnapshotHash() != candidate.Normalized.SnapshotHash ||
+		projection.GetCapturedAt() == nil ||
+		len(projection.GetCoverageSections()) == 0 ||
+		!sameSourceMaterializationSourceRef(projection.GetSourceRef(), sourceMaterializationProtoRef(candidate.Normalized.SourceRef)) {
+		t.Fatalf("guide bounded source status = %+v", projection)
+	}
+	raw, err := protojson.Marshal(projection)
 	if err != nil {
-		t.Fatalf("validateLocalAgentIdentity(guide): %v", err)
+		t.Fatalf("marshal guide bounded source status: %v", err)
 	}
-	plainIdentity, err := validateLocalAgentIdentity(
-		ownerUserID, "runtime-source:worldCharacter:world-1:plain:hash-1", testOpaqueLocalAgentRef(ownerUserID, "runtime-source:worldCharacter:world-1:plain:hash-1"),
-	)
-	if err != nil {
-		t.Fatalf("validateLocalAgentIdentity(plain): %v", err)
-	}
-	if guideIdentity.LocalAgentRef == plainIdentity.LocalAgentRef {
-		t.Fatalf("distinct runtime_source_ref values must yield distinct refs")
-	}
-	if guideIdentity.OwnerUserID != plainIdentity.OwnerUserID {
-		t.Fatalf("owner scoping diverges between guide and plain identity")
+	for _, forbidden := range []string{"packetProof", "packetId", "payload", "componentBytes", "systemPrompt", "transcript", "memory"} {
+		if strings.Contains(string(raw), forbidden) {
+			t.Fatalf("guide bounded source status exposed %q: %s", forbidden, raw)
+		}
 	}
 }

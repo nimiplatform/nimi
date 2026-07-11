@@ -127,11 +127,6 @@ type Config struct {
 	// override for staging/test environments.
 	AccountTokenURL string
 
-	// SourceMaterializationPacketHMACSecret is the Runtime-owned verifier
-	// secret for Realm-issued source materialization packet proofs. Empty means
-	// Runtime rejects source materialization fail-closed.
-	SourceMaterializationPacketHMACSecret string
-
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
 	Providers map[string]RuntimeFileTarget
@@ -247,27 +242,25 @@ type FileConfig struct {
 	DefaultLocalTextModel  string                  `json:"defaultLocalTextModel,omitempty"`
 	DefaultCloudProvider   string                  `json:"defaultCloudProvider,omitempty"`
 
-	AIHealthIntervalSeconds               *int   `json:"aiHealthIntervalSeconds,omitempty"`
-	AIHTTPTimeoutSeconds                  *int   `json:"aiHttpTimeoutSeconds,omitempty"`
-	GlobalConcurrencyLimit                *int   `json:"globalConcurrencyLimit,omitempty"`
-	PerAppConcurrencyLimit                *int   `json:"perAppConcurrencyLimit,omitempty"`
-	IdempotencyCapacity                   *int   `json:"idempotencyCapacity,omitempty"`
-	MaxDelegationDepth                    *int   `json:"maxDelegationDepth,omitempty"`
-	AuditRingBufferSize                   *int   `json:"auditRingBufferSize,omitempty"`
-	UsageStatsBufferSize                  *int   `json:"usageStatsBufferSize,omitempty"`
-	LocalAuditCapacity                    *int   `json:"localAuditCapacity,omitempty"`
-	SessionTTLMinSeconds                  *int   `json:"sessionTtlMinSeconds,omitempty"`
-	SessionTTLMaxSeconds                  *int   `json:"sessionTtlMaxSeconds,omitempty"`
-	ModelCatalogCustomDir                 string `json:"modelCatalogCustomDir,omitempty"`
-	AppRegistryPath                       string `json:"appRegistryPath,omitempty"`
-	AppBundledArtifactsRoot               string `json:"appBundledArtifactsRoot,omitempty"`
-	LogLevel                              string `json:"logLevel,omitempty"`
-	SourceMaterializationPacketHMACSecret string `json:"sourceMaterializationPacketHmacSecret,omitempty"`
-
-	Auth       *FileConfigAuth              `json:"auth,omitempty"`
-	Providers  map[string]RuntimeFileTarget `json:"providers,omitempty"`
-	Engines    *FileConfigEngines           `json:"engines,omitempty"`
-	Scheduling *FileConfigScheduling        `json:"scheduling,omitempty"`
+	AIHealthIntervalSeconds *int                         `json:"aiHealthIntervalSeconds,omitempty"`
+	AIHTTPTimeoutSeconds    *int                         `json:"aiHttpTimeoutSeconds,omitempty"`
+	GlobalConcurrencyLimit  *int                         `json:"globalConcurrencyLimit,omitempty"`
+	PerAppConcurrencyLimit  *int                         `json:"perAppConcurrencyLimit,omitempty"`
+	IdempotencyCapacity     *int                         `json:"idempotencyCapacity,omitempty"`
+	MaxDelegationDepth      *int                         `json:"maxDelegationDepth,omitempty"`
+	AuditRingBufferSize     *int                         `json:"auditRingBufferSize,omitempty"`
+	UsageStatsBufferSize    *int                         `json:"usageStatsBufferSize,omitempty"`
+	LocalAuditCapacity      *int                         `json:"localAuditCapacity,omitempty"`
+	SessionTTLMinSeconds    *int                         `json:"sessionTtlMinSeconds,omitempty"`
+	SessionTTLMaxSeconds    *int                         `json:"sessionTtlMaxSeconds,omitempty"`
+	ModelCatalogCustomDir   string                       `json:"modelCatalogCustomDir,omitempty"`
+	AppRegistryPath         string                       `json:"appRegistryPath,omitempty"`
+	AppBundledArtifactsRoot string                       `json:"appBundledArtifactsRoot,omitempty"`
+	LogLevel                string                       `json:"logLevel,omitempty"`
+	Auth                    *FileConfigAuth              `json:"auth,omitempty"`
+	Providers               map[string]RuntimeFileTarget `json:"providers,omitempty"`
+	Engines                 *FileConfigEngines           `json:"engines,omitempty"`
+	Scheduling              *FileConfigScheduling        `json:"scheduling,omitempty"`
 }
 
 type ManagedRootsConfig struct {

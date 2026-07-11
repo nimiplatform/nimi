@@ -6,6 +6,15 @@ export const cwd = process.cwd();
 export const desktopRoot = path.join(cwd, '.nimi/spec/desktop');
 export const sourceRoot = path.join(cwd, 'apps/desktop/src');
 
+const retiredRealmPersonaMaterializationActions = '.nimi/spec/desktop/kernel/tables/realm-persona-materialization-actions.yaml';
+if (fs.existsSync(path.join(cwd, retiredRealmPersonaMaterializationActions))) {
+  throw new Error(
+    `${retiredRealmPersonaMaterializationActions} is retired; use `
+    + '.nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml '
+    + 'with machine_id=desktop_realm_source_local_materialization_action_model',
+  );
+}
+
 export const kernelFiles = [
   '.nimi/spec/desktop/kernel/index.md',
   '.nimi/spec/desktop/kernel/bootstrap-contract.md',
@@ -15,6 +24,8 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/auth-session-contract.md',
   '.nimi/spec/desktop/kernel/data-sync-contract.md',
   '.nimi/spec/desktop/kernel/llm-adapter-contract.md',
+  '.nimi/spec/desktop/kernel/explore-surface-contract.md',
+  '.nimi/spec/desktop/kernel/agent-chat-projection-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md',
   '.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md',
@@ -53,6 +64,7 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml',
   '.nimi/spec/desktop/kernel/tables/desktop-feature-coverage.yaml',
   '.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml',
+  '.nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml',
   '.nimi/spec/desktop/kernel/tables/relationship-categories.yaml',
   '.nimi/spec/desktop/kernel/tables/relationship-friend-request-states.yaml',
   '.nimi/spec/desktop/kernel/tables/rule-evidence.yaml',

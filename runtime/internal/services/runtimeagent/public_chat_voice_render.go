@@ -12,7 +12,7 @@ import (
 )
 
 func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *runtimev1.AppMessageEvent, req publicChatTurnVoiceRenderPayload) error {
-	session, turn, text, err := r.resolveCompletedTurnVoiceRender(event.GetFromAppId(), req)
+	session, turn, text, err := r.resolveCompletedTurnVoiceRender(event.GetFromAppId(), event.GetSubjectUserId(), req)
 	if err != nil {
 		return err
 	}
@@ -109,12 +109,13 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 	})
 }
 
-func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, req publicChatTurnVoiceRenderPayload) (publicChatAnchorState, publicChatTurnState, string, error) {
+func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, subjectUserID string, req publicChatTurnVoiceRenderPayload) (publicChatAnchorState, publicChatTurnState, string, error) {
 	anchorID := strings.TrimSpace(req.ConversationAnchorID)
 	turnID := strings.TrimSpace(req.TurnID)
 	messageID := strings.TrimSpace(req.MessageID)
-	if strings.TrimSpace(callerAppID) == "" || anchorID == "" || turnID == "" || messageID == "" {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.InvalidArgument, "public chat voice render requires caller, conversation_anchor_id, turn_id, and message_id")
+	trimmedSubjectUserID := strings.TrimSpace(subjectUserID)
+	if strings.TrimSpace(callerAppID) == "" || trimmedSubjectUserID == "" || anchorID == "" || turnID == "" || messageID == "" {
+		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.InvalidArgument, "public chat voice render requires caller, subject_user_id, conversation_anchor_id, turn_id, and message_id")
 	}
 	r.svc.chatSurfaceMu.Lock()
 	defer r.svc.chatSurfaceMu.Unlock()
@@ -122,8 +123,11 @@ func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, r
 	if session == nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.NotFound, "conversation anchor not found")
 	}
-	if session.CallerAppID != callerAppID {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
+	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
+		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.DataLoss, err.Error())
+	}
+	if strings.TrimSpace(session.SubjectUserID) != trimmedSubjectUserID {
+		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.PermissionDenied, "public chat anchor subject_user_id mismatch")
 	}
 	projection := publicChatCompletedTurnProjectionForMessageLocked(session, turnID, messageID)
 	if projection == nil {
@@ -140,7 +144,11 @@ func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, r
 		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.FailedPrecondition, "completed public chat turn timeline unavailable")
 	}
 	sessionSnapshot := *session
-	sessionSnapshot.Transcript = cloneChatMessages(session.Transcript)
+	// Manual replay is delivered to the authenticated requesting surface. The
+	// anchor's last turn caller remains delivery history, never an app-id
+	// authorization partition.
+	sessionSnapshot.CallerAppID = strings.TrimSpace(callerAppID)
+	sessionSnapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
 	sessionSnapshot.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
 	sessionSnapshot.LastTurnSnapshot = clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
 	sessionSnapshot.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
@@ -150,7 +158,7 @@ func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, r
 		TurnID:               projection.TurnID,
 		StreamID:             projection.StreamID,
 		AgentID:              sessionSnapshot.AgentID,
-		CallerAppID:          sessionSnapshot.CallerAppID,
+		CallerAppID:          strings.TrimSpace(callerAppID),
 		SubjectUserID:        sessionSnapshot.SubjectUserID,
 		ThreadID:             sessionSnapshot.ThreadID,
 		StreamSequence:       projectionSnapshot.StreamSequence,

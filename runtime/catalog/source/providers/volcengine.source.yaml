@@ -14,6 +14,7 @@ defaults:
   default_text_model: doubao-seed-2-1-pro-260628
   model_type: chat
   capabilities: []
+  context_window_tokens: 8192
   pricing:
     unit: token
     input: unknown
@@ -284,6 +285,7 @@ models:
       - doubao-seed-2.0-code
 
   - model_id: doubao-1.5-pro-256k
+    context_window_tokens: 262144
     model_type: chat
     updated_at: 2026-04-18
     capabilities: [text.generate]

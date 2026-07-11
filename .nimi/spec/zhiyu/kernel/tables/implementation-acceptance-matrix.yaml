@@ -27,6 +27,7 @@ global_acceptance_dimensions:
   - owner_boundary_trace
   - visual_review
   - no_renderer_token_leak
+  - bounded_localagent_source_context_projection
 acceptance_mode:
   pre_remediation: define_matrix_and_boundary_gates_only
   post_remediation: real_app_shell_required
@@ -43,7 +44,7 @@ story_acceptance:
     decisions: [D7, D11, D12]
     gates: [binding_only_consumption, local_persistence_boundary]
     dimensions: [real_app_shell, primary_user_path, dom_cdp_state, button_input_usability, owner_boundary_trace]
-    required_evidence: [partner_projection_loaded_from_upstream, selection_changes_current_partner_projection, no_partner_profile_mutation]
+    required_evidence: [partner_projection_loaded_from_upstream, bounded_source_status_ready, unknown_or_partial_source_status_not_partner_ready, selection_changes_current_partner_projection, no_partner_profile_mutation]
   - story: story_03_configure_model
     states: [model_config_not_ready, partner_ready]
     decisions: [D1, D11, D12]
@@ -53,9 +54,9 @@ story_acceptance:
   - story: story_04_first_conversation
     states: [partner_ready, partner_responding]
     decisions: [D1, D9, D10, D11, D12]
-    gates: [binding_only_consumption, sdk_kit_turn_consumption, no_direct_ai_consumption, no_duplicate_turn_reducer, local_persistence_boundary]
+    gates: [binding_only_consumption, sdk_kit_turn_consumption, bounded_context_projection, no_direct_ai_consumption, no_duplicate_turn_reducer, local_persistence_boundary]
     dimensions: [real_app_shell, primary_user_path, real_runtime_auth_sdk_connectivity, dom_cdp_state, console_error_free, disabled_state, button_input_usability]
-    required_evidence: [runtime_agent_turn_sent_through_sdk_client, kit_projection_renders_turn_events, composer_editable_while_turn_streams, send_disabled_while_responding]
+    required_evidence: [runtime_agent_turn_sent_through_sdk_client, kit_projection_renders_turn_events, bounded_context_ready_blocked_truncated_failed_visible, no_raw_context_or_app_prompt_assembly, composer_editable_while_turn_streams, send_disabled_while_responding]
   - story: story_05_revisit_continuity
     states: [partner_ready]
     decisions: [D2, D11, D12]
@@ -91,7 +92,7 @@ story_acceptance:
     decisions: [D6, D10, D11, D12]
     gates: [binding_only_consumption, no_duplicate_turn_reducer, local_persistence_boundary]
     dimensions: [real_app_shell, failure_state, primary_user_path, owner_boundary_trace, chinese_readability, console_error_free]
-    required_evidence: [check_local_service_action_runs_health_refresh, owner_aware_failure_copy, retry_action_available, no_pseudo_success]
+    required_evidence: [check_local_service_action_runs_health_refresh, bounded_source_or_context_failure_visible, unknown_or_partial_not_partner_ready, owner_aware_failure_copy, retry_action_available, no_pseudo_success]
   - story: story_11_diagnostics
     states: [local_service_unavailable, recoverable_failure]
     decisions: [D3, D4, D6, D11]
@@ -119,7 +120,7 @@ state_acceptance:
     required_evidence: [runtime_ai_config_missing_or_invalid_state, config_facade_action]
   - state: partner_ready
     stories: [story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary, story_12_shared_auth_broker]
-    required_evidence: [conversation_ready_controls, config_controls_available, avatar_launch_entry_available, continuity_projection_available]
+    required_evidence: [bounded_source_status_ready, no_present_context_status_blocked_failed_unknown_or_partial, conversation_ready_controls, config_controls_available, avatar_launch_entry_available, continuity_projection_available]
   - state: partner_responding
     stories: [story_04_first_conversation, story_09_creation_artifact_boundary]
     required_evidence: [streaming_projection_visible, composer_editable, send_disabled]
@@ -170,8 +171,8 @@ decision_acceptance:
     spec_refs: [Z-CHAT-004]
     acceptance_rows: [story_04_first_conversation]
   - decision: D10
-    semantics: sdk_kit_runtime_agent_turn_surface_required
-    spec_refs: [Z-CHAT-001, Z-CHAT-002]
+    semantics: sdk_kit_runtime_agent_turn_surface_and_bounded_source_context_projection_required
+    spec_refs: [Z-CHAT-001, Z-CHAT-002, Z-AUTH-005, Z-STATE-003]
     acceptance_rows: [story_04_first_conversation, story_09_creation_artifact_boundary, story_10_local_service_offline]
   - decision: D11
     semantics: binding_only_first_party_consumer
@@ -186,6 +187,9 @@ decision_acceptance:
     spec_refs: [Z-AUTH-007, K-ACCSVC-023, K-ACCSVC-024, K-ACCSVC-025]
     acceptance_rows: [story_12_shared_auth_broker]
 blocking_gates:
+  - gate: bounded_context_projection
+    blocks_real_app_acceptance_for: [story_02_select_existing_partner, story_04_first_conversation, story_10_local_service_offline]
+    source_rule: Z-GATE-007
   - gate: shared_auth_broker
     blocks_real_app_acceptance_for: [story_12_shared_auth_broker]
     source_rule: Z-GATE-007

@@ -303,19 +303,15 @@ type runtimeRPCAuthPostureShardFile struct {
 }
 
 // loadPostureTableFixture reads the runtime RPC auth posture index and method
-// shards from disk via repo-root-relative paths. The YAML files are treated as
-// read-only fixtures; the test does not write to them.
+// shards from disk by locating the repository root from this source file. The
+// YAML files are treated as read-only fixtures; the test does not write to them.
 func loadPostureTableFixture(t *testing.T) *runtimeRPCAuthPostureTable {
 	t.Helper()
 	_, thisFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("runtime.Caller failed")
 	}
-	// thisFile = .../nimi/runtime/internal/authn/interceptor_test.go
-	// nimiRoot = .../nimi
-	// table   = .../nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml
-	nimiRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", "..", ".."))
-	tablePath := filepath.Join(nimiRoot, "nimi", ".nimi", "spec", "runtime", "kernel", "tables", "runtime-rpc-auth-posture.yaml")
+	tablePath := findPostureTableFixture(t, thisFile)
 	raw, err := os.ReadFile(tablePath)
 	if err != nil {
 		t.Fatalf("read posture table fixture %s: %v", tablePath, err)
@@ -382,6 +378,30 @@ func loadPostureTableFixture(t *testing.T) *runtimeRPCAuthPostureTable {
 		table.Methods = append(table.Methods, shard.Methods...)
 	}
 	return &table
+}
+
+func findPostureTableFixture(t *testing.T, sourceFile string) string {
+	t.Helper()
+	const relativePath = ".nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml"
+	current := filepath.Dir(sourceFile)
+	for {
+		candidate := filepath.Join(current, filepath.FromSlash(relativePath))
+		info, err := os.Stat(candidate)
+		if err == nil {
+			if info.IsDir() {
+				t.Fatalf("posture table fixture is a directory: %s", candidate)
+			}
+			return candidate
+		}
+		if !os.IsNotExist(err) {
+			t.Fatalf("inspect posture table fixture %s: %v", candidate, err)
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			t.Fatalf("locate %s upward from %s", relativePath, sourceFile)
+		}
+		current = parent
+	}
 }
 
 // TestPostureTableConsumerLoadsWave0FixtureShape asserts the basic shape of

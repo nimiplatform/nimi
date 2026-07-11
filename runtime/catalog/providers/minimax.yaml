@@ -21,6 +21,7 @@ models:
       url: https://platform.minimax.io/docs/api-reference/api-overview
       retrieved_at: 2026-04-18
       note: MiniMax API overview with text, image, and video model tables.
+    context_window_tokens: 8192
   - model_id: MiniMax-Hailuo-2.3
     provider: minimax
     model_type: video

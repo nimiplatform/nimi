@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type {
   CreateSourceMaterializationPacketDto,
-  SourceMaterializationPacketDto,
+  SourceMaterializationPacketV2Dto,
   TypedSourceRefDto,
 } from '../core-generated/realm-typed-client';
 import {
@@ -38,28 +38,245 @@ const realmPersonaSourceRef: TypedSourceRefDto = {
   kind: 'realmPersona',
   worldId: 'world-1',
   sourceId: 'persona-1',
-  sourceContentHash: 'sha256:persona',
+  sourceContentHash: '7'.repeat(64),
 };
 
-function createSourceMaterializationPacket(body: CreateSourceMaterializationPacketDto): SourceMaterializationPacketDto {
-  const { sourceRef, intendedRuntimeAudience } = body;
+const challengeDigest = 'a'.repeat(64);
+const sourceMaterializationRequest: CreateSourceMaterializationPacketDto = {
+  sourceRef: realmPersonaSourceRef,
+  materializerAccountId: 'account-materializer-1',
+  challengeId: 'challenge_test_0001',
+  challengeDigest,
+  intendedRuntimeAudience: 'nimi.runtime.instance.test',
+  challengeExpiresAt: '2026-07-10T12:05:00.000Z',
+  challengeLimits: {
+    maxBundleBytes: 1_048_576,
+    maxComponentCount: 128,
+    maxChunkBytes: 65_536,
+    maxChunks: 512,
+  },
+};
+
+function createSourceMaterializationPacket(body: CreateSourceMaterializationPacketDto): SourceMaterializationPacketV2Dto {
+  const sourceHash = 'b'.repeat(64);
+  const worldHash = 'c'.repeat(64);
+  const coverageHash = 'd'.repeat(64);
+  const contextHash = 'e'.repeat(64);
+  const payloadHash = 'f'.repeat(64);
+  const manifestHash = '1'.repeat(64);
+  const packetHash = '2'.repeat(64);
+  const sourceComponentHash = '3'.repeat(64);
+  const worldComponentHash = '4'.repeat(64);
+  const sourceComponentId = 'realmPersona:persona-1';
+  const worldComponentId = 'worldCore:world-1';
+  const coverageManifest = {
+    manifestSchemaVersion: 'realm.materialization-coverage/v1' as const,
+    closurePolicyVersion: 'realm.materialization-closure/v1' as const,
+    requiredSections: [
+      { path: 'source.core.identity', state: 'present' as const },
+      { path: 'source.core.personaStyle', state: 'present' as const },
+      { path: 'materializationContext.owningWorld', state: 'present' as const },
+    ],
+    requiredRefs: [],
+    optionalRefs: [],
+    components: [
+      {
+        componentId: sourceComponentId,
+        kind: 'realmPersona' as const,
+        schemaVersion: 'realm.persona/v1',
+        revision: 7,
+        contentHash: sourceHash,
+      },
+      {
+        componentId: worldComponentId,
+        kind: 'worldCore' as const,
+        schemaVersion: 'realm.world-core/v1',
+        revision: 3,
+        contentHash: worldHash,
+      },
+    ],
+    crossReferenceChecks: [
+      {
+        checkId: 'persona-home-world',
+        sourceRef: sourceComponentId,
+        targetRef: worldComponentId,
+        state: 'valid' as const,
+      },
+    ],
+    aggregateStatus: 'complete' as const,
+    coverageManifestHash: coverageHash,
+  };
+  const owningWorld = {
+    id: 'world-1',
+    creatorId: 'account-owner-1',
+    visibility: 'private' as const,
+    schemaVersion: 'realm.world-core/v1',
+    contentRevision: 3,
+    contentHash: worldHash,
+    createdAt: '2026-07-10T11:00:00.000Z',
+    updatedAt: '2026-07-10T11:00:00.000Z',
+    origin: { kind: 'manual' as const },
+    core: {
+      identity: { name: 'Conformance World', summary: 'A complete fixture world.' },
+      presentation: { displayName: 'Conformance World' },
+      ontology: { entityKinds: [], relationshipTypes: [] },
+      entities: [],
+      relationships: [],
+      scenes: [],
+      timeline: { events: [] },
+      timeModel: {
+        mode: 'static' as const,
+        anchor: {
+          realStartedAt: '2026-07-10T11:00:00.000Z',
+          worldStartedAt: '2026-07-10T11:00:00.000Z',
+          worldStartedAtDisplay: 'Day 1',
+        },
+        flowRatio: 1,
+        isPaused: false,
+        pausedWorldTime: null,
+        calendar: null,
+        displayFormat: null,
+      },
+      systems: [],
+      assets: { resourceRefs: [], intents: [] },
+      authoring: { source: 'sdk-test-fixture' },
+    },
+  };
   return {
-    packetSchemaVersion: 'realm.source-materialization-packet/v1',
+    packetSchemaVersion: 'realm.source-materialization-packet/v2',
     packetId: 'packet-1',
-    sourceKind: sourceRef.kind,
-    sourceId: sourceRef.sourceId,
-    sourceWorldId: sourceRef.worldId,
-    sourceContentRevision: 7,
-    sourceContentHash: sourceRef.sourceContentHash,
+    issuer: 'https://realm.test',
+    keyId: 'materialization-rs256-test-1',
+    algorithm: 'RS256',
+    keyUse: 'sig',
     issuedAt: '2026-06-18T00:00:00.000Z',
     expiresAt: '2026-06-18T00:05:00.000Z',
     nonce: 'nonce-1',
-    packetHash: 'packet-hash-1',
-    packetProof: 'hmac-sha256:proof-1',
-    intendedRuntimeAudience,
-    runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
-    sourceDisplayMetadata: { displayName: 'Persona 1' },
-    payload: { sourceRef },
+    intendedRuntimeAudience: body.intendedRuntimeAudience,
+    challengeId: body.challengeId,
+    challengeDigest: body.challengeDigest,
+    challengeLimits: body.challengeLimits,
+    materializerAccountId: body.materializerAccountId,
+    sourceRef: body.sourceRef,
+    payloadHash,
+    bundleManifestHash: manifestHash,
+    packetHash,
+    packetProof: 'eyJhbGciOiJSUzI1NiIsImtpZCI6Im1hdGVyaWFsaXphdGlvbi10ZXN0LTEifQ..signature',
+    semanticPayload: {
+      payloadSchemaVersion: 'realm.source-materialization-payload/v2',
+      payloadAssemblyVersion: 'realm.materialization-assembly/v1',
+      source: {
+        kind: 'realmPersona',
+        id: body.sourceRef.sourceId,
+        ownerId: 'account-owner-1',
+        visibility: 'private',
+        homeWorldId: body.sourceRef.worldId,
+        schemaVersion: 'realm.persona/v1',
+        contentRevision: 7,
+        contentHash: sourceHash,
+        createdAt: '2026-07-10T11:00:00.000Z',
+        updatedAt: '2026-07-10T11:00:00.000Z',
+        origin: { kind: 'manual' },
+        core: {
+          identity: {
+            name: 'Conformance Persona',
+            handle: 'conformance-persona',
+            summary: 'A complete fixture persona.',
+          },
+          presentation: {
+            displayName: 'Conformance Persona',
+            profileLine: 'Fixture persona',
+          },
+          personaStyle: {
+            archetype: 'guide',
+            traits: ['precise'],
+            voice: 'calm',
+            pacing: 'measured',
+          },
+          contentProfile: { topics: ['testing'], guidelines: [], boundaries: [] },
+          interactionProfile: { homeWorldId: 'world-1', interactionModes: ['chat'] },
+          assets: { resourceRefs: [], intents: [] },
+          authoring: { source: 'sdk-test-fixture' },
+        },
+      },
+      materializationContext: {
+        contextSchemaVersion: 'realm.materialization-context/v1',
+        sourceRef: body.sourceRef,
+        owningWorld,
+        dependencyClosure: { kind: 'realmPersona', explicitDependencies: [] },
+        sourceComponentDigests: [
+          { componentId: sourceComponentId, kind: 'realmPersona', contentHash: sourceHash },
+        ],
+        worldAndClosureComponentDigests: [
+          { componentId: worldComponentId, kind: 'worldCore', contentHash: worldHash },
+        ],
+        closurePolicyVersion: 'realm.materialization-closure/v1',
+        coverageManifestHash: coverageHash,
+        materializationContextHash: contextHash,
+      },
+      coverageManifest,
+      coverageManifestHash: coverageHash,
+      materializationContextHash: contextHash,
+    },
+    bundleTransportManifest: {
+      manifestSchemaVersion: 'realm.materialization-bundle-manifest/v1',
+      payloadAssemblyVersion: 'realm.materialization-assembly/v1',
+      packetId: 'packet-1',
+      challengeDigest: body.challengeDigest,
+      totalCanonicalBytes: 4,
+      componentCount: 2,
+      chunkCount: 2,
+      components: [
+        {
+          componentId: sourceComponentId,
+          kind: 'realmPersona',
+          schemaVersion: 'realm.persona/v1',
+          revision: 7,
+          contentHash: sourceHash,
+          canonicalBytesHash: sourceComponentHash,
+          canonicalByteLength: 2,
+        },
+        {
+          componentId: worldComponentId,
+          kind: 'worldCore',
+          schemaVersion: 'realm.world-core/v1',
+          revision: 3,
+          contentHash: worldHash,
+          canonicalBytesHash: worldComponentHash,
+          canonicalByteLength: 2,
+        },
+      ],
+      chunks: [
+        { globalOrdinal: 0, componentOffset: 0, length: 2, chunkSha256: '5'.repeat(64) },
+        { globalOrdinal: 1, componentOffset: 0, length: 2, chunkSha256: '6'.repeat(64) },
+      ],
+    },
+    orderedComponentChunks: [
+      {
+        componentId: sourceComponentId,
+        kind: 'realmPersona',
+        schemaVersion: 'realm.persona/v1',
+        revision: 7,
+        contentHash: sourceHash,
+        canonicalBytesHash: sourceComponentHash,
+        canonicalByteLength: 2,
+        canonicalBytes: [
+          { globalOrdinal: 0, componentOffset: 0, length: 2, chunkSha256: '5'.repeat(64), bytesBase64: 'e30=' },
+        ],
+      },
+      {
+        componentId: worldComponentId,
+        kind: 'worldCore',
+        schemaVersion: 'realm.world-core/v1',
+        revision: 3,
+        contentHash: worldHash,
+        canonicalBytesHash: worldComponentHash,
+        canonicalByteLength: 2,
+        canonicalBytes: [
+          { globalOrdinal: 1, componentOffset: 0, length: 2, chunkSha256: '6'.repeat(64), bytesBase64: 'e30=' },
+        ],
+      },
+    ],
   };
 }
 
@@ -178,8 +395,8 @@ function createSocialRealmStub() {
           return { id: 'report-1' };
         },
         async worldCoreControllerCreateSourceMaterializationPacket(request: { body: CreateSourceMaterializationPacketDto }) {
-          const { sourceRef, intendedRuntimeAudience } = request.body;
-          calls.push(`materializeSource:${sourceRef.kind}:${sourceRef.sourceId}:${intendedRuntimeAudience}`);
+          const { sourceRef, intendedRuntimeAudience, challengeId } = request.body;
+          calls.push(`materializeSource:${sourceRef.kind}:${sourceRef.sourceId}:${intendedRuntimeAudience}:${challengeId}`);
           return createSourceMaterializationPacket(request.body);
         },
       },
@@ -264,75 +481,141 @@ test('Realm social profile helpers preserve explicit user mutations', async () =
   assert.deepEqual(errors, []);
 });
 
-test('Realm source materialization packet helper requires hash-bearing source refs and audience', async () => {
+test('Realm source materialization packet helper preserves the complete Runtime challenge and packet v2 carrier', async () => {
   const { realm, calls } = createSocialRealmStub();
   const errors: string[] = [];
 
   const packet = await createNimiRealmSourceMaterializationPacket(
     realm,
     (action) => errors.push(action),
-    realmPersonaSourceRef,
-    'desktop.runtime',
+    sourceMaterializationRequest,
   );
 
-  assert.equal(packet.packetSchemaVersion, 'realm.source-materialization-packet/v1');
-  assert.equal(packet.intendedRuntimeAudience, 'desktop.runtime');
-  assert.equal(packet.packetProof, 'hmac-sha256:proof-1');
-  assert.equal(
-    packet.runtimeSourceRef,
-    'runtime-source:realmPersona:world-1:persona-1:sha256:persona',
-  );
+  assert.equal(packet.packetSchemaVersion, 'realm.source-materialization-packet/v2');
+  assert.equal(packet.intendedRuntimeAudience, sourceMaterializationRequest.intendedRuntimeAudience);
+  assert.equal(packet.challengeId, sourceMaterializationRequest.challengeId);
+  assert.equal(packet.challengeDigest, challengeDigest);
+  assert.equal(packet.algorithm, 'RS256');
+  assert.equal(packet.semanticPayload.source.kind, 'realmPersona');
+  assert.equal(packet.bundleTransportManifest.componentCount, 2);
   assert.deepEqual(errors, []);
   assert.deepEqual(calls.filter((call) => call.startsWith('materializeSource:')), [
-    'materializeSource:realmPersona:persona-1:desktop.runtime',
+    'materializeSource:realmPersona:persona-1:nimi.runtime.instance.test:challenge_test_0001',
   ]);
+
+  await createNimiRealmSourceMaterializationPacket(
+    realm,
+    (action) => errors.push(action),
+    {
+      ...sourceMaterializationRequest,
+      sourceRef: {
+        kind: 'worldCharacter',
+        worldId: 'world-1',
+        sourceId: 'character-1',
+        sourceContentHash: '8'.repeat(64),
+      },
+    },
+  );
+  assert.equal(
+    calls.filter((call) => call.startsWith('materializeSource:')).at(-1),
+    'materializeSource:worldCharacter:character-1:nimi.runtime.instance.test:challenge_test_0001',
+  );
 });
 
-test('Realm source materialization packet helper fails closed on incomplete inputs', async () => {
+test('Realm source materialization packet helper fails closed on incomplete, unknown, or forged challenge inputs', async () => {
   const { realm } = createSocialRealmStub();
   const errors: string[] = [];
 
   await assert.rejects(
-    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), null, 'desktop.runtime'),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_REF_REQUIRED',
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), null),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_REQUEST_REQUIRED',
   );
   await assert.rejects(
-    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {}, 'desktop.runtime'),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_REQUIRED',
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {}),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_REQUEST_INVALID',
   );
   await assert.rejects(
     () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
-      ...realmPersonaSourceRef,
-      kind: 'profile',
-    }, 'desktop.runtime'),
+      ...sourceMaterializationRequest,
+      sourceRef: { ...realmPersonaSourceRef, kind: 'profile' },
+    }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_UNSUPPORTED',
   );
   await assert.rejects(
     () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
-      ...realmPersonaSourceRef,
-      worldId: ' ',
-    }, 'desktop.runtime'),
+      ...sourceMaterializationRequest,
+      sourceRef: { ...realmPersonaSourceRef, worldId: ' ' },
+    }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_WORLD_ID_REQUIRED',
   );
   await assert.rejects(
     () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
-      ...realmPersonaSourceRef,
-      sourceId: '',
-    }, 'desktop.runtime'),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_ID_REQUIRED',
+      ...sourceMaterializationRequest,
+      sourceRef: { ...realmPersonaSourceRef, sourceContentHash: 'sha256:forged' },
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_CONTENT_HASH_REQUIRED',
   );
   await assert.rejects(
     () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
-      ...realmPersonaSourceRef,
-      sourceContentHash: '',
-    }, 'desktop.runtime'),
-    (error: unknown) =>
-      (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_CONTENT_HASH_REQUIRED',
+      ...sourceMaterializationRequest,
+      sourceRef: { ...realmPersonaSourceRef, unexpected: true },
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_REF_INVALID',
   );
   await assert.rejects(
-    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), realmPersonaSourceRef, ' '),
-    (error: unknown) =>
-      (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_AUDIENCE_REQUIRED',
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
+      ...sourceMaterializationRequest,
+      challengeDigest: 'forged',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_CHALLENGE_DIGEST_INVALID',
+  );
+  await assert.rejects(
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
+      ...sourceMaterializationRequest,
+      intendedRuntimeAudience: ' ',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_AUDIENCE_INVALID',
+  );
+  await assert.rejects(
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
+      ...sourceMaterializationRequest,
+      intendedRuntimeAudience: 'x'.repeat(513),
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_AUDIENCE_INVALID',
+  );
+  await assert.rejects(
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
+      ...sourceMaterializationRequest,
+      intendedRuntimeAudience: 'runtime.不可见',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_AUDIENCE_INVALID',
+  );
+  for (const challengeExpiresAt of [
+    '2026-07-10T12:05:00+00:00',
+    '2026-02-30T12:05:00.000Z',
+    '2026-07-10 12:05:00Z',
+  ]) {
+    await assert.rejects(
+      () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
+        ...sourceMaterializationRequest,
+        challengeExpiresAt,
+      }),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_EXPIRY_INVALID',
+    );
+  }
+  await assert.rejects(
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
+      ...sourceMaterializationRequest,
+      challengeLimits: { ...sourceMaterializationRequest.challengeLimits, maxChunks: 0 },
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_LIMITS_INVALID',
+  );
+  await assert.rejects(
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
+      ...sourceMaterializationRequest,
+      forged: true,
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_REQUEST_INVALID',
   );
   assert.deepEqual(errors, []);
 });
@@ -345,7 +628,7 @@ test('Realm source materialization packet helper emits operation-specific genera
   };
 
   await assert.rejects(
-    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), realmPersonaSourceRef, 'desktop.runtime'),
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), sourceMaterializationRequest),
     /packet failed/,
   );
   assert.deepEqual(errors, ['create-source-materialization-packet']);

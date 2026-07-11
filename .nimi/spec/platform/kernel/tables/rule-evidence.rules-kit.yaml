@@ -24,6 +24,12 @@ forbidden_state_fields:
   - run_id
   - ledger_ref
 entries:
+  - P-AGENT-CENTER-001
+  - P-AGENT-CENTER-002
+  - P-AGENT-CENTER-003
+  - P-AGENT-CENTER-004
+  - P-AGENT-CENTER-005
+  - P-AGENT-CENTER-006
   - P-KIT-001
   - P-KIT-002
   - P-KIT-003
@@ -48,6 +54,56 @@ entries:
   - P-KIT-080
   - P-KIT-090
 rules:
+  - rule_id: P-AGENT-CENTER-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: Kit Agent Center owner boundary and bounded LocalAgent source-status rendering.
+    test_files:
+      - kit/features/agent-center/test/agent-center-state.test.ts
+      - kit/features/agent-center/test/agent-center-runtime-adapter.test.ts
+  - rule_id: P-AGENT-CENTER-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: Complete generic sections consume only bounded Runtime context-summary projection.
+    test_files:
+      - kit/features/agent-center/test/agent-center-ui.test.tsx
+  - rule_id: P-AGENT-CENTER-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: Agent Center local config is retired; Runtime profile and Kit Shell custody remain distinct.
+    test_files:
+      - kit/features/agent-center/test/agent-center-shell-appearance-adapter.test.ts
+      - kit/shell/electron/test/electron-agent-center-custody.test.ts
+  - rule_id: P-AGENT-CENTER-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: Optional audio remains Runtime Agent AI Config and Runtime voice truth.
+    test_files:
+      - kit/features/agent-center/test/agent-center-runtime-adapter.test.ts
+  - rule_id: P-AGENT-CENTER-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: SDK/Runtime adapter boundary rejects raw LocalAgent context and context assembly.
+    test_files:
+      - kit/features/agent-center/test/agent-center-runtime-adapter.test.ts
+  - rule_id: P-AGENT-CENTER-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: Apps own placement, intent, and bounded presentation while Kit owns reusable composition.
+    test_files:
+      - kit/features/agent-center/test/agent-center-ui.test.tsx
   - rule_id: P-KIT-001
     evidence_refs:
       - platform_kernel_consistency

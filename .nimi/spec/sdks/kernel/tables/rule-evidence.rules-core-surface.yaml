@@ -254,7 +254,7 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_boundary_gate
-    note: Boundary gate must distinguish Runtime Agent lifecycle chat from ordinary app AI session-loop DX.
+    note: Boundary gate must distinguish Runtime Agent lifecycle chat from ordinary app AI session-loop DX, preserve ordinary Nimi Chat prompt authority, and reject SDK LocalAgent prompt/context assembly.
     evidence_requirement: required
   - rule_id: S-ERROR-001
     evidence_refs:
@@ -436,6 +436,7 @@ rules:
       - sdk_behavioral_test
       - sdk_kernel_consistency
     evidence_requirement: required
+    note: RuntimeAgentService projection registration carries only Runtime-admitted bounded LocalAgentSourceContextStatus and AgentTurnContextSummary families; no private context attachment surface is admitted.
   - rule_id: S-SURFACE-003
     evidence_refs:
       - sdk_behavioral_test
@@ -538,7 +539,7 @@ rules:
       - sdk_behavioral_test
       - sdk_boundary_gate
       - sdk_consumer_smoke
-    note: Runtime Agent turn consumer helpers are SDK DX over public runtime.agent.turns; Desktop and Tester consume the runner without owning Runtime Agent turn state machines.
+    note: Runtime Agent turn consumer helpers are SDK DX over public runtime.agent.turns and bounded source/context summaries; Desktop and Tester consume the runner without owning Runtime Agent turn state machines or prompt/context assembly.
     evidence_requirement: required
   - rule_id: S-SURFACE-022
     evidence_refs:

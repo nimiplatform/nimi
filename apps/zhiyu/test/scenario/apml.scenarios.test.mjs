@@ -202,16 +202,28 @@ test('A-08 APML tags split across chunks still assemble into emotion projection'
   });
 });
 
-test('A-09 malformed APML repair failure keeps turn failed and retryable', { timeout: scenarioTestTimeoutMs() }, async () => {
+test('A-09 malformed APML fails after one provider call without repair or commit', { timeout: scenarioTestTimeoutMs() }, async () => {
   await runRepeatedScenario({
     group: 'A',
     id: 'A-09',
     runOnce: async ({ scenarioId, iteration }) => withZhiyuScenarioApp({ scenarioId }, async (context) => {
       const prompt = `${runtimeAgentLiveE2EChatScenarioPrompt('a-malformed-apml')} A-09 malformed APML.`;
+      const providerCallsBefore = context.fixture.realmRequests.filter((request) =>
+        request.method === 'POST' && request.path === '/v1/chat/completions'
+      ).length;
       const failed = await sendFailingScenarioPrompt(context, prompt, 'A-09 malformed APML fail-closed');
       assert.equal(failed.chat.state, 'failed');
+      assert.equal(failed.chat.reasonCode, 'AI_OUTPUT_INVALID');
       assert.equal(failed.chat.eventTypes.includes('turn-failed'), true);
+      assert.equal(failed.chat.eventTypes.includes('message-sealed'), false);
+      assert.equal(failed.chat.eventTypes.includes('text-delta'), false);
+      assert.equal(failed.chat.eventTypes.some((eventType) => eventType.startsWith('beat-') || eventType === 'artifact-ready'), false);
       assert.equal(failed.chat.eventTypes.includes('turn-completed'), false);
+      const providerCallsAfter = context.fixture.realmRequests.filter((request) =>
+        request.method === 'POST' && request.path === '/v1/chat/completions'
+      ).length;
+      const malformedProviderCallCount = providerCallsAfter - providerCallsBefore;
+      assert.equal(malformedProviderCallCount, 1, 'malformed APML must not trigger semantic repair');
       const failureNotice = context.page.locator('[data-zhiyu-agent-chat-failure="true"]').last();
       await failureNotice.waitFor({ state: 'visible', timeout: 15_000 });
       const retryPrompt = `${runtimeAgentLiveE2EChatScenarioPrompt('b-single-turn')} A-09 recovery turn.`;
@@ -220,7 +232,11 @@ test('A-09 malformed APML repair failure keeps turn failed and retryable', { tim
         conversationAnchorId: context.readyEvidence.conversation.conversationAnchorId,
         prompt: retryPrompt,
       });
-      return captureScenarioEvidence(context, { scenarioId, iteration, extra: { failed, recovered } });
+      return captureScenarioEvidence(context, {
+        scenarioId,
+        iteration,
+        extra: { failed, recovered, malformedProviderCallCount },
+      });
     }),
   });
 });

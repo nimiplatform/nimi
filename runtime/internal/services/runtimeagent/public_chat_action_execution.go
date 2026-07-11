@@ -95,7 +95,9 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	if !ok || strings.TrimSpace(binding.ModelID) == "" || binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		return PublicChatActionExecutionResult{}, fmt.Errorf("runtime public chat image action %s has no committed image.generate Runtime Agent AI Config binding", actionID)
 	}
-	params := req.Session.ExecutionParams["image.generate"]
+	// Image execution options are Runtime-owned policy. Caller-carried
+	// execution_params are rejected at ingress and never become provider truth.
+	var params map[string]any
 	waitTimeout := e.waitTimeout
 	if timeoutMs := publicChatPositiveIntParam(params, "timeoutMs", "timeout_ms"); timeoutMs > 0 {
 		waitTimeout = time.Duration(timeoutMs) * time.Millisecond

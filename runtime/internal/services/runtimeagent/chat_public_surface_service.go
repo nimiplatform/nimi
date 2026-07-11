@@ -68,9 +68,10 @@ func (s *Service) releasePublicChatTurn(sessionID string, turnID string) {
 }
 func (s *Service) lookupPublicChatTurnForInterrupt(
 	callerAppID string,
+	subjectUserID string,
 	req publicChatTurnInterruptPayload,
 ) (publicChatAnchorState, publicChatTurnState, error) {
-	return s.publicChatRuntime().lookupTurnForInterrupt(callerAppID, req)
+	return s.publicChatRuntime().lookupTurnForInterrupt(callerAppID, subjectUserID, req)
 }
 func (s *Service) publicChatInterruptStatus(turnID string) (bool, string, string) {
 	s.chatSurfaceMu.Lock()

@@ -197,9 +197,6 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		}
 		ensureAuthDeveloperRegistrationConfig(cfg).Enabled = &parsed
 		return nil
-	case "sourceMaterializationPacketHmacSecret":
-		cfg.SourceMaterializationPacketHMACSecret = strings.TrimSpace(value)
-		return nil
 	case "engines.llama.enabled":
 		parsed, err := parseBooleanConfigValue(value)
 		if err != nil {
@@ -392,9 +389,6 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 	case "auth.developerRegistration.enabled":
 		ensureAuthDeveloperRegistrationConfig(cfg).Enabled = nil
 		pruneEmptyAuthConfig(cfg)
-		return nil
-	case "sourceMaterializationPacketHmacSecret":
-		cfg.SourceMaterializationPacketHMACSecret = strings.TrimSpace(defaultCfg.SourceMaterializationPacketHMACSecret)
 		return nil
 	case "engines.llama.enabled":
 		ensureEngineConfig(cfg, "llama").Enabled = nil

@@ -61,6 +61,13 @@ function ensureUnderRepoRoot(absPath) {
   }
 }
 
+function requirePositiveSafeInteger(value, label) {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return value;
+}
+
 function generateProviderCatalog(doc) {
   const provider = normalizeProvider(doc?.provider);
   if (!provider) {
@@ -75,6 +82,9 @@ function generateProviderCatalog(doc) {
   const defaultTextModel = normalizeString(defaults.default_text_model);
   const defaultModelType = normalizeString(defaults.model_type) || 'tts';
   const defaultCapabilities = normalizeStringArray(defaults.capabilities);
+  const defaultContextWindowTokens = defaults.context_window_tokens === undefined
+    ? 0
+    : requirePositiveSafeInteger(defaults.context_window_tokens, `${provider} defaults.context_window_tokens`);
   const defaultPricing = defaults.pricing || {};
   const catalogVersion = normalizeString(doc?.catalog_version);
   if (!catalogVersion) {
@@ -134,6 +144,18 @@ function generateProviderCatalog(doc) {
 
     const modelType = normalizeString(model?.model_type) || defaultModelType;
     const capabilities = resolveCapabilities(defaultCapabilities, model?.capabilities);
+    const normalizedCapabilities = capabilities.map((value) => normalizeString(value).toLowerCase());
+    const textGenerateCapable = normalizedCapabilities.includes('text.generate');
+    const declaresContextWindow = model?.context_window_tokens !== undefined;
+    if (declaresContextWindow && !textGenerateCapable) {
+      throw new Error(`${provider} model ${canonicalModelID} declares context_window_tokens without text.generate support`);
+    }
+    const contextWindowTokens = declaresContextWindow
+      ? requirePositiveSafeInteger(model.context_window_tokens, `${provider} model ${canonicalModelID} context_window_tokens`)
+      : defaultContextWindowTokens;
+    if (runtime.runtime_plane !== 'local' && textGenerateCapable && contextWindowTokens === 0) {
+      throw new Error(`${provider} model ${canonicalModelID} with text.generate requires model or defaults.context_window_tokens`);
+    }
     const pricing = resolvePricing(defaultPricing, model?.pricing);
 
     const voiceConfig = model?.voice && typeof model.voice === 'object' ? model.voice : {};
@@ -227,6 +249,9 @@ function generateProviderCatalog(doc) {
       const apiModelID = sourceApiModelID || (runtime.runtime_plane === 'local' || entryModelID === canonicalModelID ? '' : canonicalModelID);
       if (apiModelID) {
         modelEntry.api_model_id = apiModelID;
+      }
+      if (runtime.runtime_plane !== 'local' && textGenerateCapable) {
+        modelEntry.context_window_tokens = contextWindowTokens;
       }
       if (resolvedVoiceSetID) {
         modelEntry.voice_set_id = resolvedVoiceSetID;

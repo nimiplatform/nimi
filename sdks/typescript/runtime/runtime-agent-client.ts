@@ -1,8 +1,15 @@
 import type {
   AgentEvent,
+  AbortSourceMaterializationUploadRequest,
+  AbortSourceMaterializationUploadResponse,
+  BeginSourceMaterializationUploadRequest,
+  BeginSourceMaterializationUploadResponse,
+  CommitSourceMaterializationRequest,
+  CommitSourceMaterializationResponse,
+  CreateSourceMaterializationChallengeRequest,
+  CreateSourceMaterializationChallengeResponse,
   RuntimeAgentAIConfigReadinessSnapshot,
   AppMessageEvent,
-  ConversationAnchorSnapshot,
   GetAgentCanonicalMemoryBankStatusRequest,
   GetAgentCanonicalMemoryBankStatusResponse,
   GetRuntimeAgentAIConfigRequest,
@@ -19,6 +26,8 @@ import type {
   ListAgentsResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  PutSourceMaterializationChunkRequest,
+  PutSourceMaterializationChunkResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   RequestAgentCanonicalMemoryBankBindRequest,
@@ -66,14 +75,21 @@ import {
   createNimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turns';
 import {
+  createNimiHostRuntimeAgentMaterializationSurface,
+  type NimiRuntimeAgentMaterializeRealmSourceInput,
+  type NimiRuntimeAgentMaterializedRealmSource,
+} from './runtime-agent-materialization';
+import {
   runNimiRuntimeAgentTurn,
   type NimiRuntimeAgentTurnRunnerOptions,
   type NimiRuntimeAgentTurnRunnerPart,
 } from './runtime-agent-turn-runner';
 import type {
   NimiRuntimeAgentConsumeEvent,
+  NimiRuntimeAgentConversationAnchorSnapshot,
   NimiRuntimeAgentSessionSnapshot,
 } from './runtime-agent-consume-types';
+import { decodeNimiRuntimeAgentConversationAnchorSnapshot } from './runtime-agent-consume-client';
 import type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentSessionSnapshotRequest,
@@ -94,6 +110,26 @@ export interface NimiRuntimeAgentClientRuntime {
 }
 
 export interface NimiRuntimeAgentClientAgentModule {
+  createSourceMaterializationChallenge(
+    request: CreateSourceMaterializationChallengeRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<CreateSourceMaterializationChallengeResponse>;
+  beginSourceMaterializationUpload(
+    request: BeginSourceMaterializationUploadRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<BeginSourceMaterializationUploadResponse>;
+  putSourceMaterializationChunk(
+    request: PutSourceMaterializationChunkRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<PutSourceMaterializationChunkResponse>;
+  commitSourceMaterialization(
+    request: CommitSourceMaterializationRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<CommitSourceMaterializationResponse>;
+  abortSourceMaterializationUpload(
+    request: AbortSourceMaterializationUploadRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<AbortSourceMaterializationUploadResponse>;
   getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentResponse>;
   initializeAgent(request: InitializeAgentRequest, options?: RuntimeTypedCallOptions): Promise<InitializeAgentResponse>;
   listAgents(request: ListAgentsRequest, options?: RuntimeTypedCallOptions): Promise<ListAgentsResponse>;
@@ -155,12 +191,13 @@ export interface NimiRuntimeAgentOpenConversationInput extends NimiRuntimeAgentI
 }
 
 export interface NimiRuntimeAgentClient {
+  materialize(input: NimiRuntimeAgentMaterializeRealmSourceInput): Promise<NimiRuntimeAgentMaterializedRealmSource>;
   listLocalAgents(input?: NimiRuntimeAgentListLocalAgentsInput): Promise<NimiRuntimeAgentDiscoveredLocalAgent[]>;
   discoverBySource(input: NimiRuntimeAgentDiscoverLocalAgentsBySourceInput): Promise<NimiRuntimeAgentDiscoveredLocalAgent[]>;
   ensureInitialized(input: NimiRuntimeAgentEnsureLocalAgentInitializedInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
   initialize(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
   terminate(input: NimiRuntimeAgentTerminateLocalAgentInput): Promise<void>;
-  openConversation(input: NimiRuntimeAgentOpenConversationInput): Promise<ConversationAnchorSnapshot>;
+  openConversation(input: NimiRuntimeAgentOpenConversationInput): Promise<NimiRuntimeAgentConversationAnchorSnapshot>;
   sendTurn(input: NimiRuntimeAgentTurnRequest): Promise<SendAppMessageResponse>;
   streamTurn(input: NimiRuntimeAgentTurnRequest, options?: NimiRuntimeAgentClientStreamTurnOptions): Promise<{
     readonly stream: AsyncIterable<NimiRuntimeAgentTurnRunnerPart>;
@@ -216,6 +253,16 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     getSubjectUserId: options.getSubjectUserId,
     withScopes: options.withScopes,
   });
+  const materialization = createNimiHostRuntimeAgentMaterializationSurface({
+    getRuntime: () => ({
+      appId: runtime.appId,
+      auth: runtime.auth,
+      appAuth: runtime.appAuth,
+      agent: runtime.agent,
+    }),
+    getSubjectUserId: options.getSubjectUserId,
+    withScopes: options.withScopes,
+  });
   const agentAIConfig = createNimiRuntimeAgentAIConfigModule({
     runtime: {
       appId: runtime.appId,
@@ -238,6 +285,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
   });
 
   return {
+    materialize: materialization.materializeRealmSource,
     listLocalAgents: lifecycle.listLocalAgents,
     discoverBySource: lifecycle.discoverLocalAgentsBySource,
     ensureInitialized: lifecycle.ensureLocalAgentInitialized,
@@ -276,7 +324,10 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
           'check_runtime_agent_open_conversation',
         );
       }
-      return response.snapshot;
+      return decodeNimiRuntimeAgentConversationAnchorSnapshot(
+        response.snapshot,
+        identity.localAgentRef,
+      );
     },
     sendTurn: turns.request,
     streamTurn(input, streamOptions = {}) {

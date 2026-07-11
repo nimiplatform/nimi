@@ -1134,7 +1134,43 @@ export enum AccountReasonCode {
     /**
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE = 17;
      */
-    PRESENCE_VERIFICATION_UNAVAILABLE = 17
+    PRESENCE_VERIFICATION_UNAVAILABLE = 17,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED = 18;
+     */
+    BROKER_OPERATION_NOT_ADMITTED = 18,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING = 19;
+     */
+    BROKER_CAPABILITY_MISSING = 19,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED = 20;
+     */
+    BROKER_REALM_BASE_DENIED = 20,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID = 21;
+     */
+    BROKER_REQUEST_INVALID = 21,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED = 22;
+     */
+    BROKER_UPSTREAM_FAILED = 22,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE = 23;
+     */
+    BROKER_RESPONSE_TOO_LARGE = 23,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN = 24;
+     */
+    BROKER_CREDENTIAL_RESPONSE_FORBIDDEN = 24,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH = 25;
+     */
+    CALLER_ENVELOPE_MISMATCH = 25,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY = 26;
+     */
+    LAUNCH_NONCE_REPLAY = 26
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.PresenceVerificationState

@@ -10,10 +10,22 @@ import type {
   NimiRuntimeAgentSessionTranscriptMessage,
   NimiRuntimeAgentSessionTurnSnapshot,
 } from './runtime-agent-consume-types';
+import {
+  assertNimiRuntimeAgentContextProjectionCorrelation,
+  decodeNimiRuntimeAgentTurnContextSummary,
+} from './runtime-agent-context-projections';
 
-export function parseNimiRuntimeAgentSessionSnapshot(value?: Struct): NimiRuntimeAgentSessionSnapshot {
+export function parseNimiRuntimeAgentSessionSnapshot(
+  value?: Struct,
+  expected: {
+    readonly localAgentRef?: string;
+    readonly conversationAnchorId?: string;
+  } = {},
+): NimiRuntimeAgentSessionSnapshot {
   const payload = value ? fromNimiRuntimeProtoStruct(value) : {};
   const transcript = parseTranscript(payload.transcript);
+  const activeTurn = parseTurnSnapshot(payload.active_turn ?? payload.activeTurn, expected);
+  const lastTurn = parseTurnSnapshot(payload.last_turn ?? payload.lastTurn, expected);
   return {
     ...(optionalString(payload.request_id, payload.requestId) ? { requestId: optionalString(payload.request_id, payload.requestId) } : {}),
     ...(optionalString(payload.thread_id, payload.threadId) ? { threadId: optionalString(payload.thread_id, payload.threadId) } : {}),
@@ -27,8 +39,8 @@ export function parseNimiRuntimeAgentSessionSnapshot(value?: Struct): NimiRuntim
       ? { configRevision: optionalNumber(payload.config_revision ?? payload.configRevision) }
       : {}),
     ...(asRecord(payload.execution_bindings ?? payload.executionBindings) ? { executionBindings: asRecord(payload.execution_bindings ?? payload.executionBindings) } : {}),
-    ...(parseTurnSnapshot(payload.active_turn ?? payload.activeTurn) ? { activeTurn: parseTurnSnapshot(payload.active_turn ?? payload.activeTurn) } : {}),
-    ...(parseTurnSnapshot(payload.last_turn ?? payload.lastTurn) ? { lastTurn: parseTurnSnapshot(payload.last_turn ?? payload.lastTurn) } : {}),
+    ...(activeTurn ? { activeTurn } : {}),
+    ...(lastTurn ? { lastTurn } : {}),
     ...(asRecord(payload.pending_follow_up ?? payload.pendingFollowUp) ? { pendingFollowUp: asRecord(payload.pending_follow_up ?? payload.pendingFollowUp) } : {}),
   };
 }
@@ -88,11 +100,29 @@ function parseTranscript(value: unknown): NimiRuntimeAgentSessionTranscriptMessa
   return transcript.length > 0 ? transcript : undefined;
 }
 
-function parseTurnSnapshot(value: unknown): NimiRuntimeAgentSessionTurnSnapshot | undefined {
+function parseTurnSnapshot(
+  value: unknown,
+  expected: {
+    readonly localAgentRef?: string;
+    readonly conversationAnchorId?: string;
+  },
+): NimiRuntimeAgentSessionTurnSnapshot | undefined {
   const payload = asRecord(value);
   if (!payload) return undefined;
   const turnId = optionalString(payload.turn_id, payload.turnId);
   if (!turnId) return undefined;
+  const rawContextSummary = payload.context_summary ?? payload.contextSummary;
+  const contextSummary = rawContextSummary === undefined || rawContextSummary === null
+    ? undefined
+    : decodeNimiRuntimeAgentTurnContextSummary(rawContextSummary);
+  if (contextSummary) {
+    assertNimiRuntimeAgentContextProjectionCorrelation({
+      turnContextSummary: contextSummary,
+      expectedLocalAgentRef: expected.localAgentRef,
+      expectedConversationAnchorId: expected.conversationAnchorId,
+      expectedTurnId: turnId,
+    });
+  }
   return {
     turnId,
     ...(optionalString(payload.stream_id, payload.streamId) ? { streamId: optionalString(payload.stream_id, payload.streamId) } : {}),
@@ -113,6 +143,7 @@ function parseTurnSnapshot(value: unknown): NimiRuntimeAgentSessionTurnSnapshot 
     ...(optionalString(payload.reason_code, payload.reasonCode) ? { reasonCode: optionalString(payload.reason_code, payload.reasonCode) } : {}),
     ...(optionalString(payload.action_hint, payload.actionHint) ? { actionHint: optionalString(payload.action_hint, payload.actionHint) } : {}),
     ...(optionalString(payload.message) ? { message: optionalString(payload.message) } : {}),
+    ...(contextSummary ? { contextSummary } : {}),
   };
 }
 

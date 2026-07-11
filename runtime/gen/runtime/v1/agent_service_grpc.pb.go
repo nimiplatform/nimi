@@ -19,6 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeAgentService_CreateSourceMaterializationChallenge_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge"
+	RuntimeAgentService_BeginSourceMaterializationUpload_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload"
+	RuntimeAgentService_PutSourceMaterializationChunk_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk"
+	RuntimeAgentService_CommitSourceMaterialization_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization"
+	RuntimeAgentService_AbortSourceMaterializationUpload_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload"
 	RuntimeAgentService_InitializeAgent_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
 	RuntimeAgentService_TerminateAgent_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
 	RuntimeAgentService_GetAgent_FullMethodName                               = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
@@ -84,6 +89,13 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeAgentServiceClient interface {
+	// K-AGCORE-151 canonical source materialization sequence. There is no unary
+	// packet shortcut: even a one-chunk bundle uses Begin -> Put -> Commit.
+	CreateSourceMaterializationChallenge(ctx context.Context, in *CreateSourceMaterializationChallengeRequest, opts ...grpc.CallOption) (*CreateSourceMaterializationChallengeResponse, error)
+	BeginSourceMaterializationUpload(ctx context.Context, in *BeginSourceMaterializationUploadRequest, opts ...grpc.CallOption) (*BeginSourceMaterializationUploadResponse, error)
+	PutSourceMaterializationChunk(ctx context.Context, in *PutSourceMaterializationChunkRequest, opts ...grpc.CallOption) (*PutSourceMaterializationChunkResponse, error)
+	CommitSourceMaterialization(ctx context.Context, in *CommitSourceMaterializationRequest, opts ...grpc.CallOption) (*CommitSourceMaterializationResponse, error)
+	AbortSourceMaterializationUpload(ctx context.Context, in *AbortSourceMaterializationUploadRequest, opts ...grpc.CallOption) (*AbortSourceMaterializationUploadResponse, error)
 	InitializeAgent(ctx context.Context, in *InitializeAgentRequest, opts ...grpc.CallOption) (*InitializeAgentResponse, error)
 	TerminateAgent(ctx context.Context, in *TerminateAgentRequest, opts ...grpc.CallOption) (*TerminateAgentResponse, error)
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
@@ -153,6 +165,56 @@ type runtimeAgentServiceClient struct {
 
 func NewRuntimeAgentServiceClient(cc grpc.ClientConnInterface) RuntimeAgentServiceClient {
 	return &runtimeAgentServiceClient{cc}
+}
+
+func (c *runtimeAgentServiceClient) CreateSourceMaterializationChallenge(ctx context.Context, in *CreateSourceMaterializationChallengeRequest, opts ...grpc.CallOption) (*CreateSourceMaterializationChallengeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateSourceMaterializationChallengeResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_CreateSourceMaterializationChallenge_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) BeginSourceMaterializationUpload(ctx context.Context, in *BeginSourceMaterializationUploadRequest, opts ...grpc.CallOption) (*BeginSourceMaterializationUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BeginSourceMaterializationUploadResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_BeginSourceMaterializationUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) PutSourceMaterializationChunk(ctx context.Context, in *PutSourceMaterializationChunkRequest, opts ...grpc.CallOption) (*PutSourceMaterializationChunkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PutSourceMaterializationChunkResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_PutSourceMaterializationChunk_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) CommitSourceMaterialization(ctx context.Context, in *CommitSourceMaterializationRequest, opts ...grpc.CallOption) (*CommitSourceMaterializationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CommitSourceMaterializationResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_CommitSourceMaterialization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) AbortSourceMaterializationUpload(ctx context.Context, in *AbortSourceMaterializationUploadRequest, opts ...grpc.CallOption) (*AbortSourceMaterializationUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AbortSourceMaterializationUploadResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_AbortSourceMaterializationUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAgentServiceClient) InitializeAgent(ctx context.Context, in *InitializeAgentRequest, opts ...grpc.CallOption) (*InitializeAgentResponse, error) {
@@ -776,6 +838,13 @@ type RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessClient = grpc.Ser
 // All implementations should embed UnimplementedRuntimeAgentServiceServer
 // for forward compatibility.
 type RuntimeAgentServiceServer interface {
+	// K-AGCORE-151 canonical source materialization sequence. There is no unary
+	// packet shortcut: even a one-chunk bundle uses Begin -> Put -> Commit.
+	CreateSourceMaterializationChallenge(context.Context, *CreateSourceMaterializationChallengeRequest) (*CreateSourceMaterializationChallengeResponse, error)
+	BeginSourceMaterializationUpload(context.Context, *BeginSourceMaterializationUploadRequest) (*BeginSourceMaterializationUploadResponse, error)
+	PutSourceMaterializationChunk(context.Context, *PutSourceMaterializationChunkRequest) (*PutSourceMaterializationChunkResponse, error)
+	CommitSourceMaterialization(context.Context, *CommitSourceMaterializationRequest) (*CommitSourceMaterializationResponse, error)
+	AbortSourceMaterializationUpload(context.Context, *AbortSourceMaterializationUploadRequest) (*AbortSourceMaterializationUploadResponse, error)
 	InitializeAgent(context.Context, *InitializeAgentRequest) (*InitializeAgentResponse, error)
 	TerminateAgent(context.Context, *TerminateAgentRequest) (*TerminateAgentResponse, error)
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
@@ -846,6 +915,21 @@ type RuntimeAgentServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAgentServiceServer struct{}
 
+func (UnimplementedRuntimeAgentServiceServer) CreateSourceMaterializationChallenge(context.Context, *CreateSourceMaterializationChallengeRequest) (*CreateSourceMaterializationChallengeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSourceMaterializationChallenge not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) BeginSourceMaterializationUpload(context.Context, *BeginSourceMaterializationUploadRequest) (*BeginSourceMaterializationUploadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BeginSourceMaterializationUpload not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) PutSourceMaterializationChunk(context.Context, *PutSourceMaterializationChunkRequest) (*PutSourceMaterializationChunkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PutSourceMaterializationChunk not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) CommitSourceMaterialization(context.Context, *CommitSourceMaterializationRequest) (*CommitSourceMaterializationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CommitSourceMaterialization not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) AbortSourceMaterializationUpload(context.Context, *AbortSourceMaterializationUploadRequest) (*AbortSourceMaterializationUploadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AbortSourceMaterializationUpload not implemented")
+}
 func (UnimplementedRuntimeAgentServiceServer) InitializeAgent(context.Context, *InitializeAgentRequest) (*InitializeAgentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method InitializeAgent not implemented")
 }
@@ -1041,6 +1125,96 @@ func RegisterRuntimeAgentServiceServer(s grpc.ServiceRegistrar, srv RuntimeAgent
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAgentService_ServiceDesc, srv)
+}
+
+func _RuntimeAgentService_CreateSourceMaterializationChallenge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSourceMaterializationChallengeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).CreateSourceMaterializationChallenge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_CreateSourceMaterializationChallenge_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).CreateSourceMaterializationChallenge(ctx, req.(*CreateSourceMaterializationChallengeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_BeginSourceMaterializationUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BeginSourceMaterializationUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).BeginSourceMaterializationUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_BeginSourceMaterializationUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).BeginSourceMaterializationUpload(ctx, req.(*BeginSourceMaterializationUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_PutSourceMaterializationChunk_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutSourceMaterializationChunkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).PutSourceMaterializationChunk(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_PutSourceMaterializationChunk_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).PutSourceMaterializationChunk(ctx, req.(*PutSourceMaterializationChunkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_CommitSourceMaterialization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CommitSourceMaterializationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).CommitSourceMaterialization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_CommitSourceMaterialization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).CommitSourceMaterialization(ctx, req.(*CommitSourceMaterializationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_AbortSourceMaterializationUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AbortSourceMaterializationUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).AbortSourceMaterializationUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_AbortSourceMaterializationUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).AbortSourceMaterializationUpload(ctx, req.(*AbortSourceMaterializationUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAgentService_InitializeAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -2091,6 +2265,26 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeAgentService",
 	HandlerType: (*RuntimeAgentServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateSourceMaterializationChallenge",
+			Handler:    _RuntimeAgentService_CreateSourceMaterializationChallenge_Handler,
+		},
+		{
+			MethodName: "BeginSourceMaterializationUpload",
+			Handler:    _RuntimeAgentService_BeginSourceMaterializationUpload_Handler,
+		},
+		{
+			MethodName: "PutSourceMaterializationChunk",
+			Handler:    _RuntimeAgentService_PutSourceMaterializationChunk_Handler,
+		},
+		{
+			MethodName: "CommitSourceMaterialization",
+			Handler:    _RuntimeAgentService_CommitSourceMaterialization_Handler,
+		},
+		{
+			MethodName: "AbortSourceMaterializationUpload",
+			Handler:    _RuntimeAgentService_AbortSourceMaterializationUpload_Handler,
+		},
 		{
 			MethodName: "InitializeAgent",
 			Handler:    _RuntimeAgentService_InitializeAgent_Handler,

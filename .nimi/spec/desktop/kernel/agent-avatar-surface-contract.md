@@ -504,10 +504,9 @@ Fixed rules:
 Every Avatar launch decision — both explicit-launch entries and the
 `start_with_chat` gate of D-LLM-105 — MUST branch on the configured
 `avatar_instance_policy`. The policy is the launch-time arbitration authority
-for whether a launch reuses, creates, or defers an Avatar instance. The closed
-policy enum is pinned by `tables/agent-avatar-configuration.schema.yaml`
-(`reuse_active_instance`, `launch_new_instance`, `require_user_selection`);
-the default is `reuse_active_instance`.
+for whether a launch reuses, creates, or defers an Avatar instance. The allowed
+policies are `reuse_active_instance`, `launch_new_instance`, and
+`require_user_selection`; the default is `reuse_active_instance`.
 
 Per-policy launch-time behavior:
 

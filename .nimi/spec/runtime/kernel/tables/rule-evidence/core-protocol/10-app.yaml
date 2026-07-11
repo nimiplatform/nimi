@@ -1,3 +1,56 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_core_protocol_app_fragment
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-APP-001
+  - K-APP-002
+  - K-APP-003
+  - K-APP-004
+  - K-APP-005
+  - K-APP-006
+  - K-APP-006a
+  - K-APP-007
+  - K-APP-008
+  - K-APP-009
+  - K-APP-010
+  - K-APP-011
+  - K-APP-012
+  - K-APP-013
+  - K-APP-014
+  - K-APP-015
+  - K-APP-016
+  - K-APP-017
+  - K-APP-018
+  - K-APP-019
+  - K-APP-020
+  - K-APP-021
+  - K-APP-022
+  - K-APP-023
+  - K-APP-024
+  - K-APP-025
+
 rules:
   - rule_id: K-APP-001
     evidence_refs:

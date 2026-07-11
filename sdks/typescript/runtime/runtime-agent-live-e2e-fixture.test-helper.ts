@@ -1,11 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Realm } from '../realm';
-import {
-  createNimiRealmSourceMaterializationPacket,
-} from '../realm/social';
 import {
   ExecutionMode,
   RoutePolicy,
@@ -27,6 +25,7 @@ import {
   resolveFixtureTranscriptionConnectorModel,
   resolveFixtureVoiceConnectorModel,
   seedRuntimeAgentLiveImageCatalogProvider,
+  seedRuntimeAgentLiveLocalCatalogProvider,
   seedRuntimeAgentLiveLocalRouteState,
   seedRuntimeAgentLiveVoiceCatalogProvider,
 } from './runtime-agent-live-e2e-fixture-routes.test-helper';
@@ -38,8 +37,8 @@ import {
   createRuntimeForEndpoint,
   createRuntimeMediatedRealmTransport,
   desktopAccountCaller,
-  initializeFixtureLocalAgent,
   logoutRuntimeAccount,
+  materializeFixtureLocalAgent,
   openFixtureConversation,
   realmWorldStudioCaller,
   registerRuntimeApp,
@@ -59,8 +58,6 @@ import {
   RUNTIME_SOURCE_REF,
   RUNTIME_AUTH_JWT_AUDIENCE,
   RUNTIME_AUTH_JWT_ISSUER,
-  SOURCE_MATERIALIZATION_AUDIENCE,
-  SOURCE_PACKET_HMAC_SECRET,
   SOURCE_REF,
   requireText,
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
@@ -70,9 +67,6 @@ import type {
   RuntimeAgentLiveE2EVoiceAssetProjection,
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
-export {
-  SOURCE_MATERIALIZATION_AUDIENCE,
-} from './runtime-agent-live-e2e-fixture-shared.test-helper';
 export type {
   RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
   RuntimeAgentLiveE2EFixtureContext,
@@ -81,6 +75,9 @@ export type {
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const PRESENTATION_APP_ID = 'nimi.avatar';
+const PRESENTATION_APP_INSTANCE_ID = 'nimi.avatar.runtime-agent-live-e2e';
+const PRESENTATION_DEVICE_ID = 'runtime-agent-live-e2e-avatar-device';
 const PLATFORM_APP_REGISTRY_PATH = resolve(
   REPO_ROOT,
   '.nimi',
@@ -101,7 +98,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
     localChatCompletionStreamDelayMs: input.localChatCompletionStreamDelayMs,
     voiceSpeechStreamDelayMs: input.voiceSpeechStreamDelayMs,
     run: async ({ baseUrl, requests }) => {
-    await withRuntimeDaemon({
+      await withRuntimeDaemon({
       appId: DESKTOP_APP_ID,
       runtimeEnv: {
         NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL: baseUrl,
@@ -117,12 +114,20 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
         NIMI_RUNTIME_ENGINE_LLAMA_ENABLED: '0',
         NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: `${baseUrl}/v1`,
         NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT: '1',
-        SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET: SOURCE_PACKET_HMAC_SECRET,
         ...(input.runtimeEnv || {}),
       },
-      prepareState: ({ localStatePath, stateRoot }) => {
+      prepareState: ({ localStatePath, runtimeConfigPath, stateRoot }) => {
+        mkdirSync(dirname(runtimeConfigPath), { recursive: true, mode: 0o700 });
+        writeFileSync(runtimeConfigPath, `${JSON.stringify({
+          schemaVersion: 1,
+          runtimeId: `sdk-runtime-agent-live-e2e-${randomUUID()}`,
+        })}\n`, {
+          encoding: 'utf8',
+          mode: 0o600,
+        });
         const catalogCustomDir = resolve(stateRoot, 'model-catalog-custom');
         seedRuntimeAgentLiveLocalRouteState(localStatePath, `${baseUrl}/v1`);
+        seedRuntimeAgentLiveLocalCatalogProvider(catalogCustomDir);
         seedRuntimeAgentLiveImageCatalogProvider(catalogCustomDir);
         seedRuntimeAgentLiveVoiceCatalogProvider(catalogCustomDir);
       },
@@ -131,6 +136,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
         const studioCaller = realmWorldStudioCaller();
         const bootstrapRuntime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID);
         const studioRuntime = createRuntimeForEndpoint(endpoint, REALM_WORLD_STUDIO_APP_ID);
+        const presentationRuntime = createRuntimeForEndpoint(endpoint, PRESENTATION_APP_ID);
 
         await registerRuntimeApp(bootstrapRuntime, DESKTOP_APP_ID, DESKTOP_APP_INSTANCE_ID, DESKTOP_DEVICE_ID);
         await registerRuntimeApp(
@@ -140,14 +146,41 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
           REALM_STUDIO_DEVICE_ID,
         );
         await completeRuntimeAccountLogin(bootstrapRuntime, desktopCaller);
-        const runtime = bootstrapRuntime;
+        const admittedPresentationCaller = await admitLocalFirstPartyRuntimeAccountCaller(
+          presentationRuntime,
+          {
+            appId: PRESENTATION_APP_ID,
+            appInstanceId: PRESENTATION_APP_INSTANCE_ID,
+            deviceId: PRESENTATION_DEVICE_ID,
+          },
+        );
+        const materializationAccountSessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+          appId: PRESENTATION_APP_ID,
+          appInstanceId: PRESENTATION_APP_INSTANCE_ID,
+          deviceId: PRESENTATION_DEVICE_ID,
+          appVersion: 'sdk-runtime-agent-live-e2e',
+          developerRegistration: false,
+          auth: presentationRuntime.auth,
+        });
+        const runtime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID, async () => {
+          const response = await presentationRuntime.account.getAccessToken({
+            caller: admittedPresentationCaller,
+            requestedScopes: [],
+          }, withNimiRuntimeIdempotencyMetadata({
+            metadata: await materializationAccountSessionMetadata(),
+          }, `runtime-agent-live-account-token:${randomUUID()}`));
+          if (!response.accepted) {
+            throw new Error(`Runtime account custody rejected materialization bearer access: ${JSON.stringify(response)}`);
+          }
+          return requireText(response.accessToken, 'runtime materialization account access token');
+        });
         const presentationCaller = {
-          ...desktopCaller,
-          scopes: [...desktopCaller.scopes],
+          ...admittedPresentationCaller,
+          scopes: [...admittedPresentationCaller.scopes],
         };
         const agentPresentation = createNimiLocalFirstPartyAgentPresentationClient({
           mode: 'first-party-local-app',
-          appId: DESKTOP_APP_ID,
+          appId: PRESENTATION_APP_ID,
           accountCaller: presentationCaller,
           endpoint,
         });
@@ -160,16 +193,10 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
             realmBaseUrl: baseUrl,
           }),
         });
-        const sourceMaterializationPacket = await createNimiRealmSourceMaterializationPacket(
-          realm,
-          () => {},
-          SOURCE_REF,
-          SOURCE_MATERIALIZATION_AUDIENCE,
-        );
         const agentClient = createFixtureRuntimeAgentClient(runtime);
-        const localAgent = await initializeFixtureLocalAgent({
+        const { materialization: sourceMaterialization, localAgent } = await materializeFixtureLocalAgent({
           agentClient,
-          sourceMaterializationPacket,
+          realm,
         });
         const conversation = await openFixtureConversation({
           agentClient,
@@ -218,14 +245,13 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
             voiceRoute,
             voiceAsset,
             sourceRef: SOURCE_REF,
-            sourceMaterializationPacket,
-            createSourceMaterializationPacket: () =>
-              createNimiRealmSourceMaterializationPacket(
-                realm,
-                () => {},
-                SOURCE_REF,
-                SOURCE_MATERIALIZATION_AUDIENCE,
-              ),
+            sourceMaterialization,
+            materializeSource: () => agentClient.materialize({
+              sourceRef: SOURCE_REF,
+              requestId: `runtime-agent-live-materialization:${randomUUID()}`,
+              realm,
+              emitRealmDataError() {},
+            }),
             sendTurn: (text) => sendFixtureTurn({
               agentClient,
               localAgent,

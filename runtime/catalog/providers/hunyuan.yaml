@@ -21,6 +21,7 @@ models:
       url: https://cloud.tencent.com/document/product/1729/104753
       retrieved_at: 2026-04-18
       note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
+    context_window_tokens: 8192
   - model_id: hunyuan-2.0-thinking-20251109
     provider: hunyuan
     model_type: chat
@@ -38,6 +39,7 @@ models:
       url: https://cloud.tencent.com/document/product/1729/104753
       retrieved_at: 2026-04-18
       note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
+    context_window_tokens: 8192
   - model_id: hunyuan-turbos-latest
     provider: hunyuan
     model_type: chat
@@ -55,6 +57,7 @@ models:
       url: https://cloud.tencent.com/document/product/1729/104753
       retrieved_at: 2026-04-18
       note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
+    context_window_tokens: 8192
   - model_id: hunyuan-t1-latest
     provider: hunyuan
     model_type: chat
@@ -72,6 +75,7 @@ models:
       url: https://cloud.tencent.com/document/product/1729/104753
       retrieved_at: 2026-04-18
       note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
+    context_window_tokens: 8192
   - model_id: hunyuan-embedding
     provider: hunyuan
     model_type: embedding

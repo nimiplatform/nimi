@@ -8,15 +8,17 @@ import type {
 import type { Realm } from '../realm';
 import type {
   NimiRealmCoreSourceRef,
-  NimiRealmSourceMaterializationPacket,
 } from '../realm/social';
 import type { Runtime } from './index';
 import type { NimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import type { NimiRuntimeRouteTargetRef } from './route-options';
 import type { NimiRuntimeAgentInitializedLocalAgent } from './runtime-agent-lifecycle';
+import type { NimiRuntimeAgentMaterializedRealmSource } from './runtime-agent-materialization';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
-
-export const SOURCE_MATERIALIZATION_AUDIENCE = 'nimi.desktop.local-agent.materialization';
+import {
+  FIXTURE_REALM_ISSUER,
+  FIXTURE_SOURCE_REF,
+} from './runtime-agent-live-e2e-fixture-source-packet.test-helper';
 
 export type RuntimeAgentLiveE2ERealmRequest = {
   readonly method: string;
@@ -48,8 +50,8 @@ export type RuntimeAgentLiveE2EFixtureContext = {
   readonly voiceRoute: RuntimeAgentLiveE2ERouteProjection;
   readonly voiceAsset: RuntimeAgentLiveE2EVoiceAssetProjection;
   readonly sourceRef: NimiRealmCoreSourceRef;
-  readonly sourceMaterializationPacket: NimiRealmSourceMaterializationPacket;
-  readonly createSourceMaterializationPacket: () => Promise<NimiRealmSourceMaterializationPacket>;
+  readonly sourceMaterialization: NimiRuntimeAgentMaterializedRealmSource;
+  readonly materializeSource: () => Promise<NimiRuntimeAgentMaterializedRealmSource>;
   readonly sendTurn: (text: string) => Promise<SendAppMessageResponse>;
   readonly admitDeveloperRegisteredRuntimeAccountCaller: (
     input: RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
@@ -94,9 +96,8 @@ export const REALM_WORLD_STUDIO_APP_INSTANCE_ID = 'nimi.realm-world-studio.local
 export const REALM_STUDIO_DEVICE_ID = 'device-1';
 export const RUNTIME_ACCOUNT_REDIRECT_URI = 'http://localhost:46373/oauth/callback';
 export const RUNTIME_ACCOUNT_REFRESH_TOKEN = 'runtime-live-refresh-token';
-export const SOURCE_PACKET_HMAC_SECRET = 'sdk-runtime-agent-live-e2e-source-packet-secret';
 export const OWNER_USER_ID = 'user-runtime-agent-live';
-export const RUNTIME_AUTH_JWT_ISSUER = 'https://realm.sdk-runtime-agent-live.test';
+export const RUNTIME_AUTH_JWT_ISSUER = FIXTURE_REALM_ISSUER;
 export const RUNTIME_AUTH_JWT_AUDIENCE = 'nimi-runtime';
 const RUNTIME_AUTH_JWT_KEY_ID = 'sdk-runtime-agent-live-rs256';
 const RUNTIME_AUTH_JWT_KEYS = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -111,12 +112,7 @@ export const RUNTIME_AUTH_JWKS = {
 };
 export const RUNTIME_ACCOUNT_SESSION_ID = 'sdk-runtime-agent-live-session';
 export const RUNTIME_ACCOUNT_ACCESS_TOKEN = createRuntimeAccountAccessToken(RUNTIME_ACCOUNT_SESSION_ID);
-export const SOURCE_REF: NimiRealmCoreSourceRef = {
-  kind: 'worldCharacter',
-  worldId: 'world-runtime-live',
-  sourceId: 'source-runtime-live',
-  sourceContentHash: 'hash-runtime-live',
-};
+export const SOURCE_REF: NimiRealmCoreSourceRef = FIXTURE_SOURCE_REF;
 export const RUNTIME_SOURCE_REF =
   `runtime-source:${SOURCE_REF.kind}:${SOURCE_REF.worldId}:${SOURCE_REF.sourceId}:${SOURCE_REF.sourceContentHash}`;
 

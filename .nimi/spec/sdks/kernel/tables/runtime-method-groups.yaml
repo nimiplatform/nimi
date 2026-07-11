@@ -465,9 +465,21 @@ groups:
       RuntimeAgentService. The admitted SDK public projection namespace is
       runtime.agent.*, and canonical agent memory writes must remain unified on
       that runtime-owned agent projection rather than drifting to direct Realm
-      memory mutation or raw MemoryService scope writes.
+      memory mutation or raw MemoryService scope writes. Runtime Agent
+      reads/events may carry only the exact Runtime-admitted bounded
+      LocalAgentSourceContextStatus and AgentTurnContextSummary families; this
+      group does not admit private manifest/lane/source/prompt carriers or a
+      caller context-attachment surface.
+    public_projection_families:
+      - LocalAgentSourceContextStatus
+      - AgentTurnContextSummary
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
+      - CreateSourceMaterializationChallenge
+      - BeginSourceMaterializationUpload
+      - PutSourceMaterializationChunk
+      - CommitSourceMaterialization
+      - AbortSourceMaterializationUpload
       - InitializeAgent
       - TerminateAgent
       - GetAgent

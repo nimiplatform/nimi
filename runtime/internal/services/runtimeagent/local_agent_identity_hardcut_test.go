@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtimev1.AgentRequestContext {
@@ -32,7 +33,8 @@ func testRuntimeAgentLocalRef(runtimeSourceRef string) string {
 }
 
 func testOpaqueLocalAgentRef(ownerUserID string, runtimeSourceRef string) string {
-	return localAgentRefPrefix + "test-" + strings.TrimSpace(ownerUserID) + "-" + strings.TrimSpace(runtimeSourceRef)
+	digest := sourceMaterializationBytesDigest([]byte(strings.TrimSpace(ownerUserID) + "\x00" + strings.TrimSpace(runtimeSourceRef)))
+	return runtimeGeneratedLocalAgentRefPrefix + digest[:32]
 }
 
 func testInitializeLocalAgent(t *testing.T, svc *Service, ownerUserID string, runtimeSourceRef string) string {
@@ -142,6 +144,45 @@ func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource(t *testi
 	}
 	if len(memB.GetMemories()) != 0 {
 		t.Fatalf("owner b recalled owner a memory: %#v", memB.GetMemories())
+	}
+}
+
+func TestInitializeAgentRejectsRealmSourceAndRetiredPacketMetadata(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	realmSourceRef := "runtime-source:worldCharacter:world-1:character-1:hash-1"
+	realmContext := testLocalAgentContext("user-a", realmSourceRef)
+	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          realmContext,
+		LocalAgentRef:    realmContext.GetLocalAgentRef(),
+		OwnerUserId:      "user-a",
+		RuntimeSourceRef: realmSourceRef,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("Realm source InitializeAgent status = %s, want FailedPrecondition (%v)", status.Code(err), err)
+	}
+
+	ordinarySourceRef := "runtime-source-local-fixture"
+	ordinaryContext := testLocalAgentContext("user-a", ordinarySourceRef)
+	metadata, metadataErr := structpb.NewStruct(map[string]any{
+		"sourceMaterializationPacket": map[string]any{"packetSchemaVersion": "retired"},
+	})
+	if metadataErr != nil {
+		t.Fatalf("build retired packet metadata: %v", metadataErr)
+	}
+	_, err = svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          ordinaryContext,
+		LocalAgentRef:    ordinaryContext.GetLocalAgentRef(),
+		OwnerUserId:      "user-a",
+		RuntimeSourceRef: ordinarySourceRef,
+		Metadata:         metadata,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("retired packet metadata status = %s, want InvalidArgument (%v)", status.Code(err), err)
+	}
+	if _, getErr := svc.GetAgent(context.Background(), &runtimev1.GetAgentRequest{Context: ordinaryContext}); status.Code(getErr) != codes.NotFound {
+		t.Fatalf("retired packet metadata created an agent: %v", getErr)
 	}
 }
 

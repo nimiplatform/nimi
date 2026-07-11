@@ -16,8 +16,18 @@ rows:
   - surface: runtime_agent_turns
     zhiyu_role: binding_only_consumer
     canonical_owner: runtime_sdk
-    forbidden_local_truth: [turn_execution, prompt_assembly, event_stream_reducer, snapshot_replay, terminal_success]
+    forbidden_local_truth: [turn_execution, prompt_assembly, localagent_context_attachment, event_stream_reducer, snapshot_replay, terminal_success]
     source_rule: Z-CHAT-001
+  - surface: localagent_source_context_status
+    zhiyu_role: bounded_read_only_projection
+    canonical_owner: runtime_sdk
+    forbidden_local_truth: [raw_source, raw_world, packet_proof, source_cache, profile_readiness_inference, alternate_reducer]
+    source_rule: Z-AUTH-005
+  - surface: agent_turn_context_summary
+    zhiyu_role: bounded_read_only_projection
+    canonical_owner: runtime_sdk
+    forbidden_local_truth: [raw_prompt, lane_text, transcript_text, private_memory, raw_diagnostics, context_assembler, execution_binding]
+    source_rule: Z-AUTH-005
   - surface: auth_token_custody
     zhiyu_role: trusted_bridge_consumer
     canonical_owner: runtime_sdk_kit_shell

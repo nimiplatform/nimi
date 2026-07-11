@@ -21,6 +21,7 @@ models:
       url: https://www.xfyun.cn/doc/spark/X1http.html
       retrieved_at: 2026-04-18
       note: Official Spark reasoning HTTP documentation for the current `spark-x` public contract and endpoint-scoped X1.5/X2 routing.
+    context_window_tokens: 8192
 voices: []
 selection_profiles:
   - provider: spark_reasoning

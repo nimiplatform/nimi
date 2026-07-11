@@ -518,7 +518,7 @@ function projectionForCapability(
     supported: false,
     tone: capability.readinessState === 'unavailable' ? 'attention' : 'neutral',
     badgeLabel: capability.readinessState,
-    title: capability.reasonCode || copy.projectionUnavailableTitle,
+    title: copy.projectionUnavailableTitle,
     detail: capability.summary,
   };
 }

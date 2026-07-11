@@ -37,7 +37,8 @@ func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID s
 	} else {
 		out["detail"] = detail
 	}
-	return r.emitEvent(session.CallerAppID, session.SubjectUserID, messageType, out)
+	callerAppID, subjectUserID := r.turnEventDestination(trimmedTurnID, session.CallerAppID, session.SubjectUserID)
+	return r.emitEvent(callerAppID, subjectUserID, messageType, out)
 }
 
 // emitTurnMessageCommitted emits runtime.agent.turn.message_committed with
@@ -71,7 +72,22 @@ func (r publicChatRuntime) emitTurnMessageCommitted(session publicChatAnchorStat
 			"text":       strings.TrimSpace(text),
 		},
 	}
-	return r.emitEvent(session.CallerAppID, session.SubjectUserID, publicChatTurnMessageCommittedType, out)
+	callerAppID, subjectUserID := r.turnEventDestination(trimmedTurnID, session.CallerAppID, session.SubjectUserID)
+	return r.emitEvent(callerAppID, subjectUserID, publicChatTurnMessageCommittedType, out)
+}
+
+func (r publicChatRuntime) turnEventDestination(turnID string, fallbackAppID string, fallbackSubjectUserID string) (string, string) {
+	if r.svc == nil {
+		return strings.TrimSpace(fallbackAppID), strings.TrimSpace(fallbackSubjectUserID)
+	}
+	r.svc.chatSurfaceMu.Lock()
+	defer r.svc.chatSurfaceMu.Unlock()
+	turn := r.svc.chatTurns[strings.TrimSpace(turnID)]
+	if turn == nil {
+		return strings.TrimSpace(fallbackAppID), strings.TrimSpace(fallbackSubjectUserID)
+	}
+	return firstNonEmpty(strings.TrimSpace(turn.CallerAppID), strings.TrimSpace(fallbackAppID)),
+		firstNonEmpty(strings.TrimSpace(turn.SubjectUserID), strings.TrimSpace(fallbackSubjectUserID))
 }
 func (r publicChatRuntime) emitEvent(callerAppID string, subjectUserID string, messageType string, payload map[string]any) error {
 	if r.svc == nil || r.svc.isClosed() {

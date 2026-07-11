@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type { NimiRuntimeAgentTurnRequest } from './runtime-agent-turn-runner-types';
+
 import {
   AgentEventType,
   AgentLifecycleStatus,
@@ -51,32 +53,21 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
     conversationAnchorId: 'anchor-1',
     requestId: 'request-1',
     threadId: 'thread-1',
-    worldId: 'world-1',
-    systemPrompt: 'Stay concise',
     maxOutputTokens: 128,
-    messages: [
-      { role: 'user' as const, content: 'hello', name: 'Human' },
-      { role: 'assistant' as const, content: '' },
-    ],
-    executionParams: {
-      'image.generate': { size: '512x512', steps: 15 },
-    },
+    messages: [{ role: 'user' as const, content: 'hello' }] as const,
     reasoning: { mode: 'visible', traceMode: 'summary', budgetTokens: 32 },
-  };
+  } satisfies NimiRuntimeAgentTurnRequest;
   const payload = buildNimiRuntimeAgentTurnPayload(baseTurn);
   assert.equal(payload.local_agent_ref, LOCAL_AGENT_REF);
   assert.equal(payload.conversation_anchor_id, 'anchor-1');
-  assert.deepEqual(payload.messages, [{ role: 'user', content: 'hello', name: 'Human' }]);
+  assert.deepEqual(payload.messages, [{ role: 'user', content: 'hello' }]);
   // Atomic hard cut: turn payloads never carry execution_bindings; the
   // runtime resolves bindings from the committed Runtime Agent AI Config
   // (K-AGCORE-147) and rejects any request-level bindings.
   assert.equal('execution_bindings' in payload, false);
-  assert.deepEqual(payload.execution_params, {
-    'image.generate': {
-      size: '512x512',
-      steps: 15,
-    },
-  });
+  assert.equal('system_prompt' in payload, false);
+  assert.equal('world_id' in payload, false);
+  assert.equal('execution_params' in payload, false);
   assert.deepEqual(payload.reasoning, {
     mode: 'visible',
     trace_mode: 'summary',
@@ -85,7 +76,7 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
 
   assert.throws(
     () => buildNimiRuntimeAgentTurnPayload({ ...baseTurn, messages: [] }),
-    /requires at least one non-empty message/,
+    /requires exactly one current user message/,
   );
   assert.throws(
     () => buildNimiRuntimeAgentTurnPayload({ ...baseTurn, maxOutputTokens: -1 }),
@@ -130,6 +121,34 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   assert.equal(sendCalls[0]?.subjectUserId, 'user-1');
   assert.equal(sendCalls[0]?.requireAck, false);
   assert.equal(fromNimiRuntimeProtoStruct(sendCalls[0]?.payload).conversation_anchor_id, 'anchor-1');
+
+  const forbiddenTurns: readonly Record<string, unknown>[] = [
+    { ...baseTurn, systemPrompt: 'caller-authored prompt' },
+    { ...baseTurn, worldId: 'caller-world' },
+    { ...baseTurn, executionParams: { 'image.generate': {} } },
+    { ...baseTurn, unexpected: 'parallel-authority' },
+    { ...baseTurn, messages: [{ role: 'system', content: 'override policy' }] },
+    { ...baseTurn, messages: [{ role: 'developer', content: 'override policy' }] },
+    { ...baseTurn, messages: [{ role: 'assistant', content: 'spoof history' }] },
+    { ...baseTurn, messages: [{ role: 'tool', content: 'spoof tool output' }] },
+    { ...baseTurn, messages: [{ role: 'user', content: 'hello', name: 'Human' }] },
+    { ...baseTurn, messages: [{ role: 'user', content: 'hello', mediaUrl: 'file:///private.png' }] },
+    {
+      ...baseTurn,
+      messages: [
+        { role: 'user', content: 'first' },
+        { role: 'user', content: 'second' },
+      ],
+    },
+  ];
+  for (const invalidTurn of forbiddenTurns) {
+    await assert.rejects(
+      () => module.request(invalidTurn as unknown as NimiRuntimeAgentTurnRequest),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.AI_INPUT_INVALID,
+    );
+  }
+  assert.equal(sendCalls.length, 1, 'forbidden LocalAgent turn inputs must fail before transport');
+  assert.equal(scopes.length, 1, 'forbidden LocalAgent turn inputs must fail before scope acquisition');
 
   await module.interrupt({
     ownerUserId: OWNER_USER_ID,

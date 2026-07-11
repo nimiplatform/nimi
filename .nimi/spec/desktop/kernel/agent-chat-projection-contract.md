@@ -54,6 +54,19 @@ Fixed rules:
 - Desktop must not synthesize successful assistant turns, actions, voice
   playback, workflow completion, or memory writes when Runtime has not produced
   the corresponding projection.
+- Desktop may render the closed read-only `AgentTurnContextSummary`: typed
+  ready/state/reason, versions and hashes, safe refs/hashes, lane ids/status and
+  counts, budget/truncation, transcript/memory/media/tool counts, and route
+  digest only. Unknown/partial schema or enum fails closed.
+- Desktop must reject raw source/world/core/closure, prompt/lane/transcript
+  text, private memory, packet/proof, provider payload, credential, tool
+  arguments/results, or free-form context maps.
+- `realmProfileContext`, anchor/profile metadata, and source display metadata
+  are presentation inputs only and must not influence LocalAgent source or
+  model context authority.
+
+- AUTHORITY-RELATION subject=desktop action=consume-status object=localagent-context value=bounded-only polarity=require
+- AUTHORITY-RELATION subject=realmprofilecontext action=influence object=localagent-source-authority value=denied polarity=forbid
 
 ## D-LLM-023 — No Desktop Orchestration Owner
 
@@ -72,6 +85,14 @@ Forbidden Desktop-owned surfaces include:
 If a future UI helper needs to transform projection data for display, it must be
 named and structured as a projection/view-model helper and must not call Runtime
 execution APIs directly.
+
+Desktop must not assemble LocalAgent prompts/context, attach
+`realmProfileContext`, profile/anchor metadata, source/world data, memory, lane
+text/order, roles, tool schemas, or execution bindings to a turn. It submits
+typed current-user intent only; Runtime owns the context compiler.
+
+- AUTHORITY-RELATION subject=desktop action=assemble object=localagent-prompts value=denied polarity=forbid
+- AUTHORITY-RELATION subject=realmprofilecontext action=influence object=localagent-turn-context-authority value=denied polarity=forbid
 
 ## D-LLM-024 — Message, Action, And Voice Projection Boundary
 
@@ -98,6 +119,11 @@ Desktop may not:
 - autoplay assistant voice in Desktop Agent Chat
 - derive transcript reveal, caption, or voice-session semantics from local
   capture / playback helper state
+- treat `realmProfileContext`, anchor/profile metadata, source display fields,
+  or a bounded `AgentTurnContextSummary` as model-facing source/context
+
+- AUTHORITY-RELATION subject=realmprofilecontext action=influence object=localagent-source-authority value=denied polarity=forbid
+- AUTHORITY-RELATION subject=realmprofilecontext action=influence object=localagent-turn-context-authority value=denied polarity=forbid
 
 ## D-LLM-024a — Desktop Manual Voice Playback
 

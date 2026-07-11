@@ -97,6 +97,64 @@ func TestUnaryProtocolInterceptorReplaysIdempotentWrite(t *testing.T) {
 	}
 }
 
+func TestUnaryProtocolInterceptorMaterializationReplayAlwaysReachesDurableDomainLedger(t *testing.T) {
+	store, err := idempotency.New(time.Hour, 16)
+	if err != nil {
+		t.Fatalf("New idempotency store: %v", err)
+	}
+	interceptor := newUnaryProtocolInterceptor(store)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-protocol-version", "1.0.0",
+		"x-nimi-participant-protocol-version", "1.0.0",
+		"x-nimi-participant-id", "nimi-desktop",
+		"x-nimi-domain", "runtime.agent",
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-idempotency-key", "materialization-domain-replay",
+		"x-nimi-caller-kind", "first-party-app",
+		"x-nimi-caller-id", "nimi.desktop",
+	))
+	req := &runtimev1.CommitSourceMaterializationRequest{
+		CommitRequestId:    "commit-domain-replay",
+		UploadId:           "smu_domain_replay",
+		PacketHash:         strings.Repeat("a", 64),
+		BundleManifestHash: strings.Repeat("b", 64),
+	}
+	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization"}
+	callCount := 0
+	handler := func(_ context.Context, _ any) (any, error) {
+		callCount++
+		if callCount == 1 {
+			return &runtimev1.CommitSourceMaterializationResponse{
+				UploadId:      req.GetUploadId(),
+				LocalAgentRef: "local-agent:deleted-after-first-response",
+				UploadState:   runtimev1.AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED,
+				ReasonCode:    runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE,
+			}, nil
+		}
+		return &runtimev1.CommitSourceMaterializationResponse{
+			UploadId:   req.GetUploadId(),
+			ReasonCode: runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND,
+		}, nil
+	}
+	first, err := interceptor(ctx, req, info, handler)
+	if err != nil {
+		t.Fatalf("first materialization call: %v", err)
+	}
+	second, err := interceptor(ctx, req, info, handler)
+	if err != nil {
+		t.Fatalf("second materialization call: %v", err)
+	}
+	if callCount != 2 {
+		t.Fatalf("materialization handler calls = %d, want 2", callCount)
+	}
+	if first.(*runtimev1.CommitSourceMaterializationResponse).GetLocalAgentRef() == "" {
+		t.Fatalf("first materialization response = %+v", first)
+	}
+	if got := second.(*runtimev1.CommitSourceMaterializationResponse); got.GetReasonCode() != runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND || got.GetLocalAgentRef() != "" {
+		t.Fatalf("second materialization response bypassed domain ledger: %+v", got)
+	}
+}
+
 func TestUnaryProtocolInterceptorRejectsVersionMinorMismatch(t *testing.T) {
 	store, err := idempotency.New(time.Hour, 16)
 	if err != nil {
@@ -235,6 +293,11 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+		"/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
+		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
+		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
+		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
 		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
@@ -253,6 +316,21 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		if !isWriteMethod(method) {
 			t.Fatalf("expected write method: %s", method)
 		}
+	}
+	durableMaterializationMethods := []string{
+		"/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
+		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
+		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
+		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
+	}
+	for _, method := range durableMaterializationMethods {
+		if !usesDomainDurableIdempotency(method) {
+			t.Fatalf("expected durable domain idempotency method: %s", method)
+		}
+	}
+	if usesDomainDurableIdempotency("/nimi.runtime.v1.RuntimeModelService/RemoveModel") {
+		t.Fatal("ordinary writes must retain generic protocol idempotency")
 	}
 
 	readMethods := []string{

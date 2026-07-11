@@ -84,6 +84,11 @@ surface 必须维持 runtime-owned authority cut：
   canonical bank mode/status from Runtime Agent AI Config `text.embed` form state,
   runtime-private inspect state, or raw `GetBank`
 - `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agent.*`
+- Runtime Agent reads/events may carry only the Runtime-admitted
+  `LocalAgentSourceContextStatus` and `AgentTurnContextSummary` projection
+  families. The facade preserves their closed enums and bounded fields; it
+  does not publish the private context manifest or a caller context-attachment
+  parameter.
 
 ## S-SURFACE-003 Runtime SDK 禁用旧接口名
 
@@ -455,6 +460,10 @@ Admitted primitives include:
   parent linkage without app-local derivation
 - non-authoritative diagnostics, timeline summaries, projection summaries, and
   metadata callbacks for app UI/debug consumers
+- read-only correlation/render helpers for `LocalAgentSourceContextStatus` and
+  `AgentTurnContextSummary`, preserving Runtime-owned refs, hashes, lane ids,
+  counts, budgets, truncation, and typed failure states without reading raw
+  context
 - fixture runners and mock `RuntimeAgentTurnsModule` harnesses for second-app
   consumer tests
 
@@ -473,6 +482,10 @@ This surface is SDK DX/client-orchestration only. It must not:
   or parent bindings when Runtime omits them
 - bypass `runtime.agent.turns.*` admitted transport or Runtime Agent service
   projections
+- accept caller system/developer roles, source/world overrides, raw LocalAgent
+  context, lane text/order, execution bindings, or forged context manifests
+- assemble or override Runtime-owned LocalAgent prompt/context from either
+  bounded summary family
 
 Runtime remains the authority for Agent lifecycle chat. Apps may use SDK turn
 consumer helpers to render Runtime-owned Agent Chat projections, but product

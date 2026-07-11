@@ -36,6 +36,7 @@ import {
   SECTION_ICONS,
   SectionHeader,
   SectionShell,
+  StatusPill,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
 
@@ -98,12 +99,23 @@ const DEFAULT_OVERVIEW_COPY: Required<AgentCenterOverviewCopy> = {
   offPill: 'Off',
   projectedPill: 'Projected',
   readOnlyPill: 'Read-only',
+  sourceContextTitle: 'Source and conversation context',
+  sourceContextReadyDescription: 'Realm source and the latest turn context are ready.',
+  sourceContextBlockedDescription: 'Runtime needs source or context capacity attention.',
+  sourceContextTruncatedDescription: 'The latest turn is ready with bounded omissions.',
+  sourceContextFailedDescription: 'Runtime could not verify the bounded source and context status.',
+  sourceContextUnknownDescription: 'Source or conversation context has not been projected yet.',
+  sourceContextReadyPill: 'Ready',
+  sourceContextBlockedPill: 'Needs attention',
+  sourceContextTruncatedPill: 'Bounded',
+  sourceContextFailedPill: 'Unavailable',
+  sourceContextUnknownPill: 'Not projected',
 };
 
 const DEFAULT_ADVANCED_COPY: Required<AgentCenterAdvancedCopy> = {
   title: AGENT_CENTER_SECTION_LABELS.advanced,
-  descriptionRuntimeProjection: 'runtime-projection',
-  descriptionUnavailable: 'unavailable',
+  descriptionRuntimeProjection: 'Read-only diagnostics provided by Runtime.',
+  descriptionUnavailable: 'Runtime diagnostics are not available yet.',
   configRevisionLabel: 'Config revision',
   runtimeTurnLabel: 'Runtime turn',
   runtimeStreamLabel: 'Runtime stream',
@@ -111,7 +123,57 @@ const DEFAULT_ADVANCED_COPY: Required<AgentCenterAdvancedCopy> = {
   unavailableValue: 'unavailable',
   notProjectedValue: 'not projected',
   noneValue: 'none',
+  sourceContextStatusLabel: 'Source and context',
+  sourceKindLabel: 'Source kind',
+  sourceReferenceLabel: 'Source reference',
+  sourceSchemaLabel: 'Source schema',
+  sourceContentHashLabel: 'Source content hash',
+  sourceSnapshotLabel: 'Source snapshot',
+  sourceCoverageLabel: 'Source coverage',
+  contextLanesLabel: 'Context lanes',
+  contextBudgetLabel: 'Context budget',
+  contextTruncationLabel: 'Context omissions',
+  contextInputsLabel: 'Context inputs',
+  routeDigestLabel: 'Route digest',
+  catalogDigestLabel: 'Catalog digest',
+  sourceContextReadyValue: 'Ready',
+  sourceContextBlockedValue: 'Needs attention',
+  sourceContextTruncatedValue: 'Ready with bounded omissions',
+  sourceContextFailedValue: 'Unavailable',
+  sourceContextUnknownValue: 'Not projected',
+  worldCharacterValue: 'World character',
+  realmPersonaValue: 'Realm persona',
+  sourceCoverageFormat: '{{complete}} of {{total}} sections complete',
+  contextLanesFormat: '{{included}} included, {{total}} total',
+  contextBudgetFormat: '{{used}} of {{budget}} tokens used',
+  contextTruncationFormat: '{{omitted}} omitted, {{truncated}} truncated',
+  contextInputsFormat: '{{transcript}} transcript, {{memory}} memory, {{media}} media, {{tools}} tools',
 };
+
+function formatProjectionCopy(
+  template: string,
+  values: Readonly<Record<string, string | number>>,
+): string {
+  return template.replace(/\{\{(\w+)\}\}/gu, (_match, name: string) => String(values[name] ?? ''));
+}
+
+function sourceContextOverviewStatus(
+  state: AgentCenterState,
+  copy: Required<AgentCenterOverviewCopy>,
+) {
+  switch (state.sourceContext.status) {
+    case 'ready':
+      return { description: copy.sourceContextReadyDescription, label: copy.sourceContextReadyPill, tone: 'ready' as const };
+    case 'blocked':
+      return { description: copy.sourceContextBlockedDescription, label: copy.sourceContextBlockedPill, tone: 'warn' as const };
+    case 'truncated':
+      return { description: copy.sourceContextTruncatedDescription, label: copy.sourceContextTruncatedPill, tone: 'warn' as const };
+    case 'failed':
+      return { description: copy.sourceContextFailedDescription, label: copy.sourceContextFailedPill, tone: 'err' as const };
+    default:
+      return { description: copy.sourceContextUnknownDescription, label: copy.sourceContextUnknownPill, tone: 'muted' as const };
+  }
+}
 
 function resolveSectionLabels(copy: AgentCenterCopy | undefined): Record<AgentCenterSectionId, string> {
   return {
@@ -165,6 +227,7 @@ function AgentCenterOverview({
   const appearanceReady = isAgentCenterAvatarPreviewReady(state.appearance);
   const behaviorReady = state.autonomy.enabled === true;
   const cognitionReady = state.cognition.memoryState !== 'unavailable';
+  const sourceContext = sourceContextOverviewStatus(state, copy);
   const checklist = [
     {
       section: 'appearance' as const,
@@ -227,6 +290,18 @@ function AgentCenterOverview({
           ))}
         </Card>
       </div>
+      <Card>
+        <div
+          className="flex min-w-0 items-center gap-3.5 px-4 py-4"
+          data-agent-center-source-context-status={state.sourceContext.status}
+        >
+          <span className="grid min-w-0 flex-1 gap-1">
+            <span className="text-[13px] font-semibold tracking-tight text-slate-950">{copy.sourceContextTitle}</span>
+            <span className="text-[12.5px] leading-[1.5] text-slate-600">{sourceContext.description}</span>
+          </span>
+          <StatusPill label={sourceContext.label} tone={sourceContext.tone} />
+        </div>
+      </Card>
     </SectionShell>
   );
 }
@@ -238,6 +313,17 @@ function AgentCenterAdvanced({
   readonly copy: Required<AgentCenterAdvancedCopy>;
   readonly state: AgentCenterState;
 }) {
+  const projection = state.sourceContext;
+  const source = projection.source;
+  const context = projection.context;
+  const statusValue = {
+    ready: copy.sourceContextReadyValue,
+    blocked: copy.sourceContextBlockedValue,
+    truncated: copy.sourceContextTruncatedValue,
+    failed: copy.sourceContextFailedValue,
+    unknown: copy.sourceContextUnknownValue,
+  }[projection.status];
+  const completeLaneCount = context?.lanes.filter((lane) => lane.state === 'included').length || 0;
   return (
     <SectionShell labelledBy="agent-center-advanced-title">
       <SectionHeader
@@ -253,6 +339,64 @@ function AgentCenterAdvanced({
           <Kv label={copy.runtimeTurnLabel} value={state.diagnostics.runtimeTurnId || copy.notProjectedValue} mono />
           <Kv label={copy.runtimeStreamLabel} value={state.diagnostics.runtimeStreamId || copy.notProjectedValue} mono />
           <Kv label={copy.runtimeErrorLabel} value={state.diagnostics.runtimeError || copy.noneValue} muted={!state.diagnostics.runtimeError} />
+        </KvGrid>
+      </Card>
+      <Card>
+        <KvGrid>
+          <Kv label={copy.sourceContextStatusLabel} value={statusValue} />
+          <Kv
+            label={copy.sourceKindLabel}
+            value={source
+              ? source.kind === 'worldCharacter' ? copy.worldCharacterValue : copy.realmPersonaValue
+              : copy.unavailableValue}
+          />
+          <Kv
+            label={copy.sourceReferenceLabel}
+            value={source ? `${source.worldId} / ${source.sourceId}` : copy.unavailableValue}
+            mono={Boolean(source)}
+          />
+          <Kv label={copy.sourceSchemaLabel} value={source?.sourceSchemaVersion || copy.unavailableValue} mono={Boolean(source)} />
+          <Kv label={copy.sourceContentHashLabel} value={source?.sourceContentHash || copy.unavailableValue} mono={Boolean(source)} />
+          <Kv label={copy.sourceSnapshotLabel} value={source?.snapshotHash || copy.unavailableValue} mono={Boolean(source)} />
+          <Kv
+            label={copy.sourceCoverageLabel}
+            value={source ? formatProjectionCopy(copy.sourceCoverageFormat, {
+              complete: source.coverage.completeSections,
+              total: source.coverage.totalSections,
+            }) : copy.unavailableValue}
+          />
+          <Kv
+            label={copy.contextLanesLabel}
+            value={context ? formatProjectionCopy(copy.contextLanesFormat, {
+              included: completeLaneCount,
+              total: context.lanes.length,
+            }) : copy.notProjectedValue}
+          />
+          <Kv
+            label={copy.contextBudgetLabel}
+            value={context ? formatProjectionCopy(copy.contextBudgetFormat, {
+              used: context.budget.usedTokens,
+              budget: context.budget.inputBudgetTokens,
+            }) : copy.notProjectedValue}
+          />
+          <Kv
+            label={copy.contextTruncationLabel}
+            value={context ? formatProjectionCopy(copy.contextTruncationFormat, {
+              omitted: context.truncation.omittedItemCount,
+              truncated: context.truncation.truncatedItemCount,
+            }) : copy.notProjectedValue}
+          />
+          <Kv
+            label={copy.contextInputsLabel}
+            value={context ? formatProjectionCopy(copy.contextInputsFormat, {
+              transcript: context.transcriptTurnCount,
+              memory: context.memoryItemCount,
+              media: context.mediaCount,
+              tools: context.toolCount,
+            }) : copy.notProjectedValue}
+          />
+          <Kv label={copy.routeDigestLabel} value={context?.routeDigest || copy.notProjectedValue} mono={Boolean(context)} />
+          <Kv label={copy.catalogDigestLabel} value={context?.catalogRevisionDigest || copy.notProjectedValue} mono={Boolean(context)} />
         </KvGrid>
       </Card>
     </SectionShell>
@@ -303,11 +447,8 @@ function normalizeLoadError(error: unknown, fallback: string): string {
   if (error && typeof error === 'object') {
     const record = error as Record<string, unknown>;
     const message = typeof record.message === 'string' ? record.message.trim() : '';
-    const reasonCode = typeof record.reasonCode === 'string' ? record.reasonCode.trim() : '';
-    const actionHint = typeof record.actionHint === 'string' ? record.actionHint.trim() : '';
-    const detail = [message, reasonCode, actionHint].filter(Boolean).join(' ');
-    if (detail) {
-      return detail;
+    if (message) {
+      return message;
     }
   }
   return fallback;
@@ -330,6 +471,8 @@ function hasSuppliedRuntimeProjection(state: AgentCenterProps['state']): boolean
     || Object.prototype.hasOwnProperty.call(state, 'readiness')
     || Object.prototype.hasOwnProperty.call(state, 'inspect')
     || Object.prototype.hasOwnProperty.call(state, 'memory')
+    || Object.prototype.hasOwnProperty.call(state, 'sourceContextStatus')
+    || Object.prototype.hasOwnProperty.call(state, 'turnContextSummary')
     || Boolean(state.runtimeError);
 }
 
@@ -435,7 +578,7 @@ export function AgentCenter(props: AgentCenterProps) {
     }
     let cancelled = false;
     setLoadError(null);
-    void adapter.loadSnapshot().then((snapshot) => {
+    void adapter.loadSnapshot(props.runtimeLoadInput).then((snapshot) => {
       if (!cancelled) {
         setLoadedSnapshot(snapshot);
       }
@@ -448,7 +591,7 @@ export function AgentCenter(props: AgentCenterProps) {
     return () => {
       cancelled = true;
     };
-  }, [chromeCopy.projectionLoadFailed, props.runtimeAdapter, runtimeProjectionSupplied]);
+  }, [chromeCopy.projectionLoadFailed, props.runtimeAdapter, props.runtimeLoadInput, runtimeProjectionSupplied]);
   const appearanceLoader = props.appearanceAdapter?.load;
   useEffect(() => {
     if (!appearanceLoader || appearanceProjectionSupplied) {

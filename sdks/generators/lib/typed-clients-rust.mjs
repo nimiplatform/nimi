@@ -16,7 +16,73 @@ import {
   uniqueRuntimeMessageTypes,
 } from './types.mjs';
 
+function resolveRealmSchema(schema, modelByName) {
+  let current = schema;
+  const visited = new Set();
+  while (current?.kind === 'ref') {
+    if (visited.has(current.ref_name)) throw new Error(`cyclic Realm model ref: ${current.ref_name}`);
+    visited.add(current.ref_name);
+    current = modelByName.get(current.ref_name);
+    if (!current) throw new Error(`missing Realm model ref: ${schema.ref_name}`);
+  }
+  return current;
+}
+
+function realmSchemaAtPath(schema, segments, modelByName) {
+  let current = schema;
+  for (const segment of segments) {
+    current = resolveRealmSchema(current, modelByName);
+    if (current?.kind !== 'object') return null;
+    current = (current.properties || []).find((property) => property.name === segment)?.schema;
+    if (!current) return null;
+  }
+  return resolveRealmSchema(current, modelByName);
+}
+
+function renderRustRealmUnion(model, modelByName) {
+  const variants = model.schema.variants || [];
+  if (variants.length < 2 || variants.some((variant) => variant.kind !== 'ref')) {
+    throw new Error(`Realm union ${model.name} must contain named variants`);
+  }
+  const rendered = variants.map((variant) => ({
+    name: pascalCase(String(variant.ref_name).replace(/Dto$/u, '')),
+    typeName: variant.ref_name,
+    discriminatorValue: (() => {
+      const path = String(model.schema.discriminator || 'kind').split('.').filter(Boolean);
+      const discriminator = realmSchemaAtPath(modelByName.get(variant.ref_name), path, modelByName);
+      if (discriminator?.kind !== 'enum' || discriminator.values?.length !== 1) {
+        throw new Error(`Realm union ${model.name} variant ${variant.ref_name} has no closed discriminator`);
+      }
+      return discriminator.values[0];
+    })(),
+  }));
+  if (new Set(rendered.map((variant) => variant.name)).size !== rendered.length) {
+    throw new Error(`Realm union ${model.name} has duplicate Rust variant names`);
+  }
+  const first = rendered[0];
+  return `#[derive(Clone, Debug, PartialEq)]
+pub enum ${model.name} {
+${rendered.map((variant) => `    ${variant.name}(Box<${variant.typeName}>),`).join('\n')}
+}
+
+impl Default for ${model.name} {
+    fn default() -> Self {
+        Self::${first.name}(Box::new(${first.typeName}::default()))
+    }
+}
+
+impl ${model.name} {
+    pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
+        match value {
+${rendered.map((variant) => `            ${quote(variant.discriminatorValue)} => Ok(Self::${variant.name}(Box::new(${variant.typeName}::default()))),`).join('\n')}
+            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown ${model.name} discriminator {}", value)),
+        }
+    }
+}`;
+}
+
 export function writeRustTypedClients(runtime, realm) {
+  const realmModelByName = new Map((realm.model_schemas || []).map((model) => [model.name, model.schema]));
   const runtimeEnums = runtimeEnumSchemas(runtime)
     .map((schema) => {
       const variants = schema.values.map((value) => `    ${pascalCase(value)},`).join('\n') || '    Unspecified,';
@@ -140,6 +206,7 @@ ${fromTransportBody}
     }`;
   }).join('\n\n');
   const realmModels = (realm.model_schemas || []).map((model) => {
+    if (model.schema.kind === 'union') return renderRustRealmUnion(model, realmModelByName);
     if (model.schema.kind !== 'object') return `pub type ${model.name} = ${rustOpenApiType(model.schema)};`;
     const fields = model.schema.properties.map((property) => `    pub ${rustFieldName(snakeCase(property.name))}: ${rustOpenApiFieldType(property.schema)},`).join('\n');
     return `#[derive(Clone, Debug, Default, PartialEq)]

@@ -511,6 +511,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/resources/{resourceId}"
   },
   {
+    "operationId": "getSourceMaterializationJwks",
+    "service": "Jwks",
+    "method": "GET",
+    "path": "/api/auth/jwks/source-materialization"
+  },
+  {
     "operationId": "getUnreadCount",
     "service": "Notifications",
     "method": "GET",

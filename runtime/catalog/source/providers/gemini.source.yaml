@@ -14,6 +14,7 @@ defaults:
   default_text_model: gemini-3-flash-preview
   model_type: chat
   capabilities: []
+  context_window_tokens: 8192
   pricing:
     unit: token
     input: unknown

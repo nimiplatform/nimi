@@ -22,6 +22,7 @@ models:
       url: https://docs.mistral.ai/models
       retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
+    context_window_tokens: 8192
   - model_id: mistral-medium-latest
     provider: mistral
     model_type: chat
@@ -40,6 +41,7 @@ models:
       url: https://docs.mistral.ai/models
       retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
+    context_window_tokens: 8192
   - model_id: mistral-small-latest
     provider: mistral
     model_type: chat
@@ -58,6 +60,7 @@ models:
       url: https://docs.mistral.ai/models
       retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
+    context_window_tokens: 8192
   - model_id: codestral-latest
     provider: mistral
     model_type: chat
@@ -75,6 +78,7 @@ models:
       url: https://docs.mistral.ai/models
       retrieved_at: 2026-04-18
       note: Mistral model catalog and lifecycle aliases.
+    context_window_tokens: 8192
   - model_id: mistral-embed
     provider: mistral
     model_type: embedding

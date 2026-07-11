@@ -9,6 +9,7 @@ entries:
   - hard_blocks
   - census
   - module_owner_map
+  - local_agent_behavior_evaluation
 classification_vocabulary:
   - classification: authority_boundary_guard
     tier: T3
@@ -139,6 +140,100 @@ hard_blocks:
   - id: tier_classification_mismatch
     condition: "`tier` does not equal classification's canonical tier"
     authority_refs: [P-TEST-002]
+  - id: behavior_expectation_not_source_derived
+    condition: LocalAgent behavior expectation is not derived from typed source/world/relationship/knowledge truth
+    authority_refs: [P-TEST-009]
+  - id: deterministic_context_admission_wrong_classification
+    condition: deterministic LocalAgent context admission does not use behavior_unit T4
+    authority_refs: [P-TEST-010]
+  - id: electron_behavior_acceptance_wrong_classification
+    condition: real Electron LocalAgent product interaction does not use product_acceptance T6
+    authority_refs: [P-TEST-010]
+  - id: live_behavior_or_evaluator_without_t7_env_evidence
+    condition: real subject behavior or semantic evaluator execution is counted outside live_provider_proof T7 after_env_evidence
+    authority_refs: [P-TEST-006, P-TEST-011]
+  - id: subject_evaluator_route_fingerprint_missing_or_equal
+    condition: subject/evaluator providerId, modelId, or resolved revision/fingerprint is missing, unproven, or the complete fingerprints are equal
+    authority_refs: [P-TEST-012]
+  - id: direct_provider_or_provider_model_constant
+    condition: app/test runner directly calls provider/model or embeds provider/model selection
+    authority_refs: [P-TEST-012]
+  - id: evaluator_schema_or_calibration_invalid
+    condition: strict JSON result, known-pass/deliberate-fail calibration, reason codes, or non-constant scoring is invalid
+    authority_refs: [P-TEST-013]
+  - id: behavior_batch_retry_or_mutable_inputs
+    condition: evaluator trial retries automatically or threshold/control/rubric/schema changes within the batch
+    authority_refs: [P-TEST-013]
+  - id: behavior_trial_not_retained
+    condition: any raw subject/evaluator/calibration/provider trial is removed from the original denominator
+    authority_refs: [P-TEST-014]
+  - id: evaluator_product_state_or_personality_mutation
+    condition: evaluator mutates product state or its score becomes personality truth/context input
+    authority_refs: [P-TEST-009, P-TEST-014]
+local_agent_behavior_evaluation:
+  contract_version: 1
+  expectation_manifest:
+    source: typed_source_snapshot
+    required_domains: [identity, behavior, world, relationship, knowledge]
+    prohibited_sources: [app_metadata, evaluator_score, raw_system_prompt]
+    authority_refs: [P-TEST-009]
+  classification_bindings:
+    deterministic_context_admission:
+      classification: behavior_unit
+      tier: T4
+      authority_refs: [P-TEST-010]
+    electron_product_acceptance:
+      classification: product_acceptance
+      tier: T6
+      release_eligibility: after_real_shell_evidence
+      authority_refs: [P-TEST-010]
+    live_subject_behavior:
+      classification: live_provider_proof
+      tier: T7
+      release_eligibility: after_env_evidence
+      authority_refs: [P-TEST-006, P-TEST-011]
+    semantic_evaluator:
+      classification: live_provider_proof
+      tier: T7
+      release_eligibility: after_env_evidence
+      authority_refs: [P-TEST-006, P-TEST-011]
+  deterministic_context_admission:
+    evidence_source: provider_visible_runtime_request_capture
+    required_domains: [identity, behavior, boundary, world, relationship, knowledge, transcript, memory]
+    required_assertions: [typed_lane, lane_order, content_hash, token_budget, forbidden_canary_absence, exact_provider_call_count]
+    fixture_substitutes_live_behavior: false
+    authority_refs: [P-TEST-010, P-TEST-011]
+  route_independence:
+    executor: runtime_ai_execution
+    fingerprint_fields: [providerId, modelId, modelRevisionOrFingerprint]
+    comparison: complete_fingerprint_must_differ
+    unresolved_or_equal_outcome: blocked_live_provider_admission
+    app_or_test_direct_provider: forbidden
+    provider_model_constants: forbidden
+    authority_refs: [P-TEST-012]
+  evaluator_contract:
+    input_allowlist: [expectation_manifest, rubric, transcript]
+    input_forbidden: [raw_system_prompt, private_context_lanes, product_anchor, product_memory_scope]
+    result_format: strict_json_schema
+    unknown_or_malformed_outcome: fail_closed
+    deterministic_dimensions: [facts, boundaries, ids, hashes, leakage]
+    semantic_dimensions: [style, cadence, voice, pacing]
+    authority_refs: [P-TEST-009, P-TEST-013]
+  calibration:
+    controls_per_dimension: [known_pass, deliberate_fail]
+    timing: before_subject_trials
+    block_on: [control_misclassification, constant_scoring, schema_mismatch, reason_code_mismatch, route_collision]
+    fixed_within_batch: [thresholds, controls, rubric, result_schema]
+    retry_policy: none
+    authority_refs: [P-TEST-013]
+  evidence_and_state:
+    raw_trial_retention: all
+    denominator: all_original_trials
+    product_state_mutation: forbidden
+    mutation_targets: [realm_source, runtime_source_snapshot, local_agent, turn, message, transcript, memory, anchor]
+    score_truth_role: non_authoritative_evaluation_evidence
+    score_context_influence: forbidden
+    authority_refs: [P-TEST-009, P-TEST-014]
 census:
   include_globs:
     - '**/*.test.ts'

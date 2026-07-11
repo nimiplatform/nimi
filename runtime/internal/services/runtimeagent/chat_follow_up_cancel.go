@@ -33,55 +33,6 @@ func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason stri
 	return followUp, nil
 }
 
-func (s *Service) cancelPublicChatFollowUpsForThread(callerAppID string, threadID string, reason string) error {
-	callerAppID = strings.TrimSpace(callerAppID)
-	threadID = strings.TrimSpace(threadID)
-	if callerAppID == "" || threadID == "" {
-		return nil
-	}
-	anchorIDs := make([]string, 0)
-	s.chatSurfaceMu.Lock()
-	for _, session := range s.chatAnchors {
-		if session == nil {
-			continue
-		}
-		if strings.TrimSpace(session.CallerAppID) == callerAppID && strings.TrimSpace(session.ThreadID) == threadID && strings.TrimSpace(session.PendingFollowUpID) != "" {
-			anchorIDs = append(anchorIDs, session.ConversationAnchorID)
-		}
-	}
-	s.chatSurfaceMu.Unlock()
-	for _, anchorID := range anchorIDs {
-		if _, err := s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Service) cancelPublicChatFollowUpsForRequest(callerAppID string, anchorID string, threadID string, reason string) error {
-	callerAppID = strings.TrimSpace(callerAppID)
-	anchorID = strings.TrimSpace(anchorID)
-	threadID = strings.TrimSpace(threadID)
-	if callerAppID == "" {
-		return nil
-	}
-	if anchorID != "" {
-		s.chatSurfaceMu.Lock()
-		session := s.chatAnchors[anchorID]
-		ownedByCaller := session != nil && strings.TrimSpace(session.CallerAppID) == callerAppID
-		s.chatSurfaceMu.Unlock()
-		if ownedByCaller {
-			if _, err := s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true); err != nil {
-				return err
-			}
-		}
-	}
-	if threadID != "" {
-		return s.cancelPublicChatFollowUpsForThread(callerAppID, threadID, reason)
-	}
-	return nil
-}
-
 func (s *Service) takePublicChatFollowUp(followUpID string) *publicChatFollowUpState {
 	s.chatSurfaceMu.Lock()
 	followUp := s.chatFollowUps[strings.TrimSpace(followUpID)]

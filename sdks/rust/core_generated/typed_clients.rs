@@ -142,6 +142,15 @@ pub enum AccountReasonCode {
     ACCOUNTREASONCODEBINDINGREPLAY,
     ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE,
     ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE,
+    ACCOUNTREASONCODEBROKEROPERATIONNOTADMITTED,
+    ACCOUNTREASONCODEBROKERCAPABILITYMISSING,
+    ACCOUNTREASONCODEBROKERREALMBASEDENIED,
+    ACCOUNTREASONCODEBROKERREQUESTINVALID,
+    ACCOUNTREASONCODEBROKERUPSTREAMFAILED,
+    ACCOUNTREASONCODEBROKERRESPONSETOOLARGE,
+    ACCOUNTREASONCODEBROKERCREDENTIALRESPONSEFORBIDDEN,
+    ACCOUNTREASONCODECALLERENVELOPEMISMATCH,
+    ACCOUNTREASONCODELAUNCHNONCEREPLAY,
 }
 
 impl Default for AccountReasonCode {
@@ -216,6 +225,24 @@ impl Default for AgentCanonicalMemoryReviewReadiness {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentContextProjectionReasonCode {
+    AGENTCONTEXTPROJECTIONREASONCODEUNSPECIFIED,
+    AGENTCONTEXTPROJECTIONREASONCODENONE,
+    AGENTCONTEXTPROJECTIONREASONCODESOURCENOTMATERIALIZED,
+    AGENTCONTEXTPROJECTIONREASONCODESOURCEVALIDATIONPENDING,
+    AGENTCONTEXTPROJECTIONREASONCODESOURCESNAPSHOTINVALID,
+    AGENTCONTEXTPROJECTIONREASONCODECONTEXTNOTCOMPOSED,
+    AGENTCONTEXTPROJECTIONREASONCODECONTEXTCAPACITYEXCEEDED,
+    AGENTCONTEXTPROJECTIONREASONCODECONTEXTMANIFESTINVALID,
+}
+
+impl Default for AgentContextProjectionReasonCode {
+    fn default() -> Self {
+        Self::AGENTCONTEXTPROJECTIONREASONCODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentEventType {
     AGENTEVENTTYPEUNSPECIFIED,
 }
@@ -245,6 +272,88 @@ pub enum AgentLifecycleStatus {
 impl Default for AgentLifecycleStatus {
     fn default() -> Self {
         Self::AGENTLIFECYCLESTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentLocalSourceContextSchemaVersion {
+    AGENTLOCALSOURCECONTEXTSCHEMAVERSIONUNSPECIFIED,
+    AGENTLOCALSOURCECONTEXTSCHEMAVERSIONV1,
+}
+
+impl Default for AgentLocalSourceContextSchemaVersion {
+    fn default() -> Self {
+        Self::AGENTLOCALSOURCECONTEXTSCHEMAVERSIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentLocalSourceContextState {
+    AGENTLOCALSOURCECONTEXTSTATEUNSPECIFIED,
+    AGENTLOCALSOURCECONTEXTSTATENOTMATERIALIZED,
+    AGENTLOCALSOURCECONTEXTSTATEVALIDATING,
+    AGENTLOCALSOURCECONTEXTSTATEREADY,
+    AGENTLOCALSOURCECONTEXTSTATEINVALID,
+    AGENTLOCALSOURCECONTEXTSTATEDELETED,
+}
+
+impl Default for AgentLocalSourceContextState {
+    fn default() -> Self {
+        Self::AGENTLOCALSOURCECONTEXTSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentLocalSourceCoverageSection {
+    AGENTLOCALSOURCECOVERAGESECTIONUNSPECIFIED,
+    AGENTLOCALSOURCECOVERAGESECTIONIDENTITY,
+    AGENTLOCALSOURCECOVERAGESECTIONPRESENTATION,
+    AGENTLOCALSOURCECOVERAGESECTIONPLACEMENT,
+    AGENTLOCALSOURCECOVERAGESECTIONBIOGRAPHY,
+    AGENTLOCALSOURCECOVERAGESECTIONPSYCHOLOGY,
+    AGENTLOCALSOURCECOVERAGESECTIONKNOWLEDGE,
+    AGENTLOCALSOURCECOVERAGESECTIONRELATIONSHIPS,
+    AGENTLOCALSOURCECOVERAGESECTIONCAPABILITIES,
+    AGENTLOCALSOURCECOVERAGESECTIONINTERACTIONPROFILE,
+    AGENTLOCALSOURCECOVERAGESECTIONASSETS,
+    AGENTLOCALSOURCECOVERAGESECTIONAUTHORING,
+    AGENTLOCALSOURCECOVERAGESECTIONPERSONASTYLE,
+    AGENTLOCALSOURCECOVERAGESECTIONCONTENTPROFILE,
+    AGENTLOCALSOURCECOVERAGESECTIONWORLDCORE,
+    AGENTLOCALSOURCECOVERAGESECTIONBOUNDENTITY,
+    AGENTLOCALSOURCECOVERAGESECTIONDEPENDENCYCLOSURE,
+}
+
+impl Default for AgentLocalSourceCoverageSection {
+    fn default() -> Self {
+        Self::AGENTLOCALSOURCECOVERAGESECTIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentLocalSourceCoverageState {
+    AGENTLOCALSOURCECOVERAGESTATEUNSPECIFIED,
+    AGENTLOCALSOURCECOVERAGESTATECOMPLETE,
+    AGENTLOCALSOURCECOVERAGESTATENOTAPPLICABLE,
+    AGENTLOCALSOURCECOVERAGESTATEOPTIONALOMITTED,
+    AGENTLOCALSOURCECOVERAGESTATEINVALID,
+}
+
+impl Default for AgentLocalSourceCoverageState {
+    fn default() -> Self {
+        Self::AGENTLOCALSOURCECOVERAGESTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentLocalSourceSnapshotSchemaVersion {
+    AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONUNSPECIFIED,
+    AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV1,
+}
+
+impl Default for AgentLocalSourceSnapshotSchemaVersion {
+    fn default() -> Self {
+        Self::AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONUNSPECIFIED
     }
 }
 
@@ -364,6 +473,170 @@ impl Default for AgentProactiveTriggerSource {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationBundleManifestSchemaVersion {
+    AGENTSOURCEMATERIALIZATIONBUNDLEMANIFESTSCHEMAVERSIONUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONBUNDLEMANIFESTSCHEMAVERSIONV1,
+}
+
+impl Default for AgentSourceMaterializationBundleManifestSchemaVersion {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONBUNDLEMANIFESTSCHEMAVERSIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationChallengeState {
+    AGENTSOURCEMATERIALIZATIONCHALLENGESTATEUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONCHALLENGESTATEISSUED,
+    AGENTSOURCEMATERIALIZATIONCHALLENGESTATELEASED,
+    AGENTSOURCEMATERIALIZATIONCHALLENGESTATECONSUMED,
+    AGENTSOURCEMATERIALIZATIONCHALLENGESTATEINVALIDATED,
+    AGENTSOURCEMATERIALIZATIONCHALLENGESTATEEXPIRED,
+}
+
+impl Default for AgentSourceMaterializationChallengeState {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONCHALLENGESTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationComponentKind {
+    AGENTSOURCEMATERIALIZATIONCOMPONENTKINDUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDCHARACTER,
+    AGENTSOURCEMATERIALIZATIONCOMPONENTKINDREALMPERSONA,
+    AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDCORE,
+    AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDENTITY,
+    AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDRELATIONSHIP,
+    AGENTSOURCEMATERIALIZATIONCOMPONENTKINDCOVERAGEMANIFEST,
+}
+
+impl Default for AgentSourceMaterializationComponentKind {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONCOMPONENTKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationKeyUse {
+    AGENTSOURCEMATERIALIZATIONKEYUSEUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONKEYUSESIG,
+}
+
+impl Default for AgentSourceMaterializationKeyUse {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONKEYUSEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationPacketSchemaVersion {
+    AGENTSOURCEMATERIALIZATIONPACKETSCHEMAVERSIONUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONPACKETSCHEMAVERSIONV2,
+}
+
+impl Default for AgentSourceMaterializationPacketSchemaVersion {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONPACKETSCHEMAVERSIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationPayloadAssemblyVersion {
+    AGENTSOURCEMATERIALIZATIONPAYLOADASSEMBLYVERSIONUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONPAYLOADASSEMBLYVERSIONV1,
+}
+
+impl Default for AgentSourceMaterializationPayloadAssemblyVersion {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONPAYLOADASSEMBLYVERSIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationProofAlgorithm {
+    AGENTSOURCEMATERIALIZATIONPROOFALGORITHMUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONPROOFALGORITHMRS256,
+}
+
+impl Default for AgentSourceMaterializationProofAlgorithm {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONPROOFALGORITHMUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationReasonCode {
+    AGENTSOURCEMATERIALIZATIONREASONCODEUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONREASONCODENONE,
+    AGENTSOURCEMATERIALIZATIONREASONCODEINVALIDREQUEST,
+    AGENTSOURCEMATERIALIZATIONREASONCODEACCOUNTBINDINGMISMATCH,
+    AGENTSOURCEMATERIALIZATIONREASONCODESOURCEBINDINGMISMATCH,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGENOTFOUND,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEEXPIRED,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGECONFLICT,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEALREADYLEASED,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEALREADYCONSUMED,
+    AGENTSOURCEMATERIALIZATIONREASONCODEAUDIENCEMISMATCH,
+    AGENTSOURCEMATERIALIZATIONREASONCODEBUNDLECAPACITYEXCEEDED,
+    AGENTSOURCEMATERIALIZATIONREASONCODECOMPONENTCAPACITYEXCEEDED,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCAPACITYEXCEEDED,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCOUNTEXCEEDED,
+    AGENTSOURCEMATERIALIZATIONREASONCODEMANIFESTINVALID,
+    AGENTSOURCEMATERIALIZATIONREASONCODEPACKETINVALID,
+    AGENTSOURCEMATERIALIZATIONREASONCODEPROOFINVALID,
+    AGENTSOURCEMATERIALIZATIONREASONCODEUPLOADNOTFOUND,
+    AGENTSOURCEMATERIALIZATIONREASONCODEUPLOADSTATECONFLICT,
+    AGENTSOURCEMATERIALIZATIONREASONCODEREQUESTIDCONFLICT,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHUNKDESCRIPTORINVALID,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHUNKDIGESTMISMATCH,
+    AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCONFLICT,
+    AGENTSOURCEMATERIALIZATIONREASONCODECOMMITINPROGRESS,
+    AGENTSOURCEMATERIALIZATIONREASONCODEALREADYCOMMITTED,
+    AGENTSOURCEMATERIALIZATIONREASONCODECOMMITCONFLICT,
+    AGENTSOURCEMATERIALIZATIONREASONCODEADMISSIONFAILED,
+    AGENTSOURCEMATERIALIZATIONREASONCODEABORTED,
+    AGENTSOURCEMATERIALIZATIONREASONCODEEXPIRED,
+    AGENTSOURCEMATERIALIZATIONREASONCODEPERSISTENCEFAILED,
+}
+
+impl Default for AgentSourceMaterializationReasonCode {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONREASONCODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationSourceKind {
+    AGENTSOURCEMATERIALIZATIONSOURCEKINDUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONSOURCEKINDWORLDCHARACTER,
+    AGENTSOURCEMATERIALIZATIONSOURCEKINDREALMPERSONA,
+}
+
+impl Default for AgentSourceMaterializationSourceKind {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONSOURCEKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceMaterializationUploadState {
+    AGENTSOURCEMATERIALIZATIONUPLOADSTATEUNSPECIFIED,
+    AGENTSOURCEMATERIALIZATIONUPLOADSTATEOPEN,
+    AGENTSOURCEMATERIALIZATIONUPLOADSTATECOMMITTING,
+    AGENTSOURCEMATERIALIZATIONUPLOADSTATECOMMITTED,
+    AGENTSOURCEMATERIALIZATIONUPLOADSTATEFAILED,
+    AGENTSOURCEMATERIALIZATIONUPLOADSTATEABORTED,
+    AGENTSOURCEMATERIALIZATIONUPLOADSTATEEXPIRED,
+}
+
+impl Default for AgentSourceMaterializationUploadState {
+    fn default() -> Self {
+        Self::AGENTSOURCEMATERIALIZATIONUPLOADSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentStateEventFamily {
     AGENTSTATEEVENTFAMILYUNSPECIFIED,
 }
@@ -382,6 +655,110 @@ pub enum AgentTrackType {
 impl Default for AgentTrackType {
     fn default() -> Self {
         Self::AGENTTRACKTYPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentTurnContextCompilerSchemaVersion {
+    AGENTTURNCONTEXTCOMPILERSCHEMAVERSIONUNSPECIFIED,
+    AGENTTURNCONTEXTCOMPILERSCHEMAVERSIONV1,
+}
+
+impl Default for AgentTurnContextCompilerSchemaVersion {
+    fn default() -> Self {
+        Self::AGENTTURNCONTEXTCOMPILERSCHEMAVERSIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentTurnContextLaneId {
+    AGENTTURNCONTEXTLANEIDUNSPECIFIED,
+    AGENTTURNCONTEXTLANEIDRUNTIMEPOLICY,
+    AGENTTURNCONTEXTLANEIDOUTPUTCONTRACT,
+    AGENTTURNCONTEXTLANEIDSOURCEIDENTITY,
+    AGENTTURNCONTEXTLANEIDSOURCEBEHAVIOR,
+    AGENTTURNCONTEXTLANEIDWORLDCONTEXT,
+    AGENTTURNCONTEXTLANEIDRELATIONSHIPCONTEXT,
+    AGENTTURNCONTEXTLANEIDSOURCEKNOWLEDGE,
+    AGENTTURNCONTEXTLANEIDCANONICALMEMORY,
+    AGENTTURNCONTEXTLANEIDCONVERSATIONHISTORY,
+    AGENTTURNCONTEXTLANEIDCAPABILITYCONTEXT,
+    AGENTTURNCONTEXTLANEIDCURRENTUSERTURN,
+}
+
+impl Default for AgentTurnContextLaneId {
+    fn default() -> Self {
+        Self::AGENTTURNCONTEXTLANEIDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentTurnContextLaneState {
+    AGENTTURNCONTEXTLANESTATEUNSPECIFIED,
+    AGENTTURNCONTEXTLANESTATEINCLUDED,
+    AGENTTURNCONTEXTLANESTATEEMPTY,
+    AGENTTURNCONTEXTLANESTATEOMITTED,
+    AGENTTURNCONTEXTLANESTATETRUNCATED,
+    AGENTTURNCONTEXTLANESTATEINVALID,
+}
+
+impl Default for AgentTurnContextLaneState {
+    fn default() -> Self {
+        Self::AGENTTURNCONTEXTLANESTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentTurnContextManifestSchemaVersion {
+    AGENTTURNCONTEXTMANIFESTSCHEMAVERSIONUNSPECIFIED,
+    AGENTTURNCONTEXTMANIFESTSCHEMAVERSIONV1,
+}
+
+impl Default for AgentTurnContextManifestSchemaVersion {
+    fn default() -> Self {
+        Self::AGENTTURNCONTEXTMANIFESTSCHEMAVERSIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentTurnContextState {
+    AGENTTURNCONTEXTSTATEUNSPECIFIED,
+    AGENTTURNCONTEXTSTATENOTCOMPOSED,
+    AGENTTURNCONTEXTSTATEREADY,
+    AGENTTURNCONTEXTSTATECONTEXTCAPACITYEXCEEDED,
+    AGENTTURNCONTEXTSTATEINVALID,
+}
+
+impl Default for AgentTurnContextState {
+    fn default() -> Self {
+        Self::AGENTTURNCONTEXTSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentTurnContextSummarySchemaVersion {
+    AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONUNSPECIFIED,
+    AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONV1,
+}
+
+impl Default for AgentTurnContextSummarySchemaVersion {
+    fn default() -> Self {
+        Self::AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentTurnContextTruncationReason {
+    AGENTTURNCONTEXTTRUNCATIONREASONUNSPECIFIED,
+    AGENTTURNCONTEXTTRUNCATIONREASONNONE,
+    AGENTTURNCONTEXTTRUNCATIONREASONINPUTBUDGETEXHAUSTED,
+    AGENTTURNCONTEXTTRUNCATIONREASONOPTIONALCONTENTOMITTED,
+    AGENTTURNCONTEXTTRUNCATIONREASONCONTEXTCAPACITYEXCEEDED,
+}
+
+impl Default for AgentTurnContextTruncationReason {
+    fn default() -> Self {
+        Self::AGENTTURNCONTEXTTRUNCATIONREASONUNSPECIFIED
     }
 }
 
@@ -2795,6 +3172,78 @@ impl AIProviderSubHealth {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AbortSourceMaterializationUploadRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub abort_request_id: Option<String>,
+    pub upload_id: Option<String>,
+    pub packet_hash: Option<String>,
+    pub bundle_manifest_hash: Option<String>,
+}
+
+impl AbortSourceMaterializationUploadRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.abort_request_id { pairs.push(format!("abort_request_id={}", value)); }
+        if let Some(value) = &self.upload_id { pairs.push(format!("upload_id={}", value)); }
+        if let Some(value) = &self.packet_hash { pairs.push(format!("packet_hash={}", value)); }
+        if let Some(value) = &self.bundle_manifest_hash { pairs.push(format!("bundle_manifest_hash={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.abort_request_id = pairs.get("abort_request_id").cloned();
+        out.upload_id = pairs.get("upload_id").cloned();
+        out.packet_hash = pairs.get("packet_hash").cloned();
+        out.bundle_manifest_hash = pairs.get("bundle_manifest_hash").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AbortSourceMaterializationUploadResponse {
+    pub upload_id: Option<String>,
+    pub upload_state: Option<AgentSourceMaterializationUploadState>,
+    pub challenge_state: Option<AgentSourceMaterializationChallengeState>,
+    pub reason_code: Option<AgentSourceMaterializationReasonCode>,
+    pub idempotent_replay: Option<bool>,
+}
+
+impl AbortSourceMaterializationUploadResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.upload_id { pairs.push(format!("upload_id={}", value)); }
+        if let Some(value) = &self.upload_state { pairs.push(format!("upload_state={:?}", value)); }
+        if let Some(value) = &self.challenge_state { pairs.push(format!("challenge_state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.idempotent_replay { pairs.push(format!("idempotent_replay={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["upload_state", "challenge_state", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.upload_id = pairs.get("upload_id").cloned();
+        out.idempotent_replay = pairs.get("idempotent_replay").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AccountAppInventoryRecord {
     pub schema_version: Option<u32>,
     pub account_id: Option<String>,
@@ -3425,6 +3874,8 @@ pub struct AgentConversationSummary {
     pub last_message_id: Option<String>,
     pub transcript_message_count: Option<i32>,
     pub updated_at: Option<String>,
+    pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
+    pub last_turn_context_summary: Option<Box<AgentTurnContextSummary>>,
 }
 
 impl AgentConversationSummary {
@@ -3437,13 +3888,15 @@ impl AgentConversationSummary {
         if let Some(value) = &self.last_message_id { pairs.push(format!("last_message_id={}", value)); }
         if let Some(value) = &self.transcript_message_count { pairs.push(format!("transcript_message_count={}", value)); }
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if self.source_context_status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_context_status"); }
+        if self.last_turn_context_summary.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode last_turn_context_summary"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["anchor"] {
+        for key in ["anchor", "source_context_status", "last_turn_context_summary"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -4060,6 +4513,7 @@ pub struct AgentRecord {
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
     pub runtime_source_ref: Option<String>,
+    pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
 }
 
 impl AgentRecord {
@@ -4077,13 +4531,14 @@ impl AgentRecord {
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
         if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
+        if self.source_context_status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_context_status"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["lifecycle_status", "autonomy", "metadata", "presentation_profile"] {
+        for key in ["lifecycle_status", "autonomy", "metadata", "presentation_profile", "source_context_status"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -4478,6 +4933,204 @@ impl AgentStateSetWorldContext {
         let mut out = Self::default();
 
         out.world_id = pairs.get("world_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentTurnContextBudgetSummary {
+    pub context_window_tokens: Option<u64>,
+    pub reserved_output_tokens: Option<u64>,
+    pub reserved_safety_tokens: Option<u64>,
+    pub reserved_adapter_tokens: Option<u64>,
+    pub input_budget_tokens: Option<u64>,
+    pub used_tokens: Option<u64>,
+}
+
+impl AgentTurnContextBudgetSummary {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.context_window_tokens { pairs.push(format!("context_window_tokens={}", value)); }
+        if let Some(value) = &self.reserved_output_tokens { pairs.push(format!("reserved_output_tokens={}", value)); }
+        if let Some(value) = &self.reserved_safety_tokens { pairs.push(format!("reserved_safety_tokens={}", value)); }
+        if let Some(value) = &self.reserved_adapter_tokens { pairs.push(format!("reserved_adapter_tokens={}", value)); }
+        if let Some(value) = &self.input_budget_tokens { pairs.push(format!("input_budget_tokens={}", value)); }
+        if let Some(value) = &self.used_tokens { pairs.push(format!("used_tokens={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.context_window_tokens = pairs.get("context_window_tokens").and_then(|value| value.parse().ok());
+        out.reserved_output_tokens = pairs.get("reserved_output_tokens").and_then(|value| value.parse().ok());
+        out.reserved_safety_tokens = pairs.get("reserved_safety_tokens").and_then(|value| value.parse().ok());
+        out.reserved_adapter_tokens = pairs.get("reserved_adapter_tokens").and_then(|value| value.parse().ok());
+        out.input_budget_tokens = pairs.get("input_budget_tokens").and_then(|value| value.parse().ok());
+        out.used_tokens = pairs.get("used_tokens").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentTurnContextLaneSummary {
+    pub lane_id: Option<AgentTurnContextLaneId>,
+    pub state: Option<AgentTurnContextLaneState>,
+    pub included_item_count: Option<u32>,
+    pub omitted_item_count: Option<u32>,
+    pub truncated_item_count: Option<u32>,
+    pub allocated_tokens: Option<u64>,
+    pub used_tokens: Option<u64>,
+}
+
+impl AgentTurnContextLaneSummary {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.lane_id { pairs.push(format!("lane_id={:?}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.included_item_count { pairs.push(format!("included_item_count={}", value)); }
+        if let Some(value) = &self.omitted_item_count { pairs.push(format!("omitted_item_count={}", value)); }
+        if let Some(value) = &self.truncated_item_count { pairs.push(format!("truncated_item_count={}", value)); }
+        if let Some(value) = &self.allocated_tokens { pairs.push(format!("allocated_tokens={}", value)); }
+        if let Some(value) = &self.used_tokens { pairs.push(format!("used_tokens={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["lane_id", "state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.included_item_count = pairs.get("included_item_count").and_then(|value| value.parse().ok());
+        out.omitted_item_count = pairs.get("omitted_item_count").and_then(|value| value.parse().ok());
+        out.truncated_item_count = pairs.get("truncated_item_count").and_then(|value| value.parse().ok());
+        out.allocated_tokens = pairs.get("allocated_tokens").and_then(|value| value.parse().ok());
+        out.used_tokens = pairs.get("used_tokens").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentTurnContextSummary {
+    pub schema_version: Option<AgentTurnContextSummarySchemaVersion>,
+    pub ready: Option<bool>,
+    pub state: Option<AgentTurnContextState>,
+    pub reason_code: Option<AgentContextProjectionReasonCode>,
+    pub manifest_schema_version: Option<AgentTurnContextManifestSchemaVersion>,
+    pub compiler_schema_version: Option<AgentTurnContextCompilerSchemaVersion>,
+    pub manifest_instance_hash: Option<String>,
+    pub context_content_hash: Option<String>,
+    pub prompt_hash: Option<String>,
+    pub source_snapshot_hash: Option<String>,
+    pub source_ref: Option<Box<SourceMaterializationSourceRef>>,
+    pub world_content_hash: Option<String>,
+    pub materialization_context_hash: Option<String>,
+    pub lanes: Vec<Box<AgentTurnContextLaneSummary>>,
+    pub budget: Option<Box<AgentTurnContextBudgetSummary>>,
+    pub truncation: Vec<Box<AgentTurnContextTruncationSummary>>,
+    pub transcript_turn_count: Option<u32>,
+    pub memory_item_count: Option<u32>,
+    pub media_count: Option<u32>,
+    pub tool_count: Option<u32>,
+    pub route_digest: Option<String>,
+    pub catalog_revision_digest: Option<String>,
+    pub local_agent_ref: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub turn_id: Option<String>,
+}
+
+impl AgentTurnContextSummary {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.schema_version { pairs.push(format!("schema_version={:?}", value)); }
+        if let Some(value) = &self.ready { pairs.push(format!("ready={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.manifest_schema_version { pairs.push(format!("manifest_schema_version={:?}", value)); }
+        if let Some(value) = &self.compiler_schema_version { pairs.push(format!("compiler_schema_version={:?}", value)); }
+        if let Some(value) = &self.manifest_instance_hash { pairs.push(format!("manifest_instance_hash={}", value)); }
+        if let Some(value) = &self.context_content_hash { pairs.push(format!("context_content_hash={}", value)); }
+        if let Some(value) = &self.prompt_hash { pairs.push(format!("prompt_hash={}", value)); }
+        if let Some(value) = &self.source_snapshot_hash { pairs.push(format!("source_snapshot_hash={}", value)); }
+        if self.source_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_ref"); }
+        if let Some(value) = &self.world_content_hash { pairs.push(format!("world_content_hash={}", value)); }
+        if let Some(value) = &self.materialization_context_hash { pairs.push(format!("materialization_context_hash={}", value)); }
+        if !self.lanes.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode lanes"); }
+        if self.budget.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode budget"); }
+        if !self.truncation.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode truncation"); }
+        if let Some(value) = &self.transcript_turn_count { pairs.push(format!("transcript_turn_count={}", value)); }
+        if let Some(value) = &self.memory_item_count { pairs.push(format!("memory_item_count={}", value)); }
+        if let Some(value) = &self.media_count { pairs.push(format!("media_count={}", value)); }
+        if let Some(value) = &self.tool_count { pairs.push(format!("tool_count={}", value)); }
+        if let Some(value) = &self.route_digest { pairs.push(format!("route_digest={}", value)); }
+        if let Some(value) = &self.catalog_revision_digest { pairs.push(format!("catalog_revision_digest={}", value)); }
+        if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["schema_version", "state", "reason_code", "manifest_schema_version", "compiler_schema_version", "source_ref", "lanes", "budget", "truncation"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.ready = pairs.get("ready").and_then(|value| value.parse().ok());
+        out.manifest_instance_hash = pairs.get("manifest_instance_hash").cloned();
+        out.context_content_hash = pairs.get("context_content_hash").cloned();
+        out.prompt_hash = pairs.get("prompt_hash").cloned();
+        out.source_snapshot_hash = pairs.get("source_snapshot_hash").cloned();
+        out.world_content_hash = pairs.get("world_content_hash").cloned();
+        out.materialization_context_hash = pairs.get("materialization_context_hash").cloned();
+        out.transcript_turn_count = pairs.get("transcript_turn_count").and_then(|value| value.parse().ok());
+        out.memory_item_count = pairs.get("memory_item_count").and_then(|value| value.parse().ok());
+        out.media_count = pairs.get("media_count").and_then(|value| value.parse().ok());
+        out.tool_count = pairs.get("tool_count").and_then(|value| value.parse().ok());
+        out.route_digest = pairs.get("route_digest").cloned();
+        out.catalog_revision_digest = pairs.get("catalog_revision_digest").cloned();
+        out.local_agent_ref = pairs.get("local_agent_ref").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.turn_id = pairs.get("turn_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentTurnContextTruncationSummary {
+    pub reason: Option<AgentTurnContextTruncationReason>,
+    pub omitted_item_count: Option<u32>,
+    pub truncated_item_count: Option<u32>,
+}
+
+impl AgentTurnContextTruncationSummary {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.reason { pairs.push(format!("reason={:?}", value)); }
+        if let Some(value) = &self.omitted_item_count { pairs.push(format!("omitted_item_count={}", value)); }
+        if let Some(value) = &self.truncated_item_count { pairs.push(format!("truncated_item_count={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.omitted_item_count = pairs.get("omitted_item_count").and_then(|value| value.parse().ok());
+        out.truncated_item_count = pairs.get("truncated_item_count").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -6295,6 +6948,77 @@ impl BeginLoginResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct BeginSourceMaterializationUploadRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub begin_request_id: Option<String>,
+    pub control: Option<Box<SourceMaterializationBeginControl>>,
+}
+
+impl BeginSourceMaterializationUploadRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.begin_request_id { pairs.push(format!("begin_request_id={}", value)); }
+        if self.control.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode control"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context", "control"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.begin_request_id = pairs.get("begin_request_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BeginSourceMaterializationUploadResponse {
+    pub upload_id: Option<String>,
+    pub packet_hash: Option<String>,
+    pub bundle_manifest_hash: Option<String>,
+    pub upload_state: Option<AgentSourceMaterializationUploadState>,
+    pub challenge_state: Option<AgentSourceMaterializationChallengeState>,
+    pub reason_code: Option<AgentSourceMaterializationReasonCode>,
+    pub expires_at: Option<String>,
+}
+
+impl BeginSourceMaterializationUploadResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.upload_id { pairs.push(format!("upload_id={}", value)); }
+        if let Some(value) = &self.packet_hash { pairs.push(format!("packet_hash={}", value)); }
+        if let Some(value) = &self.bundle_manifest_hash { pairs.push(format!("bundle_manifest_hash={}", value)); }
+        if let Some(value) = &self.upload_state { pairs.push(format!("upload_state={:?}", value)); }
+        if let Some(value) = &self.challenge_state { pairs.push(format!("challenge_state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["upload_state", "challenge_state", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.upload_id = pairs.get("upload_id").cloned();
+        out.packet_hash = pairs.get("packet_hash").cloned();
+        out.bundle_manifest_hash = pairs.get("bundle_manifest_hash").cloned();
+        out.expires_at = pairs.get("expires_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BranchNodeConfig {
     pub condition: Option<String>,
     pub true_target: Option<String>,
@@ -6317,6 +7041,52 @@ impl BranchNodeConfig {
         out.condition = pairs.get("condition").cloned();
         out.true_target = pairs.get("true_target").cloned();
         out.false_target = pairs.get("false_target").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BundleTransportManifestV1 {
+    pub manifest_schema_version: Option<AgentSourceMaterializationBundleManifestSchemaVersion>,
+    pub payload_assembly_version: Option<AgentSourceMaterializationPayloadAssemblyVersion>,
+    pub packet_id: Option<String>,
+    pub challenge_digest: Option<String>,
+    pub total_canonical_bytes: Option<u64>,
+    pub component_count: Option<u32>,
+    pub chunk_count: Option<u32>,
+    pub components: Vec<Box<SourceMaterializationBundleComponentDescriptorV1>>,
+    pub chunks: Vec<Box<SourceMaterializationBundleChunkDescriptorV1>>,
+}
+
+impl BundleTransportManifestV1 {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.manifest_schema_version { pairs.push(format!("manifest_schema_version={:?}", value)); }
+        if let Some(value) = &self.payload_assembly_version { pairs.push(format!("payload_assembly_version={:?}", value)); }
+        if let Some(value) = &self.packet_id { pairs.push(format!("packet_id={}", value)); }
+        if let Some(value) = &self.challenge_digest { pairs.push(format!("challenge_digest={}", value)); }
+        if let Some(value) = &self.total_canonical_bytes { pairs.push(format!("total_canonical_bytes={}", value)); }
+        if let Some(value) = &self.component_count { pairs.push(format!("component_count={}", value)); }
+        if let Some(value) = &self.chunk_count { pairs.push(format!("chunk_count={}", value)); }
+        if !self.components.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode components"); }
+        if !self.chunks.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode chunks"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["manifest_schema_version", "payload_assembly_version", "components", "chunks"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.packet_id = pairs.get("packet_id").cloned();
+        out.challenge_digest = pairs.get("challenge_digest").cloned();
+        out.total_canonical_bytes = pairs.get("total_canonical_bytes").and_then(|value| value.parse().ok());
+        out.component_count = pairs.get("component_count").and_then(|value| value.parse().ok());
+        out.chunk_count = pairs.get("chunk_count").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -7678,6 +8448,80 @@ impl CollectDeviceProfileResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CommitSourceMaterializationRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub commit_request_id: Option<String>,
+    pub upload_id: Option<String>,
+    pub packet_hash: Option<String>,
+    pub bundle_manifest_hash: Option<String>,
+}
+
+impl CommitSourceMaterializationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.commit_request_id { pairs.push(format!("commit_request_id={}", value)); }
+        if let Some(value) = &self.upload_id { pairs.push(format!("upload_id={}", value)); }
+        if let Some(value) = &self.packet_hash { pairs.push(format!("packet_hash={}", value)); }
+        if let Some(value) = &self.bundle_manifest_hash { pairs.push(format!("bundle_manifest_hash={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.commit_request_id = pairs.get("commit_request_id").cloned();
+        out.upload_id = pairs.get("upload_id").cloned();
+        out.packet_hash = pairs.get("packet_hash").cloned();
+        out.bundle_manifest_hash = pairs.get("bundle_manifest_hash").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CommitSourceMaterializationResponse {
+    pub upload_id: Option<String>,
+    pub local_agent_ref: Option<String>,
+    pub upload_state: Option<AgentSourceMaterializationUploadState>,
+    pub challenge_state: Option<AgentSourceMaterializationChallengeState>,
+    pub reason_code: Option<AgentSourceMaterializationReasonCode>,
+    pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
+}
+
+impl CommitSourceMaterializationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.upload_id { pairs.push(format!("upload_id={}", value)); }
+        if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
+        if let Some(value) = &self.upload_state { pairs.push(format!("upload_state={:?}", value)); }
+        if let Some(value) = &self.challenge_state { pairs.push(format!("challenge_state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if self.source_context_status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_context_status"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["upload_state", "challenge_state", "reason_code", "source_context_status"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.upload_id = pairs.get("upload_id").cloned();
+        out.local_agent_ref = pairs.get("local_agent_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CompanionParticipationProjection {
     pub projection_id: Option<String>,
     pub agent_id: Option<String>,
@@ -8047,6 +8891,8 @@ pub struct ConversationAnchorSnapshot {
     pub anchor: Option<Box<ConversationAnchor>>,
     pub active_turn_id: Option<String>,
     pub active_stream_id: Option<String>,
+    pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
+    pub turn_context_summary: Option<Box<AgentTurnContextSummary>>,
 }
 
 impl ConversationAnchorSnapshot {
@@ -8055,13 +8901,15 @@ impl ConversationAnchorSnapshot {
         if self.anchor.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode anchor"); }
         if let Some(value) = &self.active_turn_id { pairs.push(format!("active_turn_id={}", value)); }
         if let Some(value) = &self.active_stream_id { pairs.push(format!("active_stream_id={}", value)); }
+        if self.source_context_status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_context_status"); }
+        if self.turn_context_summary.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode turn_context_summary"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["anchor"] {
+        for key in ["anchor", "source_context_status", "turn_context_summary"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -8354,6 +9202,82 @@ impl CreateRealmGroupMessageCandidateResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateSourceMaterializationChallengeRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub request_id: Option<String>,
+    pub source_ref: Option<Box<SourceMaterializationSourceRef>>,
+}
+
+impl CreateSourceMaterializationChallengeRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
+        if self.source_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_ref"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context", "source_ref"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.request_id = pairs.get("request_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateSourceMaterializationChallengeResponse {
+    pub challenge_id: Option<String>,
+    pub intended_runtime_audience: Option<String>,
+    pub challenge_digest: Option<String>,
+    pub expires_at: Option<String>,
+    pub limits: Option<Box<SourceMaterializationChallengeLimits>>,
+    pub state: Option<AgentSourceMaterializationChallengeState>,
+    pub reason_code: Option<AgentSourceMaterializationReasonCode>,
+    pub source_ref: Option<Box<SourceMaterializationSourceRef>>,
+    pub materializer_account_id: Option<String>,
+}
+
+impl CreateSourceMaterializationChallengeResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.challenge_id { pairs.push(format!("challenge_id={}", value)); }
+        if let Some(value) = &self.intended_runtime_audience { pairs.push(format!("intended_runtime_audience={}", value)); }
+        if let Some(value) = &self.challenge_digest { pairs.push(format!("challenge_digest={}", value)); }
+        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        if self.limits.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode limits"); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if self.source_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_ref"); }
+        if let Some(value) = &self.materializer_account_id { pairs.push(format!("materializer_account_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["limits", "state", "reason_code", "source_ref"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.challenge_id = pairs.get("challenge_id").cloned();
+        out.intended_runtime_audience = pairs.get("intended_runtime_audience").cloned();
+        out.challenge_digest = pairs.get("challenge_digest").cloned();
+        out.expires_at = pairs.get("expires_at").cloned();
+        out.materializer_account_id = pairs.get("materializer_account_id").cloned();
         out
     }
 }
@@ -16773,6 +17697,98 @@ impl ListVoiceAssetsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAgentSourceContextStatus {
+    pub schema_version: Option<AgentLocalSourceContextSchemaVersion>,
+    pub ready: Option<bool>,
+    pub state: Option<AgentLocalSourceContextState>,
+    pub reason_code: Option<AgentContextProjectionReasonCode>,
+    pub local_agent_ref: Option<String>,
+    pub source_ref: Option<Box<SourceMaterializationSourceRef>>,
+    pub source_schema_version: Option<String>,
+    pub snapshot_schema_version: Option<AgentLocalSourceSnapshotSchemaVersion>,
+    pub snapshot_hash: Option<String>,
+    pub captured_at: Option<String>,
+    pub world_content_hash: Option<String>,
+    pub materialization_context_hash: Option<String>,
+    pub coverage_sections: Vec<Box<LocalAgentSourceCoverageSectionStatus>>,
+}
+
+impl LocalAgentSourceContextStatus {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.schema_version { pairs.push(format!("schema_version={:?}", value)); }
+        if let Some(value) = &self.ready { pairs.push(format!("ready={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
+        if self.source_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_ref"); }
+        if let Some(value) = &self.source_schema_version { pairs.push(format!("source_schema_version={}", value)); }
+        if let Some(value) = &self.snapshot_schema_version { pairs.push(format!("snapshot_schema_version={:?}", value)); }
+        if let Some(value) = &self.snapshot_hash { pairs.push(format!("snapshot_hash={}", value)); }
+        if let Some(value) = &self.captured_at { pairs.push(format!("captured_at={}", value)); }
+        if let Some(value) = &self.world_content_hash { pairs.push(format!("world_content_hash={}", value)); }
+        if let Some(value) = &self.materialization_context_hash { pairs.push(format!("materialization_context_hash={}", value)); }
+        if !self.coverage_sections.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode coverage_sections"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["schema_version", "state", "reason_code", "source_ref", "snapshot_schema_version", "coverage_sections"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.ready = pairs.get("ready").and_then(|value| value.parse().ok());
+        out.local_agent_ref = pairs.get("local_agent_ref").cloned();
+        out.source_schema_version = pairs.get("source_schema_version").cloned();
+        out.snapshot_hash = pairs.get("snapshot_hash").cloned();
+        out.captured_at = pairs.get("captured_at").cloned();
+        out.world_content_hash = pairs.get("world_content_hash").cloned();
+        out.materialization_context_hash = pairs.get("materialization_context_hash").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAgentSourceCoverageSectionStatus {
+    pub section: Option<AgentLocalSourceCoverageSection>,
+    pub state: Option<AgentLocalSourceCoverageState>,
+    pub required_count: Option<u32>,
+    pub resolved_count: Option<u32>,
+    pub omitted_count: Option<u32>,
+}
+
+impl LocalAgentSourceCoverageSectionStatus {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.section { pairs.push(format!("section={:?}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.required_count { pairs.push(format!("required_count={}", value)); }
+        if let Some(value) = &self.resolved_count { pairs.push(format!("resolved_count={}", value)); }
+        if let Some(value) = &self.omitted_count { pairs.push(format!("omitted_count={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["section", "state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.required_count = pairs.get("required_count").and_then(|value| value.parse().ok());
+        out.resolved_count = pairs.get("resolved_count").and_then(|value| value.parse().ok());
+        out.omitted_count = pairs.get("omitted_count").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAdoption {
     pub app_id: Option<String>,
     pub root_path: Option<String>,
@@ -22276,6 +23292,96 @@ impl PutPageResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PutSourceMaterializationChunkRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub put_request_id: Option<String>,
+    pub upload_id: Option<String>,
+    pub packet_hash: Option<String>,
+    pub bundle_manifest_hash: Option<String>,
+    pub global_ordinal: Option<u32>,
+    pub component_id: Option<String>,
+    pub component_offset: Option<u64>,
+    pub chunk_sha256: Option<String>,
+    pub bytes: Option<Vec<u8>>,
+}
+
+impl PutSourceMaterializationChunkRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.put_request_id { pairs.push(format!("put_request_id={}", value)); }
+        if let Some(value) = &self.upload_id { pairs.push(format!("upload_id={}", value)); }
+        if let Some(value) = &self.packet_hash { pairs.push(format!("packet_hash={}", value)); }
+        if let Some(value) = &self.bundle_manifest_hash { pairs.push(format!("bundle_manifest_hash={}", value)); }
+        if let Some(value) = &self.global_ordinal { pairs.push(format!("global_ordinal={}", value)); }
+        if let Some(value) = &self.component_id { pairs.push(format!("component_id={}", value)); }
+        if let Some(value) = &self.component_offset { pairs.push(format!("component_offset={}", value)); }
+        if let Some(value) = &self.chunk_sha256 { pairs.push(format!("chunk_sha256={}", value)); }
+        if self.bytes.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bytes"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context", "bytes"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.put_request_id = pairs.get("put_request_id").cloned();
+        out.upload_id = pairs.get("upload_id").cloned();
+        out.packet_hash = pairs.get("packet_hash").cloned();
+        out.bundle_manifest_hash = pairs.get("bundle_manifest_hash").cloned();
+        out.global_ordinal = pairs.get("global_ordinal").and_then(|value| value.parse().ok());
+        out.component_id = pairs.get("component_id").cloned();
+        out.component_offset = pairs.get("component_offset").and_then(|value| value.parse().ok());
+        out.chunk_sha256 = pairs.get("chunk_sha256").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PutSourceMaterializationChunkResponse {
+    pub upload_id: Option<String>,
+    pub global_ordinal: Option<u32>,
+    pub component_id: Option<String>,
+    pub idempotent_replay: Option<bool>,
+    pub upload_state: Option<AgentSourceMaterializationUploadState>,
+    pub reason_code: Option<AgentSourceMaterializationReasonCode>,
+}
+
+impl PutSourceMaterializationChunkResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.upload_id { pairs.push(format!("upload_id={}", value)); }
+        if let Some(value) = &self.global_ordinal { pairs.push(format!("global_ordinal={}", value)); }
+        if let Some(value) = &self.component_id { pairs.push(format!("component_id={}", value)); }
+        if let Some(value) = &self.idempotent_replay { pairs.push(format!("idempotent_replay={}", value)); }
+        if let Some(value) = &self.upload_state { pairs.push(format!("upload_state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["upload_state", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.upload_id = pairs.get("upload_id").cloned();
+        out.global_ordinal = pairs.get("global_ordinal").and_then(|value| value.parse().ok());
+        out.component_id = pairs.get("component_id").cloned();
+        out.idempotent_replay = pairs.get("idempotent_replay").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct QueryAgentMemoryRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -27461,6 +28567,245 @@ impl SetProductControlFirstRunInstallLevelRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationBeginControl {
+    pub packet_envelope: Option<Box<SourceMaterializationPacketEnvelopeV2>>,
+    pub packet_proof: Option<String>,
+    pub bundle_transport_manifest: Option<Box<BundleTransportManifestV1>>,
+}
+
+impl SourceMaterializationBeginControl {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.packet_envelope.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode packet_envelope"); }
+        if let Some(value) = &self.packet_proof { pairs.push(format!("packet_proof={}", value)); }
+        if self.bundle_transport_manifest.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bundle_transport_manifest"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["packet_envelope", "bundle_transport_manifest"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.packet_proof = pairs.get("packet_proof").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationBundleChunkDescriptorV1 {
+    pub global_ordinal: Option<u32>,
+    pub component_offset: Option<u64>,
+    pub length: Option<u64>,
+    pub chunk_sha256: Option<String>,
+}
+
+impl SourceMaterializationBundleChunkDescriptorV1 {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.global_ordinal { pairs.push(format!("global_ordinal={}", value)); }
+        if let Some(value) = &self.component_offset { pairs.push(format!("component_offset={}", value)); }
+        if let Some(value) = &self.length { pairs.push(format!("length={}", value)); }
+        if let Some(value) = &self.chunk_sha256 { pairs.push(format!("chunk_sha256={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.global_ordinal = pairs.get("global_ordinal").and_then(|value| value.parse().ok());
+        out.component_offset = pairs.get("component_offset").and_then(|value| value.parse().ok());
+        out.length = pairs.get("length").and_then(|value| value.parse().ok());
+        out.chunk_sha256 = pairs.get("chunk_sha256").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationBundleComponentDescriptorV1 {
+    pub component_id: Option<String>,
+    pub kind: Option<AgentSourceMaterializationComponentKind>,
+    pub schema_version: Option<String>,
+    pub revision: Option<u64>,
+    pub content_hash: Option<String>,
+    pub canonical_bytes_hash: Option<String>,
+    pub canonical_byte_length: Option<u64>,
+}
+
+impl SourceMaterializationBundleComponentDescriptorV1 {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.component_id { pairs.push(format!("component_id={}", value)); }
+        if let Some(value) = &self.kind { pairs.push(format!("kind={:?}", value)); }
+        if let Some(value) = &self.schema_version { pairs.push(format!("schema_version={}", value)); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if let Some(value) = &self.content_hash { pairs.push(format!("content_hash={}", value)); }
+        if let Some(value) = &self.canonical_bytes_hash { pairs.push(format!("canonical_bytes_hash={}", value)); }
+        if let Some(value) = &self.canonical_byte_length { pairs.push(format!("canonical_byte_length={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["kind"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.component_id = pairs.get("component_id").cloned();
+        out.schema_version = pairs.get("schema_version").cloned();
+        out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
+        out.content_hash = pairs.get("content_hash").cloned();
+        out.canonical_bytes_hash = pairs.get("canonical_bytes_hash").cloned();
+        out.canonical_byte_length = pairs.get("canonical_byte_length").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationChallengeLimits {
+    pub max_bundle_bytes: Option<u64>,
+    pub max_component_count: Option<u32>,
+    pub max_chunk_bytes: Option<u64>,
+    pub max_chunks: Option<u32>,
+}
+
+impl SourceMaterializationChallengeLimits {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.max_bundle_bytes { pairs.push(format!("max_bundle_bytes={}", value)); }
+        if let Some(value) = &self.max_component_count { pairs.push(format!("max_component_count={}", value)); }
+        if let Some(value) = &self.max_chunk_bytes { pairs.push(format!("max_chunk_bytes={}", value)); }
+        if let Some(value) = &self.max_chunks { pairs.push(format!("max_chunks={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.max_bundle_bytes = pairs.get("max_bundle_bytes").and_then(|value| value.parse().ok());
+        out.max_component_count = pairs.get("max_component_count").and_then(|value| value.parse().ok());
+        out.max_chunk_bytes = pairs.get("max_chunk_bytes").and_then(|value| value.parse().ok());
+        out.max_chunks = pairs.get("max_chunks").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationPacketEnvelopeV2 {
+    pub packet_schema_version: Option<AgentSourceMaterializationPacketSchemaVersion>,
+    pub packet_id: Option<String>,
+    pub issuer: Option<String>,
+    pub key_id: Option<String>,
+    pub algorithm: Option<AgentSourceMaterializationProofAlgorithm>,
+    pub key_use: Option<AgentSourceMaterializationKeyUse>,
+    pub issued_at: Option<String>,
+    pub expires_at: Option<String>,
+    pub nonce: Option<String>,
+    pub intended_runtime_audience: Option<String>,
+    pub challenge_id: Option<String>,
+    pub challenge_digest: Option<String>,
+    pub challenge_limits: Option<Box<SourceMaterializationChallengeLimits>>,
+    pub materializer_account_id: Option<String>,
+    pub source_ref: Option<Box<SourceMaterializationSourceRef>>,
+    pub payload_hash: Option<String>,
+    pub bundle_manifest_hash: Option<String>,
+    pub packet_hash: Option<String>,
+}
+
+impl SourceMaterializationPacketEnvelopeV2 {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.packet_schema_version { pairs.push(format!("packet_schema_version={:?}", value)); }
+        if let Some(value) = &self.packet_id { pairs.push(format!("packet_id={}", value)); }
+        if let Some(value) = &self.issuer { pairs.push(format!("issuer={}", value)); }
+        if let Some(value) = &self.key_id { pairs.push(format!("key_id={}", value)); }
+        if let Some(value) = &self.algorithm { pairs.push(format!("algorithm={:?}", value)); }
+        if let Some(value) = &self.key_use { pairs.push(format!("key_use={:?}", value)); }
+        if let Some(value) = &self.issued_at { pairs.push(format!("issued_at={}", value)); }
+        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        if let Some(value) = &self.nonce { pairs.push(format!("nonce={}", value)); }
+        if let Some(value) = &self.intended_runtime_audience { pairs.push(format!("intended_runtime_audience={}", value)); }
+        if let Some(value) = &self.challenge_id { pairs.push(format!("challenge_id={}", value)); }
+        if let Some(value) = &self.challenge_digest { pairs.push(format!("challenge_digest={}", value)); }
+        if self.challenge_limits.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode challenge_limits"); }
+        if let Some(value) = &self.materializer_account_id { pairs.push(format!("materializer_account_id={}", value)); }
+        if self.source_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode source_ref"); }
+        if let Some(value) = &self.payload_hash { pairs.push(format!("payload_hash={}", value)); }
+        if let Some(value) = &self.bundle_manifest_hash { pairs.push(format!("bundle_manifest_hash={}", value)); }
+        if let Some(value) = &self.packet_hash { pairs.push(format!("packet_hash={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["packet_schema_version", "algorithm", "key_use", "challenge_limits", "source_ref"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.packet_id = pairs.get("packet_id").cloned();
+        out.issuer = pairs.get("issuer").cloned();
+        out.key_id = pairs.get("key_id").cloned();
+        out.issued_at = pairs.get("issued_at").cloned();
+        out.expires_at = pairs.get("expires_at").cloned();
+        out.nonce = pairs.get("nonce").cloned();
+        out.intended_runtime_audience = pairs.get("intended_runtime_audience").cloned();
+        out.challenge_id = pairs.get("challenge_id").cloned();
+        out.challenge_digest = pairs.get("challenge_digest").cloned();
+        out.materializer_account_id = pairs.get("materializer_account_id").cloned();
+        out.payload_hash = pairs.get("payload_hash").cloned();
+        out.bundle_manifest_hash = pairs.get("bundle_manifest_hash").cloned();
+        out.packet_hash = pairs.get("packet_hash").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationSourceRef {
+    pub kind: Option<AgentSourceMaterializationSourceKind>,
+    pub world_id: Option<String>,
+    pub source_id: Option<String>,
+    pub source_content_hash: Option<String>,
+}
+
+impl SourceMaterializationSourceRef {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.kind { pairs.push(format!("kind={:?}", value)); }
+        if let Some(value) = &self.world_id { pairs.push(format!("world_id={}", value)); }
+        if let Some(value) = &self.source_id { pairs.push(format!("source_id={}", value)); }
+        if let Some(value) = &self.source_content_hash { pairs.push(format!("source_content_hash={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["kind"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.world_id = pairs.get("world_id").cloned();
+        out.source_id = pairs.get("source_id").cloned();
+        out.source_content_hash = pairs.get("source_content_hash").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SpeechAlignment {
     pub unit: Option<SpeechAlignmentUnit>,
     pub tokens: Vec<Box<SpeechAlignmentToken>>,
@@ -31782,6 +33127,18 @@ impl From<Vec<u8>> for AIProviderSubHealth {
     }
 }
 
+impl From<Vec<u8>> for AbortSourceMaterializationUploadRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AbortSourceMaterializationUploadResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AccountAppInventoryRecord {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32046,6 +33403,30 @@ impl From<Vec<u8>> for AgentStateSetWorldContext {
     }
 }
 
+impl From<Vec<u8>> for AgentTurnContextBudgetSummary {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentTurnContextLaneSummary {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentTurnContextSummary {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentTurnContextTruncationSummary {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AgentVoiceStreamEvent {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32286,7 +33667,25 @@ impl From<Vec<u8>> for BeginLoginResponse {
     }
 }
 
+impl From<Vec<u8>> for BeginSourceMaterializationUploadRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for BeginSourceMaterializationUploadResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for BranchNodeConfig {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for BundleTransportManifestV1 {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32550,6 +33949,18 @@ impl From<Vec<u8>> for CollectDeviceProfileResponse {
     }
 }
 
+impl From<Vec<u8>> for CommitSourceMaterializationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for CommitSourceMaterializationResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for CompanionParticipationProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32647,6 +34058,18 @@ impl From<Vec<u8>> for CreateRealmGroupMessageCandidateRequest {
 }
 
 impl From<Vec<u8>> for CreateRealmGroupMessageCandidateResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for CreateSourceMaterializationChallengeRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for CreateSourceMaterializationChallengeResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -34266,6 +35689,18 @@ impl From<Vec<u8>> for ListVoiceAssetsResponse {
     }
 }
 
+impl From<Vec<u8>> for LocalAgentSourceContextStatus {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAgentSourceCoverageSectionStatus {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for LocalAppAdoption {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35071,6 +36506,18 @@ impl From<Vec<u8>> for PutPageRequest {
 }
 
 impl From<Vec<u8>> for PutPageResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for PutSourceMaterializationChunkRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for PutSourceMaterializationChunkResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36001,6 +37448,42 @@ impl From<Vec<u8>> for SetDelegatedProviderStateResponse {
 }
 
 impl From<Vec<u8>> for SetProductControlFirstRunInstallLevelRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SourceMaterializationBeginControl {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SourceMaterializationBundleChunkDescriptorV1 {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SourceMaterializationBundleComponentDescriptorV1 {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SourceMaterializationChallengeLimits {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SourceMaterializationPacketEnvelopeV2 {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SourceMaterializationSourceRef {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36964,6 +38447,26 @@ where
         Ok(SwitchAccountResponse::from_transport(&raw))
     }
 
+    pub fn abort_source_materialization_upload(&self, request: AbortSourceMaterializationUploadRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AbortSourceMaterializationUploadResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(AbortSourceMaterializationUploadResponse::from_transport(&raw))
+    }
+
+    pub fn begin_source_materialization_upload(&self, request: BeginSourceMaterializationUploadRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BeginSourceMaterializationUploadResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(BeginSourceMaterializationUploadResponse::from_transport(&raw))
+    }
+
     pub fn cancel_companion_participation(&self, request: CancelCompanionParticipationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelCompanionParticipationResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation".to_string(),
@@ -36984,6 +38487,16 @@ where
         Ok(CancelHookResponse::from_transport(&raw))
     }
 
+    pub fn commit_source_materialization(&self, request: CommitSourceMaterializationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CommitSourceMaterializationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(CommitSourceMaterializationResponse::from_transport(&raw))
+    }
+
     pub fn create_realm_group_message_candidate(&self, request: CreateRealmGroupMessageCandidateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateRealmGroupMessageCandidateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate".to_string(),
@@ -36992,6 +38505,16 @@ where
             timeout,
         })?;
         Ok(CreateRealmGroupMessageCandidateResponse::from_transport(&raw))
+    }
+
+    pub fn create_source_materialization_challenge(&self, request: CreateSourceMaterializationChallengeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateSourceMaterializationChallengeResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(CreateSourceMaterializationChallengeResponse::from_transport(&raw))
     }
 
     pub fn describe_participation_context_blocks(&self, request: DescribeParticipationContextBlocksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DescribeParticipationContextBlocksResponse, T::Error> {
@@ -37342,6 +38865,16 @@ where
             timeout,
         })?;
         Ok(OpenConversationAnchorResponse::from_transport(&raw))
+    }
+
+    pub fn put_source_materialization_chunk(&self, request: PutSourceMaterializationChunkRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PutSourceMaterializationChunkResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(PutSourceMaterializationChunkResponse::from_transport(&raw))
     }
 
     pub fn query_agent_memory(&self, request: QueryAgentMemoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<QueryAgentMemoryResponse, T::Error> {
@@ -39372,6 +40905,14 @@ where
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountGrantsViewDto {
+    pub account_id: String,
+    pub grants: Vec<AccountGrantViewRowDto>,
+    pub schema_version: f64,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AccountGrantViewRowDto {
     pub app_id: String,
     pub expires_at: String,
@@ -39385,14 +40926,6 @@ pub struct AccountGrantViewRowDto {
 }
 
 pub type AccountGrantViewState = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountGrantsViewDto {
-    pub account_id: String,
-    pub grants: Vec<AccountGrantViewRowDto>,
-    pub schema_version: f64,
-    pub updated_at: String,
-}
 
 pub type AccountRelationType = String;
 
@@ -39648,9 +41181,41 @@ pub struct BundleListDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct BundleManifestChunkDescriptorV1Dto {
+    pub chunk_sha256: String,
+    pub component_offset: f64,
+    pub global_ordinal: f64,
+    pub length: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BundleManifestComponentV1Dto {
+    pub canonical_byte_length: f64,
+    pub canonical_bytes_hash: String,
+    pub component_id: String,
+    pub content_hash: String,
+    pub kind: String,
+    pub revision: f64,
+    pub schema_version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BundleMemberDto {
     pub asset_id: String,
     pub sort_order: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BundleTransportManifestV1Dto {
+    pub challenge_digest: String,
+    pub chunk_count: f64,
+    pub chunks: Vec<BundleManifestChunkDescriptorV1Dto>,
+    pub component_count: f64,
+    pub components: Vec<BundleManifestComponentV1Dto>,
+    pub manifest_schema_version: String,
+    pub packet_id: String,
+    pub payload_assembly_version: String,
+    pub total_canonical_bytes: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39802,6 +41367,59 @@ pub struct ConnectOnboardingResponseDto {
 pub type ContentRatingString = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoverageComponentV1Dto {
+    pub component_id: String,
+    pub content_hash: String,
+    pub kind: String,
+    pub revision: f64,
+    pub schema_version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoverageCrossReferenceCheckV1Dto {
+    pub check_id: String,
+    pub source_ref: String,
+    pub state: String,
+    pub target_ref: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoverageManifestV1Dto {
+    pub aggregate_status: String,
+    pub closure_policy_version: String,
+    pub components: Vec<CoverageComponentV1Dto>,
+    pub coverage_manifest_hash: String,
+    pub cross_reference_checks: Vec<CoverageCrossReferenceCheckV1Dto>,
+    pub manifest_schema_version: String,
+    pub optional_refs: Vec<CoverageOptionalRefV1Dto>,
+    pub required_refs: Vec<CoverageRequiredRefV1Dto>,
+    pub required_sections: Vec<CoverageRequiredSectionV1Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoverageOptionalRefV1Dto {
+    pub omission_reason: String,
+    pub path: String,
+    pub ref_id: String,
+    pub ref_kind: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoverageRequiredRefV1Dto {
+    pub path: String,
+    pub ref_id: String,
+    pub ref_kind: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoverageRequiredSectionV1Dto {
+    pub path: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateAssetDto {
     pub author_id: String,
     pub clone_policy: String,
@@ -39924,7 +41542,12 @@ pub struct CreateReviewDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateSourceMaterializationPacketDto {
+    pub challenge_digest: String,
+    pub challenge_expires_at: String,
+    pub challenge_id: String,
+    pub challenge_limits: Box<SourceMaterializationChallengeLimitsDto>,
     pub intended_runtime_audience: String,
+    pub materializer_account_id: String,
     pub source_ref: Box<TypedSourceRefDto>,
 }
 
@@ -40379,6 +42002,41 @@ pub struct MarkNotificationsReadInputDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationContextV1Dto {
+    pub closure_policy_version: String,
+    pub context_schema_version: String,
+    pub coverage_manifest_hash: String,
+    pub dependency_closure: Box<MaterializationContextV1DtoDependencyClosure>,
+    pub materialization_context_hash: String,
+    pub owning_world: Box<WorldCoreDto>,
+    pub source_component_digests: Vec<SourceMaterializationComponentDigestV1Dto>,
+    pub source_ref: Box<TypedSourceRefDto>,
+    pub world_and_closure_component_digests: Vec<SourceMaterializationComponentDigestV1Dto>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum MaterializationContextV1DtoDependencyClosure {
+    WorldCharacterDependencyClosureV1(Box<WorldCharacterDependencyClosureV1Dto>),
+    RealmPersonaDependencyClosureV1(Box<RealmPersonaDependencyClosureV1Dto>),
+}
+
+impl Default for MaterializationContextV1DtoDependencyClosure {
+    fn default() -> Self {
+        Self::WorldCharacterDependencyClosureV1(Box::new(WorldCharacterDependencyClosureV1Dto::default()))
+    }
+}
+
+impl MaterializationContextV1DtoDependencyClosure {
+    pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
+        match value {
+            "worldCharacter" => Ok(Self::WorldCharacterDependencyClosureV1(Box::new(WorldCharacterDependencyClosureV1Dto::default()))),
+            "realmPersona" => Ok(Self::RealmPersonaDependencyClosureV1(Box::new(RealmPersonaDependencyClosureV1Dto::default()))),
+            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown MaterializationContextV1DtoDependencyClosure discriminator {}", value)),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Me2faOperationResultDto {
     pub success: bool,
 }
@@ -40543,25 +42201,6 @@ pub struct OAuthTokenResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotConfigDto {
-    pub slot1: Box<PPSlotItemDto>,
-    pub slot2: Box<PPSlotItemDto>,
-    pub slot3: Box<PPSlotItemDto>,
-    pub slot4: Box<PPSlotItemDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotConfigResponseDto {
-    pub pp_slot_config: Box<PPSlotConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotItemDto {
-    pub id: String,
-    pub r#type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PasswordLoginDto {
     pub identifier: String,
     pub password: String,
@@ -40635,6 +42274,25 @@ pub struct PostSourceRefDto {
     pub world_id: String,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotConfigDto {
+    pub slot1: Box<PPSlotItemDto>,
+    pub slot2: Box<PPSlotItemDto>,
+    pub slot3: Box<PPSlotItemDto>,
+    pub slot4: Box<PPSlotItemDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotConfigResponseDto {
+    pub pp_slot_config: Box<PPSlotConfigDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotItemDto {
+    pub id: String,
+    pub r#type: String,
+}
+
 pub type PresenceStatus = String;
 
 pub type PublicAccountRole = String;
@@ -40669,6 +42327,12 @@ pub struct RealmGroupMessageCandidateCommitResultDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaDependencyClosureV1Dto {
+    pub explicit_dependencies: Vec<SourceMaterializationDependencyRefV1Dto>,
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmPersonaDto {
     pub content_hash: String,
     pub content_revision: f64,
@@ -40681,6 +42345,143 @@ pub struct RealmPersonaDto {
     pub schema_version: String,
     pub updated_at: String,
     pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationPayloadV2Dto {
+    pub coverage_manifest: Box<CoverageManifestV1Dto>,
+    pub coverage_manifest_hash: String,
+    pub materialization_context: Box<MaterializationContextV1Dto>,
+    pub materialization_context_hash: String,
+    pub payload_assembly_version: String,
+    pub payload_schema_version: String,
+    pub source: Box<RealmPersonaMaterializationSourceV2Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2Dto {
+    pub content_hash: String,
+    pub content_revision: f64,
+    pub core: Box<RealmPersonaMaterializationSourceV2DtoCore>,
+    pub created_at: String,
+    pub home_world_id: String,
+    pub id: String,
+    pub kind: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub owner_id: String,
+    pub schema_version: String,
+    pub updated_at: String,
+    pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCore {
+    pub assets: Box<RealmPersonaMaterializationSourceV2DtoCoreAssets>,
+    pub authoring: Box<RealmPersonaMaterializationSourceV2DtoCoreAuthoring>,
+    pub content_profile: Box<RealmPersonaMaterializationSourceV2DtoCoreContentProfile>,
+    pub identity: Box<RealmPersonaMaterializationSourceV2DtoCoreIdentity>,
+    pub interaction_profile: Box<RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile>,
+    pub persona_style: Box<RealmPersonaMaterializationSourceV2DtoCorePersonaStyle>,
+    pub presentation: Box<RealmPersonaMaterializationSourceV2DtoCorePresentation>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreAssets {
+    pub external_refs: Vec<RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem>,
+    pub intents: Vec<RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem>,
+    pub resource_refs: Vec<RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+    pub uri: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem {
+    pub intent_id: String,
+    pub kind: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreAuthoring {
+    pub extensions: BTreeMap<String, String>,
+    pub maintainers: Vec<String>,
+    pub notes: Vec<String>,
+    pub review: Box<RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview>,
+    pub source: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview {
+    pub reviewed_at: String,
+    pub reviewed_by: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreContentProfile {
+    pub boundaries: Vec<String>,
+    pub guidelines: Vec<RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem>,
+    pub topics: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem {
+    pub guideline_id: String,
+    pub source: String,
+    pub statement: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreIdentity {
+    pub aliases: Vec<String>,
+    pub concept: String,
+    pub handle: String,
+    pub name: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile {
+    pub dialogue_exemplars: Vec<String>,
+    pub greeting: String,
+    pub greeting_variants: Vec<String>,
+    pub home_world_id: String,
+    pub interaction_modes: Vec<String>,
+    pub scenario: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCorePersonaStyle {
+    pub archetype: String,
+    pub communication_style: String,
+    pub dialogue_exemplars: Vec<String>,
+    pub pacing: String,
+    pub traits: Vec<String>,
+    pub voice: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaMaterializationSourceV2DtoCorePresentation {
+    pub avatar_resource_ref: String,
+    pub display_name: String,
+    pub profile_cover_resource_ref: String,
+    pub profile_line: String,
+    pub short_bio: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40922,23 +42723,95 @@ pub struct SocialProfileDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SourceMaterializationPacketDto {
+pub struct SourceMaterializationChallengeLimitsDto {
+    pub max_bundle_bytes: f64,
+    pub max_chunk_bytes: f64,
+    pub max_chunks: f64,
+    pub max_component_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationComponentChunkV1Dto {
+    pub bytes_base64: String,
+    pub chunk_sha256: String,
+    pub component_offset: f64,
+    pub global_ordinal: f64,
+    pub length: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationComponentDigestV1Dto {
+    pub component_id: String,
+    pub content_hash: String,
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationComponentV1Dto {
+    pub canonical_byte_length: f64,
+    pub canonical_bytes: Vec<SourceMaterializationComponentChunkV1Dto>,
+    pub canonical_bytes_hash: String,
+    pub component_id: String,
+    pub content_hash: String,
+    pub kind: String,
+    pub revision: f64,
+    pub schema_version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationDependencyRefV1Dto {
+    pub content_hash: String,
+    pub id: String,
+    pub kind: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationPacketV2Dto {
+    pub algorithm: String,
+    pub bundle_manifest_hash: String,
+    pub bundle_transport_manifest: Box<BundleTransportManifestV1Dto>,
+    pub challenge_digest: String,
+    pub challenge_id: String,
+    pub challenge_limits: Box<SourceMaterializationChallengeLimitsDto>,
     pub expires_at: String,
     pub intended_runtime_audience: String,
     pub issued_at: String,
+    pub issuer: String,
+    pub key_id: String,
+    pub key_use: String,
+    pub materializer_account_id: String,
     pub nonce: String,
+    pub ordered_component_chunks: Vec<SourceMaterializationComponentV1Dto>,
     pub packet_hash: String,
     pub packet_id: String,
     pub packet_proof: String,
     pub packet_schema_version: String,
-    pub payload: BTreeMap<String, String>,
-    pub runtime_source_ref: String,
-    pub source_content_hash: String,
-    pub source_content_revision: f64,
-    pub source_display_metadata: BTreeMap<String, String>,
-    pub source_id: String,
-    pub source_kind: String,
-    pub source_world_id: String,
+    pub payload_hash: String,
+    pub semantic_payload: Box<SourceMaterializationPacketV2DtoSemanticPayload>,
+    pub source_ref: Box<TypedSourceRefDto>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum SourceMaterializationPacketV2DtoSemanticPayload {
+    WorldCharacterMaterializationPayloadV2(Box<WorldCharacterMaterializationPayloadV2Dto>),
+    RealmPersonaMaterializationPayloadV2(Box<RealmPersonaMaterializationPayloadV2Dto>),
+}
+
+impl Default for SourceMaterializationPacketV2DtoSemanticPayload {
+    fn default() -> Self {
+        Self::WorldCharacterMaterializationPayloadV2(Box::new(WorldCharacterMaterializationPayloadV2Dto::default()))
+    }
+}
+
+impl SourceMaterializationPacketV2DtoSemanticPayload {
+    pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
+        match value {
+            "worldCharacter" => Ok(Self::WorldCharacterMaterializationPayloadV2(Box::new(WorldCharacterMaterializationPayloadV2Dto::default()))),
+            "realmPersona" => Ok(Self::RealmPersonaMaterializationPayloadV2(Box::new(RealmPersonaMaterializationPayloadV2Dto::default()))),
+            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown SourceMaterializationPacketV2DtoSemanticPayload discriminator {}", value)),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41122,11 +42995,6 @@ pub struct UpdateMyHandleDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdatePPSlotConfigDto {
-    pub pp_slot_config: Box<PPSlotConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateParticipantRoleInputDto {
     pub role: String,
 }
@@ -41140,6 +43008,11 @@ pub struct UpdatePasswordRequestDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdatePostDto {
     pub visibility: Box<Visibility>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdatePPSlotConfigDto {
+    pub pp_slot_config: Box<PPSlotConfigDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41479,11 +43352,197 @@ pub struct WorldCharacterCoreDto {
     pub content_revision: f64,
     pub core: BTreeMap<String, String>,
     pub created_at: String,
+    pub creator_id: String,
     pub entity_id: String,
     pub id: String,
     pub origin: Box<RealmCoreOriginDto>,
     pub schema_version: String,
     pub updated_at: String,
+    pub visibility: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterDependencyClosureV1Dto {
+    pub bound_entity: Box<WorldEntityCoreDto>,
+    pub endpoint_entities: Vec<WorldEntityCoreDto>,
+    pub explicit_dependencies: Vec<SourceMaterializationDependencyRefV1Dto>,
+    pub incident_relationships: Vec<WorldRelationshipCoreDto>,
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationPayloadV2Dto {
+    pub coverage_manifest: Box<CoverageManifestV1Dto>,
+    pub coverage_manifest_hash: String,
+    pub materialization_context: Box<MaterializationContextV1Dto>,
+    pub materialization_context_hash: String,
+    pub payload_assembly_version: String,
+    pub payload_schema_version: String,
+    pub source: Box<WorldCharacterMaterializationSourceV2Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2Dto {
+    pub content_hash: String,
+    pub content_revision: f64,
+    pub core: Box<WorldCharacterMaterializationSourceV2DtoCore>,
+    pub created_at: String,
+    pub creator_id: String,
+    pub entity_id: String,
+    pub id: String,
+    pub kind: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub schema_version: String,
+    pub updated_at: String,
+    pub visibility: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCore {
+    pub assets: Box<WorldCharacterMaterializationSourceV2DtoCoreAssets>,
+    pub authoring: Box<WorldCharacterMaterializationSourceV2DtoCoreAuthoring>,
+    pub biography: Box<WorldCharacterMaterializationSourceV2DtoCoreBiography>,
+    pub capabilities: Box<WorldCharacterMaterializationSourceV2DtoCoreCapabilities>,
+    pub identity: Box<WorldCharacterMaterializationSourceV2DtoCoreIdentity>,
+    pub interaction_profile: Box<WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile>,
+    pub knowledge: Box<WorldCharacterMaterializationSourceV2DtoCoreKnowledge>,
+    pub placement: Box<WorldCharacterMaterializationSourceV2DtoCorePlacement>,
+    pub presentation: Box<WorldCharacterMaterializationSourceV2DtoCorePresentation>,
+    pub psychology: Box<WorldCharacterMaterializationSourceV2DtoCorePsychology>,
+    pub relationships: Vec<WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreAssets {
+    pub external_refs: Vec<WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem>,
+    pub intents: Vec<WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem>,
+    pub resource_refs: Vec<WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+    pub uri: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem {
+    pub intent_id: String,
+    pub kind: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreAuthoring {
+    pub extensions: BTreeMap<String, String>,
+    pub maintainers: Vec<String>,
+    pub notes: Vec<String>,
+    pub review: Box<WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview>,
+    pub source: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview {
+    pub reviewed_at: String,
+    pub reviewed_by: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreBiography {
+    pub milestones: Vec<WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem>,
+    pub source_notes: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem {
+    pub milestone_id: String,
+    pub sequence: f64,
+    pub summary: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreCapabilities {
+    pub interaction_modes: Vec<String>,
+    pub tools: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreIdentity {
+    pub aliases: Vec<String>,
+    pub name: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile {
+    pub cadence: String,
+    pub dialogue_exemplars: Vec<String>,
+    pub greeting: String,
+    pub greeting_variants: Vec<String>,
+    pub scenario: String,
+    pub tone: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreKnowledge {
+    pub constraints: Vec<String>,
+    pub topics: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCorePlacement {
+    pub entity_id: String,
+    pub faction: String,
+    pub rank: String,
+    pub role: String,
+    pub scene_refs: Vec<String>,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCorePresentation {
+    pub avatar_resource_ref: String,
+    pub display_name: String,
+    pub profile_cover_resource_ref: String,
+    pub short_bio: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCorePsychology {
+    pub boundaries: Vec<String>,
+    pub drives: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem {
+    pub note: String,
+    pub relation_label: String,
+    pub relation_type: String,
+    pub relationship_id: String,
+    pub summary: String,
+    pub target_label: String,
+    pub target_ref: Box<WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef {
+    pub entity_id: String,
+    pub kind: String,
     pub world_id: String,
 }
 
@@ -41491,7 +43550,7 @@ pub struct WorldCharacterCoreDto {
 pub struct WorldCoreDto {
     pub content_hash: String,
     pub content_revision: f64,
-    pub core: BTreeMap<String, String>,
+    pub core: Box<WorldCoreDtoCore>,
     pub created_at: String,
     pub creator_id: String,
     pub id: String,
@@ -41502,10 +43561,184 @@ pub struct WorldCoreDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCore {
+    pub assets: Box<WorldCoreDtoCoreAssets>,
+    pub authoring: Box<WorldCoreDtoCoreAuthoring>,
+    pub entities: Vec<WorldCoreDtoCoreEntitiesItem>,
+    pub identity: Box<WorldCoreDtoCoreIdentity>,
+    pub ontology: Box<WorldCoreDtoCoreOntology>,
+    pub presentation: Box<WorldCoreDtoCorePresentation>,
+    pub relationships: Vec<WorldCoreDtoCoreRelationshipsItem>,
+    pub scenes: Vec<WorldCoreDtoCoreScenesItem>,
+    pub systems: Vec<WorldCoreDtoCoreSystemsItem>,
+    pub time_model: Box<WorldCoreDtoCoreTimeModel>,
+    pub timeline: Box<WorldCoreDtoCoreTimeline>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreAssets {
+    pub external_refs: Vec<WorldCoreDtoCoreAssetsExternalRefsItem>,
+    pub intents: Vec<WorldCoreDtoCoreAssetsIntentsItem>,
+    pub resource_refs: Vec<WorldCoreDtoCoreAssetsResourceRefsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreAssetsExternalRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+    pub uri: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreAssetsIntentsItem {
+    pub intent_id: String,
+    pub kind: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreAssetsResourceRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreAuthoring {
+    pub extensions: BTreeMap<String, String>,
+    pub maintainers: Vec<String>,
+    pub notes: Vec<String>,
+    pub review: Box<WorldCoreDtoCoreAuthoringReview>,
+    pub source: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreAuthoringReview {
+    pub reviewed_at: String,
+    pub reviewed_by: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreEntitiesItem {
+    pub entity_id: String,
+    pub kind: String,
+    pub label: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreIdentity {
+    pub divergences: Vec<String>,
+    pub era: String,
+    pub genre: String,
+    pub name: String,
+    pub summary: String,
+    pub tagline: String,
+    pub themes: Vec<String>,
+    pub world_type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreOntology {
+    pub concepts: Vec<WorldCoreDtoCoreOntologyConceptsItem>,
+    pub entity_kinds: Vec<String>,
+    pub relationship_types: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreOntologyConceptsItem {
+    pub concept_id: String,
+    pub name: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCorePresentation {
+    pub banner_resource_ref: String,
+    pub display_name: String,
+    pub icon_resource_ref: String,
+    pub palette: Vec<String>,
+    pub tagline: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreRelationshipsItem {
+    pub attributes: BTreeMap<String, String>,
+    pub relationship_id: String,
+    pub source_entity_id: String,
+    pub summary: String,
+    pub target_entity_id: String,
+    pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreScenesItem {
+    pub asset_refs: Vec<String>,
+    pub entity_refs: Vec<String>,
+    pub name: String,
+    pub scene_id: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreSystemsItem {
+    pub name: String,
+    pub parameters: BTreeMap<String, String>,
+    pub principles: Vec<String>,
+    pub summary: String,
+    pub system_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreTimeline {
+    pub events: Vec<WorldCoreDtoCoreTimelineEventsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreTimelineEventsItem {
+    pub character_refs: Vec<String>,
+    pub ends_at: String,
+    pub entity_refs: Vec<String>,
+    pub event_id: String,
+    pub importance: f64,
+    pub location_refs: Vec<String>,
+    pub scene_refs: Vec<String>,
+    pub sequence: f64,
+    pub source_refs: Vec<String>,
+    pub starts_at: String,
+    pub summary: String,
+    pub timestamp: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreTimeModel {
+    pub anchor: Box<WorldCoreDtoCoreTimeModelAnchor>,
+    pub calendar: String,
+    pub display_format: String,
+    pub flow_ratio: f64,
+    pub is_paused: bool,
+    pub mode: String,
+    pub paused_world_time: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCoreDtoCoreTimeModelAnchor {
+    pub real_started_at: String,
+    pub world_started_at: String,
+    pub world_started_at_display: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldEntityCoreDto {
     pub content_hash: String,
     pub content_revision: f64,
-    pub core: BTreeMap<String, String>,
+    pub core: Box<WorldEntityCoreDtoCore>,
     pub created_at: String,
     pub id: String,
     pub kind: String,
@@ -41513,6 +43746,94 @@ pub struct WorldEntityCoreDto {
     pub schema_version: String,
     pub updated_at: String,
     pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCore {
+    pub assets: Box<WorldEntityCoreDtoCoreAssets>,
+    pub authoring: Box<WorldEntityCoreDtoCoreAuthoring>,
+    pub classification: Box<WorldEntityCoreDtoCoreClassification>,
+    pub evidence: Box<WorldEntityCoreDtoCoreEvidence>,
+    pub facts: Vec<WorldEntityCoreDtoCoreFactsItem>,
+    pub identity: Box<WorldEntityCoreDtoCoreIdentity>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreAssets {
+    pub external_refs: Vec<WorldEntityCoreDtoCoreAssetsExternalRefsItem>,
+    pub intents: Vec<WorldEntityCoreDtoCoreAssetsIntentsItem>,
+    pub resource_refs: Vec<WorldEntityCoreDtoCoreAssetsResourceRefsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreAssetsExternalRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+    pub uri: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreAssetsIntentsItem {
+    pub intent_id: String,
+    pub kind: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreAssetsResourceRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreAuthoring {
+    pub extensions: BTreeMap<String, String>,
+    pub maintainers: Vec<String>,
+    pub notes: Vec<String>,
+    pub review: Box<WorldEntityCoreDtoCoreAuthoringReview>,
+    pub source: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreAuthoringReview {
+    pub reviewed_at: String,
+    pub reviewed_by: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreClassification {
+    pub source_categories: Vec<String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreEvidence {
+    pub completeness: String,
+    pub source_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreFactsItem {
+    pub attributes: BTreeMap<String, String>,
+    pub confidence: String,
+    pub fact_id: String,
+    pub label: String,
+    pub source_refs: Vec<String>,
+    pub r#type: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityCoreDtoCoreIdentity {
+    pub aliases: Vec<String>,
+    pub kind: String,
+    pub name: String,
+    pub summary: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41535,6 +43856,23 @@ pub struct WorldPublicAssetProvenanceDto {
     pub publication_id: String,
     pub publication_record_id: String,
     pub storage_ref: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicCharacterBiographyDto {
+    pub life_events: Vec<WorldPublicCharacterLifeEventDto>,
+    pub source_notes: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicCharacterLifeEventDto {
+    pub id: String,
+    pub kind: String,
+    pub period_label: String,
+    pub sequence: f64,
+    pub source: String,
+    pub summary: String,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41641,6 +43979,7 @@ pub struct WorldPublicSceneResourceDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceCardDto {
+    pub character_biography: Box<WorldPublicCharacterBiographyDto>,
     pub display_name: String,
     pub handle: String,
     pub id: String,
@@ -41702,21 +44041,6 @@ pub struct WorldPublicStatsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldPublicTimeSnapshotDto {
-    pub anchor_real_started_at: String,
-    pub anchor_world_started_at: String,
-    pub anchor_world_started_at_display: String,
-    pub calendar: String,
-    pub computed_at: String,
-    pub current_world_time: String,
-    pub current_world_time_display: String,
-    pub display_format: String,
-    pub flow_ratio: f64,
-    pub is_paused: bool,
-    pub mode: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicTimelineEventDto {
     pub character_refs: Vec<String>,
     pub ends_at: String,
@@ -41734,6 +44058,21 @@ pub struct WorldPublicTimelineEventDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicTimeSnapshotDto {
+    pub anchor_real_started_at: String,
+    pub anchor_world_started_at: String,
+    pub anchor_world_started_at_display: String,
+    pub calendar: String,
+    pub computed_at: String,
+    pub current_world_time: String,
+    pub current_world_time_display: String,
+    pub display_format: String,
+    pub flow_ratio: f64,
+    pub is_paused: bool,
+    pub mode: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicViewerRelationDto {
     pub connection_id: String,
     pub runtime_source_ref: String,
@@ -41744,7 +44083,7 @@ pub struct WorldPublicViewerRelationDto {
 pub struct WorldRelationshipCoreDto {
     pub content_hash: String,
     pub content_revision: f64,
-    pub core: BTreeMap<String, String>,
+    pub core: Box<WorldRelationshipCoreDtoCore>,
     pub created_at: String,
     pub id: String,
     pub origin: Box<RealmCoreOriginDto>,
@@ -41754,6 +44093,49 @@ pub struct WorldRelationshipCoreDto {
     pub r#type: String,
     pub updated_at: String,
     pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipCoreDtoCore {
+    pub attributes: BTreeMap<String, String>,
+    pub authoring: Box<WorldRelationshipCoreDtoCoreAuthoring>,
+    pub endpoints: Box<WorldRelationshipCoreDtoCoreEndpoints>,
+    pub evidence: Box<WorldRelationshipCoreDtoCoreEvidence>,
+    pub presentation: Box<WorldRelationshipCoreDtoCorePresentation>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipCoreDtoCoreAuthoring {
+    pub extensions: BTreeMap<String, String>,
+    pub maintainers: Vec<String>,
+    pub notes: Vec<String>,
+    pub review: Box<WorldRelationshipCoreDtoCoreAuthoringReview>,
+    pub source: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipCoreDtoCoreAuthoringReview {
+    pub reviewed_at: String,
+    pub reviewed_by: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipCoreDtoCoreEndpoints {
+    pub source_entity_id: String,
+    pub target_entity_id: String,
+    pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipCoreDtoCoreEvidence {
+    pub confidence: String,
+    pub source_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipCoreDtoCorePresentation {
+    pub summary: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43680,6 +46062,29 @@ pub struct RealmGetResourceOperationRequest {
     pub path: RealmGetResourceOperationPath,
     pub query: RealmGetResourceOperationQuery,
     pub headers: RealmGetResourceOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetSourceMaterializationJwksOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetSourceMaterializationJwksOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetSourceMaterializationJwksOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetSourceMaterializationJwksOperationRequest {
+    pub path: RealmGetSourceMaterializationJwksOperationPath,
+    pub query: RealmGetSourceMaterializationJwksOperationQuery,
+    pub headers: RealmGetSourceMaterializationJwksOperationHeaders,
     pub body: (),
 }
 
@@ -46876,6 +49281,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getResource");
     }
 
+    pub fn get_source_materialization_jwks(&self, _request: RealmGetSourceMaterializationJwksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getSourceMaterializationJwks");
+    }
+
     pub fn get_unread_count(&self, _request: RealmGetUnreadCountOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UnreadNotificationCountDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getUnreadCount");
     }
@@ -47256,7 +49665,7 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createRealmPersona");
     }
 
-    pub fn world_core_controller_create_source_materialization_packet(&self, _request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SourceMaterializationPacketDto, T::Error> {
+    pub fn world_core_controller_create_source_materialization_packet(&self, _request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SourceMaterializationPacketV2Dto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createSourceMaterializationPacket");
     }
 

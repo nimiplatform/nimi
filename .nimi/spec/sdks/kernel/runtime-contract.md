@@ -331,6 +331,12 @@ Fixed rules:
 - SDK runtime packages must not import browser-only audio processing dependencies
   such as WebAudio worklets or `wlipsync`; Avatar/browser helpers may live in
   Kit Avatar entrypoints downstream of typed Runtime events.
+- LocalAgent source/context readiness on `runtime.agent.*` may project only as
+  the Runtime-owned `LocalAgentSourceContextStatus` and
+  `AgentTurnContextSummary` families. This presentation rule does not admit the
+  private context manifest, lane content, source/world records, prompt,
+  transcript text, memory content, packet/proof, provider payload, credential,
+  or tool arguments/results.
 
 ## S-RUNTIME-104 Renderer-Local Transient Non-Owner Boundary
 
@@ -401,6 +407,25 @@ Fixed rules:
 - SDK runtime consume projection remains downstream of active runtime authority
   and must not import runtime-private implementation packages or app-local
   avatar/Desktop surfaces
+- source readiness consumers accept only closed, read-only
+  `LocalAgentSourceContextStatus`: ready/state and typed reason; source
+  kind/ref/schema/content hash; snapshot schema/hash/captured-at; world and
+  materialization-context hashes; and coverage section states/counts
+- turn context consumers accept only closed, read-only
+  `AgentTurnContextSummary`: ready/state and typed reason; manifest/compiler
+  versions and manifest/content/prompt hashes; safe source/snapshot/world
+  refs/hashes; ordered lane ids/status/counts; budget/use/truncation summary;
+  transcript, memory, media, and tool counts; and route/catalog digest
+- unknown schema, enum, state, lane, or reason fails closed; SDK must not
+  backfill, reinterpret, or persist an offline-success context projection
+- SDK must reject raw source/world/core/closure records, prompt/lane/transcript
+  text, private memory, packet/proof/chunks, provider payloads, credentials,
+  tool arguments/results, or free-form maps on these public families
+- SDK may correlate and render these summaries, but it must not assemble,
+  override, or attach LocalAgent source/context to an Agent turn
+
+- AUTHORITY-RELATION subject=sdk action=consume-status object=localagent-source value=bounded-only polarity=require
+- AUTHORITY-RELATION subject=sdk action=consume-status object=localagent-context value=bounded-only polarity=require
 
 Trust-posture evidence must be current implementation or test evidence from the
 SDK/runtime public surface. Closed 2026-04-20 trust posture artifacts may be

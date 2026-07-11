@@ -177,6 +177,56 @@ func (r *Resolver) ResolveModelEntryForSubject(subjectUserID string, providerTyp
 	return modelEntry, nil
 }
 
+// ResolveTextContextMetadataForSubject resolves the context-capacity facts for
+// the exact provider/model catalog row selected for a Runtime Agent turn. A
+// missing capacity or catalog identity fails closed; callers must not replace
+// it with an app or Runtime constant.
+func (r *Resolver) ResolveTextContextMetadataForSubject(subjectUserID string, providerType string, modelID string) (TextContextMetadata, error) {
+	provider := normalizeProvider(providerType)
+	normalizedModel := normalizeLookupModelID(modelID, provider)
+	if provider == "" {
+		provider = inferProviderFromModel(normalizedModel)
+	}
+	if provider == "" || normalizedModel == "" {
+		return TextContextMetadata{}, ErrModelNotFound
+	}
+
+	detail, providerRecord, _, err := r.GetModelDetailForSubject(subjectUserID, provider, normalizedModel)
+	if err != nil {
+		return TextContextMetadata{}, err
+	}
+	textCapable := false
+	for _, capability := range detail.Model.Capabilities {
+		normalized, normalizeErr := aicapabilities.NormalizeCatalogCapability(capability)
+		if normalizeErr == nil && normalized == aicapabilities.TextGenerate {
+			textCapable = true
+			break
+		}
+	}
+	if !textCapable {
+		return TextContextMetadata{}, ErrModelContextWindowUnavailable
+	}
+	contextWindow := detail.Model.ContextWindowTokens
+	if contextWindow == 0 && provider == localProviderID && detail.Model.Fitness != nil && detail.Model.Fitness.ContextLength > 0 {
+		contextWindow = uint64(detail.Model.Fitness.ContextLength)
+	}
+	catalogVersion := strings.TrimSpace(providerRecord.CatalogVersion)
+	modelRevision := strings.TrimSpace(detail.Model.UpdatedAt)
+	if modelRevision == "" && detail.Model.Install != nil {
+		modelRevision = strings.TrimSpace(detail.Model.Install.Revision)
+	}
+	if contextWindow == 0 || catalogVersion == "" || modelRevision == "" {
+		return TextContextMetadata{}, ErrModelContextWindowUnavailable
+	}
+	return TextContextMetadata{
+		Provider:            provider,
+		ModelID:             strings.TrimSpace(detail.Model.ModelID),
+		ModelRevision:       modelRevision,
+		CatalogVersion:      catalogVersion,
+		ContextWindowTokens: contextWindow,
+	}, nil
+}
+
 func (r *Resolver) ListModelsForProvider(providerType string) ([]ModelEntry, CatalogSource, error) {
 	models, source, err := r.ListModelsForProviderForSubject("", providerType)
 	if err != nil {

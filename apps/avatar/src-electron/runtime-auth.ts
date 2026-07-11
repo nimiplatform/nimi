@@ -1,12 +1,13 @@
 import {
-  Runtime,
   createNimiBindingOnlyAvatarRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
-  createNimiRuntimeAppSessionMetadataProvider,
 } from '@nimiplatform/sdk/runtime';
 import {
   createNimiElectronRuntimeAccountTrustedMetadataProvider,
+  probeNimiElectronRuntimeRawAccessPosture,
   type ElectronRuntimeBridgeTrustedMetadataProvider,
+  type NimiElectronRuntimeRawAccessPosture,
+  type NimiElectronRuntimeRawAccessPostureResult,
 } from '@nimiplatform/kit/shell/electron/main';
 
 const runtimeDeveloperRegistrationRequested = false;
@@ -33,16 +34,9 @@ const runtimeAppSessionRefreshSkewMs = 30_000;
 const runtimeProtectedTokenTtlSeconds = 3600;
 const runtimeProtectedTokenRefreshSkewMs = 60_000;
 
-export type AvatarElectronRawAccessPosture = 'first-party' | 'binding-only';
+export type AvatarElectronRawAccessPosture = NimiElectronRuntimeRawAccessPosture;
 
-export type AvatarElectronRawAccessPostureResult = {
-  readonly posture: AvatarElectronRawAccessPosture;
-  readonly accepted: boolean;
-  readonly materialPresent: boolean;
-  readonly materialProjected: false;
-  readonly reasonCode: unknown;
-  readonly accountReasonCode: unknown;
-};
+export type AvatarElectronRawAccessPostureResult = NimiElectronRuntimeRawAccessPostureResult;
 
 export function createAvatarElectronTrustedRuntimeMetadataProvider(input: {
   readonly appId: string;
@@ -88,10 +82,6 @@ export async function probeAvatarElectronRawAccessPosture(input: {
   const appId = requireText(input.appId, 'appId');
   const runtimeEndpoint = requireText(input.runtimeEndpoint, 'runtimeEndpoint');
   const clientIdPrefix = normalizeClientIdPrefix(appId);
-  const runtime = new Runtime({
-    appId,
-    transport: { endpoint: runtimeEndpoint },
-  });
   const firstParty = input.posture === 'first-party';
   const caller = firstParty
     ? createNimiLocalFirstPartyRuntimeAccountCaller({
@@ -104,31 +94,22 @@ export async function probeAvatarElectronRawAccessPosture(input: {
       appInstanceId: `${appId}.binding-only`,
       deviceId: 'desktop-avatar-host',
     });
-  const metadata = firstParty
-    ? await createNimiRuntimeAppSessionMetadataProvider({
-      auth: runtime.auth,
-      appId,
-      appInstanceId: caller.appInstanceId,
-      deviceId: caller.deviceId,
-      capabilities: [...runtimeRegistrationCapabilities],
-      developerRegistration: false,
-      ttlSeconds: runtimeAppSessionTtlSeconds,
-      refreshSkewMs: runtimeAppSessionRefreshSkewMs,
-    })()
-    : undefined;
-  const response = await runtime.account.getAccessToken(
-    { caller, requestedScopes: [] },
-    metadata ? { metadata } : undefined,
-  );
-  const materialPresent = Boolean(response.accepted && normalizeText(response.accessToken));
-  return {
+  return probeNimiElectronRuntimeRawAccessPosture({
+    appId,
+    runtimeEndpoint,
     posture: input.posture,
-    accepted: response.accepted,
-    materialPresent,
-    materialProjected: false,
-    reasonCode: response.reasonCode,
-    accountReasonCode: response.accountReasonCode,
-  };
+    accountCaller: caller,
+    ...(firstParty ? {
+      appSession: {
+        appInstanceId: caller.appInstanceId,
+        deviceId: caller.deviceId,
+        capabilities: [...runtimeRegistrationCapabilities],
+        developerRegistration: false,
+        ttlSeconds: runtimeAppSessionTtlSeconds,
+        refreshSkewMs: runtimeAppSessionRefreshSkewMs,
+      },
+    } : {}),
+  });
 }
 
 function normalizeClientIdPrefix(value: string): string {

@@ -2,6 +2,43 @@ version: 1
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_realm_broker_operations
+surfaces:
+  - WorldCoreController_bootstrapOasisWorld
+  - WorldCoreController_createRealmPersona
+  - WorldCoreController_createSourceMaterializationPacket
+  - WorldCoreController_createWorldCharacter
+  - WorldCoreController_createWorldCore
+  - WorldCoreController_createWorldEntity
+  - WorldCoreController_createWorldRelationship
+  - WorldCoreController_getOasisWorld
+  - WorldCoreController_getRealmPersona
+  - WorldCoreController_getWorldCharacter
+  - WorldCoreController_getWorldCore
+  - WorldCoreController_getWorldEntity
+  - WorldCoreController_getWorldRelationship
+  - WorldCoreController_listRealmPersonas
+  - WorldCoreController_listWorldCharacters
+  - WorldCoreController_listWorldCores
+  - WorldCoreController_listWorldEntities
+  - WorldCoreController_listWorldRelationships
+  - WorldCoreController_replaceRealmPersona
+  - WorldCoreController_replaceWorldCharacter
+  - WorldCoreController_replaceWorldCore
+  - WorldCoreController_replaceWorldEntity
+  - WorldCoreController_replaceWorldRelationship
+  - WorldPublicController_getWorld
+  - WorldPublicController_getWorldDetailWithCharacters
+  - WorldPublicController_listWorldCharacters
+  - WorldPublicController_listWorlds
+  - getMe
+  - getMyBlockedUsers
+  - getMyPendingFriendRequests
+  - listGroups
+  - listMyFriendsWithDetails
+  - createPost
+  - listResources
+  - finalizeResource
+  - createTextResource
 source_rule: K-ACCSVC-023
 description: >
   Sole operation-admission authority for RuntimeAccountService.InvokeRealmUnary.

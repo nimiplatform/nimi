@@ -120,6 +120,22 @@ RUNTIME_METHODS = [
     "response_type": "SwitchAccountResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
+    "service": "RuntimeAgentService",
+    "method": "AbortSourceMaterializationUpload",
+    "kind": "unary",
+    "request_type": "AbortSourceMaterializationUploadRequest",
+    "response_type": "AbortSourceMaterializationUploadResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
+    "service": "RuntimeAgentService",
+    "method": "BeginSourceMaterializationUpload",
+    "kind": "unary",
+    "request_type": "BeginSourceMaterializationUploadRequest",
+    "response_type": "BeginSourceMaterializationUploadResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "service": "RuntimeAgentService",
     "method": "CancelCompanionParticipation",
@@ -136,12 +152,28 @@ RUNTIME_METHODS = [
     "response_type": "CancelHookResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
+    "service": "RuntimeAgentService",
+    "method": "CommitSourceMaterialization",
+    "kind": "unary",
+    "request_type": "CommitSourceMaterializationRequest",
+    "response_type": "CommitSourceMaterializationResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
     "service": "RuntimeAgentService",
     "method": "CreateRealmGroupMessageCandidate",
     "kind": "unary",
     "request_type": "CreateRealmGroupMessageCandidateRequest",
     "response_type": "CreateRealmGroupMessageCandidateResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+    "service": "RuntimeAgentService",
+    "method": "CreateSourceMaterializationChallenge",
+    "kind": "unary",
+    "request_type": "CreateSourceMaterializationChallengeRequest",
+    "response_type": "CreateSourceMaterializationChallengeResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
@@ -422,6 +454,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "OpenConversationAnchorRequest",
     "response_type": "OpenConversationAnchorResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
+    "service": "RuntimeAgentService",
+    "method": "PutSourceMaterializationChunk",
+    "kind": "unary",
+    "request_type": "PutSourceMaterializationChunkRequest",
+    "response_type": "PutSourceMaterializationChunkResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",

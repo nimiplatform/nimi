@@ -12,7 +12,108 @@ import {
   runtimeMessageSchemas,
 } from './types.mjs';
 
+function resolveRealmSchema(schema, modelByName) {
+  let current = schema;
+  const visited = new Set();
+  while (current?.kind === 'ref') {
+    if (visited.has(current.ref_name)) throw new Error(`cyclic Realm model ref: ${current.ref_name}`);
+    visited.add(current.ref_name);
+    current = modelByName.get(current.ref_name);
+    if (!current) throw new Error(`missing Realm model ref: ${schema.ref_name}`);
+  }
+  return current;
+}
+
+function realmSchemaAtPath(schema, segments, modelByName) {
+  let current = schema;
+  for (const segment of segments) {
+    current = resolveRealmSchema(current, modelByName);
+    if (current?.kind !== 'object') return null;
+    current = (current.properties || []).find((property) => property.name === segment)?.schema;
+    if (!current) return null;
+  }
+  return resolveRealmSchema(current, modelByName);
+}
+
+function realmUnionDescriptor(model, modelByName) {
+  const variants = model.schema.variants || [];
+  if (variants.length < 2 || variants.some((variant) => variant.kind !== 'ref')) {
+    throw new Error(`Realm union ${model.name} must contain named variants`);
+  }
+  const discriminatorPath = String(model.schema.discriminator || 'kind').split('.').filter(Boolean);
+  const resolvedVariants = variants.map((variant) => {
+    const target = modelByName.get(variant.ref_name);
+    const discriminator = realmSchemaAtPath(target, discriminatorPath, modelByName);
+    if (discriminator?.kind !== 'enum' || discriminator.values?.length !== 1) {
+      throw new Error(`Realm union ${model.name} variant ${variant.ref_name} has no single-value discriminator at ${discriminatorPath.join('.')}`);
+    }
+    return {
+      typeName: variant.ref_name,
+      fieldName: pascalCase(discriminator.values[0]),
+      discriminatorValue: discriminator.values[0],
+    };
+  });
+  if (new Set(resolvedVariants.map((variant) => variant.discriminatorValue)).size !== resolvedVariants.length) {
+    throw new Error(`Realm union ${model.name} discriminator values are not unique`);
+  }
+  return { discriminatorPath, variants: resolvedVariants };
+}
+
+function renderGoProbeType(segments, depth = 0) {
+  const segment = segments[depth];
+  const fieldName = pascalCase(segment);
+  const fieldType = depth === segments.length - 1
+    ? 'string'
+    : renderGoProbeType(segments, depth + 1);
+  return `struct { ${fieldName} ${fieldType} \`json:"${segment}"\` }`;
+}
+
+function renderGoRealmUnion(model, modelByName) {
+  const descriptor = realmUnionDescriptor(model, modelByName);
+  const fields = descriptor.variants
+    .map((variant) => `\t${variant.fieldName} *${variant.typeName} \`json:"-"\``)
+    .join('\n');
+  const marshalBranches = descriptor.variants.map((variant) => `\tif value.${variant.fieldName} != nil {
+\t\tselected = value.${variant.fieldName}
+\t\tselectedCount++
+\t}`).join('\n');
+  const unmarshalBranches = descriptor.variants.map((variant) => `\tcase ${quote(variant.discriminatorValue)}:
+\t\tvar decoded ${variant.typeName}
+\t\tif err := json.Unmarshal(data, &decoded); err != nil {
+\t\t\treturn fmt.Errorf("decode ${model.name} ${variant.discriminatorValue}: %w", err)
+\t\t}
+\t\t*value = ${model.name}{${variant.fieldName}: &decoded}
+\t\treturn nil`).join('\n');
+  const probeAccess = ['probe', ...descriptor.discriminatorPath.map(pascalCase)].join('.');
+  return `type ${model.name} struct {
+${fields}
+}
+
+func (value ${model.name}) MarshalJSON() ([]byte, error) {
+\tvar selected any
+\tselectedCount := 0
+${marshalBranches}
+\tif selectedCount != 1 {
+\t\treturn nil, fmt.Errorf("encode ${model.name}: exactly one typed variant is required")
+\t}
+\treturn json.Marshal(selected)
+}
+
+func (value *${model.name}) UnmarshalJSON(data []byte) error {
+\tvar probe ${renderGoProbeType(descriptor.discriminatorPath)}
+\tif err := json.Unmarshal(data, &probe); err != nil {
+\t\treturn fmt.Errorf("decode ${model.name} discriminator: %w", err)
+\t}
+\tswitch ${probeAccess} {
+${unmarshalBranches}
+\tdefault:
+\t\treturn fmt.Errorf("decode ${model.name}: unknown discriminator %q", ${probeAccess})
+\t}
+}`;
+}
+
 export function writeGoTypedClients(runtime, realm) {
+  const realmModelByName = new Map((realm.model_schemas || []).map((model) => [model.name, model.schema]));
   const runtimeEnums = runtimeEnumSchemas(runtime)
     .map((schema) => `type ${schema.name} string\n\nconst (\n${schema.values.map((value) => `	${pascalCase(value)} ${schema.name} = ${quote(value)}`).join('\n')}\n)`)
     .join('\n\n');
@@ -46,6 +147,7 @@ export function writeGoTypedClients(runtime, realm) {
 }`;
   }).join('\n\n');
   const realmModels = (realm.model_schemas || []).map((model) => {
+    if (model.schema.kind === 'union') return renderGoRealmUnion(model, realmModelByName);
     if (model.schema.kind !== 'object') return `type ${model.name} ${goOpenApiType(model.schema)}`;
     const fields = model.schema.properties.map((property) => `	${pascalCase(property.name)} ${goOpenApiFieldType(property.schema)} \`json:"${property.name},omitempty"\``).join('\n');
     return `type ${model.name} struct {\n${fields}\n}`;

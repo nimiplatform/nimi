@@ -363,7 +363,7 @@ rules:
   - rule_id: S-RUNTIME-103
     evidence_refs:
       - sdk_kernel_consistency
-    note: Persistent agent presentation profile may project only through runtime.agent.* and must not create a parallel top-level runtime avatar surface
+    note: Persistent agent presentation profile and bounded LocalAgentSourceContextStatus/AgentTurnContextSummary may project only through runtime.agent.*; private source/context payloads and a parallel top-level runtime avatar surface remain forbidden.
     evidence_requirement: required
   - rule_id: S-RUNTIME-104
     evidence_refs:
@@ -381,7 +381,7 @@ rules:
       - sdk_behavioral_test
       - sdk_kernel_consistency
       - sdk_boundary_gate
-    note: Local SDK consumer trust posture is covered by explicit agent/anchor request projection, anchor-native snapshot recovery, protected runtime.agent read/write scopes, and multi-agent/multi-anchor isolation tests
+    note: Local SDK consumer trust posture is covered by explicit agent/anchor request projection, anchor-native snapshot recovery, protected runtime.agent read/write scopes, closed bounded LocalAgent source/context summary validation, and multi-agent/multi-anchor isolation tests; unknown or raw context fails closed.
     evidence_requirement: required
   - rule_id: S-RUNTIME-108
     evidence_refs:

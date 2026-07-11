@@ -246,6 +246,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2.1-pro
     provider: volcengine
     model_type: chat
@@ -264,6 +265,7 @@ models:
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-seed-2-1-pro-260628
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-1-turbo-260628
     provider: volcengine
     model_type: chat
@@ -281,6 +283,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2.1-turbo
     provider: volcengine
     model_type: chat
@@ -299,6 +302,7 @@ models:
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-seed-2-1-turbo-260628
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-0-pro-260215
     provider: volcengine
     model_type: chat
@@ -316,6 +320,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2.0-pro
     provider: volcengine
     model_type: chat
@@ -334,6 +339,7 @@ models:
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-seed-2-0-pro-260215
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-0-lite-260428
     provider: volcengine
     model_type: chat
@@ -351,6 +357,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2.0-lite
     provider: volcengine
     model_type: chat
@@ -369,6 +376,7 @@ models:
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-seed-2-0-lite-260428
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-0-lite-260215
     provider: volcengine
     model_type: chat
@@ -386,6 +394,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-0-mini-260428
     provider: volcengine
     model_type: chat
@@ -403,6 +412,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2.0-mini
     provider: volcengine
     model_type: chat
@@ -421,6 +431,7 @@ models:
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-seed-2-0-mini-260428
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-0-mini-260215
     provider: volcengine
     model_type: chat
@@ -438,6 +449,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-0-code-preview-260215
     provider: volcengine
     model_type: chat
@@ -455,6 +467,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 8192
   - model_id: doubao-seed-2.0-code
     provider: volcengine
     model_type: chat
@@ -473,6 +486,7 @@ models:
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-seed-2-0-code-preview-260215
+    context_window_tokens: 8192
   - model_id: doubao-1.5-pro-256k
     provider: volcengine
     model_type: chat
@@ -490,6 +504,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    context_window_tokens: 262144
   - model_id: doubao-1.5-pro
     provider: volcengine
     model_type: chat
@@ -508,6 +523,7 @@ models:
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-1.5-pro-256k
+    context_window_tokens: 262144
   - model_id: doubao-embedding
     provider: volcengine
     model_type: embedding

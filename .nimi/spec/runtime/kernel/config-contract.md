@@ -58,12 +58,19 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 对 public CLI first-run 而言，interactive credential capture 若发生，用户粘贴的 provider key 必须立即写入 canonical machine config，使同一条 onboarding `run` 不以“仅本次 inline memory credential”作为成功条件。该路径仍必须提示 inline secret 风险并继续推荐 `apiKeyEnv` / secure-store；写入失败必须 fail-close，不得继续执行 cloud generation。当前 invocation 可继续携带 inline metadata 给已运行 daemon，以避免假定 daemon 已热重载配置，但持久化结果必须以 canonical config 为准。
 
-The top-level `sourceMaterializationPacketHmacSecret` field is Runtime-owned
-verifier material for Realm-issued source materialization packet HMAC proofs.
-RuntimeAgent may consume only the resolved Runtime config value; Desktop, SDK,
-and app callers must not read, derive, or transmit this secret as
-materialization payload. Empty verifier material rejects source materialization
-fail-closed.
+Source materialization proof verification uses the configured Realm issuer and
+JWKS trust chain plus a closed materialization-purpose signing-key registry.
+Runtime accepts only detached JWS with `alg=RS256`, a JWK with `use=sig`, and a
+`kid` admitted for the materialization purpose. An unknown `kid` may trigger one
+controlled JWKS refresh; unknown, removed, revoked, wrong-purpose, wrong-use, or
+wrong-algorithm keys fail closed. Active and retiring verification keys follow
+the Realm rotation window, while a revoked key is rejected immediately.
+
+No source-materialization shared verifier secret belongs in Runtime machine
+config. Desktop, SDK, Kit, apps, packet fields, and provider metadata cannot
+supply or override issuer, JWKS, key purpose, or proof verification truth. The
+materialization-purpose registry is verification policy, not a credential
+projection or caller-extensible free-form map.
 
 ## K-CFG-012 Default Value Governance
 

@@ -125,6 +125,17 @@ func (r *runtimeAgentStateRepository) saveStateLocked(s *Service) error {
 }
 
 func (r *runtimeAgentStateRepository) saveStateLockedWithTxHook(s *Service, txHook runtimeAgentStateTxHook) error {
+	persisted, err := r.snapshotStateLocked(s)
+	if err != nil {
+		return err
+	}
+	return r.persistSnapshot(persisted, txHook)
+}
+
+// snapshotStateLocked captures the caller-locked Runtime Agent projection
+// without performing I/O. Atomic cross-domain transactions can therefore
+// prepare the exact row set once and persist it through persistSnapshotTx.
+func (r *runtimeAgentStateRepository) snapshotStateLocked(s *Service) (persistedRuntimeAgentState, error) {
 	persisted := persistedRuntimeAgentState{
 		SchemaVersion: runtimeAgentStateSchemaVersion,
 		SavedAt:       time.Now().UTC().Format(time.RFC3339),
@@ -135,11 +146,11 @@ func (r *runtimeAgentStateRepository) saveStateLockedWithTxHook(s *Service, txHo
 	for _, entry := range s.agents {
 		agentRaw, err := protojson.Marshal(entry.Agent)
 		if err != nil {
-			return fmt.Errorf("marshal agent: %w", err)
+			return persistedRuntimeAgentState{}, fmt.Errorf("marshal agent: %w", err)
 		}
 		stateRaw, err := protojson.Marshal(entry.State)
 		if err != nil {
-			return fmt.Errorf("marshal agent state: %w", err)
+			return persistedRuntimeAgentState{}, fmt.Errorf("marshal agent state: %w", err)
 		}
 		item := persistedAgentState{
 			Agent: agentRaw,
@@ -149,7 +160,7 @@ func (r *runtimeAgentStateRepository) saveStateLockedWithTxHook(s *Service, txHo
 		for _, hook := range entry.Hooks {
 			raw, err := protojson.Marshal(hook)
 			if err != nil {
-				return fmt.Errorf("marshal hook: %w", err)
+				return persistedRuntimeAgentState{}, fmt.Errorf("marshal hook: %w", err)
 			}
 			item.Hooks = append(item.Hooks, raw)
 		}
@@ -158,14 +169,14 @@ func (r *runtimeAgentStateRepository) saveStateLockedWithTxHook(s *Service, txHo
 	for _, event := range s.events {
 		raw, err := protojson.Marshal(event)
 		if err != nil {
-			return fmt.Errorf("marshal event: %w", err)
+			return persistedRuntimeAgentState{}, fmt.Errorf("marshal event: %w", err)
 		}
 		persisted.Events = append(persisted.Events, raw)
 	}
 	if _, err := json.MarshalIndent(persisted, "", "  "); err != nil {
-		return fmt.Errorf("marshal runtime agent state file: %w", err)
+		return persistedRuntimeAgentState{}, fmt.Errorf("marshal runtime agent state file: %w", err)
 	}
-	return r.persistSnapshot(persisted, txHook)
+	return persisted, nil
 }
 
 func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
@@ -372,65 +383,77 @@ type runtimeAgentStateTxHook func(*sql.Tx) error
 
 func (r *runtimeAgentStateRepository) persistSnapshot(persisted persistedRuntimeAgentState, txHook runtimeAgentStateTxHook) error {
 	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		if _, err := tx.Exec(`DELETE FROM runtime_local_agent`); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`DELETE FROM runtime_local_agent_state_projection`); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`DELETE FROM runtime_local_agent_hook`); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`DELETE FROM runtime_local_agent_event_log`); err != nil {
-			return err
-		}
-		for _, item := range persisted.Agents {
-			agent := &runtimev1.AgentRecord{}
-			if err := protojson.Unmarshal(item.Agent, agent); err != nil {
-				return err
-			}
-			localAgentRef := strings.TrimSpace(agent.GetLocalAgentRef())
-			if localAgentRef == "" {
-				return fmt.Errorf("persist runtime agent missing local_agent_ref")
-			}
-			if _, err := tx.Exec(`INSERT INTO runtime_local_agent(local_agent_ref, agent_json) VALUES (?, ?)`, localAgentRef, string(item.Agent)); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_state_projection(local_agent_ref, state_json) VALUES (?, ?)`, localAgentRef, string(item.State)); err != nil {
-				return err
-			}
-			for _, hookRaw := range item.Hooks {
-				hook := &runtimev1.PendingHook{}
-				if err := protojson.Unmarshal(hookRaw, hook); err != nil {
-					return err
-				}
-				if _, err := tx.Exec(`INSERT INTO runtime_local_agent_hook(local_agent_ref, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?)`, localAgentRef, hookIntentID(hook), int(hookAdmissionState(hook)), timestampString(hook.GetScheduledFor()), string(hookRaw)); err != nil {
-					return err
-				}
-			}
-		}
-		for _, eventRaw := range persisted.Events {
-			event := &runtimev1.AgentEvent{}
-			if err := protojson.Unmarshal(eventRaw, event); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_event_log(sequence, local_agent_ref, event_type, timestamp, event_json) VALUES (?, ?, ?, ?, ?)`, event.GetSequence(), event.GetLocalAgentRef(), int(event.GetEventType()), timestampString(event.GetTimestamp()), string(eventRaw)); err != nil {
-				return err
-			}
-		}
-		if txHook != nil {
-			if err := txHook(tx); err != nil {
-				return err
-			}
-		}
-		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('state_initialized','1') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('agent_event_sequence', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, encodeSequenceValue(persisted.Sequence)); err != nil {
-			return err
-		}
-		return nil
+		return r.persistSnapshotTx(tx, persisted, txHook)
 	})
+}
+
+// persistSnapshotTx rewrites the Runtime Agent projection through a caller-
+// owned transaction. Source materialization creation and K-AGCORE-141 hard
+// deletion use this seam to commit Agent rows together with their immutable
+// source snapshot/provenance and agent-scoped memory projections. It must
+// never open a nested Backend transaction.
+func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted persistedRuntimeAgentState, txHook runtimeAgentStateTxHook) error {
+	if tx == nil {
+		return fmt.Errorf("persist runtime agent snapshot transaction is required")
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_local_agent`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_state_projection`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_hook`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_event_log`); err != nil {
+		return err
+	}
+	for _, item := range persisted.Agents {
+		agent := &runtimev1.AgentRecord{}
+		if err := protojson.Unmarshal(item.Agent, agent); err != nil {
+			return err
+		}
+		localAgentRef := strings.TrimSpace(agent.GetLocalAgentRef())
+		if localAgentRef == "" {
+			return fmt.Errorf("persist runtime agent missing local_agent_ref")
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent(local_agent_ref, agent_json) VALUES (?, ?)`, localAgentRef, string(item.Agent)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_state_projection(local_agent_ref, state_json) VALUES (?, ?)`, localAgentRef, string(item.State)); err != nil {
+			return err
+		}
+		for _, hookRaw := range item.Hooks {
+			hook := &runtimev1.PendingHook{}
+			if err := protojson.Unmarshal(hookRaw, hook); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_hook(local_agent_ref, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?)`, localAgentRef, hookIntentID(hook), int(hookAdmissionState(hook)), timestampString(hook.GetScheduledFor()), string(hookRaw)); err != nil {
+				return err
+			}
+		}
+	}
+	for _, eventRaw := range persisted.Events {
+		event := &runtimev1.AgentEvent{}
+		if err := protojson.Unmarshal(eventRaw, event); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_event_log(sequence, local_agent_ref, event_type, timestamp, event_json) VALUES (?, ?, ?, ?, ?)`, event.GetSequence(), event.GetLocalAgentRef(), int(event.GetEventType()), timestampString(event.GetTimestamp()), string(eventRaw)); err != nil {
+			return err
+		}
+	}
+	if txHook != nil {
+		if err := txHook(tx); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('state_initialized','1') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('agent_event_sequence', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, encodeSequenceValue(persisted.Sequence)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *runtimeAgentStateRepository) runtimeAgentMetaValue(key string) (string, error) {

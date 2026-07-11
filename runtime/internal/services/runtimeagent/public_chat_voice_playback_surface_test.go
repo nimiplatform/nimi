@@ -8,7 +8,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func TestPublicChatNativeVoiceInterruptValidatesScopedBinding(t *testing.T) {
@@ -339,25 +341,40 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 		}
 	}
 
+	svc.mu.RLock()
 	presentationCursor := svc.sequence
+	svc.mu.RUnlock()
+	voicePayload := map[string]any{
+		"conversation_anchor_id": anchorID,
+		"turn_id":                turnID,
+		"message_id":             "message-provider-manual-1",
+		"text":                   "Manual desktop playback should use runtime voice policy.",
+		"playback_target":        "desktop_manual",
+	}
 	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
+		FromAppId:     "other.app",
+		SubjectUserId: "other-user",
+		MessageType:   publicChatTurnVoiceRenderType,
+		Payload:       publicChatStructPayload(t, voicePayload),
+	}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("cross-subject voice render must fail closed, got %v", err)
+	}
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "zhiyu.app",
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnVoiceRenderType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"conversation_anchor_id": anchorID,
-			"turn_id":                turnID,
-			"message_id":             "message-provider-manual-1",
-			"text":                   "Manual desktop playback should use runtime voice policy.",
-			"playback_target":        "desktop_manual",
-		}),
+		Payload:       publicChatStructPayload(t, voicePayload),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(voice_render): %v", err)
 	}
 
 	voiceChunk := capture.waitForMessageType(t, publicChatPresentationVoiceStreamChunkType)
 	voicePlayback := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackRequestedType)
+	if voiceChunk.GetToAppId() != "zhiyu.app" || voicePlayback.GetToAppId() != "zhiyu.app" {
+		t.Fatalf("cross-app manual voice projection must return to requesting surface: chunk=%q playback=%q", voiceChunk.GetToAppId(), voicePlayback.GetToAppId())
+	}
 	chunkPayload := publicChatPayloadMap(t, voiceChunk)
 	requirePublicChatTimelineEnvelope(t, chunkPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")
 	chunkDetail := chunkPayload["detail"].(map[string]any)
@@ -367,9 +384,9 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 	if got := strings.TrimSpace(chunkDetail["playback_target"].(string)); got != "desktop_manual" {
 		t.Fatalf("expected manual chunk playback_target=desktop_manual, got %s", got)
 	}
-	voicePayload := publicChatPayloadMap(t, voicePlayback)
-	requirePublicChatTimelineEnvelope(t, voicePayload, turnID, streamID, publicChatTimelineChannelVoice)
-	voiceDetail := voicePayload["detail"].(map[string]any)
+	voiceProjectionPayload := publicChatPayloadMap(t, voicePlayback)
+	requirePublicChatTimelineEnvelope(t, voiceProjectionPayload, turnID, streamID, publicChatTimelineChannelVoice)
+	voiceDetail := voiceProjectionPayload["detail"].(map[string]any)
 	if got := strings.TrimSpace(voiceDetail["message_id"].(string)); got != "message-provider-manual-1" {
 		t.Fatalf("expected manual voice message_id=message-provider-manual-1, got %s", got)
 	}

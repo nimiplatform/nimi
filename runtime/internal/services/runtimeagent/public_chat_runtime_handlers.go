@@ -21,11 +21,16 @@ func (r publicChatRuntime) handleTurnRequest(
 	}
 	callerAppID := strings.TrimSpace(event.GetFromAppId())
 	subjectUserID := strings.TrimSpace(event.GetSubjectUserId())
-	if err := r.svc.cancelPublicChatFollowUpsForRequest(callerAppID, strings.TrimSpace(req.ConversationAnchorID), strings.TrimSpace(req.ThreadID), "user_message"); err != nil {
-		return err
-	}
 	session, turn, turnCtx, err := r.reserveTurn(ctx, callerAppID, subjectUserID, req)
 	if err != nil {
+		return err
+	}
+	// A new authenticated turn cancels only the pending continuation on the
+	// exact anchor that reserveTurn just admitted. App id is a delivery origin,
+	// not authorization; thread ids must never widen cancellation across
+	// anchors, agents, or subjects.
+	if _, err := r.svc.cancelPublicChatFollowUpForAnchor(session.ConversationAnchorID, "user_message", true); err != nil {
+		r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
 		return err
 	}
 	r.svc.observeLatency("runtime.agent.turn.reserve_ms", reserveStartedAt,
@@ -81,7 +86,11 @@ func (r publicChatRuntime) handleTurnInterrupt(
 	event *runtimev1.AppMessageEvent,
 	req publicChatTurnInterruptPayload,
 ) error {
-	session, turn, err := r.lookupTurnForInterrupt(strings.TrimSpace(event.GetFromAppId()), req)
+	session, turn, err := r.lookupTurnForInterrupt(
+		strings.TrimSpace(event.GetFromAppId()),
+		strings.TrimSpace(event.GetSubjectUserId()),
+		req,
+	)
 	if err != nil {
 		return err
 	}

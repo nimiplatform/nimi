@@ -40,3 +40,24 @@ node sdks/conformance/run.mjs --language all --profile typed-core
 The conformance runner validates generated manifest parity and generated
 Runtime/Realm core behavior. TypeScript handwritten surfaces have their own
 package tests and SDK matrix gates.
+
+## Runtime LocalAgent boundary
+
+Realm-backed LocalAgents use one typed workflow: Runtime issues the source
+materialization challenge, Realm returns the generated packet-v2 DTO, and
+Runtime `CommitSourceMaterialization` atomically creates the immutable source
+snapshot and LocalAgent. `InitializeAgent` is not a second Realm materialization
+step.
+
+Public consumers receive only the strict SDK projections
+`NimiRuntimeAgentSourceContextStatus` and
+`NimiRuntimeAgentTurnContextSummary`. Unknown or partial schemas, enums,
+coverage, lanes, budgets, truncation, hashes, or identity correlations fail
+closed. These projections never carry raw source/world text, prompts, lane
+content, transcript text, private memory, packet proof, provider payloads, or
+tool arguments/results.
+
+LocalAgent turns accept exactly one current-user text message. Callers cannot
+submit a system prompt, world/context attachment, execution binding, media
+payload, assistant/tool history, or additional message. Generic app AI prompt
+support is a separate SDK surface and is unchanged.

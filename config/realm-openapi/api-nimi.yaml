@@ -721,6 +721,56 @@ components:
       required:
         - items
       type: object
+    BundleManifestChunkDescriptorV1Dto:
+      additionalProperties: false
+      properties:
+        chunkSha256:
+          type: string
+        componentOffset:
+          type: number
+        globalOrdinal:
+          type: number
+        length:
+          type: number
+      required:
+        - globalOrdinal
+        - componentOffset
+        - length
+        - chunkSha256
+      type: object
+    BundleManifestComponentV1Dto:
+      additionalProperties: false
+      properties:
+        canonicalByteLength:
+          type: number
+        canonicalBytesHash:
+          type: string
+        componentId:
+          type: string
+        contentHash:
+          type: string
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+            - worldCore
+            - worldEntity
+            - worldRelationship
+            - coverageManifest
+          type: string
+        revision:
+          type: number
+        schemaVersion:
+          type: string
+      required:
+        - componentId
+        - kind
+        - schemaVersion
+        - revision
+        - contentHash
+        - canonicalBytesHash
+        - canonicalByteLength
+      type: object
     BundleMemberDto:
       properties:
         assetId:
@@ -730,6 +780,46 @@ components:
       required:
         - assetId
         - sortOrder
+      type: object
+    BundleTransportManifestV1Dto:
+      additionalProperties: false
+      properties:
+        challengeDigest:
+          type: string
+        chunkCount:
+          type: number
+        chunks:
+          items:
+            $ref: '#/components/schemas/BundleManifestChunkDescriptorV1Dto'
+          type: array
+        componentCount:
+          type: number
+        components:
+          items:
+            $ref: '#/components/schemas/BundleManifestComponentV1Dto'
+          type: array
+        manifestSchemaVersion:
+          enum:
+            - realm.materialization-bundle-manifest/v1
+          type: string
+        packetId:
+          type: string
+        payloadAssemblyVersion:
+          enum:
+            - realm.materialization-assembly/v1
+          type: string
+        totalCanonicalBytes:
+          type: number
+      required:
+        - manifestSchemaVersion
+        - payloadAssemblyVersion
+        - packetId
+        - challengeDigest
+        - totalCanonicalBytes
+        - componentCount
+        - chunkCount
+        - components
+        - chunks
       type: object
     CanWithdrawDto:
       properties:
@@ -1066,6 +1156,166 @@ components:
         - R18
         - EXPLICIT
       type: string
+    CoverageComponentV1Dto:
+      additionalProperties: false
+      properties:
+        componentId:
+          type: string
+        contentHash:
+          type: string
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+            - worldCore
+            - worldEntity
+            - worldRelationship
+            - coverageManifest
+          type: string
+        revision:
+          type: number
+        schemaVersion:
+          type: string
+      required:
+        - componentId
+        - kind
+        - schemaVersion
+        - revision
+        - contentHash
+      type: object
+    CoverageCrossReferenceCheckV1Dto:
+      additionalProperties: false
+      properties:
+        checkId:
+          type: string
+        sourceRef:
+          type: string
+        state:
+          enum:
+            - valid
+            - invalid
+          type: string
+        targetRef:
+          type: string
+      required:
+        - checkId
+        - state
+        - sourceRef
+        - targetRef
+      type: object
+    CoverageManifestV1Dto:
+      additionalProperties: false
+      properties:
+        aggregateStatus:
+          enum:
+            - complete
+            - incomplete
+            - invalid
+          type: string
+        closurePolicyVersion:
+          enum:
+            - realm.materialization-closure/v1
+          type: string
+        components:
+          items:
+            $ref: '#/components/schemas/CoverageComponentV1Dto'
+          type: array
+        coverageManifestHash:
+          type: string
+        crossReferenceChecks:
+          items:
+            $ref: '#/components/schemas/CoverageCrossReferenceCheckV1Dto'
+          type: array
+        manifestSchemaVersion:
+          enum:
+            - realm.materialization-coverage/v1
+          type: string
+        optionalRefs:
+          items:
+            $ref: '#/components/schemas/CoverageOptionalRefV1Dto'
+          type: array
+        requiredRefs:
+          items:
+            $ref: '#/components/schemas/CoverageRequiredRefV1Dto'
+          type: array
+        requiredSections:
+          items:
+            $ref: '#/components/schemas/CoverageRequiredSectionV1Dto'
+          type: array
+      required:
+        - manifestSchemaVersion
+        - closurePolicyVersion
+        - requiredSections
+        - requiredRefs
+        - optionalRefs
+        - components
+        - crossReferenceChecks
+        - aggregateStatus
+        - coverageManifestHash
+      type: object
+    CoverageOptionalRefV1Dto:
+      additionalProperties: false
+      properties:
+        omissionReason:
+          enum:
+            - not-declared
+            - intentionally-absent
+            - inaccessible-optional-resource
+          type: string
+        path:
+          type: string
+        refId:
+          type: string
+        refKind:
+          type: string
+        state:
+          enum:
+            - resolved
+            - omitted
+            - invalid
+          type: string
+      required:
+        - path
+        - refKind
+        - refId
+        - state
+      type: object
+    CoverageRequiredRefV1Dto:
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+        refId:
+          type: string
+        refKind:
+          type: string
+        state:
+          enum:
+            - resolved
+            - missing
+            - invalid
+          type: string
+      required:
+        - path
+        - refKind
+        - refId
+        - state
+      type: object
+    CoverageRequiredSectionV1Dto:
+      additionalProperties: false
+      properties:
+        path:
+          type: string
+        state:
+          enum:
+            - present
+            - missing
+            - invalid
+          type: string
+      required:
+        - path
+        - state
+      type: object
     CreateAssetDto:
       properties:
         authorId:
@@ -1287,6 +1537,7 @@ components:
         - attachments
       type: object
     CreateRealmPersonaDto:
+      additionalProperties: false
       properties:
         core:
           additionalProperties: false
@@ -1529,6 +1780,14 @@ components:
                 - displayName
                 - profileLine
               type: object
+          required:
+            - identity
+            - presentation
+            - personaStyle
+            - contentProfile
+            - interactionProfile
+            - assets
+            - authoring
           type: object
         homeWorldId:
           description: Defaults to OASIS when omitted.
@@ -1612,17 +1871,39 @@ components:
         - rating
       type: object
     CreateSourceMaterializationPacketDto:
+      additionalProperties: false
       properties:
+        challengeDigest:
+          pattern: ^[a-f0-9]{64}$
+          type: string
+        challengeExpiresAt:
+          format: date-time
+          type: string
+        challengeId:
+          maxLength: 256
+          minLength: 16
+          pattern: ^[A-Za-z0-9_-]+$
+          type: string
+        challengeLimits:
+          $ref: '#/components/schemas/SourceMaterializationChallengeLimitsDto'
         intendedRuntimeAudience:
           description: >-
             Runtime audience expected to consume this one-time materialization
             packet.
           type: string
+        materializerAccountId:
+          maxLength: 256
+          type: string
         sourceRef:
           $ref: '#/components/schemas/TypedSourceRefDto'
       required:
         - sourceRef
+        - materializerAccountId
+        - challengeId
+        - challengeDigest
         - intendedRuntimeAudience
+        - challengeExpiresAt
+        - challengeLimits
       type: object
     CreateSparkCheckoutDto:
       properties:
@@ -1744,6 +2025,7 @@ components:
         - gemAmount
       type: object
     CreateWorldCharacterCoreDto:
+      additionalProperties: false
       properties:
         core:
           additionalProperties: false
@@ -2024,19 +2306,56 @@ components:
               items:
                 additionalProperties: false
                 properties:
+                  note:
+                    type: string
+                  relationLabel:
+                    type: string
                   relationType:
+                    minLength: 1
+                    type: string
+                  relationshipId:
                     minLength: 1
                     type: string
                   summary:
                     type: string
-                  targetRef:
-                    minLength: 1
+                  targetLabel:
                     type: string
+                  targetRef:
+                    additionalProperties: false
+                    properties:
+                      entityId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        enum:
+                          - worldEntity
+                        type: string
+                      worldId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - kind
+                      - worldId
+                      - entityId
+                    type: object
                 required:
+                  - relationshipId
                   - targetRef
                   - relationType
                 type: object
               type: array
+          required:
+            - identity
+            - presentation
+            - placement
+            - biography
+            - psychology
+            - knowledge
+            - relationships
+            - capabilities
+            - interactionProfile
+            - assets
+            - authoring
           type: object
         entityId:
           type: string
@@ -2050,6 +2369,7 @@ components:
         - core
       type: object
     CreateWorldCoreDto:
+      additionalProperties: false
       properties:
         core:
           additionalProperties: false
@@ -2447,6 +2767,18 @@ components:
               required:
                 - events
               type: object
+          required:
+            - identity
+            - presentation
+            - ontology
+            - timeModel
+            - timeline
+            - entities
+            - relationships
+            - systems
+            - scenes
+            - assets
+            - authoring
           type: object
         id:
           type: string
@@ -2465,6 +2797,7 @@ components:
         - core
       type: object
     CreateWorldEntityCoreDto:
+      additionalProperties: false
       properties:
         core:
           additionalProperties: false
@@ -2681,6 +3014,13 @@ components:
                 - summary
                 - kind
               type: object
+          required:
+            - identity
+            - classification
+            - facts
+            - evidence
+            - assets
+            - authoring
           type: object
         id:
           type: string
@@ -2694,6 +3034,7 @@ components:
         - core
       type: object
     CreateWorldRelationshipCoreDto:
+      additionalProperties: false
       properties:
         core:
           additionalProperties: false
@@ -2779,6 +3120,11 @@ components:
                 summary:
                   type: string
               type: object
+          required:
+            - endpoints
+            - presentation
+            - evidence
+            - authoring
           type: object
         id:
           type: string
@@ -3768,6 +4114,50 @@ components:
         markAllBefore:
           type: string
       type: object
+    MaterializationContextV1Dto:
+      additionalProperties: false
+      properties:
+        closurePolicyVersion:
+          enum:
+            - realm.materialization-closure/v1
+          type: string
+        contextSchemaVersion:
+          enum:
+            - realm.materialization-context/v1
+          type: string
+        coverageManifestHash:
+          type: string
+        dependencyClosure:
+          discriminator:
+            propertyName: kind
+          oneOf:
+            - $ref: '#/components/schemas/WorldCharacterDependencyClosureV1Dto'
+            - $ref: '#/components/schemas/RealmPersonaDependencyClosureV1Dto'
+        materializationContextHash:
+          type: string
+        owningWorld:
+          $ref: '#/components/schemas/WorldCoreDto'
+        sourceComponentDigests:
+          items:
+            $ref: '#/components/schemas/SourceMaterializationComponentDigestV1Dto'
+          type: array
+        sourceRef:
+          $ref: '#/components/schemas/TypedSourceRefDto'
+        worldAndClosureComponentDigests:
+          items:
+            $ref: '#/components/schemas/SourceMaterializationComponentDigestV1Dto'
+          type: array
+      required:
+        - contextSchemaVersion
+        - sourceRef
+        - owningWorld
+        - dependencyClosure
+        - sourceComponentDigests
+        - worldAndClosureComponentDigests
+        - closurePolicyVersion
+        - coverageManifestHash
+        - materializationContextHash
+      type: object
     Me2faOperationResultDto:
       properties:
         success:
@@ -4495,7 +4885,23 @@ components:
         - status
         - message
       type: object
+    RealmPersonaDependencyClosureV1Dto:
+      additionalProperties: false
+      properties:
+        explicitDependencies:
+          items:
+            $ref: '#/components/schemas/SourceMaterializationDependencyRefV1Dto'
+          type: array
+        kind:
+          enum:
+            - realmPersona
+          type: string
+      required:
+        - kind
+        - explicitDependencies
+      type: object
     RealmPersonaDto:
+      additionalProperties: false
       properties:
         contentHash:
           type: string
@@ -4742,6 +5148,14 @@ components:
                 - displayName
                 - profileLine
               type: object
+          required:
+            - identity
+            - presentation
+            - personaStyle
+            - contentProfile
+            - interactionProfile
+            - assets
+            - authoring
           type: object
         createdAt:
           format: date-time
@@ -4778,6 +5192,336 @@ components:
         - core
         - createdAt
         - updatedAt
+      type: object
+    RealmPersonaMaterializationPayloadV2Dto:
+      additionalProperties: false
+      properties:
+        coverageManifest:
+          $ref: '#/components/schemas/CoverageManifestV1Dto'
+        coverageManifestHash:
+          type: string
+        materializationContext:
+          $ref: '#/components/schemas/MaterializationContextV1Dto'
+        materializationContextHash:
+          type: string
+        payloadAssemblyVersion:
+          enum:
+            - realm.materialization-assembly/v1
+          type: string
+        payloadSchemaVersion:
+          enum:
+            - realm.source-materialization-payload/v2
+          type: string
+        source:
+          $ref: '#/components/schemas/RealmPersonaMaterializationSourceV2Dto'
+      required:
+        - payloadSchemaVersion
+        - payloadAssemblyVersion
+        - source
+        - materializationContext
+        - coverageManifest
+        - coverageManifestHash
+        - materializationContextHash
+      type: object
+    RealmPersonaMaterializationSourceV2Dto:
+      additionalProperties: false
+      properties:
+        contentHash:
+          type: string
+        contentRevision:
+          type: number
+        core:
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            contentProfile:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                guidelines:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      guidelineId:
+                        minLength: 1
+                        type: string
+                      source:
+                        type: string
+                      statement:
+                        minLength: 1
+                        type: string
+                    required:
+                      - guidelineId
+                      - statement
+                    type: object
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - boundaries
+                - guidelines
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                concept:
+                  type: string
+                handle:
+                  minLength: 1
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - handle
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                homeWorldId:
+                  minLength: 1
+                  type: string
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+              required:
+                - homeWorldId
+                - interactionModes
+              type: object
+            personaStyle:
+              additionalProperties: false
+              properties:
+                archetype:
+                  minLength: 1
+                  type: string
+                communicationStyle:
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                pacing:
+                  minLength: 1
+                  type: string
+                traits:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                voice:
+                  minLength: 1
+                  type: string
+              required:
+                - archetype
+                - traits
+                - voice
+                - pacing
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                profileLine:
+                  minLength: 1
+                  type: string
+                shortBio:
+                  type: string
+              required:
+                - displayName
+                - profileLine
+              type: object
+          required:
+            - identity
+            - presentation
+            - personaStyle
+            - contentProfile
+            - interactionProfile
+            - assets
+            - authoring
+          type: object
+        createdAt:
+          format: date-time
+          type: string
+        homeWorldId:
+          type: string
+        id:
+          type: string
+        kind:
+          enum:
+            - realmPersona
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+        ownerId:
+          type: string
+        schemaVersion:
+          enum:
+            - realm.persona/v1
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+        visibility:
+          enum:
+            - private
+            - unlisted
+            - public
+            - system
+          type: string
+      required:
+        - kind
+        - id
+        - schemaVersion
+        - contentRevision
+        - contentHash
+        - createdAt
+        - updatedAt
+        - origin
+        - ownerId
+        - homeWorldId
+        - visibility
+        - core
       type: object
     RealmSourceCapabilitiesDto:
       properties:
@@ -5089,6 +5833,14 @@ components:
                 - displayName
                 - profileLine
               type: object
+          required:
+            - identity
+            - presentation
+            - personaStyle
+            - contentProfile
+            - interactionProfile
+            - assets
+            - authoring
           type: object
         homeWorldId:
           description: Defaults to OASIS when omitted.
@@ -5393,19 +6145,56 @@ components:
               items:
                 additionalProperties: false
                 properties:
+                  note:
+                    type: string
+                  relationLabel:
+                    type: string
                   relationType:
+                    minLength: 1
+                    type: string
+                  relationshipId:
                     minLength: 1
                     type: string
                   summary:
                     type: string
-                  targetRef:
-                    minLength: 1
+                  targetLabel:
                     type: string
+                  targetRef:
+                    additionalProperties: false
+                    properties:
+                      entityId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        enum:
+                          - worldEntity
+                        type: string
+                      worldId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - kind
+                      - worldId
+                      - entityId
+                    type: object
                 required:
+                  - relationshipId
                   - targetRef
                   - relationType
                 type: object
               type: array
+          required:
+            - identity
+            - presentation
+            - placement
+            - biography
+            - psychology
+            - knowledge
+            - relationships
+            - capabilities
+            - interactionProfile
+            - assets
+            - authoring
           type: object
         entityId:
           type: string
@@ -5819,6 +6608,18 @@ components:
               required:
                 - events
               type: object
+          required:
+            - identity
+            - presentation
+            - ontology
+            - timeModel
+            - timeline
+            - entities
+            - relationships
+            - systems
+            - scenes
+            - assets
+            - authoring
           type: object
         id:
           type: string
@@ -6056,6 +6857,13 @@ components:
                 - summary
                 - kind
               type: object
+          required:
+            - identity
+            - classification
+            - facts
+            - evidence
+            - assets
+            - authoring
           type: object
         id:
           type: string
@@ -6157,6 +6965,11 @@ components:
                 summary:
                   type: string
               type: object
+          required:
+            - endpoints
+            - presentation
+            - evidence
+            - authoring
           type: object
         id:
           type: string
@@ -6613,8 +7426,144 @@ components:
         - platform
         - handle
       type: object
-    SourceMaterializationPacketDto:
+    SourceMaterializationChallengeLimitsDto:
+      additionalProperties: false
       properties:
+        maxBundleBytes:
+          minimum: 1
+          type: number
+        maxChunkBytes:
+          minimum: 1
+          type: number
+        maxChunks:
+          minimum: 1
+          type: number
+        maxComponentCount:
+          minimum: 1
+          type: number
+      required:
+        - maxBundleBytes
+        - maxComponentCount
+        - maxChunkBytes
+        - maxChunks
+      type: object
+    SourceMaterializationComponentChunkV1Dto:
+      additionalProperties: false
+      properties:
+        bytesBase64:
+          format: byte
+          type: string
+        chunkSha256:
+          type: string
+        componentOffset:
+          type: number
+        globalOrdinal:
+          type: number
+        length:
+          type: number
+      required:
+        - globalOrdinal
+        - componentOffset
+        - length
+        - chunkSha256
+        - bytesBase64
+      type: object
+    SourceMaterializationComponentDigestV1Dto:
+      additionalProperties: false
+      properties:
+        componentId:
+          type: string
+        contentHash:
+          type: string
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+            - worldCore
+            - worldEntity
+            - worldRelationship
+            - coverageManifest
+          type: string
+      required:
+        - componentId
+        - kind
+        - contentHash
+      type: object
+    SourceMaterializationComponentV1Dto:
+      additionalProperties: false
+      properties:
+        canonicalByteLength:
+          type: number
+        canonicalBytes:
+          items:
+            $ref: '#/components/schemas/SourceMaterializationComponentChunkV1Dto'
+          type: array
+        canonicalBytesHash:
+          type: string
+        componentId:
+          type: string
+        contentHash:
+          type: string
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+            - worldCore
+            - worldEntity
+            - worldRelationship
+            - coverageManifest
+          type: string
+        revision:
+          type: number
+        schemaVersion:
+          type: string
+      required:
+        - componentId
+        - kind
+        - schemaVersion
+        - revision
+        - contentHash
+        - canonicalBytesHash
+        - canonicalByteLength
+        - canonicalBytes
+      type: object
+    SourceMaterializationDependencyRefV1Dto:
+      additionalProperties: false
+      properties:
+        contentHash:
+          type: string
+        id:
+          type: string
+        kind:
+          enum:
+            - worldEntity
+            - worldRelationship
+          type: string
+        worldId:
+          type: string
+      required:
+        - kind
+        - worldId
+        - id
+        - contentHash
+      type: object
+    SourceMaterializationPacketV2Dto:
+      additionalProperties: false
+      properties:
+        algorithm:
+          enum:
+            - RS256
+          type: string
+        bundleManifestHash:
+          type: string
+        bundleTransportManifest:
+          $ref: '#/components/schemas/BundleTransportManifestV1Dto'
+        challengeDigest:
+          type: string
+        challengeId:
+          type: string
+        challengeLimits:
+          $ref: '#/components/schemas/SourceMaterializationChallengeLimitsDto'
         expiresAt:
           format: date-time
           type: string
@@ -6623,8 +7572,22 @@ components:
         issuedAt:
           format: date-time
           type: string
+        issuer:
+          type: string
+        keyId:
+          type: string
+        keyUse:
+          enum:
+            - sig
+          type: string
+        materializerAccountId:
+          type: string
         nonce:
           type: string
+        orderedComponentChunks:
+          items:
+            $ref: '#/components/schemas/SourceMaterializationComponentV1Dto'
+          type: array
         packetHash:
           type: string
         packetId:
@@ -6632,45 +7595,42 @@ components:
         packetProof:
           type: string
         packetSchemaVersion:
-          type: string
-        payload:
-          additionalProperties: true
-          type: object
-        runtimeSourceRef:
-          type: string
-        sourceContentHash:
-          type: string
-        sourceContentRevision:
-          type: number
-        sourceDisplayMetadata:
-          additionalProperties: true
-          type: object
-        sourceId:
-          type: string
-        sourceKind:
           enum:
-            - worldCharacter
-            - realmPersona
+            - realm.source-materialization-packet/v2
           type: string
-        sourceWorldId:
+        payloadHash:
           type: string
+        semanticPayload:
+          discriminator:
+            propertyName: source.kind
+          oneOf:
+            - $ref: '#/components/schemas/WorldCharacterMaterializationPayloadV2Dto'
+            - $ref: '#/components/schemas/RealmPersonaMaterializationPayloadV2Dto'
+        sourceRef:
+          $ref: '#/components/schemas/TypedSourceRefDto'
       required:
         - packetSchemaVersion
         - packetId
-        - sourceKind
-        - sourceId
-        - sourceWorldId
-        - sourceContentRevision
-        - sourceContentHash
+        - issuer
+        - keyId
+        - algorithm
+        - keyUse
         - issuedAt
         - expiresAt
         - nonce
+        - intendedRuntimeAudience
+        - challengeId
+        - challengeDigest
+        - challengeLimits
+        - materializerAccountId
+        - sourceRef
+        - payloadHash
+        - bundleManifestHash
         - packetHash
         - packetProof
-        - intendedRuntimeAudience
-        - runtimeSourceRef
-        - sourceDisplayMetadata
-        - payload
+        - semanticPayload
+        - bundleTransportManifest
+        - orderedComponentChunks
       type: object
     SourceOriginDto:
       properties:
@@ -7037,6 +7997,7 @@ components:
         - detectedSourceLang
       type: object
     TypedSourceRefDto:
+      additionalProperties: false
       properties:
         kind:
           enum:
@@ -7957,6 +8918,7 @@ components:
         - usdAmount
       type: object
     WorldCharacterCoreDto:
+      additionalProperties: false
       properties:
         contentHash:
           type: string
@@ -8241,22 +9203,61 @@ components:
               items:
                 additionalProperties: false
                 properties:
+                  note:
+                    type: string
+                  relationLabel:
+                    type: string
                   relationType:
+                    minLength: 1
+                    type: string
+                  relationshipId:
                     minLength: 1
                     type: string
                   summary:
                     type: string
-                  targetRef:
-                    minLength: 1
+                  targetLabel:
                     type: string
+                  targetRef:
+                    additionalProperties: false
+                    properties:
+                      entityId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        enum:
+                          - worldEntity
+                        type: string
+                      worldId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - kind
+                      - worldId
+                      - entityId
+                    type: object
                 required:
+                  - relationshipId
                   - targetRef
                   - relationType
                 type: object
               type: array
+          required:
+            - identity
+            - presentation
+            - placement
+            - biography
+            - psychology
+            - knowledge
+            - relationships
+            - capabilities
+            - interactionProfile
+            - assets
+            - authoring
           type: object
         createdAt:
           format: date-time
+          type: string
+        creatorId:
           type: string
         entityId:
           type: string
@@ -8269,6 +9270,13 @@ components:
         updatedAt:
           format: date-time
           type: string
+        visibility:
+          enum:
+            - private
+            - unlisted
+            - public
+            - system
+          type: string
         worldId:
           type: string
       required:
@@ -8277,13 +9285,457 @@ components:
         - contentRevision
         - contentHash
         - origin
+        - creatorId
+        - visibility
         - worldId
         - entityId
         - core
         - createdAt
         - updatedAt
       type: object
+    WorldCharacterDependencyClosureV1Dto:
+      additionalProperties: false
+      properties:
+        boundEntity:
+          $ref: '#/components/schemas/WorldEntityCoreDto'
+        endpointEntities:
+          items:
+            $ref: '#/components/schemas/WorldEntityCoreDto'
+          type: array
+        explicitDependencies:
+          items:
+            $ref: '#/components/schemas/SourceMaterializationDependencyRefV1Dto'
+          type: array
+        incidentRelationships:
+          items:
+            $ref: '#/components/schemas/WorldRelationshipCoreDto'
+          type: array
+        kind:
+          enum:
+            - worldCharacter
+          type: string
+      required:
+        - kind
+        - boundEntity
+        - incidentRelationships
+        - endpointEntities
+        - explicitDependencies
+      type: object
+    WorldCharacterMaterializationPayloadV2Dto:
+      additionalProperties: false
+      properties:
+        coverageManifest:
+          $ref: '#/components/schemas/CoverageManifestV1Dto'
+        coverageManifestHash:
+          type: string
+        materializationContext:
+          $ref: '#/components/schemas/MaterializationContextV1Dto'
+        materializationContextHash:
+          type: string
+        payloadAssemblyVersion:
+          enum:
+            - realm.materialization-assembly/v1
+          type: string
+        payloadSchemaVersion:
+          enum:
+            - realm.source-materialization-payload/v2
+          type: string
+        source:
+          $ref: '#/components/schemas/WorldCharacterMaterializationSourceV2Dto'
+      required:
+        - payloadSchemaVersion
+        - payloadAssemblyVersion
+        - source
+        - materializationContext
+        - coverageManifest
+        - coverageManifestHash
+        - materializationContextHash
+      type: object
+    WorldCharacterMaterializationSourceV2Dto:
+      additionalProperties: false
+      properties:
+        contentHash:
+          type: string
+        contentRevision:
+          type: number
+        core:
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            biography:
+              additionalProperties: false
+              properties:
+                milestones:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      milestoneId:
+                        minLength: 1
+                        type: string
+                      sequence:
+                        type: number
+                      summary:
+                        minLength: 1
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - milestoneId
+                      - title
+                      - summary
+                    type: object
+                  type: array
+                sourceNotes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - milestones
+                - sourceNotes
+              type: object
+            capabilities:
+              additionalProperties: false
+              properties:
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tools:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - interactionModes
+                - tools
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                cadence:
+                  minLength: 1
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+                tone:
+                  minLength: 1
+                  type: string
+              required:
+                - tone
+                - cadence
+              type: object
+            knowledge:
+              additionalProperties: false
+              properties:
+                constraints:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - constraints
+              type: object
+            placement:
+              additionalProperties: false
+              properties:
+                entityId:
+                  minLength: 1
+                  type: string
+                faction:
+                  type: string
+                rank:
+                  type: string
+                role:
+                  type: string
+                sceneRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                worldId:
+                  minLength: 1
+                  type: string
+              required:
+                - worldId
+                - entityId
+                - sceneRefs
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                shortBio:
+                  minLength: 1
+                  type: string
+              required:
+                - displayName
+                - shortBio
+              type: object
+            psychology:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                drives:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - drives
+                - boundaries
+              type: object
+            relationships:
+              items:
+                additionalProperties: false
+                properties:
+                  note:
+                    type: string
+                  relationLabel:
+                    type: string
+                  relationType:
+                    minLength: 1
+                    type: string
+                  relationshipId:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                  targetLabel:
+                    type: string
+                  targetRef:
+                    additionalProperties: false
+                    properties:
+                      entityId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        enum:
+                          - worldEntity
+                        type: string
+                      worldId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - kind
+                      - worldId
+                      - entityId
+                    type: object
+                required:
+                  - relationshipId
+                  - targetRef
+                  - relationType
+                type: object
+              type: array
+          required:
+            - identity
+            - presentation
+            - placement
+            - biography
+            - psychology
+            - knowledge
+            - relationships
+            - capabilities
+            - interactionProfile
+            - assets
+            - authoring
+          type: object
+        createdAt:
+          format: date-time
+          type: string
+        creatorId:
+          type: string
+        entityId:
+          type: string
+        id:
+          type: string
+        kind:
+          enum:
+            - worldCharacter
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+        schemaVersion:
+          enum:
+            - realm.world-character-core/v1
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+        visibility:
+          enum:
+            - private
+            - unlisted
+            - public
+            - system
+          type: string
+        worldId:
+          type: string
+      required:
+        - kind
+        - id
+        - schemaVersion
+        - contentRevision
+        - contentHash
+        - createdAt
+        - updatedAt
+        - origin
+        - creatorId
+        - visibility
+        - worldId
+        - entityId
+        - core
+      type: object
     WorldCoreDto:
+      additionalProperties: false
       properties:
         contentHash:
           type: string
@@ -8685,6 +10137,18 @@ components:
               required:
                 - events
               type: object
+          required:
+            - identity
+            - presentation
+            - ontology
+            - timeModel
+            - timeline
+            - entities
+            - relationships
+            - systems
+            - scenes
+            - assets
+            - authoring
           type: object
         createdAt:
           format: date-time
@@ -8720,6 +10184,7 @@ components:
         - updatedAt
       type: object
     WorldEntityCoreDto:
+      additionalProperties: false
       properties:
         contentHash:
           type: string
@@ -8940,6 +10405,13 @@ components:
                 - summary
                 - kind
               type: object
+          required:
+            - identity
+            - classification
+            - facts
+            - evidence
+            - assets
+            - authoring
           type: object
         createdAt:
           format: date-time
@@ -9028,6 +10500,56 @@ components:
         storageRef:
           nullable: true
           type: string
+      type: object
+    WorldPublicCharacterBiographyDto:
+      properties:
+        lifeEvents:
+          items:
+            $ref: '#/components/schemas/WorldPublicCharacterLifeEventDto'
+          type: array
+        sourceNotes:
+          items:
+            type: string
+          type: array
+      required:
+        - lifeEvents
+        - sourceNotes
+      type: object
+    WorldPublicCharacterLifeEventDto:
+      properties:
+        id:
+          type: string
+        kind:
+          enum:
+            - birth
+            - office
+            - work
+            - relationship
+            - learning
+            - death
+            - other
+          type: string
+        periodLabel:
+          nullable: true
+          type: string
+        sequence:
+          nullable: true
+          type: number
+        source:
+          enum:
+            - biographyMilestone
+            - relationshipSummary
+          type: string
+        summary:
+          type: string
+        title:
+          type: string
+      required:
+        - id
+        - kind
+        - title
+        - summary
+        - source
       type: object
     WorldPublicDetailDto:
       properties:
@@ -9326,6 +10848,11 @@ components:
       type: object
     WorldPublicSourceCardDto:
       properties:
+        characterBiography:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicCharacterBiographyDto'
+          nullable: true
+          type: object
         displayName:
           type: string
         handle:
@@ -9595,6 +11122,7 @@ components:
         - state
       type: object
     WorldRelationshipCoreDto:
+      additionalProperties: false
       properties:
         contentHash:
           type: string
@@ -9684,6 +11212,11 @@ components:
                 summary:
                   type: string
               type: object
+          required:
+            - endpoints
+            - presentation
+            - evidence
+            - authoring
           type: object
         createdAt:
           format: date-time
@@ -9729,7 +11262,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-30T09:28:43.743Z
+    Last updated: 2026-07-10T15:05:55.170Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -9934,9 +11467,11 @@ paths:
           content:
             application/json:
               schema:
+                additionalProperties: false
                 properties:
                   keys:
                     items:
+                      additionalProperties: false
                       properties:
                         alg:
                           enum:
@@ -9951,6 +11486,10 @@ paths:
                             - RSA
                           type: string
                         'n':
+                          type: string
+                        purpose:
+                          enum:
+                            - realm-source-materialization
                           type: string
                         use:
                           enum:
@@ -9970,6 +11509,60 @@ paths:
                 type: object
           description: ''
       summary: Get JWKS
+      tags:
+        - Jwks
+  /api/auth/jwks/source-materialization:
+    get:
+      operationId: getSourceMaterializationJwks
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  keys:
+                    items:
+                      additionalProperties: false
+                      properties:
+                        alg:
+                          enum:
+                            - RS256
+                          type: string
+                        e:
+                          type: string
+                        kid:
+                          type: string
+                        kty:
+                          enum:
+                            - RSA
+                          type: string
+                        'n':
+                          type: string
+                        purpose:
+                          enum:
+                            - realm-source-materialization
+                          type: string
+                        use:
+                          enum:
+                            - sig
+                          type: string
+                      required:
+                        - kid
+                        - use
+                        - alg
+                        - kty
+                        - 'n'
+                        - e
+                        - purpose
+                      type: object
+                    type: array
+                required:
+                  - keys
+                type: object
+          description: ''
+      summary: Get Realm source materialization verification JWKS
       tags:
         - Jwks
   /api/auth/logout:
@@ -13354,7 +14947,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SourceMaterializationPacketDto'
+                $ref: '#/components/schemas/SourceMaterializationPacketV2Dto'
           description: ''
       security:
         - bearer: []

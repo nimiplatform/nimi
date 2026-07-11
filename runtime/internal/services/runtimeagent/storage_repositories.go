@@ -138,28 +138,38 @@ func (r *agentAgentAIConfigRepository) commitSeed(config *runtimev1.RuntimeAgent
 	if r == nil || r.backend == nil {
 		return fmt.Errorf("runtime agent ai config repository unavailable")
 	}
+	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		return r.commitSeedTx(tx, config)
+	})
+}
+
+// commitSeedTx inserts a bootstrap config through a caller-owned transaction.
+// Source materialization uses it so the new LocalAgent, immutable source
+// snapshot/provenance, and mandatory AI config are one commit boundary.
+func (r *agentAgentAIConfigRepository) commitSeedTx(tx *sql.Tx, config *runtimev1.RuntimeAgentAIConfig) error {
+	if tx == nil {
+		return fmt.Errorf("runtime agent ai config seed transaction is required")
+	}
 	raw, updatedAt, updatedBy, err := encodeAgentAIConfigRow(config)
 	if err != nil {
 		return err
 	}
 	agentInstanceID := strings.TrimSpace(config.GetAgentInstanceId())
-	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		var existing uint64
-		err := tx.QueryRow(`SELECT revision FROM runtime_agent_ai_config WHERE agent_instance_id = ?`, agentInstanceID).Scan(&existing)
-		if err == nil {
-			return errAgentAIConfigAlreadySeeded
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("check runtime agent ai config seed state: %w", err)
-		}
-		if _, err := tx.Exec(
-			`INSERT INTO runtime_agent_ai_config(agent_instance_id, revision, config_json, updated_at, updated_by_app_id) VALUES (?, ?, ?, ?, ?)`,
-			agentInstanceID, config.GetRevision(), raw, updatedAt, updatedBy,
-		); err != nil {
-			return fmt.Errorf("insert runtime agent ai config seed: %w", err)
-		}
-		return nil
-	})
+	var existing uint64
+	err = tx.QueryRow(`SELECT revision FROM runtime_agent_ai_config WHERE agent_instance_id = ?`, agentInstanceID).Scan(&existing)
+	if err == nil {
+		return errAgentAIConfigAlreadySeeded
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("check runtime agent ai config seed state: %w", err)
+	}
+	if _, err := tx.Exec(
+		`INSERT INTO runtime_agent_ai_config(agent_instance_id, revision, config_json, updated_at, updated_by_app_id) VALUES (?, ?, ?, ?, ?)`,
+		agentInstanceID, config.GetRevision(), raw, updatedAt, updatedBy,
+	); err != nil {
+		return fmt.Errorf("insert runtime agent ai config seed: %w", err)
+	}
+	return nil
 }
 
 // commitMutation replaces the committed config iff the committed revision

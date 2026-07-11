@@ -178,6 +178,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.2
       retrieved_at: 2026-03-05
       note: OpenAI GPT-5.2 model card.
+    context_window_tokens: 8192
   - model_id: gpt-5.2-2025-12-11
     provider: openai
     model_type: chat
@@ -197,6 +198,7 @@ models:
       retrieved_at: 2026-03-05
       note: OpenAI GPT-5.2 model card.
     api_model_id: gpt-5.2
+    context_window_tokens: 8192
   - model_id: gpt-5.5
     provider: openai
     model_type: chat
@@ -215,6 +217,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.5
       retrieved_at: 2026-06-03
       note: OpenAI GPT-5.5 model card.
+    context_window_tokens: 8192
   - model_id: gpt-5.4
     provider: openai
     model_type: chat
@@ -233,6 +236,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.4
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 model card.
+    context_window_tokens: 8192
   - model_id: gpt-5.4-2026-03-05
     provider: openai
     model_type: chat
@@ -252,6 +256,7 @@ models:
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 model card.
     api_model_id: gpt-5.4
+    context_window_tokens: 8192
   - model_id: gpt-5.4-mini
     provider: openai
     model_type: chat
@@ -270,6 +275,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.4-mini
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 mini model card.
+    context_window_tokens: 8192
   - model_id: gpt-5.4-mini-2026-03-17
     provider: openai
     model_type: chat
@@ -289,6 +295,7 @@ models:
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 mini model card.
     api_model_id: gpt-5.4-mini
+    context_window_tokens: 8192
   - model_id: gpt-5.4-nano
     provider: openai
     model_type: chat
@@ -307,6 +314,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.4-nano
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 nano model card.
+    context_window_tokens: 8192
   - model_id: gpt-5.4-nano-2026-03-17
     provider: openai
     model_type: chat
@@ -326,6 +334,7 @@ models:
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 nano model card.
     api_model_id: gpt-5.4-nano
+    context_window_tokens: 8192
   - model_id: gpt-5.2-pro
     provider: openai
     model_type: chat
@@ -344,6 +353,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.2
       retrieved_at: 2026-03-05
       note: OpenAI GPT-5.2 model card.
+    context_window_tokens: 8192
   - model_id: text-embedding-3-large
     provider: openai
     model_type: embedding
@@ -400,6 +410,7 @@ models:
       url: https://platform.openai.com/docs/models/gpt-4o-mini
       retrieved_at: 2026-03-18
       note: OpenAI GPT-4o mini model card.
+    context_window_tokens: 8192
   - model_id: gpt-image-1.5
     provider: openai
     model_type: image
@@ -467,6 +478,7 @@ models:
       url: https://platform.openai.com/docs/models/o3-mini
       retrieved_at: 2026-03-05
       note: OpenAI o3-mini reasoning model card.
+    context_window_tokens: 8192
   - model_id: o3-mini
     provider: openai
     model_type: chat
@@ -485,6 +497,7 @@ models:
       url: https://platform.openai.com/docs/models/o3-mini
       retrieved_at: 2026-03-05
       note: OpenAI o3-mini reasoning model card.
+    context_window_tokens: 8192
   - model_id: o4-mini
     provider: openai
     model_type: chat
@@ -503,6 +516,7 @@ models:
       url: https://platform.openai.com/docs/models/o4-mini
       retrieved_at: 2026-03-18
       note: OpenAI o4-mini reasoning model card.
+    context_window_tokens: 8192
   - model_id: gpt-5.3-codex
     provider: openai
     model_type: chat
@@ -520,6 +534,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.3-codex
       retrieved_at: 2026-03-05
       note: OpenAI GPT-5.3-Codex agentic coding model card.
+    context_window_tokens: 8192
   - model_id: sora-2
     provider: openai
     model_type: video

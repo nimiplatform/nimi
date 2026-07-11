@@ -24,7 +24,6 @@ import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
 import { issueNimiRuntimeAgentScopedBinding } from './runtime-agent-scoped-binding';
 import { runNimiRuntimeScenarioJob, withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
-  SOURCE_MATERIALIZATION_AUDIENCE,
   withRuntimeAgentLiveE2EFixture,
 } from './runtime-agent-live-e2e-fixture.test-helper';
 import { RUNTIME_ACCOUNT_ACCESS_TOKEN } from './runtime-agent-live-e2e-fixture-shared.test-helper';
@@ -38,7 +37,7 @@ import {
   setFixtureRuntimeAgentPresentationProfile,
 } from './runtime-agent-live-e2e-fixture-runtime.test-helper';
 import { createNimiRuntimeAgentVoiceModule } from './runtime-agent-voice';
-import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
+import type { NimiRuntimeAgentTurnRunnerPart } from './runtime-agent-turn-runner-types';
 
 test('runtime agent live e2e fixture selects chat completion scenarios from registry markers', async () => {
   await withRealmFixtureServer(async ({ baseUrl, requests }) => {
@@ -74,57 +73,6 @@ test('runtime agent live e2e fixture selects chat completion scenarios from regi
     assert.match(streamedContent, /Streaming delta text arrives/u);
     assert.equal(requests[0]?.path, '/v1/chat/completions');
 
-    const repairResponse = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        stream: false,
-        messages: [{
-          role: 'system',
-          content: 'Runtime APML repair task:\nRuntime output contract: <message id="message-0">assistant-visible reply text</message>',
-        }, {
-          role: 'user',
-          parts: [{
-            type: 'text',
-            text: 'Malformed APML packet:\n<message id="message-a-malformed-apml"><activity>thinking</activity>A-09 malformed APML.',
-          }],
-        }],
-      }),
-    });
-    assert.equal(repairResponse.status, 200);
-    const repairPayload = await repairResponse.json() as {
-      readonly choices?: readonly [{
-        readonly message?: { readonly content?: string };
-      }];
-    };
-    assert.match(repairPayload.choices?.[0]?.message?.content ?? '', /message-a-malformed-apml-repair/u);
-
-    const anonymousRepairResponse = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        stream: false,
-        messages: [{
-          role: 'system',
-          content: 'Runtime APML repair task:\nRuntime output contract: <message id="message-0">assistant-visible reply text</message>',
-        }, {
-          role: 'user',
-          content: 'Malformed APML packet:\n<message><activity>thinking</activity>A-09 malformed APML.',
-        }],
-      }),
-    });
-    assert.equal(anonymousRepairResponse.status, 200);
-    const anonymousRepairPayload = await anonymousRepairResponse.json() as {
-      readonly choices?: readonly [{
-        readonly message?: { readonly content?: string };
-      }];
-    };
-    assert.match(anonymousRepairPayload.choices?.[0]?.message?.content ?? '', /message-a-malformed-apml-repair/u);
-
     const sidecarResponse = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
@@ -151,7 +99,83 @@ test('runtime agent live e2e fixture selects chat completion scenarios from regi
   });
 });
 
-test('runtime agent live e2e fixture mints source packet through Runtime-mediated Realm', {
+test('runtime agent live e2e fixture rejects malformed APML after exactly one provider call', {
+  timeout: 180_000,
+}, async () => {
+  await withRuntimeAgentLiveE2EFixture({
+    run: async (fixture) => {
+      const agentClient = createFixtureRuntimeAgentClient(fixture.runtime);
+      const identity = {
+        ownerUserId: fixture.ownerUserId,
+        runtimeSourceRef: fixture.runtimeSourceRef,
+        localAgentRef: fixture.localAgentRef,
+      };
+      const seeded = await agentClient.agentAIConfig.get(identity);
+      await agentClient.agentAIConfig.upsert({
+        ...identity,
+        expectedRevision: seeded.revision,
+        intents: {
+          ...seeded.intents,
+          'text.generate': {
+            route: fixture.route.executionBinding.route,
+            modelId: fixture.route.executionBinding.modelId,
+            targetRef: fixture.route.targetRef,
+          },
+        },
+      });
+      const providerCallsBefore = fixture.realmRequests.filter((request) =>
+        request.method === 'POST' && request.path === '/v1/chat/completions'
+      ).length;
+      const streamed = await agentClient.streamTurn({
+        ...identity,
+        conversationAnchorId: fixture.conversationAnchorId,
+        requestId: 'runtime-agent-live-malformed-apml-no-repair',
+        messages: [{
+          role: 'user',
+          content: `${runtimeAgentLiveE2EChatScenarioPrompt('a-malformed-apml')} reject malformed APML`,
+        }],
+      });
+      const parts: NimiRuntimeAgentTurnRunnerPart[] = [];
+      for await (const part of streamed.stream) {
+        parts.push(part);
+      }
+      const terminal = parts.at(-1);
+      assert.equal(terminal?.type, 'turn-failed');
+      if (terminal?.type !== 'turn-failed') {
+        throw new Error(`expected typed turn-failed terminal, got ${terminal?.type ?? 'none'}`);
+      }
+      assert.equal(terminal.error.code, 'AI_OUTPUT_INVALID');
+      assert.equal(terminal.outputText, undefined);
+      assert.equal(parts.some((part) => part.type === 'message-sealed'), false);
+      assert.equal(parts.some((part) => part.type === 'text-delta'), false);
+      assert.equal(parts.some((part) => part.type.startsWith('beat-') || part.type === 'artifact-ready'), false);
+
+      const providerCalls = fixture.realmRequests.filter((request) =>
+        request.method === 'POST' && request.path === '/v1/chat/completions'
+      ).slice(providerCallsBefore);
+      assert.equal(providerCalls.length, 1, 'malformed APML must not trigger a repair provider call');
+      assert.equal(
+        providerCalls[0]?.fixtureScenarioApml,
+        '<message id="message-a-malformed-apml"><activity>thinking</activity>A-09 malformed APML.',
+      );
+
+      const snapshot = await agentClient.getSessionSnapshot({
+        ...identity,
+        conversationAnchorId: fixture.conversationAnchorId,
+        requestId: 'runtime-agent-live-malformed-apml-snapshot',
+      });
+      assert.equal(snapshot.lastTurn?.status, 'failed');
+      assert.equal(snapshot.lastTurn?.reasonCode, 'AI_OUTPUT_INVALID');
+      assert.equal(snapshot.lastTurn?.messageId, undefined);
+      assert.equal(snapshot.lastTurn?.text, undefined);
+      assert.equal(snapshot.lastTurn?.structured, undefined);
+      assert.equal(snapshot.transcriptMessageCount ?? 0, 0);
+      assert.equal(snapshot.transcript?.length ?? 0, 0);
+    },
+  });
+});
+
+test('runtime agent live e2e fixture materializes through Runtime challenge and mediated Realm packet v2', {
   timeout: 180_000,
 }, async () => {
   await withRuntimeAgentLiveE2EFixture({
@@ -160,18 +184,21 @@ test('runtime agent live e2e fixture mints source packet through Runtime-mediate
       assert.equal(fixture.sourceRef.kind, 'worldCharacter');
       assert.ok(fixture.sourceRef.sourceContentHash);
 
-      const packet = await fixture.createSourceMaterializationPacket();
+      const second = await fixture.materializeSource();
 
-      assert.equal(packet.packetSchemaVersion, 'realm.source-materialization-packet/v1');
-      assert.equal(packet.intendedRuntimeAudience, SOURCE_MATERIALIZATION_AUDIENCE);
-      assert.equal(packet.runtimeSourceRef, fixture.runtimeSourceRef);
-      assert.equal(packet.sourceKind, fixture.sourceRef.kind);
-      assert.equal(packet.sourceId, fixture.sourceRef.sourceId);
-      assert.equal(packet.sourceWorldId, fixture.sourceRef.worldId);
-      assert.equal(packet.sourceContentHash, fixture.sourceRef.sourceContentHash);
-      assert.equal((packet.sourceDisplayMetadata as { readonly worldName?: unknown }).worldName, 'Runtime Live World');
-      assert.match(packet.packetHash, /^[a-f0-9]{64}$/);
-      assert.match(packet.packetProof, /^hmac-sha256:[a-f0-9]{64}$/);
+      assert.match(fixture.sourceMaterialization.packetHash, /^[a-f0-9]{64}$/u);
+      assert.match(fixture.sourceMaterialization.bundleManifestHash, /^[a-f0-9]{64}$/u);
+      assert.equal(fixture.sourceMaterialization.sourceContextStatus.ready, true);
+      assert.notEqual(second.localAgentRef, fixture.localAgentRef);
+      const packetRequest = fixture.realmRequests.find((request) =>
+        request.method === 'POST'
+        && request.path === '/api/realm/core/source-materialization-packets'
+      );
+      const requestBody = packetRequest?.body as Record<string, unknown> | undefined;
+      assert.match(String(requestBody?.challengeId ?? ''), /^[A-Za-z0-9_-]{16,256}$/u);
+      assert.match(String(requestBody?.challengeDigest ?? ''), /^[a-f0-9]{64}$/u);
+      assert.ok(String(requestBody?.intendedRuntimeAudience ?? '').length > 0);
+      assert.doesNotMatch(String(requestBody?.intendedRuntimeAudience ?? ''), /desktop/u);
 
       assert.ok(
         fixture.realmRequests.some((request) =>
@@ -185,7 +212,7 @@ test('runtime agent live e2e fixture mints source packet through Runtime-mediate
   });
 });
 
-test('runtime agent live e2e fixture seeds Runtime-owned LocalAgent from source packet', {
+test('runtime agent live e2e fixture discovers Runtime-owned LocalAgent from bounded source status', {
   timeout: 180_000,
 }, async () => {
   await withRuntimeAgentLiveE2EFixture({
@@ -198,16 +225,13 @@ test('runtime agent live e2e fixture seeds Runtime-owned LocalAgent from source 
       assert.equal(fixture.localAgent.runtimeSourceRef, fixture.runtimeSourceRef);
       assert.equal(fixture.localAgent.localAgentRef, fixture.localAgentRef);
 
-      const metadata = fromNimiRuntimeProtoStruct(fixture.localAgent.agent.metadata);
-      assert.equal(metadata.sourceMaterializationPacket, undefined);
-      assert.equal(
-        (metadata.sourceMaterialization as { readonly runtimeSourceRef?: unknown }).runtimeSourceRef,
-        fixture.runtimeSourceRef,
-      );
-      assert.equal(
-        (metadata.sourceMaterialization as { readonly sourceWorldName?: unknown }).sourceWorldName,
-        'Runtime Live World',
-      );
+      const status = fixture.localAgent.agent.sourceContextStatus;
+      assert.equal(status?.ready, true);
+      assert.equal(status?.localAgentRef, fixture.localAgentRef);
+      assert.equal(status?.sourceRef?.worldId, fixture.sourceRef.worldId);
+      assert.equal(status?.sourceRef?.sourceId, fixture.sourceRef.sourceId);
+      assert.equal(status?.sourceRef?.sourceContentHash, fixture.sourceRef.sourceContentHash);
+      assert.match(status?.snapshotHash ?? '', /^[a-f0-9]{64}$/u);
     },
   });
 });
@@ -646,6 +670,26 @@ test('runtime agent live e2e fixture submits accepted Runtime Agent turn', {
         ),
         'Runtime must expose the live fixture local chat route as an active local asset',
       );
+
+      const agentClient = createFixtureRuntimeAgentClient(fixture.runtime);
+      const identity = {
+        ownerUserId: fixture.ownerUserId,
+        runtimeSourceRef: fixture.runtimeSourceRef,
+        localAgentRef: fixture.localAgentRef,
+      };
+      const seeded = await agentClient.agentAIConfig.get(identity);
+      await agentClient.agentAIConfig.upsert({
+        ...identity,
+        expectedRevision: seeded.revision,
+        intents: {
+          ...seeded.intents,
+          'text.generate': {
+            route: fixture.route.executionBinding.route,
+            modelId: fixture.route.executionBinding.modelId,
+            targetRef: fixture.route.targetRef,
+          },
+        },
+      });
 
       const response = await fixture.sendTurn('hello from the live fixture');
       assert.equal(response.accepted, true);

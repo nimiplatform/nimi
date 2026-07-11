@@ -6,7 +6,6 @@ import type {
   NimiRuntimeAgentAIConfigIntents,
   NimiRuntimeAgentAIConfigModule,
   NimiRuntimeAgentAIConfigReadinessCapabilityState,
-  NimiRuntimeAgentAIConfigReadinessReasonCode,
   NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
   NimiRuntimeAgentAIConfigSnapshot,
   NimiRuntimeAgentAIConfigUpsertInput,
@@ -15,6 +14,11 @@ import type {
   NimiRuntimeAgentInspectSurface,
   NimiRuntimeAgentMemoryObservatorySnapshot,
   NimiRuntimeAgentPresentationProfileProjection,
+  NimiRuntimeAgentSourceContextStatus,
+  NimiRuntimeAgentSourceKind,
+  NimiRuntimeAgentTurnContextSummary,
+  NimiRuntimeAgentTurnContextLaneId,
+  NimiRuntimeAgentTurnContextLaneSummary,
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
@@ -165,6 +169,17 @@ export type AgentCenterOverviewCopy = Partial<{
   readonly offPill: string;
   readonly projectedPill: string;
   readonly readOnlyPill: string;
+  readonly sourceContextTitle: string;
+  readonly sourceContextReadyDescription: string;
+  readonly sourceContextBlockedDescription: string;
+  readonly sourceContextTruncatedDescription: string;
+  readonly sourceContextFailedDescription: string;
+  readonly sourceContextUnknownDescription: string;
+  readonly sourceContextReadyPill: string;
+  readonly sourceContextBlockedPill: string;
+  readonly sourceContextTruncatedPill: string;
+  readonly sourceContextFailedPill: string;
+  readonly sourceContextUnknownPill: string;
 }>;
 
 export type AgentCenterAdvancedCopy = Partial<{
@@ -178,6 +193,31 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly unavailableValue: string;
   readonly notProjectedValue: string;
   readonly noneValue: string;
+  readonly sourceContextStatusLabel: string;
+  readonly sourceKindLabel: string;
+  readonly sourceReferenceLabel: string;
+  readonly sourceSchemaLabel: string;
+  readonly sourceContentHashLabel: string;
+  readonly sourceSnapshotLabel: string;
+  readonly sourceCoverageLabel: string;
+  readonly contextLanesLabel: string;
+  readonly contextBudgetLabel: string;
+  readonly contextTruncationLabel: string;
+  readonly contextInputsLabel: string;
+  readonly routeDigestLabel: string;
+  readonly catalogDigestLabel: string;
+  readonly sourceContextReadyValue: string;
+  readonly sourceContextBlockedValue: string;
+  readonly sourceContextTruncatedValue: string;
+  readonly sourceContextFailedValue: string;
+  readonly sourceContextUnknownValue: string;
+  readonly worldCharacterValue: string;
+  readonly realmPersonaValue: string;
+  readonly sourceCoverageFormat: string;
+  readonly contextLanesFormat: string;
+  readonly contextBudgetFormat: string;
+  readonly contextTruncationFormat: string;
+  readonly contextInputsFormat: string;
 }>;
 
 export type AgentCenterModelCopy = Partial<{
@@ -245,6 +285,11 @@ export interface AgentCenterRuntimeModelConfigAdapter {
 export interface AgentCenterRuntimeLoadInput {
   readonly identity?: RuntimeLocalAgentIdentityInput;
   readonly subjectUserId?: string;
+  readonly conversationAnchorId?: string;
+}
+
+export interface AgentCenterTurnContextLoadInput extends RuntimeLocalAgentIdentityInput {
+  readonly conversationAnchorId?: string;
 }
 
 export interface AgentCenterRuntimeSnapshot {
@@ -252,7 +297,86 @@ export interface AgentCenterRuntimeSnapshot {
   readonly readiness?: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
   readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;
   readonly memory?: NimiRuntimeAgentMemoryObservatorySnapshot | null;
+  readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus | null;
+  readonly turnContextSummary?: NimiRuntimeAgentTurnContextSummary | null;
   readonly runtimeError?: string | null;
+}
+
+export type AgentCenterSourceContextStatus =
+  | 'ready'
+  | 'blocked'
+  | 'truncated'
+  | 'failed'
+  | 'unknown';
+
+export type AgentCenterSourceKind = NimiRuntimeAgentSourceKind;
+
+export type AgentCenterContextLaneId = NimiRuntimeAgentTurnContextLaneId;
+
+export interface AgentCenterSourceCoverageSummary {
+  readonly totalSections: number;
+  readonly completeSections: number;
+  readonly omittedSections: number;
+  readonly requiredItemCount: number;
+  readonly resolvedItemCount: number;
+  readonly omittedItemCount: number;
+}
+
+export interface AgentCenterSourceProjectionSummary {
+  readonly kind: AgentCenterSourceKind;
+  readonly schemaVersion: 'v1';
+  readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona/v1';
+  readonly worldId: string;
+  readonly sourceId: string;
+  readonly sourceContentHash: string;
+  readonly snapshotHash: string;
+  readonly worldContentHash: string;
+  readonly materializationContextHash: string;
+  readonly capturedAt: string;
+  readonly coverage: AgentCenterSourceCoverageSummary;
+}
+
+export interface AgentCenterContextLaneSummary {
+  readonly laneId: AgentCenterContextLaneId;
+  readonly state: NimiRuntimeAgentTurnContextLaneSummary['state'];
+  readonly includedItemCount: number;
+  readonly omittedItemCount: number;
+  readonly truncatedItemCount: number;
+  readonly allocatedTokens: string;
+  readonly usedTokens: string;
+}
+
+export interface AgentCenterTurnContextProjectionSummary {
+  readonly schemaVersion: 'v1';
+  readonly manifestSchemaVersion: 'v1';
+  readonly compilerSchemaVersion: 'v1';
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly manifestInstanceHash: string | null;
+  readonly contextContentHash: string | null;
+  readonly promptHash: string | null;
+  readonly lanes: readonly AgentCenterContextLaneSummary[];
+  readonly budget: {
+    readonly contextWindowTokens: string;
+    readonly inputBudgetTokens: string;
+    readonly usedTokens: string;
+  };
+  readonly truncation: {
+    readonly omittedItemCount: number;
+    readonly truncatedItemCount: number;
+  };
+  readonly transcriptTurnCount: number;
+  readonly memoryItemCount: number;
+  readonly mediaCount: number;
+  readonly toolCount: number;
+  readonly routeDigest: string;
+  readonly catalogRevisionDigest: string;
+}
+
+export interface AgentCenterSourceContextProjection {
+  readonly status: AgentCenterSourceContextStatus;
+  readonly source: AgentCenterSourceProjectionSummary | null;
+  readonly context: AgentCenterTurnContextProjectionSummary | null;
 }
 
 export interface AgentCenterAppearanceProjection {
@@ -552,7 +676,6 @@ export interface AgentCenterCapabilityState {
   readonly label: string;
   readonly required: boolean;
   readonly readinessState: NimiRuntimeAgentAIConfigReadinessCapabilityState | 'unknown';
-  readonly reasonCode: NimiRuntimeAgentAIConfigReadinessReasonCode | 'unknown';
   readonly probedAt: string | null;
   readonly binding: NimiRuntimeAgentAIConfigBinding | null;
   readonly blocksTextTurns: boolean;
@@ -601,6 +724,7 @@ export interface AgentCenterState {
   readonly cognition: AgentCenterCognitionState;
   readonly appearance: AgentCenterAppearanceProjection;
   readonly diagnostics: AgentCenterAdvancedDiagnosticsState;
+  readonly sourceContext: AgentCenterSourceContextProjection;
   readonly sections: readonly AgentCenterSectionId[];
 }
 
@@ -616,6 +740,7 @@ export interface AgentCenterProps {
   readonly defaultSection?: AgentCenterSectionId;
   readonly onSectionChange?: (section: AgentCenterSectionId) => void;
   readonly runtimeAdapter?: AgentCenterRuntimeAdapter | null;
+  readonly runtimeLoadInput?: AgentCenterRuntimeLoadInput;
   readonly appearanceAdapter?: AgentCenterAppearanceAdapter | null;
   readonly copy?: AgentCenterCopy;
   readonly appearanceCopy?: AgentCenterAppearanceCopy;

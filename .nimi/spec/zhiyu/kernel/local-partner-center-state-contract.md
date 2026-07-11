@@ -13,6 +13,10 @@ product state authority. The v1 state set is:
 - partner_responding
 - recoverable_failure
 
+Bounded LocalAgent source/context `ready`, `blocked`, `truncated`, and `failed`
+values are upstream projection inputs mapped into this existing product state
+set; they do not add a second Zhiyu state machine or new product states.
+
 ## Z-STATE-002 First Screen
 
 The first screen must be the local partner center state, not a diagnostics
@@ -24,6 +28,14 @@ card wall.
 Zhiyu may present state derived from admitted upstream projections and local UI
 state. It must not synthesize partner readiness, model readiness, memory state,
 Runtime session state, or Avatar carrier readiness.
+
+LocalAgent source/context state is derived only from the closed Runtime/SDK
+`LocalAgentSourceContextStatus` and `AgentTurnContextSummary` projections.
+Ready, blocked, truncated, and failed remain distinct typed states. Unknown,
+partial, malformed, unsupported, or absent-required projection state never
+maps to `partner_ready`; it maps to a typed unavailable/recoverable failure.
+Zhiyu must not maintain a second readiness reducer over raw source, profile,
+prompt, lane, memory, proof, or diagnostics data.
 
 ## Z-STATE-004 Check Local Service
 

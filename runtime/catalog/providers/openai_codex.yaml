@@ -21,6 +21,7 @@ models:
       url: https://developers.openai.com/codex/auth
       retrieved_at: 2026-04-23
       note: OpenAI Codex authentication guide covering ChatGPT subscription and API-key access.
+    context_window_tokens: 8192
   - model_id: gpt-5.3-codex
     provider: openai_codex
     model_type: chat
@@ -38,6 +39,7 @@ models:
       url: https://developers.openai.com/codex/auth
       retrieved_at: 2026-04-23
       note: OpenAI Codex authentication guide covering ChatGPT subscription and API-key access.
+    context_window_tokens: 8192
   - model_id: gpt-image-2
     provider: openai_codex
     model_type: image

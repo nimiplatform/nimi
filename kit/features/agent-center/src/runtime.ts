@@ -2,6 +2,8 @@ import type {
   NimiRuntimeAgentAIConfigModule,
   NimiRuntimeAgentInspectSurface,
   NimiRuntimeAgentMemoryObservatorySnapshot,
+  NimiRuntimeAgentSourceContextStatus,
+  NimiRuntimeAgentTurnContextSummary,
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
@@ -10,6 +12,7 @@ import type {
   AgentCenterRuntimeAdapter,
   AgentCenterRuntimeLoadInput,
   AgentCenterRuntimeSnapshot,
+  AgentCenterTurnContextLoadInput,
 } from './types.js';
 
 export interface CreateRuntimeAgentCenterAdapterInput {
@@ -19,6 +22,12 @@ export interface CreateRuntimeAgentCenterAdapterInput {
   readonly loadMemory?: (
     input: RuntimeLocalAgentIdentityInput,
   ) => Promise<NimiRuntimeAgentMemoryObservatorySnapshot | null>;
+  readonly loadSourceContextStatus?: (
+    input: RuntimeLocalAgentIdentityInput,
+  ) => Promise<NimiRuntimeAgentSourceContextStatus | null>;
+  readonly loadTurnContextSummary?: (
+    input: AgentCenterTurnContextLoadInput,
+  ) => Promise<NimiRuntimeAgentTurnContextSummary | null>;
 }
 
 function resolveAutonomyMutationIdentity(
@@ -82,17 +91,37 @@ export function createRuntimeAgentCenterAdapter(
     async loadSnapshot(loadInput = {}): Promise<AgentCenterRuntimeSnapshot> {
       const identity = requireIdentity(input.identity, loadInput);
       const callInput = { ...identity, subjectUserId: loadInput.subjectUserId };
-      const [agentAIConfig, readiness, inspect, memory] = await Promise.all([
+      const [
+        agentAIConfig,
+        readiness,
+        inspect,
+        memory,
+        sourceContextStatus,
+        turnContextSummary,
+      ] = await Promise.all([
         input.agentAIConfig.get(callInput),
         input.agentAIConfig.readiness(callInput),
         input.inspect ? input.inspect.getPublicInspect(identity) : Promise.resolve(null),
         input.loadMemory && identity ? input.loadMemory(identity) : Promise.resolve(null),
+        input.loadSourceContextStatus
+          ? input.loadSourceContextStatus(identity)
+          : Promise.resolve(null),
+        input.loadTurnContextSummary
+          ? input.loadTurnContextSummary({
+              ...identity,
+              ...(loadInput.conversationAnchorId
+                ? { conversationAnchorId: loadInput.conversationAnchorId }
+                : {}),
+            })
+          : Promise.resolve(null),
       ]);
       return {
         agentAIConfig,
         readiness,
         inspect,
         memory,
+        sourceContextStatus,
+        turnContextSummary,
       };
     },
     upsertAgentAIConfig(upsertInput) {

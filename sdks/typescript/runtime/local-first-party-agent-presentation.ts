@@ -89,6 +89,13 @@ export function createNimiLocalFirstPartyAgentPresentationClient(
     appId,
     transport: nativeNodeTransport(nodeTransport),
   });
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    appId,
+    appInstanceId,
+    deviceId,
+    developerRegistration: false,
+    auth: accountRuntime.auth,
+  });
   const presentationTransport = nativeNodeTransport(nodeTransport);
   assertRuntimeNodeGrpcSensitiveTransport(presentationTransport, SET_PRESENTATION_PROFILE_METHOD);
   installRuntimeNodeGrpcLocalFirstPartyAuthority(presentationTransport, {
@@ -97,7 +104,7 @@ export function createNimiLocalFirstPartyAgentPresentationClient(
         caller: accountCaller,
         requestedScopes: [],
       }, withNimiRuntimeIdempotencyMetadata(
-        undefined,
+        { metadata: await sessionMetadata() },
         createNimiClientId('runtime-account-access-token'),
       ));
       const accessToken = normalizeText(response.accessToken);
@@ -121,13 +128,6 @@ export function createNimiLocalFirstPartyAgentPresentationClient(
     appId,
     transport: presentationTransport,
   });
-  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId,
-    appInstanceId,
-    deviceId,
-    developerRegistration: false,
-    auth: accountRuntime.auth,
-  });
   const protectedRuntime = {
     appId,
     auth: accountRuntime.auth,
@@ -143,7 +143,7 @@ export function createNimiLocalFirstPartyAgentPresentationClient(
     const projectedIdentity = projectRuntimeLocalAgentIdentity(identity);
     const status = await accountRuntime.account.getAccountSessionStatus({
       caller: accountCaller,
-    });
+    }, { metadata: await sessionMetadata() });
     const subjectUserId = normalizeText(status.accountProjection?.accountId);
     if (status.state !== AccountSessionState.AUTHENTICATED || !subjectUserId) {
       throw createNimiError({

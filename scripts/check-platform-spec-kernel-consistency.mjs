@@ -27,6 +27,10 @@ function readYaml(rel) {
   return readYamlWithFragments(path.join(cwd, rel));
 }
 
+function isPlatformRuleId(value) {
+  return /^P-(?:[A-Z]{2,12}|AGENT-CENTER)-\d{3}$/u.test(value);
+}
+
 // --- Load tables ---
 
 const errorCodesTable = readYaml('.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml');
@@ -81,7 +85,7 @@ for (const code of codes) {
 
   // Check source format: P-PROTO-NNN
   const source = String(code?.source_rule || '').trim();
-  if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !isPlatformRuleId(source)) {
     fail(`protocol-error-codes.yaml ${name}: invalid source_rule format: ${source}`);
   }
 
@@ -109,7 +113,7 @@ for (const prim of primitives) {
 
   // Check source format
   const source = String(prim?.source_rule || '').trim();
-  if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !isPlatformRuleId(source)) {
     fail(`protocol-primitives.yaml ${name}: invalid source_rule format: ${source}`);
   }
 
@@ -157,7 +161,7 @@ for (const layer of layers) {
       fail(`compliance-test-matrix.yaml ${layerName}: item missing name`);
     }
     const source = String(item?.source_rule || '').trim();
-    if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+    if (source && !isPlatformRuleId(source)) {
       fail(`compliance-test-matrix.yaml ${layerName}/${itemName}: invalid source_rule format: ${source}`);
     }
   }
@@ -181,7 +185,7 @@ for (const event of events) {
   eventNames.add(name);
 
   const source = String(event?.source_rule || '').trim();
-  if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !isPlatformRuleId(source)) {
     fail(`audit-events.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
@@ -206,7 +210,7 @@ for (const preset of presets) {
   presetsByName.set(name, preset);
 
   const source = String(preset?.source_rule || '').trim();
-  if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !isPlatformRuleId(source)) {
     fail(`app-authorization-presets.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
@@ -299,7 +303,7 @@ for (const profile of profiles) {
   }
 
   const source = String(profile?.source_rule || '').trim();
-  if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
+  if (source && !isPlatformRuleId(source)) {
     fail(`participant-profiles.yaml ${pid}: invalid source_rule format: ${source}`);
   }
 }
@@ -325,7 +329,7 @@ for (const event of events) {
 
 // Verify all references match P-*-NNN format
 for (const ref of allSourceRefs) {
-  if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(ref)) {
+  if (!isPlatformRuleId(ref)) {
     fail(`cross-table: invalid P-* rule ID format: ${ref}`);
   }
 }
@@ -360,6 +364,7 @@ const requiredKernelFiles = [
   'test-governance-contract.md',
   'mod-extension-retirement-contract.md',
   'agent-identity-floor-contract.md',
+  'agent-center-contract.md',
   'app-permission-contract.md',
   'nimi-first-party-integration-contract.md',
   'nimi-first-party-migration-contract.md',
@@ -421,6 +426,7 @@ const kernelContracts = [
   'test-governance-contract.md',
   'mod-extension-retirement-contract.md',
   'agent-identity-floor-contract.md',
+  'agent-center-contract.md',
   'app-permission-contract.md',
   'nimi-first-party-integration-contract.md',
   'nimi-first-party-migration-contract.md',
@@ -435,7 +441,7 @@ for (const file of kernelContracts) {
   if (!fs.existsSync(filePath)) continue;
   const content = fs.readFileSync(filePath, 'utf8');
   // Match headings like: ## P-PROTO-001 — ...
-  const headingPattern = /^##\s+(P-[A-Z]{2,12}-\d{3})\b/gmu;
+  const headingPattern = /^##\s+(P-(?:[A-Z]{2,12}|AGENT-CENTER)-\d{3})\b/gmu;
   let match;
   while ((match = headingPattern.exec(content)) !== null) {
     definedRuleIds.add(match[1]);
@@ -453,7 +459,7 @@ function collectYamlSources(data, filePath) {
         for (const [key, value] of Object.entries(obj)) {
           if (key === 'source_rule' && typeof value === 'string') {
             const s = value.trim();
-            if (/^P-[A-Z]{2,12}-\d{3}$/u.test(s)) {
+            if (isPlatformRuleId(s)) {
               sources.push(s);
             }
           } else {
@@ -551,14 +557,14 @@ for (const rel of domainDocs) {
   if (!/^##\s+0\.\s+Normative Imports\b/mu.test(content)) {
     fail(`${rel} must define Section 0 Normative Imports`);
   }
-  if (/^##\s+P-[A-Z]+-\d{3}\b/gmu.test(content)) {
+  if (/^##\s+P-(?:[A-Z]{2,12}|AGENT-CENTER)-\d{3}\b/gmu.test(content)) {
     fail(`${rel} must not define kernel Rule IDs directly`);
   }
   checkNoLocalRuleIds(content, rel);
   checkNoRuleDefinitionHeadings(content, rel);
 
   // Match individual P-*-NNN references (not ranges like P-PROTO-001–105)
-  const refPattern = /\bP-[A-Z]{2,12}-(\d{3})\b/gu;
+  const refPattern = /\bP-(?:[A-Z]{2,12}|AGENT-CENTER)-(\d{3})\b/gu;
   let match;
   while ((match = refPattern.exec(content)) !== null) {
     const ref = match[0];
@@ -631,7 +637,7 @@ function checkErrorCodeMapping(definedRuleIds) {
     } else if (!protocolErrors.has(platformError)) {
       fail(`${rel} ${platformError}: platform_error not found in protocol-error-codes.yaml`);
     }
-    if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(platformSource) || !definedRuleIds.has(platformSource)) {
+    if (!isPlatformRuleId(platformSource) || !definedRuleIds.has(platformSource)) {
       fail(`${rel} ${platformError || '<empty>'} has invalid platform_source: ${platformSource || '<empty>'}`);
     }
     if (!allowedCategories.has(category)) {
@@ -768,7 +774,7 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const naReason = String(item?.na_reason || '').trim();
     const evidenceScopeNote = String(item?.evidence_scope_note || '').trim();
-    if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(ruleId)) {
+    if (!isPlatformRuleId(ruleId)) {
       fail(`${rel} has invalid rule_id format: ${ruleId || '<empty>'}`);
       continue;
     }
@@ -1214,11 +1220,11 @@ function checkOrphanRules(definedRuleIds, domainDocs) {
 function collectReferencedPlatformRuleIds(content, definedRuleIds) {
   const refs = new Set();
 
-  for (const match of content.matchAll(/\bP-[A-Z]{2,12}-\d{3}\b/g)) {
+  for (const match of content.matchAll(/\bP-(?:[A-Z]{2,12}|AGENT-CENTER)-\d{3}\b/g)) {
     refs.add(match[0]);
   }
 
-  for (const match of content.matchAll(/\b(P-[A-Z]{2,12})-\*/g)) {
+  for (const match of content.matchAll(/\b(P-(?:[A-Z]{2,12}|AGENT-CENTER))-\*/g)) {
     const prefix = `${match[1]}-`;
     for (const ruleId of definedRuleIds) {
       if (ruleId.startsWith(prefix)) {
@@ -1227,7 +1233,7 @@ function collectReferencedPlatformRuleIds(content, definedRuleIds) {
     }
   }
 
-  for (const match of content.matchAll(/\b(P-[A-Z]{2,12})-(\d{3})[–-](\d{3})\b/g)) {
+  for (const match of content.matchAll(/\b(P-(?:[A-Z]{2,12}|AGENT-CENTER))-(\d{3})[–-](\d{3})\b/g)) {
     const prefix = `${match[1]}-`;
     const start = Number.parseInt(match[2], 10);
     const end = Number.parseInt(match[3], 10);

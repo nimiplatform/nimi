@@ -54,6 +54,10 @@ When `inventory_mode=dynamic_endpoint`, provider snapshot MAY omit static
 
 `models[]` capability-conditional fields:
 
+- remote `static_source` row 的 capability 包含 `text.generate` 时，
+  `context_window_tokens` MUST 是正整数；其值必须来自 source model override 或
+  source provider 的 reviewed conservative floor。非 `text.generate` row MUST NOT
+  携带该字段。`local` text row 继续以 `fitness.context_length` 为 catalog authority。
 - when capability includes `audio.synthesize`: `voice_set_id` MUST be present.
 - when capability includes `audio.synthesize` and speech route-describe metadata is admitted: `voice_request_options` MAY be present.
 - when capability includes `audio.transcribe` and speech route-describe metadata is admitted: `transcription` MAY be present.

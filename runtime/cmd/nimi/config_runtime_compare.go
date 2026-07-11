@@ -63,9 +63,6 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if authDeveloperRegistrationEnabledValue(before) != authDeveloperRegistrationEnabledValue(after) {
 		return true
 	}
-	if strings.TrimSpace(before.SourceMaterializationPacketHMACSecret) != strings.TrimSpace(after.SourceMaterializationPacketHMACSecret) {
-		return true
-	}
 	if !runtimeProvidersEqual(before.Providers, after.Providers) {
 		return true
 	}

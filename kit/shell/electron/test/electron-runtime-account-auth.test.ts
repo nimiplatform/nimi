@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvider,
   createNimiElectronRuntimeAccountTrustedMetadataProvider,
+  probeNimiElectronRuntimeRawAccessPosture,
 } from '../src/main/runtime-account-auth.js';
 
 const ACCOUNT_SESSION_STATE_ANONYMOUS = 1;
@@ -9,6 +10,7 @@ const ACCOUNT_SESSION_STATE_AUTHENTICATED = 3;
 const ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP = 1;
 const ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP = 7;
 const ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP = 8;
+const ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR = 3;
 const EXTERNAL_PRINCIPAL_TYPE_APP = 2;
 const POLICY_MODE_CUSTOM = 2;
 const AUTHORIZATION_PRESET_UNSPECIFIED = 0;
@@ -594,5 +596,127 @@ describe('Electron Runtime account trusted metadata provider', () => {
         grants: { authorizeExternalPrincipal: async () => ({ tokenId: 'grant', secret: 'secret' }) },
       },
     })).toThrow(/developerRegistration/);
+  });
+
+  it('owns first-party raw access probing in Electron main without projecting token material', async () => {
+    const registrationInputs: Record<string, unknown>[] = [];
+    let accessOptions: Record<string, unknown> | undefined;
+    const result = await probeNimiElectronRuntimeRawAccessPosture({
+      appId: 'nimi.avatar',
+      runtimeEndpoint: '127.0.0.1:46371',
+      posture: 'first-party',
+      accountCaller: {
+        appId: 'nimi.avatar',
+        appInstanceId: 'nimi.avatar.local-first-party',
+        deviceId: 'nimi-avatar-local-first-party-device',
+        mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+        scopes: ['account.raw-token'],
+      },
+      appSession: {
+        appInstanceId: 'nimi.avatar.local-first-party',
+        deviceId: 'nimi-avatar-local-first-party-device',
+        capabilities: ['account.session.read', 'account.raw-token'],
+        developerRegistration: false,
+      },
+      runtime: {
+        account: {
+          getAccessToken: async (_input: unknown, options?: Record<string, unknown>) => {
+            accessOptions = options;
+            return {
+              accepted: true,
+              accessToken: 'memory-only-realm-access-token',
+              reasonCode: 0,
+              accountReasonCode: 0,
+            };
+          },
+        },
+        auth: {
+          registerApp: async (input: Record<string, unknown>) => {
+            registrationInputs.push(input);
+            return { accepted: true };
+          },
+          openSession: async () => ({
+            sessionId: 'avatar-session',
+            sessionToken: 'avatar-session-secret',
+            expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+          }),
+        },
+      },
+    });
+
+    expect(registrationInputs).toHaveLength(1);
+    expect(registrationInputs[0]).toMatchObject({
+      appId: 'nimi.avatar',
+      appInstanceId: 'nimi.avatar.local-first-party',
+      deviceId: 'nimi-avatar-local-first-party-device',
+      capabilities: ['account.raw-token', 'account.session.read'],
+      developerRegistration: false,
+    });
+    expect(accessOptions?.metadata).toMatchObject({
+      'x-nimi-session-id': 'avatar-session',
+      'x-nimi-session-token': 'avatar-session-secret',
+    });
+    expect(result).toEqual({
+      posture: 'first-party',
+      accepted: true,
+      materialPresent: true,
+      materialProjected: false,
+      reasonCode: 0,
+      accountReasonCode: 0,
+    });
+    expect(JSON.stringify(result)).not.toContain('memory-only-realm-access-token');
+    expect(JSON.stringify(result)).not.toContain('avatar-session-secret');
+  });
+
+  it('probes binding-only raw access without registration, session, or returned material', async () => {
+    let authCalled = false;
+    let accessOptions: Record<string, unknown> | undefined;
+    const result = await probeNimiElectronRuntimeRawAccessPosture({
+      appId: 'nimi.avatar',
+      runtimeEndpoint: '127.0.0.1:46371',
+      posture: 'binding-only',
+      accountCaller: {
+        appId: 'nimi.avatar',
+        appInstanceId: 'nimi.avatar.binding-only',
+        deviceId: 'desktop-avatar-host',
+        mode: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR,
+        scopes: [],
+      },
+      runtime: {
+        account: {
+          getAccessToken: async (_input: unknown, options?: Record<string, unknown>) => {
+            accessOptions = options;
+            return {
+              accepted: false,
+              accessToken: '',
+              reasonCode: 7,
+              accountReasonCode: 11,
+            };
+          },
+        },
+        auth: {
+          registerApp: async () => {
+            authCalled = true;
+            return { accepted: true };
+          },
+          openSession: async () => {
+            authCalled = true;
+            return { sessionId: 'forbidden', sessionToken: 'forbidden' };
+          },
+        },
+      },
+    });
+
+    expect(authCalled).toBe(false);
+    expect(accessOptions).toBeUndefined();
+    expect(result).toEqual({
+      posture: 'binding-only',
+      accepted: false,
+      materialPresent: false,
+      materialProjected: false,
+      reasonCode: 7,
+      accountReasonCode: 11,
+    });
+    expect(Object.keys(result)).not.toContain('accessToken');
   });
 });

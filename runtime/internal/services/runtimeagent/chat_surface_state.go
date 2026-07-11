@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -42,11 +43,9 @@ type persistedPublicChatAnchor struct {
 	Binding                publicChatExecutionBinding                  `json:"binding"`
 	Bindings               publicChatExecutionBindings                 `json:"bindings,omitempty"`
 	ConfigRevision         uint64                                      `json:"configRevision,omitempty"`
-	ExecutionParams        map[string]map[string]any                   `json:"executionParams,omitempty"`
-	SystemPrompt           string                                      `json:"systemPrompt"`
 	MaxTokens              int32                                       `json:"maxTokens"`
 	Reasoning              *publicChatReasoningConfig                  `json:"reasoning,omitempty"`
-	Transcript             []json.RawMessage                           `json:"transcript"`
+	CommittedTranscript    []publicChatCommittedTranscriptTurn         `json:"committedTranscript"`
 	ActiveTurnSnapshot     *persistedPublicChatTurnSnapshot            `json:"activeTurnSnapshot,omitempty"`
 	LastTurnSnapshot       *persistedPublicChatTurnSnapshot            `json:"lastTurnSnapshot,omitempty"`
 	CompletedTurnSnapshots map[string]*persistedPublicChatTurnSnapshot `json:"completedTurnSnapshots,omitempty"`
@@ -81,12 +80,43 @@ type persistedPublicChatTurnSnapshot struct {
 	AssistantMemory   *publicChatAssistantMemoryOutcome `json:"assistantMemory,omitempty"`
 	Sidecar           *publicChatSidecarOutcome         `json:"sidecar,omitempty"`
 	FollowUp          *publicChatFollowUpOutcome        `json:"followUp,omitempty"`
+	ContextSummary    *persistedAgentTurnContextSummary `json:"contextSummary,omitempty"`
 	FinishReason      string                            `json:"finishReason,omitempty"`
 	StreamSimulated   bool                              `json:"streamSimulated,omitempty"`
 	ReasonCode        runtimev1.ReasonCode              `json:"reasonCode,omitempty"`
 	ActionHint        string                            `json:"actionHint,omitempty"`
 	Message           string                            `json:"message,omitempty"`
 	UpdatedAt         string                            `json:"updatedAt,omitempty"`
+}
+
+// persistedAgentTurnContextSummary uses strict proto JSON so persistence
+// cannot silently accept unknown summary fields. Raw lanes and prompt text are
+// structurally absent from the bounded protobuf.
+type persistedAgentTurnContextSummary struct {
+	Summary *runtimev1.AgentTurnContextSummary
+}
+
+func (p persistedAgentTurnContextSummary) MarshalJSON() ([]byte, error) {
+	if p.Summary == nil {
+		return []byte("null"), nil
+	}
+	return (protojson.MarshalOptions{UseProtoNames: true}).Marshal(p.Summary)
+}
+
+func (p *persistedAgentTurnContextSummary) UnmarshalJSON(raw []byte) error {
+	if p == nil {
+		return fmt.Errorf("unmarshal agent turn context summary into nil target")
+	}
+	if strings.TrimSpace(string(raw)) == "" || strings.TrimSpace(string(raw)) == "null" {
+		p.Summary = nil
+		return nil
+	}
+	summary := &runtimev1.AgentTurnContextSummary{}
+	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(raw, summary); err != nil {
+		return fmt.Errorf("unmarshal agent turn context summary: %w", err)
+	}
+	p.Summary = summary
+	return nil
 }
 
 func formatOptionalTime(value time.Time) string {
@@ -151,6 +181,9 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 		if session == nil {
 			continue
 		}
+		if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
+			return persistedPublicChatSurfaceState{}, fmt.Errorf("capture conversation anchor %s continuity: %w", session.ConversationAnchorID, err)
+		}
 		item := persistedPublicChatAnchor{
 			ConversationAnchorID:   session.ConversationAnchorID,
 			AgentID:                session.AgentID,
@@ -163,15 +196,13 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			Binding:                session.Binding,
 			Bindings:               clonePublicChatExecutionBindings(session.Bindings),
 			ConfigRevision:         session.ConfigRevision,
-			ExecutionParams:        clonePublicChatExecutionParams(session.ExecutionParams),
-			SystemPrompt:           session.SystemPrompt,
 			MaxTokens:              session.MaxTokens,
 			Reasoning:              clonePublicChatReasoningConfig(session.Reasoning),
 			ActiveTurnSnapshot:     toPersistedPublicChatTurnSnapshot(session.ActiveTurnSnapshot),
 			LastTurnSnapshot:       toPersistedPublicChatTurnSnapshot(session.LastTurnSnapshot),
 			CompletedTurnSnapshots: toPersistedPublicChatTurnSnapshotMap(session.CompletedTurnSnapshots),
 			PendingFollowUpID:      session.PendingFollowUpID,
-			Transcript:             make([]json.RawMessage, 0, len(session.Transcript)),
+			CommittedTranscript:    append([]publicChatCommittedTranscriptTurn{}, session.CommittedTranscript...),
 			Status:                 int32(session.Status),
 			LastTurnID:             session.LastTurnID,
 			LastMessageID:          session.LastMessageID,
@@ -181,16 +212,6 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 		}
 		if !session.UpdatedAt.IsZero() {
 			item.UpdatedAt = session.UpdatedAt.UTC().Format(time.RFC3339Nano)
-		}
-		for _, message := range session.Transcript {
-			if message == nil {
-				continue
-			}
-			raw, err := marshal.Marshal(message)
-			if err != nil {
-				return persistedPublicChatSurfaceState{}, fmt.Errorf("marshal public chat transcript: %w", err)
-			}
-			item.Transcript = append(item.Transcript, raw)
 		}
 		snapshot.Anchors = append(snapshot.Anchors, item)
 	}
@@ -389,6 +410,26 @@ func (s *Service) persistCurrentPublicChatSurfaceState() {
 	}
 }
 
+// persistPublicChatSurfaceStateLocked is the fail-closed persistence path for
+// irreversible public-chat state transitions. The caller must hold
+// chatSurfaceMu for the entire capture and SQLite transaction so the in-memory
+// transcript cannot advance independently of its durable representation.
+// Best-effort projection updates continue to use
+// persistCurrentPublicChatSurfaceState; they are not commit boundaries.
+func (s *Service) persistPublicChatSurfaceStateLocked() error {
+	if s == nil || s.isClosed() || s.chatStateRepo == nil {
+		return fmt.Errorf("public chat surface persistence unavailable")
+	}
+	snapshot, err := s.capturePublicChatSurfaceSnapshotLocked()
+	if err != nil {
+		return fmt.Errorf("capture public chat surface state: %w", err)
+	}
+	if err := s.chatStateRepo.persistPublicChatSurfaceState(snapshot); err != nil {
+		return fmt.Errorf("persist public chat surface state version %d: %w", snapshot.Version, err)
+	}
+	return nil
+}
+
 func (s *Service) loadPublicChatSurfaceStateFromDB() error {
 	if s == nil || s.chatStateRepo == nil {
 		return nil
@@ -408,9 +449,20 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 	if strings.TrimSpace(raw) == "" {
 		return nil
 	}
+	if hasRetiredPublicChatContinuityFields(raw) {
+		if s != nil && s.logger != nil {
+			s.logger.Warn("discarding retired public chat continuity state")
+		}
+		return r.clearPublicChatSurfaceStateForCoreHardcut()
+	}
 	var persisted persistedPublicChatSurfaceState
-	if err := json.Unmarshal([]byte(raw), &persisted); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&persisted); err != nil {
 		return fmt.Errorf("parse public chat surface state: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("parse public chat surface state: trailing JSON content")
 	}
 	if strings.TrimSpace(versionRaw) != "" {
 		if version, err := decodeSequenceValue(versionRaw); err == nil && version > persisted.Version {
@@ -423,7 +475,6 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 		return r.clearPublicChatSurfaceStateForCoreHardcut()
 	}
-	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
 	s.chatSurfaceVersion = persisted.Version
@@ -446,13 +497,8 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
 			return fmt.Errorf("persisted conversation anchor %s local identity invalid: %w", item.ConversationAnchorID, err)
 		}
-		transcript := make([]*runtimev1.ChatMessage, 0, len(item.Transcript))
-		for _, rawMessage := range item.Transcript {
-			message := &runtimev1.ChatMessage{}
-			if err := unmarshal.Unmarshal(rawMessage, message); err != nil {
-				return fmt.Errorf("parse public chat transcript message: %w", err)
-			}
-			transcript = append(transcript, message)
+		if err := validatePublicChatCommittedTranscript(item.CommittedTranscript); err != nil {
+			return fmt.Errorf("persisted conversation anchor %s continuity invalid: %w", item.ConversationAnchorID, err)
 		}
 		createdAt := time.Time{}
 		updatedAt := time.Time{}
@@ -490,12 +536,10 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			Binding:                binding,
 			Bindings:               bindings,
 			ConfigRevision:         item.ConfigRevision,
-			ExecutionParams:        clonePublicChatExecutionParams(item.ExecutionParams),
 			ActiveTurnID:           "",
-			SystemPrompt:           item.SystemPrompt,
 			MaxTokens:              item.MaxTokens,
 			Reasoning:              clonePublicChatReasoningConfig(item.Reasoning),
-			Transcript:             transcript,
+			CommittedTranscript:    clonePublicChatCommittedTranscript(item.CommittedTranscript),
 			ActiveTurnSnapshot:     fromPersistedPublicChatTurnSnapshot(item.ActiveTurnSnapshot),
 			LastTurnSnapshot:       fromPersistedPublicChatTurnSnapshot(item.LastTurnSnapshot),
 			CompletedTurnSnapshots: fromPersistedPublicChatTurnSnapshotMap(item.CompletedTurnSnapshots),
@@ -585,6 +629,26 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 	}
 	return nil
+}
+
+// hasRetiredPublicChatContinuityFields is a rejection-only hard-cut sentinel.
+// It never projects old message or prompt fields into canonical transcript
+// truth; any pre-cutover anchor payload is discarded as a unit.
+func hasRetiredPublicChatContinuityFields(raw string) bool {
+	var envelope struct {
+		Anchors []map[string]json.RawMessage `json:"anchors"`
+	}
+	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
+		return false
+	}
+	for _, anchor := range envelope.Anchors {
+		for _, key := range []string{"transcript", "contextHistory", "systemPrompt", "executionParams"} {
+			if _, exists := anchor[key]; exists {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func hasPreCoreHardcutPublicChatSurfaceState(persisted persistedPublicChatSurfaceState) bool {
@@ -697,6 +761,7 @@ func toPersistedPublicChatTurnSnapshot(input *publicChatTurnProjectionState) *pe
 		AssistantMemory:   clonePublicChatAssistantMemoryOutcome(input.AssistantMemory),
 		Sidecar:           clonePublicChatSidecarOutcome(input.Sidecar),
 		FollowUp:          clonePublicChatFollowUpOutcome(input.FollowUp),
+		ContextSummary:    toPersistedAgentTurnContextSummary(input.ContextSummary),
 		FinishReason:      input.FinishReason,
 		StreamSimulated:   input.StreamSimulated,
 		ReasonCode:        input.ReasonCode,
@@ -704,6 +769,13 @@ func toPersistedPublicChatTurnSnapshot(input *publicChatTurnProjectionState) *pe
 		Message:           input.Message,
 		UpdatedAt:         input.UpdatedAt.UTC().Format(time.RFC3339Nano),
 	}
+}
+
+func toPersistedAgentTurnContextSummary(input *runtimev1.AgentTurnContextSummary) *persistedAgentTurnContextSummary {
+	if input == nil {
+		return nil
+	}
+	return &persistedAgentTurnContextSummary{Summary: cloneAgentTurnContextSummary(input)}
 }
 
 func toPersistedPublicChatTurnSnapshotMap(input map[string]*publicChatTurnProjectionState) map[string]*persistedPublicChatTurnSnapshot {
@@ -760,6 +832,7 @@ func fromPersistedPublicChatTurnSnapshot(input *persistedPublicChatTurnSnapshot)
 		AssistantMemory:   clonePublicChatAssistantMemoryOutcome(input.AssistantMemory),
 		Sidecar:           clonePublicChatSidecarOutcome(input.Sidecar),
 		FollowUp:          clonePublicChatFollowUpOutcome(input.FollowUp),
+		ContextSummary:    fromPersistedAgentTurnContextSummary(input.ContextSummary),
 		FinishReason:      input.FinishReason,
 		StreamSimulated:   input.StreamSimulated,
 		ReasonCode:        input.ReasonCode,
@@ -767,6 +840,13 @@ func fromPersistedPublicChatTurnSnapshot(input *persistedPublicChatTurnSnapshot)
 		Message:           input.Message,
 		UpdatedAt:         updatedAt,
 	}
+}
+
+func fromPersistedAgentTurnContextSummary(input *persistedAgentTurnContextSummary) *runtimev1.AgentTurnContextSummary {
+	if input == nil {
+		return nil
+	}
+	return cloneAgentTurnContextSummary(input.Summary)
 }
 
 func fromPersistedPublicChatTurnSnapshotMap(input map[string]*persistedPublicChatTurnSnapshot) map[string]*publicChatTurnProjectionState {

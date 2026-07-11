@@ -29,6 +29,39 @@ function stateInput(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStat
   };
 }
 
+function readySourceStatus(): NonNullable<AgentCenterStateInput['sourceContextStatus']> {
+  return {
+    schemaVersion: 'v1',
+    ready: true,
+    state: 'ready',
+    reasonCode: 'none',
+    localAgentRef: 'local-agent:owner:agent',
+    sourceRef: {
+      kind: 'realmPersona',
+      worldId: 'world-1',
+      sourceId: 'persona-1',
+      sourceContentHash: 'a'.repeat(64),
+    },
+    sourceSchemaVersion: 'realm.persona/v1',
+    snapshotSchemaVersion: 'v1',
+    snapshotHash: 'b'.repeat(64),
+    capturedAt: '2026-07-11T01:02:03.000Z',
+    worldContentHash: 'c'.repeat(64),
+    materializationContextHash: 'd'.repeat(64),
+    coverageSections: [
+      { section: 'identity', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'presentation', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'interaction_profile', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'assets', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'authoring', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'persona_style', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'content_profile', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'world_core', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'dependency_closure', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+    ],
+  };
+}
+
 describe('Agent Center state', () => {
   it('uses text.generate readiness as the base send gate without blocking on optional image/audio', () => {
     const state = buildAgentCenterState(stateInput());
@@ -38,6 +71,35 @@ describe('Agent Center state', () => {
     expect(state.capabilities.find((item) => item.capability === 'image.generate')?.blocksTextTurns).toBe(false);
     expect(state.capabilities.find((item) => item.capability === 'audio.synthesize')?.blocksTextTurns).toBe(false);
     expect(state.capabilities.find((item) => item.capability === 'audio.synthesize')?.editable).toBe(true);
+    expect(state.sourceContext.status).toBe('unknown');
+  });
+
+  it('keeps a missing first-turn context unknown without blocking the admitted text route', () => {
+    const state = buildAgentCenterState(stateInput({
+      sourceContextStatus: readySourceStatus(),
+      turnContextSummary: null,
+    }));
+
+    expect(state.sourceContext.status).toBe('unknown');
+    expect(state.sourceContext.source).toMatchObject({
+      kind: 'realmPersona',
+      sourceContentHash: 'a'.repeat(64),
+    });
+    expect(state.baseTextReady).toBe(true);
+    expect(state.runtimeStatus).toBe('ready');
+  });
+
+  it('drops raw and machine fields from fail-closed Agent Center state', () => {
+    const sourceContextStatus = {
+      ...readySourceStatus(),
+      rawWorld: 'RAW_STATE_CANARY',
+      actionHint: 'rebuild_private_context',
+    } as unknown as NonNullable<AgentCenterStateInput['sourceContextStatus']>;
+    const state = buildAgentCenterState(stateInput({ sourceContextStatus }));
+    const serialized = JSON.stringify(state);
+
+    expect(state.sourceContext.status).toBe('failed');
+    expect(serialized).not.toMatch(/RAW_STATE_CANARY|rawWorld|reasonCode|actionHint|rebuild_private_context/u);
   });
 
   it('fails closed when Runtime inspect is unavailable and disables autonomy controls', () => {

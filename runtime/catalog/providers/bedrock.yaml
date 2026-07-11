@@ -22,6 +22,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: claude-opus-4-8
     provider: bedrock
     model_type: chat
@@ -41,6 +42,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-opus-4-8
+    context_window_tokens: 8192
   - model_id: anthropic.claude-opus-4-6-v1
     provider: bedrock
     model_type: chat
@@ -59,6 +61,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: claude-opus-4-6
     provider: bedrock
     model_type: chat
@@ -78,6 +81,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-opus-4-6-v1
+    context_window_tokens: 8192
   - model_id: anthropic.claude-sonnet-4-6
     provider: bedrock
     model_type: chat
@@ -96,6 +100,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: claude-sonnet-4-6
     provider: bedrock
     model_type: chat
@@ -115,6 +120,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-sonnet-4-6
+    context_window_tokens: 8192
   - model_id: anthropic.claude-opus-4-5-20251101-v1:0
     provider: bedrock
     model_type: chat
@@ -133,6 +139,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: claude-opus-4-5
     provider: bedrock
     model_type: chat
@@ -152,6 +159,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-opus-4-5-20251101-v1:0
+    context_window_tokens: 8192
   - model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
     provider: bedrock
     model_type: chat
@@ -170,6 +178,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: claude-sonnet-4-5
     provider: bedrock
     model_type: chat
@@ -189,6 +198,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
+    context_window_tokens: 8192
   - model_id: anthropic.claude-haiku-4-5-20251001-v1:0
     provider: bedrock
     model_type: chat
@@ -207,6 +217,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: claude-haiku-4-5
     provider: bedrock
     model_type: chat
@@ -226,6 +237,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: anthropic.claude-haiku-4-5-20251001-v1:0
+    context_window_tokens: 8192
   - model_id: amazon.nova-premier-v1:0
     provider: bedrock
     model_type: chat
@@ -244,6 +256,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: nova-premier
     provider: bedrock
     model_type: chat
@@ -263,6 +276,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-premier-v1:0
+    context_window_tokens: 8192
   - model_id: amazon.nova-pro-v1:0
     provider: bedrock
     model_type: chat
@@ -281,6 +295,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: nova-pro
     provider: bedrock
     model_type: chat
@@ -300,6 +315,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-pro-v1:0
+    context_window_tokens: 8192
   - model_id: amazon.nova-lite-v1:0
     provider: bedrock
     model_type: chat
@@ -318,6 +334,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: nova-lite
     provider: bedrock
     model_type: chat
@@ -337,6 +354,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-lite-v1:0
+    context_window_tokens: 8192
   - model_id: amazon.nova-micro-v1:0
     provider: bedrock
     model_type: chat
@@ -354,6 +372,7 @@ models:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
+    context_window_tokens: 8192
   - model_id: nova-micro
     provider: bedrock
     model_type: chat
@@ -372,6 +391,7 @@ models:
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-micro-v1:0
+    context_window_tokens: 8192
 voices: []
 selection_profiles:
   - provider: bedrock

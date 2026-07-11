@@ -8,6 +8,8 @@ This contract defines Desktop `Explore` as the Realm discovery surface for
 WorldCore and source-core identities. The surface discovers:
 
 - admitted `WorldCore` records;
+- `WorldCharacterCore` source records through their World/detail/source-detail
+  route;
 - `RealmPersona` source records bound to a World;
 - public Realm activity from human, persona, and world-character sources.
 
@@ -19,15 +21,16 @@ layout, or AI execution.
 ## D-EXPL-001 — Explore Is The Unified Realm Discovery Surface
 
 `MUST`: `Explore` is the single ordinary Desktop surface for discovering Realm
-Worlds, RealmPersonas, and public activity. The previous standalone World
-surface is folded into Explore.
+Worlds, RealmPersonas, World-bound WorldCharacterCore sources, and public
+activity. The previous standalone World surface is folded into Explore.
 
 `MUST`: primary navigation placement is owned by `D-SHELL-001`; this rule fixes
 only the product responsibility of Explore as Realm discovery.
 
 `MUST NOT`: ordinary primary navigation must not keep a standalone World entry
 outside Explore. Explore must not become App discovery; App discovery belongs to
-the Apps surface.
+the Apps surface. WorldCharacterCore discovery must use World/detail/source
+detail and must not add a fourth Explore section.
 
 ## D-EXPL-002 — Explore Sections
 
@@ -73,7 +76,8 @@ typed data exists:
 - WorldCore overview;
 - semantic/world summary;
 - scenes, locations, and entry points;
-- featured WorldCharacterCore or RealmPersona sources;
+- featured WorldCharacterCore or RealmPersona sources, with a typed
+  source-detail route for either kind;
 - public activity;
 - local materialization availability where relevant;
 - governance or status information when useful to ordinary users.
@@ -85,9 +89,10 @@ typed data exists:
 World and persona authoring belong to admitted creator/studio surfaces, not to
 ordinary Explore.
 
-## D-EXPL-005 — RealmPersona Card Fields
+## D-EXPL-005 — Character And Persona Source Card Fields
 
-`MUST`: Persona cards may present only these product facts:
+`MUST`: RealmPersona and WorldCharacterCore source cards may present only these
+product facts:
 
 - `displayName` / `avatar`;
 - `worldOrigin`;
@@ -97,9 +102,14 @@ ordinary Explore.
 - `sourceState`;
 - `primaryAction`, derived from `sourceState` by `D-EXPL-006`.
 
-`MUST`: `sourceState` must come from typed core source data and Runtime local
-agent inventory/provenance. Until a trusted packet materialization path exists,
-Desktop must use a closed local materialization unavailable state.
+`MUST`: RealmPersona discovery enters through the existing `Personas` section.
+WorldCharacterCore discovery enters through World/detail/source-detail. Both
+source kinds converge on `D-EXPL-006`; no new Explore section is admitted.
+
+`MUST`: `sourceState` must come from typed core source data plus the bounded
+Runtime/SDK `LocalAgentSourceContextStatus` and opaque local-agent
+inventory/provenance projection. Unknown/partial status remains a closed local
+materialization unavailable state.
 
 `MUST NOT`: Persona cards must not carry relationship state, quota state, direct
 source chat, or local conversation readiness as if those were RealmPersona
@@ -107,12 +117,12 @@ truth.
 
 ## D-EXPL-006 — Source State To Primary Action
 
-`MUST`: Persona primary action is derived from the source-state table
-`tables/realm-persona-materialization-actions.yaml`.
+`MUST`: WorldCharacterCore and RealmPersona primary action is derived from the
+source-generic state table `tables/realm-source-materialization-actions.yaml`.
 
 | Source state | Primary action | Result |
 |---|---|---|
-| `source_materialization_available` | `Become my partner` | Request a fresh SourceMaterializationPacket, ask Runtime to materialize the opaque LocalAgent, then open the partner/chat surface by Runtime-owned localAgentRef. |
+| `source_materialization_available` | `Become my partner` / `成为我的伙伴` | Emit a typed materialization intent for the selected WorldCharacterCore or RealmPersona source. Realm obtains the packet and Runtime owns challenge, validation, snapshot, LocalAgent identity, and materialization. |
 | `local_agent_available` | `Open partner` | Open an existing Runtime-owned LocalAgent discovered from Runtime inventory/provenance. |
 | `local_agent_ambiguous` | `Open from partners` | Fail closed because Runtime inventory/provenance returned more than one matching partner. |
 | `runtime_agent_inventory_pending` | `Checking partner` | Disable the action while Desktop is checking Runtime inventory/provenance. |
@@ -130,24 +140,34 @@ read through the SDK/host projection. Desktop may pass the Runtime-owned opaque
 renderer state and must not construct `localAgentRef` from Realm source fields.
 
 `MUST NOT`: Explore must not open LocalAgent Chat directly from a bare
-RealmPersona source. LocalAgent Chat requires a Runtime-owned LocalAgent with
+Realm source. LocalAgent Chat requires a Runtime-owned LocalAgent with
 opaque identity; source provenance alone is not executable LocalAgent identity.
+
+Desktop consumes only bounded `LocalAgentSourceContextStatus`; it does not
+receive source snapshot content, packet/proof, raw diagnostics, prompt, or
+context. It never supplies a caller-selected audience, prompt/context, or
+LocalAgent identity to materialization.
+
+- AUTHORITY-RELATION subject=desktop action=consume-status object=localagent-source value=bounded-only polarity=require
+- AUTHORITY-RELATION subject=desktop-materialization-actions action=set-authority object=source-materialization value=source-generic polarity=require
 
 ## D-EXPL-007 — Source Materialization Handoff
 
-`MUST`: When a user chooses a persona source, Desktop Explore may only emit a
-local materialization handoff intent. The handoff references the RealmPersona
-source and its World binding, and may request a fresh
-SourceMaterializationPacket; it is not a relationship mutation, a durable Realm
-connection, or LocalAgent creation.
+`MUST`: When a user chooses a WorldCharacterCore or RealmPersona source,
+Desktop Explore may only emit a local materialization handoff intent. The
+handoff identifies the typed source ref and World binding. Realm owns packet
+issuance and Runtime owns challenge, upload validation, immutable snapshot,
+provenance, and LocalAgent creation; the handoff is not a relationship
+mutation, durable Realm connection, packet DTO, or LocalAgent creation.
 
 `MUST`: SourceMaterializationPacket materialization is consumed by Runtime under
 `K-AGCORE-139`. LocalAgent deletion/reset is Runtime-local under
 `K-AGCORE-141`. Source removal does not delete LocalAgent state. Explore may
 show their state but must not implement them as renderer-local truth.
 
-`MUST NOT`: Explore must not fabricate a LocalAgent, write back to RealmPersona,
-or infer source readiness from cached card data.
+`MUST NOT`: Explore must not fabricate a LocalAgent, write back to the source,
+fix or replace the Runtime-issued audience, attach prompt/context, or infer
+source readiness from cached card data.
 
 ## D-EXPL-008 — No Desktop Source Creation Entry
 
@@ -189,6 +209,10 @@ with guessed names, counts, worlds, avatars, or activity.
 `MUST NOT`: Explore must not silently coerce unsupported source fields into
 card truth or local materialization truth.
 
+Unknown or partial `LocalAgentSourceContextStatus` schema, enum, state, source
+kind, reason, or coverage branch is an unavailable/failed state and never a
+materialization-ready or local-agent-ready state.
+
 ## D-EXPL-012 — Source Governance Boundaries
 
 `MUST`: Explore consumes World policy, source visibility, account capability,
@@ -197,6 +221,10 @@ moderation, quota, and audit outcomes only through admitted typed projections.
 `MUST NOT`: Explore must not bypass world policy, source visibility,
 moderation, quota, audit, or core ownership rules by issuing renderer-local
 mutations.
+
+Desktop receives no raw source/world snapshot, packet/proof, prompt/lane,
+memory, or context authority through governance projections. Bounded status is
+presentation input only.
 
 ## D-EXPL-013 — World Creation Is Not Ordinary Explore Behavior
 
@@ -223,12 +251,14 @@ Admitted v1 pairings are:
 Invalid section/productIntent pairings fail closed as
 `desktop-open-target-unsupported`. Explore Open Intent must not create
 WorldCore, RealmPersona, SourceMaterializationPacket, or LocalAgent truth.
+WorldCharacterCore source materialization remains reachable through a selected
+World/detail/source-detail path; it does not add a section/productIntent pair.
 
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/tables/explore-sections.yaml` — Explore section catalog.
 - `.nimi/spec/desktop/kernel/tables/explore-open-targets.yaml` — Explore Desktop Open target and productIntent catalog.
-- `.nimi/spec/desktop/kernel/tables/realm-persona-materialization-actions.yaml` — source-state to primary-action table.
+- `.nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml` — source-generic WorldCharacterCore/RealmPersona state-to-action table.
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — navigation and World Detail layout.
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — Apps surface boundary.
 - `.nimi/spec/realm/kernel/core-contract.md` — WorldCore, WorldCharacterCore, RealmPersona, SourceMaterializationPacket authority.

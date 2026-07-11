@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/url"
 	"strings"
 	"time"
 	"unicode"
@@ -66,7 +67,66 @@ const (
 	maxGRPCSendMessageBytes  = runtimeartifactservice.MaxInlineBytes + (1 << 20)
 	maxGRPCConcurrentStreams = 128
 	grpcIOBufferBytes        = 32 << 10
+
+	sourceMaterializationRealmJWKSPath = "/api/auth/jwks/source-materialization"
 )
+
+type sourceMaterializationWiringDisposition uint8
+
+const (
+	sourceMaterializationWiringUnconfigured sourceMaterializationWiringDisposition = iota
+	sourceMaterializationWiringReady
+	sourceMaterializationWiringRejected
+)
+
+type sourceMaterializationWiringConfig struct {
+	disposition sourceMaterializationWiringDisposition
+	issuer      string
+	jwksURL     string
+}
+
+func resolveSourceMaterializationWiring(authJWTIssuer, accountRealmBaseURL string) (sourceMaterializationWiringConfig, error) {
+	if authJWTIssuer == "" && accountRealmBaseURL == "" {
+		return sourceMaterializationWiringConfig{disposition: sourceMaterializationWiringUnconfigured}, nil
+	}
+	if authJWTIssuer == "" || accountRealmBaseURL == "" {
+		return sourceMaterializationWiringConfig{disposition: sourceMaterializationWiringRejected}, fmt.Errorf("source materialization requires Realm issuer and Realm base URL together")
+	}
+	if authJWTIssuer != strings.TrimSpace(authJWTIssuer) || accountRealmBaseURL != strings.TrimSpace(accountRealmBaseURL) {
+		return sourceMaterializationWiringConfig{disposition: sourceMaterializationWiringRejected}, fmt.Errorf("source materialization Realm configuration must not contain surrounding whitespace")
+	}
+
+	parsed, err := url.Parse(accountRealmBaseURL)
+	if err != nil || !parsed.IsAbs() || parsed.Opaque != "" || parsed.Host == "" || parsed.Hostname() == "" {
+		return sourceMaterializationWiringConfig{disposition: sourceMaterializationWiringRejected}, fmt.Errorf("source materialization Realm base URL must be absolute with a host")
+	}
+	if parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || strings.Contains(accountRealmBaseURL, "#") {
+		return sourceMaterializationWiringConfig{disposition: sourceMaterializationWiringRejected}, fmt.Errorf("source materialization Realm base URL must not contain userinfo, query, or fragment")
+	}
+
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "https" && !(scheme == "http" && isSourceMaterializationLoopbackHost(parsed.Hostname())) {
+		return sourceMaterializationWiringConfig{disposition: sourceMaterializationWiringRejected}, fmt.Errorf("source materialization Realm base URL must use HTTPS outside loopback")
+	}
+
+	parsed.Scheme = scheme
+	parsed.Path = sourceMaterializationRealmJWKSPath
+	parsed.RawPath = ""
+	parsed.RawQuery = ""
+	parsed.ForceQuery = false
+	parsed.Fragment = ""
+	parsed.RawFragment = ""
+	return sourceMaterializationWiringConfig{
+		disposition: sourceMaterializationWiringReady,
+		issuer:      authJWTIssuer,
+		jwksURL:     parsed.String(),
+	}, nil
+}
+
+func isSourceMaterializationLoopbackHost(host string) bool {
+	host = strings.Trim(strings.ToLower(host), "[]")
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
 
 func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
 	addr := cfg.GRPCAddr
@@ -226,12 +286,34 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		_ = memorySvc.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
+	agentSvc.SetSourceMaterializationProductCommitter(agentSvc)
+	if cfg.RuntimeID == "" {
+		logger.Warn("source materialization disabled; Runtime identity is not configured")
+	} else if err := agentSvc.SetSourceMaterializationRuntimeIdentity(cfg.RuntimeID); err != nil {
+		logger.Warn("source materialization disabled; Runtime identity binding failed", "error", err)
+	}
+	materializationWiring, materializationWiringErr := resolveSourceMaterializationWiring(cfg.AuthJWTIssuer, cfg.AccountRealmBaseURL)
+	if materializationWiringErr != nil {
+		logger.Warn("source materialization disabled; Realm admission configuration is invalid", "error", materializationWiringErr)
+	} else if materializationWiring.disposition == sourceMaterializationWiringUnconfigured {
+		logger.Warn("source materialization disabled; Realm admission is not configured")
+	} else {
+		materializationAdmission, err := runtimeagentservice.NewSourceMaterializationV2Admission(
+			materializationWiring.issuer,
+			materializationWiring.jwksURL,
+			nil,
+		)
+		if err != nil {
+			logger.Warn("source materialization disabled; Realm admission initialization failed", "error", err)
+		} else {
+			agentSvc.SetSourceMaterializationAdmission(materializationAdmission)
+		}
+	}
 	agentSvc.SetScopedBindingValidator(accountSvc)
 	agentSvc.SetAuditStore(auditStore)
 	// K-AGCORE-146: Runtime Agent AI Config readiness recomputes on provider health
 	// change evidence.
 	agentSvc.SetProviderHealthTracker(aiHealth)
-	agentSvc.SetSourceMaterializationPacketHMACSecret(cfg.SourceMaterializationPacketHMACSecret)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))

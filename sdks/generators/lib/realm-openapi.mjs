@@ -57,7 +57,13 @@ function parseOpenApiSchema(schema) {
     if (Array.isArray(schema.allOf) && variants.length === 1) {
       return withOpenApiNullable(parseOpenApiSchema(variants[0]), schema);
     }
-    return withOpenApiNullable({ kind: 'union', variants: variants.map(parseOpenApiSchema) }, schema);
+    return withOpenApiNullable({
+      kind: 'union',
+      variants: variants.map(parseOpenApiSchema),
+      discriminator: typeof schema.discriminator?.propertyName === 'string'
+        ? schema.discriminator.propertyName
+        : null,
+    }, schema);
   }
   if (schema.type === 'object' || schema.properties || schema.additionalProperties) {
     const required = new Set(Array.isArray(schema.required) ? schema.required.map(String) : []);
@@ -68,6 +74,7 @@ function parseOpenApiSchema(schema) {
         required: required.has(name),
         schema: parseOpenApiSchema(property),
       })),
+      closed: schema.additionalProperties === false,
       additional_properties: schema.additionalProperties ? parseOpenApiSchema(schema.additionalProperties) : null,
     }, schema);
   }
@@ -76,6 +83,129 @@ function parseOpenApiSchema(schema) {
     type: schema.type || 'unknown',
     format: schema.format || null,
   }, schema);
+}
+
+function pascalTypeSegment(value) {
+  return String(value)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((segment) => `${segment[0].toUpperCase()}${segment.slice(1)}`)
+    .join('') || 'Value';
+}
+
+function collectParsedSchemaRefs(schema, output) {
+  if (!schema || typeof schema !== 'object') return;
+  if (schema.kind === 'ref' && schema.ref_name) {
+    output.add(schema.ref_name);
+    return;
+  }
+  if (schema.kind === 'array') {
+    collectParsedSchemaRefs(schema.items, output);
+    return;
+  }
+  if (schema.kind === 'union') {
+    for (const variant of schema.variants || []) collectParsedSchemaRefs(variant, output);
+    return;
+  }
+  if (schema.kind === 'object') {
+    for (const property of schema.properties || []) collectParsedSchemaRefs(property.schema, output);
+    collectParsedSchemaRefs(schema.additional_properties, output);
+  }
+}
+
+function materializationModelClosure(modelByName) {
+  const pending = ['CreateSourceMaterializationPacketDto', 'SourceMaterializationPacketV2Dto'];
+  const selected = new Set();
+  while (pending.length > 0) {
+    const name = pending.shift();
+    if (!name || selected.has(name)) continue;
+    const schema = modelByName.get(name);
+    if (!schema) throw new Error(`Realm materialization schema closure is missing ${name}`);
+    selected.add(name);
+    const refs = new Set();
+    collectParsedSchemaRefs(schema, refs);
+    for (const ref of [...refs].sort()) {
+      if (!selected.has(ref)) pending.push(ref);
+    }
+  }
+  return selected;
+}
+
+function promoteClosedInlineSchema(schema, typeName, syntheticModels) {
+  if (!schema || typeof schema !== 'object') return schema;
+  if (schema.kind === 'array') {
+    return { ...schema, items: promoteClosedInlineSchema(schema.items, `${typeName}Item`, syntheticModels) };
+  }
+  if (schema.kind === 'union') {
+    const promotedUnion = {
+      ...schema,
+      variants: (schema.variants || []).map((variant, index) =>
+        promoteClosedInlineSchema(variant, `${typeName}Variant${index + 1}`, syntheticModels)),
+    };
+    if (!(promotedUnion.variants || []).every((variant) => variant.kind === 'ref')) {
+      return promotedUnion;
+    }
+    if (syntheticModels.has(typeName)) {
+      throw new Error(`duplicate generated Realm materialization inline model: ${typeName}`);
+    }
+    syntheticModels.set(typeName, promotedUnion);
+    return {
+      kind: 'ref',
+      ref: `#generated/materialization/${typeName}`,
+      ref_name: typeName,
+      ...(schema.nullable === true ? { nullable: true } : {}),
+    };
+  }
+  if (schema.kind !== 'object') return schema;
+
+  const promotedObject = {
+    ...schema,
+    properties: (schema.properties || []).map((property) => ({
+      ...property,
+      schema: promoteClosedInlineSchema(
+        property.schema,
+        `${typeName}${pascalTypeSegment(property.name)}`,
+        syntheticModels,
+      ),
+    })),
+    additional_properties: schema.additional_properties
+      ? promoteClosedInlineSchema(schema.additional_properties, `${typeName}AdditionalProperty`, syntheticModels)
+      : null,
+  };
+  if (schema.closed !== true) return promotedObject;
+  if (syntheticModels.has(typeName)) {
+    throw new Error(`duplicate generated Realm materialization inline model: ${typeName}`);
+  }
+  syntheticModels.set(typeName, promotedObject);
+  return { kind: 'ref', ref: `#generated/materialization/${typeName}`, ref_name: typeName };
+}
+
+function promoteMaterializationInlineModels(modelSchemas) {
+  const modelByName = new Map(modelSchemas.map((model) => [model.name, model.schema]));
+  const closure = materializationModelClosure(modelByName);
+  const syntheticModels = new Map();
+  const promoted = modelSchemas.map((model) => {
+    if (!closure.has(model.name) || model.schema.kind !== 'object') return model;
+    return {
+      ...model,
+      schema: {
+        ...model.schema,
+        properties: (model.schema.properties || []).map((property) => ({
+          ...property,
+          schema: promoteClosedInlineSchema(
+            property.schema,
+            `${model.name}${pascalTypeSegment(property.name)}`,
+            syntheticModels,
+          ),
+        })),
+      },
+    };
+  });
+  return [
+    ...promoted,
+    ...[...syntheticModels.entries()].map(([name, schema]) => ({ name, schema })),
+  ].sort((left, right) => left.name.localeCompare(right.name));
 }
 
 function parseOpenApiOperations(spec) {
@@ -156,6 +286,8 @@ export function extractRealmCore() {
       name,
       schema: parseOpenApiSchema(schemas[name]),
     }));
+    modelSchemas = promoteMaterializationInlineModels(modelSchemas);
+    modelNames = modelSchemas.map((model) => model.name);
   }
 
   const services = new Map();

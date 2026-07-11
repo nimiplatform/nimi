@@ -237,6 +237,52 @@ func (s *Service) ResolvePublicChatTextBinding(
 	return routeDecision, modelResolved, nil
 }
 
+// ResolvePublicChatTextContextMetadata returns the catalog-owned capacity and
+// revision identity for the exact text route used by Runtime Agent context
+// composition. Missing target/catalog capacity is a fail-closed condition;
+// callers must not substitute a default window.
+func (s *Service) ResolvePublicChatTextContextMetadata(
+	ctx context.Context,
+	route runtimev1.RoutePolicy,
+	modelID string,
+	targetRef *runtimev1.RuntimeDurableTargetRef,
+) (uint64, string, string, string, error) {
+	if s == nil || s.speechCatalog == nil {
+		return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+	}
+	provider := ""
+	resolvedModelID := strings.TrimSpace(modelID)
+	switch route {
+	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
+		if targetRef == nil || targetRef.GetLocalRuntime() == nil {
+			return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		provider = "local"
+	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
+		cloud := targetRef.GetCloud()
+		if cloud == nil {
+			return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		provider = strings.TrimSpace(cloud.GetProvider())
+		if providerModelID := strings.TrimSpace(cloud.GetProviderModelId()); providerModelID != "" {
+			resolvedModelID = providerModelID
+		}
+	default:
+		return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	metadata, err := s.speechCatalog.ResolveTextContextMetadataForSubject(
+		catalogSubjectUserIDFromContext(ctx),
+		provider,
+		resolvedModelID,
+	)
+	if err != nil {
+		return 0, "", "", "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "add_model_context_window_to_runtime_catalog",
+		})
+	}
+	return metadata.ContextWindowTokens, metadata.CatalogVersion, metadata.ModelRevision, metadata.Provider, nil
+}
+
 // SetLocalProviderEndpoint hot-swaps the in-process local provider backend
 // endpoint after the daemon bootstraps a managed engine.
 func (s *Service) SetLocalProviderEndpoint(providerID string, endpoint string, apiKey string) {

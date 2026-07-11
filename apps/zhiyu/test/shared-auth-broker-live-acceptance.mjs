@@ -6,6 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { _electron as electron } from 'playwright';
 
+import { Realm } from '../../../sdks/typescript/realm/index.ts';
 import { withRuntimeDaemon } from '../../../sdks/typescript/runtime/live-runtime-daemon.test-helper.ts';
 import { withRealmFixtureServer } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts';
 import {
@@ -14,22 +15,26 @@ import {
   completeRuntimeAccountLogin,
   createFixtureRuntimeAgentClient,
   createRuntimeForEndpoint,
+  createRuntimeMediatedRealmTransport,
   desktopAccountCaller,
-  initializeFixtureLocalAgent,
   logoutRuntimeAccount,
+  materializeFixtureLocalAgent,
+  realmWorldStudioCaller,
   registerRuntimeApp,
 } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
-import { createFixtureSourceMaterializationPacket } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-source-packet.test-helper.ts';
 import {
   DESKTOP_APP_ID,
   DESKTOP_APP_INSTANCE_ID,
   DESKTOP_DEVICE_ID,
   OWNER_USER_ID,
+  REALM_STUDIO_DEVICE_ID,
+  REALM_WORLD_STUDIO_APP_ID,
+  REALM_WORLD_STUDIO_APP_INSTANCE_ID,
   RUNTIME_ACCOUNT_ACCESS_TOKEN,
   RUNTIME_ACCOUNT_REFRESH_TOKEN,
+  RUNTIME_AUTH_JWT_AUDIENCE,
+  RUNTIME_AUTH_JWT_ISSUER,
   RUNTIME_SOURCE_REF,
-  SOURCE_MATERIALIZATION_AUDIENCE,
-  SOURCE_PACKET_HMAC_SECRET,
 } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-shared.test-helper.ts';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -84,9 +89,6 @@ const appConfigs = [
       'runtime.agent.avatar_debug.write',
     ],
     env: {
-      NIMI_AVATAR_ELECTRON_LOCAL_AGENT_OWNER_USER_ID: OWNER_USER_ID,
-      NIMI_AVATAR_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF: 'runtime-source:shared-auth-live',
-      NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF: 'local-agent:shared-auth-live',
       NIMI_AVATAR_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE: 'local-first-party-app',
     },
   },
@@ -131,6 +133,10 @@ await withRealmFixtureServer({
         NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL: baseUrl,
         NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL: `${baseUrl}/api/auth/oauth/authorize`,
         NIMI_RUNTIME_ACCOUNT_TOKEN_URL: `${baseUrl}/api/auth/oauth/token`,
+        NIMI_RUNTIME_AUTH_JWT_ISSUER: RUNTIME_AUTH_JWT_ISSUER,
+        NIMI_RUNTIME_AUTH_JWT_AUDIENCE: RUNTIME_AUTH_JWT_AUDIENCE,
+        NIMI_RUNTIME_AUTH_JWT_JWKS_URL: `${baseUrl}/api/auth/jwks`,
+        NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL: `${baseUrl}/api/auth/sessions/introspect`,
         NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION: `shared-auth-live-${randomUUID()}`,
         NIMI_RUNTIME_APP_REGISTRY_PATH: path.join(
           repoRoot,
@@ -141,19 +147,30 @@ await withRealmFixtureServer({
           'tables',
           'nimi-app-registry.yaml',
         ),
-        SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET: SOURCE_PACKET_HMAC_SECRET,
       },
       run: async ({ endpoint }) => {
         const desktopRuntime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID);
+        const studioRuntime = createRuntimeForEndpoint(endpoint, REALM_WORLD_STUDIO_APP_ID);
         const desktopCaller = desktopAccountCaller();
+        const studioCaller = realmWorldStudioCaller();
         await registerRuntimeApp(desktopRuntime, DESKTOP_APP_ID, DESKTOP_APP_INSTANCE_ID, DESKTOP_DEVICE_ID);
+        await registerRuntimeApp(
+          studioRuntime,
+          REALM_WORLD_STUDIO_APP_ID,
+          REALM_WORLD_STUDIO_APP_INSTANCE_ID,
+          REALM_STUDIO_DEVICE_ID,
+        );
         await completeRuntimeAccountLogin(desktopRuntime, desktopCaller);
-        const localAgent = await initializeFixtureLocalAgent({
+        const realm = new Realm({
+          transport: createRuntimeMediatedRealmTransport({
+            runtime: studioRuntime,
+            caller: studioCaller,
+            realmBaseUrl: baseUrl,
+          }),
+        });
+        const { localAgent } = await materializeFixtureLocalAgent({
           agentClient: createFixtureRuntimeAgentClient(desktopRuntime),
-          sourceMaterializationPacket: createFixtureSourceMaterializationPacket(
-            {},
-            SOURCE_MATERIALIZATION_AUDIENCE,
-          ),
+          realm,
         });
         runtimeLocalAgentIdentity = {
           ownerUserId: OWNER_USER_ID,

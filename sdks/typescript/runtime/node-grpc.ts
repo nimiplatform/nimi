@@ -70,7 +70,7 @@ function readLocalFirstPartyAuthority(
   ) {
     throw toTransportError(
       'SDK_TRANSPORT_INVALID',
-      'node-grpc Runtime presentation authority is invalid',
+      'node-grpc Runtime account authority is invalid',
       undefined,
       {
         actionHint: 'recreate_local_first_party_agent_presentation_client',
@@ -140,21 +140,27 @@ function toGrpcMetadata(
   return result;
 }
 
-const RUNTIME_AGENT_SET_PRESENTATION_PROFILE_METHOD =
-  '/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile';
+const RUNTIME_ACCOUNT_AUTHORITY_METHODS = new Set([
+  '/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile',
+  '/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge',
+  '/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload',
+  '/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk',
+  '/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization',
+  '/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload',
+]);
 
 async function resolveTransportAuthorization(
   request: RuntimeNodeGrpcBridgeRequest,
   options: RuntimeNodeGrpcTransportOptions,
   authority: RuntimeNodeGrpcLocalFirstPartyAuthority | undefined,
 ): Promise<string | undefined> {
-  if (!authority || request.methodId !== RUNTIME_AGENT_SET_PRESENTATION_PROFILE_METHOD) {
+  if (!authority || !RUNTIME_ACCOUNT_AUTHORITY_METHODS.has(request.methodId)) {
     return undefined;
   }
   if (runtimeRpcAuthPosture(request.methodId) !== 'authenticated_required') {
     throw toTransportError(
       'SDK_TRANSPORT_INVALID',
-      'generated Runtime auth posture no longer admits presentation bearer mediation',
+      'generated Runtime auth posture no longer admits account bearer mediation',
       { methodId: request.methodId },
       {
         actionHint: 'regenerate_runtime_rpc_auth_posture',
@@ -300,7 +306,7 @@ export function createRuntimeNodeGrpcTransport(
   if (authority && options.bridge) {
     throw toTransportError(
       'SDK_TRANSPORT_INVALID',
-      'Runtime presentation bearer mediation requires the native node-grpc transport',
+      'Runtime account bearer mediation requires the native node-grpc transport',
       undefined,
       {
         actionHint: 'use_native_node_grpc_for_agent_presentation',

@@ -32,6 +32,10 @@ import type {
   RuntimeLocalAgentIdentityInput,
   RuntimeLocalAgentIdentityProjection,
 } from './agent-local-identity';
+import type {
+  NimiRuntimeAgentSourceContextStatus,
+  NimiRuntimeAgentTurnContextSummary,
+} from './runtime-agent-context-projections';
 
 export type NimiRuntimeAgentExecutionStateValue =
   | 'idle'
@@ -75,6 +79,7 @@ export interface NimiRuntimeAgentSessionTurnSnapshot {
   readonly reasonCode?: string;
   readonly actionHint?: string;
   readonly message?: string;
+  readonly contextSummary?: NimiRuntimeAgentTurnContextSummary;
 }
 
 export interface NimiRuntimeAgentSessionTranscriptMessage {
@@ -108,6 +113,22 @@ export interface NimiRuntimeAgentSessionSnapshot {
   readonly lastTurn?: NimiRuntimeAgentSessionTurnSnapshot;
   readonly pendingFollowUp?: JsonObject;
 }
+
+export type NimiRuntimeAgentConversationAnchorSnapshot = Omit<
+  ConversationAnchorSnapshot,
+  'sourceContextStatus' | 'turnContextSummary'
+> & {
+  readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus;
+  readonly turnContextSummary?: NimiRuntimeAgentTurnContextSummary;
+};
+
+export type NimiRuntimeAgentConversationSummary = Omit<
+  AgentConversationSummary,
+  'sourceContextStatus' | 'lastTurnContextSummary'
+> & {
+  readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus;
+  readonly lastTurnContextSummary?: NimiRuntimeAgentTurnContextSummary;
+};
 
 export type NimiRuntimeAgentConsumeEvent =
   | NimiRuntimeAgentTurnConsumeEvent
@@ -230,7 +251,7 @@ export interface NimiRuntimeAgentConversationSummariesInput extends NimiRuntimeA
 }
 
 export interface NimiRuntimeAgentConversationSummariesResult {
-  readonly summaries: AgentConversationSummary[];
+  readonly summaries: NimiRuntimeAgentConversationSummary[];
   readonly nextPageToken?: string;
 }
 
@@ -409,11 +430,11 @@ export interface NimiRuntimeAgentConsumeClient {
     open(
       input: NimiRuntimeAgentConsumeIdentityInput & { readonly metadata?: JsonObject },
       options?: RuntimeTypedCallOptions,
-    ): Promise<ConversationAnchorSnapshot>;
+    ): Promise<NimiRuntimeAgentConversationAnchorSnapshot>;
     getSnapshot(
       input: NimiRuntimeAgentConsumeIdentityInput & { readonly conversationAnchorId: unknown },
       options?: RuntimeTypedCallOptions,
-    ): Promise<ConversationAnchorSnapshot>;
+    ): Promise<NimiRuntimeAgentConversationAnchorSnapshot>;
     listSummaries(
       input: NimiRuntimeAgentConversationSummariesInput,
       options?: RuntimeTypedCallOptions,
@@ -424,11 +445,11 @@ export interface NimiRuntimeAgentConsumeClient {
         readonly conversationAnchorId: unknown;
       },
       options?: RuntimeTypedCallOptions,
-    ): Promise<{ readonly binding: AvatarLiveInstanceBinding; readonly snapshot: ConversationAnchorSnapshot }>;
+    ): Promise<{ readonly binding: AvatarLiveInstanceBinding; readonly snapshot: NimiRuntimeAgentConversationAnchorSnapshot }>;
     resolveAvatarLiveInstance(
       input: NimiRuntimeAgentConsumeIdentityInput & { readonly avatarInstanceId: unknown },
       options?: RuntimeTypedCallOptions,
-    ): Promise<{ readonly binding: AvatarLiveInstanceBinding; readonly snapshot: ConversationAnchorSnapshot }>;
+    ): Promise<{ readonly binding: AvatarLiveInstanceBinding; readonly snapshot: NimiRuntimeAgentConversationAnchorSnapshot }>;
   };
   readonly turns: {
     getSessionSnapshot(

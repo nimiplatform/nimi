@@ -136,6 +136,37 @@ export function seedRuntimeAgentLiveLocalRouteState(localStatePath: string, loca
   }, null, 2));
 }
 
+export function seedRuntimeAgentLiveLocalCatalogProvider(customDir: string): void {
+  mkdirSync(customDir, { recursive: true });
+  writeFileSync(join(customDir, 'local.yaml'), `version: 1
+provider: local
+catalog_version: runtime-agent-live-e2e-local
+models:
+  - model_id: ${LOCAL_TEXT_MODEL_ID}
+    provider: local
+    model_type: chat
+    updated_at: "2026-07-11"
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: "2026-07-11"
+      notes: Runtime Agent live fixture local text generation.
+    source_ref:
+      url: http://127.0.0.1/runtime-agent-live-e2e/local-catalog
+      retrieved_at: "2026-07-11"
+      note: Runtime Agent live fixture local text generation.
+    fitness:
+      param_count: 1
+      context_length: 32768
+    aliases:
+      - ${LOCAL_TEXT_MODEL_REF}
+`);
+}
+
 export async function createFixtureRouteProjection(
   runtime: Runtime,
   capability: RuntimeAgentLiveE2ERouteProjection['capability'],

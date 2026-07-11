@@ -1,0 +1,33 @@
+table_family: state_machine
+owner: desktop
+machine_id: desktop_realm_source_local_materialization_action_model
+authority_refs:
+  - D-EXPL-006
+  - D-EXPL-007
+  - K-AGCORE-139
+  - K-AGCORE-151
+  - K-AGCORE-152
+states:
+  - state: source_materialization_available
+    source_kinds: [WorldCharacterCore, RealmPersona]
+    primary_action: Become my partner
+    primary_action_zh: 成为我的伙伴
+    emits: source_materialization_intent
+    description: Desktop has a typed WorldCharacterCore or RealmPersona source ref and may emit intent only. Realm owns packet issuance; Runtime owns the opaque challenge/audience, strict validation, immutable snapshot/provenance, and LocalAgent identity.
+  - state: local_agent_available
+    source_kinds: [WorldCharacterCore, RealmPersona]
+    primary_action: Open partner
+    description: Bounded Runtime source status plus inventory/provenance has exactly one Runtime-owned LocalAgent for this source; Desktop may open it by opaque localAgentRef.
+  - state: local_agent_ambiguous
+    source_kinds: [WorldCharacterCore, RealmPersona]
+    primary_action: Open from partners
+    description: Runtime inventory/provenance has more than one matching Runtime-owned LocalAgent; Desktop fails closed instead of choosing an arbitrary localAgentRef.
+  - state: runtime_agent_inventory_pending
+    source_kinds: [WorldCharacterCore, RealmPersona]
+    primary_action: Checking partner
+    description: Bounded Runtime source status or inventory is pending; Desktop keeps the partner action disabled until state is known.
+  - state: runtime_agent_inventory_unavailable
+    source_kinds: [WorldCharacterCore, RealmPersona]
+    primary_action: Runtime unavailable
+    description: Runtime, SDK lifecycle, auth-backed inventory, or bounded source status is unavailable/unknown/partial; Desktop keeps the action disabled with a readable failure state.
+transitions: []

@@ -23,8 +23,7 @@ selected world in the Desktop `world-detail` detail tab.
 ## Tables
 
 - `.nimi/spec/desktop/kernel/tables/explore-sections.yaml`
-- `.nimi/spec/desktop/kernel/tables/realm-persona-materialization-actions.yaml`
-- `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
+- `.nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml`
 - `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
 - `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
 - `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`

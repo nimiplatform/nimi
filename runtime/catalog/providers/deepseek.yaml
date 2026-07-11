@@ -21,6 +21,7 @@ models:
       url: https://api-docs.deepseek.com/
       retrieved_at: 2026-04-18
       note: DeepSeek API documentation home and model matrix.
+    context_window_tokens: 8192
   - model_id: deepseek-coder
     provider: deepseek
     model_type: chat
@@ -39,6 +40,7 @@ models:
       retrieved_at: 2026-04-18
       note: DeepSeek API documentation home and model matrix.
     api_model_id: deepseek-chat
+    context_window_tokens: 8192
   - model_id: deepseek-reasoner
     provider: deepseek
     model_type: chat
@@ -56,6 +58,7 @@ models:
       url: https://api-docs.deepseek.com/
       retrieved_at: 2026-04-18
       note: DeepSeek API documentation home and model matrix.
+    context_window_tokens: 8192
 voices: []
 selection_profiles:
   - provider: deepseek

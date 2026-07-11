@@ -2,7 +2,6 @@ package runtimeagent
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -203,9 +202,6 @@ func newRuntimeAgentTestService(t *testing.T) *Service {
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
-	}
-	if secret := strings.TrimSpace(os.Getenv(sourceMaterializationHMACSecretEnv)); secret != "" {
-		svc.SetSourceMaterializationPacketHMACSecret(secret)
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
 	return svc

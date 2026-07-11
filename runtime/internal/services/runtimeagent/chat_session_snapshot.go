@@ -1,7 +1,9 @@
 package runtimeagent
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -44,6 +46,7 @@ type publicChatTurnProjectionState struct {
 	AssistantMemory   *publicChatAssistantMemoryOutcome
 	Sidecar           *publicChatSidecarOutcome
 	FollowUp          *publicChatFollowUpOutcome
+	ContextSummary    *runtimev1.AgentTurnContextSummary
 	FinishReason      string
 	StreamSimulated   bool
 	Usage             *runtimev1.UsageStats
@@ -81,10 +84,292 @@ func clonePublicChatTurnProjectionState(input *publicChatTurnProjectionState) *p
 	out.AssistantMemory = clonePublicChatAssistantMemoryOutcome(input.AssistantMemory)
 	out.Sidecar = clonePublicChatSidecarOutcome(input.Sidecar)
 	out.FollowUp = clonePublicChatFollowUpOutcome(input.FollowUp)
+	out.ContextSummary = cloneAgentTurnContextSummary(input.ContextSummary)
 	if input.Usage != nil {
 		out.Usage = proto.Clone(input.Usage).(*runtimev1.UsageStats)
 	}
 	return &out
+}
+
+func cloneAgentTurnContextSummary(input *runtimev1.AgentTurnContextSummary) *runtimev1.AgentTurnContextSummary {
+	if input == nil {
+		return nil
+	}
+	return proto.Clone(input).(*runtimev1.AgentTurnContextSummary)
+}
+
+// commitPublicChatTurnTranscript appends the current user message and its
+// committed assistant response as one Runtime-owned transcript turn.
+// Request-carried history is never admitted here.
+func (s *Service) commitPublicChatTurnTranscript(anchorID string, currentUser *runtimev1.ChatMessage, assistantText string) error {
+	return s.commitPublicChatTurnTranscriptForTurn(anchorID, "", currentUser, assistantText)
+}
+
+func (s *Service) commitPublicChatTurnTranscriptForTurn(anchorID string, turnID string, currentUser *runtimev1.ChatMessage, assistantText string) error {
+	return s.commitPublicChatTurnTranscriptForTurnWithProjection(context.Background(), anchorID, turnID, currentUser, assistantText, nil)
+}
+
+func (s *Service) commitPublicChatTurnTranscriptForTurnWithProjection(
+	commitContext context.Context,
+	anchorID string,
+	turnID string,
+	currentUser *runtimev1.ChatMessage,
+	assistantText string,
+	finalizeProjection func(*publicChatTurnProjectionState),
+) error {
+	if strings.TrimSpace(anchorID) == "" || !validRuntimeOwnedCurrentUserMessage(currentUser) || strings.TrimSpace(assistantText) == "" {
+		return status.Error(codes.InvalidArgument, "committed transcript requires anchor, current user, and assistant text")
+	}
+	return s.commitPublicChatTranscriptTurn(
+		commitContext,
+		anchorID,
+		turnID,
+		publicChatTurnOriginUser,
+		currentUser.GetContent(),
+		assistantText,
+		finalizeProjection,
+	)
+}
+
+func (s *Service) commitPublicChatFollowUpTranscript(anchorID string, turnID string, instruction string, assistantText string) error {
+	return s.commitPublicChatFollowUpTranscriptWithProjection(context.Background(), anchorID, turnID, instruction, assistantText, nil)
+}
+
+func (s *Service) commitPublicChatFollowUpTranscriptWithProjection(
+	commitContext context.Context,
+	anchorID string,
+	turnID string,
+	instruction string,
+	assistantText string,
+	finalizeProjection func(*publicChatTurnProjectionState),
+) error {
+	if strings.TrimSpace(anchorID) == "" || strings.TrimSpace(turnID) == "" || strings.TrimSpace(instruction) == "" || strings.TrimSpace(assistantText) == "" {
+		return status.Error(codes.InvalidArgument, "committed follow-up transcript requires anchor, turn, instruction, and assistant text")
+	}
+	return s.commitPublicChatTranscriptTurn(
+		commitContext,
+		anchorID,
+		turnID,
+		publicChatTurnOriginFollowUp,
+		instruction,
+		assistantText,
+		finalizeProjection,
+	)
+}
+
+// commitPublicChatTranscriptTurn is the irreversible Runtime turn boundary.
+// It appends the canonical transcript record and, for live turns, installs the
+// completed projection in one chatSurfaceMu-serialized durable transaction.
+// Any capture or SQLite failure restores the exact pre-commit in-memory state;
+// callers may then classify the still-uncommitted turn as failed.
+func (s *Service) commitPublicChatTranscriptTurn(
+	commitContext context.Context,
+	anchorID string,
+	turnID string,
+	origin string,
+	inputText string,
+	assistantText string,
+	finalizeProjection func(*publicChatTurnProjectionState),
+) error {
+	if s == nil {
+		return status.Error(codes.FailedPrecondition, "public chat service unavailable")
+	}
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	trimmedTurnID := strings.TrimSpace(turnID)
+	trimmedInput := strings.TrimSpace(inputText)
+	trimmedAssistant := strings.TrimSpace(assistantText)
+	if trimmedAnchorID == "" || trimmedInput == "" || trimmedAssistant == "" ||
+		(origin != publicChatTurnOriginUser && origin != publicChatTurnOriginFollowUp) ||
+		(origin == publicChatTurnOriginFollowUp && trimmedTurnID == "") {
+		return status.Error(codes.InvalidArgument, "committed transcript turn is invalid")
+	}
+
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+
+	session := s.chatAnchors[trimmedAnchorID]
+	if session == nil {
+		return status.Error(codes.NotFound, "conversation anchor not found")
+	}
+	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
+		return status.Error(codes.DataLoss, err.Error())
+	}
+
+	var turn *publicChatTurnState
+	if finalizeProjection != nil {
+		turn = s.chatTurns[trimmedTurnID]
+		if turn == nil || strings.TrimSpace(turn.ConversationAnchorID) != trimmedAnchorID {
+			return status.Error(codes.FailedPrecondition, "committed transcript live turn is unavailable under conversation anchor")
+		}
+		if commitContext == nil {
+			return status.Error(codes.FailedPrecondition, "durable transcript commit context is unavailable")
+		}
+		if err := commitContext.Err(); err != nil {
+			return status.FromContextError(err).Err()
+		}
+		if turn.Interrupted {
+			return status.Errorf(codes.Canceled, "public chat turn interrupted before durable commit: %s", firstNonEmpty(strings.TrimSpace(turn.InterruptReason), "user_cancel"))
+		}
+	}
+
+	transcriptBefore := clonePublicChatCommittedTranscript(session.CommittedTranscript)
+	activeBefore := clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
+	lastBefore := clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
+	completedBefore := clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
+	lastTurnIDBefore := session.LastTurnID
+	lastMessageIDBefore := session.LastMessageID
+	updatedAtBefore := session.UpdatedAt
+	versionBefore := s.chatSurfaceVersion
+	var projectionBefore *publicChatTurnProjectionState
+	if turn != nil {
+		projectionBefore = clonePublicChatTurnProjectionState(turn.Projection)
+	}
+	rollback := func() {
+		session.CommittedTranscript = transcriptBefore
+		session.ActiveTurnSnapshot = activeBefore
+		session.LastTurnSnapshot = lastBefore
+		session.CompletedTurnSnapshots = completedBefore
+		session.LastTurnID = lastTurnIDBefore
+		session.LastMessageID = lastMessageIDBefore
+		session.UpdatedAt = updatedAtBefore
+		s.chatSurfaceVersion = versionBefore
+		if turn != nil {
+			turn.Projection = projectionBefore
+		}
+	}
+
+	replayed := false
+	committedTurnID := trimmedTurnID
+	if committedTurnID == "" && len(session.CommittedTranscript) > 0 {
+		last := session.CommittedTranscript[len(session.CommittedTranscript)-1]
+		replayed = last.Origin == origin && last.InputText == trimmedInput && last.AssistantText == trimmedAssistant
+		if replayed {
+			committedTurnID = last.TurnID
+		}
+	}
+	if !replayed {
+		sequence := uint64(len(session.CommittedTranscript))
+		committedTurnID = publicChatCommittedTranscriptTurnID(committedTurnID, sequence, origin, trimmedInput, trimmedAssistant)
+		var err error
+		replayed, err = validatePublicChatCommittedTurnIDReplay(session.CommittedTranscript, committedTurnID, origin, trimmedInput, trimmedAssistant)
+		if err != nil {
+			return status.Error(codes.DataLoss, err.Error())
+		}
+		if !replayed {
+			session.CommittedTranscript = append(session.CommittedTranscript, publicChatCommittedTranscriptTurn{
+				TurnID:        committedTurnID,
+				Sequence:      sequence,
+				Origin:        origin,
+				InputText:     trimmedInput,
+				AssistantText: trimmedAssistant,
+			})
+		}
+	}
+
+	if finalizeProjection != nil {
+		if turn.Projection == nil {
+			turn.Projection = newPublicChatTurnProjection(turn)
+		}
+		finalizeProjection(turn.Projection)
+		turn.Projection.UpdatedAt = time.Now().UTC()
+		if turn.Projection.Status != publicChatTurnStatusCompleted ||
+			strings.TrimSpace(turn.Projection.MessageID) == "" ||
+			strings.TrimSpace(turn.Projection.AssistantText) == "" {
+			rollback()
+			return status.Error(codes.FailedPrecondition, "durable transcript commit requires completed message projection")
+		}
+		session.ActiveTurnSnapshot = nil
+		session.LastTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
+		session.LastTurnID = trimmedTurnID
+		session.LastMessageID = strings.TrimSpace(turn.Projection.MessageID)
+		if session.CompletedTurnSnapshots == nil {
+			session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+		}
+		session.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(turn.Projection)
+	}
+	if replayed && finalizeProjection == nil {
+		return nil
+	}
+	session.UpdatedAt = time.Now().UTC()
+	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
+		rollback()
+		return status.Errorf(codes.Internal, "persist committed Runtime transcript: %v", err)
+	}
+	return nil
+}
+
+func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTranscriptTurn) error {
+	seen := make(map[string]struct{}, len(transcript))
+	for index, turn := range transcript {
+		if turn.Sequence != uint64(index) || strings.TrimSpace(turn.TurnID) == "" || turn.TurnID != strings.TrimSpace(turn.TurnID) || strings.TrimSpace(turn.InputText) == "" || strings.TrimSpace(turn.AssistantText) == "" ||
+			turn.InputText != strings.TrimSpace(turn.InputText) || turn.AssistantText != strings.TrimSpace(turn.AssistantText) ||
+			(turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginFollowUp) {
+			return fmt.Errorf("Runtime committed transcript turn is invalid")
+		}
+		if _, duplicate := seen[turn.TurnID]; duplicate {
+			return fmt.Errorf("Runtime committed transcript contains duplicate turn id")
+		}
+		seen[turn.TurnID] = struct{}{}
+	}
+	return nil
+}
+
+func validatePublicChatCommittedTurnIDReplay(transcript []publicChatCommittedTranscriptTurn, turnID string, origin string, inputText string, assistantText string) (bool, error) {
+	for _, turn := range transcript {
+		if turn.TurnID != turnID {
+			continue
+		}
+		if turn.Origin == origin && turn.InputText == inputText && turn.AssistantText == assistantText {
+			return true, nil
+		}
+		return false, fmt.Errorf("Runtime committed transcript turn id conflicts with existing content")
+	}
+	return false, nil
+}
+
+func publicChatCommittedTranscriptTurnID(turnID string, sequence uint64, origin string, inputText string, assistantText string) string {
+	if trimmed := strings.TrimSpace(turnID); trimmed != "" {
+		return trimmed
+	}
+	digest := sourceMaterializationBytesDigest([]byte(fmt.Sprintf("%d\x00%s\x00%s\x00%s", sequence, origin, inputText, assistantText)))
+	return "agent_turn_committed_" + digest[:24]
+}
+
+func clonePublicChatCommittedTranscript(input []publicChatCommittedTranscriptTurn) []publicChatCommittedTranscriptTurn {
+	if len(input) == 0 {
+		return nil
+	}
+	return append([]publicChatCommittedTranscriptTurn(nil), input...)
+}
+
+// publicChatTranscriptProjection derives the app-facing message
+// history from the canonical committed transcript. Runtime follow-up turns are
+// intentionally absent from this projection while remaining available to the
+// next context composition.
+func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTurn) ([]*runtimev1.ChatMessage, error) {
+	if err := validatePublicChatCommittedTranscript(transcript); err != nil {
+		return nil, err
+	}
+	messages := make([]*runtimev1.ChatMessage, 0, len(transcript)*2)
+	for _, turn := range transcript {
+		if turn.Origin != publicChatTurnOriginUser {
+			continue
+		}
+		messages = append(messages,
+			&runtimev1.ChatMessage{Role: "user", Content: turn.InputText},
+			&runtimev1.ChatMessage{Role: "assistant", Content: turn.AssistantText},
+		)
+	}
+	return messages, nil
+}
+
+func validRuntimeOwnedCurrentUserMessage(message *runtimev1.ChatMessage) bool {
+	if message == nil || strings.TrimSpace(message.GetRole()) != "user" || strings.TrimSpace(message.GetName()) != "" ||
+		len(message.GetToolCalls()) > 0 || strings.TrimSpace(message.GetToolCallId()) != "" ||
+		len(message.GetToolResults()) > 0 || len(message.GetToolApprovalResponses()) > 0 {
+		return false
+	}
+	return strings.TrimSpace(message.GetContent()) != "" && len(message.GetParts()) == 0
 }
 
 func clonePublicChatTurnProjectionStateMap(input map[string]*publicChatTurnProjectionState) map[string]*publicChatTurnProjectionState {
@@ -106,152 +391,6 @@ func clonePublicChatTurnProjectionStateMap(input map[string]*publicChatTurnProje
 		return nil
 	}
 	return out
-}
-
-func reconcilePublicChatSessionTranscript(current []*runtimev1.ChatMessage, incoming []*runtimev1.ChatMessage) []*runtimev1.ChatMessage {
-	if len(incoming) == 0 {
-		return cloneChatMessages(current)
-	}
-	if len(current) == 0 {
-		return cloneChatMessages(incoming)
-	}
-	if publicChatTranscriptHasPrefix(incoming, current) {
-		return cloneChatMessages(incoming)
-	}
-	if publicChatTranscriptHasPrefix(current, incoming) {
-		return cloneChatMessages(current)
-	}
-	if overlap := publicChatTranscriptSuffixPrefixOverlap(current, incoming); overlap > 0 {
-		merged := cloneChatMessages(current)
-		merged = append(merged, cloneChatMessages(incoming[overlap:])...)
-		return merged
-	}
-	if publicChatTranscriptAssistantCount(incoming) < publicChatTranscriptAssistantCount(current) {
-		return appendPublicChatUnmatchedIncomingTranscript(current, incoming)
-	}
-	if prefix := publicChatTranscriptCommonPrefixLength(current, incoming); prefix > 0 {
-		merged := cloneChatMessages(current)
-		merged = append(merged, cloneChatMessages(incoming[prefix:])...)
-		return merged
-	}
-	return cloneChatMessages(incoming)
-}
-
-func appendPublicChatUnmatchedIncomingTranscript(current []*runtimev1.ChatMessage, incoming []*runtimev1.ChatMessage) []*runtimev1.ChatMessage {
-	merged := cloneChatMessages(current)
-	currentIndex := 0
-	for _, incomingMessage := range incoming {
-		matched := false
-		for scanIndex := currentIndex; scanIndex < len(current); scanIndex++ {
-			if publicChatMessagesEquivalent(current[scanIndex], incomingMessage) {
-				currentIndex = scanIndex + 1
-				matched = true
-				break
-			}
-		}
-		if matched {
-			continue
-		}
-		merged = append(merged, cloneChatMessages([]*runtimev1.ChatMessage{incomingMessage})...)
-	}
-	return merged
-}
-
-func publicChatTranscriptWithCommittedAssistant(transcript []*runtimev1.ChatMessage, projection *publicChatTurnProjectionState) []*runtimev1.ChatMessage {
-	out := cloneChatMessages(transcript)
-	if projection == nil || projection.Status != publicChatTurnStatusCompleted {
-		return out
-	}
-	return appendPublicChatAssistantTranscript(out, projection.AssistantText)
-}
-
-func appendPublicChatAssistantTranscript(transcript []*runtimev1.ChatMessage, assistantText string) []*runtimev1.ChatMessage {
-	trimmedText := strings.TrimSpace(assistantText)
-	out := cloneChatMessages(transcript)
-	if trimmedText == "" {
-		return out
-	}
-	assistant := &runtimev1.ChatMessage{
-		Role:    "assistant",
-		Content: trimmedText,
-	}
-	if len(out) > 0 && publicChatMessagesEquivalent(out[len(out)-1], assistant) {
-		return out
-	}
-	out = append(out, assistant)
-	return out
-}
-
-func publicChatTranscriptHasPrefix(messages []*runtimev1.ChatMessage, prefix []*runtimev1.ChatMessage) bool {
-	if len(prefix) > len(messages) {
-		return false
-	}
-	for i := range prefix {
-		if !publicChatMessagesEquivalent(messages[i], prefix[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func publicChatTranscriptSuffixPrefixOverlap(current []*runtimev1.ChatMessage, incoming []*runtimev1.ChatMessage) int {
-	limit := len(current)
-	if len(incoming) < limit {
-		limit = len(incoming)
-	}
-	for size := limit; size > 0; size-- {
-		matches := true
-		offset := len(current) - size
-		for i := 0; i < size; i++ {
-			if !publicChatMessagesEquivalent(current[offset+i], incoming[i]) {
-				matches = false
-				break
-			}
-		}
-		if matches {
-			return size
-		}
-	}
-	return 0
-}
-
-func publicChatTranscriptCommonPrefixLength(left []*runtimev1.ChatMessage, right []*runtimev1.ChatMessage) int {
-	limit := len(left)
-	if len(right) < limit {
-		limit = len(right)
-	}
-	for i := 0; i < limit; i++ {
-		if !publicChatMessagesEquivalent(left[i], right[i]) {
-			return i
-		}
-	}
-	return limit
-}
-
-func publicChatTranscriptAssistantCount(messages []*runtimev1.ChatMessage) int {
-	count := 0
-	for _, message := range messages {
-		if strings.TrimSpace(message.GetRole()) == "assistant" && strings.TrimSpace(message.GetContent()) != "" {
-			count++
-		}
-	}
-	return count
-}
-
-func publicChatMessagesEquivalent(left *runtimev1.ChatMessage, right *runtimev1.ChatMessage) bool {
-	if left == nil || right == nil {
-		return left == nil && right == nil
-	}
-	if strings.TrimSpace(left.GetRole()) != strings.TrimSpace(right.GetRole()) {
-		return false
-	}
-	if strings.TrimSpace(left.GetName()) != strings.TrimSpace(right.GetName()) {
-		return false
-	}
-	if left.GetContent() != right.GetContent() {
-		return false
-	}
-	return proto.Equal(left, right)
 }
 
 func (p *publicChatTurnProjectionState) payload() map[string]any {
@@ -309,6 +448,9 @@ func (p *publicChatTurnProjectionState) payload() map[string]any {
 	if p.FollowUp != nil {
 		out["follow_up"] = p.FollowUp.payload()
 	}
+	if contextSummary := publicChatTurnContextSummaryPayload(p.ContextSummary); contextSummary != nil {
+		out["context_summary"] = contextSummary
+	}
 	if strings.TrimSpace(p.FinishReason) != "" {
 		out["finish_reason"] = strings.TrimSpace(p.FinishReason)
 	}
@@ -326,6 +468,21 @@ func (p *publicChatTurnProjectionState) payload() map[string]any {
 	}
 	if strings.TrimSpace(p.Message) != "" {
 		out["message"] = strings.TrimSpace(p.Message)
+	}
+	return out
+}
+
+func publicChatTurnContextSummaryPayload(input *runtimev1.AgentTurnContextSummary) map[string]any {
+	if input == nil {
+		return nil
+	}
+	raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(input)
+	if err != nil {
+		return nil
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil
 	}
 	return out
 }
@@ -444,7 +601,6 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 	if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil {
 		session.ActiveTurnSnapshot = nil
 		session.LastTurnSnapshot = clonePublicChatTurnProjectionState(projection)
-		session.Transcript = publicChatTranscriptWithCommittedAssistant(session.Transcript, projection)
 		if strings.TrimSpace(projection.MessageID) != "" {
 			session.LastMessageID = strings.TrimSpace(projection.MessageID)
 		}
@@ -476,7 +632,7 @@ func (s *Service) snapshotPublicChatAnchorForCaller(callerAppID string, anchorID
 	if strings.TrimSpace(callerAppID) == "" || trimmedAnchorID == "" {
 		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.InvalidArgument, "public chat anchor snapshot requires caller app and conversation_anchor_id")
 	}
-	return s.snapshotPublicChatAnchor(trimmedAnchorID, strings.TrimSpace(callerAppID), true)
+	return s.snapshotPublicChatAnchor(trimmedAnchorID, "", false)
 }
 
 func (s *Service) snapshotPublicChatAnchorForScopedBinding(anchorID string) (publicChatAnchorState, *publicChatTurnProjectionState, *publicChatTurnProjectionState, *publicChatFollowUpState, error) {
@@ -500,9 +656,9 @@ func (s *Service) snapshotPublicChatAnchorForAvatarLiveInstance(callerAppID stri
 		s.chatSurfaceMu.Unlock()
 		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.NotFound, "conversation anchor not found")
 	}
-	if session.CallerAppID != trimmedCallerAppID && !s.avatarLiveInstanceBindingAuthorizesAnchorLocked(trimmedCallerAppID, trimmedAnchorID, identity) {
+	if session.LocalAgentRef != identity.LocalAgentRef || session.OwnerUserID != identity.OwnerUserID || session.RuntimeSourceRef != identity.RuntimeSourceRef {
 		s.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.PermissionDenied, "public chat anchor local identity mismatch")
 	}
 	s.chatSurfaceMu.Unlock()
 
@@ -516,18 +672,17 @@ func (s *Service) snapshotPublicChatAnchor(anchorID string, callerAppID string, 
 	if session == nil {
 		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.NotFound, "conversation anchor not found")
 	}
-	if enforceCaller && session.CallerAppID != strings.TrimSpace(callerAppID) {
-		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
+	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
+		return publicChatAnchorState{}, nil, nil, nil, status.Error(codes.DataLoss, err.Error())
 	}
+	_ = callerAppID
+	_ = enforceCaller
 	snapshot := *session
 	snapshot.Reasoning = clonePublicChatReasoningConfig(session.Reasoning)
-	snapshot.Transcript = cloneChatMessages(session.Transcript)
+	snapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
 	snapshot.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
 	snapshot.LastTurnSnapshot = clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
 	snapshot.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
-	if strings.TrimSpace(snapshot.ActiveTurnID) == "" {
-		snapshot.Transcript = publicChatTranscriptWithCommittedAssistant(snapshot.Transcript, snapshot.LastTurnSnapshot)
-	}
 	var activeTurn *publicChatTurnProjectionState
 	if trimmedActiveTurnID := strings.TrimSpace(session.ActiveTurnID); trimmedActiveTurnID != "" && session.ActiveTurnSnapshot != nil {
 		if turn := s.chatTurns[trimmedActiveTurnID]; turn != nil {

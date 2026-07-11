@@ -51,15 +51,19 @@ export type NimiRuntimeAgentReasoningRequest = {
   readonly budgetTokens?: number;
 };
 
+export type NimiRuntimeAgentCurrentUserMessage = {
+  readonly role: 'user';
+  readonly content: string;
+};
+
 export type NimiRuntimeAgentTurnRequest = RuntimeLocalAgentIdentityInput & {
   readonly conversationAnchorId: string;
   readonly requestId?: string;
   readonly threadId?: string;
-  readonly systemPrompt?: string;
-  readonly worldId?: string;
+  // Compile-time prohibition; runtime validation also rejects the key itself.
+  readonly worldId?: never;
   readonly maxOutputTokens?: number;
-  readonly messages: readonly NimiRuntimeAgentMessage[];
-  readonly executionParams?: Partial<Record<'image.generate' | 'audio.synthesize', JsonObject>>;
+  readonly messages: readonly [NimiRuntimeAgentCurrentUserMessage];
   readonly reasoning?: NimiRuntimeAgentReasoningRequest;
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };

@@ -70,8 +70,9 @@
 | `runtime-agent-life-autonomy-contract.md` | `K-AGCORE-*` | Runtime-owned Life Track、autonomy cadence、source/profile mutation grammar、delegation boundary、turn/stream terminal coupling、and temporal-autonomy deferral |
 | `runtime-agent-canonical-memory-contract.md` | `K-AGCORE-*` | Runtime-owned canonical review、review status projection、chat-track sidecar、truth read boundary、coordination model、and chat/life evidence admission |
 | `runtime-agent-app-consume-contract.md` | `K-AGCORE-*` | Runtime-owned app-facing reactive chat consume and scoped binding attachment authority |
-| `runtime-local-agent-materialization-contract.md` | `K-AGCORE-*` | Runtime-owned LocalAgent materialization、Nimi guide context、deletion/reset、usage documentation corpus、and proactive interruptibility projection |
+| `runtime-local-agent-materialization-contract.md` | `K-AGCORE-*` | Runtime-owned LocalAgent challenge/upload admission、immutable source snapshot/provenance、source-derived context input、deletion/reset、and proactive interruptibility projection |
 | `runtime-agent-ai-config-contract.md` | `K-AGCORE-*` | Runtime Agent AI Config authority、revision persistence、readiness projection、turn admission、available actions、event seam、and bootstrap seeding |
+| `runtime-agent-context-composition-contract.md` | `K-AGCORE-*` | Runtime-owned AgentTurnContextManifest、fixed typed lanes、transcript/memory isolation、catalog budget/truncation、provider/APML fail-close、bounded public summaries、and isolated subject/evaluator AI execution with distinct complete route fingerprints |
 | `runtime-agent-participation-contract.md` | `K-AGCORE-*` | Runtime-owned non-canonical agent participation authority and closed participation axis model |
 | `runtime-agent-participation-profile-contract.md` | `K-AGCORE-*` | Runtime-owned participation profile registry、context block registry、output candidate、and domain commit separation |
 | `runtime-agent-participation-policy-boundary-contract.md` | `K-AGCORE-*` | Runtime-owned participation memory/capability/concurrency policy、audit/replay、raw prompt boundary、external entry gateway、and negative gates |

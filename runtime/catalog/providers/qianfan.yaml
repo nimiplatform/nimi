@@ -21,6 +21,7 @@ models:
       url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
       retrieved_at: 2026-04-18
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    context_window_tokens: 8192
   - model_id: ernie-5.0
     provider: qianfan
     model_type: chat
@@ -38,6 +39,7 @@ models:
       url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
       retrieved_at: 2026-04-18
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    context_window_tokens: 8192
   - model_id: ernie-x1.1-preview
     provider: qianfan
     model_type: chat
@@ -55,6 +57,7 @@ models:
       url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
       retrieved_at: 2026-04-18
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    context_window_tokens: 8192
   - model_id: ernie-4.5-turbo-128k
     provider: qianfan
     model_type: chat
@@ -72,6 +75,7 @@ models:
       url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
       retrieved_at: 2026-04-18
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    context_window_tokens: 131072
   - model_id: ernie-4.5-turbo-32k
     provider: qianfan
     model_type: chat
@@ -89,6 +93,7 @@ models:
       url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
       retrieved_at: 2026-04-18
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    context_window_tokens: 32768
   - model_id: ernie-4.5-turbo-vl
     provider: qianfan
     model_type: chat

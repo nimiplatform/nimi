@@ -3,7 +3,10 @@ import { once } from 'node:events';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 
 import type { JsonObject } from '../types';
-import { createFixtureSourceMaterializationPacket } from './runtime-agent-live-e2e-fixture-source-packet.test-helper';
+import {
+  createFixtureSourceMaterializationPacket,
+  FIXTURE_SOURCE_MATERIALIZATION_JWKS,
+} from './runtime-agent-live-e2e-fixture-source-packet.test-helper';
 import {
   FIXTURE_IMAGE_MODEL_ID,
   FIXTURE_IMAGE_PROVIDER,
@@ -20,7 +23,6 @@ import {
   RUNTIME_ACCOUNT_REFRESH_TOKEN,
   RUNTIME_ACCOUNT_SESSION_ID,
   RUNTIME_AUTH_JWKS,
-  SOURCE_MATERIALIZATION_AUDIENCE,
   createRuntimeAccountAccessToken,
   type RuntimeAgentLiveE2ERealmRequest,
   normalizeText,
@@ -141,6 +143,11 @@ async function handleRealmFixtureRequest(
 
   if (request.method === 'GET' && url.pathname === '/api/auth/jwks') {
     writeJSON(response, 200, RUNTIME_AUTH_JWKS);
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/auth/jwks/source-materialization') {
+    writeJSON(response, 200, FIXTURE_SOURCE_MATERIALIZATION_JWKS);
     return;
   }
 
@@ -321,13 +328,11 @@ async function handleRealmFixtureRequest(
       return;
     }
     const bodyRecord = asRecord(body);
-    const sourceRef = asRecord(bodyRecord.sourceRef);
-    const intendedRuntimeAudience = normalizeText(bodyRecord.intendedRuntimeAudience);
-    if (intendedRuntimeAudience !== SOURCE_MATERIALIZATION_AUDIENCE) {
-      writeJSON(response, 400, { message: 'unexpected source materialization audience' });
-      return;
-    }
-    writeJSON(response, 200, createFixtureSourceMaterializationPacket(sourceRef, intendedRuntimeAudience));
+    writeJSON(
+      response,
+      200,
+      createFixtureSourceMaterializationPacket(bodyRecord as never),
+    );
     return;
   }
 
@@ -423,13 +428,6 @@ async function writeLocalChatCompletion(
 
 function chatScenarioFromBody(body: Record<string, unknown>): RuntimeAgentLiveE2EChatScenario {
   const promptText = promptTextFromChatCompletionBody(body);
-  const repairScenario = repairScenarioFromPrompt(promptText);
-  if (repairScenario) {
-    return {
-      ...repairScenario,
-      apml: repairScenario.repairApml ?? repairScenario.apml,
-    };
-  }
   if (promptText.includes('runtime-private chat track sidecar executor')) {
     return {
       apml: '<chat-track-sidecar><canonical-memory-candidates></canonical-memory-candidates></chat-track-sidecar>',
@@ -446,37 +444,6 @@ function chatScenarioFromBody(body: Record<string, unknown>): RuntimeAgentLiveE2
     return scenario;
   }
   return RUNTIME_AGENT_LIVE_E2E_CHAT_SCENARIOS.default;
-}
-
-function repairScenarioFromPrompt(promptText: string): RuntimeAgentLiveE2EChatScenario | null {
-  const malformedIndex = promptText.lastIndexOf('malformed apml packet:');
-  if (malformedIndex < 0) {
-    return null;
-  }
-  const malformedPayload = promptText.slice(malformedIndex);
-  const explicitKey = scenarioKeyFromPrompt(malformedPayload);
-  if (explicitKey) {
-    const scenario = RUNTIME_AGENT_LIVE_E2E_CHAT_SCENARIOS[explicitKey];
-    if (scenario?.repairApml) {
-      return scenario;
-    }
-  }
-  for (const scenario of Object.values(RUNTIME_AGENT_LIVE_E2E_CHAT_SCENARIOS)) {
-    if (scenario.key && malformedPayload.includes(scenario.key.toLowerCase())) {
-      return scenario;
-    }
-    const match = scenario.apml.match(/<message\s+id="([^"]+)"/u);
-    const messageId = match?.[1]?.trim().toLowerCase();
-    if (messageId && malformedPayload.includes(messageId)) {
-      return scenario;
-    }
-  }
-  const repairScenarios = Object.values(RUNTIME_AGENT_LIVE_E2E_CHAT_SCENARIOS)
-    .filter((scenario) => Boolean(scenario.repairApml));
-  if (repairScenarios.length === 1) {
-    return repairScenarios[0] ?? null;
-  }
-  return null;
 }
 
 function scenarioKeyFromPrompt(promptText: string): string {

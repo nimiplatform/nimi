@@ -22,6 +22,7 @@ models:
       url: https://docs.cohere.com/docs/models
       retrieved_at: 2026-04-18
       note: Cohere official model catalog.
+    context_window_tokens: 8192
   - model_id: command-a-03-2025
     provider: cohere
     model_type: chat
@@ -39,6 +40,7 @@ models:
       url: https://docs.cohere.com/docs/models
       retrieved_at: 2026-04-18
       note: Cohere official model catalog.
+    context_window_tokens: 8192
   - model_id: command-r7b-12-2024
     provider: cohere
     model_type: chat
@@ -56,6 +58,7 @@ models:
       url: https://docs.cohere.com/docs/models
       retrieved_at: 2026-04-18
       note: Cohere official model catalog.
+    context_window_tokens: 8192
   - model_id: embed-v4.0
     provider: cohere
     model_type: embedding

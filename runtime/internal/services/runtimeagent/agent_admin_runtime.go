@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"database/sql"
 	"sort"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -27,7 +29,11 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		return nil, err
 	}
 	localAgentRef := identity.LocalAgentRef
-	if err := validateInitializeAgentPresentationMetadata(req.GetMetadata()); err != nil {
+	if realmSourceRefRequiresCommittedMaterialization(identity.RuntimeSourceRef) {
+		return nil, status.Error(codes.FailedPrecondition, "Realm source LocalAgents must be created by CommitSourceMaterialization")
+	}
+	agentMetadata, err := sanitizeOrdinaryInitializeAgentMetadata(req.GetMetadata())
+	if err != nil {
 		return nil, err
 	}
 
@@ -53,22 +59,6 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	r.svc.mu.RUnlock()
 
 	now := time.Now().UTC()
-	verifiedPacket, err := verifySourceMaterializationPacketForInitialize(
-		req.GetMetadata(),
-		identity,
-		now,
-		r.svc.sourceMaterializationPacketHMACSecret,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if err := consumeSourceMaterializationPacketNonce(ctx, r.svc.backend, verifiedPacket, identity); err != nil {
-		return nil, err
-	}
-	agentMetadata, err := sanitizeInitializeAgentMetadata(req.GetMetadata(), verifiedPacket)
-	if err != nil {
-		return nil, err
-	}
 	agentBank := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
@@ -132,49 +122,63 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	}, nil
 }
 
-// terminate is the K-AGCORE-141 LocalAgent projection hard-delete lifecycle.
-//
-// It removes the `runtime_local_agent` row plus the agent-scoped state
-// projection, runtime-owned hooks, agent event log, and the agent-scoped
-// memory banks (`MEMORY_BANK_SCOPE_AGENT_CORE` and every
-// `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by the agent). It does not retain a
-// TERMINATED tombstone. A later materialization is a new Runtime-owned local
-// creation and must use an explicit Runtime-returned local_agent_ref.
-//
-// Ordering is retry-safety-driven. Agent-scoped memory is deleted before the
-// runtime-agent row: if memory deletion fails the row is still present, so an
-// upstream `TerminateAgent` retry re-enters this path and re-attempts both
-// halves. The idempotent no-op branch (already-absent ref) still runs the
-// memory delete so a retry after a row-only deletion failure still converges
-// — neither half can be permanently stranded. Either half failing returns a
-// typed error; runtime never reports pseudo-success on an incomplete delete.
+func realmSourceRefRequiresCommittedMaterialization(runtimeSourceRef string) bool {
+	return strings.HasPrefix(strings.TrimSpace(runtimeSourceRef), "runtime-source:")
+}
+
+func sanitizeOrdinaryInitializeAgentMetadata(metadata *structpb.Struct) (*structpb.Struct, error) {
+	if metadata == nil {
+		return nil, nil
+	}
+	values := metadata.AsMap()
+	for _, key := range []string{
+		"presentationProfile",
+		"presentationProfileRevision",
+		"sourceMaterializationPacket",
+	} {
+		if _, exists := values[key]; exists {
+			return nil, status.Errorf(codes.InvalidArgument, "initialize agent metadata key %q is reserved", key)
+		}
+	}
+	cloned, err := structpb.NewStruct(values)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "initialize agent metadata is invalid: %v", err)
+	}
+	return cloned, nil
+}
+
+// terminate is the K-AGCORE-141 atomic LocalAgent hard-delete lifecycle.
+// Agent/state/hooks/events, immutable source snapshot/provenance, chat and
+// anchor projection, AI config/replay result, and agent-scoped memory share
+// one SQLite transaction owned by Memory's snapshot rewrite. Runtime holds its
+// Agent and chat locks across that commit, so readers never observe a partial
+// delete and a failed transaction restores every mutable in-memory projection.
+// No TERMINATED tombstone is retained; a later materialization must mint a new
+// opaque local_agent_ref.
 func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
 	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
 	localAgentRef := identity.LocalAgentRef
-
-	entry, err := r.svc.agentByID(localAgentRef)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			// Idempotent typed no-op: TerminateAgent for an already-absent
-			// (or never-materialized) local_agent_ref must succeed. The
-			// agent-scoped memory delete still runs so a retry after a
-			// row-only deletion failure finishes the memory half.
-			if _, err := r.svc.memorySvc.DeleteAgentScopedBanks(ctx, localAgentRef); err != nil {
-				return nil, err
-			}
-			return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
-		}
-		return nil, err
+	r.svc.mu.Lock()
+	current := r.svc.agents[localAgentRef]
+	if current == nil {
+		// With a single atomic delete boundary there can be no legitimate
+		// memory/snapshot remainder to clean after the Agent row disappears.
+		// Treat an absent ref as an idempotent no-op instead of allowing an
+		// unbound caller to purge banks by guessing another Agent's ref.
+		r.svc.mu.Unlock()
+		return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+	if err := validateAgentRecordIdentity(current.Agent, identity); err != nil {
+		r.svc.mu.Unlock()
 		return nil, err
 	}
 
 	now := time.Now().UTC()
 	reason := firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated")
+	entry := cloneAgentEntry(current)
 	previousStatus := entry.Agent.GetLifecycleStatus()
 
 	// Move the working copy to TERMINATED before cancelling hooks so the
@@ -195,21 +199,69 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		}),
 	}
 	liveEvents = append(liveEvents, r.svc.cancelActiveHooks(entry, "runtime", reason, now)...)
-	r.svc.purgeAgentScopedChatSurfaceState(localAgentRef)
-
-	// Memory deletion first (see ordering note above). Capture the removed
-	// agent-scoped bank locator keys to purge the runtime-agent-side review
-	// followup rows keyed by those same bank locator keys.
-	removedBankKeys, err := r.svc.memorySvc.DeleteAgentScopedBanks(ctx, localAgentRef)
+	previousEvents := append([]*runtimev1.AgentEvent(nil), r.svc.events...)
+	previousSequence := r.svc.sequence
+	delete(r.svc.agents, localAgentRef)
+	retainedEvents := make([]*runtimev1.AgentEvent, 0, len(previousEvents))
+	for _, event := range previousEvents {
+		if event.GetLocalAgentRef() != localAgentRef {
+			retainedEvents = append(retainedEvents, event)
+		}
+	}
+	r.svc.events = retainedEvents
+	persistedAgentState, err := r.svc.stateRepo.snapshotStateLocked(r.svc)
 	if err != nil {
-		return nil, err
+		r.svc.agents[localAgentRef] = current
+		r.svc.events = previousEvents
+		r.svc.sequence = previousSequence
+		r.svc.mu.Unlock()
+		return nil, status.Errorf(codes.Internal, "capture atomic agent deletion state: %v", err)
 	}
 
-	// Row + agent-scoped state/hooks/event-log deletion. The txHook purges the
-	// runtime-agent projection tables the snapshot rewrite does not cover.
-	if err := r.svc.deleteAgent(localAgentRef, agentProjectionPurgeHook(localAgentRef, removedBankKeys), liveEvents...); err != nil {
-		return nil, err
+	r.svc.chatSurfaceMu.Lock()
+	chatSnapshot, removedAnchorIDs, cancels, chatRollback, err := r.svc.prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef)
+	if err != nil {
+		r.svc.agents[localAgentRef] = current
+		r.svc.events = previousEvents
+		r.svc.sequence = previousSequence
+		r.svc.chatSurfaceMu.Unlock()
+		r.svc.mu.Unlock()
+		return nil, status.Errorf(codes.Internal, "capture atomic chat deletion state: %v", err)
 	}
+	_, err = r.svc.memorySvc.DeleteAgentScopedBanksWithTxHook(ctx, localAgentRef, func(_ context.Context, tx *sql.Tx, bankLocatorKeys []string) error {
+		projectionHook, err := agentAtomicProjectionDeletionHook(r.svc, localAgentRef, bankLocatorKeys, chatSnapshot, removedAnchorIDs)
+		if err != nil {
+			return err
+		}
+		return r.svc.stateRepo.persistSnapshotTx(tx, persistedAgentState, projectionHook)
+	})
+	if err != nil {
+		r.svc.restoreAgentChatSurfaceDeletionLocked(chatRollback)
+		r.svc.agents[localAgentRef] = current
+		r.svc.events = previousEvents
+		r.svc.sequence = previousSequence
+		r.svc.chatSurfaceMu.Unlock()
+		r.svc.mu.Unlock()
+		if status.Code(err) != codes.Unknown {
+			return nil, err
+		}
+		return nil, status.Errorf(codes.Internal, "atomic agent deletion failed: %v", err)
+	}
+
+	// Cancel in-flight chat work only after the shared transaction commits.
+	// Agent/chat locks are still held here, so canceled workers cannot race a
+	// deleted projection back into memory or persistence; a failed delete has
+	// no irreversible cancellation side effect to roll back.
+	for _, cancel := range cancels {
+		cancel()
+	}
+	targetsByEvent := r.svc.eventStreamRuntime().matchingSubscribersLocked(liveEvents)
+	r.svc.agentAIConfigReadinessMu.Lock()
+	delete(r.svc.agentAIConfigReadiness, localAgentRef)
+	r.svc.agentAIConfigReadinessMu.Unlock()
+	r.svc.chatSurfaceMu.Unlock()
+	r.svc.mu.Unlock()
+	r.svc.eventStreamRuntime().broadcast(liveEvents, targetsByEvent)
 	return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 }
 

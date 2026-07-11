@@ -2,6 +2,21 @@ version: 1
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_account_rpc_permission_matrix
+surfaces:
+  - BeginLogin
+  - CompleteLogin
+  - GetAccessToken
+  - GetAccountSessionStatus
+  - InvokeRealmUnary
+  - IssueScopedAppBinding
+  - IssueWorkspaceBinding
+  - Logout
+  - RefreshAccountSession
+  - RequestPresenceVerification
+  - RevokeScopedAppBinding
+  - RevokeWorkspaceBinding
+  - SubscribeAccountSessionEvents
+  - SwitchAccount
 source_rule: K-ACCSVC-024
 description: >
   Per-caller admission authority for RuntimeAccountService. allow_when values

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import * as grpc from '@grpc/grpc-js';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
 import {
   AccountEventType,
+  AgentSourceMaterializationSourceKind,
   ExecutionMode,
   RoutePolicy,
   RuntimeHealthStatus,
@@ -19,11 +21,13 @@ import {
   GetRuntimeHealthResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
 import {
+  CreateSourceMaterializationChallengeResponse,
   SetAgentPresentationProfileResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
 import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/v1/ai';
 import { Runtime } from './index';
 import { createRuntimeNodeGrpcTransport, type RuntimeNodeGrpcBridge } from './node-grpc';
+import { installRuntimeNodeGrpcLocalFirstPartyAuthority } from './node-grpc-authority';
 import { ReasonCode } from '../types';
 
 function readRuntimeSource(relativePath: string): string {
@@ -152,6 +156,105 @@ test('ordinary Runtime mixed stream bridge cannot observe bearer authority', asy
   }
 
   assert.deepEqual(observedAuthorizationFields, [false]);
+});
+
+test('hidden Runtime account authority injects bearer only for admitted materialization RPCs', async () => {
+  const observedAuthorization = new Map<string, string[]>();
+  const server = new grpc.Server();
+  const unaryMethod = (path: string): grpc.MethodDefinition<Uint8Array, Uint8Array> => ({
+    path,
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value) => Buffer.from(value),
+    requestDeserialize: (value) => Uint8Array.from(value),
+    responseSerialize: (value) => Buffer.from(value),
+    responseDeserialize: (value) => Uint8Array.from(value),
+  });
+  server.addService({
+    createSourceMaterializationChallenge: unaryMethod(
+      '/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge',
+    ),
+    getRuntimeHealth: unaryMethod('/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth'),
+  }, {
+    createSourceMaterializationChallenge(
+      call: grpc.ServerUnaryCall<Uint8Array, Uint8Array>,
+      callback: grpc.sendUnaryData<Uint8Array>,
+    ) {
+      observedAuthorization.set('materialization', call.metadata.get('authorization').map(String));
+      callback(null, CreateSourceMaterializationChallengeResponse.toBinary(
+        CreateSourceMaterializationChallengeResponse.create({}),
+      ));
+    },
+    getRuntimeHealth(
+      call: grpc.ServerUnaryCall<Uint8Array, Uint8Array>,
+      callback: grpc.sendUnaryData<Uint8Array>,
+    ) {
+      observedAuthorization.set('health', call.metadata.get('authorization').map(String));
+      callback(null, GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create({
+        status: RuntimeHealthStatus.READY,
+      })));
+    },
+  });
+  const port = await new Promise<number>((resolvePromise, reject) => {
+    server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (error, boundPort) => {
+      if (error) reject(error);
+      else resolvePromise(boundPort);
+    });
+  });
+  try {
+    const transport = {
+      type: 'node-grpc' as const,
+      endpoint: `127.0.0.1:${port}`,
+    };
+    let tokenReads = 0;
+    installRuntimeNodeGrpcLocalFirstPartyAuthority(transport, {
+      async getRuntimeAccountAccessToken() {
+        tokenReads += 1;
+        return 'fixture.header.signature';
+      },
+    });
+    const runtime = new Runtime({ appId: 'nimi.desktop', transport });
+    await runtime.agents.createSourceMaterializationChallenge({
+      context: {
+        appId: 'nimi.desktop',
+        subjectUserId: 'user-1',
+        ownerUserId: 'user-1',
+        runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${'a'.repeat(64)}`,
+        localAgentRef: '',
+      },
+      requestId: 'materialization-authority-test',
+      sourceRef: {
+        kind: AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
+        worldId: 'world-1',
+        sourceId: 'source-1',
+        sourceContentHash: 'a'.repeat(64),
+      },
+    });
+    await runtime.audit.getRuntimeHealth({});
+
+    assert.equal(tokenReads, 1);
+    assert.deepEqual(observedAuthorization.get('materialization'), ['Bearer fixture.header.signature']);
+    assert.deepEqual(observedAuthorization.get('health'), []);
+  } finally {
+    await new Promise<void>((resolvePromise) => server.tryShutdown(() => resolvePromise()));
+  }
+});
+
+test('hidden Runtime account authority allowlist is posture-bound to six RPCs', () => {
+  const source = readRuntimeSource('node-grpc.ts');
+  const admitted = [
+    '/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile',
+    '/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge',
+    '/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload',
+    '/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk',
+    '/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization',
+    '/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload',
+  ];
+  for (const methodId of admitted) {
+    assert.match(source, new RegExp(methodId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
+  }
+  assert.match(source, /runtimeRpcAuthPosture\(request\.methodId\) !== 'authenticated_required'/u);
+  assert.doesNotMatch(source, /RUNTIME_ACCOUNT_AUTHORITY_METHODS[\s\S]*TerminateAgent/u);
 });
 
 test('node-grpc Runtime transport decodes protobuf server streams', async () => {

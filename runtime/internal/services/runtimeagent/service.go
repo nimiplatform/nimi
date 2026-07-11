@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -61,6 +62,15 @@ type Service struct {
 	chatStateRepo                         *publicChatSurfaceStateRepository
 	reviews                               reviewPersistence
 	postures                              behavioralPosturePersistence
+	sourceMaterializationRepo             *sourceMaterializationRepository
+	sourceMaterializationMu               sync.RWMutex
+	sourceMaterializationRuntimeInstance  string
+	sourceMaterializationAdmission        sourceMaterializationAdmission
+	sourceMaterializationProductCommitter sourceMaterializationProductCommitter
+	publicChatSourceSnapshotResolve       func(context.Context, string) (localAgentSourceSnapshotV1, bool, error)
+	sourceMaterializationNow              func() time.Time
+	sourceMaterializationSweepCancel      context.CancelFunc
+	sourceMaterializationSweepDone        chan struct{}
 	chatAppEmit                           publicChatAppMessageEmitter
 	bindingValidator                      scopedBindingValidator
 	voiceAssetResolverMu                  sync.RWMutex
@@ -75,7 +85,6 @@ type Service struct {
 	delegatedProviderProfiles             map[string]*runtimev1.DelegatedProviderProfile
 	delegatedApprovalRequests             map[string]*runtimev1.DelegatedApprovalRequest
 	delegatedPausedRequests               map[string]*runtimeAgentPausedDelegatedCapabilityRequest
-	sourceMaterializationPacketHMACSecret string
 	// voiceLipsync is the K-AGCORE-051/K-VOICE-018 synthesizer path. Default
 	// synthetic output is frame-only and cannot become a playable voice event.
 	voiceLipsync voiceLipsyncSynthesizer
@@ -171,17 +180,33 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	}
 	backend := memorySvc.PersistenceBackend()
 	stateRepo := newRuntimeAgentStateRepository(backend)
+	sourceMaterializationRepo := newSourceMaterializationRepository(backend)
+	if err := sourceMaterializationRepo.recoverStartup(context.Background(), time.Now().UTC()); err != nil {
+		return nil, fmt.Errorf("recover source materialization state: %w", err)
+	}
 	svc := &Service{
-		logger:                         logger,
-		memorySvc:                      memorySvc,
-		backend:                        backend,
-		stateRepo:                      stateRepo,
-		chatStateRepo:                  newPublicChatSurfaceStateRepository(backend, stateRepo),
-		agentAIConfigRepo:              newAgentAgentAIConfigRepository(backend),
-		agentAIConfigReadiness:         make(map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot),
-		execSubs:                       make(map[uint64]runtimeAgentAIConfigReadinessSubscriber),
-		reviews:                        newReviewPersistence(backend),
-		postures:                       newBehavioralPosturePersistence(backend),
+		logger:                    logger,
+		memorySvc:                 memorySvc,
+		backend:                   backend,
+		stateRepo:                 stateRepo,
+		chatStateRepo:             newPublicChatSurfaceStateRepository(backend, stateRepo),
+		agentAIConfigRepo:         newAgentAgentAIConfigRepository(backend),
+		agentAIConfigReadiness:    make(map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot),
+		execSubs:                  make(map[uint64]runtimeAgentAIConfigReadinessSubscriber),
+		reviews:                   newReviewPersistence(backend),
+		postures:                  newBehavioralPosturePersistence(backend),
+		sourceMaterializationRepo: sourceMaterializationRepo,
+		publicChatSourceSnapshotResolve: func(ctx context.Context, localAgentRef string) (localAgentSourceSnapshotV1, bool, error) {
+			snapshot, found, err := sourceMaterializationRepo.sourceSnapshot(ctx, localAgentRef)
+			if err != nil || !found {
+				return snapshot, found, err
+			}
+			if err := sourceMaterializationRepo.validateSourceSnapshotProvenance(ctx, snapshot); err != nil {
+				return localAgentSourceSnapshotV1{}, false, err
+			}
+			return snapshot, true, nil
+		},
+		sourceMaterializationNow:       func() time.Time { return time.Now().UTC() },
 		voiceAssetResolver:             rejectingVoiceAssetResolver{},
 		aiBridge:                       newRuntimePrivateAIBridge(),
 		delegatedGateway:               delegatedGateway,
@@ -207,6 +232,12 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err := svc.loadState(); err != nil {
 		return nil, err
 	}
+	if err := sourceMaterializationRepo.validatePersistedSnapshots(context.Background()); err != nil {
+		return nil, fmt.Errorf("validate persisted source snapshots: %w", err)
+	}
+	if err := svc.validateLoadedSourceSnapshotBindings(context.Background()); err != nil {
+		return nil, fmt.Errorf("validate loaded source snapshot bindings: %w", err)
+	}
 	if err := svc.seedRuntimeAgentAIConfigsForLoadedAgents(); err != nil {
 		return nil, err
 	}
@@ -220,6 +251,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err := svc.recoverReviewRuns(context.Background()); err != nil {
 		return nil, err
 	}
+	svc.startSourceMaterializationSweeper()
 	return svc, nil
 }
 
@@ -231,6 +263,7 @@ func (s *Service) Close() {
 		s.closed.Store(true)
 		s.StopLifeTrackLoop()
 		s.stopAgentAIConfigReadinessHealthSubscription()
+		s.stopSourceMaterializationSweeper()
 		s.shutdownPublicChatSurface()
 	})
 }
@@ -270,11 +303,44 @@ func (s *Service) SetRealmGroupMessageCandidateExecutor(executor RealmGroupMessa
 	s.realmGroupCandidateExecutor = executor
 }
 
-func (s *Service) SetSourceMaterializationPacketHMACSecret(secret string) {
+// SetSourceMaterializationRuntimeIdentity binds packet-v2 challenges to the
+// canonical configured Runtime identity. Materialization RPCs fail closed
+// until the manager wires Config.RuntimeID through this method. A changed
+// identity invalidates only unfinished transport state; committed snapshots
+// and agents remain immutable product truth.
+func (s *Service) SetSourceMaterializationRuntimeIdentity(runtimeInstanceID string) error {
+	if s == nil || s.sourceMaterializationRepo == nil {
+		return fmt.Errorf("source materialization service is unavailable")
+	}
+	if runtimeInstanceID == "" || runtimeInstanceID != strings.TrimSpace(runtimeInstanceID) {
+		return fmt.Errorf("source materialization runtime identity is required")
+	}
+	now := s.sourceMaterializationClock()()
+	s.sourceMaterializationMu.Lock()
+	defer s.sourceMaterializationMu.Unlock()
+	if err := s.sourceMaterializationRepo.bindRuntimeInstance(context.Background(), runtimeInstanceID, now); err != nil {
+		return err
+	}
+	s.sourceMaterializationRuntimeInstance = runtimeInstanceID
+	return nil
+}
+
+func (s *Service) SetSourceMaterializationAdmission(admission sourceMaterializationAdmission) {
 	if s == nil {
 		return
 	}
-	s.sourceMaterializationPacketHMACSecret = strings.TrimSpace(secret)
+	s.sourceMaterializationMu.Lock()
+	s.sourceMaterializationAdmission = admission
+	s.sourceMaterializationMu.Unlock()
+}
+
+func (s *Service) SetSourceMaterializationProductCommitter(committer sourceMaterializationProductCommitter) {
+	if s == nil {
+		return
+	}
+	s.sourceMaterializationMu.Lock()
+	s.sourceMaterializationProductCommitter = committer
+	s.sourceMaterializationMu.Unlock()
 }
 
 func (s *Service) StartLifeTrackLoop(parent context.Context) error {

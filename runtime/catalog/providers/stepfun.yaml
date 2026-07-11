@@ -21,6 +21,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/reasoning
       retrieved_at: 2026-04-18
       note: StepFun current reasoning model guide.
+    context_window_tokens: 8192
   - model_id: step-3.5-flash
     provider: stepfun
     model_type: chat
@@ -38,6 +39,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/reasoning
       retrieved_at: 2026-04-18
       note: StepFun current reasoning model guide.
+    context_window_tokens: 8192
   - model_id: step-3
     provider: stepfun
     model_type: chat
@@ -56,6 +58,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/modeloverview
       retrieved_at: 2026-04-18
       note: StepFun current public model capability overview across text, vision, image, and audio families.
+    context_window_tokens: 8192
   - model_id: step-r1-v-mini
     provider: stepfun
     model_type: chat
@@ -74,6 +77,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/llm/modeloverview
       retrieved_at: 2026-04-18
       note: StepFun current public model capability overview across text, vision, image, and audio families.
+    context_window_tokens: 8192
   - model_id: step-2-mini
     provider: stepfun
     model_type: chat
@@ -91,6 +95,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/text
       retrieved_at: 2026-04-18
       note: StepFun current text model guide.
+    context_window_tokens: 8192
   - model_id: step-2-16k
     provider: stepfun
     model_type: chat
@@ -108,6 +113,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/text
       retrieved_at: 2026-04-18
       note: StepFun current text model guide.
+    context_window_tokens: 16384
   - model_id: step-1-8k
     provider: stepfun
     model_type: chat
@@ -125,6 +131,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/text
       retrieved_at: 2026-04-18
       note: StepFun current text model guide.
+    context_window_tokens: 8192
   - model_id: step-1-32k
     provider: stepfun
     model_type: chat
@@ -142,6 +149,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/text
       retrieved_at: 2026-04-18
       note: StepFun current text model guide.
+    context_window_tokens: 32768
   - model_id: step-1-256k
     provider: stepfun
     model_type: chat
@@ -159,6 +167,7 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/text
       retrieved_at: 2026-04-18
       note: StepFun current text model guide.
+    context_window_tokens: 262144
   - model_id: step-1o-turbo-vision
     provider: stepfun
     model_type: chat

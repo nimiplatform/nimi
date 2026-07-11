@@ -84,11 +84,28 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 		// ingress; the committed Runtime Agent AI Config is the only binding truth.
 		return publicChatTurnRequestPayload{}, errPublicChatRequestExecutionBindingsNotAdmitted
 	}
+	if len(decoded.ExecutionParams) > 0 {
+		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat execution_params are not admitted on LocalAgent turns")
+	}
+	if strings.TrimSpace(decoded.WorldID) != "" {
+		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat world_id override is not admitted")
+	}
 	if _, err := validateLocalAgentIdentity(decoded.OwnerUserID, decoded.RuntimeSourceRef, decoded.LocalAgentRef); err != nil {
 		return publicChatTurnRequestPayload{}, err
 	}
-	if len(toProtoPublicChatMessages(decoded.Messages)) == 0 {
-		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload requires messages")
+	if len(decoded.Messages) != 1 {
+		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload requires exactly one current user message")
+	}
+	for _, message := range decoded.Messages {
+		if strings.TrimSpace(message.Role) != "user" {
+			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat current turn accepts only user role")
+		}
+		if strings.TrimSpace(message.Content) == "" {
+			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat current user message content is required")
+		}
+		if strings.TrimSpace(message.Name) != "" {
+			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat caller message name is not admitted")
+		}
 	}
 	if decoded.MaxOutputTokens < 0 {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat max_output_tokens must be non-negative")

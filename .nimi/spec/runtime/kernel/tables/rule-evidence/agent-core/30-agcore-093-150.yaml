@@ -1,3 +1,83 @@
+table_family: support_registry
+registry_id: runtime_rule_evidence_agent_core_093_150_fragment
+owner: runtime
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - K-AGCORE-093
+  - K-AGCORE-094
+  - K-AGCORE-095
+  - K-AGCORE-096
+  - K-AGCORE-097
+  - K-AGCORE-098
+  - K-AGCORE-099
+  - K-AGCORE-100
+  - K-AGCORE-101
+  - K-AGCORE-102
+  - K-AGCORE-103
+  - K-AGCORE-104
+  - K-AGCORE-105
+  - K-AGCORE-106
+  - K-AGCORE-107
+  - K-AGCORE-108
+  - K-AGCORE-109
+  - K-AGCORE-110
+  - K-AGCORE-111
+  - K-AGCORE-112
+  - K-AGCORE-113
+  - K-AGCORE-114
+  - K-AGCORE-115
+  - K-AGCORE-116
+  - K-AGCORE-117
+  - K-AGCORE-118
+  - K-AGCORE-119
+  - K-AGCORE-120
+  - K-AGCORE-121
+  - K-AGCORE-122
+  - K-AGCORE-123
+  - K-AGCORE-124
+  - K-AGCORE-125
+  - K-AGCORE-126
+  - K-AGCORE-127
+  - K-AGCORE-128
+  - K-AGCORE-129
+  - K-AGCORE-130
+  - K-AGCORE-131
+  - K-AGCORE-132
+  - K-AGCORE-138
+  - K-AGCORE-139
+  - K-AGCORE-140
+  - K-AGCORE-141
+  - K-AGCORE-142
+  - K-AGCORE-143
+  - K-AGCORE-144
+  - K-AGCORE-145
+  - K-AGCORE-146
+  - K-AGCORE-147
+  - K-AGCORE-148
+  - K-AGCORE-149
+  - K-AGCORE-150
+
 rules:
   - rule_id: K-AGCORE-093
     evidence_refs:
@@ -199,22 +279,30 @@ rules:
   - rule_id: K-AGCORE-139
     evidence_refs:
       - runtime_kernel_consistency
-    note: InitializeAgent is a Runtime-local creation operation for SourceMaterializationPacket-to-LocalAgent materialization, not only the Nimi guide; Runtime owns opaque localAgentRef generation, packet validation, provenance persistence, and multiple LocalAgents per source provenance, while Realm source provenance does not own the creation trigger.
+    test_files:
+      - scripts/check-local-agent-full-chain-hardcut.mjs
+    note: Runtime exclusively owns challenge/replay/upload admission and atomic packet-v2-to-LocalAgent creation; the only ingress is challenge plus Begin/Put/Commit/Abort, proof is dedicated Realm RS256/JWKS materialization-purpose trust, and immutable snapshot/agent state cannot retain raw packet, rebase, write back, or derive authority from app metadata.
     evidence_requirement: required
   - rule_id: K-AGCORE-140
     evidence_refs:
       - runtime_kernel_consistency
-    note: Nimi guide prompt and built-in docs are product knowledge/context only and must not create Agent authority, memory, grant, setup, profile, or app truth.
+    test_files:
+      - scripts/check-local-agent-full-chain-hardcut.mjs
+    note: LocalAgent identity, behavior, greeting, and knowledge derive from strict proof-covered typed source fields; packet systemPromptBase, equivalent raw prompt, runtime-hardcoded guide truth, and privileged guide mechanics are forbidden.
     evidence_requirement: required
   - rule_id: K-AGCORE-141
     evidence_refs:
       - runtime_kernel_consistency
-    note: TerminateAgent is a Runtime-local delete/reset operation for Runtime-owned LocalAgent materialization, hard-deletes the runtime_local_agent row plus local state/hooks/event-log/memory when explicitly invoked by Runtime-local authority, is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; source provenance removal must not trigger deletion.
+    test_files:
+      - scripts/check-local-agent-full-chain-hardcut.mjs
+    note: TerminateAgent atomically hard-deletes LocalAgent, snapshot, provenance membership, conversation/transcript, state, hooks, events, and scoped memory; restart, replay, or a later materialization cannot resurrect the deleted identity.
     evidence_requirement: required
   - rule_id: K-AGCORE-142
     evidence_refs:
       - runtime_kernel_consistency
-    note: Built-in Nimi usage documentation corpus is product knowledge authored alongside the guide bootstrap definition and attached per-turn as context only; it is not a runtime-owned catalog, not memory truth, and not setup/profile authority.
+    test_files:
+      - scripts/check-local-agent-full-chain-hardcut.mjs
+    note: Runtime's typed source compiler exclusively attaches source lanes each turn; source knowledge, including guide documentation, is proof-covered typed data with stable refs/hashes and cannot be consumer-attached context, prompt/policy/tool authority, a Runtime catalog, or memory truth.
     evidence_requirement: required
   - rule_id: K-AGCORE-143
     evidence_refs:

@@ -22,6 +22,7 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
       retrieved_at: 2026-06-03
       note: Claude Opus 4.8 current model identifier from the Claude model overview.
+    context_window_tokens: 8192
   - model_id: claude-opus-4-7
     provider: anthropic
     model_type: chat
@@ -40,6 +41,7 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7
       retrieved_at: 2026-04-18
       note: Claude Opus 4.7 release notes and model identifiers.
+    context_window_tokens: 8192
   - model_id: claude-opus-4-6
     provider: anthropic
     model_type: chat
@@ -58,6 +60,7 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
       retrieved_at: 2026-04-18
       note: Claude 4.6 release notes and model identifiers.
+    context_window_tokens: 8192
   - model_id: claude-sonnet-4-6
     provider: anthropic
     model_type: chat
@@ -76,6 +79,7 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
       retrieved_at: 2026-04-18
       note: Claude 4.6 release notes and model identifiers.
+    context_window_tokens: 8192
   - model_id: claude-sonnet-4-5
     provider: anthropic
     model_type: chat
@@ -94,6 +98,7 @@ models:
       url: https://www.anthropic.com/news/claude-sonnet-4-5
       retrieved_at: 2026-04-18
       note: Claude Sonnet 4.5 announcement and capabilities.
+    context_window_tokens: 8192
   - model_id: claude-sonnet-4-5-20250929
     provider: anthropic
     model_type: chat
@@ -113,6 +118,7 @@ models:
       retrieved_at: 2026-04-18
       note: Claude Sonnet 4.5 announcement and capabilities.
     api_model_id: claude-sonnet-4-5
+    context_window_tokens: 8192
   - model_id: claude-haiku-4-5
     provider: anthropic
     model_type: chat
@@ -131,6 +137,7 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
       retrieved_at: 2026-04-18
       note: Claude model overview with API model IDs and aliases.
+    context_window_tokens: 8192
   - model_id: claude-haiku-4-5-20251001
     provider: anthropic
     model_type: chat
@@ -150,6 +157,7 @@ models:
       retrieved_at: 2026-04-18
       note: Claude model overview with API model IDs and aliases.
     api_model_id: claude-haiku-4-5
+    context_window_tokens: 8192
 voices: []
 selection_profiles:
   - provider: anthropic

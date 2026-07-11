@@ -5,10 +5,12 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	runtimecfg "github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -142,6 +144,82 @@ func TestResolvePublicChatTextBindingResolvesLocalDefaultAlias(t *testing.T) {
 	}
 	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved != "gemma-default" {
 		t.Fatalf("unexpected public chat default binding resolution: route=%v model=%q", route, modelResolved)
+	}
+}
+
+func TestResolvePublicChatTextContextMetadataUsesResolvedCatalogRow(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	targetRef := &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "nimi.runtime.target.local/v1",
+				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+					ProfileBindingId: "profile-binding-test",
+				},
+			},
+		},
+	}
+
+	window, catalogRevision, modelRevision, provider, err := svc.ResolvePublicChatTextContextMetadata(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		"gemma-4-e2b-it-local",
+		targetRef,
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextContextMetadata: %v", err)
+	}
+	if window != 32768 || catalogRevision == "" || modelRevision == "" || provider != "local" {
+		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
+	}
+}
+
+func TestResolvePublicChatTextContextMetadataFailsClosedWithoutCapacity(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	customDir := t.TempDir()
+	fixture := []byte(`version: 1
+provider: openai
+catalog_version: missing-context-service-fixture-v1
+inventory_mode: static_source
+models:
+  - model_id: missing-context-service-fixture
+    provider: openai
+    model_type: chat
+    updated_at: 2026-07-11
+    capabilities: [text.generate]
+    fitness:
+      context_length: 8192
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-11
+      notes: Remote test row intentionally lacks context_window_tokens and forges local-only fitness metadata.
+    source_ref:
+      url: https://example.invalid/missing-context-service-fixture
+      retrieved_at: 2026-07-11
+      note: Test-only fixture.
+voices: []
+`)
+	if err := os.WriteFile(filepath.Join(customDir, "openai.yaml"), fixture, 0o600); err != nil {
+		t.Fatalf("write missing-capacity service fixture: %v", err)
+	}
+	resolver, err := catalog.NewResolver(catalog.ResolverConfig{CustomDir: customDir})
+	if err != nil {
+		t.Fatalf("create missing-capacity service resolver: %v", err)
+	}
+	svc.speechCatalog = resolver
+	_, _, _, _, err = svc.ResolvePublicChatTextContextMetadata(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		"missing-context-service-fixture",
+		&runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+			Version: "nimi.runtime.target.cloud/v1", Provider: "openai", ProviderModelId: "missing-context-service-fixture", ConnectorId: "connector-test", RemoteModelCatalogId: "catalog-test",
+		}}},
+	)
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID {
+		t.Fatalf("expected catalog metadata failure, got err=%v reason=%v", err, reason)
 	}
 }
 

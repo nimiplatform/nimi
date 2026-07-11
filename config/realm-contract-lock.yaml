@@ -1,0 +1,21 @@
+schema_version: nimi.realm-contract-lock/v1
+generated_by: scripts/generate-realm-contract-lock.mjs
+realm:
+  repository: https://github.com/nimiplatform/nimi-realm.git
+  commit: 7827351bbda481f1eb7bbec18e084d0f88f1a16f
+openapi:
+  source_path: nimi-backend/api-nimi.yaml
+  synced_path: config/realm-openapi/api-nimi.yaml
+  document_sha256: dbd296d0c26c34a6d6569e05b672784591703d50576d1f01644bcb4d9715782d
+  fragment_schema_version: nimi.realm-openapi-source-materialization-fragment/v1
+  fragment_selector:
+    operation_id: WorldCoreController_createSourceMaterializationPacket
+    path: /api/realm/core/source-materialization-packets
+    method: post
+  fragment_sha256: d4dc6512196b77d745ffe7c422693e931ca85cd993c91070b4ddfdf90af422b7
+  component_schema_count: 28
+schema_versions:
+  packet: realm.source-materialization-packet/v2
+  materialization_context: realm.materialization-context/v1
+  coverage_manifest: realm.materialization-coverage/v1
+  bundle_transport_manifest: realm.materialization-bundle-manifest/v1

@@ -122,6 +122,15 @@ func (s *Service) refreshRuntimeAgentAIConfigReadiness(agentInstanceID string) e
 	if err != nil {
 		return err
 	}
+	// Bind publication to a still-live Agent under the same lock order used by
+	// atomic TerminateAgent (Agent state -> readiness). A readiness computation
+	// that raced deletion may not repopulate or broadcast state for an absent
+	// LocalAgent after the delete commits.
+	s.mu.RLock()
+	if s.agents[trimmedAgentInstanceID] == nil {
+		s.mu.RUnlock()
+		return status.Error(codes.NotFound, "agent not found")
+	}
 	s.agentAIConfigReadinessMu.Lock()
 	if s.agentAIConfigReadiness == nil {
 		s.agentAIConfigReadiness = make(map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot)
@@ -129,6 +138,7 @@ func (s *Service) refreshRuntimeAgentAIConfigReadiness(agentInstanceID string) e
 	s.agentAIConfigReadiness[trimmedAgentInstanceID] = snapshot
 	s.agentAIConfigReadinessMu.Unlock()
 	s.broadcastRuntimeAgentAIConfigReadiness(snapshot)
+	s.mu.RUnlock()
 	return nil
 }
 

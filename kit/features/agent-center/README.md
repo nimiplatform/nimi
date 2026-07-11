@@ -21,6 +21,26 @@ Runtime presentation mutation is the selection commit boundary, and adapter
 operations are serialized against its committed revision before any destructive
 Shell cleanup runs.
 
+## Bounded Source and Context Status
+
+Agent Center accepts only the SDK-decoded `NimiRuntimeAgentSourceContextStatus`
+and `NimiRuntimeAgentTurnContextSummary` types. The headless mapper reduces
+those projections to five product states: `ready`, `blocked`, `truncated`,
+`failed`, and `unknown`. Missing context before the first composed turn remains
+`unknown`; it does not become a false success and does not block the first turn.
+
+`createRuntimeAgentCenterAdapter` can load the two bounded projections through
+`loadSourceContextStatus` and `loadTurnContextSummary`. The optional
+`conversationAnchorId` on `AgentCenterRuntimeLoadInput` selects the turn summary
+to read; it does not grant context assembly or mutation authority.
+
+Overview shows a human-readable, read-only status. Advanced shows only admitted
+source identity/hash/coverage and turn lane/count/budget/digest summaries. Raw
+source or world content, prompt/lane text, transcript/private memory, packet or
+proof material, provider payloads, and tool arguments/results are not Agent
+Center props or state. The Behavior section remains exclusively Runtime
+autonomy configuration.
+
 ## Before Building Locally
 
 Read `.nimi/spec/platform/kernel/agent-center-contract.md`,

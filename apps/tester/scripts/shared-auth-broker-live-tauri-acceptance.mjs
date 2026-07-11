@@ -24,7 +24,6 @@ import {
   DESKTOP_DEVICE_ID,
   RUNTIME_ACCOUNT_ACCESS_TOKEN,
   RUNTIME_ACCOUNT_REFRESH_TOKEN,
-  SOURCE_PACKET_HMAC_SECRET,
 } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-shared.test-helper.ts';
 
 const appRoot = path.resolve(import.meta.dirname, '..');
@@ -51,7 +50,6 @@ await withRealmFixtureServer({
         NIMI_RUNTIME_ACCOUNT_TOKEN_URL: `${baseUrl}/api/auth/oauth/token`,
         NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION: `tester-tauri-live-${randomUUID()}`,
         NIMI_RUNTIME_APP_REGISTRY_PATH: path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-app-registry.yaml'),
-        SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET: SOURCE_PACKET_HMAC_SECRET,
       },
       run: async ({ endpoint }) => {
         const desktopRuntime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID);

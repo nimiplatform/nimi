@@ -17,7 +17,7 @@ function collectSourceFiles(dir: string): string[] {
 }
 
 describe('Agent Center Runtime adapter', () => {
-  it('loads Runtime Agent AI Config, readiness, inspect, and memory through typed adapters', async () => {
+  it('loads Runtime Agent AI Config, inspect, memory, and bounded source/context through typed adapters', async () => {
     const calls: string[] = [];
     const adapter: AgentCenterRuntimeAdapter = createRuntimeAgentCenterAdapter({
       identity: {
@@ -81,9 +81,31 @@ describe('Agent Center Runtime adapter', () => {
         calls.push(`memory.${identity.localAgentRef}`);
         return { recordCount: 0, records: [] } as never;
       },
+      async loadSourceContextStatus(identity) {
+        calls.push(`source.${identity.localAgentRef}`);
+        return {
+          schemaVersion: 'v1',
+          ready: false,
+          state: 'not_materialized',
+          reasonCode: 'source_not_materialized',
+          localAgentRef: identity.localAgentRef,
+          sourceRef: null,
+          sourceSchemaVersion: null,
+          snapshotSchemaVersion: null,
+          snapshotHash: null,
+          capturedAt: null,
+          worldContentHash: null,
+          materializationContextHash: null,
+          coverageSections: [],
+        };
+      },
+      async loadTurnContextSummary(input) {
+        calls.push(`context.${input.localAgentRef}.${input.conversationAnchorId}`);
+        return null;
+      },
     });
 
-    const snapshot = await adapter.loadSnapshot();
+    const snapshot = await adapter.loadSnapshot({ conversationAnchorId: 'anchor-1' });
     await adapter.upsertAgentAIConfig?.({
       ownerUserId: 'owner',
       runtimeSourceRef: 'agent',
@@ -105,11 +127,15 @@ describe('Agent Center Runtime adapter', () => {
 
     expect(snapshot.agentAIConfig?.revision).toBe(2);
     expect(snapshot.readiness?.configRevision).toBe(2);
+    expect(snapshot.sourceContextStatus?.state).toBe('not_materialized');
+    expect(snapshot.turnContextSummary).toBeNull();
     expect(calls).toEqual([
       'config.get',
       'config.readiness',
       'inspect.getPublicInspect',
       'memory.local-agent:owner:agent',
+      'source.local-agent:owner:agent',
+      'context.local-agent:owner:agent.anchor-1',
       'config.upsert',
       'inspect.setAutonomyConfig',
     ]);

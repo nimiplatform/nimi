@@ -16,13 +16,13 @@ import (
 const (
 	cbdbChainVerifierOwnerID       = "cbdb-chain-agent-chat-verifier-user"
 	cbdbChainSuZheRuntimeSourceRef = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
-	cbdbChainSuZheLocalAgentRef    = "local-agent:cbdb-chain-agent-chat-verifier-user:cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
+	cbdbChainSuZheLocalAgentRef    = "local-agent:runtime-8af2c5ca8af2c5ca8af2c5ca8af2c5ca"
 	cbdbChainDesktopCallerAppID    = "nimi.desktop.test.cbdb-agent-chat-runtime-chain"
 	cbdbChainValidationThreadID    = "cbdb-chain-validation-thread"
 	cbdbChainValidationRequestID   = "cbdb-chain-validation-request"
 )
 
-func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
+func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	ctx.AppId = cbdbChainDesktopCallerAppID
@@ -66,17 +66,17 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 		"realm_profile_context": map[string]any{
 			"owner_scope":                   "cbdb-curated-system",
 			"source_profile":                "cbdb-historical",
-			"display_name":                  "CBDB Su Zhe",
-			"handle":                        "su-zhe",
-			"world_id":                      "cbdb-song-slice-real-20260614-world",
-			"world_name":                    "CBDB Song slice",
+			"display_name":                  "FORGED METADATA NAME",
+			"handle":                        "forged-metadata-handle",
+			"world_id":                      "forged-metadata-world-id",
+			"world_name":                    "FORGED METADATA WORLD",
 			"ownership_type":                "WORLD_OWNED",
-			"avatar_url":                    "https://cdn.example.com/cbdb/su-zhe-reviewed-portrait.png",
+			"avatar_url":                    "https://forged.invalid/metadata-avatar.png",
 			"avatar_autoplay":               true,
-			"default_voice_reference":       "preset_voice_id:zh_narrator",
-			"description":                   "Reviewed sparse CBDB profile for Runtime prompt validation.",
-			"greeting":                      "Ask what the record supports before imagining.",
-			"communication_style":           "Uses reviewed Song-literati register.",
+			"default_voice_reference":       "preset_voice_id:forged_metadata_voice",
+			"description":                   "FORGED METADATA DESCRIPTION",
+			"greeting":                      "FORGED METADATA GREETING",
+			"communication_style":           "FORGED METADATA STYLE",
 			"selected_owner_setting_fields": []any{"communication.contentStyle"},
 		},
 	})
@@ -126,30 +126,33 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 			if got := strings.TrimSpace(req.SubjectUserID); got != cbdbChainVerifierOwnerID {
 				t.Fatalf("expected executor SubjectUserID %q, got %q", cbdbChainVerifierOwnerID, got)
 			}
-			if len(req.Messages) != 1 || strings.TrimSpace(req.Messages[0].GetContent()) != "validate cbdb agent chat" {
-				t.Fatalf("expected one CBDB validation user message, got %#v", req.Messages)
+			if len(req.Messages) == 0 || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetRole()) != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetContent()) != "validate cbdb agent chat" {
+				t.Fatalf("expected composed context to end with the CBDB validation user message, got %#v", req.Messages)
 			}
 			if got := req.Binding.ModelID; got != "local/default" {
 				t.Fatalf("expected local/default binding, got %#v", req.Binding)
 			}
-			prompt := strings.TrimSpace(req.SystemPrompt)
-			for _, expected := range []string{
-				publicChatRealmProfilePromptHeader,
-				"CBDB historical profile",
-				"curated system source profile",
-				"CBDB Su Zhe",
-				"Ask what the record supports before imagining.",
-				"Uses reviewed Song-literati register.",
-				"https://cdn.example.com/cbdb/su-zhe-reviewed-portrait.png",
-				"preset_voice_id:zh_narrator",
-				"communication.contentStyle",
-			} {
-				if !strings.Contains(prompt, expected) {
-					t.Fatalf("expected CBDB profile prompt to contain %q, got %q", expected, prompt)
-				}
+			if got := req.MaxTokens; got != 777 {
+				t.Fatalf("expected provider max_tokens to equal explicit manifest reserve 777, got %d", got)
 			}
-			if strings.Contains(prompt, "system-agent profile") {
-				t.Fatalf("CBDB profile prompt must use source-profile wording, got %q", prompt)
+			var providerContext strings.Builder
+			for _, message := range req.Messages {
+				providerContext.WriteString(message.GetContent())
+				providerContext.WriteByte('\n')
+			}
+			prompt := providerContext.String()
+			for _, forbidden := range []string{
+				"FORGED METADATA NAME",
+				"FORGED METADATA WORLD",
+				"FORGED METADATA DESCRIPTION",
+				"FORGED METADATA GREETING",
+				"FORGED METADATA STYLE",
+				"forged_metadata_voice",
+				"forged.invalid",
+			} {
+				if strings.Contains(prompt, forbidden) {
+					t.Fatalf("forged anchor metadata %q reached model context: %q", forbidden, prompt)
+				}
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
@@ -205,6 +208,7 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 			"conversation_anchor_id": anchorID,
 			"request_id":             cbdbChainValidationRequestID,
 			"thread_id":              cbdbChainValidationThreadID,
+			"max_output_tokens":      777,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "validate cbdb agent chat"},
 			},
@@ -307,8 +311,8 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 		t.Fatalf("expected CBDB runtime validation text, got=%v", lastTurn)
 	}
 	snapshotRaw := fmt.Sprint(snapshot.AsMap())
-	if strings.Contains(snapshotRaw, "Uses reviewed Song-literati register.") {
-		t.Fatalf("public session snapshot must not expose CBDB profile prompt context: %v", snapshotRaw)
+	if strings.Contains(snapshotRaw, "FORGED METADATA STYLE") {
+		t.Fatalf("public session snapshot must not expose forged model context: %v", snapshotRaw)
 	}
 
 	waitForCBDBRuntimeAgentIdle(t, svc)

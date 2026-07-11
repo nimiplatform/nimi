@@ -258,22 +258,6 @@ func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage, anchorID 
 	return out
 }
 
-func (s *Service) appendPublicChatAssistantMessage(anchorID string, assistantText string) {
-	if strings.TrimSpace(anchorID) == "" || strings.TrimSpace(assistantText) == "" {
-		return
-	}
-	s.chatSurfaceMu.Lock()
-	session := s.chatAnchors[strings.TrimSpace(anchorID)]
-	if session == nil {
-		s.chatSurfaceMu.Unlock()
-		return
-	}
-	session.Transcript = appendPublicChatAssistantTranscript(session.Transcript, assistantText)
-	session.UpdatedAt = time.Now().UTC()
-	s.chatSurfaceMu.Unlock()
-	s.persistCurrentPublicChatSurfaceState()
-}
-
 func (s *Service) publicChatAnchorSnapshot(anchorID string) (publicChatAnchorState, bool) {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
@@ -281,9 +265,12 @@ func (s *Service) publicChatAnchorSnapshot(anchorID string) (publicChatAnchorSta
 	if session == nil {
 		return publicChatAnchorState{}, false
 	}
+	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
+		return publicChatAnchorState{}, false
+	}
 	snapshot := *session
 	snapshot.Reasoning = clonePublicChatReasoningConfig(session.Reasoning)
-	snapshot.Transcript = cloneChatMessages(session.Transcript)
+	snapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
 	return snapshot, true
 }
 
@@ -312,33 +299,19 @@ func (s *Service) setPublicChatStoredFollowUpOutcome(anchorID string, sourceTurn
 	}
 }
 
-func (s *Service) setPublicChatAnchorBaseSystemPrompt(anchorID string, systemPrompt string) {
-	s.chatSurfaceMu.Lock()
-	session := s.chatAnchors[strings.TrimSpace(anchorID)]
-	if session == nil {
-		s.chatSurfaceMu.Unlock()
-		return
-	}
-	session.SystemPrompt = strings.TrimSpace(systemPrompt)
-	session.UpdatedAt = time.Now().UTC()
-	s.chatSurfaceMu.Unlock()
-	s.persistCurrentPublicChatSurfaceState()
-}
+const publicChatInternalFollowUpInstructionRole = "runtime_follow_up_instruction"
 
-func buildPublicChatFollowUpSystemPrompt(base string, instruction string, depth int, maxTurns int) string {
-	followUpInstruction := strings.TrimSpace(instruction)
-	if followUpInstruction == "" {
-		return strings.TrimSpace(base)
+// publicChatFollowUpInstructionInput is Runtime-private current-turn input for
+// the ordinary context composer. It is not caller history. Once its assistant
+// response commits, both sides live in the canonical Runtime transcript while
+// remaining absent from the public user-message projection.
+func publicChatFollowUpInstructionInput(instruction string) []publicChatMessagePayload {
+	trimmed := strings.TrimSpace(instruction)
+	if trimmed == "" {
+		return nil
 	}
-	sections := make([]string, 0, 2)
-	if trimmed := strings.TrimSpace(base); trimmed != "" {
-		sections = append(sections, trimmed)
-	}
-	sections = append(sections, fmt.Sprintf(
-		"FollowUpInstruction:\n%s\n\nTreat this as an internal continuation cue, not a new user message. Continue naturally from the latest assistant turn. Add only net-new content. Do not restate the previous assistant reply. The current follow-up depth is %d of %d. If no natural continuation is needed, return an empty actions array and do not repeat the prior message.",
-		followUpInstruction,
-		depth,
-		maxTurns,
-	))
-	return strings.Join(sections, "\n\n")
+	return []publicChatMessagePayload{{
+		Role:    publicChatInternalFollowUpInstructionRole,
+		Content: trimmed,
+	}}
 }

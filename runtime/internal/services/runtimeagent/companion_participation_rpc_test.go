@@ -20,8 +20,8 @@ func TestCompanionParticipationRequestRunsPublicChatTurnAndProjectsCommit(t *tes
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, req *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			if len(req.Messages) != 1 || strings.TrimSpace(req.Messages[0].GetContent()) != "hello avatar" {
-				t.Fatalf("expected companion request to route one user message through runtime public chat, got=%v", req.Messages)
+			if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].GetRole() != "user" || strings.TrimSpace(req.Messages[len(req.Messages)-1].GetContent()) != "hello avatar" {
+				t.Fatalf("expected composed companion context to end with the current user message, got=%v", req.Messages)
 			}
 			if req.Binding.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || strings.TrimSpace(req.Binding.ModelID) != "local/default" {
 				t.Fatalf("expected companion request to use runtime-resolved public chat binding, got=%+v", req.Binding)

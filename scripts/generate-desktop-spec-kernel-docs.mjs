@@ -104,6 +104,11 @@ const specs = [
     render: renderDesktopFeatureCoverage,
   },
   {
+    input: 'realm-source-materialization-actions.yaml',
+    output: 'realm-source-materialization-actions.md',
+    render: renderRealmSourceMaterializationActions,
+  },
+  {
     input: 'rule-evidence.yaml',
     output: 'rule-evidence.md',
     render: renderRuleEvidence,
@@ -565,6 +570,42 @@ function renderDesktopFeatureCoverage(doc, sourceName) {
     out += `| \`${feature}\` | \`${riskTier}\` | ${requiredLayers} | ${scenarios || '—'} |\n`;
   }
   out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRealmSourceMaterializationActions(doc, sourceName) {
+  const machineId = String(doc?.machine_id || '').trim() || '—';
+  const authorityRefs = Array.isArray(doc?.authority_refs) ? doc.authority_refs : [];
+  const states = Array.isArray(doc?.states) ? doc.states : [];
+  const transitions = Array.isArray(doc?.transitions) ? doc.transitions : [];
+  let out = header('Generated Realm Source Materialization Actions', sourceName);
+
+  out += `- Machine ID: \`${machineId}\`\n`;
+  out += `- Authority refs: ${authorityRefs.length > 0 ? authorityRefs.map((ref) => `\`${String(ref).trim()}\``).join(', ') : '—'}\n\n`;
+  out += '| State | Primary Action | Description |\n';
+  out += '|---|---|---|\n';
+  for (const item of states) {
+    const state = String(item?.state || '').trim();
+    if (!state) continue;
+    const primaryAction = String(item?.primary_action || '').trim() || '—';
+    const description = String(item?.description || '').trim() || '—';
+    out += `| \`${state}\` | ${primaryAction} | ${description} |\n`;
+  }
+  out += '\n';
+
+  if (transitions.length > 0) {
+    out += '## Transitions\n\n';
+    out += '| From | To | Event |\n';
+    out += '|---|---|---|\n';
+    for (const item of transitions) {
+      const from = String(item?.from || '').trim() || '—';
+      const to = String(item?.to || '').trim() || '—';
+      const event = String(item?.event || '').trim() || '—';
+      out += `| \`${from}\` | \`${to}\` | \`${event}\` |\n`;
+    }
+    out += '\n';
+  }
 
   return normalizeMarkdown(out);
 }

@@ -42,7 +42,7 @@ ${fields}`;
     return `    async def ${name}(self, request: ${method.request_type}, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ${method.response_type}:
         raise RuntimeError(${quote(`SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: ${method.method_id}`)})`;
   }).join('\n\n');
-  const realmModels = (realm.model_schemas || []).map((model) => {
+  const renderRealmModel = (model) => {
     if (model.schema.kind !== 'object') return `${model.name} = ${pyOpenApiType(model.schema)}`;
     const fields = model.schema.properties.map((property) => {
       const type = pyOpenApiType(property.schema);
@@ -53,7 +53,14 @@ ${fields}`;
     return `@dataclass(frozen=True)
 class ${model.name}:
 ${fields}`;
-  }).join('\n\n');
+  };
+  const realmModels = [
+    ...(realm.model_schemas || []).filter((model) => model.schema.kind !== 'union'),
+    // Python evaluates a type-alias RHS eagerly even under future annotations.
+    // Emit closed materialization unions after every referenced dataclass so
+    // Character/Persona aliases cannot fail import with NameError.
+    ...(realm.model_schemas || []).filter((model) => model.schema.kind === 'union'),
+  ].map(renderRealmModel).join('\n\n');
   const realmTypes = realm.operations.map((operation) => {
     const base = realmOperationTypeBase(operation.operation_id);
     const pathFields = (operation.path_parameters || []).map((parameter) => `    ${pyFieldName(parameter.name)}: ${pyOpenApiType(parameter.schema)}${parameter.required ? '' : ' | None = None'}`).join('\n') || '    pass';

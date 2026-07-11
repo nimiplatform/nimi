@@ -117,9 +117,6 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.AppRegistryPath != "" {
 		t.Fatalf("app registry path should default empty, got=%q", cfg.AppRegistryPath)
 	}
-	if cfg.SourceMaterializationPacketHMACSecret != "" {
-		t.Fatalf("source materialization packet HMAC secret must not have a default, got=%q", cfg.SourceMaterializationPacketHMACSecret)
-	}
 }
 
 func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
@@ -207,37 +204,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	}
 	if got := strings.TrimSpace(target.BaseURL); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini base mismatch: %q", got)
-	}
-}
-
-func TestLoadSourceMaterializationPacketHMACSecretFromConfigFile(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-	configBody := `{
-  "schemaVersion": 1,
-  "sourceMaterializationPacketHmacSecret": "source-packet-secret-from-file"
-}`
-	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
-	}
-
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
-	clearRuntimeConfigEnv(t)
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.SourceMaterializationPacketHMACSecret != "source-packet-secret-from-file" {
-		t.Fatalf("source materialization packet HMAC secret mismatch: %q", cfg.SourceMaterializationPacketHMACSecret)
-	}
-
-	t.Setenv("SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET", "source-packet-secret-from-env")
-	cfg, err = Load()
-	if err != nil {
-		t.Fatalf("Load with env override returned error: %v", err)
-	}
-	if cfg.SourceMaterializationPacketHMACSecret != "source-packet-secret-from-env" {
-		t.Fatalf("source materialization packet HMAC env override mismatch: %q", cfg.SourceMaterializationPacketHMACSecret)
 	}
 }
 

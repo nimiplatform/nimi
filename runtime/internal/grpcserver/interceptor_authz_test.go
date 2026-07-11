@@ -132,6 +132,31 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.admin",
 		},
 		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+			request:    &runtimev1.CreateSourceMaterializationChallengeRequest{},
+			capability: "runtime.agent.admin",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
+			request:    &runtimev1.BeginSourceMaterializationUploadRequest{},
+			capability: "runtime.agent.admin",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
+			request:    &runtimev1.PutSourceMaterializationChunkRequest{},
+			capability: "runtime.agent.admin",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
+			request:    &runtimev1.CommitSourceMaterializationRequest{},
+			capability: "runtime.agent.admin",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
+			request:    &runtimev1.AbortSourceMaterializationUploadRequest{},
+			capability: "runtime.agent.admin",
+		},
+		{
 			method: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
 			request: &runtimev1.ExecuteScenarioRequest{
 				Head: &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop"},

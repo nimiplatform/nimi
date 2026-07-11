@@ -2,83 +2,84 @@
 
 > Owner Domain: `K-AGCORE-*`
 
-Runtime LocalAgent materialization, Nimi guide context, deletion/reset, documentation corpus, and proactive interruptibility authority.
+Runtime LocalAgent materialization, immutable source snapshot, deletion/reset,
+source-derived context input, and proactive interruptibility authority.
 
 This file is a semantic split from `runtime-agent-service-contract.md`; Rule IDs and rule text remain authoritative under Runtime kernel.
 
 ## K-AGCORE-139 SourceMaterializationPacket LocalAgent Materialization
 
-`InitializeAgent` is a Runtime-local creation operation for an opaque
-LocalAgent identity. `RuntimeAgentService` may materialize a LocalAgent from a
-validated `SourceMaterializationPacket` produced from Realm source content, but
-Realm source provenance does not own the Runtime creation lifecycle. This rule
-applies to every materialized runtime source, not only the Nimi guide.
+`RuntimeAgentService` is the sole creation authority for an opaque Runtime
+LocalAgent identity. Realm authorizes a canonical source read and issues an
+RS256-protected, by-value `realm.source-materialization-packet/v2`; it does not
+own the Runtime challenge, replay ledger, upload transaction, LocalAgent
+identity, snapshot, or lifecycle. The only packet ingress is the
+`CreateSourceMaterializationChallenge` plus `Begin` / `Put` / `Commit` /
+`AbortSourceMaterializationUpload` surface defined by K-AGCORE-151. A unary
+packet, metadata payload, small-bundle shortcut, fixture-created agent, or
+non-`runtime-source` bypass is not admitted.
 
-For any materialization request, Runtime must:
+Runtime must strictly verify the packet v2 schema, limits, canonical component
+and closure coverage, every hash edge, detached JWS, Realm issuer/JWKS,
+materialization-purpose key registration, audience/challenge, account/source
+binding, expiry, and replay state before creating local truth. Strict decode
+rejects unknown schema/version/field/enum/type. HMAC proof is not admitted.
+Commit atomically creates exactly one opaque `local_agent_ref`,
+its immutable `LocalAgentSourceSnapshotV1`, and provenance index membership;
+any validation or substrate failure creates none of them and clears all raw
+bundle bytes. K-AGCORE-152 and K-AGCORE-153 define the durable record and
+lifecycle.
 
-- consume the `SourceMaterializationPacket` through admitted Realm/SDK
-  source-core data, not through Desktop fixtures;
-- validate packet schema, `packetHash`, Realm-issued proof, expiry, replay
-  nonce, owner/audience, source hash, and source schema before local creation;
-- generate an opaque Runtime-owned `local_agent_ref`;
-- persist LocalAgent state and source provenance metadata without storing packet
-  payload as a second source of truth;
-- maintain a provenance index from source kind, source world id, source id, and
-  source content hash to one or more `local_agent_ref` values;
-- allow multiple LocalAgents to share the same source provenance;
-- fail closed when owner identity, source hash, packet proof, or source schema
-  does not match.
+Canonical authority relations:
 
-Creation trigger owner:
+- AUTHORITY-RELATION subject=runtime action=own object=source-materialization-challenge-replay-upload-state value=runtime-owned polarity=require
+- AUTHORITY-RELATION subject=local-agent-source-snapshot-v1 action=set-mutability object=execution-state value=immutable polarity=require
+- AUTHORITY-RELATION subject=local-agent-source-snapshot-v1 action=persist object=raw-source-materialization-packet value=denied polarity=forbid
+- AUTHORITY-RELATION subject=local-agent-source-snapshot-v1 action=rebase object=realm-source-changes value=denied polarity=forbid
+- AUTHORITY-RELATION subject=local-agent-source-snapshot-v1 action=write-back object=realm-source-truth value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime-localagent-agent-state action=write-back object=realm-source-truth value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime action=accept object=hmac-source-materialization-proof value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime action=derive object=source-authority-from-app-metadata-fallback value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime action=derive object=prompt-authority-from-app-metadata-fallback value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime action=derive object=context-authority-from-app-metadata-fallback value=denied polarity=forbid
+- AUTHORITY-RELATION subject=runtime action=derive object=proof-authority-from-app-metadata-fallback value=denied polarity=forbid
 
-- Runtime authors the local creation result. Realm authorizes source reads and
-  creates a by-value packet, but does not create durable provision intent,
-  source-provenance linkage, or a deterministic LocalAgent identity.
-- `InitializeAgent` may be idempotent only for an explicit Runtime request id or
-  existing Runtime-owned `local_agent_ref`. It must not converge all repeated
-  materialization attempts for the same source into one projection.
-- Opening first chat may query Runtime local inventory/provenance. If no
-  matching LocalAgent exists, the UI may request a fresh packet and create a new
-  LocalAgent. If provenance is unavailable, Runtime surfaces unavailable
-  provenance instead of reconstructing, rebasing, or recreating a LocalAgent
-  from deterministic source metadata.
-- Runtime local inventory/provenance is the only admitted discovery projection
-  for an existing materialized source. SDK/Kit/Electron consumers may expose
-  this projection, but must not convert environment variables, renderer cache,
-  source ids, or source metadata into a `local_agent_ref`.
+Runtime local inventory and provenance are the only discovery projection for an
+existing materialization. Environment variables, renderer cache, source ids,
+app metadata, provider metadata, or deterministic source naming cannot produce
+a `local_agent_ref`, reconstruct a snapshot, or authorize chat. Repeated
+materialization may create distinct LocalAgents; only an explicit Runtime
+request id may make a retry idempotent.
 
-`MUST NOT`: Runtime must not create any LocalAgent — the guide source's or
-any other source's — as a standalone local-only agent, fake contact,
-server-bot bypass, Avatar instance, privileged Agent class, special
-official-guide path, quota bypass, or default global agent.
+`MUST NOT`: Runtime must not create any source-backed LocalAgent as a standalone
+local-only agent, fake contact, server-bot bypass, Avatar instance, privileged
+Agent class, official-guide shortcut, quota bypass, or default global agent.
 
-## K-AGCORE-140 Nimi Guide Prompt And Documentation Context
+## K-AGCORE-140 Source-Derived Identity, Behavior, And Knowledge
 
-When the Nimi guide LocalAgent is available through SourceMaterializationPacket
-materialization, Runtime may initialize the first conversation from Nimi guide
-welcome copy and may attach built-in Nimi usage documentation as product
-knowledge/context.
+Runtime derives LocalAgent identity, behavior, and source knowledge only from
+the strictly decoded typed source envelope/core and closure frozen in
+`LocalAgentSourceSnapshotV1`. Character identity, presentation, biography,
+psychology, knowledge, relationships, capabilities, and interaction profile;
+or Persona identity, presentation, persona style, content profile, interaction
+profile, and asset intents are typed source inputs. They are not an arbitrary
+prompt field.
 
-Source of truth:
+- AUTHORITY-RELATION subject=runtime action=accept object=packet-supplied-systempromptbase value=denied polarity=forbid
 
-- the Nimi guide welcome copy and guide system prompt are ordinary source
-  content carried on the admitted SourceMaterializationPacket, reached through
-  the same source-core path used for any runtime source;
-- the Nimi guide / Archivist source is available only when admitted Realm
-  source-core data can produce a hash-bearing source reference and fresh
-  SourceMaterializationPacket, or when Runtime inventory/provenance already
-  contains a Runtime-owned LocalAgent for that source;
-- Runtime MUST NOT hold a runtime-local hardcoded guide welcome string, guide
-  prompt, or guide identity constant as parallel product truth;
-- built-in Nimi usage documentation attached as context is product
-  knowledge/context only and is not external Realm authority, not memory truth, and
-  not a runtime-owned guide catalog.
+The packet and snapshot must not contain `systemPromptBase`, an equivalent raw
+system/developer prompt, or a free-form prompt map. Runtime may project a typed
+source greeting once for a new conversation and may compile admitted source
+knowledge through K-AGCORE-142 and K-AGCORE-155. A greeting or dialogue
+exemplar is not committed transcript unless Runtime explicitly commits the
+corresponding assistant turn.
 
-`MUST NOT`: prompt/docs context must not create Agent authority, memory truth,
-permission grant truth, Runtime setup truth, or profile/app configuration truth.
-The guide may direct the user to product surfaces but cannot bypass setup
-confirmations, permissions, install plans, app admission, or ordinary LocalAgent
-mechanics.
+The Nimi guide / Archivist follows the same rules. Its identity, behavior,
+welcome, and product knowledge must be proof-covered source data; Runtime must
+not hold a hardcoded guide identity, welcome, prompt, documentation catalog, or
+privileged guide path as parallel truth. Source knowledge cannot grant tools,
+permissions, setup completion, install admission, app authority, memory truth,
+or profile/configuration truth.
 
 ## K-AGCORE-141 Runtime-Local LocalAgent Deletion And Reset
 
@@ -92,9 +93,10 @@ applies to every Runtime-owned LocalAgent, not only the Nimi guide.
 - `TerminateAgent` must remove the `runtime_local_agent` row for the target
   `local_agent_ref`, not merely flip a lifecycle status field;
 - when explicitly invoked by Runtime-local delete/reset authority, it must
-  remove the agent-scoped projections bound to that `local_agent_ref`:
-  agent state projection, runtime-owned pending/terminal hooks, the agent event
-  log, and the agent-scoped memory bank (`MEMORY_BANK_SCOPE_AGENT_CORE` and
+  atomically remove the immutable source snapshot, provenance-index membership,
+  conversation anchors and committed transcript, agent state projection,
+  runtime-owned pending/terminal hooks, the agent event log, and the
+  agent-scoped memory bank (`MEMORY_BANK_SCOPE_AGENT_CORE` and
   `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by that agent);
 - the deletion is a hard delete: the projection and its agent-scoped memory are
   physically removed. `RuntimeAgentService` must not retain a `TERMINATED`
@@ -121,63 +123,35 @@ Fixed rules:
   not mutate, delete, or write back the canonical Realm source identity, and it
   must not delete account-scoped truth wider than the target agent.
 
-`MUST NOT`: `TerminateAgent` must not leave a partially deleted projection — a
-`runtime_local_agent` row without its agent-scoped memory, or agent-scoped
-memory without its row. Deletion of the row and its agent-scoped
-state/hooks/event-log/memory either completes together or fails closed as a
-typed error.
+`MUST NOT`: `TerminateAgent` must not leave a partially deleted agent, snapshot,
+index membership, conversation/transcript, state, hook, event, or memory
+projection. Deletion completes as one atomic lifecycle result or fails closed as
+a typed error. Snapshot rewrite, restart hydration, safe-result replay, and
+provenance lookup must never resurrect a deleted `local_agent_ref`; a later
+materialization receives a new opaque identity and new conversation/memory
+scope.
 
-## K-AGCORE-142 Built-In Usage Documentation Corpus Authoring And Context Attachment
+## K-AGCORE-142 Runtime-Owned Per-Turn Source Attachment
 
-K-AGCORE-140 admits "built-in Nimi usage documentation attached as context" and
-bounds what that documentation must not become. K-AGCORE-142 is the positive
-counterpart: it names where the built-in usage documentation corpus is authored
-and stored, and how it is admitted as the Nimi guide's per-turn context
-attachment, without introducing a special official-guide path.
+Runtime's typed source compiler is the only authority that attaches frozen
+source identity, behavior, world, relationship, and knowledge to a LocalAgent
+turn. It reads `LocalAgentSourceSnapshotV1` and emits the fixed context lanes in
+K-AGCORE-155. Desktop, SDK, Kit, Zhiyu, another app, Realm, and provider adapters
+may submit intent or consume bounded status, but they must not attach source
+context, choose its lane, serialize it into provider roles, or author a parallel
+documentation/prompt corpus.
 
-Authoring and storage:
+Source knowledge is a typed `source_knowledge` lane. Each compiled item carries
+a stable item id, typed source path/ref, content hash, priority, and token
+estimate. Product documentation for the Nimi guide is ordinary proof-covered
+source knowledge under this rule, not a Runtime-resident catalog, retrieval
+exception, memory write, or guide-only schema. It receives the same budget,
+trust, injection resistance, and omission semantics as any source knowledge.
 
-- the built-in Nimi usage documentation corpus is ordinary source profile
-  content authored alongside the guide source definition (the same
-  Nimi-authored bootstrap definition that owns the guide `greeting` /
-  `systemPromptBase`), not a separate platform-owned bespoke docs artifact and
-  not a separate admitted docs schema;
-- the corpus is stored inside the projected source's ordinary source-core
-  profile knowledge payload, so it rides the same admitted source-core
-  projection used for any runtime source's profile content;
-- the corpus is bounded built-in product knowledge — first-run setup, Runtime,
-  profiles, Apps, Worlds, RealmPersonas, LocalAgents, and Avatar — authored as
-  static structured text;
-- the corpus is ordinary source profile content: any admitted source profile may
-  carry a built-in documentation knowledge payload through the same field. It
-  is not a guide-only schema, not a privileged Agent class field, and not a
-  quota/admission exception.
-
-Context attachment:
-
-- the corpus reaches the guide LocalAgent's chat turns as product
-  knowledge/context through the same per-turn prompt-context path the guide
-  `systemPromptBase` already uses — it augments the turn's assembled prompt
-  context and is not a separate retrieval surface;
-- attachment is per-turn context only: the corpus is not written into any
-  memory bank, is not a runtime-resident catalog, and is not consulted through
-  a privileged retrieval path.
-
-Source of truth and authoring location remain ordinary:
-
-- Runtime MUST NOT hold a runtime-local hardcoded usage documentation corpus,
-  guide docs catalog, or guide identity constant as parallel product truth; the
-  corpus is reached only through the admitted source-core projection,
-  consistent with K-AGCORE-140;
-- the desktop/consumer attaches the projected corpus to the per-turn context;
-  it does not author a parallel renderer-local docs corpus.
-
-`MUST NOT`: the built-in usage documentation corpus must not create Agent
-authority, memory truth, permission grant truth, Runtime setup truth, or
-profile/app configuration truth. It is product knowledge/context only,
-identical to the K-AGCORE-140 bound. The corpus may describe and direct the
-user to product surfaces, but it must not bypass setup confirmations,
-permissions, install plans, app admission, or ordinary LocalAgent mechanics.
+Runtime must reject consumer-supplied LocalAgent context, caller system or
+developer roles, execution bindings, forged manifests, and app/provider
+metadata fallback before provider invocation. Ordinary non-Agent Nimi Chat
+`systemPrompt` authority is outside this contract and remains unchanged.
 
 ## K-AGCORE-143 Proactive Interruptibility Projection Boundary
 
@@ -231,3 +205,127 @@ Fixed rules:
 - SDKs and apps must fail closed when required proactive projection fields are
   absent. They must not backfill the projection with app-local timers,
   permission guesses, or notification assumptions.
+
+## K-AGCORE-151 Challenge And Source Materialization Upload State Machine
+
+`RuntimeAgentService` owns the durable materialization challenge, replay, and
+upload ledger. `CreateSourceMaterializationChallenge` returns an opaque
+challenge/audience bound to Runtime instance, authenticated materializer
+account, typed source ref, and TTL. It publishes `maxBundleBytes`,
+`maxComponentCount`, `maxChunkBytes`, and `maxChunks`; every exact boundary is
+accepted and every limit-plus-one request fails with a typed capacity reason.
+Challenge states are exactly `issued -> leased -> consumed | invalidated |
+expired`. Normal restart preserves an unleased, unexpired issued challenge;
+data-root reset changes Runtime instance identity and invalidates prior
+challenges.
+
+The upload states are exactly `open -> committing -> committed | failed`, with
+`open -> aborted | expired` terminal alternatives. Begin control contains only
+the typed unsigned packet envelope, detached proof, and
+`BundleTransportManifestV1`; it contains no source/world/component body. Every
+semantic byte enters through Put, including a one-chunk small bundle. The hash
+graph is acyclic: component and semantic payload hashes exclude transport;
+`bundleManifestHash` binds ordered component descriptors and chunk layout while
+excluding itself, payload/packet/proof and upload-ledger fields; `packetHash`
+binds payload and manifest hashes while excluding itself and proof; detached
+JWS signs the domain-separated packet hash. Runtime recomputes every edge rather
+than trusting caller-declared digests, lengths, or completeness.
+
+The only packet ingress is:
+
+1. `BeginSourceMaterializationUpload(beginRequestId, control)` strictly
+   validates challenge/account/source binding, advertised limits,
+   `BundleTransportManifestV1`, manifest hash, packet hash, and the RS256
+   detached JWS before CAS-leasing `issued` to one
+   `uploadId/packetHash/bundleManifestHash` and creating an `open` upload.
+   Identical request id and byte-identical control is idempotent; the same key
+   with different control or a second Begin for the challenge is a typed
+   conflict with no second upload.
+2. `PutSourceMaterializationChunk(uploadId, globalOrdinal, componentId,
+   componentOffset, bytes)` accepts only `open`, validates upload binding,
+   ordinal, component mapping, offset, length, advertised limits, and chunk
+   SHA-256. An exact retry is idempotent. Any conflicting reuse of an ordinal
+   atomically marks the upload `failed`, invalidates the challenge, and clears
+   every stored raw chunk; a wrong or unknown upload cannot affect another
+   upload.
+3. `CommitSourceMaterialization(commitRequestId, uploadId)` CASes `open` to
+   `committing`, proves descriptor coverage, reassembles canonical component
+   bytes, and recomputes component, coverage, materialization-context, payload,
+   manifest, packet, and proof edges. Missing, duplicate, overlapping, misbound,
+   wrong-count, wrong-length, hash, closure, codec, proof, or persistence failure
+   atomically writes `failed`, invalidates the challenge, creates no agent,
+   snapshot, or provenance entry, and clears raw bytes. Success atomically
+   creates those three records, marks the challenge `consumed`, marks the upload
+   `committed`, and writes only a safe result ledger. Replay of an identical
+   commit id returns that result; concurrent or different-key commits return
+   typed `commit_in_progress`, `already_committed`, or `commit_conflict` without
+   an additional agent.
+4. `AbortSourceMaterializationUpload` may CAS only `open` to `aborted`; an exact
+   repeat is idempotent. It invalidates the leased challenge and clears raw
+   bytes. Abort/Commit races have one terminal winner; abort never deletes a
+   committed agent, and Put/Commit after `aborted`, `failed`, or `expired` fails
+   typed.
+
+TTL cleanup expires issued challenges and open uploads; an expired upload also
+invalidates its leased challenge. Startup recovery invalidates and clears every
+unfinished upload, including `committing` without a durable successful
+transaction. A durably committed transaction replays only its safe result and
+completes raw cleanup; it never creates another agent. Raw packet, component,
+and chunk bytes are cleared on success, validation failure, conflict, abort,
+expiry, and restart recovery. Logs, audit, and evidence may contain only
+allowlisted ids, hashes, counts, state transitions, and reason codes.
+
+## K-AGCORE-152 Immutable LocalAgentSourceSnapshotV1
+
+`LocalAgentSourceSnapshotV1` is a first-class strict Runtime record. It contains
+exactly these semantic categories:
+
+- `snapshot_schema_version`, `snapshot_hash`, `local_agent_ref`, and
+  `captured_at`;
+- safe provenance: `packet_id`, `packet_hash`, Realm `issuer`, and signing
+  `key_fingerprint`;
+- typed source envelope and Character/Persona core;
+- typed complete owning/home `WorldCore` and dependency closure;
+- typed coverage manifest;
+- source, world, canonical component, coverage, and materialization-context
+  hashes; and
+- normalization and compiler-compatibility version.
+
+The record retains no raw packet wrapper or bytes, nonce, TTL, challenge,
+audience, detached proof, component bytes, chunk bytes, upload ledger data, or
+other raw bundle material. Persistence enforces a true bidirectional 1:1
+constraint: every materialized `local_agent_ref` has exactly one snapshot and
+that snapshot belongs to exactly that LocalAgent. Strict codec validation and
+snapshot-hash verification run before write, after database readback, and at
+restart hydration; mismatch fails closed and cannot produce a chat-ready
+projection.
+
+`snapshot_hash` is SHA-256 over domain tag
+`nimi.runtime.local-agent-source-snapshot/v1\0` plus the canonical tuple of
+snapshot schema version, normalized typed source, normalized owning/home world
+and dependency closure, coverage manifest hash, materialization context hash,
+and normalization version. It excludes itself, LocalAgent identity,
+`captured_at`, packet/proof provenance, Runtime instance, database row, request,
+and issuance fields. Two separately materialized agents may therefore share a
+semantic snapshot hash while retaining distinct opaque identities and records.
+
+## K-AGCORE-153 Snapshot Provenance, Restart, Offline, And No-Rebase Lifecycle
+
+Runtime keeps a separate 1:N source-provenance index from one canonical
+provenance key `(source kind, world id, source id, source content hash,
+materialization context hash)` to multiple immutable snapshot/agent records.
+An indexed snapshot cannot change provenance, source/world content, or hash.
+Index lookup is a discovery projection only; it cannot synthesize an agent or
+repair a missing/corrupt snapshot. Snapshot and index writes are in the same
+materialization transaction, and termination removes the target membership in
+the same deletion transaction defined by K-AGCORE-141.
+
+Source revision, Realm deletion, Realm availability, app metadata, and provider
+metadata never mutate, rebase, or write back an existing snapshot. After a
+successful capture, Realm may be offline and that LocalAgent remains chat-ready
+from its validated snapshot plus Runtime truth. Capturing a newer revision is a
+new materialization with a new opaque LocalAgent, snapshot record,
+conversation/transcript scope, and memory scope. Restart rehydrates the exact
+validated snapshot and scoped state; it neither contacts Realm to refresh it
+nor silently substitutes current source data. Missing or invalid snapshot,
+provenance, account, agent, or anchor binding fails closed with a typed status.

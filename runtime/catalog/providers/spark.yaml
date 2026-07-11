@@ -21,6 +21,7 @@ models:
       url: https://www.xfyun.cn/doc/spark/HTTP%E8%B0%83%E7%94%A8%E6%96%87%E6%A1%A3.html
       retrieved_at: 2026-04-18
       note: Official Spark HTTP chat documentation for the current `/v1/chat/completions` general-language surface.
+    context_window_tokens: 8192
   - model_id: lite
     provider: spark
     model_type: chat
@@ -38,6 +39,7 @@ models:
       url: https://www.xfyun.cn/doc/spark/HTTP%E8%B0%83%E7%94%A8%E6%96%87%E6%A1%A3.html
       retrieved_at: 2026-04-18
       note: Official Spark HTTP chat documentation for the current `/v1/chat/completions` general-language surface.
+    context_window_tokens: 8192
 voices: []
 selection_profiles:
   - provider: spark

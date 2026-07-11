@@ -17,8 +17,13 @@ import type {
 } from '../core-generated/runtime-typed-client';
 import {
   AgentEventType,
+  AgentContextProjectionReasonCode,
   AgentLifecycleStatus,
+  AgentLocalSourceContextSchemaVersion,
+  AgentLocalSourceContextState,
+  AgentLocalSourceSnapshotSchemaVersion,
   AgentPresentationEventFamily,
+  AgentSourceMaterializationSourceKind,
   ReasonCode as RuntimeGeneratedReasonCode,
   VoiceOutputMode,
   VoicePlaybackState,
@@ -54,8 +59,13 @@ export type {
 
 export {
   AgentEventType,
+  AgentContextProjectionReasonCode,
   AgentLifecycleStatus,
+  AgentLocalSourceContextSchemaVersion,
+  AgentLocalSourceContextState,
+  AgentLocalSourceSnapshotSchemaVersion,
   AgentPresentationEventFamily,
+  AgentSourceMaterializationSourceKind,
   RuntimeGeneratedReasonCode,
   VoiceOutputMode,
   VoicePlaybackState,
@@ -73,6 +83,39 @@ export {
 export const OWNER_USER_ID = 'user-1';
 export const RUNTIME_SOURCE_REF = 'agent-1';
 export const LOCAL_AGENT_REF = 'local-agent:test-user-1-agent-1';
+
+export function sourceContextStatus(input: {
+  readonly localAgentRef: string;
+  readonly kind?: 'worldCharacter' | 'realmPersona';
+  readonly worldId: string;
+  readonly sourceId: string;
+  readonly sourceContentHash: string;
+}) {
+  return {
+    schemaVersion: AgentLocalSourceContextSchemaVersion.V1,
+    ready: true,
+    state: AgentLocalSourceContextState.READY,
+    reasonCode: AgentContextProjectionReasonCode.NONE,
+    localAgentRef: input.localAgentRef,
+    sourceRef: {
+      kind: input.kind === 'realmPersona'
+        ? AgentSourceMaterializationSourceKind.REALM_PERSONA
+        : AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
+      worldId: input.worldId,
+      sourceId: input.sourceId,
+      sourceContentHash: input.sourceContentHash,
+    },
+    sourceSchemaVersion: input.kind === 'realmPersona'
+      ? 'realm.persona/v1'
+      : 'realm.world-character-core/v1',
+    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V1,
+    snapshotHash: 'b'.repeat(64),
+    capturedAt: toNimiRuntimeTimestamp('2026-07-10T05:00:00.000Z'),
+    worldContentHash: 'c'.repeat(64),
+    materializationContextHash: 'd'.repeat(64),
+    coverageSections: [],
+  };
+}
 
 export function voicePlaybackRequestedAgentEvent(input: {
   readonly conversationAnchorId: string;

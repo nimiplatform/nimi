@@ -15,6 +15,7 @@ defaults:
   default_text_model: step-3.5-flash
   model_type: chat
   capabilities: []
+  context_window_tokens: 8192
   pricing:
     unit: token
     input: unknown
@@ -226,6 +227,7 @@ models:
     source_ids: [stepfun_text_models_doc, stepfun_model_overview]
 
   - model_id: step-2-16k
+    context_window_tokens: 16384
     model_type: chat
     updated_at: 2026-04-18
     capabilities: [text.generate]
@@ -239,6 +241,7 @@ models:
     source_ids: [stepfun_text_models_doc, stepfun_model_overview]
 
   - model_id: step-1-8k
+    context_window_tokens: 8192
     model_type: chat
     updated_at: 2026-04-18
     capabilities: [text.generate]
@@ -252,6 +255,7 @@ models:
     source_ids: [stepfun_text_models_doc, stepfun_model_overview]
 
   - model_id: step-1-32k
+    context_window_tokens: 32768
     model_type: chat
     updated_at: 2026-04-18
     capabilities: [text.generate]
@@ -265,6 +269,7 @@ models:
     source_ids: [stepfun_text_models_doc, stepfun_model_overview]
 
   - model_id: step-1-256k
+    context_window_tokens: 262144
     model_type: chat
     updated_at: 2026-04-18
     capabilities: [text.generate]

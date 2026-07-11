@@ -167,100 +167,135 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
 
-func TestPublicChatTurnRepairsMalformedAPMLOnceBeforeFailClosed(t *testing.T) {
+func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T) {
 	t.Parallel()
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	capture := newPublicChatEmitCapture()
-	svc.SetPublicChatAppEmitter(capture.emit)
-	var calls int
-	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
-		stream: func(_ context.Context, execReq *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			calls++
-			if err := emit(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-				TraceId:   fmt.Sprintf("trace-repair-%d", calls),
-				Payload: &runtimev1.StreamScenarioEvent_Started{
-					Started: &runtimev1.ScenarioStreamStarted{
-						ModelResolved: "qwen3-chat",
-						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-					},
-				},
-			}); err != nil {
-				return err
-			}
-			text := `<message id="message-0"><activity>thinking</activity>Hello`
-			if calls == 2 {
-				if !strings.Contains(execReq.SystemPrompt, "Runtime APML repair task") {
-					t.Fatalf("expected repair prompt on second call, got %q", execReq.SystemPrompt)
-				}
-				if len(execReq.Messages) != 1 || !strings.Contains(execReq.Messages[0].GetContent(), text) {
-					t.Fatalf("expected malformed APML payload in repair request, got %#v", execReq.Messages)
-				}
-				text = `<message id="message-0"><activity>thinking</activity>Hello</message>`
-			}
-			if err := emit(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				TraceId:   fmt.Sprintf("trace-repair-%d", calls),
-				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: text},
+	cases := []struct {
+		name string
+		raw  string
+	}{
+		{
+			name: "malformed",
+			raw:  `<message id="message-malformed"><activity>thinking</activity>Hello</message><action id="action-malformed" kind="image"><prompt-payload kind="image"><prompt-text>must not execute</prompt-text></prompt-payload>`,
+		},
+		{
+			name: "unknown tag",
+			raw:  `<message id="message-unknown">Hello</message><unknown/>`,
+		},
+		{
+			name: "wrapped",
+			raw:  `<response><message id="message-wrapped">Hello</message></response>`,
+		},
+		{
+			name: "fenced",
+			raw:  "```xml\n<message id=\"message-fenced\">Hello</message>\n```",
+		},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			svc := newRuntimeAgentServiceForPublicChatTest(t)
+			anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+			capture := newPublicChatEmitCapture()
+			svc.SetPublicChatAppEmitter(capture.emit)
+			providerCalls := 0
+			svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+				stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+					providerCalls++
+					traceID := fmt.Sprintf("trace-invalid-apml-%s-%d", strings.ReplaceAll(tt.name, " ", "-"), providerCalls)
+					if err := emit(&runtimev1.StreamScenarioEvent{
+						EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+						TraceId:   traceID,
+						Payload: &runtimev1.StreamScenarioEvent_Started{
+							Started: &runtimev1.ScenarioStreamStarted{
+								ModelResolved: "qwen3-chat",
+								RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+							},
 						},
-					},
-				},
-			}); err != nil {
-				return err
-			}
-			return emit(&runtimev1.StreamScenarioEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-				TraceId:   fmt.Sprintf("trace-repair-%d", calls),
-				Payload: &runtimev1.StreamScenarioEvent_Completed{
-					Completed: &runtimev1.ScenarioStreamCompleted{
-						FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
-					},
+					}); err != nil {
+						return err
+					}
+					if err := emit(&runtimev1.StreamScenarioEvent{
+						EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+						TraceId:   traceID,
+						Payload: &runtimev1.StreamScenarioEvent_Delta{
+							Delta: &runtimev1.ScenarioStreamDelta{
+								Delta: &runtimev1.ScenarioStreamDelta_Text{
+									Text: &runtimev1.TextStreamDelta{Text: tt.raw},
+								},
+							},
+						},
+					}); err != nil {
+						return err
+					}
+					return emit(&runtimev1.StreamScenarioEvent{
+						EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+						TraceId:   traceID,
+						Payload: &runtimev1.StreamScenarioEvent_Completed{
+							Completed: &runtimev1.ScenarioStreamCompleted{
+								FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+							},
+						},
+					})
 				},
 			})
-		},
-	})
-	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatTurnRequestType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
-			"owner_user_id":          "user-1",
-			"runtime_source_ref":     "agent-alpha",
-			"conversation_anchor_id": anchorID,
-			"messages": []any{
-				map[string]any{"role": "user", "content": "hello"},
-			},
-		}),
-	})
-	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+			err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+				ToAppId:       publicChatRuntimeAppID,
+				FromAppId:     "desktop.app",
+				SubjectUserId: "user-1",
+				MessageType:   publicChatTurnRequestType,
+				Payload: publicChatStructPayload(t, map[string]any{
+					"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+					"owner_user_id":          "user-1",
+					"runtime_source_ref":     "agent-alpha",
+					"conversation_anchor_id": anchorID,
+					"messages": []any{
+						map[string]any{"role": "user", "content": "hello"},
+					},
+				}),
+			})
+			if err != nil {
+				t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+			}
+			_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+			_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+			failed := capture.waitForMessageType(t, publicChatTurnFailedType)
+			failedDetail := publicChatTurnDetail(t, failed)
+			if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
+				t.Fatalf("expected AI_OUTPUT_INVALID, got=%v", failedDetail)
+			}
+			if providerCalls != 1 {
+				t.Fatalf("invalid APML must stop after the first provider completion; got %d calls", providerCalls)
+			}
+			for _, messageType := range capture.messageTypes() {
+				switch messageType {
+				case publicChatTurnStructuredType,
+					publicChatTurnMessageCommittedType,
+					publicChatTurnTextDeltaType,
+					publicChatTurnActionPlannedType,
+					publicChatTurnActionStartedType,
+					publicChatTurnArtifactReadyType,
+					publicChatTurnActionCompletedType,
+					publicChatTurnActionFailedType,
+					publicChatTurnPostTurnType,
+					publicChatTurnCompletedType:
+					t.Fatalf("invalid APML must not emit committed output, action, memory/post-turn, or completed events; saw %s", messageType)
+				}
+			}
+			snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-invalid-apml-"+tt.name)
+			lastTurn := publicChatLastTurnSnapshot(t, snapshot)
+			for _, forbidden := range []string{"message_id", "text", "structured", "assistant_memory", "chat_sidecar", "follow_up"} {
+				if _, present := lastTurn[forbidden]; present {
+					t.Fatalf("invalid APML must not persist %s in last_turn, got=%v", forbidden, lastTurn)
+				}
+			}
+			detail := publicChatSessionSnapshotDetail(t, snapshot)
+			transcript, ok := detail["transcript"].([]any)
+			if !ok || len(transcript) != 0 {
+				t.Fatalf("invalid provider output must not commit current input or assistant output, got=%v", detail["transcript"])
+			}
+			waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+		})
 	}
-	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
-	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	structuredEvent := capture.waitForMessageType(t, publicChatTurnStructuredType)
-	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	completed := capture.waitForMessageType(t, publicChatTurnCompletedType)
-	if calls != 2 {
-		t.Fatalf("expected one repair retry after malformed APML, got %d calls", calls)
-	}
-	if got := strings.TrimSpace(fmt.Sprint(publicChatTurnDetail(t, committed)["text"])); got != "Hello" {
-		t.Fatalf("expected repaired committed text, got %q", got)
-	}
-	structuredPayload := publicChatTurnDetail(t, structuredEvent)["payload"].(map[string]any)
-	statusCue := structuredPayload["status_cue"].(map[string]any)
-	if got := strings.TrimSpace(fmt.Sprint(statusCue["action_cue"])); got != "thinking" {
-		t.Fatalf("expected repaired activity cue to survive, got %#v", statusCue)
-	}
-	if got := publicChatTurnDetail(t, completed)["terminal_reason"]; got != "stop" {
-		t.Fatalf("expected completed finish_reason stop, got=%v", publicChatTurnDetail(t, completed))
-	}
-	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
 
 func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testing.T) {
@@ -268,10 +303,7 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	svc.chatSurfaceMu.Lock()
-	svc.chatAnchors[anchorID].Transcript = []*runtimev1.ChatMessage{
-		{Role: "user", Content: "hello"},
-		{Role: "assistant", Content: "previous runtime reply"},
-	}
+	svc.chatAnchors[anchorID].CommittedTranscript = testPublicChatCommittedTranscript([2]string{"hello", "previous runtime reply"})
 	svc.chatSurfaceMu.Unlock()
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
@@ -324,7 +356,6 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
-				map[string]any{"role": "user", "content": "hello"},
 				map[string]any{"role": "user", "content": "new user message"},
 			},
 		}),
@@ -341,26 +372,21 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 	if !ok {
 		t.Fatalf("expected transcript array, got=%v", detail["transcript"])
 	}
-	if got := detail["transcript_message_count"]; got != float64(3) {
-		t.Fatalf("expected transcript_message_count=3, got=%v transcript=%v", got, transcript)
+	if got := detail["transcript_message_count"]; got != float64(2) {
+		t.Fatalf("failed turn must preserve only the prior committed pair, got=%v transcript=%v", got, transcript)
 	}
 	if got := transcript[1].(map[string]any)["content"]; got != "previous runtime reply" {
 		t.Fatalf("expected committed assistant transcript to survive failed turn, got=%v", transcript)
 	}
-	if got := transcript[2].(map[string]any)["content"]; got != "new user message" {
-		t.Fatalf("expected latest user message appended without dropping assistant, got=%v", transcript)
-	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
 
-func TestPublicChatTurnRequestFoldsCommittedLastTurnIntoTranscript(t *testing.T) {
+func TestPublicChatTurnRequestUsesOnlyCompleteRuntimeCommittedTranscript(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	svc.chatSurfaceMu.Lock()
-	svc.chatAnchors[anchorID].Transcript = []*runtimev1.ChatMessage{
-		{Role: "user", Content: "previous user message"},
-	}
+	svc.chatAnchors[anchorID].CommittedTranscript = testPublicChatCommittedTranscript([2]string{"previous user message", "previous runtime reply"})
 	svc.chatAnchors[anchorID].LastTurnSnapshot = &publicChatTurnProjectionState{
 		TurnID:        "agent_turn_previous",
 		Status:        publicChatTurnStatusCompleted,
@@ -428,10 +454,7 @@ func TestPublicChatTurnRequestFoldsCommittedLastTurnIntoTranscript(t *testing.T)
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"messages": []any{
-				map[string]any{"role": "user", "content": "test"},
-				map[string]any{"role": "user", "content": "next"},
-			},
+			"messages":               []any{map[string]any{"role": "user", "content": "next"}},
 		}),
 	})
 	if err != nil {
@@ -445,16 +468,16 @@ func TestPublicChatTurnRequestFoldsCommittedLastTurnIntoTranscript(t *testing.T)
 	afterSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-fold-after-next-turn")
 	afterDetail := publicChatSessionSnapshotDetail(t, afterSnapshot)
 	afterTranscript := afterDetail["transcript"].([]any)
-	if got := afterDetail["transcript_message_count"]; got != float64(5) {
+	if got := afterDetail["transcript_message_count"]; got != float64(4) {
 		t.Fatalf("expected previous and latest assistant in transcript, got=%v", afterDetail)
 	}
 	if got := afterTranscript[1].(map[string]any)["content"]; got != "previous runtime reply" {
 		t.Fatalf("expected previous assistant to survive next turn, got=%v", afterTranscript)
 	}
-	if got := afterTranscript[3].(map[string]any)["content"]; got != "next" {
+	if got := afterTranscript[2].(map[string]any)["content"]; got != "next" {
 		t.Fatalf("expected next user after previous assistant, got=%v", afterTranscript)
 	}
-	if got := afterTranscript[4].(map[string]any)["content"]; got != "next message received" {
+	if got := afterTranscript[3].(map[string]any)["content"]; got != "next message received" {
 		t.Fatalf("expected latest assistant committed to transcript, got=%v", afterTranscript)
 	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
@@ -570,11 +593,20 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 			case 1:
 				envelope = publicChatStructuredEnvelopeWithFollowUpAPML("message-1", "hello from runtime", "action-follow-up-1", "continue naturally", 20)
 			case 2:
-				if got := strings.TrimSpace(req.SystemPrompt); !strings.Contains(got, "FollowUpInstruction:") || !strings.Contains(got, "continue naturally") {
-					t.Fatalf("expected follow-up system prompt to include internal continuation cue, got=%q", got)
+				if got := strings.TrimSpace(req.SystemPrompt); got != "" {
+					t.Fatalf("follow-up must not use a parallel system prompt path, got=%q", got)
 				}
-				if len(req.Messages) < 2 || req.Messages[len(req.Messages)-1].GetContent() != "hello from runtime" {
-					t.Fatalf("expected follow-up request to include prior assistant text, got=%v", req.Messages)
+				if len(req.Messages) < 3 || req.Messages[len(req.Messages)-1].GetRole() != "user" || req.Messages[len(req.Messages)-1].GetContent() != "Runtime-admitted follow-up instruction: continue naturally" {
+					t.Fatalf("expected follow-up context to end with the Runtime-admitted instruction, got=%v", req.Messages)
+				}
+				priorAssistantObserved := false
+				for _, message := range req.Messages[:len(req.Messages)-1] {
+					if message.GetRole() == "assistant" && message.GetContent() == "hello from runtime" {
+						priorAssistantObserved = true
+					}
+				}
+				if !priorAssistantObserved {
+					t.Fatalf("expected follow-up context to include committed prior assistant text, got=%v", req.Messages)
 				}
 				envelope = publicChatStructuredEnvelopeAPML("message-2", "runtime follow up complete")
 			default:
@@ -671,8 +703,8 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 	if got := secondBinding["route"]; got != "local" {
 		t.Fatalf("expected second snapshot execution_bindings.text.generate.route local, got=%v", secondBinding)
 	}
-	if got := publicChatSessionSnapshotDetail(t, secondSnapshot)["transcript_message_count"]; got != float64(3) {
-		t.Fatalf("expected second snapshot transcript_message_count=3, got=%v", publicChatSessionSnapshotDetail(t, secondSnapshot))
+	if got := publicChatSessionSnapshotDetail(t, secondSnapshot)["transcript_message_count"]; got != float64(2) {
+		t.Fatalf("follow-up output must not fabricate a public user/assistant transcript pair, got=%v", publicChatSessionSnapshotDetail(t, secondSnapshot))
 	}
 	secondPostTurnDetail := publicChatTurnDetail(t, secondPostTurn)
 	if _, present := secondPostTurnDetail["follow_up"]; present {

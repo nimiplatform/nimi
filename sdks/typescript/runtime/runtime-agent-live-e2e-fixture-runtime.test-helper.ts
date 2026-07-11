@@ -15,9 +15,10 @@ import {
   ReasonCode,
   WorldRelation,
 } from '../core-generated/runtime-typed-client';
-import type { NimiRealmSourceMaterializationPacket } from '../realm/social';
+import type { NimiRealmSocialApi } from '../realm/social';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import { Runtime } from './index';
+import { installRuntimeNodeGrpcLocalFirstPartyAuthority } from './node-grpc-authority';
 import {
   createNimiDeveloperRegisteredRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
@@ -39,6 +40,7 @@ import {
 } from './agent-local-identity';
 import type { NimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import type { NimiRuntimeAgentInitializedLocalAgent } from './runtime-agent-lifecycle';
+import type { NimiRuntimeAgentMaterializedRealmSource } from './runtime-agent-materialization';
 import {
   withNimiRuntimeAgentScopes,
   type NimiRuntimeAgentProtectedRuntime,
@@ -54,6 +56,7 @@ import {
   REALM_WORLD_STUDIO_APP_INSTANCE_ID,
   RUNTIME_ACCOUNT_REDIRECT_URI,
   RUNTIME_SOURCE_REF,
+  SOURCE_REF,
   type RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
   liveIdempotencyOptions,
   normalizeStrings,
@@ -84,16 +87,37 @@ export async function sendFixtureTurn(input: {
   });
 }
 
-export async function initializeFixtureLocalAgent(input: {
+export async function materializeFixtureLocalAgent(input: {
   readonly agentClient: ReturnType<typeof createNimiRuntimeAgentClient>;
-  readonly sourceMaterializationPacket: NimiRealmSourceMaterializationPacket;
-}): Promise<NimiRuntimeAgentInitializedLocalAgent> {
-  return input.agentClient.initialize({
+  readonly realm: Pick<NimiRealmSocialApi, 'generated'>;
+}): Promise<{
+  readonly materialization: NimiRuntimeAgentMaterializedRealmSource;
+  readonly localAgent: NimiRuntimeAgentInitializedLocalAgent;
+}> {
+  const materialization = await input.agentClient.materialize({
+    sourceRef: SOURCE_REF,
+    requestId: `runtime-agent-live-materialization:${randomUUID()}`,
+    realm: input.realm,
+    emitRealmDataError() {},
+  });
+  const discovered = await input.agentClient.discoverBySource({
     ownerUserId: OWNER_USER_ID,
     runtimeSourceRef: RUNTIME_SOURCE_REF,
-    displayName: 'Runtime Live Source',
-    sourceMaterializationPacket: input.sourceMaterializationPacket,
+    sourceRef: SOURCE_REF,
   });
+  const agent = discovered.find((candidate) => candidate.localAgentRef === materialization.localAgentRef);
+  if (!agent) {
+    throw new Error('Runtime materialization commit did not appear in bounded LocalAgent inventory.');
+  }
+  return {
+    materialization,
+    localAgent: {
+      localAgentRef: agent.localAgentRef,
+      ownerUserId: agent.ownerUserId,
+      runtimeSourceRef: agent.runtimeSourceRef,
+      agent: agent.agent,
+    },
+  };
 }
 
 export async function openFixtureConversation(input: {
@@ -111,7 +135,9 @@ export async function openFixtureConversation(input: {
   });
 }
 
-export function createFixtureRuntimeAgentClient(runtime: Runtime): ReturnType<typeof createNimiRuntimeAgentClient> {
+export function createFixtureRuntimeAgentClient(
+  runtime: Runtime,
+): ReturnType<typeof createNimiRuntimeAgentClient> {
   const agentRuntime = runtimeAgentClientRuntime(runtime, DESKTOP_APP_ID);
   const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
     appId: DESKTOP_APP_ID,
@@ -156,13 +182,20 @@ export function requireConversationAnchorId(conversation: ConversationAnchorSnap
 export function createRuntimeForEndpoint(
   endpoint: string,
   appId: string,
+  getRuntimeAccountAccessToken?: () => Promise<string>,
 ): Runtime {
+  const transport = {
+    type: 'node-grpc' as const,
+    endpoint,
+  };
+  if (getRuntimeAccountAccessToken) {
+    installRuntimeNodeGrpcLocalFirstPartyAuthority(transport, {
+      getRuntimeAccountAccessToken,
+    });
+  }
   return new Runtime({
     appId,
-    transport: {
-      type: 'node-grpc',
-      endpoint,
-    },
+    transport,
   });
 }
 

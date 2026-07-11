@@ -5,6 +5,10 @@
 Zhiyu must not create local partners, local agents, Realm personas, profiles,
 or character materialization truth.
 
+It also must not issue Realm source-materialization packets, obtain/replace the
+Runtime challenge audience, validate/upload packets, create snapshots, or
+derive LocalAgent identity from WorldCharacterCore/RealmPersona/profile data.
+
 ## Z-PARTNER-002 Desktop/Realm Handoff
 
 Partner creation and profile management are Desktop/Realm-owned. When no
@@ -21,8 +25,18 @@ Desktop-private IPC, or claim success when Desktop is not running or not ready.
 If the Desktop Open capability is unavailable, copy and affordance must reflect
 the real fail-closed state instead of promising a fake deep link.
 
+This action navigates to existing partner/source selection only. It is not
+Zhiyu source-materialization authority. The source-generic materialization
+intent and Character/Persona action belong to Desktop `D-EXPL-006/007` and
+`realm-source-materialization-actions.yaml`.
+
 ## Z-PARTNER-003 Current Partner Projection
 
 The current partner shown in Zhiyu must come from admitted Runtime/Realm/Desktop
 projection. Zhiyu must not use brand name, fixture name, or app-local state as
 partner identity truth.
+
+Availability may be presented only from bounded
+`LocalAgentSourceContextStatus` plus admitted opaque inventory/provenance.
+Unknown/partial status never becomes a current or ready partner. Zhiyu stores
+no raw source/profile/context cache and creates no alternate identity mapping.

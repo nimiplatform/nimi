@@ -2,16 +2,20 @@ package runtimeagent
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 type publicChatBindingResolverService interface {
 	ResolvePublicChatTextBinding(context.Context, runtimev1.RoutePolicy, string) (runtimev1.RoutePolicy, string, error)
+	ResolvePublicChatTextContextMetadata(context.Context, runtimev1.RoutePolicy, string, *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, error)
 }
 
 type PublicChatBindingResolutionRequest struct {
@@ -23,12 +27,18 @@ type PublicChatBindingResolutionRequest struct {
 	SystemPrompt    string
 	Messages        []*runtimev1.ChatMessage
 	MaxOutputTokens int32
+	TargetRef       *runtimev1.RuntimeDurableTargetRef
 }
 
 type PublicChatBindingResolution struct {
-	ModelID     string
-	RoutePolicy runtimev1.RoutePolicy
-	ConnectorID string
+	ModelID             string
+	RoutePolicy         runtimev1.RoutePolicy
+	ConnectorID         string
+	ContextWindowTokens uint64
+	CatalogRevision     string
+	ModelRevision       string
+	ProviderID          string
+	RouteDigest         string
 }
 
 type PublicChatBindingResolver interface {
@@ -60,11 +70,52 @@ func (r *aiBackedPublicChatBindingResolver) ResolvePublicChatBinding(ctx context
 	if err != nil {
 		return PublicChatBindingResolution{}, err
 	}
-	return PublicChatBindingResolution{
-		ModelID:     strings.TrimSpace(modelResolved),
-		RoutePolicy: routeDecision,
-		ConnectorID: strings.TrimSpace(req.ConnectorID),
-	}, nil
+	contextWindow, catalogRevision, modelRevision, providerID, err := r.ai.ResolvePublicChatTextContextMetadata(
+		ctx,
+		routeDecision,
+		modelResolved,
+		clonePublicChatTargetRef(req.TargetRef),
+	)
+	if err != nil {
+		return PublicChatBindingResolution{}, err
+	}
+	resolution := PublicChatBindingResolution{
+		ModelID:             strings.TrimSpace(modelResolved),
+		RoutePolicy:         routeDecision,
+		ConnectorID:         strings.TrimSpace(req.ConnectorID),
+		ContextWindowTokens: contextWindow,
+		CatalogRevision:     strings.TrimSpace(catalogRevision),
+		ModelRevision:       strings.TrimSpace(modelRevision),
+		ProviderID:          strings.TrimSpace(providerID),
+	}
+	resolution.RouteDigest = publicChatResolvedRouteDigest(resolution, req.TargetRef)
+	if resolution.ContextWindowTokens == 0 || resolution.CatalogRevision == "" || resolution.ModelRevision == "" || resolution.ProviderID == "" || resolution.RouteDigest == "" {
+		return PublicChatBindingResolution{}, status.Error(codes.FailedPrecondition, "runtime public chat catalog context metadata incomplete")
+	}
+	return resolution, nil
+}
+
+func publicChatResolvedRouteDigest(resolution PublicChatBindingResolution, targetRef *runtimev1.RuntimeDurableTargetRef) string {
+	targetBytes, err := proto.MarshalOptions{Deterministic: true}.Marshal(targetRef)
+	if err != nil {
+		return ""
+	}
+	hash := sha256.New()
+	_, _ = hash.Write([]byte("nimi.runtime.agent-context-route/v1\x00"))
+	for _, value := range []string{
+		strconv.Itoa(int(resolution.RoutePolicy)),
+		strings.TrimSpace(resolution.ProviderID),
+		strings.TrimSpace(resolution.ModelID),
+		strings.TrimSpace(resolution.ModelRevision),
+		strings.TrimSpace(resolution.ConnectorID),
+		strings.TrimSpace(resolution.CatalogRevision),
+		strconv.FormatUint(resolution.ContextWindowTokens, 10),
+		string(targetBytes),
+	} {
+		_, _ = hash.Write([]byte(value))
+		_, _ = hash.Write([]byte{0})
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil))
 }
 
 func (s *Service) SetPublicChatBindingResolver(resolver PublicChatBindingResolver) {
@@ -180,6 +231,7 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		SystemPrompt:    strings.TrimSpace(req.SystemPrompt),
 		Messages:        toProtoPublicChatMessages(req.Messages),
 		MaxOutputTokens: req.MaxOutputTokens,
+		TargetRef:       clonePublicChatTargetRef(textBinding.GetTargetRef()),
 	})
 	if err != nil {
 		return nil, 0, err
@@ -190,12 +242,20 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	if resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route")
 	}
+	if resolved.ContextWindowTokens == 0 || strings.TrimSpace(resolved.CatalogRevision) == "" || strings.TrimSpace(resolved.ModelRevision) == "" || strings.TrimSpace(resolved.ProviderID) == "" || !validSHA256Hex(strings.TrimSpace(resolved.RouteDigest)) {
+		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned incomplete catalog context metadata")
+	}
 	out := publicChatExecutionBindings{
 		runtimeAgentAIConfigCapabilityTextGenerate: {
-			ModelID:     strings.TrimSpace(resolved.ModelID),
-			RoutePolicy: resolved.RoutePolicy,
-			ConnectorID: strings.TrimSpace(resolved.ConnectorID),
-			TargetRef:   clonePublicChatTargetRef(textBinding.GetTargetRef()),
+			ModelID:             strings.TrimSpace(resolved.ModelID),
+			RoutePolicy:         resolved.RoutePolicy,
+			ConnectorID:         strings.TrimSpace(resolved.ConnectorID),
+			TargetRef:           clonePublicChatTargetRef(textBinding.GetTargetRef()),
+			ContextWindowTokens: resolved.ContextWindowTokens,
+			CatalogRevision:     strings.TrimSpace(resolved.CatalogRevision),
+			ModelRevision:       strings.TrimSpace(resolved.ModelRevision),
+			ProviderID:          strings.TrimSpace(resolved.ProviderID),
+			RouteDigest:         strings.TrimSpace(resolved.RouteDigest),
 		},
 	}
 	if imageBinding != nil {
@@ -284,30 +344,16 @@ func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicC
 			continue
 		}
 		out[trimmedCapability] = publicChatExecutionBinding{
-			ModelID:     strings.TrimSpace(binding.ModelID),
-			RoutePolicy: binding.RoutePolicy,
-			ConnectorID: strings.TrimSpace(binding.ConnectorID),
-			TargetRef:   clonePublicChatTargetRef(binding.TargetRef),
+			ModelID:             strings.TrimSpace(binding.ModelID),
+			RoutePolicy:         binding.RoutePolicy,
+			ConnectorID:         strings.TrimSpace(binding.ConnectorID),
+			TargetRef:           clonePublicChatTargetRef(binding.TargetRef),
+			ContextWindowTokens: binding.ContextWindowTokens,
+			CatalogRevision:     strings.TrimSpace(binding.CatalogRevision),
+			ModelRevision:       strings.TrimSpace(binding.ModelRevision),
+			ProviderID:          strings.TrimSpace(binding.ProviderID),
+			RouteDigest:         strings.TrimSpace(binding.RouteDigest),
 		}
-	}
-	return out
-}
-
-func clonePublicChatExecutionParams(input map[string]map[string]any) map[string]map[string]any {
-	if len(input) == 0 {
-		return nil
-	}
-	out := make(map[string]map[string]any, len(input))
-	for capability, params := range input {
-		trimmedCapability := strings.TrimSpace(capability)
-		if trimmedCapability == "" || params == nil {
-			continue
-		}
-		cloned := make(map[string]any, len(params))
-		for key, value := range params {
-			cloned[key] = value
-		}
-		out[trimmedCapability] = cloned
 	}
 	return out
 }
@@ -340,6 +386,7 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 		SystemPrompt:    strings.TrimSpace(systemPrompt),
 		Messages:        cloneChatMessages(messages),
 		MaxOutputTokens: maxOutputTokens,
+		TargetRef:       clonePublicChatTargetRef(configBinding.TargetRef),
 	})
 	if err != nil {
 		return publicChatExecutionBinding{}, err
@@ -350,10 +397,18 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 	if resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route")
 	}
+	if resolved.ContextWindowTokens == 0 || strings.TrimSpace(resolved.CatalogRevision) == "" || strings.TrimSpace(resolved.ModelRevision) == "" || strings.TrimSpace(resolved.ProviderID) == "" || !validSHA256Hex(strings.TrimSpace(resolved.RouteDigest)) {
+		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned incomplete catalog context metadata")
+	}
 	return publicChatExecutionBinding{
-		ModelID:     strings.TrimSpace(resolved.ModelID),
-		RoutePolicy: resolved.RoutePolicy,
-		ConnectorID: strings.TrimSpace(resolved.ConnectorID),
-		TargetRef:   clonePublicChatTargetRef(configBinding.TargetRef),
+		ModelID:             strings.TrimSpace(resolved.ModelID),
+		RoutePolicy:         resolved.RoutePolicy,
+		ConnectorID:         strings.TrimSpace(resolved.ConnectorID),
+		TargetRef:           clonePublicChatTargetRef(configBinding.TargetRef),
+		ContextWindowTokens: resolved.ContextWindowTokens,
+		CatalogRevision:     strings.TrimSpace(resolved.CatalogRevision),
+		ModelRevision:       strings.TrimSpace(resolved.ModelRevision),
+		ProviderID:          strings.TrimSpace(resolved.ProviderID),
+		RouteDigest:         strings.TrimSpace(resolved.RouteDigest),
 	}, nil
 }

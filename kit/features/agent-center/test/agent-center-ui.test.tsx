@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { AgentCenter } from '../src/components/AgentCenter.js';
 import { buildAgentCenterState } from '../src/state.js';
+import type { AgentCenterStateInput } from '../src/types.js';
 
 (
   globalThis as typeof globalThis & {
@@ -63,7 +64,72 @@ async function flush() {
   });
 }
 
+function readyPersonaSourceStatus(): NonNullable<AgentCenterStateInput['sourceContextStatus']> {
+  return {
+    schemaVersion: 'v1',
+    ready: true,
+    state: 'ready',
+    reasonCode: 'none',
+    localAgentRef: 'local-agent:owner:agent',
+    sourceRef: {
+      kind: 'realmPersona',
+      worldId: 'world-safe',
+      sourceId: 'persona-safe',
+      sourceContentHash: 'a'.repeat(64),
+    },
+    sourceSchemaVersion: 'realm.persona/v1',
+    snapshotSchemaVersion: 'v1',
+    snapshotHash: 'b'.repeat(64),
+    capturedAt: '2026-07-11T01:02:03.000Z',
+    worldContentHash: 'c'.repeat(64),
+    materializationContextHash: 'd'.repeat(64),
+    coverageSections: [
+      { section: 'identity', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'presentation', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'interaction_profile', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'assets', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'authoring', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'persona_style', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'content_profile', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'world_core', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+      { section: 'dependency_closure', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
+    ],
+  };
+}
+
 describe('AgentCenter UI', () => {
+  it('renders bounded source/context status in Overview and Advanced without raw or machine reason copy', () => {
+    const state = buildAgentCenterState({
+      sourceContextStatus: readyPersonaSourceStatus(),
+      turnContextSummary: null,
+    });
+    const node = render(<AgentCenter state={state} />);
+
+    expect(node.querySelector('[data-agent-center-source-context-status="unknown"]')).not.toBeNull();
+    expect(node.textContent).toContain('Source and conversation context');
+    expect(node.textContent).toContain('Source or conversation context has not been projected yet.');
+    expect(node.textContent).toContain('Not projected');
+
+    const advanced = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:advanced"]');
+    click(advanced);
+    expect(node.textContent).toContain('Read-only diagnostics provided by Runtime.');
+    expect(node.textContent).toContain('Realm persona');
+    expect(node.textContent).toContain('world-safe / persona-safe');
+    expect(node.textContent).toContain('a'.repeat(64));
+    expect(node.textContent).toContain('b'.repeat(64));
+
+    const dom = node.innerHTML;
+    expect(dom).not.toMatch(/reasonCode|actionHint|context_not_composed|source_snapshot_invalid|RAW_WORLD_CANARY|RAW_PROMPT_CANARY|runtime-projection/u);
+
+    const behavior = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:behavior"]');
+    click(behavior);
+    expect(node.querySelector('[data-agent-center-proactive-toggle="true"]')).not.toBeNull();
+    expect(node.textContent).not.toContain('Source content hash');
+    expect(node.textContent).not.toContain('Context lanes');
+    expect(node.querySelector('[data-agent-center-context-editor]')).toBeNull();
+    expect(node.querySelector('[data-agent-center-personality-editor]')).toBeNull();
+  });
+
   it('renders identity chrome only for standalone placement', () => {
     const state = buildAgentCenterState({});
     const identity = {
@@ -1098,7 +1164,9 @@ describe('AgentCenter UI', () => {
 
     await flush();
 
-    expect(node.textContent).toContain('Runtime method denied SDK_RUNTIME_SCOPE_DENIED request_runtime_agent_read');
+    expect(node.textContent).toContain('Runtime method denied');
+    expect(node.textContent).not.toContain('SDK_RUNTIME_SCOPE_DENIED');
+    expect(node.textContent).not.toContain('request_runtime_agent_read');
     const toggle = node.querySelector<HTMLInputElement>('[data-agent-center-proactive-toggle="true"]');
     expect(toggle?.disabled).toBe(true);
   });

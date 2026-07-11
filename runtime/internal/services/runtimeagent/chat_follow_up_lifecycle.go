@@ -87,9 +87,8 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 		RuntimeSourceRef:     session.RuntimeSourceRef,
 		ConversationAnchorID: session.ConversationAnchorID,
 		ThreadID:             session.ThreadID,
-		SystemPrompt:         buildPublicChatFollowUpSystemPrompt(session.SystemPrompt, followUp.Instruction, followUp.FollowUpDepth, followUp.MaxFollowUpTurns),
 		MaxOutputTokens:      session.MaxTokens,
-		Messages:             publicChatMessagePayloadsFromProto(session.Transcript),
+		Messages:             publicChatFollowUpInstructionInput(followUp.Instruction),
 		Reasoning:            publicChatReasoningPayloadFromConfig(session.Reasoning),
 	}
 	reservedSession, reservedTurn, turnCtx, err := s.reservePublicChatTurn(context.Background(), followUp.CallerAppID, followUp.SubjectUserID, req)
@@ -98,7 +97,6 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 		_ = s.emitPublicChatFollowUpCanceled(*followUp, "runtime_unavailable", failure.ReasonCode, failure.ActionHint, failure.Message)
 		return
 	}
-	s.setPublicChatAnchorBaseSystemPrompt(reservedSession.ConversationAnchorID, session.SystemPrompt)
 	turn := s.markPublicChatTurnAsFollowUp(reservedTurn.TurnID, *followUp)
 	s.persistCurrentPublicChatSurfaceState()
 	if err := s.setPublicChatExecutionStateWithOrigin(
