@@ -104,6 +104,11 @@ and process-bind deadline is 10 seconds. Duplicate, expired, revoked, wrong
 process/release/account/epoch and ordinary-gRPC calls fail closed. Logout,
 switch-account, uninstall, release revoke, session revoke, process exit and
 Runtime restart revoke the applicable launch/session rows transactionally.
+Install, update, repair and uninstall commit app-scoped launch/session
+revocation before any release materialization, active-pointer swap or release
+removal. A revocation-ledger failure terminates the lifecycle job as failed and
+cannot mutate files. Catalog release revocation may use the narrower
+app-and-release-digest transaction; it cannot affect another app or release.
 
 After consumption, the verified connection retains only a Runtime-private
 opaque session selector/proof. The durable installed-session row remains the

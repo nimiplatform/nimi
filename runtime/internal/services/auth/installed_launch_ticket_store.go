@@ -323,6 +323,52 @@ func (store *InstalledLaunchStore) RevokeAccountGeneration(ctx context.Context, 
 	return tx.Commit()
 }
 
+func (store *InstalledLaunchStore) RevokeApp(ctx context.Context, appID string) error {
+	normalized := strings.TrimSpace(appID)
+	if normalized == "" || normalized != appID {
+		return ErrInstalledLaunchMismatch
+	}
+	return store.revokeAppAuthority(ctx, normalized, nil)
+}
+
+func (store *InstalledLaunchStore) RevokeRelease(ctx context.Context, appID string, releaseDigest protectedlocal.Identifier) error {
+	normalized := strings.TrimSpace(appID)
+	if normalized == "" || normalized != appID || releaseDigest == (protectedlocal.Identifier{}) {
+		return ErrInstalledLaunchMismatch
+	}
+	return store.revokeAppAuthority(ctx, normalized, &releaseDigest)
+}
+
+func (store *InstalledLaunchStore) revokeAppAuthority(ctx context.Context, appID string, releaseDigest *protectedlocal.Identifier) error {
+	if store == nil || store.db == nil {
+		return ErrInstalledLaunchMismatch
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	now := store.now().UTC().UnixNano()
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if releaseDigest == nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'revoked', revoked_unix_nano = ? WHERE app_id = ? AND status IN ('pending','process_bound')`, now, appID); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE installed_app_session SET revoked_unix_nano = ? WHERE app_id = ? AND revoked_unix_nano IS NULL`, now, appID); err != nil {
+			return err
+		}
+	} else {
+		if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'revoked', revoked_unix_nano = ? WHERE app_id = ? AND release_digest = ? AND status IN ('pending','process_bound')`, now, appID, releaseDigest[:]); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE installed_app_session SET revoked_unix_nano = ? WHERE app_id = ? AND release_digest = ? AND revoked_unix_nano IS NULL`, now, appID, releaseDigest[:]); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func (store *InstalledLaunchStore) RevokeSession(ctx context.Context, sessionID protectedlocal.Identifier) error {
 	if store == nil || store.db == nil || sessionID == (protectedlocal.Identifier{}) {
 		return ErrInstalledLaunchMismatch

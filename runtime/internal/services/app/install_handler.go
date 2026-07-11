@@ -75,6 +75,10 @@ func (s *Service) InstallApp(ctx context.Context, req *runtimev1.InstallAppReque
 		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION, planErr.Error())
 		return &runtimev1.InstallAppResponse{Job: orJob(failed, job)}, nil
 	}
+	if err := s.revokeInstalledAppAuthority(ctx, descriptor.AppID); err != nil {
+		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, err.Error())
+		return &runtimev1.InstallAppResponse{Job: orJob(failed, job)}, nil
+	}
 
 	go s.runLifecycleJob(job.GetJobId(), descriptor, runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_INSTALL, accountID)
 	return &runtimev1.InstallAppResponse{Job: job}, nil
@@ -274,6 +278,10 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 		sourceKind:    installSourceKind(descriptor),
 		storage:       storage,
 	})
+	if err := s.revokeInstalledAppAuthority(ctx, appID); err != nil {
+		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, err.Error())
+		return &runtimev1.UninstallAppResponse{Job: orJob(failed, job)}, nil
+	}
 
 	options := appstorage.UninstallOptions{
 		DeleteDurableData:             req.GetDeleteDurableData(),

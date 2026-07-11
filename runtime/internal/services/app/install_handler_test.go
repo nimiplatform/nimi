@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -23,6 +24,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -478,6 +481,106 @@ func TestInstallAppBundledReachesInstalled(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(job.GetStorage().GetReleaseRoot(), "manifest.json")); err != nil {
 		t.Fatalf("expected materialized release payload: %v", err)
+	}
+}
+
+func TestInstalledLifecycleRevokesExistingAppSession(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	store, err := authservice.OpenInstalledLaunchStore(filepath.Join(t.TempDir(), "installed-launch.db"), appInstalledIdentifier(0x61))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	svc.installedLaunches = store
+
+	binding := seedAppInstalledSession(t, store, "nimi.example-app", appInstalledIdentifier(0x62), 7, 6101)
+	installBundledAppForOpen(t, svc)
+	if _, err := store.ValidateSession(context.Background(), binding); !errors.Is(err, authservice.ErrInstalledSessionRevoked) {
+		t.Fatalf("install did not revoke existing session: %v", err)
+	}
+
+	binding = seedAppInstalledSession(t, store, "nimi.example-app", appInstalledIdentifier(0x63), 7, 6102)
+	response, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.example-app"})
+	if err != nil || response.GetJob().GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_UNINSTALLED {
+		t.Fatalf("uninstall = (%+v, %v)", response, err)
+	}
+	if _, err := store.ValidateSession(context.Background(), binding); !errors.Is(err, authservice.ErrInstalledSessionRevoked) {
+		t.Fatalf("uninstall did not revoke existing session: %v", err)
+	}
+}
+
+func TestInstalledLifecycleRevocationFailureStopsBeforeFileMutation(t *testing.T) {
+	t.Run("install", func(t *testing.T) {
+		svc, dataRoot := newBundledInstallService(t)
+		closed := closedInstalledLaunchStore(t)
+		svc.installedLaunches = closed
+		response, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})
+		if err != nil {
+			t.Fatalf("InstallApp: %v", err)
+		}
+		if response.GetJob().GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED || response.GetJob().GetReasonCode() != runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE {
+			t.Fatalf("install job = %+v", response.GetJob())
+		}
+		if _, err := os.Stat(filepath.Join(dataRoot, "apps", "nimi.example-app")); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("install mutated app root before revocation: %v", err)
+		}
+	})
+
+	t.Run("uninstall", func(t *testing.T) {
+		svc, _ := newBundledInstallService(t)
+		installBundledAppForOpen(t, svc)
+		_, descriptor, err := svc.installRuntime.resolveDescriptor("nimi.example-app")
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan, err := svc.installRuntime.plan(descriptor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		closed := closedInstalledLaunchStore(t)
+		svc.installedLaunches = closed
+		response, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.example-app"})
+		if err != nil {
+			t.Fatalf("UninstallApp: %v", err)
+		}
+		if response.GetJob().GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED || response.GetJob().GetReasonCode() != runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE {
+			t.Fatalf("uninstall job = %+v", response.GetJob())
+		}
+		if _, err := os.Stat(plan.ReleaseRoot); err != nil {
+			t.Fatalf("uninstall removed release before revocation: %v", err)
+		}
+	})
+}
+
+func closedInstalledLaunchStore(t *testing.T) *authservice.InstalledLaunchStore {
+	t.Helper()
+	store, err := authservice.OpenInstalledLaunchStore(filepath.Join(t.TempDir(), "installed-launch.db"), appInstalledIdentifier(0x64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return store
+}
+
+func seedAppInstalledSession(t *testing.T, store *authservice.InstalledLaunchStore, appID string, release protectedlocal.Identifier, generation uint64, pid uint32) authservice.InstalledSessionBinding {
+	t.Helper()
+	ticket, err := store.Issue(context.Background(), authservice.InstalledLaunchIssue{AppID: appID, ReleaseDigest: release, AccountGeneration: generation})
+	if err != nil {
+		t.Fatal(err)
+	}
+	process := authservice.InstalledLaunchProcess{LaunchID: ticket.LaunchID, PID: pid, CreationMarker: fmt.Sprintf("process-%d", pid), ReleaseDigest: release, AccountGeneration: generation}
+	if _, err := store.BindProcess(context.Background(), process); err != nil {
+		t.Fatal(err)
+	}
+	session, err := store.Consume(context.Background(), process)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return authservice.InstalledSessionBinding{
+		SessionID: session.SessionID, SessionProof: session.SessionProof, ReleaseDigest: release,
+		PID: pid, CreationMarker: process.CreationMarker, AccountGeneration: generation, RuntimeBootEpoch: session.RuntimeBootEpoch,
 	}
 }
 

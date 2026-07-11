@@ -84,6 +84,10 @@ func (s *Service) UpdateApp(ctx context.Context, req *runtimev1.UpdateAppRequest
 		sourceKind:      installSourceKind(descriptor),
 		storage:         storageProjectionFromPlan(plan),
 	})
+	if err := s.revokeInstalledAppAuthority(ctx, descriptor.AppID); err != nil {
+		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, err.Error())
+		return &runtimev1.UpdateAppResponse{Job: orJob(failed, job)}, nil
+	}
 	go s.runLifecycleJob(job.GetJobId(), descriptor, runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_UPDATE, accountID)
 	return &runtimev1.UpdateAppResponse{Job: job}, nil
 }
@@ -217,6 +221,10 @@ func (s *Service) healthRepairRetry(ctx context.Context, appID string, jobID str
 		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION, planErr.Error())
 		return &runtimev1.HealthRepairAppResponse{Job: orJob(failed, job)}, nil
 	}
+	if err := s.revokeInstalledAppAuthority(ctx, descriptor.AppID); err != nil {
+		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, err.Error())
+		return &runtimev1.HealthRepairAppResponse{Job: orJob(failed, job)}, nil
+	}
 	go s.runLifecycleJob(job.GetJobId(), descriptor, kind, accountID)
 	if s.logger != nil {
 		s.logger.Info("app lifecycle job retried", "prior_job_id", priorJob.GetJobId(), "job_id", job.GetJobId(), "app_id", appID, "kind", kind.String())
@@ -264,6 +272,10 @@ func (s *Service) healthRepairRematerialize(ctx context.Context, appID string, k
 		sourceKind:      installSourceKind(descriptor),
 		storage:         storageProjectionFromPlan(plan),
 	})
+	if err := s.revokeInstalledAppAuthority(ctx, descriptor.AppID); err != nil {
+		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, err.Error())
+		return &runtimev1.HealthRepairAppResponse{Job: orJob(failed, job)}, nil
+	}
 	go s.runLifecycleJob(job.GetJobId(), descriptor, kind, accountID)
 	if s.logger != nil {
 		s.logger.Info("app lifecycle repair job started", "job_id", job.GetJobId(), "app_id", appID, "kind", kind.String())

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -11,6 +12,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func (s *Service) revokeInstalledAppAuthority(ctx context.Context, appID string) error {
+	if s == nil || s.installedLaunches == nil {
+		return nil
+	}
+	return s.installedLaunches.RevokeApp(ctx, strings.TrimSpace(appID))
+}
 
 func (s *Service) BindInstalledLaunchProcess(ctx context.Context, req *runtimev1.BindInstalledLaunchProcessRequest) (*runtimev1.BindInstalledLaunchProcessResponse, error) {
 	if req == nil || len(req.GetLaunchId()) != protectedlocal.IdentifierBytes || req.GetChildProcessId() == 0 {
