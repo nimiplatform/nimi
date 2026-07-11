@@ -37,7 +37,6 @@ function hasNativeTauriInvoke(candidate: unknown): boolean {
 }
 
 function createNimiShellRuntimeHook(): NimiShellRuntimeHook {
-  const existing = shellGlobal().__NIMI_TAURI_RUNTIME__ || shellGlobal().window?.__NIMI_TAURI_RUNTIME__;
   return {
     invoke: async (command, payload) => (
       await tauriCoreInvoke(resolveTauriStandardCommand(command), payload as InvokeArgs | undefined)
@@ -47,9 +46,6 @@ function createNimiShellRuntimeHook(): NimiShellRuntimeHook {
       return unsubscribe;
     },
     convertFileSrc: (fileUrl) => tauriConvertFileSrc(fileUrl),
-    ...(existing?.installedAppLaunchBinding
-      ? { installedAppLaunchBinding: existing.installedAppLaunchBinding }
-      : {}),
   };
 }
 
@@ -68,9 +64,6 @@ function createNimiShellTestRuntimeHook(value: TauriRuntimeGlobal): NimiShellRun
       return unsubscribe;
     },
     convertFileSrc: hook.convertFileSrc,
-    ...(hook.installedAppLaunchBinding
-      ? { installedAppLaunchBinding: hook.installedAppLaunchBinding }
-      : {}),
   };
 }
 

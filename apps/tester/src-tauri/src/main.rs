@@ -131,6 +131,11 @@ fn install_standard_app_storage_slot(app: &tauri::App<tauri::Wry>) {
     app.manage(slot);
 }
 
+fn install_installed_runtime_host(app: &tauri::App<tauri::Wry>) {
+    use tauri::Manager;
+    app.manage(nimi_shell_tauri::capabilities::runtime::RuntimeBridgeInstalledHost::platform_default());
+}
+
 fn acceptance_storage_root_override() -> Option<String> {
     std::env::var(ACCEPTANCE_STORAGE_ROOT_ENV)
         .ok()
@@ -214,6 +219,7 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             install_standard_app_storage_slot(app);
+            install_installed_runtime_host(app);
             Ok(())
         })
         .on_page_load(|webview, payload| {

@@ -150,6 +150,11 @@
   `{ relativePath, mimeType?, dataBase64 }`; subtree escape fails closed as
   `invalid-path`. Written artifact paths are eligible inputs to
   `local-assets.resolveUrl`.
+- `artifacts.readRuntimeBytes` is the only installed-app artifact operation.
+  It accepts exactly `{ artifactId }` and returns only canonical base64 bytes,
+  MIME, observed size, and MIME-inferred state from the opaque installed
+  Runtime session. Renderer input cannot contain session, proof, account,
+  release, grant, endpoint, metadata, or method identifiers.
 - `floating-window.*` operations act on the invoking window only.
   `beginManualDrag` is manual-only: it returns the current window origin with
   `mode: "manual"` so renderers can apply pointer-driven moves through
@@ -157,9 +162,10 @@
   `shell-ui.startWindowDrag`, not by floating-window manual drag. Hosts that
   cannot support an operation must fail closed with `capability-unavailable`,
   never simulate success.
-- Installed-app capability sets forbid all P-KIT-041F operations by default;
-  granting any of them to installed apps requires a separate capability-set
-  admission.
+- Installed-app capability sets forbid all P-KIT-041F operations by default.
+  The sole admitted exception is the separately specified
+  `artifacts.readRuntimeBytes` operation in P-KIT-044; every further operation
+  requires its own capability-set admission.
 
 ## P-KIT-042 — Renderer Shell Module
 
@@ -215,14 +221,12 @@ executable suspended, and submits its PID over retained protected Desktop
 control before resuming it. The child opens the fixed installed pipe itself;
 Kit never inherits or forwards a pre-connected pipe handle and cannot create
 launch, process, release, account/session or capability truth.
-`tables/standard-shell-capabilities.yaml` records the Windows launch/session
-carrier as `a1_windows_admitted_implementation_pending`, while keeping its
-`allowed_operations` list empty. The A.1 carrier admits only exact process
-launch binding and opaque installed-session establishment; its planned
-standard-shell operation list remains deny-only until A4 carrier and operation
-admission. No Electron/Tauri metadata, Runtime unary proxy, host provider, app
-id, or standard-shell operation may upgrade that narrow native carrier.
-macOS/Linux remain fail-closed and cannot claim A.1 completion.
+The A.1 carrier admits only exact process launch binding and opaque
+installed-session establishment. No Electron/Tauri metadata, Runtime unary
+proxy, host provider, app id, or standard-shell operation may upgrade that
+narrow native carrier. `tables/standard-shell-capabilities.yaml` separately
+records the Windows x64 A.4 artifact-read admission described below;
+macOS/Linux remain fail-closed and cannot claim A.1 or A.4 completion.
 
 The first A.4 business method admitted on the opaque installed session is the
 host-only typed `read_artifact_bytes(artifact_id)` call, bound exactly to
@@ -231,18 +235,20 @@ size and MIME-inferred state, and preserves typed invalid-input, forbidden,
 not-found, too-large and Runtime availability failures. The session proof,
 account, app, release, grant and transport channel remain private to the
 carrier. This does not admit a method-id/bytes proxy, generic `runtime.unary`,
-arbitrary metadata, or a renderer command; the standard-shell
-`allowed_operations` list remains empty until an owning Tauri/Electron host
-adapter is separately admitted. macOS/Linux continue to fail closed at session
+arbitrary metadata, or any renderer command other than the exact
+`nimi.shell.artifacts.readRuntimeBytes` operation. Its capability-set input is
+exactly `{ artifactId }`; its result contains only `dataBase64`, `mimeType`,
+`sizeBytes`, and `mimeInferred`. macOS/Linux continue to fail closed at session
 open until their native carrier admission.
 
 The Tauri A.4 host adapter owns one lazily opened opaque installed-session
 handle per host instance and forwards only the typed artifact selector to that
 handle. Concurrent or repeated reads reuse that handle; they cannot mint a
 second account/session truth. Its public Rust host API preserves the carrier's
-typed errors, but no `#[tauri::command]`, preload/renderer bridge, portable
-`RuntimeBridgeAppSession`, session bytes, or generic unary hook is admitted in
-this slice.
+typed errors. The Tauri command adapter exposes exactly
+`artifacts_read_runtime_bytes` and the shared renderer bridge maps it to the
+catalogued operation. No portable `RuntimeBridgeAppSession`, session bytes,
+generic unary hook, or authorization-bearing renderer payload is admitted.
 
 The Electron A.4 host adapter has the same host-only artifact surface. On the
 independently admitted Windows x64 target it loads the fixed
@@ -251,11 +257,14 @@ an ABI projection of `shell/protected-local`, not a second transport or trust
 implementation. Its native export set is exactly session open plus typed
 artifact read, and one successful opaque session is reused for the Electron
 main process. The package and the TypeScript adapter expose no method-id/bytes
-proxy, endpoint, metadata, session proof, account, release, grant, credential,
-preload, or renderer surface. Missing packages, malformed native projections,
-Windows arm64, macOS, and Linux remain `protected-carrier-required` or
-`runtime-service-untrusted` as applicable; they cannot fall back to ordinary
-gRPC. The standard-shell `allowed_operations` list remains empty.
+proxy, endpoint, metadata, session proof, account, release, grant, or
+credential surface. Electron main dispatches only the catalogued artifact-read
+command and projects bytes to the same renderer result shape as Tauri. Missing
+packages, malformed native projections, Windows arm64, macOS, and Linux remain
+`protected-carrier-required` or `runtime-service-untrusted` as applicable;
+they cannot fall back to ordinary gRPC. The standard-shell `allowed_operations`
+list contains exactly `artifacts.readRuntimeBytes`; generic Runtime
+unary/stream/storage/config/lifecycle operations remain forbidden.
 
 ## P-KIT-045 - Desktop Open Intent Kit Surfaces
 

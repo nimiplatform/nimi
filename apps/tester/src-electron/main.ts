@@ -5,6 +5,7 @@ import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
 import {
   createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
+  createNimiElectronInstalledHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   resolveElectronStandardStorageRoots,
@@ -49,6 +50,7 @@ void app.whenReady().then(async () => {
   const standardDataRoot = resolveStandardDataRoot();
   const standardShellHost: NimiElectronStandardShellHost = {
     capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+    installedHost: createNimiElectronInstalledHost(),
     standardDataRootBinding: resolveStandardDataRootBinding(),
     localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
     localAssetProtocolHost: fileProtocolHost,

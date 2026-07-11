@@ -33,6 +33,7 @@ import {
   toSerializedElectronShellError,
 } from './errors.js';
 import { writeElectronShellArtifact } from './artifacts.js';
+import { readElectronInstalledArtifact } from './installed-artifacts.js';
 import { bindElectronStandardDataRootRuntimeResolver } from './data-root-binding.js';
 import { openElectronDesktopIntent } from './desktop-open.js';
 import { saveElectronShellExportFile } from './export.js';
@@ -236,6 +237,9 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) return revealElectronShellFile(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']) return saveElectronShellExportFile(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']) return writeElectronShellArtifact(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.readRuntimeBytes']) {
+      return readElectronInstalledArtifact(input.standardShellHost, standardPayload, command);
+    }
     if (isElectronAgentCenterCommand(command)) {
       return dispatchElectronAgentCenterCommand({ host: input.standardShellHost, payload: standardPayload, command });
     }

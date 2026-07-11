@@ -272,11 +272,13 @@ const requiredStandardShellErrorCodes = [
   'runtime-service-unavailable',
   'runtime-service-untrusted',
   'runtime-service-repair-required',
+  'external-daemon-required',
   'runtime-permission-denied',
   'runtime-unauthenticated',
   'forbidden-renderer-access',
   'invalid-path',
   'not-found',
+  'resource-exhausted',
   'invalid-payload',
   'host-internal-error',
 ];
@@ -354,9 +356,12 @@ function assertStandardShellCapabilityCatalog() {
       && capabilitySource.includes(`'P-KIT-044'`),
     'kit/shell/capabilities/src/index.ts: missing installed app capability-set projection',
   );
-  expect(installedSet?.authority_status === 'a1_windows_admitted_implementation_pending', 'standard-shell-capabilities.yaml: installed app capability set must retain narrow Windows A.1 admission');
-  expect(Array.isArray(installedSet?.allowed_operations) && installedSet.allowed_operations.length === 0, 'standard-shell-capabilities.yaml: A.4-pending installed app capability set allowed_operations must be empty');
-  expect(installedSet?.planned_operations_disposition === 'deny_until_a4_carrier_and_operation_admission', 'standard-shell-capabilities.yaml: planned installed app operations must remain deny-only until A.4');
+  expect(installedSet?.authority_status === 'a4_windows_x64_artifact_read_admitted', 'standard-shell-capabilities.yaml: installed app capability set must retain narrow Windows x64 artifact-read admission');
+  expect(
+    JSON.stringify(installedSet?.allowed_operations) === JSON.stringify(['artifacts.readRuntimeBytes']),
+    'standard-shell-capabilities.yaml: installed app capability set must admit only artifacts.readRuntimeBytes',
+  );
+  expect(installedSet?.planned_operations_disposition === 'deny_until_separate_operation_admission', 'standard-shell-capabilities.yaml: every other planned installed app operation must remain deny-only');
   for (const field of ['planned_operations', 'forbidden_operations', 'negative_tests']) {
     expect(
       Array.isArray(installedSet?.[field]) && installedSet[field].length > 0,

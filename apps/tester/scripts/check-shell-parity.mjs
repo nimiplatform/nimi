@@ -121,7 +121,6 @@ function validateStandardShellBridgeCatalog() {
   assertIncludes(electronHost, 'NIMI_STANDARD_SHELL_COMMANDS', 'Kit Electron standard shell catalog');
   assertIncludes(electronRuntime, "standardCommand('runtime.unary')", 'Kit Electron runtime bridge command');
   assertIncludes(electronRuntime, "standardCommand('runtime-lifecycle.status')", 'Kit Electron runtime lifecycle command');
-  assertIncludes(electronRuntime, "standardCommand('config.get')", 'Kit Electron config command');
   assertIncludes(electronAuth, "'nimi.shell.auth.session.load'", 'Kit Electron retired auth custody denial');
   assertIncludes(electronHost, 'isElectronRuntimeAccountCustodyCommand', 'Kit Electron auth custody hardcut');
   assertIncludes(electronHost, "NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']", 'Kit Electron OAuth command');
@@ -147,6 +146,7 @@ function validateShellParity() {
   const electronPreload = read('src-electron/preload.cts');
   const electronCommands = read('src-electron/commands/tester-commands.ts');
   const tauriMain = read('src-tauri/src/main.rs');
+  const tauriAcceptance = read('src-tauri/src/acceptance.rs');
   const tauriConfig = read('src-tauri/tauri.conf.json');
 
   assertIncludes(packageJson.scripts['dev:electron'], 'electron', 'Electron dev script');
@@ -162,14 +162,14 @@ function validateShellParity() {
   assertIncludes(electronMain, 'createTesterElectronCommandHandlers', 'Electron tester commands');
   assertIncludes(electronPreload, 'installNimiElectronRuntimeBridge', 'Electron preload bridge');
   assertIncludes(tauriMain, 'nimi_shell_tauri_installed_app_standard_shell_handler![', 'Tauri installed app standard shell');
-  assertMatch(tauriMain, /capabilities::diagnostics::build_renderer_entry_probe_script/, 'Tauri renderer probe');
-  assertMatch(tauriMain, /RendererEntryProbeScriptConfig/, 'Tauri renderer probe config');
+  assertMatch(tauriAcceptance, /capabilities::diagnostics::build_renderer_entry_probe_script/, 'Tauri renderer probe');
+  assertMatch(tauriAcceptance, /RendererEntryProbeScriptConfig/, 'Tauri renderer probe config');
   assertNotMatch(tauriMain, /tauri::generate_handler!\[/, 'Tauri handler bypass');
 
   assertIncludes(runtimeTransport, "type: 'electron-ipc'", 'Runtime transport');
   assertIncludes(runtimeTransport, "type: 'tauri-ipc'", 'Runtime transport');
   assertIncludes(runtimeTransport, "commandNamespace: RUNTIME_BRIDGE_NAMESPACE", 'Tauri bridge namespace');
-  assertIncludes(runtimePlatform, "resolveTesterRuntimeHostKind() === 'electron'", 'Runtime auth metadata split');
+  assertIncludes(runtimePlatform, "resolveTesterRuntimeHostKind() !== 'node'", 'Runtime auth metadata split');
   assertIncludes(runtimePlatform, 'authMetadata: createRuntimeAppSessionMetadataProvider', 'Runtime auth metadata split');
 
   validateStandardShellBridgeCatalog();

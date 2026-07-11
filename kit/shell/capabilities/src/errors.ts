@@ -10,6 +10,7 @@ export const NIMI_STANDARD_SHELL_ERROR_CODES = [
   'forbidden-renderer-access',
   'invalid-path',
   'not-found',
+  'resource-exhausted',
   'invalid-payload',
   'host-internal-error',
 ] as const;

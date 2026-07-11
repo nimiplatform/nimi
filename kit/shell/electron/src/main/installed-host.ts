@@ -105,8 +105,17 @@ class ElectronInstalledHost implements NimiElectronInstalledHost {
   }
 }
 
+class LazyElectronInstalledHost implements NimiElectronInstalledHost {
+  private host: NimiElectronInstalledHost | undefined;
+
+  async readArtifactBytes(artifactId: string): Promise<NimiElectronInstalledArtifactBytes> {
+    this.host ??= new ElectronInstalledHost(loadPlatformBinding());
+    return this.host.readArtifactBytes(artifactId);
+  }
+}
+
 export function createNimiElectronInstalledHost(): NimiElectronInstalledHost {
-  return new ElectronInstalledHost(loadPlatformBinding());
+  return new LazyElectronInstalledHost();
 }
 
 /** @internal Focused contract-test seam; not re-exported from the public main entrypoint. */

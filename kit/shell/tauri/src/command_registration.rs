@@ -176,6 +176,11 @@ pub const STANDARD_FILE_COMMANDS: &[ShellCommandDescriptor] = &[
         rust_path: "nimi_shell_tauri::capabilities::artifacts::artifacts_write",
         boundary: ShellCommandBoundary::Files,
     },
+    ShellCommandDescriptor {
+        command_name: "artifacts_read_runtime_bytes",
+        rust_path: "nimi_shell_tauri::capabilities::artifacts::artifacts_read_runtime_bytes",
+        boundary: ShellCommandBoundary::Files,
+    },
 ];
 
 pub const STANDARD_LOCAL_ASSET_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
@@ -337,22 +342,7 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
 }
 
 pub fn installed_app_standard_shell_commands() -> Vec<ShellCommandDescriptor> {
-    const INSTALLED_APP_COMMAND_NAMES: &[&str] = &[
-        "runtime_bridge_unary",
-        "runtime_bridge_stream_open",
-        "runtime_bridge_stream_close",
-        "desktop_open_intent_open_intent",
-        "data_path_resolve",
-        "storage_read_json",
-        "storage_write_json",
-        "storage_remove_json",
-        "ai_config_get",
-        "ai_config_set",
-        "confirm_dialog",
-        "start_window_drag",
-        "focus_main_window",
-        "local_assets_resolve_url",
-    ];
+    const INSTALLED_APP_COMMAND_NAMES: &[&str] = &["artifacts_read_runtime_bytes"];
     all_shell_commands()
         .into_iter()
         .filter(|command| INSTALLED_APP_COMMAND_NAMES.contains(&command.command_name))
@@ -363,20 +353,7 @@ pub fn installed_app_standard_shell_commands() -> Vec<ShellCommandDescriptor> {
 macro_rules! nimi_shell_tauri_installed_app_standard_shell_handler {
     ($($app_command:path),* $(,)?) => {
         tauri::generate_handler![
-            $crate::capabilities::runtime::runtime_bridge_unary,
-            $crate::capabilities::runtime::runtime_bridge_stream_open,
-            $crate::capabilities::runtime::runtime_bridge_stream_close,
-            $crate::capabilities::data::data_path_resolve,
-            $crate::capabilities::storage::storage_read_json,
-            $crate::capabilities::storage::storage_write_json,
-            $crate::capabilities::storage::storage_remove_json,
-            $crate::capabilities::ai_config::ai_config_get,
-            $crate::capabilities::ai_config::ai_config_set,
-            $crate::capabilities::shell_ui::confirm_dialog,
-            $crate::capabilities::shell_ui::start_window_drag,
-            $crate::capabilities::shell_ui::focus_main_window,
-            $crate::capabilities::local_assets::local_assets_resolve_url,
-            $crate::capabilities::desktop_open::desktop_open_intent_open_intent,
+            $crate::capabilities::artifacts::artifacts_read_runtime_bytes,
             $($app_command),*
         ]
     };

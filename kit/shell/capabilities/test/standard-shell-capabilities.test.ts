@@ -165,7 +165,7 @@ describe('standard shell capabilities', () => {
     ]));
   });
 
-  it('keeps standard storage removal unavailable to installed apps before A.1', () => {
+  it('keeps standard storage removal unavailable after narrow artifact read admission', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const command = getNimiStandardShellCommand('storage', 'removeJson');
     const packageOperation = NIMI_STANDARD_SHELL_CAPABILITIES
@@ -179,12 +179,12 @@ describe('standard shell capabilities', () => {
     const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
     );
-    expect(installedSet?.allowedOperations).toEqual([]);
-    expect(installedSet?.allowedCommands).toEqual([]);
+    expect(installedSet?.allowedOperations).toEqual(['artifacts.readRuntimeBytes']);
+    expect(installedSet?.allowedCommands).toEqual(['nimi.shell.artifacts.readRuntimeBytes']);
     expect(readCapabilitySetList('planned_operations', catalog)).toContain('storage.removeJson');
   });
 
-  it('keeps all standard-shell operations blocked after narrow Windows A.1 carrier admission', () => {
+  it('admits only typed artifact read after Windows x64 A.4 carrier admission', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
@@ -192,16 +192,19 @@ describe('standard shell capabilities', () => {
 
     expect(installedSet?.allowedOperations).toEqual(readCapabilitySetList('allowed_operations', catalog));
     expect(installedSet?.forbiddenOperations).toEqual(readCapabilitySetList('forbidden_operations', catalog));
-    expect(installedSet?.allowedOperations).toEqual([]);
-    expect(installedSet?.allowedCommands).toEqual([]);
-    expect(installedSet?.authorityStatus).toBe('a1_windows_admitted_implementation_pending');
-    expect(installedSet?.plannedOperationsDisposition).toBe('deny_until_a4_carrier_and_operation_admission');
+    expect(installedSet?.allowedOperations).toEqual(['artifacts.readRuntimeBytes']);
+    expect(installedSet?.allowedCommands).toEqual(['nimi.shell.artifacts.readRuntimeBytes']);
+    expect(installedSet?.authorityStatus).toBe('a4_windows_x64_artifact_read_admitted');
+    expect(installedSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
     expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
       'ai-config.get',
       'ai-config.set',
     ]));
     expect(installedSet?.forbiddenOperations).toEqual(expect.arrayContaining([
       'runtime-defaults.get',
+      'runtime.unary',
+      'runtime.streamOpen',
+      'runtime.streamClose',
       'auth.sessionLoad',
       'auth.sessionSave',
       'auth.sessionClear',

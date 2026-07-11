@@ -430,11 +430,11 @@ function validateCore(bundle, issues) {
     || !(electronModule?.dependencies ?? []).includes('kit.shell.protected-local')
     || !equalArray((lifecycleCapability?.operations ?? []).map((row) => row.id), ['status', 'start', 'restart'])
     || standardShell?.protected_service_control_policy?.product_stop_operation !== 'absent'
-    || installedSet?.authority_status !== 'a1_windows_admitted_implementation_pending'
-    || (installedSet?.allowed_operations ?? []).length !== 0
-    || installedSet?.planned_operations_disposition !== 'deny_until_a4_carrier_and_operation_admission'
+    || installedSet?.authority_status !== 'a4_windows_x64_artifact_read_admitted'
+    || !equalArray(installedSet?.allowed_operations ?? [], ['artifacts.readRuntimeBytes'])
+    || installedSet?.planned_operations_disposition !== 'deny_until_separate_operation_admission'
   ) {
-    issues.push(issue('KIT_PROTECTED_LOCAL_CARRIER_REQUIRED', paths.kitRegistry, 'Kit must register one shared native protected carrier, expose only typed status/start/restart, and keep A.1 installed operations denied pending A.4 carrier implementation.'));
+    issues.push(issue('KIT_PROTECTED_LOCAL_CARRIER_REQUIRED', paths.kitRegistry, 'Kit must register one shared native protected carrier, expose only typed status/start/restart plus the exact installed artifact read, and keep every other installed operation denied.'));
   }
 
   const limits = parseYaml(bundle, paths.limits, issues);

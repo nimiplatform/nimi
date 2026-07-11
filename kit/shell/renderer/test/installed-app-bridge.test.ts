@@ -9,20 +9,33 @@ type RendererInstalledAppTestGlobal = typeof globalThis & {
 };
 
 describe('renderer installed app standard shell surface', () => {
-  it('fails closed before A.1 without issuing installed-app IPC', async () => {
+  it('admits only typed Runtime artifact reads and keeps every pending operation fail closed', async () => {
     const root = globalThis as RendererInstalledAppTestGlobal;
     const previous = root.__NIMI_ELECTRON_TEST__;
     const calls: Array<{ readonly command: string; readonly payload: unknown }> = [];
     root.__NIMI_ELECTRON_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
-        return {};
+        return {
+          dataBase64: 'YXJ0aWZhY3Q=',
+          mimeType: 'text/plain',
+          sizeBytes: 8,
+          mimeInferred: false,
+        };
       },
       listen: () => () => undefined,
     };
 
     try {
       const surface = createInstalledNimiAppStandardShellSurface();
+      const artifact = await surface.artifacts.readRuntimeBytes('artifact-one');
+      expect(Array.from(artifact.bytes)).toEqual(Array.from(new TextEncoder().encode('artifact')));
+      expect({ ...artifact, bytes: undefined }).toEqual({
+        bytes: undefined,
+        mimeType: 'text/plain',
+        sizeBytes: 8,
+        mimeInferred: false,
+      });
       const operations = [
         () => surface.config.get(),
         () => surface.config.set({ density: 'compact' }),
@@ -46,6 +59,33 @@ describe('renderer installed app standard shell surface', () => {
       root.__NIMI_ELECTRON_TEST__ = previous;
     }
 
-    expect(calls).toEqual([]);
+    expect(calls).toEqual([{
+      command: 'nimi.shell.artifacts.readRuntimeBytes',
+      payload: { payload: { artifactId: 'artifact-one' } },
+    }]);
+  });
+
+  it('rejects malformed host artifact projections in the renderer', async () => {
+    const root = globalThis as RendererInstalledAppTestGlobal;
+    const previous = root.__NIMI_ELECTRON_TEST__;
+    root.__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({
+        dataBase64: 'YXJ0aWZhY3Q=',
+        mimeType: 'text/plain',
+        sizeBytes: 7,
+        mimeInferred: false,
+      }),
+      listen: () => () => undefined,
+    };
+    try {
+      await expect(
+        createInstalledNimiAppStandardShellSurface().artifacts.readRuntimeBytes('artifact-one'),
+      ).rejects.toMatchObject({
+        code: 'invalid-payload',
+        reasonCode: 'renderer-standard-shell-result-invalid',
+      });
+    } finally {
+      root.__NIMI_ELECTRON_TEST__ = previous;
+    }
   });
 });

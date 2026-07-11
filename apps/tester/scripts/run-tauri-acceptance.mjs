@@ -8,11 +8,12 @@ import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..');
 const timeoutMs = Number.parseInt(process.env.NIMI_TESTER_TAURI_ACCEPTANCE_TIMEOUT_MS || '90000', 10);
 const commandMatrix = [
-  { id: 'ai-config.set', command: 'ai_config_set' },
-  { id: 'ai-config.get', command: 'ai_config_get' },
+  { id: 'artifacts.readRuntimeBytes.native-unavailable', command: 'artifacts_read_runtime_bytes', expectError: true },
+  { id: 'ai-config.set.negative', command: 'ai_config_set', expectError: true },
+  { id: 'ai-config.get.negative', command: 'ai_config_get', expectError: true },
   { id: 'config.get.negative', command: 'runtime_bridge_config_get', expectError: true },
-  { id: 'standard-storage.runHistory.write', command: 'storage_write_json' },
-  { id: 'standard-storage.runHistory.read', command: 'storage_read_json' },
+  { id: 'standard-storage.runHistory.write.negative', command: 'storage_write_json', expectError: true },
+  { id: 'standard-storage.runHistory.read.negative', command: 'storage_read_json', expectError: true },
   { id: 'runtime-lifecycle.status.negative', command: 'runtime_bridge_status', expectError: true },
   { id: 'runtime-defaults.get.negative', command: 'runtime_defaults', expectError: true },
   { id: 'auth.sessionLoad.negative', command: 'auth_session_load', expectError: true },

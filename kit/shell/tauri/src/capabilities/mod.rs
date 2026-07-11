@@ -520,6 +520,7 @@ pub mod artifacts {
     pub use crate::standard_artifacts::{
         StandardArtifactsWritePayload, StandardArtifactsWriteResult,
     };
+    pub use crate::standard_installed_artifacts::InstalledArtifactReadResult;
 
     #[tauri::command]
     pub fn artifacts_write(
@@ -531,6 +532,18 @@ pub mod artifacts {
             "artifacts_write",
         )?;
         crate::standard_artifacts::artifacts_write(&roots, payload)
+    }
+
+    #[tauri::command]
+    pub async fn artifacts_read_runtime_bytes(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeInstalledHost>,
+        payload: serde_json::Value,
+    ) -> Result<InstalledArtifactReadResult, String> {
+        crate::standard_installed_artifacts::artifacts_read_runtime_bytes_for_host(
+            host.inner(),
+            payload,
+        )
+        .await
     }
 }
 

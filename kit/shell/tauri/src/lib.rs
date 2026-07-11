@@ -42,6 +42,7 @@ mod standard_export;
 mod standard_file_dialog;
 mod standard_file_reveal;
 pub mod standard_floating_window;
+mod standard_installed_artifacts;
 mod standard_local_agent;
 mod standard_local_assets;
 mod standard_platform_projection;

@@ -343,6 +343,7 @@ export type NimiElectronStandardStorageRoots = {
 export type NimiElectronStandardShellHost = {
   readonly capabilitySetRef?: string;
   readonly allowAllStandardShellCommands?: boolean;
+  readonly installedHost?: import('./installed-host.js').NimiElectronInstalledHost;
   readonly standardDataRootBinding?: NimiElectronStandardDataRootBinding;
   readonly localAssetRoots?: readonly string[];
   readonly localAssetProtocolHost?: NimiElectronShellFileProtocolHost;

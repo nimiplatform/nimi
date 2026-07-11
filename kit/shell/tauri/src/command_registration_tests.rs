@@ -46,6 +46,7 @@ mod tests {
                 "file_reveal_reveal",
                 "export_save_file",
                 "artifacts_write",
+                "artifacts_read_runtime_bytes",
                 "local_assets_resolve_url",
                 "local_agent_identity",
                 "local_agent_runtime_trusted_caller",
@@ -222,6 +223,7 @@ mod tests {
                 "file_reveal_reveal",
                 "export_save_file",
                 "artifacts_write",
+                "artifacts_read_runtime_bytes",
             ]
         );
         assert!(STANDARD_FILE_COMMANDS
@@ -261,26 +263,22 @@ mod tests {
             .into_iter()
             .map(|command| command.command_name)
             .collect::<Vec<_>>();
-        assert_eq!(
-            names,
-            vec![
-                "runtime_bridge_unary",
-                "runtime_bridge_stream_open",
-                "runtime_bridge_stream_close",
-                "desktop_open_intent_open_intent",
-                "data_path_resolve",
-                "storage_read_json",
-                "storage_write_json",
-                "storage_remove_json",
-                "ai_config_get",
-                "ai_config_set",
-                "confirm_dialog",
-                "start_window_drag",
-                "focus_main_window",
-                "local_assets_resolve_url",
-            ]
-        );
+        assert_eq!(names, vec!["artifacts_read_runtime_bytes"]);
         for forbidden in [
+            "runtime_bridge_unary",
+            "runtime_bridge_stream_open",
+            "runtime_bridge_stream_close",
+            "desktop_open_intent_open_intent",
+            "data_path_resolve",
+            "storage_read_json",
+            "storage_write_json",
+            "storage_remove_json",
+            "ai_config_get",
+            "ai_config_set",
+            "confirm_dialog",
+            "start_window_drag",
+            "focus_main_window",
+            "local_assets_resolve_url",
             "runtime_defaults",
             "runtime_bridge_status",
             "runtime_bridge_start",

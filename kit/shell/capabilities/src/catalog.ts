@@ -204,6 +204,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     id: 'artifacts',
     operations: [
       { id: 'write', command: 'nimi.shell.artifacts.write', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload', 'host-internal-error'] },
+      { id: 'readRuntimeBytes', command: 'nimi.shell.artifacts.readRuntimeBytes', negativeStates: ['capability-unavailable', 'protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-repair-required', 'runtime-permission-denied', 'not-found', 'resource-exhausted', 'invalid-payload'] },
     ],
   },
   {
@@ -222,9 +223,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
 ] as const satisfies readonly NimiStandardShellCapability[];
 
 const INSTALLED_NIMI_APP_PLANNED_OPERATIONS = [
-  'runtime.unary',
-  'runtime.streamOpen',
-  'runtime.streamClose',
   'data.pathResolve',
   'storage.readJson',
   'storage.writeJson',
@@ -240,9 +238,14 @@ const INSTALLED_NIMI_APP_PLANNED_OPERATIONS = [
   'shell-ui.focusMainWindow',
 ] as const;
 
-const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS: readonly string[] = [];
+const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS: readonly string[] = [
+  'artifacts.readRuntimeBytes',
+];
 
 const INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS = [
+  'runtime.unary',
+  'runtime.streamOpen',
+  'runtime.streamClose',
   'runtime-lifecycle.status',
   'runtime-lifecycle.start',
   'runtime-lifecycle.restart',
@@ -290,14 +293,14 @@ const INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS = [
 export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
   {
     setId: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-    hostClass: 'desktop-electron-installed-app-host',
+    hostClass: 'desktop-installed-app-standard-shell-host',
     appPackageKind: 'nimi-app',
-    launchResolution: 'runtime_launch_record_windows_pending_a4_host_consumption',
+    launchResolution: 'runtime_launch_record_windows_a4_host_consumed',
     authBinding: 'runtime_owned_installed_session_host_carried',
-    authorityStatus: 'a1_windows_admitted_implementation_pending',
+    authorityStatus: 'a4_windows_x64_artifact_read_admitted',
     allowedOperations: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS,
     plannedOperations: INSTALLED_NIMI_APP_PLANNED_OPERATIONS,
-    plannedOperationsDisposition: 'deny_until_a4_carrier_and_operation_admission',
+    plannedOperationsDisposition: 'deny_until_separate_operation_admission',
     forbiddenOperations: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS,
     allowedCommands: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS.map(resolveStandardShellOperationCommand),
     forbiddenCommands: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS
@@ -305,6 +308,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
       .filter((command): command is string => Boolean(command)),
     negativeTests: [
       'desktop-installed-app-denies-runtime-lifecycle',
+      'desktop-installed-app-denies-generic-runtime-proxy',
       'desktop-installed-app-denies-auth-session-custody',
       'desktop-installed-app-denies-oauth-token-exchange',
       'desktop-installed-app-denies-local-agent-trusted-caller',

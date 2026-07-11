@@ -13,7 +13,17 @@ pub(crate) fn tester_renderer_entry_probe_script() -> Result<String, String> {
 pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
     vec![
         serde_json::json!({
-            "id": "ai-config.set",
+            "id": "artifacts.readRuntimeBytes.native-unavailable",
+            "command": "artifacts_read_runtime_bytes",
+            "payload": {
+                "payload": {
+                    "artifactId": "runtime-artifact-acceptance",
+                }
+            },
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "ai-config.set.negative",
             "command": "ai_config_set",
             "payload": {
                 "payload": {
@@ -32,15 +42,17 @@ pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value>
                     }
                 }
             },
+            "expectError": true,
         }),
         serde_json::json!({
-            "id": "ai-config.get",
+            "id": "ai-config.get.negative",
             "command": "ai_config_get",
             "payload": {
                 "payload": {
                     "scopeRef": "app:nimi.tester:app-lab",
                 }
             },
+            "expectError": true,
         }),
         serde_json::json!({
             "id": "config.get.negative",
@@ -48,7 +60,7 @@ pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value>
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "standard-storage.runHistory.write",
+            "id": "standard-storage.runHistory.write.negative",
             "command": "storage_write_json",
             "payload": {
                 "payload": {
@@ -59,15 +71,17 @@ pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value>
                     }
                 },
             },
+            "expectError": true,
         }),
         serde_json::json!({
-            "id": "standard-storage.runHistory.read",
+            "id": "standard-storage.runHistory.read.negative",
             "command": "storage_read_json",
             "payload": {
                 "payload": {
                     "relativePath": "tester-run-history.json",
                 },
             },
+            "expectError": true,
         }),
         serde_json::json!({
             "id": "runtime-lifecycle.status.negative",

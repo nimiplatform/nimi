@@ -37,11 +37,13 @@ error_envelope:
     - runtime-service-unavailable
     - runtime-service-untrusted
     - runtime-service-repair-required
+    - external-daemon-required
     - runtime-permission-denied
     - runtime-unauthenticated
     - forbidden-renderer-access
     - invalid-path
     - not-found
+    - resource-exhausted
     - invalid-payload
     - host-internal-error
 
@@ -73,6 +75,14 @@ storage_payload_policy:
         - relativePath
         - mimeType
         - dataBase64
+    artifacts.readRuntimeBytes:
+      allowed_fields:
+        - artifactId
+      result_shape:
+        - dataBase64
+        - mimeType
+        - sizeBytes
+        - mimeInferred
   forbidden_renderer_fields:
     - path
     - storageRoot
@@ -115,16 +125,14 @@ capability_set_schema:
 
 capability_sets:
   - set_id: installed-nimi-app-standard-shell-v1
-    host_class: desktop-electron-installed-app-host
+    host_class: desktop-installed-app-standard-shell-host
     app_package_kind: nimi-app
-    launch_resolution: runtime_launch_record_windows_pending_a4_host_consumption
+    launch_resolution: runtime_launch_record_windows_a4_host_consumed
     auth_binding: runtime_owned_installed_session_host_carried
-    authority_status: a1_windows_admitted_implementation_pending
-    allowed_operations: []
+    authority_status: a4_windows_x64_artifact_read_admitted
+    allowed_operations:
+      - artifacts.readRuntimeBytes
     planned_operations:
-      - runtime.unary
-      - runtime.streamOpen
-      - runtime.streamClose
       - data.pathResolve
       - storage.readJson
       - storage.writeJson
@@ -138,8 +146,11 @@ capability_sets:
       - shell-ui.confirmDialog
       - shell-ui.startWindowDrag
       - shell-ui.focusMainWindow
-    planned_operations_disposition: deny_until_a4_carrier_and_operation_admission
+    planned_operations_disposition: deny_until_separate_operation_admission
     forbidden_operations:
+      - runtime.unary
+      - runtime.streamOpen
+      - runtime.streamClose
       - runtime-lifecycle.status
       - runtime-lifecycle.start
       - runtime-lifecycle.restart
@@ -184,6 +195,7 @@ capability_sets:
       - node.raw-fs
     negative_tests:
       - desktop-installed-app-denies-runtime-lifecycle
+      - desktop-installed-app-denies-generic-runtime-proxy
       - desktop-installed-app-denies-auth-session-custody
       - desktop-installed-app-denies-oauth-token-exchange
       - desktop-installed-app-denies-local-agent-trusted-caller
@@ -351,7 +363,7 @@ capabilities:
       - id: set
         command: nimi.shell.config.set
         negative_states:
-          - capability-unavailable
+          - external-daemon-required
           - capability-unavailable
           - invalid-payload
   - id: local-assets
@@ -557,6 +569,18 @@ capabilities:
           - invalid-path
           - invalid-payload
           - host-internal-error
+      - id: readRuntimeBytes
+        command: nimi.shell.artifacts.readRuntimeBytes
+        negative_states:
+          - capability-unavailable
+          - protected-carrier-required
+          - runtime-service-unavailable
+          - runtime-service-untrusted
+          - runtime-service-repair-required
+          - runtime-permission-denied
+          - not-found
+          - resource-exhausted
+          - invalid-payload
   - id: floating-window
     host_contract: NimiStandardShellCapabilityHost
     operations:

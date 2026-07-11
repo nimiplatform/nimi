@@ -80,7 +80,6 @@ export type {
 } from './floating-window.js';
 export {
   createInstalledNimiAppStandardShellSurface,
-  readInstalledNimiAppLaunchBinding,
 } from './installed-app.js';
 export {
   openDesktopIntent,
@@ -136,9 +135,9 @@ export type {
   AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
+  InstalledNimiAppArtifactBytes,
   InstalledNimiAppStorageRemoveJsonResult,
   InstalledNimiAppStandardShellSurface,
-  InstalledNimiAppLaunchBinding,
 } from './installed-app.js';
 export type {
   JsonPrimitive,

@@ -28,12 +28,17 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
 
 pub const STANDARD_SHELL_ERROR_CODES: &[&str] = &[
     "capability-unavailable",
+    "protected-carrier-required",
+    "runtime-service-unavailable",
+    "runtime-service-untrusted",
+    "runtime-service-repair-required",
     "external-daemon-required",
     "runtime-permission-denied",
     "runtime-unauthenticated",
     "forbidden-renderer-access",
     "invalid-path",
     "not-found",
+    "resource-exhausted",
     "invalid-payload",
     "host-internal-error",
 ];
@@ -468,16 +473,33 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
     },
     StandardShellCapability {
         id: "artifacts",
-        operations: &[StandardShellOperation {
-            id: "write",
-            command: "nimi.shell.artifacts.write",
-            negative_states: &[
-                "capability-unavailable",
-                "invalid-path",
-                "invalid-payload",
-                "host-internal-error",
-            ],
-        }],
+        operations: &[
+            StandardShellOperation {
+                id: "write",
+                command: "nimi.shell.artifacts.write",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-path",
+                    "invalid-payload",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "readRuntimeBytes",
+                command: "nimi.shell.artifacts.readRuntimeBytes",
+                negative_states: &[
+                    "capability-unavailable",
+                    "protected-carrier-required",
+                    "runtime-service-unavailable",
+                    "runtime-service-untrusted",
+                    "runtime-service-repair-required",
+                    "runtime-permission-denied",
+                    "not-found",
+                    "resource-exhausted",
+                    "invalid-payload",
+                ],
+            },
+        ],
     },
     StandardShellCapability {
         id: "floating-window",

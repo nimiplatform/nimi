@@ -14,18 +14,15 @@ export type TauriTestHook = {
   invoke?: ShellInvoke;
   listen?: ShellEventListen;
   convertFileSrc?: (fileUrl: string) => string;
-  installedAppLaunchBinding?: unknown;
 };
 export type NimiShellRuntimeHook = {
   invoke: ShellInvoke;
   listen: ShellEventListen;
   convertFileSrc?: (fileUrl: string) => string;
-  installedAppLaunchBinding?: unknown;
 };
 export type NimiElectronRuntimeHook = {
   invoke: ShellInvoke;
   listen: ElectronEventListen;
-  installedAppLaunchBinding?: unknown;
 };
 
 export type TauriRuntimeGlobal = typeof globalThis & {
@@ -87,6 +84,7 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']]: 'file_reveal_reveal',
   [NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']]: 'export_save_file',
   [NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']]: 'artifacts_write',
+  [NIMI_STANDARD_SHELL_COMMANDS['artifacts.readRuntimeBytes']]: 'artifacts_read_runtime_bytes',
   [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setBounds']]: 'floating_window_set_bounds',
   [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setIgnoreCursorEvents']]: 'floating_window_set_ignore_cursor_events',
   [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setAlwaysOnTop']]: 'floating_window_set_always_on_top',

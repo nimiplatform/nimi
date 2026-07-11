@@ -13,7 +13,6 @@ import {
   listenShell,
   listenTauri,
   installNimiShellRuntimeBridge,
-  readInstalledNimiAppLaunchBinding,
   parseRuntimeBridgeConfigGetResult,
   parseRuntimeBridgeConfigSetResult,
   parseRuntimeBridgeDaemonStatus,
@@ -28,12 +27,10 @@ type TauriRuntimeTestGlobal = typeof globalThis & {
       eventName: string,
       handler: TauriEventHandler,
     ) => Promise<(() => void) | undefined> | (() => void) | undefined;
-    installedAppLaunchBinding?: unknown;
   };
   __NIMI_TAURI_RUNTIME__?: {
     invoke: (command: string, payload?: unknown) => Promise<unknown>;
     listen: (eventName: string, handler: TauriEventHandler) => Promise<() => void>;
-    installedAppLaunchBinding?: unknown;
   };
   __NIMI_ELECTRON_TEST__?: {
     invoke: (command: string, payload?: unknown) => Promise<unknown>;
@@ -132,45 +129,6 @@ describe('installNimiShellRuntimeBridge', () => {
     installNimiShellRuntimeBridge();
     const hook = testGlobal.__NIMI_TAURI_RUNTIME__;
     await expect(hook!.listen('evt', () => {})).rejects.toThrow(/unsubscribe/);
-  });
-
-  it('keeps installed launch authority out of renderer after A.1 native admission', () => {
-    const launchBinding = {
-      appId: 'nimi.fixture',
-      appInstanceId: 'nimi.fixture.desktop-installed',
-      deviceId: 'desktop-installed-app',
-      launchHostId: 'desktop-tauri-installed-app-host',
-      launchNonce: 'nonce-1',
-      releaseDescriptorRef: 'fixture-release',
-      realmBaseUrl: 'http://127.0.0.1:3002',
-    };
-    testGlobal.__NIMI_TAURI_TEST__ = {
-      invoke: async () => 'ok',
-      listen: async () => () => undefined,
-      installedAppLaunchBinding: launchBinding,
-    };
-
-    expect(installNimiShellRuntimeBridge()).toEqual({ installed: true, host: 'tauri' });
-    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.4 operation admission/i);
-  });
-
-  it('rejects forged installed app launch bindings before parsing fields', () => {
-    testGlobal.__NIMI_TAURI_RUNTIME__ = {
-      invoke: async () => 'ok',
-      listen: async () => () => undefined,
-      installedAppLaunchBinding: {
-        appId: 'nimi.fixture',
-        appInstanceId: 'nimi.fixture.desktop-installed',
-        deviceId: 'desktop-installed-app',
-        bindingSource: 'host-owned-installed-app-bridge',
-        launchHostId: 'desktop-tauri-installed-app-host',
-        launchNonce: 'nonce-1',
-        releaseDescriptorRef: 'fixture-release',
-        realmBaseUrl: 'http://127.0.0.1:3002',
-      },
-    };
-
-    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.4 operation admission/i);
   });
 
   it('lets apps consume the scoped runtime hook without treating it as native Tauri', async () => {
