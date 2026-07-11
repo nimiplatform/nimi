@@ -21,7 +21,6 @@ pub mod capabilities;
 pub mod command_registration;
 mod desktop_paths;
 mod governed_config;
-pub mod installed_app_launch;
 mod nimi_data_directory;
 mod oauth_commands;
 mod platform_catalog;
@@ -51,7 +50,5 @@ mod standard_platform_projection;
 mod agent_center_avatar_asset_tests;
 #[cfg(test)]
 mod command_registration_tests;
-#[cfg(test)]
-mod installed_app_launch_tests;
 #[cfg(test)]
 mod test_support;

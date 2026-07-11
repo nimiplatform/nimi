@@ -1,7 +1,7 @@
 import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type NimiStandardShellCapabilityId } from '@nimiplatform/kit/shell/capabilities';
+import { runtimeRpcAuthPosture } from '@nimiplatform/sdk/runtime/generated';
 import {
   createElectronRuntimeEndpointUnavailableError,
-  isRuntimeAppGrantInvalidLike,
   isRuntimeEndpointUnavailableLike,
   toElectronRuntimeBridgeError,
 } from './errors.js';
@@ -10,7 +10,6 @@ import type {
   ElectronRuntimeBridgeAppSession,
   ElectronRuntimeBridgeCommandNames,
   ElectronRuntimeBridgeMetadata,
-  ElectronRuntimeBridgeProtectedAccessToken,
   ElectronRuntimeBridgeStreamOpenRequest,
   ElectronRuntimeBridgeStreamOpenResponse,
   ElectronRuntimeBridgeTrustedMetadata,
@@ -39,10 +38,7 @@ export function createElectronRuntimeBridgeCommandNames(
     stream_close: standardCommand('runtime.streamClose'),
     status: standardCommand('runtime-lifecycle.status'),
     start: standardCommand('runtime-lifecycle.start'),
-    stop: standardCommand('runtime-lifecycle.stop'),
     restart: standardCommand('runtime-lifecycle.restart'),
-    config_get: standardCommand('config.get'),
-    config_set: standardCommand('config.set'),
   };
 }
 export const ELECTRON_STANDARD_SHELL_CAPABILITY_IDS = NIMI_STANDARD_SHELL_CAPABILITY_IDS;
@@ -66,6 +62,7 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
+  assertElectronGenericRuntimeMethodAllowed(request.methodId);
   const response = await invokeElectronRuntimeTrustedUnary({
     client: input.client,
     request,
@@ -93,7 +90,7 @@ export async function invokeElectronRuntimeTrustedUnary(input: {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 }): Promise<RuntimeGrpcBridgeUnaryResponse> {
   const request = input.request;
-  let trusted = await resolveTrustedRuntimeMetadata({
+  const trusted = await resolveTrustedRuntimeMetadata({
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
     methodId: request.methodId,
@@ -101,47 +98,17 @@ export async function invokeElectronRuntimeTrustedUnary(input: {
     appId: input.appId,
     runtimeEndpoint: input.runtimeEndpoint,
   });
-  let response: RuntimeGrpcBridgeUnaryResponse;
+  const metadata = buildElectronRuntimeGrpcMetadata(request, input.appId, trusted);
   try {
-    response = await input.client.unary({
+    return await input.client.unary({
       methodId: request.methodId,
       requestBytes: input.requestBytes,
-      metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),
+      metadata,
       timeoutMs: request.timeoutMs,
     });
   } catch (error) {
-    if (shouldRefreshTrustedRuntimeMetadata(input.trustedRuntimeMetadataProvider, error)) {
-      input.trustedRuntimeMetadataProvider?.invalidate?.('APP_GRANT_INVALID');
-      trusted = await resolveTrustedRuntimeMetadata({
-        provider: input.trustedRuntimeMetadataProvider,
-        command: input.command,
-        methodId: request.methodId,
-        event: input.event,
-        appId: input.appId,
-        runtimeEndpoint: input.runtimeEndpoint,
-      });
-      try {
-        response = await input.client.unary({
-          methodId: request.methodId,
-          requestBytes: input.requestBytes,
-          metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),
-          timeoutMs: request.timeoutMs,
-        });
-      } catch (retryError) {
-        throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, retryError);
-      }
-    } else {
-      throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
-    }
+    throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
   }
-  return response;
-}
-
-function shouldRefreshTrustedRuntimeMetadata(
-  provider: ElectronRuntimeBridgeTrustedMetadataProvider | undefined,
-  error: unknown,
-): boolean {
-  return typeof provider?.invalidate === 'function' && isRuntimeAppGrantInvalidLike(error);
 }
 
 export async function openElectronRuntimeStream(input: {
@@ -157,6 +124,7 @@ export async function openElectronRuntimeStream(input: {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 }): Promise<ElectronRuntimeBridgeStreamOpenResponse> {
   const request = parseElectronRuntimeStreamOpenRequest(input.payload);
+  assertElectronGenericRuntimeMethodAllowed(request.methodId);
   const trusted = await resolveTrustedRuntimeMetadata({
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
@@ -274,9 +242,6 @@ export function buildElectronRuntimeGrpcMetadata(
   addMetadata(metadata, 'x-nimi-provider-type', request.metadata?.providerType);
   addMetadata(metadata, 'x-nimi-client-id', request.metadata?.clientId);
   addMetadata(metadata, 'x-nimi-provider-endpoint', request.metadata?.providerEndpoint);
-  addMetadata(metadata, 'authorization', trusted?.authorization);
-  addMetadata(metadata, 'x-nimi-access-token-id', trusted?.protectedAccessToken?.tokenId);
-  addMetadata(metadata, 'x-nimi-access-token-secret', trusted?.protectedAccessToken?.secret);
   addMetadata(metadata, 'x-nimi-session-id', trusted?.appSession?.sessionId);
   addMetadata(metadata, 'x-nimi-session-token', trusted?.appSession?.sessionToken);
   for (const [key, value] of Object.entries(trusted?.metadata?.extra ?? {})) {
@@ -287,6 +252,15 @@ export function buildElectronRuntimeGrpcMetadata(
         message: `Electron trusted Runtime metadata key is not allowed: ${key}`,
         reasonCode: 'electron-trusted-runtime-metadata-key-not-allowed',
         actionHint: 'use_x_nimi_host_metadata_key',
+        details: { key },
+      });
+    }
+    if (TRUSTED_RUNTIME_PORTABLE_CREDENTIAL_METADATA_KEYS.has(normalizedKey)) {
+      throw new NimiElectronShellHostError({
+        code: 'invalid-payload',
+        message: `Electron trusted Runtime metadata key is not allowed: ${key}`,
+        reasonCode: 'electron-trusted-runtime-metadata-key-not-allowed',
+        actionHint: 'use_runtime_owned_protected_carrier',
         details: { key },
       });
     }
@@ -383,7 +357,6 @@ export function resolveElectronRuntimeDefaults(): Record<string, unknown> {
     realm: {
       realmBaseUrl,
       realtimeUrl: electronEnvValue('NIMI_REALTIME_URL', ''),
-      accessToken: electronEnvValue('NIMI_ACCESS_TOKEN', ''),
       jwksUrl: normalizeLoopbackHttpUrl(
         electronEnvValue('NIMI_REALM_JWKS_URL', defaultJwksUrl),
         realmDefaultPort,
@@ -481,6 +454,31 @@ const RESERVED_METADATA_KEYS = new Set([
   'x-nimi-release-descriptor-ref',
   'x-nimi-capability-set-ref',
 ]);
+const TRUSTED_RUNTIME_PORTABLE_CREDENTIAL_METADATA_KEYS = new Set([
+  'x-nimi-access-token-id',
+  'x-nimi-access-token-secret',
+  'x-nimi-provider-api-key',
+]);
+const GENERIC_BRIDGE_BLOCKED_RPC_POSTURES = new Set([
+  'protected_origin_required',
+  'protected_or_scoped_binding_read',
+  'protected_or_scoped_binding_write',
+  'blocked_pending_authority',
+  'deny_all_tombstone',
+]);
+function assertElectronGenericRuntimeMethodAllowed(methodId: string): void {
+  const posture = runtimeRpcAuthPosture(methodId);
+  if (!posture || !GENERIC_BRIDGE_BLOCKED_RPC_POSTURES.has(posture)) {
+    return;
+  }
+  throw new NimiElectronShellHostError({
+    code: 'forbidden-renderer-access',
+    message: `Electron generic Runtime bridge cannot carry ${posture} method: ${methodId}`,
+    reasonCode: 'electron-runtime-method-requires-protected-carrier',
+    actionHint: 'use_protected_desktop_control_carrier',
+    details: { methodId, posture },
+  });
+}
 function normalizeGrpcMethodId(value: unknown): string {
   const methodId = normalizeRequiredToken(value, 'methodId');
   if (!methodId.startsWith('/')) {
@@ -549,15 +547,6 @@ function normalizeMetadataExtra(record: Readonly<Record<string, unknown>>): Read
     }
   }
   return extra;
-}
-function parseProtectedAccessToken(value: unknown): ElectronRuntimeBridgeProtectedAccessToken | undefined {
-  if (value == null) {
-    return undefined;
-  }
-  const record = asRecord(value, 'Electron Runtime bridge protected access token must be an object');
-  const tokenId = normalizeText(record.tokenId);
-  const secret = normalizeText(record.secret);
-  return tokenId && secret ? { tokenId, secret } : undefined;
 }
 function parseAppSession(value: unknown): ElectronRuntimeBridgeAppSession | undefined {
   if (value == null) {

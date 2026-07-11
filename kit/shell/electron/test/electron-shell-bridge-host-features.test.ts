@@ -35,7 +35,7 @@ import {
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
-  it('implements Electron runtime defaults from the standard shell environment contract', async () => {
+  it('does not project environment access tokens through Electron runtime defaults', async () => {
     await withEnvVars({
       NIMI_REALM_URL: 'http://localhost',
       NIMI_REALM_JWKS_URL: undefined,
@@ -68,7 +68,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
         realm: {
           realmBaseUrl: 'http://localhost:3002',
           realtimeUrl: 'ws://localhost:3003',
-          accessToken: 'electron-default-token',
           jwksUrl: 'http://localhost:3002/api/auth/jwks',
           revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
           jwtIssuer: 'http://localhost:3002',

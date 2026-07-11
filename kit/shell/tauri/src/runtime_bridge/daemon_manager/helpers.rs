@@ -1,9 +1,13 @@
 use serde::Deserialize;
 use std::fs;
+#[cfg(test)]
 use std::net::{SocketAddr, TcpStream};
 use std::path::PathBuf;
+#[cfg(test)]
 use std::time::Duration;
+#[cfg(test)]
 use tokio::net::TcpStream as TokioTcpStream;
+#[cfg(test)]
 use tokio::time::{sleep, timeout};
 
 use crate::runtime_bridge::resolve_nimi_dir_hook;
@@ -60,6 +64,7 @@ pub(super) fn read_non_empty_env(name: &str) -> Option<String> {
         .and_then(|value| normalize_non_empty(value.as_str()))
 }
 
+#[cfg(test)]
 pub(super) fn probe_running(addr: &str) -> bool {
     let parsed = match addr.parse::<SocketAddr>() {
         Ok(value) => value,
@@ -68,6 +73,7 @@ pub(super) fn probe_running(addr: &str) -> bool {
     TcpStream::connect_timeout(&parsed, Duration::from_millis(120)).is_ok()
 }
 
+#[cfg(test)]
 pub(super) async fn probe_running_async(addr: &str) -> bool {
     let parsed = match addr.parse::<SocketAddr>() {
         Ok(value) => value,
@@ -79,6 +85,7 @@ pub(super) async fn probe_running_async(addr: &str) -> bool {
         .unwrap_or(false)
 }
 
+#[cfg(test)]
 pub(super) async fn wait_until_running_async(addr: &str) -> bool {
     let timeout_ms = read_non_empty_env("NIMI_RUNTIME_BRIDGE_START_TIMEOUT_MS")
         .and_then(|value| value.parse::<u64>().ok())

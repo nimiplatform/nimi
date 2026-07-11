@@ -76,7 +76,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     });
   });
 
-  it('keeps Electron config mutation fail-closed while Runtime daemon ownership is external', async () => {
+  it('hardcuts Electron generic Runtime config mutation', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
       appId: 'nimi.tester',
@@ -92,8 +92,8 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['config.set'],
       payload: { configJson: '{"schemaVersion":1}' },
     })).rejects.toMatchObject({
-      code: 'external-daemon-required',
-      reasonCode: 'electron-runtime-daemon-managed-externally',
+      code: 'capability-unavailable',
+      reasonCode: 'electron-standard-capability-unavailable',
     });
   });
 

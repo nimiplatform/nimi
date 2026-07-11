@@ -48,18 +48,6 @@ pub(super) fn probe_runtime_version(
     Ok(version)
 }
 
-pub(super) fn run_runtime_cli_json(
-    args: &[&str],
-    stdin_payload: Option<&str>,
-) -> Result<Value, String> {
-    run_runtime_cli_json_with_error_code(
-        args,
-        stdin_payload,
-        "RUNTIME_BRIDGE_CONFIG_PARSE_FAILED",
-        "invalid runtime config cli output",
-    )
-}
-
 pub(super) fn run_runtime_cli_json_with_error_code(
     args: &[&str],
     stdin_payload: Option<&str>,

@@ -2,18 +2,23 @@
 
 Shared Rust/Tauri host glue for Nimi apps.
 
-This crate owns app-agnostic shell behavior only:
+This crate owns app-agnostic shell behavior only and consumes the shared native
+`kit/shell/protected-local` carrier for protected Runtime access:
 
-- runtime bridge commands and stream lifecycle;
-- daemon status, start, stop, restart, and config commands;
-- runtime defaults;
+- public/binding-only runtime bridge commands and stream lifecycle;
+- typed fixed-service status, start, and Runtime-self-exit/service-manager restart;
+- non-security runtime defaults;
 - renderer diagnostic logging;
-- fenced OAuth helper commands;
+- native browser/callback observation helpers; Runtime owns OAuth exchange;
 - desktop path resolution helpers.
 
 It does not own app business logic, a host-loaded plugin model, Realm login, or
 generated app token exchange. Apps keep product commands in their own
 `src-tauri` crate and register them separately.
+
+It also does not own or expose Runtime stop, binary/service/path selection,
+generic Runtime config documents, Realm/provider credentials, protected
+session/process/trust material, or a renderer-selectable protected gRPC proxy.
 
 ## Package Boundary
 

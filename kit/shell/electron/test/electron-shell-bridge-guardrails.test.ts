@@ -35,7 +35,7 @@ import {
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
-  it('implements Runtime config read through a host-owned standard reader', async () => {
+  it('hardcuts generic Runtime config commands', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
       appId: 'nimi.tester',
@@ -47,27 +47,23 @@ describe('registerNimiElectronRuntimeBridge', () => {
       },
       standardShellHost: {
         allowAllStandardShellCommands: true,
-        runtimeConfigGet: async () => ({
-          path: 'D:/nimi/runtime/config.json',
-          config: { schemaVersion: 1, grpcAddr: '127.0.0.1:46371' },
-        }),
       },
     });
 
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['config.get'],
       payload: {},
-    })).resolves.toEqual({
-      path: 'D:/nimi/runtime/config.json',
-      config: { schemaVersion: 1, grpcAddr: '127.0.0.1:46371' },
+    })).rejects.toMatchObject({
+      code: 'capability-unavailable',
+      reasonCode: 'electron-standard-capability-unavailable',
     });
 
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['config.set'],
       payload: { configJson: '{"schemaVersion":1}' },
     })).rejects.toMatchObject({
-      code: 'external-daemon-required',
-      reasonCode: 'electron-runtime-daemon-managed-externally',
+      code: 'capability-unavailable',
+      reasonCode: 'electron-standard-capability-unavailable',
     });
   });
 
@@ -99,7 +95,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     }
   });
 
-  it('denies forbidden commands before dispatch for installed Nimi App standard shell hosts', async () => {
+  it('denies forbidden and A.1-planned commands before dispatch for installed Nimi App hosts', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
       appId: 'community.nimi.fixture.platform-proof',
@@ -128,6 +124,10 @@ describe('registerNimiElectronRuntimeBridge', () => {
       NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
       NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
+      NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'],
+      NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
+      NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
+      NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
     ]) {
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command,
@@ -176,7 +176,8 @@ describe('registerNimiElectronRuntimeBridge', () => {
           ...payload,
         },
       })).rejects.toMatchObject({
-        code: 'forbidden-renderer-access',
+        code: 'capability-unavailable',
+        reasonCode: 'electron-standard-capability-not-in-host-set',
         source: 'electron',
       });
     }

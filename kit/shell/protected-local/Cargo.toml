@@ -1,0 +1,14 @@
+[package]
+name = "nimi-shell-protected-local"
+version = "0.1.0"
+edition = "2021"
+description = "Native host-only protected-local Runtime carrier contract for Nimi desktop shells."
+license = "MIT"
+repository = "https://github.com/nimiplatform/nimi"
+readme = "README.md"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = []

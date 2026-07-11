@@ -312,6 +312,31 @@ pub enum ReasonCode {
     /// AGENT_PRESENTATION family — optimistic concurrency for persistent
     /// Runtime-owned presentation truth (K-AGCORE-023a).
     AgentPresentationRevisionConflict = 614,
+    /// PROTECTED_LOCAL family (620+). These values are shared by protected
+    /// transport, verified Desktop origin, the anchored lifecycle-intent ledger,
+    /// and their sanitized fail-closed projections (K-PLOCAL-001..007/K-APP-026).
+    ProtectedLocalTransportUnsupported = 620,
+    ProtectedLocalEndpointOwnershipFailed = 621,
+    ProtectedLocalServerVerificationFailed = 622,
+    DesktopControlTransportRequired = 623,
+    DesktopProcessVerificationUnavailable = 624,
+    DesktopExecutableTrustFailed = 625,
+    DesktopTestTrustForbidden = 626,
+    ProtectedOriginRoleMismatch = 627,
+    LifecycleChallengeRequired = 628,
+    LifecycleChallengeMismatch = 629,
+    LifecycleChallengeReplay = 630,
+    ProtectedLocalLedgerUnavailable = 631,
+    ProtectedLocalLedgerRollbackDetected = 632,
+    ProtectedLocalBootEpochMismatch = 633,
+    ProtectedLocalRuntimePrincipalRequired = 634,
+    ProtectedLocalCustodyBoundaryUnavailable = 635,
+    ProtectedLocalProductionConfigOverrideForbidden = 636,
+    RuntimeExecutableTrustRecordInvalid = 637,
+    LifecycleIntentRequired = 638,
+    LifecycleIntentMismatch = 639,
+    LifecycleIntentReplay = 640,
+    LifecycleIntentExpired = 641,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -532,6 +557,48 @@ impl ReasonCode {
             Self::AgentPresentationRevisionConflict => {
                 "AGENT_PRESENTATION_REVISION_CONFLICT"
             }
+            Self::ProtectedLocalTransportUnsupported => {
+                "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED"
+            }
+            Self::ProtectedLocalEndpointOwnershipFailed => {
+                "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED"
+            }
+            Self::ProtectedLocalServerVerificationFailed => {
+                "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED"
+            }
+            Self::DesktopControlTransportRequired => "DESKTOP_CONTROL_TRANSPORT_REQUIRED",
+            Self::DesktopProcessVerificationUnavailable => {
+                "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE"
+            }
+            Self::DesktopExecutableTrustFailed => "DESKTOP_EXECUTABLE_TRUST_FAILED",
+            Self::DesktopTestTrustForbidden => "DESKTOP_TEST_TRUST_FORBIDDEN",
+            Self::ProtectedOriginRoleMismatch => "PROTECTED_ORIGIN_ROLE_MISMATCH",
+            Self::LifecycleChallengeRequired => "LIFECYCLE_CHALLENGE_REQUIRED",
+            Self::LifecycleChallengeMismatch => "LIFECYCLE_CHALLENGE_MISMATCH",
+            Self::LifecycleChallengeReplay => "LIFECYCLE_CHALLENGE_REPLAY",
+            Self::ProtectedLocalLedgerUnavailable => "PROTECTED_LOCAL_LEDGER_UNAVAILABLE",
+            Self::ProtectedLocalLedgerRollbackDetected => {
+                "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED"
+            }
+            Self::ProtectedLocalBootEpochMismatch => {
+                "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH"
+            }
+            Self::ProtectedLocalRuntimePrincipalRequired => {
+                "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED"
+            }
+            Self::ProtectedLocalCustodyBoundaryUnavailable => {
+                "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE"
+            }
+            Self::ProtectedLocalProductionConfigOverrideForbidden => {
+                "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN"
+            }
+            Self::RuntimeExecutableTrustRecordInvalid => {
+                "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID"
+            }
+            Self::LifecycleIntentRequired => "LIFECYCLE_INTENT_REQUIRED",
+            Self::LifecycleIntentMismatch => "LIFECYCLE_INTENT_MISMATCH",
+            Self::LifecycleIntentReplay => "LIFECYCLE_INTENT_REPLAY",
+            Self::LifecycleIntentExpired => "LIFECYCLE_INTENT_EXPIRED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -779,6 +846,52 @@ impl ReasonCode {
             "AGENT_PRESENTATION_REVISION_CONFLICT" => {
                 Some(Self::AgentPresentationRevisionConflict)
             }
+            "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED" => {
+                Some(Self::ProtectedLocalTransportUnsupported)
+            }
+            "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED" => {
+                Some(Self::ProtectedLocalEndpointOwnershipFailed)
+            }
+            "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED" => {
+                Some(Self::ProtectedLocalServerVerificationFailed)
+            }
+            "DESKTOP_CONTROL_TRANSPORT_REQUIRED" => {
+                Some(Self::DesktopControlTransportRequired)
+            }
+            "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE" => {
+                Some(Self::DesktopProcessVerificationUnavailable)
+            }
+            "DESKTOP_EXECUTABLE_TRUST_FAILED" => Some(Self::DesktopExecutableTrustFailed),
+            "DESKTOP_TEST_TRUST_FORBIDDEN" => Some(Self::DesktopTestTrustForbidden),
+            "PROTECTED_ORIGIN_ROLE_MISMATCH" => Some(Self::ProtectedOriginRoleMismatch),
+            "LIFECYCLE_CHALLENGE_REQUIRED" => Some(Self::LifecycleChallengeRequired),
+            "LIFECYCLE_CHALLENGE_MISMATCH" => Some(Self::LifecycleChallengeMismatch),
+            "LIFECYCLE_CHALLENGE_REPLAY" => Some(Self::LifecycleChallengeReplay),
+            "PROTECTED_LOCAL_LEDGER_UNAVAILABLE" => {
+                Some(Self::ProtectedLocalLedgerUnavailable)
+            }
+            "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED" => {
+                Some(Self::ProtectedLocalLedgerRollbackDetected)
+            }
+            "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH" => {
+                Some(Self::ProtectedLocalBootEpochMismatch)
+            }
+            "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED" => {
+                Some(Self::ProtectedLocalRuntimePrincipalRequired)
+            }
+            "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE" => {
+                Some(Self::ProtectedLocalCustodyBoundaryUnavailable)
+            }
+            "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN" => {
+                Some(Self::ProtectedLocalProductionConfigOverrideForbidden)
+            }
+            "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID" => {
+                Some(Self::RuntimeExecutableTrustRecordInvalid)
+            }
+            "LIFECYCLE_INTENT_REQUIRED" => Some(Self::LifecycleIntentRequired),
+            "LIFECYCLE_INTENT_MISMATCH" => Some(Self::LifecycleIntentMismatch),
+            "LIFECYCLE_INTENT_REPLAY" => Some(Self::LifecycleIntentReplay),
+            "LIFECYCLE_INTENT_EXPIRED" => Some(Self::LifecycleIntentExpired),
             _ => None,
         }
     }
@@ -913,6 +1026,22 @@ pub struct OpenSessionResponse {
     pub session_token: ::prost::alloc::string::String,
     #[prost(enumeration = "ReasonCode", tag = "5")]
     pub reason_code: i32,
+}
+/// OpenDesktopSessionRequest is intentionally empty. The protected transport,
+/// verified peer process, executable trust, and origin roles are derived from
+/// the already-authenticated desktop_control connection; no request field or
+/// metadata value may select or upgrade that authority (K-PLOCAL-006).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenDesktopSessionRequest {}
+/// Both byte strings are exactly 32 bytes. desktop_session_id is
+/// correlation-only and runtime_boot_epoch is used only for stale projection
+/// rejection; neither value is a portable credential or rebind proof.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenDesktopSessionResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub desktop_session_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub runtime_boot_epoch: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RefreshSessionRequest {
@@ -1218,6 +1347,35 @@ pub mod runtime_auth_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAuthService", "OpenSession"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn open_desktop_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenDesktopSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenDesktopSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuthService",
+                        "OpenDesktopSession",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -1627,28 +1785,6 @@ pub struct RequestPresenceVerificationResponse {
     pub production_inert: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAccessTokenRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-    #[prost(string, repeated, tag = "2")]
-    pub requested_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAccessTokenResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(string, tag = "2")]
-    pub access_token: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "ReasonCode", tag = "4")]
-    pub reason_code: i32,
-    #[prost(enumeration = "AccountReasonCode", tag = "5")]
-    pub account_reason_code: i32,
-    #[prost(bool, tag = "6")]
-    pub production_inert: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InvokeRealmUnaryRequest {
     #[prost(message, optional, tag = "1")]
     pub caller: ::core::option::Option<AccountCaller>,
@@ -1677,26 +1813,6 @@ pub struct InvokeRealmUnaryResponse {
     pub http_status: i32,
     #[prost(string, tag = "7")]
     pub error_message: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RefreshAccountSessionRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RefreshAccountSessionResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(enumeration = "AccountSessionState", tag = "2")]
-    pub state: i32,
-    #[prost(message, optional, tag = "3")]
-    pub account_projection: ::core::option::Option<AccountProjection>,
-    #[prost(enumeration = "ReasonCode", tag = "4")]
-    pub reason_code: i32,
-    #[prost(enumeration = "AccountReasonCode", tag = "5")]
-    pub account_reason_code: i32,
-    #[prost(bool, tag = "6")]
-    pub production_inert: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LogoutRequest {
@@ -2632,35 +2748,6 @@ pub mod runtime_account_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn get_access_token(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAccessTokenRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAccessTokenResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "GetAccessToken",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
         pub async fn invoke_realm_unary(
             &mut self,
             request: impl tonic::IntoRequest<super::InvokeRealmUnaryRequest>,
@@ -2686,35 +2773,6 @@ pub mod runtime_account_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAccountService",
                         "InvokeRealmUnary",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn refresh_account_session(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RefreshAccountSessionRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RefreshAccountSessionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "RefreshAccountSession",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -13481,6 +13539,94 @@ pub struct AppMessageEvent {
     #[prost(message, optional, tag = "11")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
+/// AppLifecycleDestructiveOptions is the closed set of option values that can
+/// alter the canonical impact for today's lifecycle methods. Runtime resolves
+/// and revalidates their concrete target before it issues an intent.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppLifecycleDestructiveOptions {
+    #[prost(bool, tag = "1")]
+    pub delete_durable_data: bool,
+    #[prost(enumeration = "AppHealthRepairAction", tag = "2")]
+    pub health_repair_action: i32,
+    #[prost(string, tag = "3")]
+    pub target_job_id: ::prost::alloc::string::String,
+}
+/// AppLifecycleCanonicalImpact is the typed input to RFC8785 JSON
+/// canonicalization and SHA-256 digesting. account_generation remains inside
+/// Runtime/protected transport and is never projected into renderer IPC.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppLifecycleCanonicalImpact {
+    #[prost(uint32, tag = "1")]
+    pub schema_version: u32,
+    #[prost(enumeration = "AppLifecycleIntentAction", tag = "2")]
+    pub action: i32,
+    #[prost(string, tag = "3")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub account_generation: u64,
+    #[prost(string, tag = "5")]
+    pub release_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub artifact_digest: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "7")]
+    pub adoption_generation: u64,
+    #[prost(message, optional, tag = "8")]
+    pub destructive_options: ::core::option::Option<AppLifecycleDestructiveOptions>,
+    #[prost(string, repeated, tag = "9")]
+    pub impact_flags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint32, tag = "10")]
+    pub display_contract_version: u32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PrepareAppLifecycleIntentRequest {
+    #[prost(enumeration = "AppLifecycleIntentAction", tag = "1")]
+    pub action: i32,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expected_release_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub expected_artifact_digest: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "5")]
+    pub expected_adoption_generation: u64,
+    #[prost(message, optional, tag = "6")]
+    pub destructive_options: ::core::option::Option<AppLifecycleDestructiveOptions>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PrepareAppLifecycleIntentResponse {
+    #[prost(string, tag = "1")]
+    pub intent_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub canonical_impact: ::core::option::Option<AppLifecycleCanonicalImpact>,
+    #[prost(string, tag = "3")]
+    pub canonical_impact_digest: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub deadline: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppLifecycleIntentStatusRequest {
+    #[prost(string, tag = "1")]
+    pub intent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppLifecycleIntentStatusResponse {
+    #[prost(string, tag = "1")]
+    pub intent_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppLifecycleIntentStatus", tag = "2")]
+    pub status: i32,
+    #[prost(string, tag = "3")]
+    pub non_authorizing_job_id: ::prost::alloc::string::String,
+    /// canonical_result is an RFC8785 JSON document with no credential,
+    /// process-tuple, boot-epoch, account-generation, or ledger-anchor material.
+    #[prost(string, tag = "4")]
+    pub canonical_result: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+    #[prost(bool, tag = "6")]
+    pub retryability: bool,
+}
 /// AppInstallStorageProjection mirrors the Runtime-owned app storage roots
 /// (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
 /// selected nimi_data directory.
@@ -13614,6 +13760,10 @@ pub struct InstallAppRequest {
     /// (size, data roots, AI/profile requirements, permissions).
     #[prost(bool, tag = "2")]
     pub confirmed: bool,
+    #[prost(string, tag = "3")]
+    pub lifecycle_intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub displayed_impact_digest: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InstallAppResponse {
@@ -13730,6 +13880,10 @@ pub struct AdoptLocalAppRequest {
     pub root_path: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub expected_app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub lifecycle_intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub displayed_impact_digest: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AdoptLocalAppResponse {
@@ -13757,6 +13911,10 @@ pub struct RemoveLocalAppAdoptionRequest {
     pub app_id: ::prost::alloc::string::String,
     #[prost(bool, tag = "2")]
     pub delete_durable_data_confirmed: bool,
+    #[prost(string, tag = "3")]
+    pub lifecycle_intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub displayed_impact_digest: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RemoveLocalAppAdoptionResponse {
@@ -13822,6 +13980,10 @@ pub struct UninstallAppRequest {
     /// the separate destructive "Delete app data" flow with impact preview.
     #[prost(bool, tag = "3")]
     pub destructive_data_delete_confirmed: bool,
+    #[prost(string, tag = "4")]
+    pub lifecycle_intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub displayed_impact_digest: ::prost::alloc::string::String,
 }
 /// AppUninstallResult is the typed uninstall projection. Uninstall removes
 /// release payloads by default and keeps durable data unless destructive
@@ -13864,6 +14026,10 @@ pub struct UpdateAppRequest {
     /// required (breaking) update and ignored for a non-breaking update.
     #[prost(bool, tag = "2")]
     pub confirmed: bool,
+    #[prost(string, tag = "3")]
+    pub lifecycle_intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub displayed_impact_digest: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateAppResponse {
@@ -13886,6 +14052,10 @@ pub struct HealthRepairAppRequest {
     /// empty, cancel/retry resolve the most recent recoverable job for the app.
     #[prost(string, tag = "3")]
     pub job_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub lifecycle_intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub displayed_impact_digest: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HealthRepairAppResponse {
@@ -13927,6 +14097,10 @@ pub struct OpenAppRequest {
     /// mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
     #[prost(message, optional, tag = "2")]
     pub scope: ::core::option::Option<AppOpenScopeRef>,
+    #[prost(string, tag = "3")]
+    pub lifecycle_intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub displayed_impact_digest: ::prost::alloc::string::String,
 }
 /// AppOpenProjection is the typed Open-flow projection. It reports the
 /// terminal state, the step the flow reached, the resolved launch scope, and a
@@ -14237,6 +14411,105 @@ impl AppHealthRepairAction {
             "APP_HEALTH_REPAIR_ACTION_RETRY" => Some(Self::Retry),
             "APP_HEALTH_REPAIR_ACTION_REPAIR" => Some(Self::Repair),
             "APP_HEALTH_REPAIR_ACTION_REINSTALL" => Some(Self::Reinstall),
+            _ => None,
+        }
+    }
+}
+/// AppLifecycleIntentAction is the closed action vocabulary owned by
+/// K-APP-026. A single prepare/status protocol covers every lifecycle mutation;
+/// callers cannot introduce action-specific confirmation RPCs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppLifecycleIntentAction {
+    Unspecified = 0,
+    Install = 1,
+    Uninstall = 2,
+    Update = 3,
+    HealthRepair = 4,
+    AdoptLocalApp = 5,
+    RemoveLocalAppAdoption = 6,
+    OpenApp = 7,
+}
+impl AppLifecycleIntentAction {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED",
+            Self::Install => "APP_LIFECYCLE_INTENT_ACTION_INSTALL",
+            Self::Uninstall => "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL",
+            Self::Update => "APP_LIFECYCLE_INTENT_ACTION_UPDATE",
+            Self::HealthRepair => "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR",
+            Self::AdoptLocalApp => "APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP",
+            Self::RemoveLocalAppAdoption => {
+                "APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION"
+            }
+            Self::OpenApp => "APP_LIFECYCLE_INTENT_ACTION_OPEN_APP",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_LIFECYCLE_INTENT_ACTION_INSTALL" => Some(Self::Install),
+            "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL" => Some(Self::Uninstall),
+            "APP_LIFECYCLE_INTENT_ACTION_UPDATE" => Some(Self::Update),
+            "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR" => Some(Self::HealthRepair),
+            "APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP" => Some(Self::AdoptLocalApp),
+            "APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION" => {
+                Some(Self::RemoveLocalAppAdoption)
+            }
+            "APP_LIFECYCLE_INTENT_ACTION_OPEN_APP" => Some(Self::OpenApp),
+            _ => None,
+        }
+    }
+}
+/// AppLifecycleIntentStatus is the durable reconciliation vocabulary. An
+/// intent id or status is correlation-only and never authorizes a mutation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppLifecycleIntentStatus {
+    Unspecified = 0,
+    Prepared = 1,
+    Consumed = 2,
+    SideEffectStarted = 3,
+    Succeeded = 4,
+    Failed = 5,
+    Cancelled = 6,
+    Expired = 7,
+}
+impl AppLifecycleIntentStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED",
+            Self::Prepared => "APP_LIFECYCLE_INTENT_STATUS_PREPARED",
+            Self::Consumed => "APP_LIFECYCLE_INTENT_STATUS_CONSUMED",
+            Self::SideEffectStarted => "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED",
+            Self::Succeeded => "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED",
+            Self::Failed => "APP_LIFECYCLE_INTENT_STATUS_FAILED",
+            Self::Cancelled => "APP_LIFECYCLE_INTENT_STATUS_CANCELLED",
+            Self::Expired => "APP_LIFECYCLE_INTENT_STATUS_EXPIRED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_LIFECYCLE_INTENT_STATUS_PREPARED" => Some(Self::Prepared),
+            "APP_LIFECYCLE_INTENT_STATUS_CONSUMED" => Some(Self::Consumed),
+            "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED" => {
+                Some(Self::SideEffectStarted)
+            }
+            "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED" => Some(Self::Succeeded),
+            "APP_LIFECYCLE_INTENT_STATUS_FAILED" => Some(Self::Failed),
+            "APP_LIFECYCLE_INTENT_STATUS_CANCELLED" => Some(Self::Cancelled),
+            "APP_LIFECYCLE_INTENT_STATUS_EXPIRED" => Some(Self::Expired),
             _ => None,
         }
     }
@@ -14744,6 +15017,64 @@ pub mod runtime_app_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn prepare_app_lifecycle_intent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PrepareAppLifecycleIntentRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PrepareAppLifecycleIntentResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "PrepareAppLifecycleIntent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_app_lifecycle_intent_status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAppLifecycleIntentStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAppLifecycleIntentStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "GetAppLifecycleIntentStatus",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         /// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
         pub async fn install_app(

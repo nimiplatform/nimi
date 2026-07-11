@@ -26,7 +26,6 @@ const DENIED_COMMANDS = new Set<string>([
   'nimi.shell.auth.session.save',
   'nimi.shell.auth.session.clear',
   NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.start'],
-  NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.stop'],
   NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'],
   NIMI_STANDARD_SHELL_COMMANDS['config.set'],
   NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
@@ -255,7 +254,7 @@ describe('Electron host command policy', () => {
       await expect(invokeBridge(ipcMain, event, {
         command: STANDARD_COMMANDS.stream_open,
         payload: {
-          methodId: '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents',
+          methodId: '/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents',
           streamId: 'policy-stream',
           requestBytesBase64: '',
         },
@@ -299,6 +298,35 @@ describe('Electron host command policy', () => {
       { command: 'create_child', commandKind: 'app-domain', appId: 'nimi.parentos' },
       { command: 'missing_parentos_command', commandKind: 'unknown', appId: 'nimi.parentos' },
     ]);
+  });
+
+  it('rejects the retired Runtime stop command before creating a Runtime client', async () => {
+    let clientCreations = 0;
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.parentos',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        clientCreations += 1;
+        throw new Error('retired Runtime stop must not initialize a client');
+      },
+      standardShellHost: {
+        allowAllStandardShellCommands: true,
+      },
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: 'nimi.shell.runtimeLifecycle.stop',
+      payload: {},
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'unsupported-electron-shell-command',
+      actionHint: 'use_registered_runtime_bridge_command',
+      details: { command: 'nimi.shell.runtimeLifecycle.stop' },
+    });
+    expect(clientCreations).toBe(0);
   });
 
   it('fails closed for standard commands when the host omits an explicit capability policy', async () => {

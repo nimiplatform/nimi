@@ -17,10 +17,6 @@ export async function startDaemon(): Promise<RuntimeBridgeDaemonStatus> {
   return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.start'], {}, parseRuntimeBridgeDaemonStatus);
 }
 
-export async function stopDaemon(): Promise<RuntimeBridgeDaemonStatus> {
-  return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.stop'], {}, parseRuntimeBridgeDaemonStatus);
-}
-
 export async function restartDaemon(): Promise<RuntimeBridgeDaemonStatus> {
   return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'], {}, parseRuntimeBridgeDaemonStatus);
 }

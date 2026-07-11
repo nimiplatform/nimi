@@ -1,5 +1,3 @@
-#[cfg(unix)]
-use super::{config_get, config_set};
 use super::{
     grpc_addr, prepare_runtime_dev_binary_output, runtime_cli_command_spec, runtime_config_path,
     source_dev_app_registry_path, start, status, stop, DEFAULT_GRPC_ADDR,
@@ -206,70 +204,6 @@ fn start_failure_sets_status_last_error() {
         snapshot.last_error.as_deref(),
         Some("RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING")
     );
-}
-
-#[cfg(unix)]
-#[test]
-fn config_cli_bridge_invokes_nimi_binary_and_parses_json() {
-    let _guard = test_guard();
-    let dir = make_temp_dir("config-cli-success");
-    let script_path = dir.join("nimi-fake.sh");
-    let captured_stdin = dir.join("captured-stdin.json");
-    let config_path = dir.join("config.json");
-    let script = format!(
-        r#"#!/bin/sh
-if [ "$1" = "config" ] && [ "$2" = "get" ]; then
-  printf '%s\n' '{{"path":"{}","config":{{"schemaVersion":1}}}}'
-  exit 0
-fi
-if [ "$1" = "config" ] && [ "$2" = "set" ]; then
-  cat > "{}"
-  printf '%s\n' '{{"path":"{}","reasonCode":"CONFIG_RESTART_REQUIRED"}}'
-  exit 0
-fi
-echo "unexpected args:$*" >&2
-exit 7
-"#,
-        config_path.display(),
-        captured_stdin.display(),
-        config_path.display()
-    );
-    write_executable(&script_path, script.as_str());
-
-    with_env(&[("NIMI_RUNTIME_BINARY", script_path.to_str())], || {
-        let get_payload = config_get().expect("config get");
-        assert_eq!(get_payload["path"], config_path.display().to_string());
-
-        let payload = r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#;
-        let set_payload = config_set(payload).expect("config set");
-        assert_eq!(set_payload["reasonCode"], "CONFIG_RESTART_REQUIRED");
-
-        let captured = fs::read_to_string(&captured_stdin).expect("read captured stdin");
-        assert_eq!(captured, payload);
-    });
-    let _ = fs::remove_dir_all(dir);
-}
-
-#[cfg(unix)]
-#[test]
-fn config_cli_bridge_surfaces_cli_failure() {
-    let _guard = test_guard();
-    let dir = make_temp_dir("config-cli-fail");
-    let script_path = dir.join("nimi-fail.sh");
-    let script = r#"#!/bin/sh
-echo "config failed from fake cli" >&2
-exit 9
-"#;
-    write_executable(&script_path, script);
-
-    with_env(&[("NIMI_RUNTIME_BINARY", script_path.to_str())], || {
-        let err = config_set(r#"{"schemaVersion":1}"#)
-            .err()
-            .unwrap_or_default();
-        assert!(err.contains("RUNTIME_BRIDGE_CONFIG_CLI_FAILED"));
-        assert!(err.contains("config failed from fake cli"));
-    });
-    let _ = fs::remove_dir_all(dir);
 }
 
 #[cfg(unix)]

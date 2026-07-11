@@ -13,15 +13,13 @@ pub mod runtime {
         decode_unary_result, generated, generated_method_ids, http_addr, invoke_unary_typed,
         invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
         reset_channel_invalidation_count, restart_daemon_async, set_runtime_bridge_host_hooks,
-        start_daemon_async, stop_daemon, stop_daemon_async, stream_event_name_with_namespace,
-        RuntimeBridgeAppSession, RuntimeBridgeConfigSetPayload, RuntimeBridgeDaemonStatus,
-        RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
-        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
-        RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload,
-        RuntimeBridgeStreamOpenResult, RuntimeBridgeTrustedMetadata,
-        RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeTrustedMetadataRequest,
-        RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
-        RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID,
+        start_daemon_async, stream_event_name_with_namespace, RuntimeBridgeAppSession,
+        RuntimeBridgeDaemonStatus, RuntimeBridgeHostAppSessionConfig,
+        RuntimeBridgeHostAppSessionProvider, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
+        RuntimeBridgeProtectedAccessToken, RuntimeBridgeStreamClosePayload,
+        RuntimeBridgeStreamOpenPayload, RuntimeBridgeStreamOpenResult,
+        RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
+        RuntimeBridgeTrustedMetadataRequest, RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
         RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID, RUNTIME_AGENT_GET_AGENT_METHOD_ID,
         RUNTIME_AGENT_GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD_ID,
         RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID,
@@ -88,36 +86,16 @@ pub mod runtime {
     }
 
     #[tauri::command]
-    pub async fn runtime_bridge_stop(
-        app: tauri::AppHandle,
-    ) -> Result<RuntimeBridgeDaemonStatus, String> {
-        crate::runtime_bridge::runtime_bridge_stop(app).await
-    }
-
-    #[tauri::command]
     pub async fn runtime_bridge_restart(
         app: tauri::AppHandle,
     ) -> Result<RuntimeBridgeDaemonStatus, String> {
         crate::runtime_bridge::runtime_bridge_restart(app).await
     }
-
-    #[tauri::command]
-    pub async fn runtime_bridge_config_get() -> Result<serde_json::Value, String> {
-        crate::runtime_bridge::runtime_bridge_config_get().await
-    }
-
-    #[tauri::command]
-    pub async fn runtime_bridge_config_set(
-        payload: RuntimeBridgeConfigSetPayload,
-    ) -> Result<serde_json::Value, String> {
-        crate::runtime_bridge::runtime_bridge_config_set(payload).await
-    }
 }
 
 pub mod runtime_lifecycle {
     pub use crate::runtime_bridge::{
-        runtime_bridge_config_get, runtime_bridge_config_set, runtime_bridge_restart,
-        runtime_bridge_start, runtime_bridge_status, runtime_bridge_stop,
+        runtime_bridge_restart, runtime_bridge_start, runtime_bridge_status,
         RuntimeBridgeDaemonStatus,
     };
 }

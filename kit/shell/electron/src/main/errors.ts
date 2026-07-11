@@ -1,4 +1,3 @@
-import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { NIMI_STANDARD_SHELL_ERROR_CODES } from '@nimiplatform/kit/shell/capabilities';
 import { NimiElectronShellHostError } from './types.js';
 
@@ -196,22 +195,6 @@ export function isRuntimeEndpointUnavailableLike(error: unknown): boolean {
     || RUNTIME_ENDPOINT_UNAVAILABLE_REASON_CODES.has(reasonCode)
     || message.startsWith('14 UNAVAILABLE:')
     || message.startsWith('4 DEADLINE_EXCEEDED:');
-}
-
-export function isRuntimeAppGrantInvalidLike(error: unknown): boolean {
-  const message = errorMessage(error);
-  const embedded = parseRuntimeErrorPayload(message);
-  const record = asOptionalRecord(error) ?? {};
-  const details = asOptionalRecord(record.details);
-  const reasonCode = normalizeErrorText(
-    embedded.reasonCode
-    ?? embedded.reason_code
-    ?? record.reasonCode
-    ?? record.reason_code
-    ?? details?.reasonCode
-    ?? details?.reason_code,
-  );
-  return reasonCode === ReasonCode.APP_GRANT_INVALID || message.includes(ReasonCode.APP_GRANT_INVALID);
 }
 
 function runtimeGrpcCode(error: unknown): number {

@@ -134,7 +134,7 @@ describe('installNimiShellRuntimeBridge', () => {
     await expect(hook!.listen('evt', () => {})).rejects.toThrow(/unsubscribe/);
   });
 
-  it('projects host-owned installed app launch binding through the Tauri runtime hook', () => {
+  it('rejects installed app launch bindings before A.1', () => {
     const launchBinding = {
       appId: 'nimi.fixture',
       appInstanceId: 'nimi.fixture.desktop-installed',
@@ -151,10 +151,10 @@ describe('installNimiShellRuntimeBridge', () => {
     };
 
     expect(installNimiShellRuntimeBridge()).toEqual({ installed: true, host: 'tauri' });
-    expect(readInstalledNimiAppLaunchBinding()).toEqual(launchBinding);
+    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.1 installed-app carrier/i);
   });
 
-  it('rejects installed app launch binding fields outside the standard surface', () => {
+  it('rejects forged installed app launch bindings before parsing fields', () => {
     testGlobal.__NIMI_TAURI_RUNTIME__ = {
       invoke: async () => 'ok',
       listen: async () => () => undefined,
@@ -170,7 +170,7 @@ describe('installNimiShellRuntimeBridge', () => {
       },
     };
 
-    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/unsupported field: bindingSource/);
+    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.1 installed-app carrier/i);
   });
 
   it('lets apps consume the scoped runtime hook without treating it as native Tauri', async () => {

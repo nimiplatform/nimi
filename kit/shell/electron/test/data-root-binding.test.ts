@@ -77,10 +77,6 @@ describe('Electron standard data root binding', () => {
             callerKind: 'local-first-party-app',
             callerId: 'nimi.tester.local-first-party',
           },
-          protectedAccessToken: {
-            tokenId: 'token-id',
-            secret: 'token-secret',
-          },
           appSession: {
             sessionId: 'session-id',
             sessionToken: 'session-token',
@@ -99,8 +95,6 @@ describe('Electron standard data root binding', () => {
             'x-nimi-app-id': 'nimi.tester',
             'x-nimi-caller-kind': 'local-first-party-app',
             'x-nimi-caller-id': 'nimi.tester.local-first-party',
-            'x-nimi-access-token-id': 'token-id',
-            'x-nimi-access-token-secret': 'token-secret',
             'x-nimi-session-id': 'session-id',
             'x-nimi-session-token': 'session-token',
           });

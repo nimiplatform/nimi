@@ -2219,6 +2219,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
+name = "nimi-shell-protected-local"
+version = "0.1.0"
+
+[[package]]
 name = "nimi-shell-tauri"
 version = "0.1.0"
 dependencies = [
@@ -2229,6 +2233,7 @@ dependencies = [
  "futures-util",
  "image",
  "log",
+ "nimi-shell-protected-local",
  "prost",
  "prost-types",
  "protoc-bin-vendored",

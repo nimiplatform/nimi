@@ -5,7 +5,5 @@ export function isElectronExternallyManagedRuntimeCommand(
   commandNames: ElectronRuntimeBridgeCommandNames,
 ): boolean {
   return command === commandNames.start
-    || command === commandNames.stop
-    || command === commandNames.restart
-    || command === commandNames.config_set;
+    || command === commandNames.restart;
 }

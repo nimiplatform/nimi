@@ -1,16 +1,22 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { parse as parseYaml } from 'yaml';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestFile = resolve(repoRoot, 'sdks/typescript/core-generated/runtime-core.manifest.json');
+const authPostureIndexFile = resolve(
+  repoRoot,
+  '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml',
+);
 const outputFiles = [
   resolve(repoRoot, 'kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs'),
 ];
 
-const DENIED_METHOD_IDS = Object.freeze([
+const STATIC_DENIED_METHOD_IDS = Object.freeze([
   '/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow',
   '/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow',
   '/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow',
@@ -23,6 +29,12 @@ const DENIED_METHOD_IDS = Object.freeze([
   '/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover',
 ]);
 
+const GENERIC_BRIDGE_DENIED_POSTURES = Object.freeze(new Set([
+  'protected_origin_required',
+  'deny_all_tombstone',
+  'blocked_pending_authority',
+]));
+
 function readManifest() {
   const manifest = JSON.parse(readFileSync(manifestFile, 'utf8'));
   if (!Array.isArray(manifest.method_ids)) {
@@ -32,6 +44,33 @@ function readManifest() {
     throw new Error('runtime core manifest missing codec_maps array');
   }
   return manifest;
+}
+
+function readPostureDeniedMethodIds(methodIdSet) {
+  const index = parseYaml(readFileSync(authPostureIndexFile, 'utf8'));
+  const denied = new Set();
+  const seen = new Set();
+  for (const shard of index?.method_shards ?? []) {
+    const shardFile = resolve(dirname(authPostureIndexFile), 'runtime-rpc-auth-posture', basename(String(shard.path || '')));
+    const document = parseYaml(readFileSync(shardFile, 'utf8'));
+    const methods = document?.methods ?? [];
+    if (Number(shard.method_count) !== methods.length) {
+      throw new Error(`runtime bridge auth-posture shard count mismatch: ${shardFile}`);
+    }
+    for (const row of methods) {
+      const methodId = String(row?.method_id || '').trim();
+      const posture = String(row?.posture || '').trim();
+      if (!methodIdSet.has(methodId)) {
+        throw new Error(`runtime bridge auth-posture method missing from manifest: ${methodId}`);
+      }
+      if (seen.has(methodId)) {
+        throw new Error(`runtime bridge auth-posture method duplicated: ${methodId}`);
+      }
+      seen.add(methodId);
+      if (GENERIC_BRIDGE_DENIED_POSTURES.has(posture)) denied.add(methodId);
+    }
+  }
+  return denied;
 }
 
 function uniqueSorted(values) {
@@ -66,8 +105,9 @@ function main() {
   const manifest = readManifest();
   const methodIds = manifest.method_ids.map((methodId) => String(methodId));
   const methodIdSet = new Set(methodIds);
-  const deniedMethods = new Set(DENIED_METHOD_IDS);
-  const missingDeniedMethods = DENIED_METHOD_IDS.filter((methodId) => !methodIdSet.has(methodId));
+  const deniedMethods = readPostureDeniedMethodIds(methodIdSet);
+  for (const methodId of STATIC_DENIED_METHOD_IDS) deniedMethods.add(methodId);
+  const missingDeniedMethods = STATIC_DENIED_METHOD_IDS.filter((methodId) => !methodIdSet.has(methodId));
   if (missingDeniedMethods.length > 0) {
     throw new Error(`runtime bridge denied methods missing from manifest: ${missingDeniedMethods.join(', ')}`);
   }

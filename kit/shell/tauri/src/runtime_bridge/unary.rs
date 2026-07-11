@@ -304,6 +304,17 @@ mod tests {
     }
 
     #[test]
+    fn validate_unary_method_rejects_account_presence_verification() {
+        let result = validate_unary_method(
+            "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+        );
+        assert!(result
+            .err()
+            .unwrap_or_default()
+            .contains("RUNTIME_BRIDGE_METHOD_FORBIDDEN"));
+    }
+
+    #[test]
     fn validate_unary_method_rejects_stream_method() {
         let result = validate_unary_method("/nimi.runtime.v1.RuntimeAiService/StreamScenario");
         assert!(result

@@ -7,7 +7,6 @@ export type JsonObject = {
 export type RealmDefaults = {
   realmBaseUrl: string;
   realtimeUrl: string;
-  accessToken: string;
   jwksUrl: string;
   revocationUrl: string;
   jwtIssuer: string;
@@ -116,7 +115,6 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
     realm: {
       realmBaseUrl: parseRequiredString(realmRecord.realmBaseUrl, 'realm.realmBaseUrl', 'nimi.shell.runtimeDefaults.get'),
       realtimeUrl: str(realmRecord.realtimeUrl),
-      accessToken: str(realmRecord.accessToken),
       jwksUrl: parseRequiredString(realmRecord.jwksUrl, 'realm.jwksUrl', 'nimi.shell.runtimeDefaults.get'),
       revocationUrl: parseRequiredString(realmRecord.revocationUrl, 'realm.revocationUrl', 'nimi.shell.runtimeDefaults.get'),
       jwtIssuer: parseRequiredString(realmRecord.jwtIssuer, 'realm.jwtIssuer', 'nimi.shell.runtimeDefaults.get'),

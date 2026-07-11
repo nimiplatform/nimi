@@ -55,9 +55,14 @@ function readCatalogCommands(content: string): string[] {
 }
 
 function readCapabilitySetList(field: string, content: string): string[] {
-  const start = content.indexOf(`    ${field}:\n`);
+  const start = content.indexOf(`    ${field}:`);
   expect(start).toBeGreaterThanOrEqual(0);
-  const afterStart = content.slice(start + field.length + 6);
+  const lineEnd = content.indexOf('\n', start);
+  const fieldLine = content.slice(start, lineEnd === -1 ? content.length : lineEnd);
+  if (fieldLine.endsWith(': []')) {
+    return [];
+  }
+  const afterStart = content.slice(lineEnd + 1);
   const end = afterStart.search(/\n    [a-z_]+:/u);
   const block = end === -1 ? afterStart : afterStart.slice(0, end);
   return [...block.matchAll(/^\s+- ([a-zA-Z0-9.-]+)\s*$/gm)].map((match) => match[1]);
@@ -160,7 +165,7 @@ describe('standard shell capabilities', () => {
     ]));
   });
 
-  it('catalogs idempotent standard storage removal for installed apps', () => {
+  it('keeps standard storage removal unavailable to installed apps before A.1', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const command = getNimiStandardShellCommand('storage', 'removeJson');
     const packageOperation = NIMI_STANDARD_SHELL_CAPABILITIES
@@ -174,11 +179,12 @@ describe('standard shell capabilities', () => {
     const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
     );
-    expect(installedSet?.allowedOperations).toContain('storage.removeJson');
-    expect(installedSet?.allowedCommands).toContain(command);
+    expect(installedSet?.allowedOperations).toEqual([]);
+    expect(installedSet?.allowedCommands).toEqual([]);
+    expect(readCapabilitySetList('planned_operations', catalog)).toContain('storage.removeJson');
   });
 
-  it('admits ai-config for installed apps while keeping custody and private surfaces forbidden', () => {
+  it('keeps all installed app operations blocked pending A.1', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
@@ -186,13 +192,11 @@ describe('standard shell capabilities', () => {
 
     expect(installedSet?.allowedOperations).toEqual(readCapabilitySetList('allowed_operations', catalog));
     expect(installedSet?.forbiddenOperations).toEqual(readCapabilitySetList('forbidden_operations', catalog));
-    expect(installedSet?.allowedOperations).toEqual(expect.arrayContaining([
+    expect(installedSet?.allowedOperations).toEqual([]);
+    expect(installedSet?.allowedCommands).toEqual([]);
+    expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
       'ai-config.get',
       'ai-config.set',
-    ]));
-    expect(installedSet?.allowedCommands).toEqual(expect.arrayContaining([
-      getNimiStandardShellCommand('ai-config', 'get'),
-      getNimiStandardShellCommand('ai-config', 'set'),
     ]));
     expect(installedSet?.forbiddenOperations).toEqual(expect.arrayContaining([
       'runtime-defaults.get',

@@ -4,11 +4,11 @@ mod daemon_manager;
 mod error_map;
 mod host_app_session;
 mod metadata;
+mod service_control;
 mod stream;
 mod unary;
 
-use serde::Deserialize;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::future::Future;
 use std::path::PathBuf;
@@ -17,7 +17,6 @@ use std::sync::{Arc, Mutex, OnceLock};
 use tauri::AppHandle;
 
 pub use daemon_manager::http_addr;
-pub use daemon_manager::RuntimeBridgeDaemonStatus;
 pub use error_map::bridge_error;
 pub use host_app_session::{
     RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
@@ -31,6 +30,19 @@ pub use unary::{
     invoke_unary_typed, invoke_unary_typed_with_metadata, RuntimeBridgeUnaryResult,
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeBridgeDaemonStatus {
+    pub running: bool,
+    pub managed: bool,
+    pub launch_mode: String,
+    pub grpc_addr: String,
+    pub pid: Option<u32>,
+    pub version: Option<String>,
+    pub last_error: Option<String>,
+    pub debug_log_path: Option<String>,
+}
+
 #[allow(clippy::all, dead_code)]
 pub mod generated {
     include!("generated/nimi.runtime.v1.rs");
@@ -42,8 +54,6 @@ pub mod generated_method_ids {
 
 pub const RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus";
-pub const RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken";
 pub const RUNTIME_AUTH_REGISTER_APP_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAuthService/RegisterApp";
 pub const RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID: &str =
@@ -285,18 +295,21 @@ fn set_action_in_flight_hook(app: &AppHandle, action: Option<&'static str>) {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn staged_runtime_binary_path_hook_result() -> Option<Option<PathBuf>> {
     host_hooks()
         .and_then(|hooks| hooks.staged_runtime_binary_path.clone())
         .map(|hook| hook())
 }
 
+#[cfg(test)]
 pub(crate) fn runtime_last_error_hook() -> Option<String> {
     host_hooks()
         .and_then(|hooks| hooks.runtime_last_error.clone())
         .and_then(|hook| hook())
 }
 
+#[cfg(test)]
 pub(crate) fn current_release_version_hook() -> Option<String> {
     host_hooks()
         .and_then(|hooks| hooks.current_release_version.clone())
@@ -390,12 +403,6 @@ pub struct RuntimeBridgeStreamClosePayload {
     pub stream_id: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RuntimeBridgeConfigSetPayload {
-    pub config_json: String,
-}
-
 pub fn stream_event_name_with_namespace(namespace: &str, stream_id: &str) -> String {
     let normalized = namespace.trim();
     let resolved = if normalized.is_empty() {
@@ -484,14 +491,6 @@ pub async fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonS
     result
 }
 
-pub async fn runtime_bridge_stop(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
-    set_action_in_flight_hook(&app, Some("stop"));
-    let result = stop_daemon_async().await;
-    set_action_in_flight_hook(&app, None);
-    sync_menu_bar_daemon_status(&app, &result).await;
-    result
-}
-
 pub async fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     set_action_in_flight_hook(&app, Some("restart"));
     let result = restart_daemon_async().await;
@@ -500,25 +499,15 @@ pub async fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemo
     result
 }
 
-pub async fn runtime_bridge_config_get() -> Result<Value, String> {
-    daemon_manager::config_get_async().await
-}
-
-pub async fn runtime_bridge_config_set(
-    payload: RuntimeBridgeConfigSetPayload,
-) -> Result<Value, String> {
-    daemon_manager::config_set_async(payload.config_json).await
-}
-
 pub fn current_daemon_status() -> RuntimeBridgeDaemonStatus {
-    daemon_manager::status()
+    service_control::status()
 }
 
 pub async fn current_daemon_status_async() -> RuntimeBridgeDaemonStatus {
     if let Some(override_status) = call_status_override_hook().ok().flatten() {
         return override_status;
     }
-    daemon_manager::status_async().await
+    service_control::status()
 }
 
 async fn sync_menu_bar_daemon_status(
@@ -532,28 +521,17 @@ async fn sync_menu_bar_daemon_status(
     sync_daemon_status_hook(app, status);
 }
 
-pub fn stop_daemon() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::stop();
-    channel_pool::invalidate_channel();
-    result
-}
-
 pub async fn start_daemon_async() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::start_async().await;
+    let result = service_control::request(nimi_shell_protected_local::RuntimeServiceAction::Start);
     if result.is_ok() {
         channel_pool::invalidate_channel();
     }
     result
 }
 
-pub async fn stop_daemon_async() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::stop_async().await;
-    channel_pool::invalidate_channel();
-    result
-}
-
 pub async fn restart_daemon_async() -> Result<RuntimeBridgeDaemonStatus, String> {
-    let result = daemon_manager::restart_async().await;
+    let result =
+        service_control::request(nimi_shell_protected_local::RuntimeServiceAction::Restart);
     if result.is_ok() {
         channel_pool::invalidate_channel();
     }
@@ -576,13 +554,59 @@ mod tests {
     use prost::Message;
 
     use super::{
-        invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
-        runtime_bridge_unary, stream_event_name_with_namespace, with_runtime_bridge_host_hooks,
-        RuntimeBridgeAppSession, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
-        RuntimeBridgeProtectedAccessToken, RuntimeBridgeTrustedMetadata,
-        RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeUnaryPayload,
-        RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+        channel_invalidation_count, current_daemon_status, invoke_unary_typed_with_metadata,
+        is_allowlisted_method, is_stream_method, reset_channel_invalidation_count,
+        restart_daemon_async, runtime_bridge_unary, start_daemon_async,
+        stream_event_name_with_namespace, with_runtime_bridge_host_hooks, RuntimeBridgeAppSession,
+        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
+        RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
+        RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE,
+        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
     };
+
+    #[test]
+    fn public_lifecycle_routes_do_not_delegate_to_legacy_daemon_manager() {
+        let source = include_str!("mod.rs");
+        let legacy_prefix = ["daemon_manager", "::"].concat();
+        for operation in [
+            "status()",
+            "status_async().await",
+            "start_async().await",
+            "restart_async().await",
+            "stop()",
+            "stop_async().await",
+        ] {
+            assert!(
+                !source.contains(&[legacy_prefix.as_str(), operation].concat()),
+                "public Runtime lifecycle must use the protected-local service carrier, not {operation}",
+            );
+        }
+    }
+
+    #[test]
+    fn public_lifecycle_controls_fail_closed_without_a_bound_protected_carrier() {
+        reset_channel_invalidation_count();
+
+        for result in [
+            tauri::async_runtime::block_on(start_daemon_async()),
+            tauri::async_runtime::block_on(restart_daemon_async()),
+        ] {
+            let error = result.expect_err("unbound protected carrier must fail closed");
+            assert!(error.contains("RUNTIME_BRIDGE_DAEMON_UNAVAILABLE"));
+            assert!(error.contains("protected-carrier-required"));
+        }
+
+        assert_eq!(channel_invalidation_count(), 0);
+        let status = current_daemon_status();
+        assert!(!status.running);
+        assert!(!status.managed);
+        assert_eq!(status.launch_mode, "INVALID");
+        assert!(status
+            .last_error
+            .as_deref()
+            .unwrap_or_default()
+            .contains("protected-carrier-required"));
+    }
 
     #[test]
     fn stream_event_name_uses_fixed_namespace() {
@@ -768,10 +792,10 @@ mod tests {
     }
 
     #[test]
-    fn account_presence_verification_method_is_allowlisted() {
+    fn account_presence_verification_is_not_exposed_through_generic_bridge() {
         let method = "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification";
 
-        assert!(is_allowlisted_method(method));
+        assert!(!is_allowlisted_method(method));
         assert!(!is_stream_method(method));
     }
 }

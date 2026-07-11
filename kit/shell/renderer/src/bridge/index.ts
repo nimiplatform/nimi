@@ -28,7 +28,6 @@ export { getRuntimeDefaults } from './runtime-defaults.js';
 export {
   getDaemonStatus,
   startDaemon,
-  stopDaemon,
   restartDaemon,
   getDaemonConfig,
   setDaemonConfig,

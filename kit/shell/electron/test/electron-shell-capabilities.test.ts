@@ -64,14 +64,20 @@ describe('Electron standard shell capability catalog', () => {
       stream_close: NIMI_STANDARD_SHELL_COMMANDS['runtime.streamClose'],
       status: NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
       start: NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.start'],
-      stop: NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.stop'],
       restart: NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'],
-      config_get: NIMI_STANDARD_SHELL_COMMANDS['config.get'],
-      config_set: NIMI_STANDARD_SHELL_COMMANDS['config.set'],
     });
   });
 
-  it('projects the admitted installed Nimi App standard shell capability set', () => {
+  it('hardcuts product Runtime stop from Electron command projections', () => {
+    expect(Object.hasOwn(STANDARD_COMMANDS, 'stop')).toBe(false);
+    expect(
+      NIMI_STANDARD_SHELL_CAPABILITIES.find((capability) => capability.id === 'runtime-lifecycle')?.operations
+        .map((operation) => operation.id),
+    ).not.toContain('stop');
+    expect(Object.values(NIMI_STANDARD_SHELL_COMMANDS)).not.toContain('nimi.shell.runtimeLifecycle.stop');
+  });
+
+  it('keeps the installed Nimi App capability set blocked pending A.1', () => {
     const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find((set) =>
       set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID
     );
@@ -79,28 +85,20 @@ describe('Electron standard shell capability catalog', () => {
       setId: 'installed-nimi-app-standard-shell-v1',
       hostClass: 'desktop-electron-installed-app-host',
       appPackageKind: 'nimi-app',
-      launchResolution: 'runtime-openapp-attested',
-      authBinding: 'host-owned-runtime-app-session',
+      launchResolution: 'blocked_pending_a1_no_product_launch',
+      authBinding: 'binding_only_no_protected_session',
+      authorityStatus: 'blocked_pending_a1',
+      plannedOperationsDisposition: 'deny_until_a1_authority_and_implementation',
       sourceRule: 'P-KIT-044',
     });
-    expect(installedSet?.allowedCommands).toEqual([
-      NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'],
-      NIMI_STANDARD_SHELL_COMMANDS['runtime.streamOpen'],
-      NIMI_STANDARD_SHELL_COMMANDS['runtime.streamClose'],
-      NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
-      NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
-      NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
-      NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
-      NIMI_STANDARD_SHELL_COMMANDS['config.get'],
-      NIMI_STANDARD_SHELL_COMMANDS['config.set'],
-      NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
-      NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'],
-      NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
-      NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
-      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
-      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
-      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
-    ]);
+    expect(installedSet?.allowedOperations).toEqual([]);
+    expect(installedSet?.allowedCommands).toEqual([]);
+    expect(installedSet?.plannedOperations).toEqual(expect.arrayContaining([
+      'runtime.unary',
+      'storage.readJson',
+      'ai-config.get',
+      'desktop-open.openIntent',
+    ]));
     expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']);
     expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']);
     expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']);

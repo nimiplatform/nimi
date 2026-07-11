@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
@@ -35,7 +36,7 @@ import {
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
-  it('proxies unary Runtime calls through raw gRPC bytes with app metadata', async () => {
+  it('does not forward portable credentials from trusted metadata providers', async () => {
     let capturedMethod = '';
     let capturedBytes = new Uint8Array();
     let capturedMetadata: Record<string, string> = {};
@@ -68,9 +69,10 @@ describe('registerNimiElectronRuntimeBridge', () => {
             'x-nimi-app-instance-id': 'nimi.tester.desktop-shell',
           },
         },
+        authorization: 'Bearer trusted-portable-token',
         protectedAccessToken: { tokenId: 'token-id', secret: 'token-secret' },
         appSession: { sessionId: 'session-id', sessionToken: 'session-token' },
-      }),
+      } as never),
     });
     const { event } = createInvokeEvent();
     const request: ElectronRuntimeBridgeUnaryRequest = {
@@ -93,11 +95,12 @@ describe('registerNimiElectronRuntimeBridge', () => {
       'x-nimi-protocol-version': '1.0.0',
       'x-nimi-app-id': 'nimi.tester',
       'x-nimi-caller-kind': 'third-party-app',
-      'x-nimi-access-token-id': 'token-id',
-      'x-nimi-access-token-secret': 'token-secret',
       'x-nimi-session-id': 'session-id',
       'x-nimi-session-token': 'session-token',
     });
+    expect(capturedMetadata['x-nimi-access-token-id']).toBeUndefined();
+    expect(capturedMetadata['x-nimi-access-token-secret']).toBeUndefined();
+    expect(capturedMetadata.authorization).toBeUndefined();
     expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAuditService_GetRuntimeHealth-\d+-\d+$/);
     expect(capturedMetadata['x-nimi-custom']).toBe('custom-value');
     expect(capturedMetadata['x-nimi-source-host']).toBe('desktop-electron-account-host');
@@ -106,16 +109,110 @@ describe('registerNimiElectronRuntimeBridge', () => {
     expect(response.responseMetadata['x-nimi-runtime-version']).toBe('0.5.0');
   });
 
-  it('refreshes trusted Runtime metadata once when a protected app grant is invalidated', async () => {
-    const capturedTokens: string[] = [];
+  it('rejects portable credential headers injected through trusted metadata extra', async () => {
+    let unaryCalls = 0;
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => ({
+        unary: async () => {
+          unaryCalls += 1;
+          return { responseBytes: new Uint8Array() };
+        },
+        serverStream: () => {
+          throw new Error('not used');
+        },
+        close: () => undefined,
+      }),
+      trustedRuntimeMetadataProvider: async () => ({
+        metadata: {
+          extra: {
+            'x-nimi-access-token-id': 'portable-token-id',
+            'x-nimi-access-token-secret': 'portable-token-secret',
+          },
+        },
+      }),
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+        requestBytesBase64: '',
+      },
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'electron-trusted-runtime-metadata-key-not-allowed',
+    });
+    expect(unaryCalls).toBe(0);
+  });
+
+  it('does not dispatch protected Runtime methods through the generic bridge', async () => {
+    let trustedMetadataCalls = 0;
+    let unaryCalls = 0;
+    let streamCalls = 0;
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => ({
+        unary: async () => {
+          unaryCalls += 1;
+          return { responseBytes: new Uint8Array() };
+        },
+        serverStream: () => {
+          streamCalls += 1;
+          return {
+            start: () => undefined,
+            cancel: () => undefined,
+          };
+        },
+        close: () => undefined,
+      }),
+      trustedRuntimeMetadataProvider: async () => {
+        trustedMetadataCalls += 1;
+        return {};
+      },
+    });
+
+    for (const [command, payload] of [
+      [STANDARD_COMMANDS.unary, {
+        methodId: '/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession',
+        requestBytesBase64: '',
+      }],
+      [STANDARD_COMMANDS.stream_open, {
+        methodId: '/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession',
+        requestBytesBase64: '',
+        streamId: 'protected-stream',
+      }],
+    ] as const) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command,
+        payload,
+      })).rejects.toMatchObject({
+        code: 'forbidden-renderer-access',
+        reasonCode: 'electron-runtime-method-requires-protected-carrier',
+      });
+    }
+
+    expect(trustedMetadataCalls).toBe(0);
+    expect(unaryCalls).toBe(0);
+    expect(streamCalls).toBe(0);
+  });
+
+  it('does not refresh trusted metadata after a public app grant invalidation', async () => {
     let unaryCalls = 0;
     let invalidatedReason = '';
     const fakeClient: RuntimeGrpcBridgeClient = {
       unary: async (request) => {
         unaryCalls += 1;
-        capturedTokens.push(request.metadata['x-nimi-access-token-id'] || '');
         if (unaryCalls === 1) {
-          throw Object.assign(new Error('7 PERMISSION_DENIED: {"reasonCode":"APP_GRANT_INVALID","actionHint":"refresh_authorization_policy"}'), {
+          throw Object.assign(new Error(`7 PERMISSION_DENIED: {"reasonCode":"${ReasonCode.APP_GRANT_INVALID}","actionHint":"refresh_authorization_policy"}`), {
             code: 7,
           });
         }
@@ -132,10 +229,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const provider: ElectronRuntimeBridgeTrustedMetadataProvider = async () => {
       metadataCalls += 1;
       return {
-        protectedAccessToken: {
-          tokenId: metadataCalls === 1 ? 'stale-token' : 'fresh-token',
-          secret: 'token-secret',
-        },
         appSession: { sessionId: 'session-id', sessionToken: 'session-token' },
       };
     };
@@ -154,19 +247,19 @@ describe('registerNimiElectronRuntimeBridge', () => {
       trustedRuntimeMetadataProvider: provider,
     });
 
-    const response = await invokeBridge(ipcMain, createInvokeEvent().event, {
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
         methodId: '/nimi.runtime.v1.RuntimeAgentService/GetSessionSnapshot',
         requestBytesBase64: toBase64(Uint8Array.from([1])),
       },
-    }) as { responseBytesBase64: string };
+    })).rejects.toMatchObject({
+      reasonCode: ReasonCode.APP_GRANT_INVALID,
+    });
 
-    expect([...fromBase64(response.responseBytesBase64)]).toEqual([7, 8, 9]);
-    expect(unaryCalls).toBe(2);
-    expect(metadataCalls).toBe(2);
-    expect(invalidatedReason).toBe('APP_GRANT_INVALID');
-    expect(capturedTokens).toEqual(['stale-token', 'fresh-token']);
+    expect(unaryCalls).toBe(1);
+    expect(metadataCalls).toBe(1);
+    expect(invalidatedReason).toBe('');
   });
 
   it('uses host trusted Runtime identity metadata ahead of renderer metadata', async () => {

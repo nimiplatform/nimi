@@ -28,6 +28,7 @@ aes-gcm = "0.10"
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
+nimi-shell-protected-local = { path = "../protected-local" }
 
 [build-dependencies]
 tonic-prost-build = "0.14"

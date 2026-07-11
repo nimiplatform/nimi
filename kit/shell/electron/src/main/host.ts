@@ -10,7 +10,6 @@ import { getElectronAiConfig, setElectronAiConfig } from './ai-config.js';
 import { dispatchElectronAgentCenterCommand, isElectronAgentCenterCommand } from './agent-center.js';
 import { resolveElectronAiProfile } from './ai-profile.js';
 import { assertElectronHostCommandPolicyAllowed } from './command-policy.js';
-import { getElectronRuntimeConfig } from './config.js';
 import {
   readElectronStandardStorageJson,
   removeElectronStandardStorageJson,
@@ -213,7 +212,6 @@ export function registerNimiElectronRuntimeBridge(
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get']) return resolveElectronRuntimeDefaults();
     if (command === NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']) return resolveElectronDiagnosticsRendererEntryProbe({ event, payload, appId });
-    if (command === commandNames.config_get) return getElectronRuntimeConfig(input.standardShellHost, command);
     if (isElectronExternallyManagedRuntimeCommand(command, commandNames)) throw createElectronExternalDaemonRequiredError(command);
     const standardPayload = standardNestedPayload(payload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(input.standardShellHost, standardPayload, command);

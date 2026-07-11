@@ -26,10 +26,7 @@ mod tests {
                 "runtime_bridge_stream_close",
                 "runtime_bridge_status",
                 "runtime_bridge_start",
-                "runtime_bridge_stop",
                 "runtime_bridge_restart",
-                "runtime_bridge_config_get",
-                "runtime_bridge_config_set",
                 "open_external_url",
                 "oauth_token_exchange",
                 "oauth_listen_for_code",
@@ -128,6 +125,33 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::FloatingWindow));
+    }
+
+    #[test]
+    fn runtime_bridge_catalog_excludes_retired_stop_and_runtime_config_controls() {
+        let names = RUNTIME_BRIDGE_COMMANDS
+            .iter()
+            .map(|command| command.command_name)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            names,
+            vec![
+                "runtime_bridge_unary",
+                "runtime_bridge_stream_open",
+                "runtime_bridge_stream_close",
+                "runtime_bridge_status",
+                "runtime_bridge_start",
+                "runtime_bridge_restart",
+            ]
+        );
+        for forbidden in [
+            "runtime_bridge_stop",
+            "runtime_bridge_config_get",
+            "runtime_bridge_config_set",
+        ] {
+            assert!(!names.contains(&forbidden));
+        }
     }
 
     #[test]
@@ -243,8 +267,6 @@ mod tests {
                 "runtime_bridge_unary",
                 "runtime_bridge_stream_open",
                 "runtime_bridge_stream_close",
-                "runtime_bridge_config_get",
-                "runtime_bridge_config_set",
                 "desktop_open_intent_open_intent",
                 "data_path_resolve",
                 "storage_read_json",

@@ -1,64 +1,77 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+#[cfg(test)]
+use super::RuntimeBridgeDaemonStatus;
+#[cfg(test)]
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+#[cfg(test)]
+use std::process::Child;
+#[cfg(test)]
+use std::process::{Command, Stdio};
+#[cfg(test)]
 use std::sync::{Mutex, OnceLock};
 
+#[cfg(test)]
 use super::channel_pool::invalidate_channel;
+#[cfg(test)]
 use super::error_map::bridge_error;
-use super::{resolve_nimi_data_dir_hook, staged_runtime_binary_path_hook_result};
+#[cfg(test)]
+use super::resolve_nimi_data_dir_hook;
+#[cfg(test)]
+use super::staged_runtime_binary_path_hook_result;
+#[cfg(test)]
 mod cli;
+#[cfg(test)]
 mod daemon_command;
 mod helpers;
 #[cfg(test)]
 mod tests;
-use cli::{probe_runtime_version, run_runtime_cli_json};
+#[cfg(test)]
+use cli::probe_runtime_version;
 #[cfg(test)]
 use daemon_command::prepare_runtime_dev_binary_output;
+#[cfg(test)]
+use daemon_command::runtime_cli_command_spec;
+#[cfg(test)]
 use daemon_command::{
     runtime_bridge_availability_error, runtime_bridge_mode_for_status, runtime_bridge_mode_label,
-    runtime_cli_command_spec,
 };
 pub(crate) use helpers::grpc_addr;
 pub use helpers::http_addr;
 #[cfg(test)]
 pub(crate) use helpers::runtime_config_path;
+#[cfg(test)]
 use helpers::{probe_running, probe_running_async, read_non_empty_env, wait_until_running_async};
 
 const DEFAULT_GRPC_ADDR: &str = "127.0.0.1:46371";
+#[cfg(test)]
 const DEFAULT_RUNTIME_BINARY: &str = "nimi";
+#[cfg(test)]
 const DEFAULT_RUNTIME_BRIDGE_MODE: &str = "RELEASE";
+#[cfg(test)]
 const RUNTIME_BRIDGE_MODE_ENV: &str = "NIMI_RUNTIME_BRIDGE_MODE";
 
+#[cfg(test)]
 static DAEMON_CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
+#[cfg(test)]
 static DAEMON_LAST_ERROR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+#[cfg(test)]
 static DAEMON_DEBUG_LOG_PATH: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 
+#[cfg(test)]
 fn daemon_debug_log_path_store() -> &'static Mutex<Option<String>> {
     DAEMON_DEBUG_LOG_PATH.get_or_init(|| Mutex::new(None))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RuntimeBridgeDaemonStatus {
-    pub running: bool,
-    pub managed: bool,
-    pub launch_mode: String,
-    pub grpc_addr: String,
-    pub pid: Option<u32>,
-    pub version: Option<String>,
-    pub last_error: Option<String>,
-    pub debug_log_path: Option<String>,
-}
-
+#[cfg(test)]
 fn daemon_child() -> &'static Mutex<Option<Child>> {
     DAEMON_CHILD.get_or_init(|| Mutex::new(None))
 }
 
+#[cfg(test)]
 fn daemon_last_error() -> &'static Mutex<Option<String>> {
     DAEMON_LAST_ERROR.get_or_init(|| Mutex::new(None))
 }
 
+#[cfg(test)]
 fn set_last_error(value: Option<String>) {
     let mut guard = daemon_last_error()
         .lock()
@@ -66,6 +79,7 @@ fn set_last_error(value: Option<String>) {
     *guard = value;
 }
 
+#[cfg(test)]
 fn read_last_error() -> Option<String> {
     daemon_last_error()
         .lock()
@@ -73,6 +87,7 @@ fn read_last_error() -> Option<String> {
         .clone()
 }
 
+#[cfg(test)]
 fn runtime_binary() -> String {
     if let Some(path) = runtime_binary_test_override() {
         return path;
@@ -92,11 +107,7 @@ fn runtime_binary_test_override() -> Option<String> {
         .filter(|value| !value.trim().is_empty())
 }
 
-#[cfg(not(test))]
-fn runtime_binary_test_override() -> Option<String> {
-    None
-}
-
+#[cfg(test)]
 pub fn status() -> RuntimeBridgeDaemonStatus {
     let mut pid = None;
     let managed = {
@@ -159,6 +170,7 @@ pub fn status() -> RuntimeBridgeDaemonStatus {
     }
 }
 
+#[cfg(test)]
 pub async fn status_async() -> RuntimeBridgeDaemonStatus {
     let mut pid = None;
     let managed = {
@@ -226,6 +238,7 @@ pub async fn status_async() -> RuntimeBridgeDaemonStatus {
     }
 }
 
+#[cfg(test)]
 fn debug_log_path() -> Option<PathBuf> {
     if read_non_empty_env("NIMI_RUNTIME_BRIDGE_DEBUG").as_deref() != Some("1") {
         return None;
@@ -233,6 +246,7 @@ fn debug_log_path() -> Option<PathBuf> {
     Some(std::env::temp_dir().join(format!("nimi-daemon-{}.log", std::process::id())))
 }
 
+#[cfg(test)]
 fn source_dev_app_registry_path(runtime_current_dir: Option<&Path>) -> Option<PathBuf> {
     if read_non_empty_env("NIMI_RUNTIME_APP_REGISTRY_PATH").is_some() {
         return None;
@@ -247,6 +261,7 @@ fn source_dev_app_registry_path(runtime_current_dir: Option<&Path>) -> Option<Pa
     }
 }
 
+#[cfg(test)]
 fn apply_source_dev_runtime_env(command: &mut Command, runtime_current_dir: Option<&Path>) {
     if let Some(path) = source_dev_app_registry_path(runtime_current_dir) {
         command.env(
@@ -256,6 +271,7 @@ fn apply_source_dev_runtime_env(command: &mut Command, runtime_current_dir: Opti
     }
 }
 
+#[cfg(test)]
 pub async fn start_async() -> Result<RuntimeBridgeDaemonStatus, String> {
     let current = status_async().await;
     if current.running {
@@ -355,6 +371,7 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
     tauri::async_runtime::block_on(start_async())
 }
 
+#[cfg(test)]
 pub fn stop() -> Result<RuntimeBridgeDaemonStatus, String> {
     {
         let mut guard = daemon_child().lock().expect("runtime daemon lock poisoned");
@@ -368,35 +385,4 @@ pub fn stop() -> Result<RuntimeBridgeDaemonStatus, String> {
     set_last_error(None);
 
     Ok(status())
-}
-
-pub async fn stop_async() -> Result<RuntimeBridgeDaemonStatus, String> {
-    tauri::async_runtime::spawn_blocking(stop)
-        .await
-        .map_err(|error| format!("RUNTIME_BRIDGE_STOP_TASK_JOIN_FAILED: {error}"))?
-}
-
-pub async fn restart_async() -> Result<RuntimeBridgeDaemonStatus, String> {
-    stop_async().await?;
-    start_async().await
-}
-
-pub fn config_get() -> Result<Value, String> {
-    run_runtime_cli_json(&["config", "get", "--json"], None)
-}
-
-pub fn config_set(payload: &str) -> Result<Value, String> {
-    run_runtime_cli_json(&["config", "set", "--stdin", "--json"], Some(payload))
-}
-
-pub async fn config_get_async() -> Result<Value, String> {
-    tauri::async_runtime::spawn_blocking(config_get)
-        .await
-        .map_err(|error| format!("RUNTIME_BRIDGE_CONFIG_GET_TASK_JOIN_FAILED: {error}"))?
-}
-
-pub async fn config_set_async(payload: String) -> Result<Value, String> {
-    tauri::async_runtime::spawn_blocking(move || config_set(payload.as_str()))
-        .await
-        .map_err(|error| format!("RUNTIME_BRIDGE_CONFIG_SET_TASK_JOIN_FAILED: {error}"))?
 }

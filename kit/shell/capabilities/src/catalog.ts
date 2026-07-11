@@ -46,7 +46,10 @@ export interface NimiStandardShellCapabilitySet {
   readonly appPackageKind: string;
   readonly launchResolution: string;
   readonly authBinding: string;
+  readonly authorityStatus: string;
   readonly allowedOperations: readonly string[];
+  readonly plannedOperations: readonly string[];
+  readonly plannedOperationsDisposition: string;
   readonly forbiddenOperations: readonly string[];
   readonly allowedCommands: readonly string[];
   readonly forbiddenCommands: readonly string[];
@@ -68,7 +71,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     operations: [
       { id: 'status', command: 'nimi.shell.runtimeLifecycle.status', negativeStates: ['capability-unavailable', 'external-daemon-required', 'runtime-permission-denied', 'runtime-unauthenticated'] },
       { id: 'start', command: 'nimi.shell.runtimeLifecycle.start', negativeStates: ['external-daemon-required'] },
-      { id: 'stop', command: 'nimi.shell.runtimeLifecycle.stop', negativeStates: ['external-daemon-required'] },
       { id: 'restart', command: 'nimi.shell.runtimeLifecycle.restart', negativeStates: ['external-daemon-required'] },
     ],
   },
@@ -219,7 +221,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
   },
 ] as const satisfies readonly NimiStandardShellCapability[];
 
-const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS = [
+const INSTALLED_NIMI_APP_PLANNED_OPERATIONS = [
   'runtime.unary',
   'runtime.streamOpen',
   'runtime.streamClose',
@@ -238,10 +240,11 @@ const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS = [
   'shell-ui.focusMainWindow',
 ] as const;
 
+const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS: readonly string[] = [];
+
 const INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS = [
   'runtime-lifecycle.status',
   'runtime-lifecycle.start',
-  'runtime-lifecycle.stop',
   'runtime-lifecycle.restart',
   'runtime-defaults.get',
   'auth.sessionLoad',
@@ -289,9 +292,12 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
     setId: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
     hostClass: 'desktop-electron-installed-app-host',
     appPackageKind: 'nimi-app',
-    launchResolution: 'runtime-openapp-attested',
-    authBinding: 'host-owned-runtime-app-session',
+    launchResolution: 'blocked_pending_a1_no_product_launch',
+    authBinding: 'binding_only_no_protected_session',
+    authorityStatus: 'blocked_pending_a1',
     allowedOperations: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS,
+    plannedOperations: INSTALLED_NIMI_APP_PLANNED_OPERATIONS,
+    plannedOperationsDisposition: 'deny_until_a1_authority_and_implementation',
     forbiddenOperations: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS,
     allowedCommands: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS.map(resolveStandardShellOperationCommand),
     forbiddenCommands: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS

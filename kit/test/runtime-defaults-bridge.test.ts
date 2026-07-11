@@ -22,7 +22,6 @@ const VALID_RUNTIME_DEFAULTS = {
   realm: {
     realmBaseUrl: 'https://realm.example.com',
     realtimeUrl: '',
-    accessToken: '',
     jwksUrl: 'https://realm.example.com/api/auth/jwks',
     revocationUrl: 'https://realm.example.com/api/auth/sessions/introspect',
     jwtIssuer: 'https://realm.example.com',
@@ -39,8 +38,15 @@ const VALID_RUNTIME_DEFAULTS = {
 
 describe('parseRuntimeDefaults', () => {
   it('accepts split payloads and empty local bindings', () => {
-    const parsed = parseRuntimeDefaults(VALID_RUNTIME_DEFAULTS);
+    const parsed = parseRuntimeDefaults({
+      ...VALID_RUNTIME_DEFAULTS,
+      realm: {
+        ...VALID_RUNTIME_DEFAULTS.realm,
+        accessToken: 'forged-renderer-token',
+      },
+    });
     expect(parsed.realm.revocationUrl).toBe('https://realm.example.com/api/auth/sessions/introspect');
+    expect(parsed.realm).not.toHaveProperty('accessToken');
     expect(parsed.runtime.targetType).toBe('');
     expect(parsed.runtime.userConfirmedUpload).toBe(false);
   });

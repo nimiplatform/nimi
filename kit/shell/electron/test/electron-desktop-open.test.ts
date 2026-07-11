@@ -19,7 +19,7 @@ import {
 const nowIso = '2026-07-08T00:00:05.000Z';
 
 describe('Electron Desktop Open Intent host client', () => {
-  it('posts a host-stamped envelope to the running Desktop bridge', async () => {
+  it('denies Desktop Open for installed app hosts before A.1', async () => {
     await withTempDir('desktop-open', async (dir) => {
       const descriptorPath = path.join(dir, 'presence.v1.json');
       await writeDescriptor(descriptorPath, {
@@ -61,7 +61,7 @@ describe('Electron Desktop Open Intent host client', () => {
         },
       });
 
-      const result = await invokeBridge(ipcMain, createInvokeEvent().event, {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
         payload: {
           payload: {
@@ -69,31 +69,11 @@ describe('Electron Desktop Open Intent host client', () => {
             intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
           },
         },
+      })).rejects.toMatchObject({
+        code: 'capability-unavailable',
+        reasonCode: 'electron-standard-capability-not-in-host-set',
       });
-
-      expect(result).toEqual({
-        status: 'accepted',
-        confirmation: 'desktop-accepted',
-        bridgeId: 'desktop-open-20260708-bridge',
-        requestId: 'desktop-open-20260708-request',
-        appliedTarget: 'open-explore',
-      });
-      expect(fetchCalls).toHaveLength(1);
-      expect(fetchCalls[0].url).toBe('http://127.0.0.1:49152/v1/open-intent');
-      expect(fetchCalls[0].init.method).toBe('POST');
-      expect(fetchCalls[0].init.headers).toMatchObject({
-        Authorization: 'Bearer desktop-open-token',
-        'Content-Type': 'application/json',
-      });
-      const body = JSON.parse(String(fetchCalls[0].init.body)) as Record<string, unknown>;
-      expect(body).toMatchObject({
-        schemaVersion: 1,
-        sourceApp: 'nimi.zhiyu',
-        sourceHost: 'desktop-electron-installed-app-host',
-        requestId: 'desktop-open-20260708-request',
-        intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
-      });
-      expect(JSON.stringify(body)).not.toContain('desktop-open-token');
+      expect(fetchCalls).toEqual([]);
     });
   });
 
@@ -165,7 +145,7 @@ describe('Electron Desktop Open Intent host client', () => {
     });
   });
 
-  it('does not allow installed app hosts to override the installed sourceHost stamp', async () => {
+  it('denies installed app source-host fixtures before A.1', async () => {
     await withTempDir('desktop-open-installed-sourcehost-override', async (dir) => {
       const descriptorPath = path.join(dir, 'presence.v1.json');
       await writeDescriptor(descriptorPath, {
@@ -209,7 +189,7 @@ describe('Electron Desktop Open Intent host client', () => {
         },
       });
 
-      await invokeBridge(ipcMain, createInvokeEvent().event, {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
         payload: {
           payload: {
@@ -217,9 +197,11 @@ describe('Electron Desktop Open Intent host client', () => {
             intent: { kind: 'open-apps' },
           },
         },
+      })).rejects.toMatchObject({
+        code: 'capability-unavailable',
+        reasonCode: 'electron-standard-capability-not-in-host-set',
       });
-
-      expect(postedSourceHost).toBe('desktop-electron-installed-app-host');
+      expect(postedSourceHost).toBe('');
     });
   });
 

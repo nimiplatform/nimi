@@ -363,7 +363,7 @@
         "export { createInstalledNimiAppStandardShellSurface, readInstalledNimiAppLaunchBinding, } from './installed-app.js';",
         "export { extractShellBridgeErrorCode, getShellBridgeUserMessageProjection, parseShellBridgeJsonPayload, toShellBridgeNimiError, toShellBridgeUserMessage, } from './nimi-error.js';",
         "export { floatingWindowSetBounds, floatingWindowSetIgnoreCursorEvents, floatingWindowSetAlwaysOnTop, floatingWindowHide, floatingWindowClose, floatingWindowBeginManualDrag, floatingWindowMoveManualDrag, floatingWindowConstrainToVisibleArea, } from './floating-window.js';",
-        "export { getDaemonStatus, startDaemon, stopDaemon, restartDaemon, getDaemonConfig, setDaemonConfig, } from './runtime-daemon.js';",
+        "export { getDaemonStatus, startDaemon, restartDaemon, getDaemonConfig, setDaemonConfig, } from './runtime-daemon.js';",
         "export { getRuntimeDefaults} from './runtime-defaults.js';",
         "export { getShellPlatformProjection, } from './platform-projection.js';",
         "export { hasElectronInvoke, hasShellHostInvoke, hasTauriInvoke} from './env.js';",

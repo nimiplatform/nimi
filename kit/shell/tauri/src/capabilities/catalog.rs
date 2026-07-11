@@ -110,11 +110,6 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &["external-daemon-required"],
             },
             StandardShellOperation {
-                id: "stop",
-                command: "nimi.shell.runtimeLifecycle.stop",
-                negative_states: &["external-daemon-required"],
-            },
-            StandardShellOperation {
                 id: "restart",
                 command: "nimi.shell.runtimeLifecycle.restart",
                 negative_states: &["external-daemon-required"],
@@ -638,6 +633,27 @@ mod tests {
                 .negative_states
                 .contains(&"external-daemon-required"));
         }
+    }
+
+    #[test]
+    fn runtime_lifecycle_catalog_excludes_product_stop_operation() {
+        let lifecycle = STANDARD_SHELL_CAPABILITIES
+            .iter()
+            .find(|capability| capability.id == "runtime-lifecycle")
+            .expect("runtime lifecycle capability");
+        let operation_ids = lifecycle
+            .operations
+            .iter()
+            .map(|operation| operation.id)
+            .collect::<Vec<_>>();
+        let commands = lifecycle
+            .operations
+            .iter()
+            .map(|operation| operation.command)
+            .collect::<Vec<_>>();
+
+        assert_eq!(operation_ids, vec!["status", "start", "restart"]);
+        assert!(!commands.contains(&"nimi.shell.runtimeLifecycle.stop"));
     }
 
     #[test]

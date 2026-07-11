@@ -268,7 +268,10 @@ const requiredStandardShellCapabilityIds = [
 ];
 const requiredStandardShellErrorCodes = [
   'capability-unavailable',
-  'external-daemon-required',
+  'protected-carrier-required',
+  'runtime-service-unavailable',
+  'runtime-service-untrusted',
+  'runtime-service-repair-required',
   'runtime-permission-denied',
   'runtime-unauthenticated',
   'forbidden-renderer-access',
@@ -304,8 +307,8 @@ function assertStandardShellCapabilityCatalog() {
     .find((entry) => entry?.id === 'runtime')
     ?.operations
     ?.filter((operation) => ['unary', 'streamOpen'].includes(String(operation?.id || '')))
-    ?.some((operation) => !Array.isArray(operation?.negative_states) || !operation.negative_states.includes('external-daemon-required'));
-  expect(!missingRuntimeUnavailableCoverage, 'standard-shell-capabilities.yaml: runtime unary/streamOpen must include endpoint unavailable or daemon unreachable negative coverage');
+    ?.some((operation) => !Array.isArray(operation?.negative_states) || !operation.negative_states.includes('protected-carrier-required'));
+  expect(!missingRuntimeUnavailableCoverage, 'standard-shell-capabilities.yaml: runtime unary/streamOpen must include protected-carrier-required negative coverage');
 
   const capabilitySourcePath = path.join(kitRoot, 'shell', 'capabilities', 'src', 'index.ts');
   const capabilitySourceRoot = path.join(kitRoot, 'shell', 'capabilities', 'src');
@@ -351,11 +354,21 @@ function assertStandardShellCapabilityCatalog() {
       && capabilitySource.includes(`'P-KIT-044'`),
     'kit/shell/capabilities/src/index.ts: missing installed app capability-set projection',
   );
-  for (const field of ['allowed_operations', 'forbidden_operations', 'negative_tests']) {
+  expect(installedSet?.authority_status === 'blocked_pending_a1', 'standard-shell-capabilities.yaml: installed app capability set must remain blocked_pending_a1');
+  expect(Array.isArray(installedSet?.allowed_operations) && installedSet.allowed_operations.length === 0, 'standard-shell-capabilities.yaml: blocked installed app capability set allowed_operations must be empty');
+  expect(installedSet?.planned_operations_disposition === 'deny_until_a1_authority_and_implementation', 'standard-shell-capabilities.yaml: planned installed app operations must remain deny-only');
+  for (const field of ['planned_operations', 'forbidden_operations', 'negative_tests']) {
     expect(
       Array.isArray(installedSet?.[field]) && installedSet[field].length > 0,
       `standard-shell-capabilities.yaml: installed-nimi-app-standard-shell-v1 ${field} must not be empty`,
     );
+  }
+  for (const operationRef of Array.isArray(installedSet?.planned_operations) ? installedSet.planned_operations : []) {
+    const normalizedRef = String(operationRef || '').trim();
+    const command = commandByOperationRef.get(normalizedRef);
+    expect(command, `standard-shell-capabilities.yaml: capability set planned operation ${normalizedRef} must resolve to a standard command`);
+    expect(capabilitySource.includes(`'${normalizedRef}'`), `kit/shell/capabilities/src/index.ts: missing planned capability set operation ${normalizedRef}`);
+    expect(capabilitySource.includes(`'${command}'`), `kit/shell/capabilities/src/index.ts: missing planned capability set command ${command}`);
   }
   for (const retiredOperation of requiredRetiredAuthSessionForbiddenOperations) {
     expect(

@@ -13,7 +13,6 @@ fn env_value(key: &str, default: &str) -> String {
 pub struct RealmDefaults {
     pub realm_base_url: String,
     pub realtime_url: String,
-    pub access_token: String,
     pub jwks_url: String,
     pub revocation_url: String,
     pub jwt_issuer: String,
@@ -112,7 +111,6 @@ pub fn runtime_defaults() -> RuntimeDefaults {
         realm: RealmDefaults {
             realm_base_url: realm_base_url.clone(),
             realtime_url: env_value("NIMI_REALTIME_URL", ""),
-            access_token: env_value("NIMI_ACCESS_TOKEN", ""),
             jwks_url,
             revocation_url,
             jwt_issuer,
@@ -244,12 +242,13 @@ mod tests {
     }
 
     #[test]
-    fn runtime_defaults_projects_env_access_token_for_shell_bootstrap_only() {
+    fn runtime_defaults_ignores_env_access_token() {
         with_env_vars(
             &[("NIMI_ACCESS_TOKEN", Some("runtime-defaults-token"))],
             || {
                 let defaults = runtime_defaults();
-                assert_eq!(defaults.realm.access_token, "runtime-defaults-token");
+                let realm = serde_json::to_value(defaults.realm).expect("realm defaults json");
+                assert!(realm.get("accessToken").is_none());
             },
         );
     }

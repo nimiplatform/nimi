@@ -4,10 +4,7 @@ export type ElectronRuntimeBridgeCommandSuffix =
   | 'stream_close'
   | 'status'
   | 'start'
-  | 'stop'
-  | 'restart'
-  | 'config_get'
-  | 'config_set';
+  | 'restart';
 
 export type ElectronRuntimeBridgeCommandNames = Readonly<Record<ElectronRuntimeBridgeCommandSuffix, string>>;
 
@@ -29,11 +26,6 @@ export type ElectronRuntimeBridgeTrustedIdentityMetadata = ElectronRuntimeBridge
   readonly participantId?: string;
   readonly callerKind?: string;
   readonly callerId?: string;
-};
-
-export type ElectronRuntimeBridgeProtectedAccessToken = {
-  readonly tokenId: string;
-  readonly secret: string;
 };
 
 export type ElectronRuntimeBridgeAppSession = {
@@ -68,8 +60,6 @@ export type ElectronRuntimeBridgeStreamCloseRequest = {
 
 export type ElectronRuntimeBridgeTrustedMetadata = {
   readonly metadata?: ElectronRuntimeBridgeTrustedIdentityMetadata;
-  readonly authorization?: string;
-  readonly protectedAccessToken?: ElectronRuntimeBridgeProtectedAccessToken;
   readonly appSession?: ElectronRuntimeBridgeAppSession;
 };
 
@@ -222,14 +212,6 @@ export type NimiElectronOAuthTokenExchangeFetch = (
   },
 ) => Promise<NimiElectronOAuthTokenExchangeResponse>;
 
-export type NimiElectronRuntimeConfigGetResult = {
-  readonly path: string;
-  readonly config: Readonly<Record<string, unknown>>;
-};
-
-export type NimiElectronRuntimeConfigGet = (
-) => Promise<NimiElectronRuntimeConfigGetResult> | NimiElectronRuntimeConfigGetResult;
-
 export type NimiElectronDesktopOpenFetchResponse = {
   readonly ok?: boolean;
   readonly status: number;
@@ -381,7 +363,6 @@ export type NimiElectronStandardShellHost = {
   readonly runtimeTrustedCaller?: NimiElectronRuntimeTrustedCallerInput;
   readonly aiConfigStore?: NimiElectronAIConfigStore;
   readonly oauthTokenExchangeFetch?: NimiElectronOAuthTokenExchangeFetch;
-  readonly runtimeConfigGet?: NimiElectronRuntimeConfigGet;
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };
 
