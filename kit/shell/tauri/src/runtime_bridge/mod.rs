@@ -510,6 +510,28 @@ pub async fn current_daemon_status_async() -> RuntimeBridgeDaemonStatus {
     service_control::status_async().await
 }
 
+/// Host-only installed launch continuation. Registering a Tauri command or
+/// exposing this function to renderer IPC requires a separate typed Desktop
+/// owner; launch correlation and executable paths are never parsed here from
+/// argv, env, or renderer metadata.
+pub async fn launch_installed_app_host(
+    launch_id: [u8; 32],
+    executable_path: PathBuf,
+) -> Result<u32, String> {
+    service_control::launch_installed_app(nimi_shell_protected_local::InstalledAppLaunchRequest {
+        launch_id,
+        executable_path,
+    })
+    .await
+    .map(|outcome| outcome.process_id)
+    .map_err(|error| {
+        bridge_error(
+            "RUNTIME_BRIDGE_INSTALLED_LAUNCH_FAILED",
+            error.reason_code().as_str(),
+        )
+    })
+}
+
 async fn sync_menu_bar_daemon_status(
     app: &AppHandle,
     result: &Result<RuntimeBridgeDaemonStatus, String>,
@@ -555,13 +577,13 @@ mod tests {
 
     use super::{
         channel_invalidation_count, current_daemon_status, invoke_unary_typed_with_metadata,
-        is_allowlisted_method, is_stream_method, reset_channel_invalidation_count,
-        restart_daemon_async, runtime_bridge_unary, start_daemon_async,
-        stream_event_name_with_namespace, with_runtime_bridge_host_hooks, RuntimeBridgeAppSession,
-        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
-        RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
-        RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE,
-        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+        is_allowlisted_method, is_stream_method, launch_installed_app_host,
+        reset_channel_invalidation_count, restart_daemon_async, runtime_bridge_unary,
+        start_daemon_async, stream_event_name_with_namespace, with_runtime_bridge_host_hooks,
+        RuntimeBridgeAppSession, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
+        RuntimeBridgeProtectedAccessToken, RuntimeBridgeTrustedMetadata,
+        RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeUnaryPayload,
+        RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
     };
 
     #[test]
@@ -611,6 +633,17 @@ mod tests {
                 || last_error.contains("runtime-service-unavailable")
                 || last_error.contains("runtime-service-untrusted")
         );
+    }
+
+    #[tokio::test]
+    async fn installed_launch_host_requires_retained_protected_control() {
+        let error = launch_installed_app_host(
+            [0x41; 32],
+            std::path::PathBuf::from(r"C:\Program Files\Nimi\missing-app.exe"),
+        )
+        .await
+        .expect_err("unbound Desktop control must fail closed");
+        assert!(error.contains("protected-carrier-required"));
     }
 
     #[test]

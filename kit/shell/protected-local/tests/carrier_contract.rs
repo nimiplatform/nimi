@@ -1,8 +1,11 @@
 use nimi_shell_protected_local::{
-    LinuxUnixSocketCarrier, MacOsPrivilegedXpcCarrier, NimiProtectedLocalHostCarrier,
+    LinuxInstalledAppCarrier, LinuxUnixSocketCarrier, MacOsInstalledAppCarrier,
+    MacOsPrivilegedXpcCarrier, NimiInstalledAppCarrier, NimiProtectedLocalHostCarrier,
     ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
     RuntimeServiceState, RuntimeServiceStatus, WindowsNamedPipeCarrier,
 };
+#[cfg(not(target_os = "windows"))]
+use nimi_shell_protected_local::WindowsInstalledAppCarrier;
 
 async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     for error in [
@@ -23,12 +26,29 @@ async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     }
 }
 
+async fn assert_installed_unbound<C: NimiInstalledAppCarrier>(carrier: C) {
+    let error = match carrier.open_installed_app_session().await {
+        Ok(_) => panic!("unbound installed carrier must not open a session"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.reason_code(),
+        ProtectedCarrierReasonCode::ProtectedCarrierRequired
+    );
+    assert!(!error.retryable());
+}
+
 #[tokio::test]
 async fn compile_only_os_adapters_fail_closed_when_unbound() {
     assert_unbound(LinuxUnixSocketCarrier).await;
     assert_unbound(MacOsPrivilegedXpcCarrier).await;
     #[cfg(not(target_os = "windows"))]
     assert_unbound(WindowsNamedPipeCarrier).await;
+
+    assert_installed_unbound(LinuxInstalledAppCarrier).await;
+    assert_installed_unbound(MacOsInstalledAppCarrier).await;
+    #[cfg(not(target_os = "windows"))]
+    assert_installed_unbound(WindowsInstalledAppCarrier).await;
 }
 
 #[cfg(target_os = "windows")]

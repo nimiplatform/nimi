@@ -184,7 +184,7 @@ describe('standard shell capabilities', () => {
     expect(readCapabilitySetList('planned_operations', catalog)).toContain('storage.removeJson');
   });
 
-  it('keeps all installed app operations blocked pending A.1', () => {
+  it('keeps all standard-shell operations blocked after narrow Windows A.1 carrier admission', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
@@ -194,6 +194,8 @@ describe('standard shell capabilities', () => {
     expect(installedSet?.forbiddenOperations).toEqual(readCapabilitySetList('forbidden_operations', catalog));
     expect(installedSet?.allowedOperations).toEqual([]);
     expect(installedSet?.allowedCommands).toEqual([]);
+    expect(installedSet?.authorityStatus).toBe('a1_windows_admitted_implementation_pending');
+    expect(installedSet?.plannedOperationsDisposition).toBe('deny_until_a4_carrier_and_operation_admission');
     expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
       'ai-config.get',
       'ai-config.set',

@@ -1,3 +1,4 @@
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { BridgeError } from './invoke.js';
 import type { JsonObject, JsonValue } from './types.js';
 
@@ -41,23 +42,23 @@ export type InstalledNimiAppStorageRemoveJsonResult = {
 export function createInstalledNimiAppStandardShellSurface(): InstalledNimiAppStandardShellSurface {
   return {
     aiConfig: {
-      get: () => rejectInstalledAppCarrier('nimi.shell.aiConfig.get'),
-      set: () => rejectInstalledAppCarrier('nimi.shell.aiConfig.set'),
+      get: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']),
+      set: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']),
     },
     config: {
-      get: () => rejectInstalledAppCarrier('nimi.shell.config.get'),
-      set: () => rejectInstalledAppCarrier('nimi.shell.config.set'),
+      get: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['config.get']),
+      set: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['config.set']),
     },
     data: {
-      resolvePath: () => rejectInstalledAppCarrier('nimi.shell.data.pathResolve'),
+      resolvePath: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']),
     },
     storage: {
-      readJson: () => rejectInstalledAppCarrier('nimi.shell.storage.readJson'),
-      writeJson: () => rejectInstalledAppCarrier('nimi.shell.storage.writeJson'),
-      removeJson: () => rejectInstalledAppCarrier('nimi.shell.storage.removeJson'),
+      readJson: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']),
+      writeJson: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']),
+      removeJson: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']),
     },
     localAssets: {
-      resolveUrl: () => rejectInstalledAppCarrier('nimi.shell.localAssets.resolveUrl'),
+      resolveUrl: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']),
     },
   };
 }
@@ -72,12 +73,12 @@ function rejectInstalledAppCarrier<T>(command: string): Promise<T> {
 
 function installedAppCarrierRequired(command: string): BridgeError {
   return new BridgeError(
-    'Installed Nimi App operations require the A.1 installed-app carrier.',
+    'Installed Nimi App standard-shell operations require explicit A.4 operation admission.',
     command,
     {
       code: 'capability-unavailable',
       reasonCode: 'renderer-installed-app-carrier-required',
-      actionHint: 'wait_for_a1_installed_app_carrier',
+      actionHint: 'wait_for_a4_installed_operation_admission',
       source: 'renderer',
       details: { command },
     },

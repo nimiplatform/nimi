@@ -215,13 +215,14 @@ executable suspended, and submits its PID over retained protected Desktop
 control before resuming it. The child opens the fixed installed pipe itself;
 Kit never inherits or forwards a pre-connected pipe handle and cannot create
 launch, process, release, account/session or capability truth.
-`tables/standard-shell-capabilities.yaml` records
-`installed-nimi-app-standard-shell-v1` as `blocked_pending_a1`, with an empty
-`allowed_operations` list. Its planned operation list is conflict/planning
-inventory only and has deny disposition. No Electron/Tauri metadata, launch
-nonce, Runtime unary proxy, host provider, app id, or standard-shell operation
-may approximate the future carrier. Product positive evidence remains
-impossible until A.1 authority and implementation land.
+`tables/standard-shell-capabilities.yaml` records the Windows launch/session
+carrier as `a1_windows_admitted_implementation_pending`, while keeping its
+`allowed_operations` list empty. The A.1 carrier admits only exact process
+launch binding and opaque installed-session establishment; its planned
+standard-shell operation list remains deny-only until A4 carrier and operation
+admission. No Electron/Tauri metadata, Runtime unary proxy, host provider, app
+id, or standard-shell operation may upgrade that narrow native carrier.
+macOS/Linux remain fail-closed and cannot claim A.1 completion.
 
 ## P-KIT-045 - Desktop Open Intent Kit Surfaces
 

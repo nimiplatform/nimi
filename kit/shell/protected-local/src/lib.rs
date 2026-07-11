@@ -9,13 +9,24 @@ mod generated {
 }
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
+mod windows_installed_launch;
+#[cfg(target_os = "windows")]
+mod windows_installed_session;
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
 mod windows_peer_trust;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_service_control;
 
-pub use adapters::{LinuxUnixSocketCarrier, MacOsPrivilegedXpcCarrier, WindowsNamedPipeCarrier};
-pub use carrier::{NimiDesktopControl, NimiProtectedLocalHostCarrier};
+pub use adapters::{
+    LinuxInstalledAppCarrier, LinuxUnixSocketCarrier, MacOsInstalledAppCarrier,
+    MacOsPrivilegedXpcCarrier, WindowsInstalledAppCarrier, WindowsNamedPipeCarrier,
+};
+pub use carrier::{
+    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, NimiDesktopControl,
+    NimiInstalledAppCarrier, NimiInstalledAppSession, NimiProtectedLocalHostCarrier,
+};
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{
     FixedRuntimeServiceControl, RuntimeServiceAction, RuntimeServiceActionOutcome,

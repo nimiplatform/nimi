@@ -5,11 +5,12 @@ use nimi_shell_protected_local::MacOsPrivilegedXpcCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsNamedPipeCarrier;
 use nimi_shell_protected_local::{
-    FixedRuntimeServiceControl, NimiDesktopControl, NimiProtectedLocalHostCarrier,
-    ProtectedCarrierError, ProtectedCarrierReasonCode, RuntimeServiceAction,
-    RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
+    FixedRuntimeServiceControl, InstalledAppLaunchOutcome, InstalledAppLaunchRequest,
+    NimiDesktopControl, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
+    RuntimeServiceState, RuntimeServiceStatus,
 };
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use super::{error_map::bridge_error, RuntimeBridgeDaemonStatus};
 
@@ -24,7 +25,7 @@ type PlatformCarrier = MacOsPrivilegedXpcCarrier;
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 type PlatformCarrier = LinuxUnixSocketCarrier;
 
-static DESKTOP_CONTROL: OnceLock<Mutex<Option<Box<dyn NimiDesktopControl>>>> = OnceLock::new();
+static DESKTOP_CONTROL: OnceLock<Mutex<Option<Arc<dyn NimiDesktopControl>>>> = OnceLock::new();
 
 pub(super) fn status() -> RuntimeBridgeDaemonStatus {
     let carrier = PlatformCarrier::default();
@@ -135,7 +136,20 @@ fn retain_desktop_control(
         ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUntrusted, false)
     })?;
     if slot.is_none() {
-        *slot = Some(control);
+        *slot = Some(Arc::from(control));
     }
     Ok(())
+}
+
+pub(super) async fn launch_installed_app(
+    request: InstalledAppLaunchRequest,
+) -> Result<InstalledAppLaunchOutcome, ProtectedCarrierError> {
+    let control = DESKTOP_CONTROL
+        .get()
+        .and_then(|slot| slot.lock().ok())
+        .and_then(|slot| slot.clone())
+        .ok_or_else(|| {
+            ProtectedCarrierError::new(ProtectedCarrierReasonCode::ProtectedCarrierRequired, false)
+        })?;
+    control.launch_installed_app(request).await
 }

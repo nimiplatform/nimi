@@ -134,7 +134,7 @@ describe('installNimiShellRuntimeBridge', () => {
     await expect(hook!.listen('evt', () => {})).rejects.toThrow(/unsubscribe/);
   });
 
-  it('rejects installed app launch bindings before A.1', () => {
+  it('keeps installed launch authority out of renderer after A.1 native admission', () => {
     const launchBinding = {
       appId: 'nimi.fixture',
       appInstanceId: 'nimi.fixture.desktop-installed',
@@ -151,7 +151,7 @@ describe('installNimiShellRuntimeBridge', () => {
     };
 
     expect(installNimiShellRuntimeBridge()).toEqual({ installed: true, host: 'tauri' });
-    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.1 installed-app carrier/i);
+    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.4 operation admission/i);
   });
 
   it('rejects forged installed app launch bindings before parsing fields', () => {
@@ -170,7 +170,7 @@ describe('installNimiShellRuntimeBridge', () => {
       },
     };
 
-    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.1 installed-app carrier/i);
+    expect(() => readInstalledNimiAppLaunchBinding()).toThrow(/A\.4 operation admission/i);
   });
 
   it('lets apps consume the scoped runtime hook without treating it as native Tauri', async () => {

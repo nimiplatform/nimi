@@ -354,9 +354,9 @@ function assertStandardShellCapabilityCatalog() {
       && capabilitySource.includes(`'P-KIT-044'`),
     'kit/shell/capabilities/src/index.ts: missing installed app capability-set projection',
   );
-  expect(installedSet?.authority_status === 'blocked_pending_a1', 'standard-shell-capabilities.yaml: installed app capability set must remain blocked_pending_a1');
-  expect(Array.isArray(installedSet?.allowed_operations) && installedSet.allowed_operations.length === 0, 'standard-shell-capabilities.yaml: blocked installed app capability set allowed_operations must be empty');
-  expect(installedSet?.planned_operations_disposition === 'deny_until_a1_authority_and_implementation', 'standard-shell-capabilities.yaml: planned installed app operations must remain deny-only');
+  expect(installedSet?.authority_status === 'a1_windows_admitted_implementation_pending', 'standard-shell-capabilities.yaml: installed app capability set must retain narrow Windows A.1 admission');
+  expect(Array.isArray(installedSet?.allowed_operations) && installedSet.allowed_operations.length === 0, 'standard-shell-capabilities.yaml: A.4-pending installed app capability set allowed_operations must be empty');
+  expect(installedSet?.planned_operations_disposition === 'deny_until_a4_carrier_and_operation_admission', 'standard-shell-capabilities.yaml: planned installed app operations must remain deny-only until A.4');
   for (const field of ['planned_operations', 'forbidden_operations', 'negative_tests']) {
     expect(
       Array.isArray(installedSet?.[field]) && installedSet[field].length > 0,

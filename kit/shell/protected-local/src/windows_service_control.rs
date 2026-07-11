@@ -19,9 +19,10 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::OpenDesktopSessionRequest;
 use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
 use crate::{
-    FixedRuntimeServiceControl, NimiDesktopControl, NimiProtectedLocalHostCarrier,
-    ProtectedCarrierError, ProtectedCarrierReasonCode, RuntimeServiceActionOutcome,
-    RuntimeServiceState, RuntimeServiceStatus,
+    FixedRuntimeServiceControl, InstalledAppLaunchOutcome, InstalledAppLaunchRequest,
+    NimiDesktopControl, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
+    RuntimeServiceStatus,
 };
 
 const RUNTIME_SERVICE_NAME: &str = "NimiRuntime";
@@ -37,7 +38,23 @@ struct WindowsDesktopControl {
     _runtime_boot_epoch: [u8; 32],
 }
 
-impl NimiDesktopControl for WindowsDesktopControl {}
+impl NimiDesktopControl for WindowsDesktopControl {
+    fn launch_installed_app(
+        &self,
+        request: InstalledAppLaunchRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<InstalledAppLaunchOutcome, ProtectedCarrierError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::windows_installed_launch::launch_installed_app(
+            self._channel.clone(),
+            request,
+        ))
+    }
+}
 
 impl FixedRuntimeServiceControl for WindowsNamedPipeCarrier {
     fn runtime_service_status(&self) -> Result<RuntimeServiceStatus, ProtectedCarrierError> {
@@ -95,17 +112,8 @@ impl NimiProtectedLocalHostCarrier for WindowsNamedPipeCarrier {
 
 async fn open_verified_desktop_control(
 ) -> Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError> {
-    let before = query_service_status()?;
-    let expected_pid = running_service_pid(&before)?;
-    let pipe = ClientOptions::new()
-        .open(RUNTIME_PROTECTED_PIPE_NAME)
-        .map_err(|_| unavailable())?;
-    let pipe_server_pid = named_pipe_server_pid_from_handle(pipe.as_raw_handle() as HANDLE)?;
-    let after = query_service_status()?;
-    let observed_pid = running_service_pid(&after)?;
-    validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
-    let runtime_peer = verify_runtime_peer_code_signing(pipe_server_pid)?;
-    let channel = channel_from_verified_pipe(pipe).await?;
+    let (channel, runtime_peer) =
+        open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
     let mut client = RuntimeAuthServiceClient::new(channel.clone());
     let response = client
         .open_desktop_session(OpenDesktopSessionRequest {})
@@ -129,6 +137,23 @@ async fn open_verified_desktop_control(
         _desktop_session_id: desktop_session_id,
         _runtime_boot_epoch: runtime_boot_epoch,
     }))
+}
+
+pub(crate) async fn open_verified_runtime_channel(
+    pipe_name: &'static str,
+) -> Result<(Channel, VerifiedRuntimePeer), ProtectedCarrierError> {
+    let before = query_service_status()?;
+    let expected_pid = running_service_pid(&before)?;
+    let pipe = ClientOptions::new()
+        .open(pipe_name)
+        .map_err(|_| unavailable())?;
+    let pipe_server_pid = named_pipe_server_pid_from_handle(pipe.as_raw_handle() as HANDLE)?;
+    let after = query_service_status()?;
+    let observed_pid = running_service_pid(&after)?;
+    validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
+    let runtime_peer = verify_runtime_peer_code_signing(pipe_server_pid)?;
+    let channel = channel_from_verified_pipe(pipe).await?;
+    Ok((channel, runtime_peer))
 }
 
 async fn channel_from_verified_pipe(

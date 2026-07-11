@@ -77,7 +77,7 @@ describe('Electron standard shell capability catalog', () => {
     expect(Object.values(NIMI_STANDARD_SHELL_COMMANDS)).not.toContain('nimi.shell.runtimeLifecycle.stop');
   });
 
-  it('keeps the installed Nimi App capability set blocked pending A.1', () => {
+  it('admits only the Windows A.1 carrier while standard-shell operations remain A.4-blocked', () => {
     const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find((set) =>
       set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID
     );
@@ -85,10 +85,10 @@ describe('Electron standard shell capability catalog', () => {
       setId: 'installed-nimi-app-standard-shell-v1',
       hostClass: 'desktop-electron-installed-app-host',
       appPackageKind: 'nimi-app',
-      launchResolution: 'blocked_pending_a1_no_product_launch',
-      authBinding: 'binding_only_no_protected_session',
-      authorityStatus: 'blocked_pending_a1',
-      plannedOperationsDisposition: 'deny_until_a1_authority_and_implementation',
+      launchResolution: 'runtime_launch_record_windows_pending_a4_host_consumption',
+      authBinding: 'runtime_owned_installed_session_host_carried',
+      authorityStatus: 'a1_windows_admitted_implementation_pending',
+      plannedOperationsDisposition: 'deny_until_a4_carrier_and_operation_admission',
       sourceRule: 'P-KIT-044',
     });
     expect(installedSet?.allowedOperations).toEqual([]);

@@ -1,7 +1,7 @@
 use crate::{
-    FixedRuntimeServiceControl, NimiDesktopControl, NimiProtectedLocalHostCarrier,
-    ProtectedCarrierError, ProtectedCarrierReasonCode, RuntimeServiceActionOutcome,
-    RuntimeServiceStatus,
+    FixedRuntimeServiceControl, NimiDesktopControl, NimiInstalledAppCarrier,
+    NimiInstalledAppSession, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceStatus,
 };
 
 fn unbound() -> ProtectedCarrierError {
@@ -55,5 +55,37 @@ define_unbound_carrier!(WindowsNamedPipeCarrier);
 define_unbound_carrier!(LinuxUnixSocketCarrier);
 define_unbound_carrier!(MacOsPrivilegedXpcCarrier);
 
+macro_rules! define_unbound_installed_carrier {
+    ($name:ident) => {
+        #[derive(Clone, Copy, Debug, Default)]
+        pub struct $name;
+
+        impl NimiInstalledAppCarrier for $name {
+            fn open_installed_app_session(
+                &self,
+            ) -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<
+                            Output = Result<
+                                Box<dyn NimiInstalledAppSession>,
+                                ProtectedCarrierError,
+                            >,
+                        > + Send
+                        + '_,
+                >,
+            > {
+                Box::pin(async { Err(unbound()) })
+            }
+        }
+    };
+}
+
+#[cfg(not(target_os = "windows"))]
+define_unbound_installed_carrier!(WindowsInstalledAppCarrier);
+define_unbound_installed_carrier!(LinuxInstalledAppCarrier);
+define_unbound_installed_carrier!(MacOsInstalledAppCarrier);
+
+#[cfg(target_os = "windows")]
+pub use crate::windows_installed_session::WindowsInstalledAppCarrier;
 #[cfg(target_os = "windows")]
 pub use crate::windows_service_control::WindowsNamedPipeCarrier;
