@@ -1,12 +1,23 @@
 use std::ffi::OsStr;
 use std::fs::{File, OpenOptions};
+use std::future::Future;
+use std::io;
 use std::os::windows::io::AsRawHandle;
+use std::pin::Pin;
+use std::sync::{Arc, Mutex};
 
+use hyper_util::rt::TokioIo;
+use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
+use tonic::transport::{Channel, Endpoint};
+use tower::service_fn;
 use windows_service::service::{ServiceAccess, ServiceState};
 use windows_service::service_manager::{ServiceManager, ServiceManagerAccess};
 use windows_sys::Win32::Foundation::HANDLE;
 use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 
+use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
+use crate::generated::OpenDesktopSessionRequest;
+use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
 use crate::{
     FixedRuntimeServiceControl, NimiDesktopControl, NimiProtectedLocalHostCarrier,
     ProtectedCarrierError, ProtectedCarrierReasonCode, RuntimeServiceActionOutcome,
@@ -18,6 +29,15 @@ const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-protected-v1";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WindowsNamedPipeCarrier;
+
+struct WindowsDesktopControl {
+    _channel: Channel,
+    _runtime_peer: VerifiedRuntimePeer,
+    _desktop_session_id: [u8; 32],
+    _runtime_boot_epoch: [u8; 32],
+}
+
+impl NimiDesktopControl for WindowsDesktopControl {}
 
 impl FixedRuntimeServiceControl for WindowsNamedPipeCarrier {
     fn runtime_service_status(&self) -> Result<RuntimeServiceStatus, ProtectedCarrierError> {
@@ -60,14 +80,77 @@ impl FixedRuntimeServiceControl for WindowsNamedPipeCarrier {
 }
 
 impl NimiProtectedLocalHostCarrier for WindowsNamedPipeCarrier {
-    fn open_desktop_control(&self) -> Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError> {
-        // An SCM observation is not transport authority. Named-pipe peer and
-        // release verification plus OpenDesktopSession are the next slice.
-        Err(ProtectedCarrierError::new(
-            ProtectedCarrierReasonCode::ProtectedCarrierRequired,
-            false,
-        ))
+    fn open_desktop_control(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async { open_verified_desktop_control().await })
     }
+}
+
+async fn open_verified_desktop_control(
+) -> Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError> {
+    let before = query_service_status()?;
+    let expected_pid = running_service_pid(&before)?;
+    let pipe = ClientOptions::new()
+        .open(RUNTIME_PROTECTED_PIPE_NAME)
+        .map_err(|_| unavailable())?;
+    let pipe_server_pid = named_pipe_server_pid_from_handle(pipe.as_raw_handle() as HANDLE)?;
+    let after = query_service_status()?;
+    let observed_pid = running_service_pid(&after)?;
+    validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
+    let runtime_peer = verify_runtime_peer_code_signing(pipe_server_pid)?;
+    let channel = channel_from_verified_pipe(pipe).await?;
+    let mut client = RuntimeAuthServiceClient::new(channel.clone());
+    let response = client
+        .open_desktop_session(OpenDesktopSessionRequest {})
+        .await
+        .map_err(|_| untrusted())?
+        .into_inner();
+    let desktop_session_id: [u8; 32] = response
+        .desktop_session_id
+        .try_into()
+        .map_err(|_| untrusted())?;
+    let runtime_boot_epoch: [u8; 32] = response
+        .runtime_boot_epoch
+        .try_into()
+        .map_err(|_| untrusted())?;
+    if desktop_session_id == [0u8; 32] || runtime_boot_epoch == [0u8; 32] {
+        return Err(untrusted());
+    }
+    Ok(Box::new(WindowsDesktopControl {
+        _channel: channel,
+        _runtime_peer: runtime_peer,
+        _desktop_session_id: desktop_session_id,
+        _runtime_boot_epoch: runtime_boot_epoch,
+    }))
+}
+
+async fn channel_from_verified_pipe(
+    pipe: NamedPipeClient,
+) -> Result<Channel, ProtectedCarrierError> {
+    let pipe = Arc::new(Mutex::new(Some(pipe)));
+    let connector = service_fn(move |_| {
+        let client = pipe
+            .lock()
+            .map_err(|_| io::Error::other("protected pipe connector poisoned"))
+            .and_then(|mut pipe| {
+                pipe.take()
+                    .ok_or_else(|| io::Error::other("protected pipe already consumed"))
+            })
+            .map(TokioIo::new);
+        async move { client }
+    });
+    Endpoint::try_from("http://[::]:50051")
+        .map_err(|_| untrusted())?
+        .connect_with_connector(connector)
+        .await
+        .map_err(|_| untrusted())
 }
 
 fn service_manager() -> Result<ServiceManager, ProtectedCarrierError> {
@@ -102,9 +185,8 @@ fn project_status(state: ServiceState) -> Result<RuntimeServiceStatus, Protected
         }),
         ServiceState::Running => {
             verify_fixed_pipe_scm_binding()?;
-            // PID/service binding alone is insufficient. Exact locked-file,
-            // Authenticode, signed release-record and OpenDesktopSession
-            // verification must all succeed before Running is projected.
+            // PID/service binding alone is insufficient. Platform code-signing
+            // and OpenDesktopSession must both succeed before Running is projected.
             Err(untrusted())
         }
         _ => Err(repair_required()),
@@ -152,7 +234,8 @@ fn verify_fixed_pipe_scm_binding() -> Result<(), ProtectedCarrierError> {
     let pipe_server_pid = named_pipe_server_pid(&pipe)?;
     let after = query_service_status()?;
     let observed_pid = running_service_pid(&after)?;
-    validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)
+    validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
+    verify_runtime_peer_code_signing(pipe_server_pid).map(|_| ())
 }
 
 fn query_service_status() -> Result<windows_service::service::ServiceStatus, ProtectedCarrierError>
@@ -185,7 +268,10 @@ fn open_fixed_runtime_pipe() -> Result<File, ProtectedCarrierError> {
 }
 
 fn named_pipe_server_pid(pipe: &File) -> Result<u32, ProtectedCarrierError> {
-    let handle = pipe.as_raw_handle() as HANDLE;
+    named_pipe_server_pid_from_handle(pipe.as_raw_handle() as HANDLE)
+}
+
+fn named_pipe_server_pid_from_handle(handle: HANDLE) -> Result<u32, ProtectedCarrierError> {
     if handle.is_null() {
         return Err(untrusted());
     }

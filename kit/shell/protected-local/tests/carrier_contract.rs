@@ -4,12 +4,12 @@ use nimi_shell_protected_local::{
     RuntimeServiceState, RuntimeServiceStatus, WindowsNamedPipeCarrier,
 };
 
-fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
+async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     for error in [
         carrier.runtime_service_status().unwrap_err(),
         carrier.request_runtime_service_start().unwrap_err(),
         carrier.request_runtime_service_restart().unwrap_err(),
-        match carrier.open_desktop_control() {
+        match carrier.open_desktop_control().await {
             Ok(_) => panic!("unbound protected carrier must not open a desktop session"),
             Err(error) => error,
         },
@@ -23,26 +23,27 @@ fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     }
 }
 
-#[test]
-fn compile_only_os_adapters_fail_closed_when_unbound() {
-    assert_unbound(LinuxUnixSocketCarrier);
-    assert_unbound(MacOsPrivilegedXpcCarrier);
+#[tokio::test]
+async fn compile_only_os_adapters_fail_closed_when_unbound() {
+    assert_unbound(LinuxUnixSocketCarrier).await;
+    assert_unbound(MacOsPrivilegedXpcCarrier).await;
     #[cfg(not(target_os = "windows"))]
-    assert_unbound(WindowsNamedPipeCarrier);
+    assert_unbound(WindowsNamedPipeCarrier).await;
 }
 
 #[cfg(target_os = "windows")]
-#[test]
-fn windows_carrier_keeps_desktop_control_closed_until_peer_trust_is_bound() {
+#[tokio::test]
+async fn windows_carrier_keeps_desktop_control_closed_until_peer_trust_is_bound() {
     let carrier = WindowsNamedPipeCarrier;
-    let error = match carrier.open_desktop_control() {
+    let error = match carrier.open_desktop_control().await {
         Ok(_) => panic!("native peer verification is required"),
         Err(error) => error,
     };
-    assert_eq!(
+    assert!(matches!(
         error.reason_code(),
-        ProtectedCarrierReasonCode::ProtectedCarrierRequired
-    );
+        ProtectedCarrierReasonCode::RuntimeServiceUnavailable
+            | ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+    ));
 }
 
 #[test]

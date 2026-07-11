@@ -13,6 +13,19 @@ path = "src/lib.rs"
 [features]
 default = []
 
+[dependencies]
+hyper-util = { version = "0.1", features = ["tokio"] }
+prost = "0.14"
+prost-types = "0.14"
+tokio = { version = "1", features = ["macros", "net", "rt", "sync"] }
+tonic = { version = "0.14", features = ["transport"] }
+tonic-prost = "0.14"
+tower = { version = "0.5", features = ["util"] }
+
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.8.1"
-windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Pipes"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_Security_Cryptography_Catalog", "Win32_Security_Cryptography_Sip", "Win32_Security_WinTrust", "Win32_System_Pipes", "Win32_System_Threading"] }
+
+[build-dependencies]
+protoc-bin-vendored = "3"
+tonic-prost-build = "0.14"

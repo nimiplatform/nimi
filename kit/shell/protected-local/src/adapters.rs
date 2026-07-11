@@ -36,8 +36,15 @@ macro_rules! define_unbound_carrier {
         impl NimiProtectedLocalHostCarrier for $name {
             fn open_desktop_control(
                 &self,
-            ) -> Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError> {
-                Err(unbound())
+            ) -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<
+                            Output = Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError>,
+                        > + Send
+                        + '_,
+                >,
+            > {
+                Box::pin(async { Err(unbound()) })
             }
         }
     };

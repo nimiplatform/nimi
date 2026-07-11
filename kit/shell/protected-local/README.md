@@ -23,12 +23,18 @@ process tuples, trust-record paths, or an installed-app child carrier.
 A.1 owns any future installed/developer child carrier. Until then, no launch
 metadata or ordinary gRPC proxy can provide protected app access.
 
-The Windows carrier now binds fixed-name SCM status/start with the minimum
-query/start access. An SCM `running` observation is deliberately reported as
-untrusted until the named-pipe peer, signed release and `OpenDesktopSession`
-handshake are verified; restart also remains closed until it can use the live
-protected connection rather than SCM stop authority. Linux filesystem-UDS and
-macOS privileged-XPC carrier types remain compile-only and fail closed with
-`protected-carrier-required` until their mutually verified native backends are
-bound. No carrier reports synthetic service or session success or exposes a
-generic method-id/byte proxy.
+The Windows carrier binds fixed-name SCM status/start with the minimum
+query/start access. Opening Desktop control connects to the fixed named pipe,
+requires its server PID to match two stable SCM observations, verifies the
+same locked Runtime executable with WinVerifyTrust and the build-admitted Nimi
+signer certificate identity, and performs `OpenDesktopSession` over that same
+pipe. The verified process/executable handles and channel remain private and
+live for the opaque control handle. A build without an admitted signer identity
+fails closed; it is not production-carrier evidence. Restart also remains
+closed until it can use the live protected connection rather than SCM stop
+authority.
+
+Linux filesystem-UDS and macOS privileged-XPC carrier types remain compile-only
+and fail closed with `protected-carrier-required` until their mutually verified
+native backends are admitted independently. No carrier reports synthetic
+service or session success or exposes a generic method-id/byte proxy.
