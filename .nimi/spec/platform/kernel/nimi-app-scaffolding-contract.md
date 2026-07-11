@@ -348,8 +348,8 @@ not substitute for generated default starter acceptance.
 `MUST`: scaffolded installed-app paths consume Runtime/Desktop launch binding
 custody exactly as owned by `K-ACCSVC-022` and `K-APP-017`. The launch host id,
 launch nonce, release descriptor ref, caller posture, and Runtime-issued app
-session metadata are host-owned binding facts supplied through the Desktop
-installed-app host / Kit Electron bridge path.
+session metadata remain inside the Desktop installed-app host and Kit native
+carrier; they are never SDK or renderer bootstrap inputs.
 
 `MUST`: generated default starter source may contain fail-closed installed-app
 mode detection and host bridge consumption, but renderer-owned app code must

@@ -74,6 +74,8 @@ export {
 } from './runtime-account-realm.js';
 export {
   createInstalledNimiAppBootstrap,
+  type InstalledNimiAppArtifactBytes,
+  type InstalledNimiAppArtifactReader,
   type InstalledNimiAppBootstrap,
   type InstalledNimiAppBootstrapInput,
   type InstalledNimiAppStandardShellSurface,

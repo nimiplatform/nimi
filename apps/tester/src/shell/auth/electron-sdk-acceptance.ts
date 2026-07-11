@@ -4,6 +4,7 @@ import { Realm } from '@nimiplatform/sdk/realm';
 import { Runtime } from '@nimiplatform/sdk/runtime';
 import { getRuntimeAccountCaller } from './runtime-platform.js';
 import { createTesterRuntimeTransportConfig } from './runtime-transport.js';
+import { testerInstalledAppBootstrap } from '../installed-app-bootstrap.js';
 
 type TesterElectronSdkAcceptanceProbeResult =
   | {
@@ -27,6 +28,7 @@ type TesterElectronSdkAcceptanceProbeResult =
 type TesterElectronSdkAcceptanceProbe = {
   runtimeReady(): Promise<TesterElectronSdkAcceptanceProbeResult>;
   accountProjection(): Promise<TesterElectronSdkAcceptanceProbeResult>;
+  installedArtifactRead(): Promise<TesterElectronSdkAcceptanceProbeResult>;
   sharedAuthBroker(): Promise<TesterElectronSdkAcceptanceProbeResult>;
 };
 
@@ -102,6 +104,26 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
             reasonCode: response.reasonCode,
             accountReasonCode: response.accountReasonCode,
             accountProjection: response.accountProjection,
+          },
+        };
+      } catch (error) {
+        return serializeSdkAcceptanceError(error, transport);
+      }
+    },
+    async installedArtifactRead() {
+      const transport = acceptanceTransport();
+      try {
+        const artifact = await testerInstalledAppBootstrap.artifacts.readRuntimeBytes(
+          'runtime-artifact-sdk-acceptance',
+        );
+        return {
+          ok: true,
+          transport,
+          status: 'installed-artifact-readable',
+          reason: {
+            mimeType: artifact.mimeType,
+            sizeBytes: artifact.sizeBytes,
+            mimeInferred: artifact.mimeInferred,
           },
         };
       } catch (error) {

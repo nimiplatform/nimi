@@ -14,7 +14,7 @@ export type NimiSDKSharedAuthAppMode =
 export const NIMI_SDK_SHARED_AUTH_RUNTIME_CALLER_MODE: Readonly<Record<NimiSDKSharedAuthAppMode, AccountCallerMode | null>> = {
   'first-party-local-app': AccountCallerMode.LOCAL_FIRST_PARTY_APP,
   'developer-registered-local-app': AccountCallerMode.LOCAL_DEVELOPER_APP,
-  'third-party-nimi-app': AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP,
+  'third-party-nimi-app': null,
   'dev-standalone': null,
   'desktop-account-ux': AccountCallerMode.DESKTOP_SHELL,
   'binding-only-avatar': AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
@@ -31,14 +31,6 @@ export type NimiRuntimeAccountCallerInput = {
   readonly appInstanceId?: string;
   readonly deviceId?: string;
   readonly scopes?: readonly string[];
-};
-
-export const NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID = 'desktop-electron-installed-app-host';
-
-export type NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput = NimiRuntimeAccountCallerInput & {
-  readonly launchHostId: string;
-  readonly launchNonce: string;
-  readonly releaseDescriptorRef: string;
 };
 
 export function createNimiLocalFirstPartyRuntimeAccountCaller(
@@ -96,17 +88,6 @@ export function createNimiBindingOnlyAvatarRuntimeAccountCaller(
     AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
     '',
   );
-}
-
-export function createNimiDesktopLaunchedNimiAppRuntimeAccountCaller(
-  _input: NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput,
-): NimiRuntimeAccountCaller {
-  throw createNimiError({
-    message: 'Desktop-launched installed Nimi App callers require the A.1 protected carrier.',
-    reasonCode: 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
-    actionHint: 'wait_for_a1_installed_app_carrier',
-    source: 'sdk',
-  });
 }
 
 export function createNimiDesktopShellRuntimeAccountCaller(

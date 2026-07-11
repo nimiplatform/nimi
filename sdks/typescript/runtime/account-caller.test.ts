@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   createNimiBindingOnlyAvatarRuntimeAccountCaller,
   createNimiDeveloperRegisteredRuntimeAccountCaller,
-  createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
   resolveNimiSDKSharedAuthRuntimeCallerMode,
@@ -92,46 +91,6 @@ test('Runtime account caller projection supports desktop shell caller identity',
   );
 });
 
-test('Runtime account caller projection blocks Desktop-launched installed Nimi App posture before A.1', () => {
-  assert.throws(
-    () => createNimiDesktopLaunchedNimiAppRuntimeAccountCaller({
-      appId: 'community.nimi.fixture.platform-proof',
-      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
-      deviceId: 'desktop-installed-app-host-device',
-      launchHostId: 'desktop-electron-installed-app-host',
-      launchNonce: 'launch-nonce-1',
-      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-      scopes: [' runtime.account ', '', 'runtime.account'],
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
-  );
-});
-
-test('Runtime account caller projection blocks malformed installed Nimi App input before A.1', () => {
-  assert.throws(
-    () => createNimiDesktopLaunchedNimiAppRuntimeAccountCaller({
-      appId: 'community.nimi.fixture.platform-proof',
-      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
-      deviceId: 'desktop-installed-app-host-device',
-      launchHostId: 'desktop-electron-installed-app-host',
-      launchNonce: '',
-      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
-  );
-  assert.throws(
-    () => createNimiDesktopLaunchedNimiAppRuntimeAccountCaller({
-      appId: 'community.nimi.fixture.platform-proof',
-      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
-      deviceId: 'desktop-installed-app-host-device',
-      launchHostId: 'renderer-spoofed-host',
-      launchNonce: 'launch-nonce-1',
-      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
-  );
-});
-
 test('Runtime account caller projection fails closed on missing identity', () => {
   assert.throws(
     () => createNimiLocalFirstPartyRuntimeAccountCaller({ appId: '' }),
@@ -162,7 +121,7 @@ test('Runtime account caller projection fails closed on missing identity', () =>
 test('SDK shared-auth app modes map exactly to Runtime caller modes', () => {
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('first-party-local-app'), AccountCallerMode.LOCAL_FIRST_PARTY_APP);
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('developer-registered-local-app'), AccountCallerMode.LOCAL_DEVELOPER_APP);
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('third-party-nimi-app'), AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP);
+  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('third-party-nimi-app'), null);
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('desktop-account-ux'), AccountCallerMode.DESKTOP_SHELL);
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('binding-only-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('dev-standalone'), null);

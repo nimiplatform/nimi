@@ -153,5 +153,5 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK installed-app bootstrap consumes host-owned Runtime/Desktop launch binding and must fail closed on renderer-owned auth or launch-binding custody.
+    note: SDK installed-app bootstrap exposes only the P-KIT-044 typed artifact reader, carries no launch/session/caller truth, and fails closed on renderer-owned auth or launch-binding custody.
     evidence_requirement: required

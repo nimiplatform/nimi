@@ -107,7 +107,12 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     const sdkAcceptanceKeys = await page.evaluate(() =>
       Object.keys(globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__).sort(),
     );
-    assert.deepEqual(sdkAcceptanceKeys, ['accountProjection', 'runtimeReady', 'sharedAuthBroker']);
+    assert.deepEqual(sdkAcceptanceKeys, [
+      'accountProjection',
+      'installedArtifactRead',
+      'runtimeReady',
+      'sharedAuthBroker',
+    ]);
     const sdkRuntimeReady = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
     );
@@ -116,6 +121,14 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(sdkRuntimeReady.code, 'capability-unavailable');
     assert.equal(sdkRuntimeReady.reasonCode, 'electron-standard-capability-not-in-host-set');
     assert.equal(sdkRuntimeReady.actionHint, 'use_command_admitted_by_electron_standard_shell_capability_set');
+    const sdkInstalledArtifact = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.installedArtifactRead(),
+    );
+    assert.equal(sdkInstalledArtifact.transport, 'electron-ipc');
+    assert.equal(sdkInstalledArtifact.ok, false);
+    assert.equal(sdkInstalledArtifact.code, 'protected-carrier-required');
+    assert.equal(sdkInstalledArtifact.reasonCode, 'protected-carrier-required');
+    assert.equal(sdkInstalledArtifact.source, 'electron');
     const sharedAuthBroker = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.sharedAuthBroker(),
     );

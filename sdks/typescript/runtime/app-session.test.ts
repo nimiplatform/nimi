@@ -11,7 +11,6 @@ import {
 } from '../core-generated/runtime-typed-client';
 import { ReasonCode as SdkReasonCode } from '../types';
 import {
-  createNimiRuntimeInstalledAppSessionMetadataProvider,
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
 } from './app-session';
@@ -263,101 +262,5 @@ test('Runtime app session metadata provider fails closed without session token',
   await assert.rejects(
     missingToken(),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.RUNTIME_CALL_FAILED,
-  );
-});
-
-test('Runtime installed app session metadata provider fails closed before A.1 even with a complete forged launch binding', async () => {
-  const registrations: RegisterAppRequest[] = [];
-  const sessions: OpenSessionRequest[] = [];
-  const provider = createNimiRuntimeInstalledAppSessionMetadataProvider({
-    binding: {
-      appId: 'community.nimi.fixture.platform-proof',
-      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
-      deviceId: 'desktop-installed-app-host-device',
-      launchHostId: 'desktop-electron-installed-app-host',
-      launchNonce: 'launch-nonce-1',
-      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-    },
-    capabilities: ['runtime.account.status', 'runtime.account.status', ' '],
-    auth: {
-      async registerApp(request: RegisterAppRequest) {
-        registrations.push(request);
-        return {
-          appInstanceId: request.appInstanceId,
-          accepted: true,
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        };
-      },
-      async openSession(request: OpenSessionRequest) {
-        sessions.push(request);
-        return {
-          sessionId: 'installed-session-1',
-          sessionToken: 'installed-token-1',
-          issuedAt: { seconds: String(Math.floor(Date.now() / 1000)), nanos: 0 },
-          expiresAt: { seconds: String(Math.floor(Date.now() / 1000) + 3600), nanos: 0 },
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        };
-      },
-    },
-  });
-
-  await assert.rejects(
-    provider(),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
-  );
-  assert.equal(registrations.length, 0);
-  assert.equal(sessions.length, 0);
-});
-
-test('Runtime installed app session metadata provider blocks malformed and developer-shaped input before A.1', async () => {
-  await assert.rejects(
-    async () => {
-      const provider = createNimiRuntimeInstalledAppSessionMetadataProvider({
-        binding: {
-          appId: 'community.nimi.fixture.platform-proof',
-          appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
-          deviceId: 'desktop-installed-app-host-device',
-          launchHostId: 'desktop-electron-installed-app-host',
-          launchNonce: '',
-          releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-        },
-        auth: {
-          async registerApp() {
-            throw new Error('installed app must not register without launch binding evidence');
-          },
-          async openSession() {
-            throw new Error('installed app session must not open without launch binding evidence');
-          },
-        },
-      });
-      await provider();
-    },
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
-  );
-
-  await assert.rejects(
-    async () => {
-      const provider = createNimiRuntimeInstalledAppSessionMetadataProvider({
-        binding: {
-          appId: 'community.nimi.fixture.platform-proof',
-          appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
-          deviceId: 'desktop-installed-app-host-device',
-          launchHostId: 'desktop-electron-installed-app-host',
-          launchNonce: 'launch-nonce-1',
-          releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-        },
-        developerRegistration: true,
-        auth: {
-          async registerApp() {
-            throw new Error('installed app must not register through developer mode');
-          },
-          async openSession() {
-            throw new Error('installed app session must not open after rejected developer registration');
-          },
-        },
-      } as never);
-      await provider();
-    },
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
   );
 });

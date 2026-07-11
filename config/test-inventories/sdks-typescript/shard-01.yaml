@@ -379,6 +379,18 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-APP-001
+  - path: sdks/typescript/core/app/installed-app-bootstrap.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-APP-022
   - path: sdks/typescript/core/app/runtime-account-realm.test.ts
     owner: sdks
     classification: contract_conformance

@@ -40,6 +40,10 @@ const tauriRegistrationPath = 'kit/shell/tauri/src/command_registration.rs';
 const rendererPath = 'kit/shell/renderer/src/bridge/installed-app.ts';
 const rendererBootstrapPath = 'kit/shell/renderer/src/bootstrap/runtime-bridge.ts';
 const electronPreloadCjsPath = 'kit/shell/electron/src/preload/cjs.cts';
+const sdkBootstrapPath = 'sdks/typescript/core/app/installed-app-bootstrap.ts';
+const sdkAppSessionPath = 'sdks/typescript/runtime/app-session.ts';
+const sdkAccountCallerPath = 'sdks/typescript/runtime/account-caller.ts';
+const testerBootstrapPath = 'apps/tester/src/shell/installed-app-bootstrap.ts';
 const nativePath = 'kit/shell/protected-local-node/src/lib.rs';
 const nativeManifestPath = 'kit/shell/protected-local-node/Cargo.toml';
 const nativePackagePath = 'kit/shell/protected-local-node/npm/win32-x64/package.json';
@@ -155,6 +159,37 @@ requireExcludes(read(electronPreloadCjsPath), electronPreloadCjsPath, [
   '--nimi-installed-app-launch-binding=',
   'launchNonce',
   'realmBaseUrl',
+]);
+
+requireIncludes(read(sdkBootstrapPath), sdkBootstrapPath, [
+  'InstalledNimiAppArtifactReader',
+  'SDK_INSTALLED_APP_BOOTSTRAP_INPUT_FORBIDDEN',
+  'SDK_INSTALLED_APP_PROTECTED_CARRIER_REQUIRED',
+  'SDK_INSTALLED_ARTIFACT_PROJECTION_INVALID',
+  'readRuntimeBytes.call',
+]);
+requireExcludes(read(sdkBootstrapPath), sdkBootstrapPath, [
+  'launchBinding',
+  'NimiRuntimeAccountCaller',
+  'RuntimeAccountMediatedRealmRuntime',
+  'createRuntimeAccountMediatedRealmTransport',
+]);
+requireExcludes(read(sdkAppSessionPath), sdkAppSessionPath, [
+  'NimiRuntimeInstalledAppLaunchBinding',
+  'createNimiRuntimeInstalledAppSessionMetadataProvider',
+]);
+requireIncludes(read(sdkAccountCallerPath), sdkAccountCallerPath, [
+  "'third-party-nimi-app': null",
+]);
+requireExcludes(read(sdkAccountCallerPath), sdkAccountCallerPath, [
+  'NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID',
+  'NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput',
+  'createNimiDesktopLaunchedNimiAppRuntimeAccountCaller',
+]);
+requireIncludes(read(testerBootstrapPath), testerBootstrapPath, [
+  'createInstalledNimiAppBootstrap',
+  'createInstalledNimiAppStandardShellSurface',
+  'standardShell: createInstalledNimiAppStandardShellSurface()',
 ]);
 
 const native = read(nativePath);

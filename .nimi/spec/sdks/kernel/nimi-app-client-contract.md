@@ -547,13 +547,21 @@ OpenApp permissions, AIConfig, storage, account/session, or manifest gates.
 
 ## S-APP-022 - Installed-App Bootstrap Custody Boundary
 
-A.0 admits no installed-app SDK bootstrap, caller-mode mapping, host Runtime
-session, child bridge, launch binding/nonce, or Realm transport. The
-`third-party-nimi-app` classifier remains binding-only and returns typed
-protected-unavailable. SDK must reject renderer/host metadata, token/session,
-descriptor refs, caller posture, ordinary gRPC and developer-registration
-fallback as authority. Exact bootstrap inputs/outputs require the independent
-A.1 cross-owner admission; prior detail remains in Git, not active truth.
+`MUST`: the installed-app SDK bootstrap accepts exactly one host-neutral
+`standardShell` input and exposes exactly the typed
+`artifacts.readRuntimeBytes(artifactId)` projection admitted by `P-KIT-044`.
+The SDK validates ordinary artifact selectors and result shape, preserves typed
+carrier failures, and projects only bytes, MIME, observed size, and
+MIME-inferred state. Runtime and Kit remain the session, caller, release,
+account, authorization, and transport authorities.
+
+`MUST NOT`: SDK installed bootstrap input or output must not contain Runtime or
+Realm clients, account caller posture, launch binding/nonce, launch host,
+release/capability refs, app session metadata, endpoint, authorization,
+credential, ordinary gRPC, generic method-id/bytes forwarding, or developer
+registration fallback. Further installed operations remain unavailable until
+their own capability-set admission. A missing/unadmitted native carrier is a
+typed fail-closed result and cannot be replaced by renderer metadata.
 
 Cross-references: `P-SCAF-016` (scaffolded installed-app binding custody),
 `K-ACCSVC-022` (Desktop-launched installed Nimi App caller posture),

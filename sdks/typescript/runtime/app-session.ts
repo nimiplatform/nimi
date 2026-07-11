@@ -36,26 +36,6 @@ export interface NimiRuntimeAppSessionMetadataProviderInput extends NimiRuntimeA
   readonly refreshSkewMs?: number;
 }
 
-export interface NimiRuntimeInstalledAppLaunchBinding {
-  readonly appId: string;
-  readonly appInstanceId: string;
-  readonly deviceId: string;
-  readonly launchHostId: string;
-  readonly launchNonce: string;
-  readonly releaseDescriptorRef: string;
-}
-
-export interface NimiRuntimeInstalledAppSessionMetadataProviderInput {
-  readonly binding: NimiRuntimeInstalledAppLaunchBinding;
-  readonly auth: NimiRuntimeAppRegistrationClient & NimiRuntimeAppSessionClient;
-  readonly appVersion?: string;
-  readonly capabilities?: readonly string[];
-  readonly ttlSeconds?: number;
-  readonly refreshSkewMs?: number;
-  readonly callOptions?: RuntimeTypedCallOptions;
-  readonly developerRegistration?: boolean;
-}
-
 export type NimiRuntimeAppRegistration = {
   (): Promise<void>;
   invalidate(reason?: string): void;
@@ -161,21 +141,6 @@ export function createNimiRuntimeAppSessionMetadataProvider(
     ensureRegistered.invalidate(reason);
   };
   return provider;
-}
-
-export function createNimiRuntimeInstalledAppSessionMetadataProvider(
-  _input: NimiRuntimeInstalledAppSessionMetadataProviderInput,
-): NimiRuntimeAppSessionMetadataProvider {
-  const unavailable: NimiRuntimeAppSessionMetadataProvider = async () => {
-    throw createNimiError({
-      message: 'Desktop-launched installed Nimi App sessions require the A.1 protected carrier.',
-      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
-      actionHint: 'wait_for_a1_installed_app_carrier',
-      source: 'sdk',
-    });
-  };
-  unavailable.invalidate = () => {};
-  return unavailable;
 }
 
 function createNimiRuntimeRegisterAppRequest(input: NimiRuntimeAppRegistrationInput): RegisterAppRequest {
