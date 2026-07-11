@@ -19,6 +19,9 @@ test('Electron acceptance matrix maps every standard shell command to e2e or hos
   const acceptanceSource = await readFile(new URL('./electron-acceptance.mjs', import.meta.url), 'utf8');
   const mainSource = await readFile(path.join(root, 'src-electron', 'main.ts'), 'utf8');
   const electronHostUnitFiles = [
+    'electron-agent-center-content-admission.test.ts',
+    'electron-agent-center-custody.test.ts',
+    'electron-agent-center.test.ts',
     'electron-shell-bridge-core.test.ts',
     'electron-shell-bridge-guardrails.test.ts',
     'electron-shell-bridge-host-features.test.ts',
@@ -50,16 +53,9 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
   const dataRoot = path.join(tmpRoot, 'data');
   const assetRoot = path.join(tmpRoot, 'assets');
   const assetPath = path.join(assetRoot, 'preview.txt');
-  const runtimeConfigPath = path.join(dataRoot, 'runtime', 'config.json');
   await mkdir(dataRoot, { recursive: true });
   await mkdir(assetRoot, { recursive: true });
   await writeFile(assetPath, 'tester asset preview', 'utf8');
-  await mkdir(path.dirname(runtimeConfigPath), { recursive: true });
-  await writeFile(runtimeConfigPath, JSON.stringify({
-    schemaVersion: 1,
-    grpcAddr: '127.0.0.1:1',
-    source: 'tester-electron-acceptance',
-  }, null, 2), 'utf8');
   const canonicalDataRoot = await realpath(dataRoot);
   const canonicalAssetPath = await realpath(assetPath);
   const expectedProfilePath = path.join(canonicalDataRoot, 'settings', 'profile.json');
@@ -137,22 +133,11 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       'oauth.tokenExchange',
       'oauth.listenForCode',
       'runtime-defaults.get',
+      'config.get',
+      'config.set',
     ]) {
       await assertInstalledCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
     }
-
-    const runtimeConfig = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),
-      NIMI_STANDARD_SHELL_COMMANDS['config.get'],
-    );
-    assert.deepEqual(runtimeConfig, {
-      path: runtimeConfigPath,
-      config: {
-        schemaVersion: 1,
-        grpcAddr: '127.0.0.1:1',
-        source: 'tester-electron-acceptance',
-      },
-    });
 
     const dataPath = await page.evaluate(
       (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {

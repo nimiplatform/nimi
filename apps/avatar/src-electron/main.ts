@@ -12,11 +12,7 @@ import {
   type NimiElectronShellUiCommandInput,
   type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
-import {
-  createAvatarElectronTrustedRuntimeMetadataProvider,
-  probeAvatarElectronRawAccessPosture,
-  type AvatarElectronRawAccessPosture,
-} from './runtime-auth.js';
+import { createAvatarElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.avatar';
 const AVATAR_PRODUCT_INVOKE_CHANNEL = 'nimi:avatar:invoke';
@@ -117,12 +113,6 @@ function registerAvatarElectronProductCommands(dataRoot: string): void {
         return recordAvatarElectronEvidence(dataRoot, payload);
       case 'nimi_avatar_write_evidence_artifact':
         return writeAvatarElectronEvidenceArtifact(dataRoot, payload);
-      case 'nimi_avatar_probe_raw_access_posture':
-        return probeAvatarElectronRawAccessPosture({
-          appId: APP_ID,
-          runtimeEndpoint,
-          posture: normalizeAvatarRawAccessPosture(payload.posture),
-        });
       // Window control (drag / size / ignore-cursor / constrain /
       // always-on-top / hide / close) is migrated to the kit standard
       // floating-window commands, routed through the standard shell runtime
@@ -135,14 +125,6 @@ function registerAvatarElectronProductCommands(dataRoot: string): void {
         throw new Error(`Unsupported Avatar Electron product command: ${command}`);
     }
   });
-}
-
-function normalizeAvatarRawAccessPosture(value: unknown): AvatarElectronRawAccessPosture {
-  const posture = normalizeText(value);
-  if (posture === 'first-party' || posture === 'binding-only') {
-    return posture;
-  }
-  throw new Error(`Avatar raw access posture is invalid: ${posture || '<missing>'}`);
 }
 
 function assertAllowedAvatarRenderer(event: IpcMainInvokeEvent): void {

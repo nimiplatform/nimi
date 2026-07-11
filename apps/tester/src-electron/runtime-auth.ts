@@ -5,20 +5,15 @@ import {
 } from '@nimiplatform/kit/shell/electron/main';
 
 const runtimeDeveloperRegistrationRequested = true;
-const runtimeProtectedScopes = ['ai.spend.meter'] as const;
 const runtimeAccountBrokerCapabilities = [
   'account.session.read',
   'data.scope.read#realm.worlds.read-probe',
 ] as const;
 const runtimeRegistrationCapabilities = [
-  ...runtimeProtectedScopes,
   ...runtimeAccountBrokerCapabilities,
 ] as const;
-const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
 const runtimeAppSessionTtlSeconds = 3600;
 const runtimeAppSessionRefreshSkewMs = 30_000;
-const runtimeProtectedTokenTtlSeconds = 3600;
-const runtimeProtectedTokenRefreshSkewMs = 60_000;
 
 export function createTesterElectronTrustedRuntimeMetadataProvider(input: {
   readonly appId: string;
@@ -42,16 +37,6 @@ export function createTesterElectronTrustedRuntimeMetadataProvider(input: {
       ttlSeconds: runtimeAppSessionTtlSeconds,
       refreshSkewMs: runtimeAppSessionRefreshSkewMs,
       developerRegistration: runtimeDeveloperRegistrationRequested,
-    },
-    protectedAccess: {
-      consentId: `${clientIdPrefix}-runtime-account`,
-      authorizationVersion: 'v1',
-      policyVersion: `${clientIdPrefix}-runtime-account-v1`,
-      scopeCatalogVersion: runtimeProtectedScopeCatalogVersion,
-      scopes: [...runtimeProtectedScopes],
-      ttlSeconds: runtimeProtectedTokenTtlSeconds,
-      refreshSkewMs: runtimeProtectedTokenRefreshSkewMs,
-      idempotencyKey: ({ normalizedSubjectUserId }) => `${clientIdPrefix}-runtime-protected-${normalizedSubjectUserId}`,
     },
   });
 }

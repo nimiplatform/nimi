@@ -38,8 +38,7 @@ const REQUIRED_SCENARIO_IDS = [
   'runtime_degraded',
   'shared_auth_broker_ready',
   'shared_auth_login_required',
-  'first_party_raw_token_posture',
-  'binding_only_raw_token_denied',
+  'public_raw_token_surface_absent',
 ];
 
 const AUTOMATED_SCENARIOS = new Map([

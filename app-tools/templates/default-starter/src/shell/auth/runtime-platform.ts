@@ -1,26 +1,16 @@
-import { createNimiClient, createNimiClientId, createNimiError, type NimiClient } from '@nimiplatform/sdk';
+import { createNimiClient, createNimiError, type NimiClient } from '@nimiplatform/sdk';
 import {
   Runtime,
   createNimiDeveloperRegisteredRuntimeAccountCaller,
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
-  toNimiRuntimeTimestamp,
-  withNimiRuntimeIdempotencyMetadata,
   type NimiRuntimeAccountCaller,
   type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
   createInstalledNimiAppStandardShellSurface,
 } from '@nimiplatform/kit/shell/renderer/bridge';
-import {
-  AccountSessionState,
-  AuthorizationPreset,
-  ExternalPrincipalType,
-  PolicyMode,
-  type AuthorizeExternalPrincipalResponse,
-  type RuntimeTypedCallOptions,
-} from '@nimiplatform/sdk/runtime/generated';
-import type { CoreMetadata } from '@nimiplatform/sdk/types';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 import { appId, appTitle } from './app-identity.js';
@@ -32,15 +22,17 @@ const runtimeDeveloperRegistrationRequested = true;
 const runtimeClientIdPrefix = normalizeClientIdPrefix(appId);
 const runtimeAccountAppInstanceId = `${appId}.local-developer`;
 const runtimeAccountDeviceId = `${runtimeClientIdPrefix}-local-developer-device`;
-const runtimeAppSessionInstanceId = `${appId}.platform-runtime-session`;
-const runtimeAppSessionDeviceId = 'platform-runtime-session';
+const runtimeAppSessionInstanceId = runtimeAccountAppInstanceId;
+const runtimeAppSessionDeviceId = runtimeAccountDeviceId;
 const runtimeAppSessionTtlSeconds = 3600;
 const runtimeAppSessionRefreshSkewMs = 30_000;
-const runtimeProtectedScopes = ['ai.spend.meter'] as const;
-const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
-const runtimeProtectedTokenTtlSeconds = 3600;
-const runtimeProtectedTokenRefreshSkewMs = 60_000;
-const runtimeAccountRefreshSurfaceId = 'runtime-account.refresh';
+const runtimeAccountBrokerCapabilities = [
+  'account.session.read',
+  'data.scope.read#realm.worlds.read-probe',
+] as const;
+const runtimeRegistrationCapabilities = [
+  ...runtimeAccountBrokerCapabilities,
+] as const;
 
 export type RuntimeAuthMode = 'developer-registered-local-app' | 'third-party-nimi-app';
 
@@ -94,9 +86,6 @@ function resolveRuntimeAuthMode(): RuntimeAuthMode {
 export function clearRuntimePlatformProjection() {
   runtimeProjection = null;
   runtimeReadyProjection = null;
-  protectedAccessCache = null;
-  protectedAccessInflight = null;
-  protectedAccessInflightKey = '';
 }
 
 export function getRuntimePlatformProjection() {
@@ -134,23 +123,6 @@ export function getRuntimeSubjectUserId(): string | undefined {
   return runtimeReadyProjection?.auth.subjectUserId;
 }
 
-export function createRuntimeAccountRefreshCallOptions(): RuntimeTypedCallOptions {
-  return createRuntimeAccountCallOptions(
-    runtimeAccountRefreshSurfaceId,
-    createScopedClientId('runtime-account-refresh'),
-  );
-}
-
-function createRuntimeAccountCallOptions(surfaceId: string, idempotencyKey: string): RuntimeTypedCallOptions {
-  return withNimiRuntimeIdempotencyMetadata({
-    metadata: {
-      callerKind: 'developer-registered-local-app',
-      callerId: appId,
-      surfaceId,
-    },
-  }, idempotencyKey);
-}
-
 async function createDeveloperRegisteredRuntimeProjection(
   mode: RuntimeAuthMode,
 ): Promise<RuntimePlatformProjection> {
@@ -184,7 +156,7 @@ async function createDeveloperRegisteredRuntimeProjection(
         ? runtimeOptions()
         : {
             ...runtimeOptions(),
-            authMetadata: createRuntimeAppSessionMetadataProvider(accountRuntime, accountCaller),
+            authMetadata: createRuntimeAppSessionMetadataProvider(accountRuntime),
           },
     );
     const client = createNimiClient({
@@ -239,7 +211,7 @@ async function registerDeveloperRegisteredRuntimeAccountCaller(accountRuntime: R
       appId,
       appInstanceId: caller.appInstanceId,
       deviceId: caller.deviceId,
-      capabilities: [...runtimeProtectedScopes],
+      capabilities: [...runtimeRegistrationCapabilities],
       developerRegistration: runtimeDeveloperRegistrationRequested,
       rejectionLabel: `${appTitle} Runtime account caller registration rejected`,
     },
@@ -248,30 +220,18 @@ async function registerDeveloperRegisteredRuntimeAccountCaller(accountRuntime: R
 
 function createRuntimeAppSessionMetadataProvider(
   accountRuntime: Runtime,
-  accountCaller: NimiRuntimeAccountCaller,
-): () => Promise<CoreMetadata> {
+): ReturnType<typeof createNimiRuntimeAppSessionMetadataProvider> {
   const requiredRuntimeSessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
     appId,
     appInstanceId: runtimeAppSessionInstanceId,
     deviceId: runtimeAppSessionDeviceId,
-    capabilities: [...runtimeProtectedScopes],
+    capabilities: [...runtimeRegistrationCapabilities],
     ttlSeconds: runtimeAppSessionTtlSeconds,
     refreshSkewMs: runtimeAppSessionRefreshSkewMs,
     auth: accountRuntime.auth,
     developerRegistration: runtimeDeveloperRegistrationRequested,
   });
-  return async () => {
-    const subjectUserId = await readRuntimeSubjectUserId(accountRuntime, accountCaller);
-    if (!subjectUserId) {
-      return {};
-    }
-    const appSessionMetadata = await requiredRuntimeSessionMetadata();
-    const protectedAccessMetadata = await getRuntimeProtectedAccessMetadata(accountRuntime, subjectUserId);
-    return {
-      ...appSessionMetadata,
-      ...protectedAccessMetadata,
-    };
-  };
+  return requiredRuntimeSessionMetadata;
 }
 
 async function readRuntimeSubjectUserId(
@@ -283,101 +243,6 @@ async function readRuntimeSubjectUserId(
     return normalizeText(session.accountProjection.accountId);
   }
   return '';
-}
-
-let protectedAccessCache: {
-  readonly subjectUserId: string;
-  readonly metadata: CoreMetadata;
-  readonly expiresAtMs: number;
-} | null = null;
-let protectedAccessInflight: Promise<{
-  readonly subjectUserId: string;
-  readonly metadata: CoreMetadata;
-  readonly expiresAtMs: number;
-}> | null = null;
-let protectedAccessInflightKey = '';
-
-async function getRuntimeProtectedAccessMetadata(
-  accountRuntime: Runtime,
-  subjectUserId: string,
-): Promise<CoreMetadata> {
-  if (
-    protectedAccessCache &&
-    protectedAccessCache.subjectUserId === subjectUserId &&
-    protectedAccessCache.expiresAtMs - Date.now() > runtimeProtectedTokenRefreshSkewMs
-  ) {
-    return protectedAccessCache.metadata;
-  }
-  const cacheKey = `${appId}:${subjectUserId}:${runtimeProtectedScopeCatalogVersion}`;
-  if (!protectedAccessInflight || protectedAccessInflightKey !== cacheKey) {
-    protectedAccessInflightKey = cacheKey;
-    protectedAccessInflight = issueRuntimeProtectedAccessMetadata(accountRuntime, subjectUserId);
-  }
-  try {
-    protectedAccessCache = await protectedAccessInflight;
-    return protectedAccessCache.metadata;
-  } finally {
-    if (protectedAccessInflightKey === cacheKey) {
-      protectedAccessInflight = null;
-      protectedAccessInflightKey = '';
-    }
-  }
-}
-
-async function issueRuntimeProtectedAccessMetadata(
-  accountRuntime: Runtime,
-  subjectUserId: string,
-): Promise<{
-  readonly subjectUserId: string;
-  readonly metadata: CoreMetadata;
-  readonly expiresAtMs: number;
-}> {
-  const normalizedSubject = subjectUserId.replace(/[^a-zA-Z0-9._:-]/g, '_').slice(0, 80) || 'unknown';
-  const token = await accountRuntime.grants.authorizeExternalPrincipal({
-    domain: 'app-auth',
-    appId,
-    externalPrincipalId: appId,
-    externalPrincipalType: ExternalPrincipalType.APP,
-    subjectUserId,
-    consentId: `${runtimeClientIdPrefix}-runtime-account`,
-    consentVersion: 'v1',
-    decisionAt: toNimiRuntimeTimestamp(new Date()),
-    policyVersion: `${runtimeClientIdPrefix}-runtime-account-v1`,
-    policyMode: PolicyMode.CUSTOM,
-    preset: AuthorizationPreset.UNSPECIFIED,
-    scopes: [...runtimeProtectedScopes],
-    resourceSelectors: {
-      conversationIds: [],
-      messageIds: [],
-      documentIds: [],
-      labels: {},
-    },
-    canDelegate: false,
-    maxDelegationDepth: 0,
-    ttlSeconds: runtimeProtectedTokenTtlSeconds,
-    scopeCatalogVersion: runtimeProtectedScopeCatalogVersion,
-    policyOverride: false,
-  }, withNimiRuntimeIdempotencyMetadata({
-    metadata: { domain: 'app-auth' },
-  }, createScopedClientId(`runtime-protected-${normalizedSubject}`)));
-  const tokenId = normalizeText(token.tokenId);
-  const secret = normalizeText(token.secret);
-  if (!tokenId || !secret) {
-    throw createNimiError({
-      message: 'Runtime protected access token response is missing credentials.',
-      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
-      actionHint: 'authorize_runtime_protected_access',
-      source: 'runtime',
-    });
-  }
-  return {
-    subjectUserId,
-    metadata: {
-      'x-nimi-access-token-id': tokenId,
-      'x-nimi-access-token-secret': secret,
-    },
-    expiresAtMs: runtimeAuthorizeResponseExpiresAtMs(token) || Date.now() + (runtimeProtectedTokenTtlSeconds * 1000),
-  };
 }
 
 function unavailableFromError(mode: RuntimeAuthMode, error: unknown): RuntimePlatformUnavailableProjection {
@@ -395,23 +260,10 @@ function unavailableFromError(mode: RuntimeAuthMode, error: unknown): RuntimePla
   };
 }
 
-function runtimeAuthorizeResponseExpiresAtMs(token: AuthorizeExternalPrincipalResponse): number {
-  const expiresAt = token.expiresAt;
-  if (!expiresAt) return 0;
-  const seconds = Number(expiresAt.seconds || 0);
-  const nanos = Number(expiresAt.nanos || 0);
-  const millis = (seconds * 1000) + Math.floor(nanos / 1_000_000);
-  return Number.isFinite(millis) && millis > 0 ? millis : 0;
-}
-
 function runtimeOptions(): RuntimeOptions {
   const base: RuntimeOptions = { appId };
   const transport = createNimiAppRuntimeTransportConfig();
   return transport ? { ...base, transport } : base;
-}
-
-function createScopedClientId(suffix: string): string {
-  return createNimiClientId(`${runtimeClientIdPrefix}-${suffix}`);
 }
 
 function normalizeClientIdPrefix(value: string): string {

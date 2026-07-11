@@ -10,7 +10,7 @@ import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabiliti
 
 const root = path.resolve(import.meta.dirname, '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
-const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiElectronSdkAcceptance=1`;
+const rendererAcceptanceUrl = pathToFileURL(path.join(root, 'dist', 'index.html')).toString();
 
 test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   for (const relativePath of [
@@ -25,8 +25,8 @@ test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   assert.match(packageJson.scripts['test:e2e:electron'], /electron-acceptance/);
   const mainSource = readFileSync(path.join(root, 'src-electron', 'main.ts'), 'utf8');
   const runtimeAuthSource = readFileSync(path.join(root, 'src-electron', 'runtime-auth.ts'), 'utf8');
-  const sdkAcceptanceSource = readFileSync(
-    path.join(root, 'src', 'shell', 'renderer', 'app-shell', 'avatar-electron-sdk-acceptance.ts'),
+  const bootstrapSource = readFileSync(
+    path.join(root, 'src', 'shell', 'renderer', 'app-shell', 'app-bootstrap.ts'),
     'utf8',
   );
   const preloadSource = readFileSync(path.join(root, 'src-electron', 'preload.cts'), 'utf8');
@@ -41,8 +41,9 @@ test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   assert.doesNotMatch(mainSource, /desktop_product_control|updater|tray/i);
   assert.match(runtimeAuthSource, /appSession:\s*\{[\s\S]*appInstanceId:\s*`\$\{appId\}\.local-first-party`[\s\S]*deviceId:\s*`\$\{clientIdPrefix\}-local-first-party-device`/);
   assert.doesNotMatch(runtimeAuthSource, /platform-runtime-session/);
-  assert.match(mainSource, /nimi_avatar_probe_raw_access_posture/);
-  assert.doesNotMatch(sdkAcceptanceSource, /\.account\.getAccessToken\(/);
+  assert.doesNotMatch(mainSource, /nimi_avatar_probe_raw_access_posture|\.account\.getAccessToken\(/);
+  assert.doesNotMatch(bootstrapSource, /\.account\.|\.grants\.|createAvatarRuntimeClient|createNimiRuntimeAgent/);
+  assert.match(bootstrapSource, /protected_launch_session_required/);
 
   for (const rendererFile of [
     'src/shell/renderer/bridge/launch-context.ts',
@@ -96,20 +97,6 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
         { timeout: 10_000 },
       ).then(() => true, () => false);
       assert.equal(rendererEntryLoaded, true, 'Avatar renderer module entry should run in Electron');
-
-      await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__));
-      const sdkAcceptanceKeys = await page.evaluate(() =>
-        Object.keys(globalThis.window.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__).sort(),
-      );
-      assert.deepEqual(sdkAcceptanceKeys, ['rawAccessPosture', 'runtimeReady', 'sharedAuthBroker']);
-      const sdkRuntimeReady = await page.evaluate(() =>
-        globalThis.window.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
-      );
-      assert.equal(sdkRuntimeReady.transport, 'electron-ipc');
-      assert.equal(sdkRuntimeReady.ok, false);
-      assert.equal(sdkRuntimeReady.code, 'external-daemon-required');
-      assert.equal(sdkRuntimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
-      assert.equal(sdkRuntimeReady.actionHint, 'start_external_runtime_daemon');
 
       const identity = await page.evaluate(
         (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),

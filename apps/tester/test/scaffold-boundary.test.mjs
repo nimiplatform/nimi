@@ -55,10 +55,11 @@ test('single login model consumes Desktop-owned Runtime account state without ap
   assert.match(authSource, /const runtimeDeveloperRegistrationRequested = true/);
   assert.match(authSource, /developerRegistration:\s*runtimeDeveloperRegistrationRequested/);
   assert.match(authSource, /registerDeveloperRegisteredRuntimeAccountCaller/);
-  assert.match(authSource, /runtimeProtectedScopes = \['ai\.spend\.meter'\]/);
   assert.match(authSource, /runtimeAccountBrokerCapabilities = \[\s*'account\.session\.read',\s*'data\.scope\.read#realm\.worlds\.read-probe',\s*\]/s);
-  assert.match(authSource, /runtimeRegistrationCapabilities = \[\s*\.\.\.runtimeProtectedScopes,\s*\.\.\.runtimeAccountBrokerCapabilities,\s*\]/s);
-  assert.match(authSource, /accountRuntime\.grants\.authorizeExternalPrincipal/);
+  assert.match(authSource, /runtimeRegistrationCapabilities = \[\s*\.\.\.runtimeAccountBrokerCapabilities,\s*\]/s);
+  assert.match(authSource, /return requiredRuntimeSessionMetadata;/);
+  assert.doesNotMatch(authSource, /runtimeProtectedScopes|accountRuntime\.grants\.authorizeExternalPrincipal/);
+  assert.doesNotMatch(authSource, /x-nimi-access-token-(?:id|secret)|protectedAccessMetadata/);
   assert.match(authGateSource, /loadRuntimeAccountUser/);
   assert.match(authGateSource, /clearRuntimePlatformProjection/);
   assert.match(authGateSource, /clearRuntimePlatformProjection\(\);\s*setReloadKey/s);

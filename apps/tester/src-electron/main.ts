@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
 import {
   createElectronShellFileProtocolHost,
@@ -53,7 +53,6 @@ void app.whenReady().then(async () => {
     localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
     localAssetProtocolHost: fileProtocolHost,
     aiConfigStore: createTesterAiConfigStore(standardDataRoot),
-    runtimeConfigGet: createTesterRuntimeConfigReader(standardDataRoot),
   };
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
@@ -245,23 +244,6 @@ function createTesterAiConfigStore(dataRoot: string) {
     dataRoot,
     storeLabel: 'tester AI Config',
   });
-}
-
-function createTesterRuntimeConfigReader(dataRoot: string): () => Promise<{
-  readonly path: string;
-  readonly config: Readonly<Record<string, unknown>>;
-}> {
-  return async () => {
-    const filePath = path.join(dataRoot, 'runtime', 'config.json');
-    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error(`tester Runtime config payload is invalid: ${filePath}`);
-    }
-    return {
-      path: filePath,
-      config: parsed as Readonly<Record<string, unknown>>,
-    };
-  };
 }
 
 function isTesterRendererUrl(url: string): boolean {

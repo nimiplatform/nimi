@@ -114,24 +114,21 @@ test('Electron host owns sensitive Runtime auth metadata', () => {
   assert.match(hostAuthSource, /capabilities:\s*\[\.\.\.runtimeRegistrationCapabilities\]/);
   assert.match(hostAuthSource, /appSession:\s*\{[\s\S]*appInstanceId:\s*`\$\{appId\}\.local-developer`[\s\S]*deviceId:\s*`\$\{clientIdPrefix\}-local-developer-device`/);
   assert.doesNotMatch(hostAuthSource, /platform-runtime-session/);
-  assert.match(hostAuthSource, /protectedAccess:\s*\{/);
-  assert.match(kitHostAuthSource, /createNimiRuntimeAppSessionMetadataProvider/);
-  assert.match(kitHostAuthSource, /protectedAccessToken:\s*\{/);
+  assert.doesNotMatch(hostAuthSource, /protectedAccess:\s*\{/);
+  assert.match(kitHostAuthSource, /return protectedCarrierRequiredProvider\(\);/);
+  assert.doesNotMatch(kitHostAuthSource, /protectedAccessToken|protectedAccessInflightKey|x-nimi-access-token/);
   assert.doesNotMatch(hostAuthSource, /\bwindow\b|\bdocument\b/);
   assert.match(rendererAuthSource, /resolveTesterRuntimeHostKind\(\) !== 'node'/);
   assert.match(rendererAuthSource, /authMetadata:\s*createRuntimeAppSessionMetadataProvider/);
 });
 
-test('Tester Runtime protected access cache keys in-flight requests by subject', () => {
+test('Tester and Kit Electron carriers retain no portable protected-access cache', () => {
   for (const source of [
     readRepo('kit/shell/electron/src/main/runtime-account-auth.ts'),
     read('src/shell/auth/runtime-platform.ts'),
   ]) {
-
-    assert.match(source, /protectedAccessInflightKey/);
-    assert.match(source, /const cacheKey =[\s\S]{0,220}subjectUserId/);
-    assert.match(source, /protectedAccessInflightKey !== cacheKey/);
-    assert.match(source, /if \(protectedAccessInflightKey === cacheKey\)/);
+    assert.doesNotMatch(source, /protectedAccessInflightKey|protectedAccessCache|authorizeExternalPrincipal/);
+    assert.doesNotMatch(source, /x-nimi-access-token-(?:id|secret)|tokenId|secret/);
   }
 });
 

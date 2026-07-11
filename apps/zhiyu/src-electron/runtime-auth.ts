@@ -8,33 +8,15 @@ import {
 } from './runtime-account-caller.js';
 
 const runtimeDeveloperRegistrationRequested = false;
-const runtimeProtectedScopes = [
-  'runtime.agent.read',
-  'runtime.agent.write',
-  'runtime.agent.autonomy.write',
-  'runtime.agent.turn.read',
-  'runtime.agent.turn.write',
-  'runtime.agent.delegation.read',
-  'runtime.agent.delegation.write',
-  // K-AGCORE-144~150 / Z-AUTH-006: the renderer's runtime.agent.ai_config
-  // projection + model-tab commits require the AI Config scopes.
-  'runtime.agent.ai_config.read',
-  'runtime.agent.ai_config.write',
-  'ai.spend.meter',
-] as const;
 const runtimeAccountBrokerCapabilities = [
   'account.session.read',
   'data.scope.read#realm.worlds.read-probe',
 ] as const;
 const runtimeRegistrationCapabilities = [
-  ...runtimeProtectedScopes,
   ...runtimeAccountBrokerCapabilities,
 ] as const;
-const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
 const runtimeAppSessionTtlSeconds = 3600;
 const runtimeAppSessionRefreshSkewMs = 30_000;
-const runtimeProtectedTokenTtlSeconds = 3600;
-const runtimeProtectedTokenRefreshSkewMs = 60_000;
 
 export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
   readonly appId: string;
@@ -54,17 +36,6 @@ export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
       ttlSeconds: runtimeAppSessionTtlSeconds,
       refreshSkewMs: runtimeAppSessionRefreshSkewMs,
       developerRegistration: runtimeDeveloperRegistrationRequested,
-    },
-    protectedAccess: {
-      consentId: `${clientIdPrefix}-runtime-account`,
-      authorizationVersion: 'v1',
-      policyVersion: `${clientIdPrefix}-runtime-account-v1`,
-      scopeCatalogVersion: runtimeProtectedScopeCatalogVersion,
-      scopes: [...runtimeProtectedScopes],
-      ttlSeconds: runtimeProtectedTokenTtlSeconds,
-      refreshSkewMs: runtimeProtectedTokenRefreshSkewMs,
-      idempotencyKey: ({ normalizedSubjectUserId, scopesSignature }) =>
-        `${clientIdPrefix}-runtime-protected-${normalizedSubjectUserId}-${scopesSignature}`,
     },
   });
 }
