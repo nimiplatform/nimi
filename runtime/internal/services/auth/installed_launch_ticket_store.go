@@ -69,7 +69,6 @@ type InstalledSessionProjection struct {
 type InstalledSessionBinding struct {
 	SessionID         protectedlocal.Identifier
 	SessionProof      protectedlocal.Identifier
-	AppID             string
 	ReleaseDigest     protectedlocal.Identifier
 	PID               uint32
 	CreationMarker    string
@@ -344,12 +343,12 @@ func (store *InstalledLaunchStore) RevokeLaunch(ctx context.Context, launchID pr
 	return err
 }
 
-func (store *InstalledLaunchStore) ValidateSession(ctx context.Context, binding InstalledSessionBinding) error {
+func (store *InstalledLaunchStore) ValidateSession(ctx context.Context, binding InstalledSessionBinding) (InstalledSessionProjection, error) {
 	if store == nil || store.db == nil || binding.SessionID == (protectedlocal.Identifier{}) || binding.SessionProof == (protectedlocal.Identifier{}) ||
-		strings.TrimSpace(binding.AppID) == "" || binding.AppID != strings.TrimSpace(binding.AppID) || binding.ReleaseDigest == (protectedlocal.Identifier{}) ||
+		binding.ReleaseDigest == (protectedlocal.Identifier{}) ||
 		binding.PID == 0 || strings.TrimSpace(binding.CreationMarker) == "" || binding.CreationMarker != strings.TrimSpace(binding.CreationMarker) ||
 		binding.AccountGeneration == 0 || binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) {
-		return ErrInstalledLaunchMismatch
+		return InstalledSessionProjection{}, ErrInstalledLaunchMismatch
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -363,21 +362,34 @@ func (store *InstalledLaunchStore) ValidateSession(ctx context.Context, binding 
 		&proofHash, &appID, &releaseDigest, &accountGeneration, &bootEpoch, &processID, &creationMarker, &expiresAt, &revokedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return ErrInstalledLaunchMismatch
+		return InstalledSessionProjection{}, ErrInstalledLaunchMismatch
 	}
 	if err != nil {
-		return err
+		return InstalledSessionProjection{}, err
 	}
 	if revokedAt.Valid || !store.now().UTC().Before(time.Unix(0, expiresAt)) {
-		return ErrInstalledSessionRevoked
+		return InstalledSessionProjection{}, ErrInstalledSessionRevoked
 	}
 	expectedProofHash := sha256.Sum256(binding.SessionProof[:])
-	if subtle.ConstantTimeCompare(proofHash, expectedProofHash[:]) != 1 || appID != binding.AppID || processID != binding.PID || creationMarker != binding.CreationMarker ||
-		accountGeneration != binding.AccountGeneration || !equalInstalledIdentifier(releaseDigest, binding.ReleaseDigest) ||
-		!equalInstalledIdentifier(bootEpoch, binding.RuntimeBootEpoch) || binding.RuntimeBootEpoch != store.bootEpoch {
-		return ErrInstalledLaunchMismatch
+	if accountGeneration != binding.AccountGeneration {
+		return InstalledSessionProjection{}, ErrInstalledSessionRevoked
 	}
-	return nil
+	if subtle.ConstantTimeCompare(proofHash, expectedProofHash[:]) != 1 || processID != binding.PID || creationMarker != binding.CreationMarker ||
+		!equalInstalledIdentifier(releaseDigest, binding.ReleaseDigest) ||
+		!equalInstalledIdentifier(bootEpoch, binding.RuntimeBootEpoch) || binding.RuntimeBootEpoch != store.bootEpoch {
+		return InstalledSessionProjection{}, ErrInstalledLaunchMismatch
+	}
+	var resolvedRelease, resolvedBoot protectedlocal.Identifier
+	copy(resolvedRelease[:], releaseDigest)
+	copy(resolvedBoot[:], bootEpoch)
+	return InstalledSessionProjection{
+		SessionID:         binding.SessionID,
+		ExpiresAt:         time.Unix(0, expiresAt).UTC(),
+		AppID:             appID,
+		ReleaseDigest:     resolvedRelease,
+		AccountGeneration: accountGeneration,
+		RuntimeBootEpoch:  resolvedBoot,
+	}, nil
 }
 
 func (store *InstalledLaunchStore) Close() error {

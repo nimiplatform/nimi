@@ -19,7 +19,7 @@ type installedSessionAccount struct {
 	ready      bool
 }
 
-func (account installedSessionAccount) AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool) {
+func (account *installedSessionAccount) AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool) {
 	if !account.ready {
 		return nil, account.generation, false
 	}
@@ -51,18 +51,25 @@ func TestOpenDesktopLaunchedAppSessionConsumesOnlyVerifiedNativeConnection(t *te
 	if response.GetAppId() != "world.nimi.app" || response.GetAccountGeneration() != 7 || len(response.GetInstalledSessionId()) != protectedlocal.IdentifierBytes || len(response.GetInstalledSessionProof()) != protectedlocal.IdentifierBytes {
 		t.Fatalf("unexpected response: %+v", response)
 	}
+	decision, err := fixture.service.ResolveInstalledSession(fixture.context, fixture.account.generation)
+	if err != nil {
+		t.Fatalf("resolve installed session: %v", err)
+	}
+	if decision.SessionID != fixture.bindingFromResponse(response).SessionID || decision.AppID != "world.nimi.app" || decision.AccountGeneration != 7 || decision.ReleaseDigest != installedIdentifier(0x41) || decision.Process != fixture.process {
+		t.Fatalf("unexpected installed binding: %+v", decision)
+	}
 	if _, err := fixture.service.OpenDesktopLaunchedAppSession(fixture.context, &runtimev1.OpenDesktopLaunchedAppSessionRequest{}); installedSessionReason(err) != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
 		t.Fatalf("replay reason = %v, err=%v", installedSessionReason(err), err)
 	}
 
 	binding := fixture.bindingFromResponse(response)
-	if err := fixture.store.ValidateSession(context.Background(), binding); err != nil {
+	if _, err := fixture.store.ValidateSession(context.Background(), binding); err != nil {
 		t.Fatalf("validate installed session: %v", err)
 	}
 	fixture.liveness.Revoke()
 	deadline := time.Now().Add(time.Second)
 	for {
-		err = fixture.store.ValidateSession(context.Background(), binding)
+		_, err = fixture.store.ValidateSession(context.Background(), binding)
 		if errors.Is(err, ErrInstalledSessionRevoked) {
 			break
 		}
@@ -70,6 +77,20 @@ func TestOpenDesktopLaunchedAppSessionConsumesOnlyVerifiedNativeConnection(t *te
 			t.Fatalf("process exit did not revoke installed session: %v", err)
 		}
 		time.Sleep(time.Millisecond)
+	}
+}
+
+func TestResolveInstalledSessionRevalidatesAccountGeneration(t *testing.T) {
+	fixture := newInstalledSessionFixture(t, installedIdentifier(0x71), 11)
+	if _, err := fixture.service.ResolveInstalledSession(fixture.context, fixture.account.generation); !errors.Is(err, ErrInstalledSessionNotBound) {
+		t.Fatalf("unbound authorization err = %v", err)
+	}
+	if _, err := fixture.service.OpenDesktopLaunchedAppSession(fixture.context, &runtimev1.OpenDesktopLaunchedAppSessionRequest{}); err != nil {
+		t.Fatalf("open installed session: %v", err)
+	}
+	fixture.account.generation++
+	if _, err := fixture.service.ResolveInstalledSession(fixture.context, fixture.account.generation); !errors.Is(err, ErrInstalledSessionRevoked) {
+		t.Fatalf("changed generation authorization err = %v", err)
 	}
 }
 
@@ -106,6 +127,7 @@ type installedSessionFixture struct {
 	liveness   *desktopSessionTestLiveness
 	context    context.Context
 	process    protectedlocal.ProcessTuple
+	account    *installedSessionAccount
 }
 
 func newInstalledSessionFixture(t *testing.T, release protectedlocal.Identifier, generation uint64) installedSessionFixture {
@@ -147,8 +169,9 @@ func newInstalledSessionFixtureWithAuthority(t *testing.T, storeBoot, peerBoot p
 	}
 	t.Cleanup(connection.Revoke)
 	service := NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, 60, 86400, WithInstalledLaunchStore(store))
-	service.SetRuntimeAccountSecurityContextProvider(installedSessionAccount{generation: accountGeneration, ready: true})
-	return installedSessionFixture{service: service, store: store, connection: connection, liveness: liveness, context: protectedlocal.ContextWithInstalledLaunchConnection(context.Background(), connection), process: process}
+	account := &installedSessionAccount{generation: accountGeneration, ready: true}
+	service.SetRuntimeAccountSecurityContextProvider(account)
+	return installedSessionFixture{service: service, store: store, connection: connection, liveness: liveness, context: protectedlocal.ContextWithInstalledLaunchConnection(context.Background(), connection), process: process, account: account}
 }
 
 func (fixture installedSessionFixture) bindingFromResponse(response *runtimev1.OpenDesktopLaunchedAppSessionResponse) InstalledSessionBinding {
@@ -157,7 +180,7 @@ func (fixture installedSessionFixture) bindingFromResponse(response *runtimev1.O
 	copy(proof[:], response.GetInstalledSessionProof())
 	copy(release[:], response.GetReleaseDigest())
 	copy(boot[:], response.GetRuntimeBootEpoch())
-	return InstalledSessionBinding{SessionID: sessionID, SessionProof: proof, AppID: response.GetAppId(), ReleaseDigest: release, PID: fixture.process.PID, CreationMarker: fixture.process.CreationMarker, AccountGeneration: response.GetAccountGeneration(), RuntimeBootEpoch: boot}
+	return InstalledSessionBinding{SessionID: sessionID, SessionProof: proof, ReleaseDigest: release, PID: fixture.process.PID, CreationMarker: fixture.process.CreationMarker, AccountGeneration: response.GetAccountGeneration(), RuntimeBootEpoch: boot}
 }
 
 func installedSessionReason(err error) runtimev1.ReasonCode {

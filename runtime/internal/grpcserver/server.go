@@ -262,6 +262,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		})
 	}
 	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
+	accountSvc.SetInstalledSessionResolver(authSvc)
 
 	// AuthN validator — JWKS mode (K-AUTHN-004). revocationUrl shares the
 	// bearer JWT restart config group with issuer/audience/jwksUrl, so the full

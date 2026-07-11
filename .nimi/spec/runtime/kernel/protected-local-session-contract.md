@@ -105,6 +105,14 @@ process/release/account/epoch and ordinary-gRPC calls fail closed. Logout,
 switch-account, uninstall, release revoke, session revoke, process exit and
 Runtime restart revoke the applicable launch/session rows transactionally.
 
+After consumption, the verified connection retains only a Runtime-private
+opaque session selector/proof. The durable installed-session row remains the
+single revocation, expiry, app, release, process, account-generation and boot-
+epoch truth. Every separately admitted installed operation revalidates that
+row, the live native process and the current Runtime account generation through
+the Account-owned in-process evaluator. The opaque handle, request metadata and
+a launch-time snapshot are never sufficient authorization.
+
 Windows is admitted independently. macOS/Linux implementations remain
 `protected-carrier-required` and cannot claim A.1 completion until their native
 handle-transfer, peer verification and signed-release evidence are admitted.

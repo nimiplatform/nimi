@@ -19,19 +19,30 @@ type VerifiedInstalledLaunchPeer struct {
 	ProcessLiveness  DesktopProcessLiveness
 }
 
+// InstalledSessionHandle is the Runtime-private selector and proof attached to
+// one verified native connection after launch consumption. Revocation,
+// expiry, app/release identity and account generation remain owned by the
+// durable installed-session store and must be revalidated for every use.
+type InstalledSessionHandle struct {
+	SessionID    Identifier
+	SessionProof Identifier
+}
+
 type InstalledLaunchPeerVerifier interface {
 	VerifyInstalledLaunchPeer(context.Context) (VerifiedInstalledLaunchPeer, error)
 }
 
 type InstalledLaunchConnection struct {
-	launchID Identifier
-	process  ProcessTuple
-	boot     Identifier
-	liveness DesktopProcessLiveness
-	live     atomic.Bool
-	done     chan struct{}
-	revokeMu sync.Mutex
-	hooks    []func()
+	launchID  Identifier
+	process   ProcessTuple
+	boot      Identifier
+	liveness  DesktopProcessLiveness
+	live      atomic.Bool
+	done      chan struct{}
+	revokeMu  sync.Mutex
+	hooks     []func()
+	sessionMu sync.RWMutex
+	session   *InstalledSessionHandle
 }
 
 func EstablishInstalledLaunchConnection(ctx context.Context, verifier InstalledLaunchPeerVerifier) (*InstalledLaunchConnection, error) {
@@ -91,12 +102,47 @@ func (connection *InstalledLaunchConnection) Live() bool {
 	return connection != nil && connection.live.Load()
 }
 
+// BindInstalledSession attaches the one installed session created from this
+// connection's launch record. A connection can never be rebound or promoted
+// by caller-provided metadata.
+func (connection *InstalledLaunchConnection) BindInstalledSession(handle InstalledSessionHandle) error {
+	if connection == nil || handle.SessionID == (Identifier{}) || handle.SessionProof == (Identifier{}) {
+		return fmt.Errorf("installed session handle is incomplete")
+	}
+	connection.sessionMu.Lock()
+	defer connection.sessionMu.Unlock()
+	if !connection.live.Load() {
+		return fmt.Errorf("installed launch connection is revoked")
+	}
+	if connection.session != nil {
+		return fmt.Errorf("installed launch connection already has a session")
+	}
+	bound := handle
+	connection.session = &bound
+	return nil
+}
+
+func (connection *InstalledLaunchConnection) InstalledSession() (InstalledSessionHandle, bool) {
+	if connection == nil || !connection.live.Load() {
+		return InstalledSessionHandle{}, false
+	}
+	connection.sessionMu.RLock()
+	defer connection.sessionMu.RUnlock()
+	if connection.session == nil || !connection.live.Load() {
+		return InstalledSessionHandle{}, false
+	}
+	return *connection.session, true
+}
+
 func (connection *InstalledLaunchConnection) Revoke() {
 	if connection == nil || !connection.live.CompareAndSwap(true, false) {
 		return
 	}
 	close(connection.done)
 	_ = connection.liveness.Close()
+	connection.sessionMu.Lock()
+	connection.session = nil
+	connection.sessionMu.Unlock()
 	connection.revokeMu.Lock()
 	hooks := append([]func(){}, connection.hooks...)
 	connection.hooks = nil

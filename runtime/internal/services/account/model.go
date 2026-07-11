@@ -157,6 +157,7 @@ type Service struct {
 	realmBaseURL        string
 	presenceVerifier    PresenceVerifier
 	appSessionValidator AppSessionValidator
+	installedSessions   InstalledSessionResolver
 
 	partition                string
 	productionActivated      bool

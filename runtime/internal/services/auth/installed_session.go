@@ -7,9 +7,12 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+var ErrInstalledSessionNotBound = errors.New("installed session is not bound to the verified connection")
 
 // OpenDesktopLaunchedAppSession atomically exchanges a Runtime-issued launch
 // ticket for a process-bound installed session. All binding inputs come from
@@ -41,6 +44,12 @@ func (s *Service) OpenDesktopLaunchedAppSession(ctx context.Context, _ *runtimev
 	if err != nil {
 		return nil, installedLaunchConsumeError(err)
 	}
+	if err := connection.BindInstalledSession(protectedlocal.InstalledSessionHandle{
+		SessionID: projection.SessionID, SessionProof: projection.SessionProof,
+	}); err != nil {
+		_ = s.installedLaunches.RevokeSession(context.Background(), projection.SessionID)
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE)
+	}
 	connection.OnRevoke(func() {
 		_ = s.installedLaunches.RevokeSession(context.Background(), projection.SessionID)
 	})
@@ -58,6 +67,48 @@ func (s *Service) OpenDesktopLaunchedAppSession(ctx context.Context, _ *runtimev
 	}, nil
 }
 
+// ResolveInstalledSession resolves the Auth-owned installed session and native
+// process binding for the Account-owned authorization evaluator. It does not
+// decide capabilities or accept portable caller fields.
+func (s *Service) ResolveInstalledSession(ctx context.Context, accountGeneration uint64) (accountservice.InstalledCallerBinding, error) {
+	if s == nil || s.installedLaunches == nil || accountGeneration == 0 {
+		return accountservice.InstalledCallerBinding{}, ErrInstalledSessionNotBound
+	}
+	connection, ok := protectedlocal.InstalledLaunchConnectionFromContext(ctx)
+	if !ok {
+		return accountservice.InstalledCallerBinding{}, ErrInstalledSessionNotBound
+	}
+	handle, ok := connection.InstalledSession()
+	if !ok {
+		return accountservice.InstalledCallerBinding{}, ErrInstalledSessionNotBound
+	}
+	process := connection.Process()
+	projection, err := s.installedLaunches.ValidateSession(ctx, InstalledSessionBinding{
+		SessionID:         handle.SessionID,
+		SessionProof:      handle.SessionProof,
+		ReleaseDigest:     process.ExecutableDigest,
+		PID:               process.PID,
+		CreationMarker:    process.CreationMarker,
+		AccountGeneration: accountGeneration,
+		RuntimeBootEpoch:  connection.RuntimeBootEpoch(),
+	})
+	if err != nil {
+		return accountservice.InstalledCallerBinding{}, err
+	}
+	if !connection.Live() {
+		return accountservice.InstalledCallerBinding{}, ErrInstalledSessionRevoked
+	}
+	return accountservice.InstalledCallerBinding{
+		SessionID:         projection.SessionID,
+		AppID:             projection.AppID,
+		ReleaseDigest:     projection.ReleaseDigest,
+		AccountGeneration: projection.AccountGeneration,
+		RuntimeBootEpoch:  projection.RuntimeBootEpoch,
+		Process:           process,
+		ExpiresAt:         projection.ExpiresAt,
+	}, nil
+}
+
 func installedLaunchConsumeError(err error) error {
 	switch {
 	case errors.Is(err, ErrInstalledLaunchReplay):
@@ -70,3 +121,5 @@ func installedLaunchConsumeError(err error) error {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
 	}
 }
+
+var _ accountservice.InstalledSessionResolver = (*Service)(nil)

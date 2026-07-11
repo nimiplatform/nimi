@@ -502,6 +502,15 @@ methods remain denied. Other installed operations remain deny-all until their
 own capability/policy rows are admitted; a valid installed session is origin
 proof, not blanket authorization.
 
+`RuntimeAccountService` owns the private in-process installed-caller evaluator.
+For every admitted operation it combines the current authenticated account
+identity/generation with the Auth-owned durable session resolution and live
+verified process binding to return an immutable per-call decision. Auth owns
+session creation and resolution only; Realm, artifact, realtime, media and
+other consumers must not create independent installed-session caches or accept
+portable session values. Capability/grant/resource policy remains separately
+deny-all until its canonical owner rows are admitted.
+
 ## K-ACCSVC-023 Runtime Shared Auth Broker
 
 Exact per-operation Realm unary authority remains blocked pending a separate
