@@ -342,13 +342,12 @@ func newDaemonProtectedAuthorities(t *testing.T) daemonProtectedAuthorities {
 	if err != nil {
 		t.Fatalf("start protected daemon test Runtime: %v", err)
 	}
-	desktop, err := protectedlocal.NewDesktopSessionManager(bootEpoch, rand.Reader, ledger)
+	desktop, err := protectedlocal.NewDesktopSessionManager(bootEpoch, rand.Reader)
 	if err != nil {
 		t.Fatalf("create protected daemon test Desktop session manager: %v", err)
 	}
 	lifecycle, err := protectedlocal.NewLifecycleIntentManager(protectedlocal.LifecycleIntentManagerOptions{
 		Sessions: desktop,
-		Ledger:   ledger,
 	})
 	if err != nil {
 		t.Fatalf("create protected daemon test lifecycle intent manager: %v", err)

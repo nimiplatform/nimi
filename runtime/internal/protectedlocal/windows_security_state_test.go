@@ -36,8 +36,8 @@ func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t 
 	if firstEpoch == (Identifier{}) || first.Ledger() == nil || first.DesktopSessions() == nil || first.LifecycleIntents() == nil || first.DesktopPipe() == nil {
 		t.Fatalf("incomplete first security state: %#v", first)
 	}
-	if first.LifecycleIntents().ledger != first.Ledger() || first.LifecycleIntents().sessions != first.DesktopSessions() {
-		t.Fatal("lifecycle intent authority does not share the security-state ledger and Desktop sessions")
+	if first.LifecycleIntents().sessions != first.DesktopSessions() {
+		t.Fatal("lifecycle intent authority does not share the boot-scoped Desktop sessions")
 	}
 	if first.DesktopIdentity().AccountPartition() != identity.AccountPartition() {
 		t.Fatal("security state lost verified account partition")
@@ -58,10 +58,10 @@ func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t 
 	}
 	defer second.Close()
 	if second.BootEpoch() == (Identifier{}) || second.BootEpoch() == firstEpoch {
-		t.Fatal("restart did not mint a fresh anchored boot epoch")
+		t.Fatal("restart did not mint a fresh boot epoch")
 	}
-	if current := second.Ledger().currentBootEpoch(ctx); current != second.BootEpoch() {
-		t.Fatal("session manager and ledger boot epochs diverged")
+	if current := second.Ledger().currentBootEpoch(ctx); current != (Identifier{}) {
+		t.Fatal("ordinary boot epoch unexpectedly entered durable ledger truth")
 	}
 	if _, present := secrets.values[WindowsLedgerRecordMACKeyName]; !present {
 		t.Fatal("security state did not retain ledger MAC key in protected custody")

@@ -283,7 +283,7 @@ func newProtectedRPCFixture(t *testing.T) (*protectedlocal.DesktopSessionManager
 	if err != nil {
 		t.Fatalf("start protected transport Runtime: %v", err)
 	}
-	manager, err := protectedlocal.NewDesktopSessionManager(bootEpoch, rand.Reader, ledger)
+	manager, err := protectedlocal.NewDesktopSessionManager(bootEpoch, rand.Reader)
 	if err != nil {
 		t.Fatalf("new protected transport session manager: %v", err)
 	}

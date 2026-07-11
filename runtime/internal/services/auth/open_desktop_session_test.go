@@ -77,7 +77,7 @@ func newDesktopSessionFixture(t *testing.T) desktopSessionFixture {
 	if err != nil {
 		t.Fatalf("start protected-local runtime: %v", err)
 	}
-	manager, err := protectedlocal.NewDesktopSessionManager(bootEpoch, rand.Reader, ledger)
+	manager, err := protectedlocal.NewDesktopSessionManager(bootEpoch, rand.Reader)
 	if err != nil {
 		t.Fatalf("new desktop session manager: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestOpenDesktopSessionProjectsExactIdentifiersAndRejectsDuplicate(t *testin
 	assertDesktopSessionReason(t, err, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 }
 
-func TestOpenDesktopSessionRejectsStaleRevokedAndLedgerFailure(t *testing.T) {
+func TestOpenDesktopSessionRejectsStaleAndRevokedConnections(t *testing.T) {
 	t.Run("stale boot epoch", func(t *testing.T) {
 		fixture := newDesktopSessionFixture(t)
 		staleConnection, _ := establishDesktopSessionConnection(t, filledProtectedIdentifier(0xa5))
@@ -248,7 +248,7 @@ func TestOpenDesktopSessionRejectsStaleRevokedAndLedgerFailure(t *testing.T) {
 		fixture.connection.Revoke()
 	})
 
-	t.Run("ledger unavailable", func(t *testing.T) {
+	t.Run("durable ledger is not session truth", func(t *testing.T) {
 		fixture := newDesktopSessionFixture(t)
 		service := newDesktopSessionService(fixture.manager)
 		callContext := protectedlocal.ContextWithDesktopConnection(context.Background(), fixture.connection)
@@ -256,7 +256,8 @@ func TestOpenDesktopSessionRejectsStaleRevokedAndLedgerFailure(t *testing.T) {
 			t.Fatalf("close ledger: %v", err)
 		}
 
-		_, err := service.OpenDesktopSession(callContext, &runtimev1.OpenDesktopSessionRequest{})
-		assertDesktopSessionReason(t, err, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+		if _, err := service.OpenDesktopSession(callContext, &runtimev1.OpenDesktopSessionRequest{}); err != nil {
+			t.Fatalf("ordinary session depended on durable ledger: %v", err)
+		}
 	})
 }

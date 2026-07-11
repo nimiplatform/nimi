@@ -22,7 +22,7 @@ func (v fixedDesktopVerifier) VerifyDesktopPeers(context.Context) (VerifiedDeskt
 func TestDesktopSessionIsConnectionBoundAndNotReconstructable(t *testing.T) {
 	t.Parallel()
 
-	ledger, boot := startedTestLedger(t)
+	_, boot := startedTestLedger(t)
 	peer := desktopPeers(boot)
 	random := distinctIdentifierReader(0x51, 6)
 	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: peer}, random)
@@ -30,7 +30,7 @@ func TestDesktopSessionIsConnectionBoundAndNotReconstructable(t *testing.T) {
 		t.Fatalf("establish desktop connection: %v", err)
 	}
 
-	manager, err := NewDesktopSessionManager(boot, random, ledger)
+	manager, err := NewDesktopSessionManager(boot, random)
 	if err != nil {
 		t.Fatalf("new session manager: %v", err)
 	}
@@ -88,24 +88,24 @@ func TestZeroValueDesktopConnectionRevokeDoesNotBlock(t *testing.T) {
 	}
 }
 
-func TestDesktopSessionManagerValidateAnchoredRejectsZeroAndClosedLedger(t *testing.T) {
-	if err := (&DesktopSessionManager{}).ValidateAnchored(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
+func TestDesktopSessionManagerValidationIsIndependentOfDurableLedger(t *testing.T) {
+	if err := (&DesktopSessionManager{}).ValidateBootScoped(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
 		t.Fatalf("zero manager validation error = %v", err)
 	}
 
 	ledger, boot := startedTestLedger(t)
-	manager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0xb4, 2), ledger)
+	manager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0xb4, 2))
 	if err != nil {
 		t.Fatalf("new session manager: %v", err)
 	}
-	if err := manager.ValidateAnchored(context.Background()); err != nil {
+	if err := manager.ValidateBootScoped(context.Background()); err != nil {
 		t.Fatalf("validate anchored manager: %v", err)
 	}
 	if err := ledger.Close(); err != nil {
 		t.Fatalf("close ledger: %v", err)
 	}
-	if err := manager.ValidateAnchored(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
-		t.Fatalf("closed-ledger validation error = %v", err)
+	if err := manager.ValidateBootScoped(context.Background()); err != nil {
+		t.Fatalf("ordinary session authority depended on closed ledger: %v", err)
 	}
 }
 
@@ -123,13 +123,13 @@ func TestBootEpochRequiresExactlyThirtyTwoNonzeroRandomBytes(t *testing.T) {
 func TestDesktopSessionIsLimitedToOnePerCanonicalProcessTuple(t *testing.T) {
 	t.Parallel()
 
-	ledger, boot := startedTestLedger(t)
+	_, boot := startedTestLedger(t)
 	random := distinctIdentifierReader(0x71, 5)
 	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: desktopPeers(boot)}, random)
 	if err != nil {
 		t.Fatalf("establish desktop connection: %v", err)
 	}
-	manager, err := NewDesktopSessionManager(boot, random, ledger)
+	manager, err := NewDesktopSessionManager(boot, random)
 	if err != nil {
 		t.Fatalf("new session manager: %v", err)
 	}
@@ -165,12 +165,12 @@ func TestTransportAndRolesAreDerivedBeforeRequests(t *testing.T) {
 	}
 }
 
-func TestDesktopSessionRequiresAnchoredLedgerAcrossManagers(t *testing.T) {
+func TestDesktopSessionOwnershipIsBootScopedPerManager(t *testing.T) {
 	t.Parallel()
 
-	ledger, boot := startedTestLedger(t)
-	if _, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x91, 1), nil); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
-		t.Fatalf("expected nil ledger rejection, got %v", err)
+	_, boot := startedTestLedger(t)
+	if _, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x91, 1)); err != nil {
+		t.Fatalf("ordinary session manager required durable ledger: %v", err)
 	}
 	firstConnection, err := EstablishDesktopConnection(
 		context.Background(),
@@ -190,33 +190,33 @@ func TestDesktopSessionRequiresAnchoredLedgerAcrossManagers(t *testing.T) {
 		t.Fatalf("establish second connection: %v", err)
 	}
 	t.Cleanup(secondConnection.Revoke)
-	firstManager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x94, 2), ledger)
+	firstManager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x94, 2))
 	if err != nil {
 		t.Fatalf("new first session manager: %v", err)
 	}
-	secondManager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x95, 2), ledger)
+	secondManager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x95, 2))
 	if err != nil {
 		t.Fatalf("new second session manager: %v", err)
 	}
 	if _, err := firstManager.Open(ContextWithDesktopConnection(context.Background(), firstConnection)); err != nil {
-		t.Fatalf("open first durable session: %v", err)
+		t.Fatalf("open first boot-scoped session: %v", err)
 	}
-	if _, err := secondManager.Open(ContextWithDesktopConnection(context.Background(), secondConnection)); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
-		t.Fatalf("expected durable one-session rejection across managers, got %v", err)
+	if _, err := secondManager.Open(ContextWithDesktopConnection(context.Background(), secondConnection)); err != nil {
+		t.Fatalf("independent manager could not own its distinct connection: %v", err)
 	}
 }
 
 func TestDesktopSessionLivenessRevocationImmediatelyRemovesContextAuthority(t *testing.T) {
 	t.Parallel()
 
-	ledger, boot := startedTestLedger(t)
+	_, boot := startedTestLedger(t)
 	peers := desktopPeers(boot)
 	liveness := peers.ClientLiveness.(*manualDesktopLiveness)
 	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: peers}, distinctIdentifierReader(0xb1, 1))
 	if err != nil {
 		t.Fatalf("establish desktop connection: %v", err)
 	}
-	manager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0xb2, 2), ledger)
+	manager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0xb2, 2))
 	if err != nil {
 		t.Fatalf("new session manager: %v", err)
 	}

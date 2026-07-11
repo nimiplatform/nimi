@@ -344,26 +344,15 @@ type DesktopSessionRecord struct {
 type DesktopSessionManager struct {
 	bootEpoch Identifier
 	random    io.Reader
-	ledger    *Ledger
 	managerID Identifier
-	unhealthy atomic.Bool
 
 	mu       sync.Mutex
 	sessions map[Identifier]*desktopSessionAuthority
 }
 
-func NewDesktopSessionManager(bootEpoch Identifier, random io.Reader, ledger *Ledger) (*DesktopSessionManager, error) {
+func NewDesktopSessionManager(bootEpoch Identifier, random io.Reader) (*DesktopSessionManager, error) {
 	if bootEpoch == (Identifier{}) {
 		return nil, fail(ReasonProtectedLocalBootEpochMismatch, false, "reconnect_desktop", fmt.Errorf("create desktop session manager: boot epoch is empty"))
-	}
-	if ledger == nil || ledger.db == nil {
-		return nil, fail(ReasonProtectedLocalLedgerUnavailable, false, "repair_runtime_service", fmt.Errorf("create desktop session manager: anchored ledger is required"))
-	}
-	if err := ledger.db.PingContext(context.Background()); err != nil {
-		return nil, fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("create desktop session manager: ping anchored ledger: %w", err))
-	}
-	if ledger.currentBootEpoch(context.Background()) != bootEpoch {
-		return nil, fail(ReasonProtectedLocalBootEpochMismatch, false, "restart_runtime_service", fmt.Errorf("create desktop session manager: ledger boot epoch mismatch"))
 	}
 	managerID, err := readIdentifier(random)
 	if err != nil {
@@ -372,21 +361,19 @@ func NewDesktopSessionManager(bootEpoch Identifier, random io.Reader, ledger *Le
 	return &DesktopSessionManager{
 		bootEpoch: bootEpoch,
 		random:    random,
-		ledger:    ledger,
 		managerID: managerID,
 		sessions:  make(map[Identifier]*desktopSessionAuthority),
 	}, nil
 }
 
-// ValidateAnchored confirms that this manager was minted from the currently
-// live durable ledger and boot epoch. Construction boundaries call it instead
-// of treating a non-nil pointer as a security capability.
-func (manager *DesktopSessionManager) ValidateAnchored(ctx context.Context) error {
+// ValidateBootScoped confirms that this manager owns a live boot-scoped
+// session index. Normal Desktop sessions are not durable-anchor truth.
+func (manager *DesktopSessionManager) ValidateBootScoped(ctx context.Context) error {
 	if ctx == nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: context is required"))
 	}
-	if manager == nil || manager.bootEpoch == (Identifier{}) || manager.managerID == (Identifier{}) || manager.ledger == nil || manager.unhealthy.Load() {
-		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: anchored authority is incomplete"))
+	if manager == nil || manager.bootEpoch == (Identifier{}) || manager.managerID == (Identifier{}) {
+		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: boot-scoped authority is incomplete"))
 	}
 	manager.mu.Lock()
 	sessionsReady := manager.sessions != nil
@@ -394,25 +381,10 @@ func (manager *DesktopSessionManager) ValidateAnchored(ctx context.Context) erro
 	if !sessionsReady {
 		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: authoritative session index is unavailable"))
 	}
-	if manager.ledger.db == nil {
-		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: anchored ledger is unavailable"))
-	}
-	if err := manager.ledger.db.PingContext(ctx); err != nil {
-		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("validate desktop session manager: ping anchored ledger: %w", err))
-	}
-	if manager.ledger.currentBootEpoch(ctx) != manager.bootEpoch {
-		return fail(ReasonProtectedLocalBootEpochMismatch, false, "restart_runtime_service", fmt.Errorf("validate desktop session manager: current boot epoch mismatch"))
-	}
 	return nil
 }
 
 func (manager *DesktopSessionManager) Open(ctx context.Context) (DesktopSessionProjection, error) {
-	if manager.unhealthy.Load() || manager.ledger == nil || manager.ledger.db == nil {
-		return DesktopSessionProjection{}, fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("open desktop session: ledger recorder is unhealthy"))
-	}
-	if err := manager.ledger.db.PingContext(ctx); err != nil {
-		return DesktopSessionProjection{}, fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("open desktop session: ping anchored ledger: %w", err))
-	}
 	connection, ok := DesktopConnectionFromContext(ctx)
 	if !ok {
 		return DesktopSessionProjection{}, fail(ReasonDesktopControlTransportRequired, false, "use_desktop_control", fmt.Errorf("open desktop session: protected connection context is required"))
@@ -453,12 +425,6 @@ func (manager *DesktopSessionManager) Open(ctx context.Context) (DesktopSessionP
 		manager.mu.Unlock()
 		return DesktopSessionProjection{}, fail(ReasonProtectedOriginRoleMismatch, false, "reuse_live_desktop_session", fmt.Errorf("open desktop session: connection already owns a session authority"))
 	}
-	record := DesktopSessionRecord{SessionID: sessionID, BootEpoch: manager.bootEpoch, Connection: origin.connectionID, ProcessHash: origin.processHash}
-	if err := manager.ledger.RecordDesktopSessionOpened(ctx, record); err != nil {
-		connection.unbindDesktopSession(authority)
-		manager.mu.Unlock()
-		return DesktopSessionProjection{}, err
-	}
 	manager.sessions[origin.processHash] = authority
 	manager.mu.Unlock()
 	connection.onRevoke(func() { manager.revokeAuthority(authority) })
@@ -475,9 +441,6 @@ func (manager *DesktopSessionManager) Open(ctx context.Context) (DesktopSessionP
 // the manager-internal desktop session authority. Correlation projections and
 // metadata are never accepted as rebind proof.
 func (manager *DesktopSessionManager) AuthorizeContext(ctx context.Context, role OriginRole) error {
-	if manager.unhealthy.Load() {
-		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("authorize desktop session: ledger recorder is unhealthy"))
-	}
 	connection, ok := DesktopConnectionFromContext(ctx)
 	if !ok {
 		return fail(ReasonDesktopControlTransportRequired, false, "use_desktop_control", fmt.Errorf("authorize desktop session: protected connection context is required"))
@@ -551,15 +514,4 @@ func (manager *DesktopSessionManager) revokeAuthority(authority *desktopSessionA
 		delete(manager.sessions, authority.processHash)
 	}
 	manager.mu.Unlock()
-	if manager.ledger == nil || manager.ledger.db == nil {
-		manager.unhealthy.Store(true)
-		return
-	}
-	if err := manager.ledger.db.PingContext(context.Background()); err != nil {
-		manager.unhealthy.Store(true)
-		return
-	}
-	if err := manager.ledger.RecordDesktopSessionRevoked(context.Background(), authority.sessionID); err != nil {
-		manager.unhealthy.Store(true)
-	}
 }

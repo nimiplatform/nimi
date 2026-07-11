@@ -9,7 +9,6 @@ import (
 	"math"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -132,7 +131,6 @@ type LifecycleIntentStatusProjection struct {
 
 type LifecycleIntentManagerOptions struct {
 	Sessions *DesktopSessionManager
-	Ledger   *Ledger
 	Random   io.Reader
 	Now      func() time.Time
 }
@@ -165,23 +163,21 @@ type lifecycleOutstandingKey struct {
 
 type LifecycleIntentManager struct {
 	sessions *DesktopSessionManager
-	ledger   *Ledger
 	random   io.Reader
 	now      func() time.Time
 	boot     Identifier
 	id       Identifier
 
-	unhealthy atomic.Bool
-	mu        sync.Mutex
-	entries   map[Identifier]*lifecycleIntentAuthority
-	active    map[lifecycleOutstandingKey]Identifier
+	mu      sync.Mutex
+	entries map[Identifier]*lifecycleIntentAuthority
+	active  map[lifecycleOutstandingKey]Identifier
 }
 
 func NewLifecycleIntentManager(options LifecycleIntentManagerOptions) (*LifecycleIntentManager, error) {
-	if options.Sessions == nil || options.Ledger == nil || options.Ledger.db == nil || options.Sessions.ledger != options.Ledger {
-		return nil, fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("create lifecycle intent manager: anchored desktop session ledger is required"))
+	if options.Sessions == nil {
+		return nil, fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("create lifecycle intent manager: desktop session authority is required"))
 	}
-	if options.Sessions.bootEpoch == (Identifier{}) || options.Ledger.currentBootEpoch(context.Background()) != options.Sessions.bootEpoch {
+	if options.Sessions.bootEpoch == (Identifier{}) {
 		return nil, fail(ReasonProtectedLocalBootEpochMismatch, true, "reconnect_desktop", fmt.Errorf("create lifecycle intent manager: runtime boot epoch mismatch"))
 	}
 	if options.Random == nil {
@@ -196,7 +192,6 @@ func NewLifecycleIntentManager(options LifecycleIntentManagerOptions) (*Lifecycl
 	}
 	return &LifecycleIntentManager{
 		sessions: options.Sessions,
-		ledger:   options.Ledger,
 		random:   options.Random,
 		now:      options.Now,
 		boot:     options.Sessions.bootEpoch,
@@ -206,17 +201,16 @@ func NewLifecycleIntentManager(options LifecycleIntentManagerOptions) (*Lifecycl
 	}, nil
 }
 
-// ValidateAnchored confirms that this manager and the supplied Desktop
-// session authority are the exact pair minted over one live ledger and boot
-// epoch. Production composition boundaries must not accept independently
-// assembled non-nil pointers.
-func (manager *LifecycleIntentManager) ValidateAnchored(ctx context.Context, sessions *DesktopSessionManager) error {
+// ValidateBootScoped confirms that this transitional manager and the supplied
+// Desktop session authority are the exact boot-scoped pair. Lifecycle intent
+// rows are ordinary in-memory transaction state, not durable-anchor truth.
+func (manager *LifecycleIntentManager) ValidateBootScoped(ctx context.Context, sessions *DesktopSessionManager) error {
 	if ctx == nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate lifecycle intent manager: context is required"))
 	}
-	if manager == nil || manager.id == (Identifier{}) || manager.boot == (Identifier{}) || manager.unhealthy.Load() ||
-		manager.sessions == nil || manager.sessions != sessions || manager.ledger == nil || manager.sessions.ledger != manager.ledger {
-		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate lifecycle intent manager: anchored authority pair is incomplete"))
+	if manager == nil || manager.id == (Identifier{}) || manager.boot == (Identifier{}) ||
+		manager.sessions == nil || manager.sessions != sessions {
+		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate lifecycle intent manager: boot-scoped authority pair is incomplete"))
 	}
 	manager.mu.Lock()
 	indexesReady := manager.entries != nil && manager.active != nil
@@ -224,10 +218,10 @@ func (manager *LifecycleIntentManager) ValidateAnchored(ctx context.Context, ses
 	if !indexesReady {
 		return fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("validate lifecycle intent manager: authoritative indexes are unavailable"))
 	}
-	if err := sessions.ValidateAnchored(ctx); err != nil {
+	if err := sessions.ValidateBootScoped(ctx); err != nil {
 		return err
 	}
-	if manager.ledger.currentBootEpoch(ctx) != manager.boot || sessions.bootEpoch != manager.boot {
+	if sessions.bootEpoch != manager.boot {
 		return fail(ReasonProtectedLocalBootEpochMismatch, false, "restart_runtime_service", fmt.Errorf("validate lifecycle intent manager: current boot epoch mismatch"))
 	}
 	return nil
@@ -268,12 +262,8 @@ func (manager *LifecycleIntentManager) Prepare(ctx context.Context, input Lifecy
 		deadline:           deadline,
 		status:             LifecycleIntentStatusPrepared,
 	}
-	replaced, err := manager.ledger.prepareLifecycleChallenge(ctx, lifecycleChallengeRecordFromAuthority(entry))
-	if err != nil {
-		manager.unhealthy.Store(true)
-		return PreparedLifecycleIntentProjection{}, err
-	}
 	key := lifecycleOutstandingKey{desktopSessionID: authority.sessionID, action: input.Action, appID: input.AppID}
+	replaced := manager.active[key]
 	if replaced != (Identifier{}) {
 		if prior := manager.entries[replaced]; prior != nil {
 			prior.status = LifecycleIntentStatusCancelled
@@ -316,10 +306,6 @@ func (manager *LifecycleIntentManager) Consume(ctx context.Context, input Lifecy
 		}
 		return LifecycleIntentStatusProjection{}, lifecycleIntentExpiredFailure("consume lifecycle intent: intent expired")
 	}
-	if err := manager.ledger.consumeLifecycleChallenge(ctx, lifecycleIntentRecordFromAuthority(entry, LifecycleIntentStatusConsumed)); err != nil {
-		manager.unhealthy.Store(true)
-		return LifecycleIntentStatusProjection{}, err
-	}
 	entry.status = LifecycleIntentStatusConsumed
 	delete(manager.active, lifecycleOutstandingKey{desktopSessionID: entry.desktopSessionID, action: entry.action, appID: entry.appID})
 	if _, err := manager.authorize(ctx); err != nil {
@@ -351,29 +337,18 @@ func (manager *LifecycleIntentManager) Status(ctx context.Context, query Lifecyc
 }
 
 func (manager *LifecycleIntentManager) expire(ctx context.Context, entry *lifecycleIntentAuthority) error {
-	if err := manager.ledger.expireLifecycleChallenge(ctx, lifecycleIntentRecordFromAuthority(entry, LifecycleIntentStatusExpired)); err != nil {
-		manager.unhealthy.Store(true)
-		return err
-	}
+	_ = ctx
 	entry.status = LifecycleIntentStatusExpired
 	delete(manager.active, lifecycleOutstandingKey{desktopSessionID: entry.desktopSessionID, action: entry.action, appID: entry.appID})
 	return nil
 }
 
 func (manager *LifecycleIntentManager) authorize(ctx context.Context) (*desktopSessionAuthority, error) {
-	if manager == nil || manager.unhealthy.Load() || manager.ledger == nil || manager.ledger.db == nil {
+	if manager == nil || manager.sessions == nil {
 		return nil, fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("authorize lifecycle intent: manager is unavailable"))
 	}
 	if err := manager.sessions.AuthorizeContext(ctx, RoleDesktopLifecycleHost); err != nil {
 		return nil, err
-	}
-	currentBoot := manager.ledger.currentBootEpoch(ctx)
-	if currentBoot == (Identifier{}) {
-		manager.unhealthy.Store(true)
-		return nil, fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("authorize lifecycle intent: current boot epoch unavailable"))
-	}
-	if currentBoot != manager.boot {
-		return nil, fail(ReasonProtectedLocalBootEpochMismatch, true, "reconnect_desktop", fmt.Errorf("authorize lifecycle intent: runtime boot epoch is stale"))
 	}
 	connection, ok := DesktopConnectionFromContext(ctx)
 	if !ok || connection == nil {
@@ -382,6 +357,9 @@ func (manager *LifecycleIntentManager) authorize(ctx context.Context) (*desktopS
 	authority := connection.desktopSessionAuthority()
 	if authority == nil || authority.managerID != manager.sessions.managerID {
 		return nil, fail(ReasonProtectedOriginRoleMismatch, false, "reconnect_desktop", fmt.Errorf("authorize lifecycle intent: desktop session authority mismatch"))
+	}
+	if authority.bootEpoch != manager.boot || connection.origin.bootEpoch != manager.boot {
+		return nil, fail(ReasonProtectedLocalBootEpochMismatch, true, "reconnect_desktop", fmt.Errorf("authorize lifecycle intent: runtime boot epoch is stale"))
 	}
 	return authority, nil
 }

@@ -157,10 +157,10 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LifecycleIntents == nil {
 		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, and lifecycle intent authority are required")
 	}
-	if err := bindings.DesktopSessions.ValidateAnchored(context.Background()); err != nil {
+	if err := bindings.DesktopSessions.ValidateBootScoped(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate protected Desktop session authority: %w", err)
 	}
-	if err := bindings.LifecycleIntents.ValidateAnchored(context.Background(), bindings.DesktopSessions); err != nil {
+	if err := bindings.LifecycleIntents.ValidateBootScoped(context.Background(), bindings.DesktopSessions); err != nil {
 		return nil, fmt.Errorf("validate protected lifecycle intent authority: %w", err)
 	}
 	bindings.ServiceStateRoot = stateRoot

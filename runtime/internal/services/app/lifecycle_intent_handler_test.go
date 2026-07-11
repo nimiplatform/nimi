@@ -334,11 +334,11 @@ func newLifecycleIntentHandlerFixture(t *testing.T) lifecycleIntentHandlerFixtur
 	if err != nil {
 		t.Fatalf("start lifecycle intent Runtime: %v", err)
 	}
-	sessions, err := protectedlocal.NewDesktopSessionManager(boot, rand.Reader, ledger)
+	sessions, err := protectedlocal.NewDesktopSessionManager(boot, rand.Reader)
 	if err != nil {
 		t.Fatalf("new lifecycle session manager: %v", err)
 	}
-	manager, err := protectedlocal.NewLifecycleIntentManager(protectedlocal.LifecycleIntentManagerOptions{Sessions: sessions, Ledger: ledger})
+	manager, err := protectedlocal.NewLifecycleIntentManager(protectedlocal.LifecycleIntentManagerOptions{Sessions: sessions})
 	if err != nil {
 		t.Fatalf("new lifecycle intent manager: %v", err)
 	}

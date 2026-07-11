@@ -180,17 +180,18 @@ func assembleWindowsRuntimeSecurityState(
 		}
 	}()
 
-	bootEpoch, err := ledger.StartRuntime(ctx)
+	// Boot epochs are process-lifetime freshness, not rollback-resistant state.
+	// Mint them from OS randomness without advancing the durable anchor.
+	bootEpoch, err := NewBootEpoch(nil)
 	if err != nil {
 		return nil, err
 	}
-	desktopSessions, err := NewDesktopSessionManager(bootEpoch, nil, ledger)
+	desktopSessions, err := NewDesktopSessionManager(bootEpoch, nil)
 	if err != nil {
 		return nil, err
 	}
 	lifecycleIntents, err := NewLifecycleIntentManager(LifecycleIntentManagerOptions{
 		Sessions: desktopSessions,
-		Ledger:   ledger,
 	})
 	if err != nil {
 		return nil, err
