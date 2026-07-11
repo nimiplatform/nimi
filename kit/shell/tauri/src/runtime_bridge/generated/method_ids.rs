@@ -2,9 +2,13 @@
 // DO NOT EDIT MANUALLY.
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
+    "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
     "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
+    "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
     "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
+    "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
     "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
     "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
@@ -40,6 +44,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
+    "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
     "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
     "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
@@ -89,7 +94,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
     "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
-    "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
     "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
