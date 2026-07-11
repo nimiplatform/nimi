@@ -25,14 +25,20 @@ import (
 const maxRuntimeLockAcquireAttempts = 8
 
 // RunProductionDaemonFromArgs never promotes argv, environment, or user-writable
-// configuration into a production Runtime startup authority. The signed OS
-// service bootstrap will replace this fail-closed boundary once it can supply
-// validated principal, custody, executable, and transport capabilities.
-func RunProductionDaemonFromArgs(_ string, _ []string, _ ...string) error {
-	return fmt.Errorf(
-		"%s: production Runtime startup requires the signed OS service bootstrap",
-		protectedlocal.ReasonProtectedLocalRuntimePrincipalRequired,
-	)
+// configuration into production startup authority. The platform-specific
+// bootstrap accepts only its fixed OS service definition.
+func RunProductionDaemonFromArgs(_ string, args []string, version ...string) error {
+	if len(args) != 0 {
+		return fmt.Errorf(
+			"%s: production Runtime startup does not accept argv controls",
+			protectedlocal.ReasonProtectedLocalRuntimePrincipalRequired,
+		)
+	}
+	runtimeVersion := "0.0.0-dev"
+	if len(version) > 0 && strings.TrimSpace(version[0]) != "" {
+		runtimeVersion = strings.TrimSpace(version[0])
+	}
+	return runProductionDaemon(runtimeVersion)
 }
 
 func runNonProductionDaemonFromArgs(program string, args []string, version ...string) error {
