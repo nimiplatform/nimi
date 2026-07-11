@@ -1227,14 +1227,18 @@ test('default profiles generate installed-app skeleton boundaries without tester
     const generated = scaffold(profile);
     try {
       const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
+      const installedBootstrap = generated.read('src/shell/auth/installed-app-bootstrap.ts');
       const authGate = generated.read('src/shell/auth/auth-gate.tsx');
       const main = generated.read('src/main.tsx');
-      const joined = [runtimePlatform, authGate, main].join('\n');
+      const joined = [runtimePlatform, installedBootstrap, authGate, main].join('\n');
 
       assert.match(runtimePlatform, /'developer-registered-local-app'/, `${profile} keeps local developer mode`);
       assert.match(runtimePlatform, /'third-party-nimi-app'/, `${profile} keeps third-party installed-app mode`);
-      assert.match(runtimePlatform, /createInstalledNimiAppStandardShellSurface/, `${profile} must compose installed-app standard shell`);
-      assert.match(runtimePlatform, /installed-app-host-binding-required|installed app host binding/i, `${profile} must fail closed without installed host binding`);
+      assert.match(runtimePlatform, /getInstalledNimiAppBootstrap/, `${profile} must consume installed-app bootstrap`);
+      assert.match(installedBootstrap, /createInstalledNimiAppBootstrap/, `${profile} must consume the SDK installed owner surface`);
+      assert.match(installedBootstrap, /createInstalledNimiAppStandardShellSurface/, `${profile} must compose the Kit standard shell`);
+      assert.match(runtimePlatform, /installed operations not admitted|runtime operations require separate admission/i, `${profile} must keep non-artifact installed operations fail closed`);
+      assert.match(runtimePlatform, /resolveRuntimeAuthMode\(\) !== 'developer-registered-local-app'/, `${profile} must reject developer caller construction in installed mode`);
 
       for (const forbidden of [
         'launchNonce',

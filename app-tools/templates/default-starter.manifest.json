@@ -96,6 +96,10 @@
       "class": "scaffold-managed glue"
     },
     {
+      "path": "src/shell/auth/installed-app-bootstrap.ts",
+      "class": "scaffold-managed glue"
+    },
+    {
       "path": "src/shell/auth/runtime-account-auth.ts",
       "class": "scaffold-managed glue"
     },

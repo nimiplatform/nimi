@@ -7,13 +7,11 @@ import {
   type NimiRuntimeAccountCaller,
   type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
-import {
-  createInstalledNimiAppStandardShellSurface,
-} from '@nimiplatform/kit/shell/renderer/bridge';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 import { appId, appTitle } from './app-identity.js';
+import { getInstalledNimiAppBootstrap } from './installed-app-bootstrap.js';
 import { createNimiAppRuntimeTransportConfig, resolveNimiAppRuntimeHostKind } from './runtime-transport.js';
 
 export const runtimeAccountLoginEnabled = resolveRuntimeAuthMode() === 'developer-registered-local-app';
@@ -111,6 +109,14 @@ export function getRuntimeNimiClient(): NimiClient {
 }
 
 export function getRuntimeAccountCaller(): NimiRuntimeAccountCaller {
+  if (resolveRuntimeAuthMode() !== 'developer-registered-local-app') {
+    throw createNimiError({
+      message: 'Installed app account caller posture is owned by the native carrier.',
+      reasonCode: 'SDK_INSTALLED_APP_ACCOUNT_CALLER_UNAVAILABLE',
+      actionHint: 'use_admitted_installed_app_operations_only',
+      source: 'sdk',
+    });
+  }
   runtimeAccountCaller ??= createNimiDeveloperRegisteredRuntimeAccountCaller({
     appId,
     appInstanceId: runtimeAccountAppInstanceId,
@@ -190,13 +196,13 @@ async function createInstalledAppRuntimeProjection(
   mode: RuntimeAuthMode,
 ): Promise<RuntimePlatformProjection> {
   try {
-    createInstalledNimiAppStandardShellSurface();
+    getInstalledNimiAppBootstrap();
     return {
       status: 'unavailable',
       mode,
-      reasonCode: 'SDK_INSTALLED_APP_HOST_BINDING_REQUIRED',
-      actionHint: 'launch_through_desktop_installed_app_host',
-      message: 'installed app host binding is required before a third-party Nimi App can create Runtime account/session projection',
+      reasonCode: 'SDK_INSTALLED_APP_RUNTIME_OPERATIONS_NOT_ADMITTED',
+      actionHint: 'use_only_admitted_installed_artifact_operations',
+      message: 'Installed artifact access is available; Runtime operations require separate admission.',
     };
   } catch (error) {
     return unavailableFromError(mode, error);

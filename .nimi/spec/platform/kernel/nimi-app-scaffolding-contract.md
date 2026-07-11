@@ -356,6 +356,17 @@ mode detection and host bridge consumption, but renderer-owned app code must
 not read, construct, persist, or pass `launchNonce`, `releaseDescriptorRef`, or
 `launchBinding` as app-supplied truth.
 
+`MUST`: the generated starter composes SDK `createInstalledNimiAppBootstrap`
+with Kit `createInstalledNimiAppStandardShellSurface` in one scaffold-managed
+module. Installed mode may consume only its admitted artifact reader; the
+general Runtime platform projection remains unavailable until separate
+operations are admitted.
+
+`MUST NOT`: the generated installed path must not construct or return a
+developer-registered account caller. Developer caller helpers remain usable
+only when the resolved auth mode is explicitly
+`developer-registered-local-app`.
+
 `MUST NOT`: scaffolding must not teach third-party apps to self-report launch
 binding, descriptor truth, host identity, Runtime account caller posture, app
 session metadata, protected-access tokens, or permission grants. Missing host

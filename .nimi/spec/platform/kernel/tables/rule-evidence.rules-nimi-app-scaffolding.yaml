@@ -122,7 +122,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; launch-binding custody enforcement requires SDK/Kit host-owned bridge tests and generated starter boundary scans
+    evidence_scope_note: structural only; launch-binding custody enforcement requires SDK/Kit artifact-bootstrap composition tests, installed developer-caller denial, and generated starter boundary scans
   - rule_id: P-SCAF-017
     evidence_refs:
       - platform_kernel_consistency

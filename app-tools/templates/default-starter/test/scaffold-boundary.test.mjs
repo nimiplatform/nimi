@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const authSource = readFileSync(new URL('../src/shell/auth/runtime-platform.ts', import.meta.url), 'utf8');
 const authGateSource = readFileSync(new URL('../src/shell/auth/auth-gate.tsx', import.meta.url), 'utf8');
+const installedBootstrapSource = readFileSync(new URL('../src/shell/auth/installed-app-bootstrap.ts', import.meta.url), 'utf8');
 const runtimeAccountAuthSource = readFileSync(new URL('../src/shell/auth/runtime-account-auth.ts', import.meta.url), 'utf8');
 const runtimeTransportSource = readFileSync(new URL('../src/shell/auth/runtime-transport.ts', import.meta.url), 'utf8');
 const runtimeLoginSource = readFileSync(new URL('../src/shell/auth/runtime-login-page.tsx', import.meta.url), 'utf8');
@@ -15,6 +16,7 @@ const appSource = [authSource, runtimeLoginSource, productSource, demoSource].jo
 const scaffoldManagedShellSource = [
   authSource,
   authGateSource,
+  installedBootstrapSource,
   runtimeAccountAuthSource,
   runtimeTransportSource,
   runtimeLoginSource,
@@ -57,8 +59,11 @@ test('Runtime transport selector supports Electron without spoofing Tauri', () =
 
 test('installed app skeleton consumes host-owned standard shell without renderer launch binding', () => {
   assert.match(authSource, /'third-party-nimi-app'/);
-  assert.match(authSource, /createInstalledNimiAppStandardShellSurface/);
-  assert.match(authSource, /installed-app-host-binding-required|installed app host binding/i);
+  assert.match(authSource, /getInstalledNimiAppBootstrap/);
+  assert.match(authSource, /SDK_INSTALLED_APP_RUNTIME_OPERATIONS_NOT_ADMITTED/);
+  assert.match(authSource, /resolveRuntimeAuthMode\(\) !== 'developer-registered-local-app'/);
+  assert.match(installedBootstrapSource, /createInstalledNimiAppBootstrap/);
+  assert.match(installedBootstrapSource, /createInstalledNimiAppStandardShellSurface/);
   assert.doesNotMatch(scaffoldManagedShellSource, /\blaunchNonce\b/);
   assert.doesNotMatch(scaffoldManagedShellSource, /\breleaseDescriptorRef\b/);
   assert.doesNotMatch(scaffoldManagedShellSource, /\blaunchBinding\b/);
