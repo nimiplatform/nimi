@@ -33,9 +33,9 @@ test('desktop bootstrap reads Runtime account projection instead of shared auth-
 });
 
 test('desktop bootstrap projects authenticated state from Runtime account truth without raw token access', () => {
-  assert.match(
-    runtimeBootstrapSource,
-    /accountStatus\.state === 'authenticated'\s*&& accountProjection\?\.accountId/s,
+  assert.ok(
+    runtimeBootstrapSource.includes("accountStatus?.state === 'authenticated'"),
+    'authenticated renderer state must come from the exact protected account status projection',
   );
   assert.match(
     runtimeBootstrapSource,
@@ -60,7 +60,7 @@ test('desktop Realm transport is Runtime-mediated and never calls public token r
   assert.doesNotMatch(sdkRuntimeAccountRealmSource, /refreshAccountSession/);
 });
 
-test('desktop bootstrap fails closed without a Realm-only token fallback when Runtime is unavailable', () => {
+test('desktop bootstrap keeps exact protected account truth independent from generic Runtime readiness', () => {
   assert.doesNotMatch(runtimeBootstrapSource, /configureDesktopRealmOnlySession/);
   const firstRuntimeUnavailableBranch = runtimeBootstrapSource.indexOf('if (runtimeUnavailable) {');
   const runtimeAccountStatusIndex = runtimeBootstrapSource.indexOf(
@@ -70,9 +70,15 @@ test('desktop bootstrap fails closed without a Realm-only token fallback when Ru
   assert.notEqual(firstRuntimeUnavailableBranch, -1);
   assert.notEqual(runtimeAccountStatusIndex, -1);
   assert.ok(
-    firstRuntimeUnavailableBranch < runtimeAccountStatusIndex,
-    'Runtime-unavailable bootstrap must take the fail-closed branch before Runtime account reads',
+    runtimeAccountStatusIndex < firstRuntimeUnavailableBranch,
+    'exact native account status must be read before generic Runtime unavailable handling',
   );
+  assert.ok(
+    runtimeBootstrapSource.includes('if (!runtimeUnavailable) {\n        throw error;'),
+    'a protected account read failure remains fatal when generic Runtime is otherwise available',
+  );
+  assert.match(runtimeBootstrapSource, /phase:protected-account-status:unavailable/);
+  assert.doesNotMatch(runtimeBootstrapSource, /getAccessToken|refreshAccountSession|accessTokenProvider:/);
 });
 
 test('desktop renderer daemon status uses the host-neutral shell status surface', () => {

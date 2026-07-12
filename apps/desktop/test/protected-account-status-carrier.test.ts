@@ -43,6 +43,11 @@ test('renderer account status cannot select caller or generic Runtime method', (
     desktopAuthAdapterSource,
     /getDesktopAccountRuntime\(\)\.account\.getAccountSessionStatus/,
   );
+  assert.ok(
+    runtimeBootstrapSource.indexOf('desktopBridge.getRuntimeAccountSessionStatus()')
+      < runtimeBootstrapSource.indexOf('if (runtimeUnavailable) {'),
+    'protected account status must not depend on generic daemon readiness',
+  );
 });
 
 test('renderer-safe account projection contains no protected material', () => {

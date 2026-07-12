@@ -328,9 +328,42 @@ export function bootstrapRuntime(): Promise<void> {
     clearDesktopNimiClientSession();
     unsubscribeRealmConnectivityEvents?.();
     unsubscribeRealmConnectivityEvents = null;
+
+    let accountStatus: Awaited<ReturnType<
+      typeof desktopBridge.getRuntimeAccountSessionStatus
+    >> | null = null;
+    try {
+      accountStatus = await desktopBridge.getRuntimeAccountSessionStatus();
+    } catch (error) {
+      if (!runtimeUnavailable) {
+        throw error;
+      }
+      logRendererEvent({
+        level: 'warn',
+        area: 'renderer-bootstrap',
+        message: 'phase:protected-account-status:unavailable',
+        flowId,
+        details: {
+          error: safeBootstrapErrorMessage(error),
+        },
+      });
+    }
+    const accountProjection = accountStatus?.accountProjection;
+    if (
+      accountStatus?.state === 'authenticated'
+      && accountProjection?.accountId
+    ) {
+      useAppStore.getState().setAuthSession({
+        id: accountProjection.accountId,
+        displayName: accountProjection.displayName,
+        realmEnvironmentId: accountProjection.realmEnvironmentId,
+      });
+    } else {
+      useAppStore.getState().clearAuthSession();
+    }
+
     if (runtimeUnavailable) {
       clearDesktopConversationCapabilityRouteRuntime();
-      useAppStore.getState().clearAuthSession();
     } else {
       await configureDesktopRuntimeRealmSession({
         appId: 'nimi.desktop',
@@ -338,20 +371,6 @@ export function bootstrapRuntime(): Promise<void> {
         runtimeTransport: resolveDesktopRuntimeTransport(),
       });
       bindDesktopConversationCapabilityRouteRuntime();
-      const accountStatus = await desktopBridge.getRuntimeAccountSessionStatus();
-      const accountProjection = accountStatus.accountProjection;
-      if (
-        accountStatus.state === 'authenticated'
-        && accountProjection?.accountId
-      ) {
-        useAppStore.getState().setAuthSession({
-          id: accountProjection.accountId,
-          displayName: accountProjection.displayName,
-          realmEnvironmentId: accountProjection.realmEnvironmentId,
-        });
-      } else {
-        useAppStore.getState().clearAuthSession();
-      }
       await withBootstrapStepTimeout(
         'local runtime reconcile',
         reconcileLocalRuntimeBootstrapState({ flowId }),
