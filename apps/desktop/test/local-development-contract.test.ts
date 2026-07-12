@@ -69,6 +69,15 @@ test('Desktop cancellation preempts builds and renderer readiness before host la
   assert.doesNotMatch(runtime, /cancel_tx\.send\(true\)/);
 });
 
+test('Desktop retains the original dev intent while Runtime or account authority recovers', () => {
+  const runtime = read('src-tauri/src/desktop_local_development/mod.rs');
+  assert.match(runtime, /const INITIAL_AUTHORITY_RETRY_INTERVAL:/);
+  assert.match(runtime, /spawn_initial_authority_retry/);
+  assert.match(runtime, /initial_authority_retryable[\s\S]*runtime-service-unavailable[\s\S]*principal-unauthorized/);
+  assert.match(runtime, /retry_initial_authority[\s\S]*cancel\.changed\(\)/);
+  assert.doesNotMatch(runtime, /runtime-service-unavailable[\s\S]{0,200}cancel_tx\.send_replace\(true\)/);
+});
+
 test('Desktop independently requires official launcher scripts and exposes fail-closed run states', () => {
   const plan = read('src-tauri/src/desktop_local_development/plan.rs');
   const activity = read('src/shell/renderer/features/local-development/local-development-authorizations.tsx');

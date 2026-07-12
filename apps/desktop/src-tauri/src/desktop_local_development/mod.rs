@@ -27,8 +27,21 @@ pub(crate) const APPROVAL_EVENT: &str = "local-development://approval-requested"
 const PRESENCE_RELATIVE_PATH: &[&str] =
     &["run", "desktop", "local-development", "presence.v1.json"];
 const PRESENCE_HEARTBEAT_INTERVAL_MS: u64 = 3_000;
+const INITIAL_AUTHORITY_RETRY_INTERVAL: Duration = Duration::from_millis(750);
 const MAX_STATUS_LOGS: usize = 80;
 const MAX_RECENT_FAILURES: usize = 20;
+
+#[cfg(feature = "protected-local-e2e-fixture")]
+fn report_windows_e2e_local_development(stage: &str, reason_code: Option<&str>) {
+    eprintln!(
+        "[desktop local-development protected-local-e2e-fixture] stage={} reason_code={}",
+        stage,
+        reason_code.unwrap_or("none")
+    );
+}
+
+#[cfg(not(feature = "protected-local-e2e-fixture"))]
+fn report_windows_e2e_local_development(_: &str, _: Option<&str>) {}
 
 #[derive(Clone)]
 pub(crate) struct DesktopLocalDevelopmentRuntime {
@@ -60,6 +73,12 @@ pub(crate) enum AuthorityRefresh {
     ApprovalRequired,
     RuntimeUnavailable,
     Terminal,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum InitialAuthorityResolution {
+    Settled,
+    Retryable,
 }
 
 #[derive(Clone)]
@@ -274,27 +293,63 @@ impl DesktopLocalDevelopmentRuntime {
         });
         self.inner.runs.write().await.insert(run_id, run.clone());
 
+        if self.resolve_initial_authority(run.clone()).await
+            == InitialAuthorityResolution::Retryable
+        {
+            self.spawn_initial_authority_retry(run.clone());
+        }
+        run.status().await
+    }
+
+    async fn resolve_initial_authority(&self, run: Arc<RunContext>) -> InitialAuthorityResolution {
+        if *run.cancel_tx.borrow() {
+            return InitialAuthorityResolution::Settled;
+        }
         let daemon = runtime_bridge::current_daemon_status_async().await;
         if !daemon.running {
+            report_windows_e2e_local_development(
+                "daemon-preflight-unavailable",
+                Some("runtime-service-unavailable"),
+            );
             run.fail("runtime-unavailable", "runtime-service-unavailable", true)
                 .await;
-            return run.status().await;
+            return InitialAuthorityResolution::Retryable;
         }
         let evaluation =
             runtime_bridge::evaluate_local_development_project(LocalDevelopmentEvaluationRequest {
                 expected_app_id: run.plan.app_id.clone(),
                 project_root: run.plan.project_root.clone(),
                 shell_kind: run.plan.shell.kind(),
-                supervisor_run_id,
+                supervisor_run_id: run.supervisor_run_id,
             })
             .await;
         let evaluation = match evaluation {
             Ok(value) => value,
             Err(error) => {
+                report_windows_e2e_local_development(
+                    "evaluation-error",
+                    Some(error.reason_code().as_str()),
+                );
+                let reason = error.reason_code().as_str();
+                if initial_authority_retryable(reason) {
+                    if reason == "principal-unauthorized" {
+                        run.set_state(
+                            "authorization-required",
+                            "Sign in to Nimi Desktop to continue development",
+                            Some(reason),
+                            true,
+                        )
+                        .await;
+                    } else {
+                        run.fail("runtime-unavailable", reason, true).await;
+                    }
+                    return InitialAuthorityResolution::Retryable;
+                }
                 run.fail_host_error(error).await;
-                return run.status().await;
+                return InitialAuthorityResolution::Settled;
             }
         };
+        report_windows_e2e_local_development("evaluation-succeeded", None);
         if !evaluation_matches_plan(&evaluation.project, &run.plan) {
             run.fail(
                 "project-changed",
@@ -302,17 +357,17 @@ impl DesktopLocalDevelopmentRuntime {
                 false,
             )
             .await;
-            return run.status().await;
+            return InitialAuthorityResolution::Settled;
         }
         if evaluation.confirmation_required {
             if let Err(reason) = self.queue_approval(run.clone(), evaluation).await {
                 run.fail("failed", &reason, false).await;
             }
-            return run.status().await;
+            return InitialAuthorityResolution::Settled;
         }
         let Some(authorization) = evaluation.authorization else {
             run.fail("failed", "runtime-service-untrusted", false).await;
-            return run.status().await;
+            return InitialAuthorityResolution::Settled;
         };
         if authorization.state != LocalDevelopmentAuthorizationState::Active {
             run.fail(
@@ -321,11 +376,38 @@ impl DesktopLocalDevelopmentRuntime {
                 false,
             )
             .await;
-            return run.status().await;
+            return InitialAuthorityResolution::Settled;
         }
         *run.authorization_id.write().await = Some(authorization.authorization_id);
         self.spawn_supervisor(run.clone());
-        run.status().await
+        InitialAuthorityResolution::Settled
+    }
+
+    fn spawn_initial_authority_retry(&self, run: Arc<RunContext>) {
+        let runtime = self.clone();
+        tauri::async_runtime::spawn(async move {
+            runtime.retry_initial_authority(run).await;
+        });
+    }
+
+    async fn retry_initial_authority(&self, run: Arc<RunContext>) {
+        let mut cancel = run.cancel_tx.subscribe();
+        loop {
+            tokio::select! {
+                changed = cancel.changed() => {
+                    if changed.is_err() || *cancel.borrow() {
+                        return;
+                    }
+                }
+                _ = tokio::time::sleep(INITIAL_AUTHORITY_RETRY_INTERVAL) => {}
+            }
+            if *cancel.borrow()
+                || self.resolve_initial_authority(run.clone()).await
+                    != InitialAuthorityResolution::Retryable
+            {
+                return;
+            }
+        }
     }
 
     pub(crate) async fn status(&self, run_id: &str) -> Option<LocalDevelopmentRunStatus> {
@@ -823,6 +905,13 @@ fn terminal_status_without_run(
     }
 }
 
+fn initial_authority_retryable(reason: &str) -> bool {
+    matches!(
+        reason,
+        "runtime-service-unavailable" | "principal-unauthorized"
+    )
+}
+
 fn recordable_terminal_status(status: &LocalDevelopmentRunStatus) -> bool {
     let app_id = status.app_id.as_str();
     !app_id.is_empty()
@@ -1005,5 +1094,15 @@ mod tests {
             "[sensitive supervisor output redacted]"
         );
         assert_eq!(sanitize_log("Vite ready".to_string()), "Vite ready");
+    }
+
+    #[test]
+    fn initial_authority_retry_is_limited_to_runtime_and_account_recovery() {
+        assert!(initial_authority_retryable("runtime-service-unavailable"));
+        assert!(initial_authority_retryable("principal-unauthorized"));
+        assert!(!initial_authority_retryable(
+            "local-development-project-changed"
+        ));
+        assert!(!initial_authority_retryable("runtime-service-untrusted"));
     }
 }
