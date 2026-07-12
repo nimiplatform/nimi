@@ -260,6 +260,9 @@ func localDevelopmentBindDiagnosticStage(err error) string {
 	if stage, ok := protectedlocal.WindowsPipeStageFromError(err); ok {
 		return "bind-pipe-" + strconv.FormatUint(uint64(stage), 10)
 	}
+	if stage, ok := protectedlocal.WindowsLocalDevelopmentPolicyStageFromError(err); ok {
+		return "bind-policy-" + string(stage)
+	}
 	if stage, ok := protectedlocal.LocalDevelopmentBindStageFromError(err); ok {
 		return "bind-registry-" + string(stage)
 	}

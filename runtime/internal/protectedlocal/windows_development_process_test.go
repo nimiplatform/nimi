@@ -5,6 +5,7 @@ package protectedlocal
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -102,5 +103,37 @@ func TestWindowsLocalDevelopmentHostComparisonUsesFileIdentity(t *testing.T) {
 	}
 	if sameWindowsLocalDevelopmentHostFile(left, rogue) {
 		t.Fatal("unrelated host file identity must remain rejected")
+	}
+}
+
+func TestCanonicalWindowsLocalDevelopmentPolicyAcceptsProjectDirectoryJunction(t *testing.T) {
+	projectRoot := t.TempDir()
+	storePackage := filepath.Join(t.TempDir(), "electron")
+	host := filepath.Join(storePackage, "dist", "electron.exe")
+	aliasParent := filepath.Join(projectRoot, "node_modules")
+	aliasPackage := filepath.Join(aliasParent, "electron")
+	aliasHost := filepath.Join(aliasPackage, "dist", "electron.exe")
+	if err := os.MkdirAll(filepath.Dir(host), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(aliasParent, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(host, []byte("electron fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if output, err := exec.Command("cmd.exe", "/d", "/c", "mklink", "/J", aliasPackage, storePackage).CombinedOutput(); err != nil {
+		t.Fatalf("create project Electron directory junction: %v: %s", err, output)
+	}
+
+	policy, err := canonicalWindowsLocalDevelopmentPolicy(LocalDevelopmentProcessPolicy{
+		ProjectRoot: projectRoot, HostExecutablePath: host, ProjectHostAliasPath: aliasHost,
+	})
+	if err != nil {
+		stage, _ := WindowsLocalDevelopmentPolicyStageFromError(err)
+		t.Fatalf("project Electron directory junction must be admitted (stage=%s): %v", stage, err)
+	}
+	if !sameWindowsLocalDevelopmentHostFile(policy.HostExecutablePath, host) {
+		t.Fatalf("canonical host path = %q, want exact file identity %q", policy.HostExecutablePath, host)
 	}
 }

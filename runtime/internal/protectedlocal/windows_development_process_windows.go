@@ -4,6 +4,7 @@ package protectedlocal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +20,37 @@ type windowsLocalDevelopmentProcessVerifier struct {
 type windowsLocalDevelopmentExecutableVerifier struct {
 	projectRoot string
 	hostPath    string
+}
+
+type WindowsLocalDevelopmentPolicyFailureStage string
+
+const (
+	WindowsLocalDevelopmentPolicyStageInput          WindowsLocalDevelopmentPolicyFailureStage = "input"
+	WindowsLocalDevelopmentPolicyStageProjectRoot    WindowsLocalDevelopmentPolicyFailureStage = "project-root"
+	WindowsLocalDevelopmentPolicyStageHostExecutable WindowsLocalDevelopmentPolicyFailureStage = "host-executable"
+	WindowsLocalDevelopmentPolicyStageAliasInput     WindowsLocalDevelopmentPolicyFailureStage = "alias-input"
+	WindowsLocalDevelopmentPolicyStageAliasOpen      WindowsLocalDevelopmentPolicyFailureStage = "alias-open"
+	WindowsLocalDevelopmentPolicyStageAliasIdentity  WindowsLocalDevelopmentPolicyFailureStage = "alias-identity"
+)
+
+type windowsLocalDevelopmentPolicyStageError struct {
+	stage WindowsLocalDevelopmentPolicyFailureStage
+	cause error
+}
+
+func (failure *windowsLocalDevelopmentPolicyStageError) Error() string { return failure.cause.Error() }
+func (failure *windowsLocalDevelopmentPolicyStageError) Unwrap() error { return failure.cause }
+
+func windowsLocalDevelopmentPolicyStageFailure(stage WindowsLocalDevelopmentPolicyFailureStage, cause error) error {
+	return &windowsLocalDevelopmentPolicyStageError{stage: stage, cause: cause}
+}
+
+func WindowsLocalDevelopmentPolicyStageFromError(err error) (WindowsLocalDevelopmentPolicyFailureStage, bool) {
+	var failure *windowsLocalDevelopmentPolicyStageError
+	if !errors.As(err, &failure) || failure.stage == "" {
+		return "", false
+	}
+	return failure.stage, true
 }
 
 func NewWindowsLocalDevelopmentProcessVerifier(identity WindowsDesktopIdentity) (LocalDevelopmentProcessVerifier, error) {
@@ -129,38 +161,37 @@ func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy
 	root := filepath.Clean(strings.TrimSpace(policy.ProjectRoot))
 	host := filepath.Clean(strings.TrimSpace(policy.HostExecutablePath))
 	if !filepath.IsAbs(root) || !filepath.IsAbs(host) {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("absolute project root and host executable are required")
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageInput, fmt.Errorf("absolute project root and host executable are required"))
 	}
 	canonicalRoot, err := filepath.EvalSymlinks(root)
 	if err != nil {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("canonicalize project root: %w", err)
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageProjectRoot, fmt.Errorf("canonicalize project root: %w", err))
 	}
 	canonicalHost, err := filepath.EvalSymlinks(host)
 	if err != nil {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("canonicalize host executable: %w", err)
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("canonicalize host executable: %w", err))
 	}
 	canonicalRoot = filepath.Clean(canonicalRoot)
 	canonicalHost = filepath.Clean(canonicalHost)
 	info, err := os.Stat(canonicalHost)
 	if err != nil || !info.Mode().IsRegular() {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("host executable must be a readable regular file")
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageHostExecutable, fmt.Errorf("host executable must be a readable regular file"))
 	}
 	if windowsPathWithinRoot(canonicalRoot, canonicalHost) {
 		return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost}, nil
 	}
 	alias := filepath.Clean(strings.TrimSpace(policy.ProjectHostAliasPath))
 	if !filepath.IsAbs(alias) || !windowsPathWithinRoot(canonicalRoot, alias) {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("external host executable requires an exact project alias")
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageAliasInput, fmt.Errorf("external host executable requires an exact project alias"))
 	}
-	canonicalAlias, err := filepath.EvalSymlinks(alias)
+	aliasInfo, err := os.Stat(alias)
 	if err != nil {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("canonicalize project host alias: %w", err)
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageAliasOpen, fmt.Errorf("open project host alias: %w", err))
 	}
-	aliasInfo, err := os.Stat(canonicalAlias)
-	if err != nil || !aliasInfo.Mode().IsRegular() || !os.SameFile(info, aliasInfo) {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("project host alias does not identify the approved host executable")
+	if !aliasInfo.Mode().IsRegular() || !os.SameFile(info, aliasInfo) {
+		return LocalDevelopmentProcessPolicy{}, windowsLocalDevelopmentPolicyStageFailure(WindowsLocalDevelopmentPolicyStageAliasIdentity, fmt.Errorf("project host alias does not identify the approved host executable"))
 	}
-	return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost, ProjectHostAliasPath: filepath.Clean(canonicalAlias)}, nil
+	return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost, ProjectHostAliasPath: alias}, nil
 }
 
 func windowsPathWithinRoot(root string, candidate string) bool {
