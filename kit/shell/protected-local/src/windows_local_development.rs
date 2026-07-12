@@ -191,9 +191,23 @@ pub(crate) async fn launch_host(
 ) -> Result<(LocalDevelopmentLaunchOutcome, SupervisedDevelopmentProcess), NimiHostError> {
     validate_identifier(request.authorization_id)?;
     validate_identifier(request.supervisor_run_id)?;
-    let host_executable_path = canonical_file(&request.host_executable_path)?;
-    let working_directory = canonical_directory(&request.working_directory)?;
-    let renderer_origin = controlled_renderer_origin(&request.renderer_origin)?;
+    report_windows_e2e_projection_stage("launch-identifiers-validated");
+    let host_executable_path = canonical_file(&request.host_executable_path).map_err(|error| {
+        report_windows_e2e_projection_stage("launch-host-canonical-rejected");
+        error
+    })?;
+    report_windows_e2e_projection_stage("launch-host-canonical-validated");
+    let working_directory = canonical_directory(&request.working_directory).map_err(|error| {
+        report_windows_e2e_projection_stage("launch-working-directory-rejected");
+        error
+    })?;
+    report_windows_e2e_projection_stage("launch-working-directory-validated");
+    let renderer_origin =
+        controlled_renderer_origin(&request.renderer_origin).map_err(|error| {
+            report_windows_e2e_projection_stage("launch-renderer-origin-rejected");
+            error
+        })?;
+    report_windows_e2e_projection_stage("launch-prepare-request");
     let response = RuntimeDevelopmentServiceClient::new(channel.clone())
         .prepare_local_development_launch(PrepareLocalDevelopmentLaunchRequest {
             authorization_id: request.authorization_id.to_vec(),
