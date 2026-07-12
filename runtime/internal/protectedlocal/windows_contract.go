@@ -88,6 +88,76 @@ type windowsPrincipalSnapshot struct {
 	RestrictedSIDs     []windowsSIDAttributes
 }
 
+// WindowsPrincipalFailureStage is a safe, credential-free diagnostic selector
+// for the fixed Windows service-principal admission sequence. It is projected
+// only as a service-specific startup code; raw token and SID evidence stays in
+// Runtime memory.
+type WindowsPrincipalFailureStage uint32
+
+const WindowsPrincipalStartupExitCodeBase uint32 = 0xA600
+
+const (
+	WindowsPrincipalStageInput WindowsPrincipalFailureStage = iota + 1
+	WindowsPrincipalStageSCMOpen
+	WindowsPrincipalStageServiceName
+	WindowsPrincipalStageServiceOpen
+	WindowsPrincipalStageServiceConfig
+	WindowsPrincipalStageServiceStatus
+	WindowsPrincipalStageProcessBinding
+	WindowsPrincipalStageSIDResolution
+	WindowsPrincipalStageTokenOpen
+	WindowsPrincipalStageTokenUserQuery
+	WindowsPrincipalStageTokenGroupsQuery
+	WindowsPrincipalStageRestrictedSIDsQuery
+	WindowsPrincipalStageTokenSessionQuery
+	WindowsPrincipalStageTokenTypeQuery
+	WindowsPrincipalStageTokenRestrictedQuery
+	WindowsPrincipalStageResolvedSID
+	WindowsPrincipalStageServiceSIDType
+	WindowsPrincipalStageInteractiveService
+	WindowsPrincipalStagePrimaryToken
+	WindowsPrincipalStageSessionZero
+	WindowsPrincipalStageRestrictedToken
+	WindowsPrincipalStageServiceSIDGroup
+	WindowsPrincipalStageRestrictedSIDList
+	WindowsPrincipalStageServiceLogonGroup
+	WindowsPrincipalStageInteractiveGroup
+	WindowsPrincipalStageTokenUser
+)
+
+type windowsPrincipalStageError struct {
+	stage WindowsPrincipalFailureStage
+	cause error
+}
+
+func (failure *windowsPrincipalStageError) Error() string { return failure.cause.Error() }
+func (failure *windowsPrincipalStageError) Unwrap() error { return failure.cause }
+
+func WindowsPrincipalStageFromError(err error) (WindowsPrincipalFailureStage, bool) {
+	var failure *windowsPrincipalStageError
+	if !errors.As(err, &failure) || failure.stage < WindowsPrincipalStageInput || failure.stage > WindowsPrincipalStageTokenUser {
+		return 0, false
+	}
+	return failure.stage, true
+}
+
+func WindowsPrincipalStartupExitCode(err error) (uint32, bool) {
+	stage, ok := WindowsPrincipalStageFromError(err)
+	if !ok {
+		return 0, false
+	}
+	return WindowsPrincipalStartupExitCodeBase + uint32(stage), true
+}
+
+func windowsPrincipalStageFailure(stage WindowsPrincipalFailureStage, message string) (WindowsServicePrincipal, error) {
+	return WindowsServicePrincipal{}, fail(
+		ReasonProtectedLocalRuntimePrincipalRequired,
+		false,
+		"repair_runtime_service",
+		&windowsPrincipalStageError{stage: stage, cause: errors.New(message)},
+	)
+}
+
 const (
 	windowsTokenPrimary              = 1
 	windowsServiceSIDTypeRestricted  = 3
@@ -100,41 +170,38 @@ const (
 
 func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (WindowsServicePrincipal, error) {
 	profile := mustActiveWindowsRuntimeProfile()
-	failure := func(message string) (WindowsServicePrincipal, error) {
-		return WindowsServicePrincipal{}, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "repair_runtime_service", errors.New(message))
-	}
 	if snapshot.ResolvedServiceSID != profile.serviceSID {
-		return failure("validate Windows Runtime principal: fixed service SID resolution mismatch")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageResolvedSID, "validate Windows Runtime principal: fixed service SID resolution mismatch")
 	}
 	if snapshot.ServiceSIDType != windowsServiceSIDTypeRestricted {
-		return failure("validate Windows Runtime principal: NimiRuntime service SID is not restricted")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageServiceSIDType, "validate Windows Runtime principal: NimiRuntime service SID is not restricted")
 	}
 	if snapshot.InteractiveService {
-		return failure("validate Windows Runtime principal: interactive service definition is forbidden")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageInteractiveService, "validate Windows Runtime principal: interactive service definition is forbidden")
 	}
 	if snapshot.TokenType != windowsTokenPrimary {
-		return failure("validate Windows Runtime principal: primary process token required")
+		return windowsPrincipalStageFailure(WindowsPrincipalStagePrimaryToken, "validate Windows Runtime principal: primary process token required")
 	}
 	if snapshot.TokenSessionID != 0 {
-		return failure("validate Windows Runtime principal: service must execute in non-interactive session zero")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageSessionZero, "validate Windows Runtime principal: service must execute in non-interactive session zero")
 	}
 	if !snapshot.TokenRestricted {
-		return failure("validate Windows Runtime principal: restricted process token required")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageRestrictedToken, "validate Windows Runtime principal: restricted process token required")
 	}
 	if !containsEnabledSID(snapshot.Groups, profile.serviceSID) {
-		return failure("validate Windows Runtime principal: exact NimiRuntime service SID is not enabled")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageServiceSIDGroup, "validate Windows Runtime principal: exact NimiRuntime service SID is not enabled")
 	}
 	if !containsSID(snapshot.RestrictedSIDs, profile.serviceSID) {
-		return failure("validate Windows Runtime principal: exact NimiRuntime service SID is absent from restricted SIDs")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageRestrictedSIDList, "validate Windows Runtime principal: exact NimiRuntime service SID is absent from restricted SIDs")
 	}
 	if !containsEnabledSID(snapshot.Groups, windowsServiceLogonSID) {
-		return failure("validate Windows Runtime principal: service-logon SID is not enabled")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageServiceLogonGroup, "validate Windows Runtime principal: service-logon SID is not enabled")
 	}
 	if containsSID(snapshot.Groups, windowsInteractiveLogonSID) || containsSID(snapshot.Groups, windowsRemoteInteractiveLogonSID) {
-		return failure("validate Windows Runtime principal: interactive logon membership is forbidden")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageInteractiveGroup, "validate Windows Runtime principal: interactive logon membership is forbidden")
 	}
 	if snapshot.TokenUserSID == "" || snapshot.TokenUserSID == profile.serviceSID {
-		return failure("validate Windows Runtime principal: invalid token user identity")
+		return windowsPrincipalStageFailure(WindowsPrincipalStageTokenUser, "validate Windows Runtime principal: invalid token user identity")
 	}
 	return WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: snapshot.TokenUserSID}, nil
 }

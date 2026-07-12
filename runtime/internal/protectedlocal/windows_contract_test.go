@@ -17,51 +17,60 @@ func TestWindowsPrincipalSnapshotRequiresExactRestrictedNonInteractiveService(t 
 		t.Fatalf("service SID = %q", principal.ServiceSID())
 	}
 
-	tests := map[string]func(*windowsPrincipalSnapshot){
-		"different service SID": func(snapshot *windowsPrincipalSnapshot) {
+	tests := map[string]struct {
+		stage  WindowsPrincipalFailureStage
+		mutate func(*windowsPrincipalSnapshot)
+	}{
+		"different service SID": {stage: WindowsPrincipalStageResolvedSID, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.ResolvedServiceSID = "S-1-5-80-1-2-3-4-5"
-		},
-		"unrestricted SCM service": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"unrestricted SCM service": {stage: WindowsPrincipalStageServiceSIDType, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.ServiceSIDType = 1
-		},
-		"interactive service definition": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"interactive service definition": {stage: WindowsPrincipalStageInteractiveService, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.InteractiveService = true
-		},
-		"impersonation token": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"impersonation token": {stage: WindowsPrincipalStagePrimaryToken, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.TokenType = 2
-		},
-		"interactive session": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"interactive session": {stage: WindowsPrincipalStageSessionZero, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.TokenSessionID = 2
-		},
-		"unrestricted token": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"unrestricted token": {stage: WindowsPrincipalStageRestrictedToken, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.TokenRestricted = false
-		},
-		"service SID missing from groups": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"service SID missing from groups": {stage: WindowsPrincipalStageServiceSIDGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.Groups = snapshot.Groups[1:]
-		},
-		"service SID deny only": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"service SID deny only": {stage: WindowsPrincipalStageServiceSIDGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.Groups[0].Attributes = windowsGroupUseForDenyOnly
-		},
-		"service SID missing from restrictions": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"service SID missing from restrictions": {stage: WindowsPrincipalStageRestrictedSIDList, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.RestrictedSIDs = nil
-		},
-		"service logon SID missing": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"service logon SID missing": {stage: WindowsPrincipalStageServiceLogonGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.Groups = snapshot.Groups[:1]
-		},
-		"interactive group present": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"interactive group present": {stage: WindowsPrincipalStageInteractiveGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.Groups = append(snapshot.Groups, windowsSIDAttributes{SID: windowsInteractiveLogonSID, Attributes: windowsGroupEnabled})
-		},
-		"remote interactive group present": func(snapshot *windowsPrincipalSnapshot) {
+		}},
+		"remote interactive group present": {stage: WindowsPrincipalStageInteractiveGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.Groups = append(snapshot.Groups, windowsSIDAttributes{SID: windowsRemoteInteractiveLogonSID, Attributes: windowsGroupEnabled})
-		},
+		}},
 	}
-	for name, mutate := range tests {
+	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			snapshot := validWindowsPrincipalSnapshot()
-			mutate(&snapshot)
+			test.mutate(&snapshot)
 			_, err := validateWindowsPrincipalSnapshot(snapshot)
 			if !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
 				t.Fatalf("error = %v, want principal-required", err)
+			}
+			if stage, ok := WindowsPrincipalStageFromError(err); !ok || stage != test.stage {
+				t.Fatalf("principal stage = (%v, %v), want %v", stage, ok, test.stage)
+			}
+			if code, ok := WindowsPrincipalStartupExitCode(err); !ok || code != WindowsPrincipalStartupExitCodeBase+uint32(test.stage) {
+				t.Fatalf("principal startup exit code = (%x, %v), want %x", code, ok, WindowsPrincipalStartupExitCodeBase+uint32(test.stage))
 			}
 		})
 	}

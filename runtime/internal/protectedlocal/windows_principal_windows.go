@@ -29,68 +29,68 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 		return WindowsServicePrincipal{}, fmt.Errorf("validate Windows Runtime principal: %w", err)
 	}
 	if expectedPID == 0 || process == 0 || process == windows.InvalidHandle {
-		return WindowsServicePrincipal{}, principalFailure("validate Windows Runtime service process", fmt.Errorf("process handle and PID are required"))
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageInput, "validate Windows Runtime service process", fmt.Errorf("process handle and PID are required"))
 	}
 	serviceManager, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("open Windows service manager", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageSCMOpen, "open Windows service manager", err)
 	}
 	defer windows.CloseServiceHandle(serviceManager)
 	serviceName, err := windows.UTF16PtrFromString(profile.serviceName)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("encode fixed NimiRuntime service name", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageServiceName, "encode fixed NimiRuntime service name", err)
 	}
 	serviceHandle, err := windows.OpenService(serviceManager, serviceName, windows.SERVICE_QUERY_CONFIG|windows.SERVICE_QUERY_STATUS)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("open fixed NimiRuntime service definition", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageServiceOpen, "open fixed NimiRuntime service definition", err)
 	}
 	service := &mgr.Service{Name: profile.serviceName, Handle: serviceHandle}
 	defer service.Close()
 	configuration, err := service.Config()
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("query fixed NimiRuntime service definition", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageServiceConfig, "query fixed NimiRuntime service definition", err)
 	}
 	status, err := service.Query()
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("query fixed NimiRuntime service status", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageServiceStatus, "query fixed NimiRuntime service status", err)
 	}
 	stateAllowed := status.State == svc.Running || (allowStartPending && status.State == svc.StartPending)
 	if !stateAllowed || status.ProcessId != expectedPID {
-		return WindowsServicePrincipal{}, principalFailure("bind fixed NimiRuntime service process", fmt.Errorf("SCM state or process id mismatch"))
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageProcessBinding, "bind fixed NimiRuntime service process", fmt.Errorf("SCM state or process id mismatch"))
 	}
 
 	resolvedSID, _, _, err := windows.LookupSID("", profile.serviceAccount)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("resolve fixed NimiRuntime service SID", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageSIDResolution, "resolve fixed NimiRuntime service SID", err)
 	}
 	var token windows.Token
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return WindowsServicePrincipal{}, principalFailure("open Windows service process token", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenOpen, "open Windows service process token", err)
 	}
 	defer token.Close()
 	user, err := token.GetTokenUser()
 	if err != nil || user == nil || user.User.Sid == nil {
-		return WindowsServicePrincipal{}, principalFailure("query Windows process token user", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenUserQuery, "query Windows process token user", err)
 	}
 	groups, err := readWindowsTokenGroups(token, windows.TokenGroups)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("query Windows process token groups", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenGroupsQuery, "query Windows process token groups", err)
 	}
 	restrictedSIDs, err := readWindowsTokenGroups(token, windows.TokenRestrictedSids)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("query Windows restricted token SIDs", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageRestrictedSIDsQuery, "query Windows restricted token SIDs", err)
 	}
 	sessionID, err := readWindowsTokenUint32(token, windows.TokenSessionId)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("query Windows token session", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenSessionQuery, "query Windows token session", err)
 	}
 	tokenType, err := readWindowsTokenUint32(token, windows.TokenType)
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("query Windows token type", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenTypeQuery, "query Windows token type", err)
 	}
 	restricted, err := token.IsRestricted()
 	if err != nil {
-		return WindowsServicePrincipal{}, principalFailure("query Windows restricted-token state", err)
+		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenRestrictedQuery, "query Windows restricted-token state", err)
 	}
 	snapshot := windowsPrincipalSnapshot{
 		ResolvedServiceSID: resolvedSID.String(),
@@ -315,4 +315,11 @@ func principalFailure(operation string, cause error) error {
 		"repair_runtime_service",
 		fmt.Errorf("%s: %w", operation, cause),
 	)
+}
+
+func windowsPrincipalProbeFailure(stage WindowsPrincipalFailureStage, operation string, cause error) error {
+	if cause == nil {
+		cause = fmt.Errorf("Windows principal probe failed")
+	}
+	return principalFailure(operation, &windowsPrincipalStageError{stage: stage, cause: cause})
 }

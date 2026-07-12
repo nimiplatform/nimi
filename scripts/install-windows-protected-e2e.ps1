@@ -35,6 +35,32 @@ $RuntimeStartupStages = @{
   42249 = 'fixture-custody'
   42250 = 'configuration'
   42251 = 'daemon'
+  42497 = 'principal-input'
+  42498 = 'principal-scm-open'
+  42499 = 'principal-service-name'
+  42500 = 'principal-service-open'
+  42501 = 'principal-service-config'
+  42502 = 'principal-service-status'
+  42503 = 'principal-process-binding'
+  42504 = 'principal-sid-resolution'
+  42505 = 'principal-token-open'
+  42506 = 'principal-token-user-query'
+  42507 = 'principal-token-groups-query'
+  42508 = 'principal-restricted-sids-query'
+  42509 = 'principal-token-session-query'
+  42510 = 'principal-token-type-query'
+  42511 = 'principal-token-restricted-query'
+  42512 = 'principal-resolved-sid'
+  42513 = 'principal-service-sid-type'
+  42514 = 'principal-interactive-service'
+  42515 = 'principal-primary-token'
+  42516 = 'principal-session-zero'
+  42517 = 'principal-restricted-token'
+  42518 = 'principal-service-sid-group'
+  42519 = 'principal-restricted-sid-list'
+  42520 = 'principal-service-logon-group'
+  42521 = 'principal-interactive-group'
+  42522 = 'principal-token-user'
 }
 
 function Write-Result {
@@ -163,7 +189,8 @@ function Get-ServiceFailureDetail {
   $query = (& sc.exe queryex $ServiceName 2>&1 | Out-String).Trim()
   $stageMatch = [regex]::Match($query, 'SERVICE_EXIT_CODE\s*:\s*(\d+)')
   $stageCode = if ($stageMatch.Success) { [uint32] $stageMatch.Groups[1].Value } else { [uint32] 0 }
-  $stage = if ($RuntimeStartupStages.ContainsKey($stageCode)) { $RuntimeStartupStages[$stageCode] } else { 'unknown' }
+  $stageKey = [int] $stageCode
+  $stage = if ($RuntimeStartupStages.ContainsKey($stageKey)) { $RuntimeStartupStages[$stageKey] } else { 'unknown' }
   return "runtimeStartupStage=$stage ($stageCode)`n$query"
 }
 
