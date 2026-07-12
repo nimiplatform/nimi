@@ -176,10 +176,16 @@ func (s *Service) PrepareLocalDevelopmentLaunch(ctx context.Context, req *runtim
 	}
 	project, err := resolveLocalDevelopmentProject(authorization.Project.ProjectRoot, authorization.Project.AppID, req.GetShellKind(), account.GetAccountId(), generation)
 	if err != nil || !localDevelopmentProjectsMatch(authorization.Project, project) {
+		if s.logger != nil {
+			s.logger.Warn("local development launch rejected", "stage", "project-authority", "app_id", authorization.Project.AppID, "error", err)
+		}
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
 	}
 	hostExecutable, err := canonicalLocalDevelopmentHostExecutable(project.ProjectRoot, req.GetHostExecutablePath(), req.GetShellKind())
 	if err != nil {
+		if s.logger != nil {
+			s.logger.Warn("local development launch rejected", "stage", "host-executable", "app_id", authorization.Project.AppID, "error", err)
+		}
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
 	}
 	ticket, err := s.localDevelopment.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
@@ -191,6 +197,9 @@ func (s *Service) PrepareLocalDevelopmentLaunch(ctx context.Context, req *runtim
 		RendererOrigin:  strings.TrimSpace(req.GetRendererOrigin()),
 	})
 	if err != nil {
+		if s.logger != nil {
+			s.logger.Warn("local development launch rejected", "stage", "launch-store", "app_id", authorization.Project.AppID, "error", err)
+		}
 		return nil, localDevelopmentStoreError(err)
 	}
 	desktopConnection, ok := protectedlocal.DesktopConnectionFromContext(ctx)
@@ -474,7 +483,7 @@ func validateCanonicalLocalDevelopmentHostExecutable(
 	switch shellKind {
 	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON:
 		alias := filepath.Clean(electronAliasCanonical)
-		if alias == "." || !sameLocalDevelopmentPath(candidate, alias) {
+		if alias == "." || !sameLocalDevelopmentFile(candidate, alias) {
 			return "", errLocalDevelopmentProjectChanged
 		}
 	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI:
@@ -485,6 +494,15 @@ func validateCanonicalLocalDevelopmentHostExecutable(
 		return "", errLocalDevelopmentProjectChanged
 	}
 	return candidate, nil
+}
+
+func sameLocalDevelopmentFile(left string, right string) bool {
+	if sameLocalDevelopmentPath(left, right) {
+		return true
+	}
+	leftInfo, leftErr := os.Stat(left)
+	rightInfo, rightErr := os.Stat(right)
+	return leftErr == nil && rightErr == nil && leftInfo.Mode().IsRegular() && rightInfo.Mode().IsRegular() && os.SameFile(leftInfo, rightInfo)
 }
 
 func sameLocalDevelopmentPath(left string, right string) bool {

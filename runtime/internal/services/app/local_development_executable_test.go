@@ -49,6 +49,33 @@ func TestLocalDevelopmentHostExecutableAllowsOnlyExactElectronAliasTarget(t *tes
 	}
 }
 
+func TestLocalDevelopmentHostExecutableAcceptsSameElectronFileIdentity(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "project")
+	aliasExecutable := filepath.Join(t.TempDir(), "alias", "electron.exe")
+	candidateExecutable := filepath.Join(t.TempDir(), "canonical", "electron.exe")
+	for _, directory := range []string{filepath.Dir(aliasExecutable), filepath.Dir(candidateExecutable)} {
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(aliasExecutable, []byte("electron fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(aliasExecutable, candidateExecutable); err != nil {
+		t.Fatalf("create Electron hard-link identity fixture: %v", err)
+	}
+
+	selected, err := validateCanonicalLocalDevelopmentHostExecutable(
+		root,
+		candidateExecutable,
+		aliasExecutable,
+		runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+	)
+	if err != nil || selected != candidateExecutable {
+		t.Fatalf("the exact file object selected through the project Electron alias must be admitted, got %q, %v", selected, err)
+	}
+}
+
 func TestLocalDevelopmentHostExecutableKeepsTauriInsideProjectOutput(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "project")
 	projectTarget := filepath.Join(root, "src-tauri", "target", "debug", "sample.exe")
@@ -100,6 +127,44 @@ func TestCanonicalLocalDevelopmentHostExecutableAllowsProjectElectronAliasIntoPa
 	)
 	if err != nil {
 		t.Fatalf("canonical Electron project alias target must be admitted: %v", err)
+	}
+	want, err := canonicalLocalDevelopmentFilePath(storeExecutable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sameLocalDevelopmentPath(selected, want) {
+		t.Fatalf("selected = %q, want exact package-store target %q", selected, want)
+	}
+}
+
+func TestCanonicalLocalDevelopmentHostExecutableAcceptsWindowsNamespaceProjectRoot(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows canonical path namespace")
+	}
+	root := filepath.Join(t.TempDir(), "project")
+	aliasParent := filepath.Join(root, "node_modules")
+	storePackage := filepath.Join(t.TempDir(), "pnpm-store", "electron")
+	storeExecutable := filepath.Join(storePackage, "dist", "electron.exe")
+	if err := os.MkdirAll(aliasParent, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(storeExecutable), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(storeExecutable, []byte("electron fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	createLocalDevelopmentDirectoryLink(t, storePackage, filepath.Join(aliasParent, "electron"))
+
+	namespacedRoot := `\\?\` + root
+	namespacedAlias := `\\?\` + filepath.Join(aliasParent, "electron", "dist", "electron.exe")
+	selected, err := canonicalLocalDevelopmentHostExecutable(
+		namespacedRoot,
+		namespacedAlias,
+		runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+	)
+	if err != nil {
+		t.Fatalf("Windows namespace paths emitted by Desktop must be admitted: %v", err)
 	}
 	want, err := canonicalLocalDevelopmentFilePath(storeExecutable)
 	if err != nil {
