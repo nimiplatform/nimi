@@ -6,14 +6,12 @@ four_closure_policy:
     - consumer
     - drift_resistance
   rule:
-    all_four_must_be_explicit_for_wave_closeout: true
-  wave_closeout_evidence:
-    require_packet_lineage: true
-    require_result_lineage: true
-  true_close_audit_evidence:
-    require_wave_closeout_for_closed_waves: true
-    require_packet_lineage_for_closed_waves: true
-    require_result_lineage_for_closed_waves: true
+    all_four_must_be_explicit_for_acceptance: true
+  acceptance_evidence:
+    require_authority_refs: true
+    require_validation_evidence: true
+    require_consumer_evidence_when_affected: true
+    require_drift_resistance_checks: true
   authority_examples:
     - canonical_owner_is_unique
     - no_parallel_truth_remains

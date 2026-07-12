@@ -1,8 +1,8 @@
-// Wave 2 chunk 2-A of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Pure types + immutable state-mapping helpers for the VRM viewport. The
-// surface layer (chunk 2-C) reads from this state to drive camera framing
-// + posture body lean; emote writes are owned by emote state in wave_3
+// surface layer reads from this state to drive camera framing
+// + posture body lean; emote writes are owned by the emote state machine
 // (this slot only tracks the intended emote name).
 //
 // All setters preserve referential identity when the value is unchanged
@@ -18,7 +18,7 @@ export type VrmViewportState = {
   phase: VrmPhase;
   posture: VrmPosture;
   /** Intended emote slot. Actual VRM expression writes are owned by the
-   *  emote state machine in wave_3; wave_2 only tracks the value. */
+   *  emote state machine; this state stores only the intended value. */
   emote: string | null;
 };
 

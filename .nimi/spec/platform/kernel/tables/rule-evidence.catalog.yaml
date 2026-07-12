@@ -31,6 +31,7 @@ entries:
   - app_identity_surface_gate
   - audit_evidence_root_gate
   - package_authority_admission_gate
+  - nimicoding_host_workflow_hardcut
   - delegated_projection_admission_gate
   - canonical_capability_catalog_gate
   - public_raw_token_authority_hardcut_gate
@@ -82,6 +83,12 @@ package_authority_admission_gate:
   command: node scripts/check-platform-spec-kernel-consistency.mjs
   path: scripts/check-platform-spec-kernel-consistency.mjs
   description: Platform kernel gate validating package authority admissions, package-vs-host projection boundaries, authority roots, evidence roots, and source rule linkage.
+nimicoding_host_workflow_hardcut:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:nimicoding-host-hardcut
+  path: scripts/check-nimicoding-host-hardcut.mjs
+  description: Host hardcut gate rejecting active nimi-coding topic lifecycle, wave or packet execution DAG, run ledger, goal bridge, continuation loop, and nested external-AI-host entrypoints while retaining admitted spec, methodology, deterministic gate, and evidence surfaces.
 delegated_projection_admission_gate:
   type: static_gate
   evidence_type: structural

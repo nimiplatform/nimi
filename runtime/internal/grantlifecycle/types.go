@@ -1,8 +1,8 @@
 // Package grantlifecycle implements the typed Runtime-local grant
 // lifecycle state machine per
-// `.nimi/spec/runtime/kernel/grant-service.md`. Per Wave 5 admission
-// rule, this is the Runtime local custody portion; Realm cloud-side
-// app-permission projection is BLOCKER-002 (out of this topic's scope).
+// `.nimi/spec/runtime/kernel/grant-service.md`. This package owns the Runtime
+// local-custody portion only; Realm cloud-side app-permission projection remains
+// outside this package's admitted authority.
 //
 // Per implementation doctrine: no false readiness — revocation during
 // use fails closed for streaming and background work.
@@ -47,9 +47,8 @@ func (s GrantState) AllowsAccess() bool {
 	return s == GrantStateGranted
 }
 
-// Grant is the typed Runtime-local grant record. The Realm cloud-side
-// audit projection is BLOCKER-002 and consumed via a separate future
-// topic.
+// Grant is the typed Runtime-local grant record. Realm cloud-side audit
+// projection remains outside this type's admitted Runtime authority.
 type Grant struct {
 	GrantID        string
 	AppID          string

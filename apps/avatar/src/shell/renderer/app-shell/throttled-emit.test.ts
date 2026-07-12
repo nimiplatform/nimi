@@ -1,8 +1,8 @@
-// Wave 4 chunk 4-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/app-shell-contract.md.
 //
 // Unit tests for the generic 100ms-cap consumer-callback throttle used to
-// throttle `onHitRegionChange` payload delivery. Covers packet
-// acceptance_invariant 8 (≤ 1 fire per 100ms regardless of input rate).
+// throttle `onHitRegionChange` payload delivery. Covers the canonical
+// ≤ 1 fire per 100ms limit regardless of input rate.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -69,7 +69,7 @@ describe('createThrottledEmit — trailing edge', () => {
   });
 
   it('caps consumer fires at ≤ 1 per 100ms when 1000 emits arrive in 10ms', () => {
-    // packet acceptance_invariant 8 saturation guard.
+    // Canonical 100ms saturation guard.
     const cb = vi.fn();
     let now = 0;
     const handle = createThrottledEmit<number>({

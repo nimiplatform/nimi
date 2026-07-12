@@ -35,7 +35,6 @@ function trackedTextFiles() {
 
 function isRawPackagePathAllowed(file) {
   return file.startsWith('docs/')
-    || file.startsWith('.nimi/topics/')
     || file === 'scripts/check-nimi-nimicoding-split-readiness.mjs';
 }
 

@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // In-browser VRM diagnostics. Mirrors the Live2D debug pattern documented
 // in `apps/avatar/AGENTS.md` §"Live2D Debugging Workflow" — but unlike
@@ -12,11 +12,11 @@
 // jsdom global, server prerender), `attachVrmDiagnostics` is a no-op
 // returning a no-op detach fn — no global pollution and no errors.
 //
-// Wave_2 scope: lifecycle state, retry flag, vrm loaded flag, instance
+// The diagnostics scope covers lifecycle state, retry flag, VRM loaded flag, instance
 // cache stats, and `framedHeight`/`framedWidth` from the most recent
 // surface frame (or null pre-ready). `frameStats.visibleDrawableCount`
-// stays null in wave_2 — visual-pixels evidence is wave_5 territory per
-// design-10. DO NOT fake a number; tests assert it stays null.
+// stays null because this diagnostics surface does not own visual-pixel
+// measurement. DO NOT fake a number; tests assert it stays null.
 
 import { vrmCacheStats } from './vrm-instance-cache.js';
 import type { VrmRuntime, VrmLifecycleState } from './vrm-runtime.js';
@@ -27,7 +27,7 @@ export type VrmDiagnosticsSnapshot = {
   vrmLoaded: boolean;
   cacheStats: { size: number; urls: string[] };
   frameStats: {
-    /** wave_2: always null. wave_5 (visual-pixels evidence) populates this. */
+    /** Always null on this diagnostics surface; visual acceptance owns pixels. */
     visibleDrawableCount: number | null;
     framedHeight: number | null;
     framedWidth: number | null;
@@ -74,7 +74,7 @@ function buildSnapshot(runtime: VrmRuntime): VrmDiagnosticsSnapshot {
     vrmLoaded: state.kind === 'ready' || state.kind === 'context_lost',
     cacheStats: vrmCacheStats(),
     frameStats: {
-      // wave_5 territory — see header comment.
+      // Visual acceptance owns this measurement; see the header comment.
       visibleDrawableCount: null,
       framedHeight: activeFrameStats.framedHeight,
       framedWidth: activeFrameStats.framedWidth,

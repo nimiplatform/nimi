@@ -7,10 +7,10 @@ import (
 	"testing"
 )
 
-// G3.1 / S2.22 — Wave-2 anti-target: grpcserver/server.go must
-// register `RuntimeCognitionService` exactly once, and the wave's
-// edits must not introduce any new `RegisterXxxServiceServer` call
-// alongside that registration. This is the static check that the
+// G3.1 / S2.22 anti-target: grpcserver/server.go must register
+// `RuntimeCognitionService` exactly once, and changes must not introduce any
+// new `RegisterXxxServiceServer` call alongside that registration. This is the
+// static check that the
 // L9 anti-target "internal RPC exposes typed scope registry" cannot
 // silently land.
 func TestServerRegistersRuntimeCognitionServiceExactlyOnce(t *testing.T) {
@@ -30,11 +30,11 @@ func TestServerRegistersRuntimeCognitionServiceExactlyOnce(t *testing.T) {
 		t.Fatalf("server.go must not register the retired RuntimeKnowledgeService")
 	}
 
-	// The wave-2 anti-target list bans new internal Register calls
-	// landing alongside this wave. The exhaustive set of registrations
+	// The canonical anti-target list bans unadmitted internal Register calls.
+	// The exhaustive set of registrations
 	// in server.go is allow-listed below; any new
 	// `Register*ServiceServer` token must be added here intentionally
-	// and reviewed against the wave-2 packet.
+	// and reviewed against Runtime authority.
 	allowed := map[string]struct{}{
 		"RegisterRuntimeAccountServiceServer":       {},
 		"RegisterRuntimeAgentServiceServer":         {},

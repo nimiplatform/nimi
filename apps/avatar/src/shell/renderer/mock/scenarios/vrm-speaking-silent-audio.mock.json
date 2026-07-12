@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-speaking-silent-audio",
   "version": "1",
-  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives the AudioPipelineController voice playback path with the SYNTHETIC mime application/x-nimi-synthetic-lipsync. Per design-05 §'Synthetic mime fail-close' the controller fast-paths: NO AudioContext.decodeAudioData, NO sink.attachAudioSource, sink.silent() is invoked, state progresses idle → requested → completed (consumer state machine still advances). The mouth stays at zero; explicit silent voice + silent mouth (not pretending to animate).",
+  "description": "Drives the AudioPipelineController voice playback path with the SYNTHETIC mime application/x-nimi-synthetic-lipsync. Per the backend-branch contract's synthetic-mime fail-close rule, the controller fast-paths: NO AudioContext.decodeAudioData, NO sink.attachAudioSource, sink.silent() is invoked, state progresses idle → requested → completed (consumer state machine still advances). The mouth stays at zero; explicit silent voice + silent mouth (not pretending to animate).",
   "duration_ms": 2000,
   "loop": false,
 

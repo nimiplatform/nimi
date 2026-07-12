@@ -87,12 +87,12 @@ publishable npm package. Read in this order:
 
 1. [Nimi Coding Overview](/nimicoding/) — the paradigm and the
    package.
-2. [Topic Workflow](/nimicoding/topic-workflow) — the topic / wave /
-   packet / preflight / audit / closeout lifecycle.
+2. [Run A Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution) —
+   how Codex-owned execution uses spec, methodology, gates, and evidence.
 3. [Installation](/nimicoding/installation) — package install and
    adoption path.
-4. [First Topic Bootstrap](/nimicoding/tutorials/first-topic) — a
-   tutorial that walks the first topic end-to-end.
+4. [Verify The Nimi Governance Setup](/nimicoding/tutorials/project-bootstrap) —
+   check host ownership, projections, and canonical truth.
 
 ## Reader Scenario: An App Author Walks Through The Docs
 

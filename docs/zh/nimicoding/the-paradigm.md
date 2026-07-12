@@ -1,79 +1,35 @@
 # 范式
 
-Nimi Coding 是一套**面向 AI 开发的新范式**，不是检查清单，也不是工作流库。本页解释它为什么算得上"范式"。
+Nimi Coding 把问题从“AI 是否产出了看似合理的代码”改为“结果是否符合权威，
+并在真实 consumer 中得到证明”。它围绕宿主自有执行提供治理，不是任务 runner。
 
-## 现有工程工具的前提
+## 五个结构动作
 
-代码评审、自动化测试、类型检查、Linter、CI——这些工具都建立在同一个前提上：**它们识别的问题都是局部的，并且写在代码里看得见**。Bug 在某个函数里；类型不匹配体现在边界上；测试失败说明某条断言没成立。
+1. **明确权威。**每项高风险变更都指出 canonical spec owner，并拒绝平行真相。
+2. **编辑前分类。**Preflight 区分 alignment 与 redesign；权威缺失时停止。
+3. **Fail closed。**契约、证据、auth、runtime 或 provider 能力缺失时明确失败。
+4. **验证 consumer。**测试、DOM 或原生结构检查、runtime 状态与视觉复核分别覆盖不同证据。
+5. **分离产出与判断。**独立复核挑战权威和证据，但不成为另一名执行者。
 
-这些工具能起作用，是因为开发者的意图和写出来的代码绑得很紧。开发者想做 X 却写成了 Y，代码评审和测试就能把这层错位暴露出来。
+## 使用宿主原生执行能力
 
-## AI 编码真正打破了什么
+当前宿主决定如何规划、委派、等待、恢复和完成任务。Nimi Coding 不复制这些决策。
+它长期保存的是权威、方法论、validators 和证据契约。
 
-AI 辅助实现产出的代码经常有这种特征：
+Codex 的原生能力因此成为优势：App 可以管理长任务和子代理，仓库则提供稳定真相
+与确定性验收条件。
 
-- 编译通过
-- 现有测试全过
-- 在审查者眼里看着合理
-- 但在权威归属、影响范围、语义、产品含义上仍然是错的
+## 场景
 
-方法论要识别的失败形态如下：
+Codex 收到“增加一个 profile 字段”的请求。编辑前，它先判断字段属于 identity
+权威还是 presentation。随后修改 owner 契约与公共 SDK 表面，迁移真实 consumer，
+验证失败态，并检查真实 app。
 
-| 形态 | 机制 |
-| --- | --- |
-| 锚定到陈旧文档 | AI 跟随的文档看起来权威，实际已与现行规范脱钩 |
-| 影响范围隐式扩张 | AI "顺手"改了相邻表面，所有权悄悄发生迁移 |
-| 看似合理的杜撰 | 权威来源缺失时，AI 编出一个跟真实回答难以区分的答案 |
-| 旧路径被保留 | AI 在旧实现旁边加一条新路径自称"安全迁移"，旧路径其实应该删除 |
-| 把"构建通过"当成完成 | 因为测试能跑就声明完成，但消费方看到的行为是错的 |
-| 误判可重开 | 一个已关闭的表面"为了再修一点小问题"被打开，闭合权威被悄悄改写 |
-| 伪闭合 | 强类型契约出错被一段返回"某个东西"的回退路径掩盖，没有 fail-closed |
-| 上下文预算门槛漂移 | 用来保护 AI 上下文的门槛被压缩文本或浅薄摘要满足，门槛字面通过，但审计需要的证据消失了 |
-
-这些不是传统意义上的 bug。它们是**闭合失败**：闭合条件其实没成立，工作却被声明已经完成。
-
-上下文预算门槛漂移在 AI 原生工作流里尤其值得注意。一份文件可以把无关逻辑挤进密集叙述来"变小"，一组庞大证据也可以被压缩到下一个审计员重建不出原始主张。门槛的初衷没错——让 AI 上下文保持可用——但执行层用一种削弱审计的方式满足了字面要求。Nimi Coding 把这种情况当成漂移，不当成成功：正确的处理是保持文件边界清晰、内聚，并保留强类型证据，而不是用压缩工件遮盖复杂度。
-
-## 为什么是"范式"而不是"清单"
-
-清单的逻辑是"记得做这几件事"。范式的逻辑是"换一种世界观看待这项工作"。
-
-Nimi Coding 给出的不是一份要额外记住的事项列表，而是**一套显式机制：开工前声明闭合条件，收工后用证据核验**。
-
-四个动作把它从清单升级成范式：
-
-1. **权威被显式命名**。每次变更都要写清楚真相住在哪里（`.nimi/spec/**`）、表面归谁所有、属于哪一类工作（对齐 / 重设计 / 重构 / 规范 / 权威）。
-2. **执行被 packet 化**。实现被一个开工前冻结的 packet 限定边界，packet 写明允许的读、允许的写、验收恒定式、负面测试、停止线和重开条件。worker 不能擅自扩张。
-3. **闭合是多维的**。权威闭合、语义闭合、消费方闭合、抗漂移闭合是四个独立闸门。一个 wave 即便满足三个，没满足第四个就不算关闭。
-4. **角色分离，审计独立**。manager 负责 wave 准入与判断；worker 负责 packet 写入；auditor 负责结构性复核与漂移识别，无权改写规范、无权准入。
-
-这四点合起来才是范式：**AI 看似良好的产出，未经过结构性独立的外部证据，就不能升级成"完成"**。
-
-## 场景：代码评审抓不到的失败
-
-开发者让 AI "给用户资料新增一个字段"。AI 加了，代码评审通过，测试通过。
-
-代码评审和测试回答不了这些问题：
-
-- 这次改动是否需要更新规范用户身份的契约？还是只是一个展示字段？
-- 新字段是否触及某个本应被删除的迁移逻辑？
-- 是否还有其他表面（其他 app、其他文档）暗示这个字段已经存在，但其实并没有？
-- 新字段进入审计了吗？还是从审计身边溜过去了？
-
-Nimi Coding 让这些问题**结构上可以回答**：变更被 packet 限定，packet 标明权威域；packet 的负面测试覆盖代码评审看不到的盲区；闭合维度强制追问"消费方现在用的是不是正确接缝"。
-
-## 场景：为什么"再写好一点的提示词"不解决问题
-
-常见的误修方案是：AI 老犯错，那就把提示词写得更好。这只针对症状（AI 的输出），不解决结构问题（评审输出的回路与产出输出的回路是同一个）。
-
-Nimi Coding 的角色分离正是应对这个结构问题。auditor 角色**不属于产出工作的回路**。在 `manager_worker_auditor` 执行模式下，审计来自一个结构上独立的回路：另一个 AI 会话、另一个厂商、另一个宿主。
-
-更好的提示词替代不了结构上的分离。引入这种分离的，是范式本身。
+真正有价值的创新不是更长的计划，而是每个歧义都有 owner、每条禁用捷径都明确、
+每项完成结论都有可重建的证据。
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
-- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
-- [`nimi-coding/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/role-separation-policy.yaml)
-- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
-- [`nimi-coding/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/forbidden-shortcuts.catalog.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
+- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)

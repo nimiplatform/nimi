@@ -1,28 +1,29 @@
 version: 1
 role_separation_policy:
   roles:
-    manager:
+    authority_owner:
       owns:
-        - wave_graph
-        - packet_admission
-        - manager_judgement
-        - closeout_sync
+        - canonical_authority
+        - semantic_decisions
+        - acceptance_criteria
       must_not:
-        - silently_implement_production_scope_while_changing_semantics
-    worker:
+        - use_operational_host_state_as_product_truth
+    external_ai_host:
       owns:
-        - one_admitted_packet
-        - bounded_write_set_execution
+        - task_lifecycle
+        - planning_and_decomposition
+        - subagent_dispatch
+        - waiting_resume_and_completion_state
       must_not:
-        - widen_owner_domain
-        - weaken_fail_closed_rules
+        - redefine_canonical_authority
+        - promote_runtime_state_to_semantic_truth
     auditor:
       owns:
         - structural_review
         - drift_detection
-        - closure_verification
-        - pre_implementation_authority_convergence_evidence
+        - acceptance_evidence_review
+        - authority_convergence_evidence
       must_not:
         - silently_turn_missing_scope_into_future_follow_up
         - mutate_authority_or_implementation_while_auditing
-        - decide_semantic_acceptance_or_packet_admission
+        - decide_semantic_acceptance

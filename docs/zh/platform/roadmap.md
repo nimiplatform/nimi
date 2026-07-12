@@ -4,7 +4,7 @@
 
 本页面描述 Nimi 面向开发者和读者公开的**路线图治理结构**：如何跟踪能力、它们如何获得准入，以及它们经过哪些状态值。它不承诺具体日期，也不是 active product authority。
 
-已实现的产品行为由 `.nimi/spec/<domain>/kernel/**` 管理。候选路线图和 backlog 材料不作为 active spec 子树存在；在能力毕业进入 active product domain 之前，路线图状态由 topic lifecycle 和产品规划过程承载。
+已实现的产品行为由 `.nimi/spec/<domain>/kernel/**` 管理。候选路线图和 backlog 材料不作为 active spec 子树存在；在能力毕业进入 active product domain 之前，路线图状态由产品规划过程承载。
 
 ## 为什么需要路线图表面
 
@@ -141,7 +141,7 @@ Backlog 条目通过 `RESEARCH-*` id 引用研究来源。来源注册表准许�
 | 关注点 | 真相来源 |
 | --- | --- |
 | 已实现产品行为 | `.nimi/spec/<domain>/kernel/**` 下的 active product domain spec |
-| 候选路线图姿态 | Topic lifecycle 和产品规划记录 |
+| 候选路线图姿态 | Active spec 之外的产品规划记录 |
 | Backlog 条目结构 | 路线图投射 taxonomy |
 | 优先级分类 | 路线图投射 taxonomy |
 | 状态生命周期 | Graduation event evidence |

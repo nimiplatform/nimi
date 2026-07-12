@@ -20,4 +20,4 @@ entries:
   - key: app_local_shadow_truth
     meaning: do_not_let_app_local_convenience_state_become_hidden_canonical_truth
   - key: silent_owner_cut_reopen
-    meaning: do_not_reopen_owner_domain_truth_inside_a_downstream_execution_wave
+    meaning: do_not_reopen_owner_domain_truth_inside_downstream_execution_work

@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-A of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Tauri webview (macOS WKWebView) intermittently fails when GLTFLoader's
 // `ImageBitmapLoader` decodes blob-backed VRM textures via

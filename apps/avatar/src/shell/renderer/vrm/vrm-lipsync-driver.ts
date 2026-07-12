@@ -1,4 +1,4 @@
-// Wave 3 chunk 3-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // VRM lipsync driver — translates per-frame `WLipSyncSnapshot` (6-dim
 // AEIOUS weights + volume from the wLipSync worklet) into VRM viseme
@@ -6,13 +6,12 @@
 // selection blended through an attack/release envelope.
 //
 // Algorithm lineage: airi `composables/vrm/lip-sync` (MIT). Re-implemented
-// in this repo per design-05 §"VRM Lipsync Driver Envelope". Constants
+// under the VRM backend lipsync contract. Constants
 // are exported (testable) and `RUNNER_CAP` is intentionally written as
 // `CAP * 0.5` (NOT a literal 0.35) to preserve the "relative ratio"
-// semantics from airi — packet wave_3 acceptance_invariant 8 and
-// negative_test #2 enforce this calc form.
+// semantics from airi; the drift gate enforces this calculation form.
 //
-// Coordination contract (design-05 §"Coordination with emote layer"):
+// Coordination contract (vrm-backend-contract.md §6):
 // the surface useFrame loop calls `tick(...)` and immediately forwards
 // the returned `{ active }` flag to `emoteState.setLipsyncActive(active)`
 // so the emote layer suppresses viseme writes during active speech.
@@ -38,8 +37,8 @@ export const RELEASE_RATE = 30;
  *  Caps "smiles too much" / over-saturation effect. */
 export const CAP = 0.7;
 /** Maximum weight applied to the runner-up (second-place) viseme.
- *  Written as `CAP * 0.5` (= 0.35) — the relative-ratio form is
- *  required by packet wave_3 negative_test #2. Do NOT inline 0.35. */
+ *  Written as `CAP * 0.5` (= 0.35) to preserve the contract's relative
+ *  ratio. Do NOT inline 0.35. */
 export const RUNNER_CAP = CAP * 0.5;
 /** Multiplicative scalar applied to runner-up raw weight before it is
  *  clamped against RUNNER_CAP. Mirrors airi's 0.6 gain. */
@@ -247,9 +246,8 @@ export function createVrmLipsyncDriver(
       // (subsequent snapshot() reads should reflect a clean state).
       for (const k of LIP_KEYS) smoothState[k] = 0;
       lastActiveFlag = false;
-      // Per design-05 the spec sample re-reads `lastActiveAtMs` from
-      // performance.now() on the next tick post-silent; we do NOT reset
-      // it here (the next active sample latches its own anchor).
+      // Preserve `lastActiveAtMs` through silent reset; the next active sample
+      // latches its own `performance.now()` anchor.
       if (!expressionManager) return;
       for (const k of LIP_KEYS) {
         safeSetValue(expressionManager, VRM_PRESET[k], 0);

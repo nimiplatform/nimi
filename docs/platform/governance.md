@@ -52,16 +52,15 @@ a pull request.
 
 ## Reader Scenario: A Failed Closure
 
-Suppose a wave under Nimi Coding closes a public docs rewrite. The
-build passes, the source basis is correct, and the page reads fine
-to a reviewer. The user then says, "this still does not look like
-public docs." That is an example of the governance system catching a
-false closure: the wave passed authority closure and semantic closure
-but failed consumer closure. The fix is to keep the topic in pending
-and admit a follow-on wave, not to declare the work done.
+Suppose Codex finishes a public docs rewrite. The build passes, the
+source basis is correct, and the page reads fine to a reviewer. The user
+then says, "this still does not look like public docs." The task has
+authority and semantic evidence but fails consumer closure. Codex keeps
+the task open, fixes the reader experience, and adds the missing
+acceptance coverage.
 
-The governance loop is what makes that visible. Without it, the build
-result alone would have closed the topic.
+The independent closure dimensions make that visible. A build result
+alone cannot justify task completion.
 
 ## What This Means For Readers
 
@@ -80,5 +79,4 @@ the spec. The kernel rules are the authoritative answer.
 - [`.nimi/spec/platform/kernel/governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/governance-contract.md)
 - [`.nimi/spec/platform/kernel/app-slice-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/app-slice-admission-contract.md)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
-- [`.nimi/spec/high-risk-admissions.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/high-risk-admissions.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)

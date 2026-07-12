@@ -1,4 +1,4 @@
-// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit.
+// Contract tests for .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // Avatar voice-lipsync orchestrator test. The hard-cut surface:
 //   - The deprecated runtime presentation per-frame mouth-batch consume
@@ -148,7 +148,7 @@ function createVoiceStreamChunkAvailableEvent(detail: Record<string, unknown> = 
   };
 }
 
-describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
+describe('avatar-voice-lipsync orchestrator hard-cut', () => {
   it('routes voice_playback_requested → audioPipeline.play and updates state bus', async () => {
     const driver = createDriver();
     const audioPipeline = new AudioPipelineController({
@@ -333,7 +333,7 @@ describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
     ).toThrow(/audioConsumer missing/);
   });
 
-  // Wave 0 hard-cut: the deprecated per-frame mouth-batch presentation event
+  // Hard-cut: the deprecated per-frame mouth-batch presentation event
   // is no longer in the SdkDriver event union; typecheck enforces absence at
   // compile time. A runtime fixture for "ignores X" is intentionally NOT
   // included here so the hard-cut grep gate stays at 0 hits.

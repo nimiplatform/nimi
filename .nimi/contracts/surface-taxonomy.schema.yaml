@@ -30,8 +30,8 @@ taxonomy:
     tracking_policy: tracked_required
     mutability: human_admitted
     reference_rules: [may_reference_product_authority_table, may_reference_thin_guidance, may_reference_minimal_host_projection_anchor]
-    promotion_rules: [only_admitted_topic_wave_may_change_product_authority]
-    fail_closed_cases: [contains_lifecycle_status, contains_audit_coverage, contains_package_methodology_body]
+    promotion_rules: [authority_owner_review_required_for_product_authority_change]
+    fail_closed_cases: [contains_operational_status, contains_audit_coverage, contains_package_methodology_body]
   - class_id: product_authority_table
     owner_kind: product_domain
     authority_rank: active_product_canonical
@@ -61,7 +61,7 @@ taxonomy:
     fail_closed_cases: [referenced_as_authority, stored_under_product_authority_root, written_to_local_derived]
   - class_id: spec_generation_state
     owner_kind: spec_generator
-    authority_rank: lifecycle_state
+    authority_rank: operational_local
     allowed_roots: [".nimi/local/state/spec-generation/**"]
     tracking_policy: local_only
     mutability: operational_snapshot
@@ -75,7 +75,7 @@ taxonomy:
     tracking_policy: local_only
     mutability: operational_snapshot
     reference_rules: [may_cite_authority_refs, must_not_override_authority]
-    promotion_rules: [may_justify_change_packet_only]
+    promotion_rules: [may_justify_authority_or_implementation_change_only]
     fail_closed_cases: [stored_under_product_authority_root, contains_private_material_in_tracked_root]
   - class_id: operational_local_artifact
     owner_kind: host_adapter
@@ -96,14 +96,14 @@ taxonomy:
     promotion_rules: [may_be_consumed_by_host_anchor_only]
     fail_closed_cases: [copied_to_host_product_authority, stranded_in_host_spec]
   - class_id: nimicoding_managed_projection
-    owner_kind: nimi_coding_package_projection
+    owner_kind: nimi_host_with_package_source
     authority_rank: package_projection_support
     allowed_roots: [".nimi/methodology/**", ".nimi/contracts/**", ".nimi/config/**"]
     tracking_policy: tracked_required
-    mutability: package_projected
+    mutability: package_projected_or_host_admitted
     reference_rules: [may_be_read_as_project_local_nimicoding_context, must_not_override_product_authority]
-    promotion_rules: [created_or_refreshed_only_by_nimicoding_init_or_sync]
-    fail_closed_cases: [copied_to_host_product_authority, promoted_to_product_spec, drift_without_sync_policy]
+    promotion_rules: [package_projection_or_exact_host_hardcut_manifest_required]
+    fail_closed_cases: [copied_to_host_product_authority, promoted_to_product_spec, drift_without_sync_or_host_override_policy]
   - class_id: host_projection_anchor
     owner_kind: host_projection
     authority_rank: support_only
@@ -112,16 +112,7 @@ taxonomy:
     mutability: human_admitted
     reference_rules: [may_point_to_methodology_authority, must_be_minimal]
     promotion_rules: [never_promote_to_product_authority]
-    fail_closed_cases: [contains_package_methodology_body, contains_lifecycle_status]
-  - class_id: candidate_roadmap
-    owner_kind: planning_owner
-    authority_rank: candidate_only
-    allowed_roots: [".nimi/topics/**"]
-    tracking_policy: local_only
-    mutability: human_admitted
-    reference_rules: [may_cite_product_authority, must_not_authorize_implementation]
-    promotion_rules: [must_move_to_product_authority_through_admitted_wave]
-    fail_closed_cases: [stored_under_.nimi/spec, referenced_as_active_authority]
+    fail_closed_cases: [contains_package_methodology_body, contains_operational_status]
   - class_id: support_registry
     owner_kind: package_or_product_owner
     authority_rank: support_only
@@ -131,15 +122,6 @@ taxonomy:
     reference_rules: [may_register_evidence_commands, may_reference_product_authority]
     promotion_rules: [semantic_rows_move_to_product_authority]
     fail_closed_cases: [contains_status_field, contains_coverage_field, contains_audit_date, contains_progress_field]
-  - class_id: lifecycle_progress_state
-    owner_kind: topic_or_execution_workflow
-    authority_rank: lifecycle_state
-    allowed_roots: [".nimi/topics/**", ".nimi/local/state/**"]
-    tracking_policy: local_only
-    mutability: operational_snapshot
-    reference_rules: [may_cite_topic_packets_and_results]
-    promotion_rules: [never_promote_lifecycle_state]
-    fail_closed_cases: [stored_under_.nimi/spec, used_as_product_authority]
 class_enum:
   - product_authority
   - product_authority_table
@@ -151,9 +133,7 @@ class_enum:
   - methodology_authority
   - nimicoding_managed_projection
   - host_projection_anchor
-  - candidate_roadmap
   - support_registry
-  - lifecycle_progress_state
 authority_rank_enum:
   - active_product_canonical
   - package_canonical
@@ -162,9 +142,7 @@ authority_rank_enum:
   - guidance_only
   - derived_non_authority
   - evidence_only
-  - lifecycle_state
   - operational_local
-  - candidate_only
 tracking_policy_enum:
   - tracked_required
   - tracked_forbidden
@@ -174,17 +152,19 @@ mutability_enum:
   - human_admitted
   - package_admitted
   - package_projected
+  - package_projected_or_host_admitted
   - generated_reproducible
   - operational_snapshot
   - disposable
 semantic_constraints:
   - every_candidate_file_gets_exactly_one_surface_class
   - unclassified_files_fail_closed
-  - product_authority_classes_must_not_contain_lifecycle_state_or_audit_coverage
+  - product_authority_classes_must_not_contain_operational_state_or_audit_coverage
   - generated_and_derived_classes_are_never_authority
   - package_methodology_and_package_spec_remain_package_owned
   - nimicoding_managed_projection_may_exist_in_host_project_but_is_not_product_authority
+  - host_projection_overrides_must_be_exactly_declared_by_the_host_hardcut_manifest
   - host_projection_anchor_must_be_minimal_and_must_not_copy_package_body
   - support_registry_must_not_store_run_or_coverage_status
-  - candidate_roadmap_must_not_live_under_.nimi/spec
+  - host_workflow_state_must_not_be_projected_into_.nimi/spec
   - tracked_non_product_outputs_require_tracked_output_admission

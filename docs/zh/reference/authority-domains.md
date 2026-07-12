@@ -14,7 +14,7 @@
 | Realm | 世界真相、世界状态、世界历史、聊天、社交、经济、资产、通行、绑定、资源、bundle | Runtime 执行；SDK 改写；桌面端 UI 决策；Cognition 记忆权威 |
 | Avatar | Agent 形体呈现、形体改写、载体视觉准入、后端分支（Live2D / VRM / 生成式动作）、Agent 脚本、Avatar 事件面 | Agent 身份（归 Runtime）；Agent 记忆（归 Cognition）；世界真相（归 Realm）；生成（归 Runtime） |
 | Cognition | 独立的记忆、知识、prompt 服务、引用、完成关卡、技能服务、runtime 桥接契约、runtime 升级契约 | Runtime 执行；Realm 真相；Avatar 形体；桌面端 UI |
-| Nimi Coding | 议题 / wave / packet / preflight / 审计 / 收口方法论、四级闭合框架、角色分离策略、权威收敛策略、forbidden-shortcuts 目录、宿主无关边界、声明的技能 | Runtime 执行；产品代码；AI 宿主实现；provider 调用 |
+| Nimi Coding | 项目真相投影、preflight 方法论、四级闭合框架、复核分离、权威收敛策略、forbidden-shortcuts 目录、确定性门禁、证据契约与声明的技能 | 任务规划或进度；子代理协调；重试或恢复；Runtime 执行；产品代码；AI 宿主实现；provider 调用 |
 
 ## 域间关系
 

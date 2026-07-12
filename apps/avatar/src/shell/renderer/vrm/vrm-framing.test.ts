@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Verifies the Three.js -> local pure-domain glue: applyVrmFraming computes a
 // scene bbox via Box3.setFromObject and forwards plain-numeric vectors

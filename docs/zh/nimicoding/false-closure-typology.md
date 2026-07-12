@@ -1,157 +1,80 @@
-# 假闭合类型
+# 伪闭合形态
 
-假闭合，是输出在某一闭合维度看似完整、却在另一维度失败的情形。方法论把实践中常见的几种假闭合形态分门别类，每一种都有对应的处置方式。
+Codex 任务看起来已经完成，但必需的权威、语义、消费方行为或抗漂移能力仍然
+开放，这就是伪闭合。任务状态归 Codex；方法论与门禁决定 Codex 在诚实标记完成
+之前必须拥有的证据。
 
-## Build 通过 / 消费方失败
+## Build 通过式闭合
 
-build 是绿的、测试通过、Source Basis 也已经引用，但消费方（读者、用户、运维）拒收输出。
+代码能构建，测试也通过，但用户可见路径不可用，或者真实 consumer 根本没有使用
+新的实现。
 
-| 症状 | 处置 |
+处置：检查真实 runtime 与消费路径，修复失败并补回归覆盖。
+
+## 权威闭合但消费方未闭合
+
+规范正确，SDK owner 也提供了公共表面，但应用仍保留局部旧路径或 bypass。
+
+处置：把 consumer 迁移到 canonical seam，并删除平行真相。
+
+## 消费方闭合但权威未闭合
+
+应用行为正确，但依赖没有 canonical owner 的局部规则。
+
+处置：先解决权威。不能因为代码碰巧工作，就把它默认提升为产品真相。
+
+## 仅 Happy Path 闭合
+
+成功路径可用，但认证失败、runtime 不可用、非法输入、禁用控件或窄屏布局没有验证。
+
+处置：在真实环境中验证已声明的失败态与边界态。
+
+## 仅截图闭合
+
+截图看起来正确，但 DOM 状态、可访问性、runtime 连通性或 console 行为有误。
+
+处置：把视觉复核与结构、runtime 检查结合起来。
+
+## 仅门禁闭合
+
+机械检查全部通过，但真实应用行为与检查结论冲突。
+
+处置：以真实行为失败为准，修复问题，并加强门禁或回归测试。
+
+## 无证据闭合
+
+最终摘要声称检查通过，却没有真实命令结果或 runtime 观察。
+
+处置：运行检查。如果无法运行，就报告阻塞；不能制造通过结论。
+
+## 平行真相闭合
+
+新的 owner 路径已经实现，但旧 owner、读路径或写路径仍然有效。
+
+处置：完成硬切，并验证旧路径不可达。
+
+## 过度压缩闭合
+
+大改动之所以显得可理解，只是因为证据或实现细节被压缩到无法重建。
+
+处置：保持文件职责内聚，保存可追溯证据，并沿真实 owner 边界拆分职责。
+
+## 闭合检查
+
+Codex 完成高风险任务之前，最终证据要回答：
+
+| 维度 | 问题 |
 | --- | --- |
-| build 是绿的 | topic 保持 `pending`，不要标记 closed |
-| 测试通过 | 准入一次新 wave，专门处理消费方维度 |
-| 用户拒收 | 不要回头修改已闭合 wave 的记录 |
+| 权威 | Canonical truth 是否存在且已经对齐？ |
+| 语义 | 实现表达的含义是否与权威一致？ |
+| 消费方 | 真实 consumer 是否使用预期 seam 和行为？ |
+| 抗漂移 | 测试与门禁能否阻止旧问题回归？ |
 
-**真实案例**：先前那个公开文档 topic，正是触发了本轮文档修复。权威、语义、抗漂移三者都通过，消费方不通过。
-
-## Source Basis 完整 / 文本不可读
-
-每一句对外声明都有规范依据，文本却写得像审计余渣，读者根本无法构建心智模型。
-
-| 症状 | 处置 |
-| --- | --- |
-| Source Basis 完整 | 准入一次重写 wave |
-| 读者无法构建心智模型 | 按读者用途重组结构 |
-
-后续 wave 不会重开 Source Basis 决定，只处理可读性缺口。
-
-## 已闭合 / 未被接受
-
-wave 在机器侧闭合，但人侧验收没有记录。方法论里 `pending` 状态搭配显式 `close_trigger`，正是为这种情形保留的。
-
-| 症状 | 处置 |
-| --- | --- |
-| wave 收尾已记录 | topic 状态停在 `pending`，等待验收 |
-| 用户尚未复核 | 不要推进到 true-close |
-| 验收关卡未记录 | 维护 pending-note 与重开标准 |
-
-topic 不会推进到 true-close，直到验收被记录。
-
-## OVERFLOW 与 PASS
-
-某次 wave 在 packet 边界内未能完成，返回 `OVERFLOW`，既不是 `FAIL`，也不是 `PASS`。
-
-只有当下列条件**同时满足**时，OVERFLOW 续作才被准入：
-
-- 方向仍然正确
-- 范围未跨入新的所有者域
-- 当前状态可接受，只是 packet 边界本身切得太薄
-
-下列情况 OVERFLOW 续作**被拒绝**：
-
-- 引入了影子真相
-- 需要 fallback 或 alias 才能往下走
-- packet 跨入了新的所有者域
-
-这条区分阻止了一种最隐蔽的假闭合：一次溢出的 wave 被悄悄延伸到所有者域之外，隐含范围一路堆积。
-
-## 提前 true-close
-
-topic 被移入 closed 文件夹，但没有记录显式的 true-close 审计。
-
-| 症状 | 处置 |
-| --- | --- |
-| 文件夹已移入 closed/ | 核对 `topic.yaml.current_true_close_status` |
-| `current_true_close_status: not_started` | 回滚；先记录 true-close 审计 |
-| 已通过的 true-close 之后被撤销 | 记录撤销血缘 |
-
-已通过的 true-close 仍可能被后续独立审计撤销；撤销后的 true-close 需要补上后续血缘。
-
-## 伪进展
-
-新 wave 名字一个接一个，却没有对应的新闭合。wave-DAG 策略的反模式条目专门捕捉这种情形。
-
-| 症状 | 处置 |
-| --- | --- |
-| wave 已准入但没有主闭合目标 | 拒绝准入 |
-| wave 已准入但未达成有界结果 | 暂停或重做预检 |
-| wave 名字层层嵌套 | 停下；改名不等于闭合 |
-
-一次 wave 必须有一个主闭合目标。说不出目标，那就不是 wave，而是规划绕道。
-
-## 局部需求陷阱
-
-小请求不断挤掉主线目标——topic 原本是关于 A，最终变成 B、C、D 的零碎修复积压。
-
-| 症状 | 处置 |
-| --- | --- |
-| topic 里堆了不相关的零碎修复 | 拒绝；topic 是单条主迭代线 |
-| 每个零碎修复都自成一次 wave | 把零碎修复挪出 topic 纪律之外 |
-
-开发节奏规则规定：topic 是**单条主迭代线**的归处，不是微型 backlog。
-
-## 巨型规划 topic
-
-topic 始终不肯收敛到一次有界 wave 上。
-
-| 症状 | 处置 |
-| --- | --- |
-| 多次连续规划 wave | 停下；规划型 wave 连续不超过一次 |
-| 规划之后仍未达成有界闭合 | 暂停或重做预检，而不是开新的规划 wave |
-
-wave 上限策略写得很清楚：规划可以把一个执行目标硬化下来，但不能无限连成串。
-
-## 读者场景：识别正在进行中的失败
-
-你正在管理一个 topic。第一次 wave 的审计返回 `PASS`。但用户审看渲染输出后说"对是对，不够亮眼"。
-
-这是**build 通过 / 消费方失败**的形态。审计本身是正确的（按机器口径 PASS），消费方那一维不通过。
-
-处置：
-
-1. 不要回头修改 wave-1 的记录。审计本身是对的。
-2. topic 保持 `pending`。
-3. 准入 wave-2，专门处理消费方缺口。
-4. wave-2 的 packet 根据用户反馈写出新的验收不变量。
-5. wave-2 在消费方维度满足时闭合（再交下一轮用户复核）。
-
-方法论把"我不知道下一步该做什么"，变成一段强类型的处置序列。
-
-## 读者场景：读懂一份 OVERFLOW 裁决
-
-某次 wave 返回 `OVERFLOW`，不是 `PASS` 也不是 `FAIL`。worker 在实施过程中撞到 packet 边界。
-
-你逐项核对：
-
-- 方向是否仍然正确？是——正在做的就是计划要做的。
-- 范围是否跨入新的所有者域？否——工作仍在声明的所有者域内。
-- 是否引入影子真相？否——没有产生并行路径。
-- 是否需要 fallback 或 alias？否——遇阻直接拒绝退化。
-- 当前状态可接受、packet 边界过薄？是。
-
-**续作可准入。**准入一份续作 packet，把边界扩开，完成剩余工作。
-
-如果上述任何一项答"是"指向影子 / fallback / 新所有者域，续作就**被拒绝**，wave 退回修订。
-
-## 读者场景：topic 卡在规划阶段
-
-某 topic 已经持续数周。准入了三次 wave，全是规划型，没有一次达成有界闭合。
-
-这是**巨型规划 topic**反模式。
-
-处置：
-
-1. **不再开新的规划 wave。**wave 上限策略禁止开第四次规划。
-2. **暂停 topic**，附上显式 pending-note；或者
-3. **重做预检。**重新构造，再尝试一次，但停止线要更锐利。
-
-如果管理者直接以另一个规划名义准入 wave-4，那就是伪进展。方法论的上限正是阻止这件事的机制。
+任何必备维度没有答案，Codex 任务都应保持开放，或明确给出 blocked/partial 结果。
 
 ## 来源依据
 
-- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
-- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
-- [`nimi-coding/methodology/overflow-continuation-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/overflow-continuation-policy.yaml)
-- [`nimi-coding/methodology/wave-dag-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/wave-dag-policy.yaml)
-- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/result.schema.yaml)
-- [`nimi-coding/contracts/overflow-continuation.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/overflow-continuation.schema.yaml)
+- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
+- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
+- [`.nimi/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/acceptance.schema.yaml)
+- [`.nimi/contracts/negative-fixtures.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/negative-fixtures.yaml)

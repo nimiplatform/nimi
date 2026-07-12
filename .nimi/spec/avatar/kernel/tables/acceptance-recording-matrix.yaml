@@ -189,4 +189,4 @@ coverage_rules:
   - "shared_auth_broker_ready and shared_auth_login_required must be captured in a real shell against real Runtime/SDK transport; fixture-only renderer state is insufficient."
   - "public_raw_token_surface_absent must prove that no public token method can be called by any local caller class."
   - "Every shared-auth scenario must include a renderer token-leak scan and denied auth_session probe."
-  - "Recordings must be linked from the release/topic evidence ledger; local one-off screenshots are not closure."
+  - "Recordings must be linked from the release evidence ledger or an admitted non-authoritative evidence dossier; local one-off screenshots are not closure."

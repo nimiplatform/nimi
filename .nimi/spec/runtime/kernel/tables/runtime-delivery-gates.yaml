@@ -17,7 +17,7 @@ gates:
     objective: freeze spec authority and rule ids
     command: pnpm check:ai-scenario-hardcut-drift && pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
     blocking: hard_block
-    evidence_route: .local/work/<topic-id>/*,.local/report/*
+    evidence_route: .local/work/<work-id>/*,.local/report/*
     source_rule: K-GATE-010
   - gate: G1
     name: proto_chain

@@ -1,4 +1,4 @@
-// Wave 1 of topic 2026-04-30-avatar-vrm-backend-branch (design-08).
+// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // Backend-agnostic ModelManifest resolver. Detects backend kind from the
 // resolved package and returns a discriminated union the rest of the

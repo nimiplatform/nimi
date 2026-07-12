@@ -1,0 +1,259 @@
+version: 1
+policy_id: nimi.nimicoding-host-workflow-hardcut.v1
+authority:
+  path: .nimi/spec/platform/kernel/package-authority-admission-contract.md
+  required_rule_ids:
+    - P-PKG-010
+    - P-PKG-011
+
+package_compatibility:
+  package_name: "@nimiplatform/nimi-coding"
+  allowed_versions:
+    - 0.2.7
+
+# These package-owned projections implement the retired package workflow. They
+# must remain absent in Nimi. The compatibility wrapper may tolerate only their
+# missing_package_canonical status while Nimi continues to consume nimi-coding
+# 0.2.7 for methodology, spec tooling, and deterministic validators.
+forbidden_package_projection_paths:
+  - .nimi/config/external-execution-artifacts.yaml
+  - .nimi/contracts/admission-checklist.schema.yaml
+  - .nimi/contracts/closeout.schema.yaml
+  - .nimi/contracts/decision-review.schema.yaml
+  - .nimi/contracts/execution-packet.schema.yaml
+  - .nimi/contracts/high-risk-execution-result.yaml
+  - .nimi/contracts/orchestration-state.schema.yaml
+  - .nimi/contracts/overflow-continuation.schema.yaml
+  - .nimi/contracts/packet.schema.yaml
+  - .nimi/contracts/pending-note.schema.yaml
+  - .nimi/contracts/remediation.schema.yaml
+  - .nimi/contracts/result.schema.yaml
+  - .nimi/contracts/sweep-design-result.yaml
+  - .nimi/contracts/topic-goal.schema.yaml
+  - .nimi/contracts/topic-run-ledger.schema.yaml
+  - .nimi/contracts/topic-step-decision.schema.yaml
+  - .nimi/contracts/topic.schema.yaml
+  - .nimi/contracts/true-close.schema.yaml
+  - .nimi/contracts/wave.schema.yaml
+  - .nimi/methodology/overflow-continuation-policy.yaml
+  - .nimi/methodology/topic-lifecycle-report.yaml
+  - .nimi/methodology/topic-lifecycle.yaml
+  - .nimi/methodology/topic-naming-ontology.yaml
+  - .nimi/methodology/topic-ontology.yaml
+  - .nimi/methodology/topic-validation-policy.yaml
+  - .nimi/methodology/wave-dag-policy.yaml
+
+# Nimi owns these retained host projections. Exact-path drift from the old
+# package seed is admitted; missing files and drift at every other path fail.
+host_override_projection_paths:
+  - .nimi/config/audit-execution-artifacts.yaml
+  - .nimi/config/host-adapter.yaml
+  - .nimi/config/host-profile.yaml
+  - .nimi/config/skill-manifest.yaml
+  - .nimi/config/skills.yaml
+  - .nimi/config/spec-generation-inputs.yaml
+  - .nimi/contracts/acceptance.schema.yaml
+  - .nimi/contracts/audit-remediation-map.schema.yaml
+  - .nimi/contracts/audit-sweep-result.yaml
+  - .nimi/contracts/authority-convergence-audit.schema.yaml
+  - .nimi/contracts/domain-admission.schema.yaml
+  - .nimi/contracts/external-host-compatibility.yaml
+  - .nimi/contracts/forbidden-shortcuts.catalog.yaml
+  - .nimi/contracts/high-risk-admission.schema.yaml
+  - .nimi/contracts/migration-inventory.schema.yaml
+  - .nimi/contracts/negative-fixtures.yaml
+  - .nimi/contracts/placement-contract.schema.yaml
+  - .nimi/contracts/projection-edge.schema.yaml
+  - .nimi/contracts/shared-enums.yaml
+  - .nimi/contracts/spec-generation-inputs.schema.yaml
+  - .nimi/contracts/surface-taxonomy.schema.yaml
+  - .nimi/contracts/table-family.schema.yaml
+  - .nimi/contracts/tracked-output-admission.schema.yaml
+  - .nimi/contracts/worker-output.schema.yaml
+  - .nimi/contracts/workflow-consumer.schema.yaml
+  - .nimi/methodology/authority-convergence-policy.yaml
+  - .nimi/methodology/core.yaml
+  - .nimi/methodology/four-closure-policy.yaml
+  - .nimi/methodology/role-separation-policy.yaml
+  - .nimi/methodology/skill-exchange-projection.yaml
+  - .nimi/methodology/skill-handoff.yaml
+  - .nimi/methodology/skill-runtime.yaml
+  - .nimi/methodology/spec-reconstruction.yaml
+
+# These assertions pin the semantic boundary, not just file presence. A seed
+# reversion that restores package workflow ownership must fail even when the
+# old package reports the reverted file as byte-for-byte in sync.
+host_projection_semantics:
+  yaml_assertions:
+    - path: .nimi/methodology/core.yaml
+      assertions:
+        - pointer: execution_bootstrap.host_execution_owner
+          operator: equals
+          value: external_ai_host
+        - pointer: methodology_posture.execution_mode
+          operator: equals
+          value: host_owned
+        - pointer: entry_policy.host_workflow_state_must_not_be_mirrored
+          operator: equals
+          value: true
+        - pointer: forbidden_surfaces
+          operator: set_equals
+          value: [topic_lifecycle, wave_dag, packet_orchestration, run_ledger, goal_bridge, nested_ai_host]
+    - path: .nimi/config/skills.yaml
+      assertions:
+        - pointer: expected_skill_surfaces
+          operator: map_key_set_equals
+          key: id
+          value: [spec_reconstruction, doc_spec_audit, audit_sweep]
+    - path: .nimi/config/skill-manifest.yaml
+      assertions:
+        - pointer: skills
+          operator: map_key_set_equals
+          key: id
+          value: [spec_reconstruction, doc_spec_audit, audit_sweep]
+    - path: .nimi/config/host-profile.yaml
+      assertions:
+        - pointer: host_profile.hard_constraints
+          operator: set_equals
+          value: [vendor_neutral_profile_only, do_not_assume_local_runtime_install, nimicoding_must_not_claim_host_task_or_workflow_ownership, do_not_start_or_resume_an_ai_host]
+    - path: .nimi/config/host-adapter.yaml
+      assertions:
+        - pointer: host_adapter.runtime_owner
+          operator: equals
+          value: external_ai_host
+        - pointer: host_adapter.selected_adapter_id
+          operator: equals
+          value: none
+        - pointer: host_adapter.semantic_review_owner
+          operator: equals
+          value: authority_owner
+        - pointer: host_adapter.admitted_execution_surfaces
+          operator: set_equals
+          value: [authority_convergence_audit]
+    - path: .nimi/methodology/role-separation-policy.yaml
+      assertions:
+        - pointer: role_separation_policy.roles.external_ai_host.owns
+          operator: set_equals
+          value: [task_lifecycle, planning_and_decomposition, subagent_dispatch, waiting_resume_and_completion_state]
+    - path: .nimi/methodology/skill-exchange-projection.yaml
+      assertions:
+        - pointer: projection_contract.owner
+          operator: equals
+          value: nimi_host_projection
+        - pointer: projection_contract.locality
+          operator: equals
+          value: host_project
+    - path: .nimi/methodology/skill-handoff.yaml
+      assertions:
+        - pointer: handoff.hard_constraints
+          operator: set_equals
+          value: [do_not_assume_runtime_installed, do_not_mutate_project_sources_during_bootstrap_handoff, unresolved_authority_must_fail_closed, do_not_create_or_advance_host_workflow_state]
+    - path: .nimi/contracts/workflow-consumer.schema.yaml
+      assertions:
+        - pointer: workflow_consumers
+          operator: map_key_set_equals
+          key: workflow_id
+          value: [audit_sweep, spec_generation]
+    - path: .nimi/contracts/placement-contract.schema.yaml
+      assertions:
+        - pointer: placement_rules.6.owner
+          operator: equals
+          value: nimi_host_with_package_source
+        - pointer: placement_rules.6.requires_admission
+          operator: equals
+          value: package_projection_or_exact_host_hardcut_manifest
+    - path: .nimi/contracts/projection-edge.schema.yaml
+      assertions:
+        - pointer: projection_edges.1.allowed_fields
+          operator: set_equals
+          value: [projected_package_file_body, admitted_host_override_body]
+        - pointer: projection_edges.1.drift_check_command
+          operator: equals
+          value: "pnpm check:nimicoding-host-hardcut && pnpm check:nimi-coding-seed-sync"
+    - path: .nimi/contracts/surface-taxonomy.schema.yaml
+      assertions:
+        - pointer: taxonomy.8.class_id
+          operator: equals
+          value: nimicoding_managed_projection
+        - pointer: taxonomy.8.owner_kind
+          operator: equals
+          value: nimi_host_with_package_source
+        - pointer: taxonomy.8.mutability
+          operator: equals
+          value: package_projected_or_host_admitted
+    - path: .nimi/contracts/high-risk-admission.schema.yaml
+      assertions:
+        - pointer: admission_required_fields
+          operator: set_equals
+          value: [change_id, disposition, admitted_at, authority_review_owner, summary, source_decision_contract]
+
+old_doctor_compatibility:
+  allowed_error_checks:
+    - id: bootstrap_seed_files
+      detail: >-
+        Missing bootstrap seed files declared by the seed projection policy: .nimi/config/external-execution-artifacts.yaml, .nimi/contracts/admission-checklist.schema.yaml, .nimi/contracts/closeout.schema.yaml, .nimi/contracts/decision-review.schema.yaml, .nimi/contracts/execution-packet.schema.yaml, .nimi/contracts/high-risk-execution-result.yaml, .nimi/contracts/orchestration-state.schema.yaml, .nimi/contracts/overflow-continuation.schema.yaml, .nimi/contracts/packet.schema.yaml, .nimi/contracts/pending-note.schema.yaml, .nimi/contracts/remediation.schema.yaml, .nimi/contracts/result.schema.yaml, .nimi/contracts/sweep-design-result.yaml, .nimi/contracts/topic-goal.schema.yaml, .nimi/contracts/topic-run-ledger.schema.yaml, .nimi/contracts/topic-step-decision.schema.yaml, .nimi/contracts/topic.schema.yaml, .nimi/contracts/true-close.schema.yaml, .nimi/contracts/wave.schema.yaml, .nimi/methodology/overflow-continuation-policy.yaml, .nimi/methodology/topic-lifecycle-report.yaml, .nimi/methodology/topic-lifecycle.yaml, .nimi/methodology/topic-naming-ontology.yaml, .nimi/methodology/topic-ontology.yaml, .nimi/methodology/topic-validation-policy.yaml, .nimi/methodology/wave-dag-policy.yaml
+    - id: contract_reference_alignment
+      detail: Cross-contract reference drift detected between manifest/runtime/installer/host-profile/host-adapter/handoff truth
+    - id: skill_result_contract_alignment
+      detail: Skill manifest result contract refs drifted away from the declared machine contracts
+    - id: high_risk_execution_result_contract
+      detail: high-risk-execution result contract is missing or malformed
+    - id: high_risk_admission_contract
+      detail: .nimi/contracts/high-risk-admission.schema.yaml is missing or malformed
+    - id: external_execution_artifacts_contract
+      detail: external execution artifact landing-path contract is missing or malformed
+    - id: host_adapter_boundary
+      detail: host-adapter boundary drifted away from prompt/output/evidence-only handoff with nimicoding semantic review ownership
+    - id: high_risk_schema_contracts
+      detail: >-
+        High-risk execution schema seeds are missing or malformed: .nimi/contracts/execution-packet.schema.yaml, .nimi/contracts/orchestration-state.schema.yaml, .nimi/contracts/worker-output.schema.yaml, .nimi/contracts/acceptance.schema.yaml
+  allowed_invalid_contract_paths:
+    - .nimi/contracts/acceptance.schema.yaml
+    - .nimi/contracts/execution-packet.schema.yaml
+    - .nimi/contracts/orchestration-state.schema.yaml
+    - .nimi/contracts/worker-output.schema.yaml
+
+entrypoint_scan:
+  roots:
+    - AGENTS.md
+    - CLAUDE.md
+    - README.md
+    - package.json
+    - .cursorrules
+    - .claude
+    - .github
+    - scripts
+  included_extensions:
+    - .md
+    - .mjs
+    - .js
+    - .cjs
+    - .json
+    - .yaml
+    - .yml
+    - .sh
+    - .ps1
+    - .cmd
+  excluded_path_suffixes:
+    - .test.mjs
+  excluded_path_segments:
+    - testdata
+  forbidden_substrings:
+    - topic-runner
+    - inline manager-worker
+    - nimicoding start
+    - nimicoding clear
+    - nimicoding sync --apply
+    - nimicoding topic
+    - --execute-host
+
+package_script_contract:
+  check:nimicoding-host-hardcut: node scripts/check-nimicoding-host-hardcut.mjs
+  test:nimicoding-host-hardcut: node --test scripts/nimicoding-host-hardcut.test.mjs
+  nimicoding:start: node scripts/nimicoding-host-compat.mjs block start
+  nimicoding:start:yes: node scripts/nimicoding-host-compat.mjs block start
+  nimicoding:clear: node scripts/nimicoding-host-compat.mjs block clear
+  nimicoding:sync: node scripts/nimicoding-host-compat.mjs sync-check
+  nimicoding:sync:apply: node scripts/nimicoding-host-compat.mjs block sync-apply
+  check:nimi-coding-seed-sync: node scripts/nimicoding-host-compat.mjs sync-check
+  nimicoding:doctor: node scripts/nimicoding-host-compat.mjs doctor

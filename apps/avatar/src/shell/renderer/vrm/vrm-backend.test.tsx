@@ -1,9 +1,9 @@
-// Wave 2 chunk 2-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Verifies the VRM backend branch factory:
 //   * default mode flips metadata.mode to `real_render` and the surface
 //     mounts the real BackendBranch surface (Canvas + lifecycle wiring),
-//     replacing the wave_1 step_5 dev-preview placeholder;
+//     with no dev-preview placeholder;
 //   * VITE_AVATAR_DEV_VRM_PREVIEW is ignored by the product backend and
 //     cannot select a placeholder success branch.
 //

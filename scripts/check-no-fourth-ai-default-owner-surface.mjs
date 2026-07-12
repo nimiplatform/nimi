@@ -10,8 +10,8 @@
 // `nimi-default-profile-catalog` owner surface may appear in active
 // spec, runtime, sdk, desktop, scripts, or package.json.
 //
-// Skips closed-topic / Git-history references and topic-local audit
-// artifacts which are evidence-only.
+// Retired history remains available through Git and is outside this active
+// authority scan.
 
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
@@ -75,8 +75,7 @@ const SKIP_FILE_PATTERNS = [
 
 // Owner-shaped aliases that would re-introduce a fourth AI/default
 // truth even under a renamed banner. The list is intentionally narrow
-// to catch product-owner names while ignoring topic-local audit
-// vocabulary.
+// to catch product-owner names while ignoring unrelated audit vocabulary.
 const FORBIDDEN_OWNER_PATTERNS = [
   /\bdefault[-_]experience[-_]profile\b/i,
   /\bDefaultExperienceProfile\b/,
@@ -92,22 +91,10 @@ const FORBIDDEN_OWNER_PATTERNS = [
 
 const SELF_FILE_NAME = 'check-no-fourth-ai-default-owner-surface.mjs';
 const SIBLING_GATE_NAME = 'check-no-ai-profile-provider-model-constants.mjs';
-const HOME_SHELL_GUARD_NAME = 'check-home-shell-no-runtime-internal-import.mjs';
 // The replacement Platform authority contract file mentions the
 // forbidden owner names by name inside its `MUST NOT` clauses; those
 // are declarative anti-pattern callouts, not active owner surfaces.
 const AUTHORITY_CONTRACT_FILE = '.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md';
-
-function isTopicLifecycleArtifact(relative) {
-  // `.nimi/topics/**` is human-authored topic lifecycle workspace; it
-  // intentionally carries historical references to the retired vocabulary
-  // as evidence. Skip it.
-  return relative.startsWith('.nimi/topics/');
-}
-
-function isClosedTopicHistory(relative) {
-  return relative.startsWith('.nimi/topics/closed/');
-}
 
 function isSelfFile(relative) {
   if (relative === `scripts/${SELF_FILE_NAME}`) return true;
@@ -120,7 +107,6 @@ function isSelfFile(relative) {
 
 function shouldSkipFile(relative) {
   if (isSelfFile(relative)) return true;
-  if (isTopicLifecycleArtifact(relative)) return true;
   if (relative === AUTHORITY_CONTRACT_FILE) return true;
   return false;
 }

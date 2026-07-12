@@ -69,8 +69,8 @@ carrier visual acceptance, and shell-specific rendering boundaries.
 **Cognition.** Owns standalone memory, knowledge, prompt serving,
 references, completion, skill service, and runtime bridge semantics.
 
-**Nimi Coding.** The AI-coding governance workflow: topics, waves,
-packets, preflight checks, audits, and closeout evidence.
+**Nimi Coding.** The project truth, methodology, deterministic gates,
+and evidence layer used around host-owned AI development.
 
 ## Runtime Vocabulary
 
@@ -154,25 +154,17 @@ without absorbing Cognition's authority.
 
 ## Nimi Coding Vocabulary
 
-**Topic.** A governed work track for high-risk or authority-bearing work.
-
-**Wave.** A bounded owner cut inside a topic. A wave isolates one closure
-domain at a time.
-
-**Packet.** The frozen execution contract for a wave, including allowed
-reads, allowed writes, acceptance invariants, negative tests, and stop
-lines.
-
-**Preflight.** A stop-line check before a wave's implementation begins.
+**Preflight.** A bounded check of spec status, authority owner, work type,
+and parallel-truth risk before high-risk implementation begins.
 
 **Audit.** Evidence that the work matches authority and consumer needs.
 
-**Closeout.** The decision that the work is actually done across all
-closure dimensions.
+**Acceptance.** Evidence-based judgement of authority alignment,
+evidence sufficiency, and final disposition.
 
 **Closure Dimensions.** Authority closure, semantic closure, consumer
-closure, and drift-resistance closure. A wave is closed only when all
-four are satisfied.
+closure, and drift-resistance closure. Codex completes a high-risk task
+only when every required dimension is satisfied.
 
 **False Closure.** Output that looks complete by one closure dimension
 while failing another. Common shapes: build passes but the page is
@@ -210,5 +202,5 @@ selected, not full-mirror.
 - [`.nimi/spec/desktop/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)
 - [`.nimi/spec/cognition/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/index.md)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

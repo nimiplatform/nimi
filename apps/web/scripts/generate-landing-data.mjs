@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Landing data generator
 // Reads admitted spec YAMLs and emits typed TS modules under
-// apps/web/src/landing/generated/. Per topic
-// 2026-05-09-web-landing-alignment-redesign W1 design + r5 strengthening
-// (AdmittedCapability union literal type-enforced).
+// apps/web/src/landing/generated/. The admitted provider and capability tables
+// are the authority for this projection (AdmittedCapability union literals are
+// type-enforced).
 
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -41,7 +41,7 @@ const CAPABILITIES_ONLY_PROVIDERS = new Set(['local']);
 // Per r5 (audit r4 F-002): the AdmittedCapability union is generated from
 // DISTINCT capability values discovered in provider-capabilities.yaml.
 // Generator fail-closes if YAML adds a capability not present in this admitted
-// list (forces topic decision before drift can ship). To extend: add the new
+// list (forces an authority update before drift can ship). To extend: add the new
 // value here, regenerate, and ensure both en + zh content tree dicts include
 // the matching label key in modelCatalog.capabilityLabels.
 const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
@@ -82,7 +82,7 @@ function validateEnum(value, admitted, fieldName, providerName) {
         `Add the new value to the admitted union in this generator AND ensure ` +
         `downstream consumer (LandingContent.modelCatalog.capabilityLabels for ` +
         `capability values; component logic for plane/inventory/endpoint values) ` +
-        `is updated in the same wave or topic.`,
+        `is updated in the same authority change.`,
     );
   }
 }

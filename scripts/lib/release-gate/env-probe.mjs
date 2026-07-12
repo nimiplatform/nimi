@@ -1,7 +1,6 @@
 // Environment probe for the release gate runner.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-006 fail-closed for live/secret/external-repo,
 // P-RELG-007 no pseudo-success.
 //

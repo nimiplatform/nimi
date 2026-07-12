@@ -9,7 +9,7 @@ authority contract.
 
 | Marker | Pattern | Reason |
 | --- | --- | --- |
-| `TODO` | `\bTODO\b` | Indicates unfinished work; should be tracked in topic, not in docs |
+| `TODO` | `\bTODO\b` | Indicates unfinished work; belongs in product planning, not reader docs |
 | `TBD` | `\bTBD\b` | Same as above |
 | `FIXME` | `\bFIXME\b` | Same as above |
 | `lorem` | `\blorem\b` (case-insensitive) | Placeholder text |
@@ -87,11 +87,11 @@ docs that describe Nimi Coding must not claim any of these are used:
 | `happy_path_only_closure` | Claiming closure when only the happy path is closed |
 | `time_phased_layering` | Replacing semantic layering with time-sliced (v1/v2/v3) layering |
 | `app_local_shadow_truth` | App-local convenience state becoming hidden canonical truth |
-| `silent_owner_cut_reopen` | Reopening owner-domain truth inside a downstream execution wave |
+| `silent_owner_cut_reopen` | Reopening owner-domain truth inside downstream implementation work |
 
 ## Detection
 
-Wave-level grep used to verify public docs:
+Repository-level grep used to verify public docs:
 
 ```bash
 grep -rEn 'TODO|TBD|FIXME|coming soon|lorem|placeholder' \

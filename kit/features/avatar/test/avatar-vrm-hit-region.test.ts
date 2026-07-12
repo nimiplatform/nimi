@@ -1,4 +1,4 @@
-// Wave 4 chunk 4-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Tests for vrm-hit-region. Uses an in-memory fake VrmRenderTarget so we
 // can drive the alpha-byte return value deterministically without

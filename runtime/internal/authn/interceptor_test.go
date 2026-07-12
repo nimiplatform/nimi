@@ -247,8 +247,7 @@ func TestAuthenticateMapsRevocationRateLimitToRetryableUnavailable(t *testing.T)
 }
 
 // =============================================================================
-// Wave 4 (topic 2026-05-10-runtime-bearer-revocation-contract-closure):
-// posture-consumer test. Loads the Wave 0 spec table index at
+// Posture-consumer test. Loads the canonical spec table index at
 // nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml plus its
 // method shards as READ-ONLY YAML fixtures, asserts table shape sanity, and
 // confirms the runtime authn interceptor's K-AUTHN-001 pass-through behavior
@@ -413,9 +412,9 @@ func TestPostureTableConsumerLoadsWave0FixtureShape(t *testing.T) {
 	if strings.TrimSpace(table.PostureDecisionDoctrine) == "" {
 		t.Fatal("expected non-empty posture_decision_doctrine field")
 	}
-	// Defensive lower bound; current count at topic implementation moment is
-	// 177. This test fails closed if Wave 0 contracts the table dramatically
-	// (signals Wave 0 reopen rather than silent runtime drift).
+	// Defensive lower bound; the admitted baseline contains 177 methods. This
+	// test fails closed if the table contracts dramatically, signaling authority
+	// drift rather than accepting it silently.
 	if len(table.Methods) < 100 {
 		t.Fatalf("expected at least 100 method entries, got %d", len(table.Methods))
 	}

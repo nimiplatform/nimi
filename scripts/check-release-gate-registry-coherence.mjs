@@ -2,8 +2,7 @@
 //
 // Check release gate registry coherence.
 //
-// Owner: scripts (W1 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; this checker enforces the registry authority below.
 // Authority: P-RELG-001 / P-RELG-008 / P-RELG-009 / P-RELG-012 / P-RELG-013
 // in .nimi/spec/platform/kernel/release-gate-contract.md.
 //

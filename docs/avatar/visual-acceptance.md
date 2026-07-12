@@ -28,7 +28,7 @@ Avatar carrier.
 | Deterministic harness | Controlled Avatar app harness exercising the real carrier draw path with stable inputs | Yes, if it exercises the Avatar carrier canvas / WebGL path |
 | Fixture / mock | Explicit `VITE_AVATAR_DRIVER=mock` or mock scenario data source | Regression evidence only — does not close carrier proof |
 | Desktop renderer evidence | Desktop chat Live2D renderer smoke or pixel evidence | No |
-| Closed-topic evidence | Historical artifacts from older topics | No |
+| Historical planning evidence | Old screenshots, checklists, or reports | No |
 
 The first two close proof. The last three do not.
 
@@ -60,7 +60,7 @@ The following evidence MUST NOT close Avatar carrier visual proof:
 - static `<canvas>` existence without non-placeholder pixel evidence
 - fixture-only scenario playback reported as the real runtime carrier
   path
-- closed-topic demo screenshots, checklists, or worker results
+- old demo screenshots, checklists, or implementation reports
 - command-state-only tests that do not exercise draw / pixel output
 
 The fail-closed posture is intentional. A success claim without

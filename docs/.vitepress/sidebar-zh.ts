@@ -327,10 +327,8 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: '生命周期',
+    text: '方法论与证据',
     items: [
-      { text: 'Topic 生命周期', link: '/zh/nimicoding/topic-lifecycle' },
-      { text: 'Topic 工作流', link: '/zh/nimicoding/topic-workflow' },
       { text: '走查', link: '/zh/nimicoding/walkthrough' },
     ],
   },
@@ -346,30 +344,19 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: '对比与采纳',
-    items: [
-      { text: '对比', link: '/zh/nimicoding/comparison' },
-      { text: '采纳路径', link: '/zh/nimicoding/adoption-path' },
-    ],
-  },
-  {
     text: '教程',
     items: [
       { text: '教程总览', link: '/zh/nimicoding/tutorials/' },
-      { text: '从项目到受治理执行', link: '/zh/nimicoding/tutorials/project-to-governed-execution' },
-      { text: '第一个 Topic Bootstrap', link: '/zh/nimicoding/tutorials/first-topic' },
-      { text: '第一个 Wave 端到端', link: '/zh/nimicoding/tutorials/first-wave-end-to-end' },
+      { text: '用 Codex 开展受治理开发', link: '/zh/nimicoding/tutorials/project-to-governed-execution' },
+      { text: '验证治理设置', link: '/zh/nimicoding/tutorials/project-bootstrap' },
     ],
   },
   {
     text: 'How-to',
     items: [
       { text: 'How-to 总览', link: '/zh/nimicoding/how-to/' },
-      { text: '准入一个 Wave', link: '/zh/nimicoding/how-to/admit-a-wave' },
       { text: '编写故障关闭不变量', link: '/zh/nimicoding/how-to/write-fail-close-invariants' },
-      { text: '处理待接受状态', link: '/zh/nimicoding/how-to/handle-pending-acceptance' },
       { text: '调和分歧审计', link: '/zh/nimicoding/how-to/reconcile-divergent-audits' },
-      { text: '溢出后重新打开', link: '/zh/nimicoding/how-to/reopen-after-overflow' },
       { text: '准入外部宿主', link: '/zh/nimicoding/how-to/admit-an-external-host' },
     ],
   },
@@ -380,12 +367,6 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
       { text: 'CLI 命令', link: '/zh/nimicoding/reference/cli-commands' },
       { text: 'Schema', link: '/zh/nimicoding/reference/schemas' },
       { text: '禁用捷径目录', link: '/zh/nimicoding/reference/forbidden-shortcuts-catalog' },
-    ],
-  },
-  {
-    text: '附录',
-    items: [
-      { text: 'oh-my-codex 适配器', link: '/zh/nimicoding/appendix/oh-my-codex' },
     ],
   },
 ]

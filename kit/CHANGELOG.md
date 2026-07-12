@@ -194,8 +194,6 @@ pre-1.0 iteration phase.
   `./core/sdk-contract`), 2 renderer-shell entries, 2 telemetry entries,
   and 34 feature entries across `chat`, `avatar`, `model-picker`,
   `model-config`, `generation`, `commerce`.
-  Full inventory in
-  `.nimi/topics/ongoing/2026-05-23-nimi-kit-component-library-standardization/kit-public-surface-inventory.yaml`.
 - **SDK contract boundary admission** at `kit/core/src/sdk-contract.ts`:
   single audit surface for kit-to-SDK coupling. All static
   `@nimiplatform/sdk*` imports inside kit code (non-test) route through

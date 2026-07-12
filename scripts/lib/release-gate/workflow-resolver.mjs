@@ -2,8 +2,7 @@
 // `run: pnpm <script>` reference resolves to a defined package.json
 // `scripts.*` entry in the root or a workspace package.
 //
-// Owner: scripts (W4 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-011 (registry consumers must resolve), enforced
 // at the workflow surface so dead step references cannot accumulate.
 //

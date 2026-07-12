@@ -99,7 +99,7 @@
 ## P-KIT-041C - Standard Shell Capabilities Module
 
 - `shell/capabilities` is the standard contract surface for Nimi shell hosts. It owns standard capability ids, operation ids, command names, operation-level negative states, and the standard shell error envelope.
-- Active machine authority is `tables/standard-shell-capabilities.yaml`. Topic documents, acceptance matrices, and gates may consume or validate this table but must not become parallel truth.
+- Active machine authority is `tables/standard-shell-capabilities.yaml`. Non-authoritative execution dossiers, acceptance matrices, and gates may consume or validate this table but must not become parallel truth.
 - Delivered as the `@nimiplatform/kit/shell/capabilities` package export for TypeScript consumers and mirrored into Rust host adapters through `nimi_shell_tauri::capabilities`.
 - Nimi ecosystem capabilities are standard, not optional: binding-only/runtime
   ordinary transport, typed Runtime service status/start/restart, non-security

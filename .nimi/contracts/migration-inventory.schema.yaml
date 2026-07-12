@@ -40,9 +40,7 @@ target_class_enum:
   - methodology_authority
   - host_projection_anchor
   - nimicoding_managed_projection
-  - candidate_roadmap
   - support_registry
-  - lifecycle_progress_state
 required_confirmation_enum:
   - none
   - product_semantic_fork
@@ -64,7 +62,7 @@ inventory_generation_rules:
   - use_block_only_for_user_confirmation_cases
   - use_keep_for_nimicoding_init_or_sync_managed_projections
   - use_move_package_for_package_methodology_when_copied_under_.nimi/spec
-  - use_move_local_for_audit_lifecycle_and_operational_state
+  - use_move_local_for_audit_and_operational_state
   - use_delete_for_derived_views_with_stdout_view_replacement
   - use_delete_for_obsolete_generated_or_one_time_state_without_durable_target
 semantic_constraints:

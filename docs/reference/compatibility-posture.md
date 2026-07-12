@@ -40,7 +40,7 @@ public docs and implementation refuse:
 | `placeholder_success` | Faking success or closure when required truth is missing |
 | `happy_path_only_closure` | Claiming closure when only the happy path is closed |
 | `app_local_shadow_truth` | App-local convenience state becoming hidden canonical truth |
-| `silent_owner_cut_reopen` | Reopening owner-domain truth inside a downstream execution wave |
+| `silent_owner_cut_reopen` | Reopening owner-domain truth inside downstream implementation work |
 
 ## Public Claim Constraints
 

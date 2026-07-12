@@ -45,7 +45,7 @@
 Nimi Coding 作为独立于宿主环境的方法论，已作为标准 npm 软件包发布。建议按照以下顺序了解：
 
 1. [Nimi Coding 概览](/zh/nimicoding/)：核心范式及软件包的整体构成。
-2. [议题工作流](/zh/nimicoding/topic-workflow)：涵盖 Topic、Wave、Packet、Preflight、Audit 至 Closeout 的生命周期。
+2. [用 Codex 开展受治理开发](/zh/nimicoding/tutorials/project-to-governed-execution)：了解 Codex 自有执行如何结合规范、方法论、门禁和证据。
 3. [安装指南](/zh/nimicoding/installation)：软件包的安装步骤与采纳路径。
 
 ## 场景：应用开发者的阅读路径

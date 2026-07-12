@@ -1,14 +1,13 @@
-// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit (design-05).
-//
+// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
 // AudioPipelineController consumes `runtime.agent.presentation.voice_playback_requested`
 // events through SDK Runtime artifacts; runtime owns the lifecycle
 // (`requested → started → completed | interrupted | failed`) and this
 // controller mirrors it 1:1 for avatar surfaces.
 //
-// Wave 0 hard-cut (B2.A+):
+// Hard-cut behavior:
 //   - The caller-injected byte fetcher is removed. Bytes are read
 //     from `runtime.artifacts.readArtifactBytes({ artifactId })`
-//     (S-RUNTIME-111; admitted by this topic).
+//     (S-RUNTIME-111).
 //   - `registerLipsyncSink(consumer)` connects a per-backend lipsync sink.
 //     The pipeline attaches the active
 //     AudioBufferSourceNode to the registered sink in the same lifecycle
@@ -168,7 +167,7 @@ export class AudioPipelineController {
     });
 
     if (audioMimeTypeKey === SYNTHETIC_AUDIO_MIME_TYPE) {
-      // Wave 0 hard-cut: synthetic mime is silent voice + silent mouth. The
+      // Hard cut: synthetic mime is silent voice + silent mouth. The
       // consumer state machine still progresses to `completed` so upstream
       // lifecycle is not stuck. K-AGCORE-053 admits this fail-close.
       this.logger.warn('synthetic_audio_no_playback_no_lipsync', {

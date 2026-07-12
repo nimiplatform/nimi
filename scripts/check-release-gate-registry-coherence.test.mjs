@@ -1,7 +1,6 @@
 // Tests for release gate registry coherence checker.
 //
-// Owner: scripts (W1 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; authority is the release-gate registry and its P-RELG rules.
 //
 // Strategy: load the canonical valid fixture in-memory, then mutate the
 // parsed object to produce each broken case and assert validateRegistry
@@ -12,8 +11,8 @@
 // - test fixtures dir stays bounded (one valid fixture + one
 //   intentionally-malformed-yaml file for the parse-error path)
 //
-// Negative test names mirror the W1 packet's negative_tests[] entries
-// so failures cite the packet acceptance directly.
+// Negative test names mirror the registry's declared failure classes so
+// failures remain traceable to the static gate contract.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

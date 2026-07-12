@@ -2,8 +2,7 @@
 //
 // Nimi Release Preflight — Node entry point.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; this entry point executes the registry authority below.
 // Authority: P-RELG-001..014 in
 // .nimi/spec/platform/kernel/release-gate-contract.md.
 //

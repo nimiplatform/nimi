@@ -1,76 +1,57 @@
 # Nimi Coding 白皮书
 
-Nimi Coding 将 AI 辅助实现视为一项承载权威的工作。核心主张是：复杂 AI 编码要成功，必须在接受产出之前明确权威来源、影响范围、执行 packet、审计关口和收尾标准。
+Nimi Coding 把 AI 辅助实现视为承载权威的工作。AI 产出的代码可以编译、通过测试、
+看起来也很合理，却仍然误解产品真相、所有权、consumer 行为或失败语义。
 
-本页论证这条主张，并说明这套方法论处理哪些失败模式。
+答案不是再造一套 agent framework。Codex 或其他已准入宿主继续规划并执行任务；
+Nimi Coding 为宿主提供项目本地机制，用来确认什么是真相、什么被禁止、必须检查
+什么，以及哪些证据足以支撑完成结论。
 
-## 传统 AI 编程模式的局限性
+## 治理分工
 
-小规模代码修改时，AI 助手可以读取少量文件、修改代码、运行测试并完成任务。但面对复杂项目时，这种模式往往会失效。AI 助手可能会：
-
-- 遵循看似权威但实际上已过时的文档；
-- 自行推断并实现未经正式确认的产品逻辑；
-- 保留已被废弃的兼容性路径，仅仅因为它们仍能通过编译；
-- 仅仅因为构建成功就宣告任务完成，忽视用户侧的实际行为错误；
-- 产出的结果在某一个闭合维度上看似完整，但在另一个维度上却存在缺陷。
-
-在 AI 的单次执行中，这些问题难以察觉。当时每个步骤看起来都是正确的。
-
-## Nimi Coding 核心模型
-
-Nimi Coding 将开发过程分离为五个独立的关注点：
-
-| 关注点 | 核心解决的问题 |
+| 宿主持有 | Nimi Coding 增强 |
 | --- | --- |
-| **权威** | 事实的真相位于何处？ |
-| **packet** | 执行者被允许读取什么、修改什么以及声明什么？ |
-| **wave** | 当前正在闭合哪一个所有权领域？ |
-| **审计** | 存在哪些证据可以证明工作没有发生漂移？ |
-| **收尾** | 为什么该任务在权威、语义、消费方和抗漂移这四个维度上均已彻底完成？ |
+| 任务定义与计划 | `.nimi/spec/**` 规范权威 |
+| 子代理与并行工作 | Authority owner 与 work type 预检 |
+| 重试、等待、恢复、完成 | Fail-closed 方法论与契约 |
+| 代码与产品编辑 | 确定性脚本和 validators |
+| 真实 app 与 runtime 交互 | 强类型本地证据和验收 |
 
-这个模型不消灭迭代。它让每一次迭代都能被审计。
+这条边界避免两套系统同时驱动一项工作，也防止流畅的最终总结成为高风险变更成功
+的唯一证明。
 
-## 四大闭合维度
+## 四个独立问题
 
-每个 wave 必须同时满足以下四个维度，才算真正闭合：
+高风险任务完成前，证据必须回答：
 
-- **权威闭合** —— 改动严格限制在已准入的范围内，未发生任何隐性的范围扩张。
-- **语义闭合** —— 产出的代码准确表达了预期的业务逻辑和契约含义。
-- **消费方闭合** —— 交付成果切实满足了调用系统或实际读者的需求。
-- **抗漂移闭合** —— 改动未留下任何可能导致未来设计发生倒退或漂移的隐患。
+1. **权威：**变更是否遵循 canonical owner？
+2. **语义：**实现表达的含义是否与权威一致？
+3. **消费方：**真实 consumer 是否使用预期行为？
+4. **抗漂移：**测试与门禁能否发现回归或 owner bypass？
 
-大多数“看似完成实则不然”的失败，都来自某个维度通过、另一个维度失败。例如，文档重写可能在权威上闭合（未偏离规范），语义上也闭合（声明准确），但消费方维度失败，因为最终文档不像公开文档，读者无法建立清晰模型。
+Build 可以回答部分语义问题，但不能独自回答另外三个问题。
 
-## 案例分析：一个处于挂起状态的 topic
+## 为什么必须有真实 Runtime 证据
 
-我们当前正在处理的公共文档修复任务，是一个极佳的案例说明：
+UI 与 app 变更最容易暴露差距。单元测试可以通过，而真实 shell 仍存在按钮不可用、
+auth 状态过期、窄屏布局破损、console error 或 SDK 断连。宿主因此必须检查真实
+应用、DOM 或原生结构、runtime 状态和视觉输出。
 
-1. 在上一个 topic 中，系统尝试基于源码事实来重构公共文档。当时权威闭合处理得非常严谨：没有发生规范漂移，所有的公开声明均具备源码依据。
-2. 语义闭合同样达标：文本准确无误地描述了规范契约。
-3. 然而，消费方闭合失败了：用户反馈生成的文档读起来像审计报告，缺乏可读性。
-4. 抗漂移闭合依赖于人类用户的最终验收，而这一验收未能通过。
-5. 因此，该 topic 被置于挂起状态，而非直接标记为已完成。
+## 为什么必须有项目真相
 
-正是这种四维闭合模型，捕捉到了那些单纯依靠“构建通过”规则所无法发现的深层缺陷。
+缺少 canonical authority tree 时，AI 会用貌似合理的规则填补空白。`.nimi/spec/**`
+明确所有权；方法论要求宿主在 owner 缺失或冲突时停止，而不是编造局部真相；
+确定性门禁随后保护这条边界。
 
-## 为何该机制并非繁文缛节
+## 最终形态
 
-topic 的流程和结构要求在初期可能显得较重。但这种投入是必要的，因为 AI 极其擅长生成“看似合理实则错误”的输出。在传统的代码库中，代码审查和测试是主要防线。而在 AI 辅助的环境下，AI 生成的产物可以轻易通过这两道防线，却在架构权威、作用范围或消费方适用性上出错。
-
-Nimi Coding 不取代传统代码审查。它增加一道结构化审计关卡，用来拦截代码审查单独防不住的失败模式。
-
-## 消费方闭合的重要性
-
-之所以存在上述关于“修复人类可读文档”的 topic，正是因为之前的文档重写虽然通过了所有机器审查，却未能满足人类消费者的实际需求。这正是 Nimi Coding 要暴露的典型问题：一项任务即便拥有权威依据、Lint 检查通过、构建成功，依然可能无法满足最终消费者的预期。
-
-当发生此类情况时，正确的应对策略是保持该 topic 的挂起状态，并准入一个后续 wave 专门解决这个缺口，而非勉强宣布任务完成。
+Nimi Coding 最理想的状态，是成为宿主周围安静而精确的基础设施：开工前提供真相，
+实现中约束边界，结束后验证证据。宿主继续使用原生任务、计划、委派和恢复能力，
+仓库不建立竞争性的执行状态。
 
 ## 来源依据
 
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
-- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
-- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
-- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
-- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
-- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/result.schema.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
+- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
+- [`.nimi/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/acceptance.schema.yaml)

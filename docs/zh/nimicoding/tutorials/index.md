@@ -8,9 +8,8 @@ Tutorials 是面向学习的分步教程。每篇都假设了前置条件，带�
 
 | Tutorial | 完成后你会得到 |
 | --- | --- |
-| [首个 Topic 引导](/zh/nimicoding/tutorials/first-topic) | 在项目里完成 Nimi Coding 引导，接入 `.nimi/**` |
-| [首个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end) | 在一个小样例任务上跑完一个完整的 topic / wave / packet / preflight / audit / closeout 周期 |
-| [从项目到受治理执行](/zh/nimicoding/tutorials/project-to-governed-execution) | 用 Codex adapter 走完安装、规范重建、topic 准入、sweep audit、sweep design 和长任务治理执行 |
+| [验证 Nimi 治理设置](/zh/nimicoding/tutorials/project-bootstrap) | 验证宿主所有权、项目真相、投影和 retained skills |
+| [用 Codex 开展受治理开发](/zh/nimicoding/tutorials/project-to-governed-execution) | 将 Codex 自有执行与规范重建、范围化门禁和真实证据结合起来 |
 
 ## Tutorial 与 How-to 的区别
 
@@ -18,4 +17,4 @@ Tutorial 回答"我想学一遍"，How-to 回答"我要解决某个具体问题"
 
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

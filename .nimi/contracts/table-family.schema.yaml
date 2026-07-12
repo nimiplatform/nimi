@@ -127,7 +127,7 @@ forbidden_fields_by_authority_class:
 semantic_constraints:
   - kernel_tables_path_is_not_authority_without_table_family
   - support_registry_may_register_evidence_commands_but_not_current_coverage
-  - lifecycle_state_and_audit_coverage_must_move_local
+  - operational_state_and_audit_coverage_must_move_local
   - unknown_table_family_fails_closed
   - product_authority_table_rows_must_define_stable_product_facts
   - release_gate_registry_must_use_gate_registry_family_not_closed_enum

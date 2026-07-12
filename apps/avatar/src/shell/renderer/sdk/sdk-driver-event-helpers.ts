@@ -63,8 +63,8 @@ type RuntimeAgentVoiceStreamChunkEvent = {
   };
 };
 
-// The deprecated runtime presentation per-frame mouth-batch consume path
-// was deleted at wave 0 of topic 2026-04-30-avatar-vrm-backend-branch.
+// The backend-branch contract deletes the deprecated Runtime presentation
+// per-frame mouth-batch consume path.
 // Per-frame mouth movement now flows through `BackendAudioConsumer.snapshot()`.
 export type RuntimeAgentConsumeEvent =
   | SdkRuntimeAgentConsumeEvent

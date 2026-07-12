@@ -2,8 +2,7 @@
 //
 // Generate CI workflow steps from registry projection.
 //
-// Owner: scripts (W5 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; this generator projects the registry authority below.
 // Authority: P-RELG-010 owner of .github/** step block codegen.
 //
 // Walks .github/workflows/*.yml files looking for marker fences and

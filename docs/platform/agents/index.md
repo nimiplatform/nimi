@@ -63,7 +63,7 @@ For schema-level field definitions, see
 
 For execution-side detail (RuntimeAgentService, ConversationAnchor,
 AgentPresentationProfile, APML output wire format), see Runtime
-section pages (extended in wave-3c).
+section pages.
 
 ## Reader Scenario: Meeting An Agent For The First Time
 

@@ -28,7 +28,7 @@ export function createLive2DAudioConsumer(
     createNode: deps.createNode,
     onSilent: deps.onSilent,
     missingProfileMessage:
-      '[avatar:live2d:lipsync] wlipsync profile missing — lipsync silent (wave_1 carrier wiring)',
+      '[avatar:live2d:lipsync] wlipsync profile missing — lipsync silent',
     createFailureMessage:
       '[avatar:live2d:lipsync] createWLipSyncNode failed; lipsync silent',
     connectFailureMessage:

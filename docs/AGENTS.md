@@ -36,8 +36,7 @@ Any heading along the lines of:
 - "公开边界"
 - "公开姿态"
 
-These were systematically removed in wave-8. Do not reintroduce
-them.
+These sections are forbidden. Do not reintroduce them.
 
 ### 2. Internal product roadmap intent
 
@@ -140,7 +139,7 @@ zh content is original Chinese, **not** sentence-by-sentence
 translation of English. Facts must stay consistent with
 `.nimi/spec/**`.
 
-## Source Basis Convention (wave-5 lock)
+## Source Basis Convention
 
 Every page ends with a `## Source Basis` section. Each ref line
 is a markdown link of shape:
@@ -149,8 +148,10 @@ is a markdown link of shape:
 - [`<relative path>`](https://github.com/nimiplatform/nimi/blob/main/<path>)
 ```
 
-Do not link to `.nimi/topics/**` (those are internal-lifecycle
-artifacts) or to `design/` (topic-internal preflight artifacts).
+Do not link reader-facing pages to task execution-state or planning
+artifacts. Historical evidence belongs in Git history; active Source
+Basis links point to canonical `.nimi/spec/**`, admitted package source,
+or current contract and methodology surfaces.
 
 ## When You Need To Document A Principle
 
@@ -171,9 +172,9 @@ governance lives where authors and contributors look for it.
 
 zh content must read as native original Chinese, not as
 sentence-by-sentence translation of en source. The patterns below
-are **forbidden** in body prose and are detectable via grep. Any
-zh-writing wave's closeout must include the T-suite grep output as
-verification evidence.
+are **forbidden** in body prose and are detectable via grep. Any Chinese
+documentation change that claims original writing must include the
+T-suite grep output as verification evidence.
 
 ### Strict-zero patterns (target = 0 hits across docs/zh/**)
 
@@ -213,8 +214,7 @@ Em-dash insertions are a soft signal: occasional use is fine, but a
 page with more than 10 em-dashes is almost always a sign of direct
 porting from en.
 
-A zh-writing wave that claims "原创中文" or "B 中文原创" must include
-the T-suite grep output in its closeout. The closeout must enumerate
-any soft-target pattern hits with per-hit justification. A closeout
-without grep evidence is a `placeholder_success` shortcut and is
-not accepted.
+A change that claims "原创中文" or "B 中文原创" must include the T-suite
+grep output in its verification record. The record must enumerate any
+soft-target pattern hits with per-hit justification. A claim without
+grep evidence is a `placeholder_success` shortcut and is not accepted.

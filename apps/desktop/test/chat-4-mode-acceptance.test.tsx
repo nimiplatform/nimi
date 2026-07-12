@@ -9,13 +9,9 @@ import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless'
 /**
  * T3-3 — Chat 4-mode acceptance + no bare-source direct-chat proof.
  *
- * Final wave of portfolio topic T3 (Chat 4-mode implementation). This is an
- * acceptance + guard surface only: it proves the behavior delivered by T3-1
- * (`ae92569f7`) and T3-2 (`47f74315d`) and adds the cross-mode acceptance
- * coverage that neither prior wave owned.
+ * Acceptance + guard surface for the canonical Chat 4-mode behavior.
  *
- * Acceptance gate (product manual `.nimi/topics/.../product-manual-full-authority.md`,
- * "Chat" section):
+ * Acceptance gate (canonical Realm/Desktop chat contracts under `.nimi/spec`):
  *   - all 4 modes proven (`human`, `ai`/Nimi, `agent`, `group`);
  *   - built-in chat scopes use the `feature` shape;
  *   - Group reuses the Agent scope;
@@ -25,7 +21,7 @@ import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless'
  * switcher is not producible in the renderer-shell test harness. The
  * `renderToStaticMarkup` mode-switcher assertion below is the honest
  * substitute proving all four modes render with their product copy; the
- * whole-product screenshot / E2E matrix is deferred to portfolio topic T11.
+ * whole-product screenshot / E2E matrix is owned by app acceptance.
  */
 
 function readWorkspaceFile(relativePath: string): string {

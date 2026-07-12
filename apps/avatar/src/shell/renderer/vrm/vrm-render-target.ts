@@ -1,25 +1,22 @@
-// Wave 4 chunk 4-A of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Offscreen WebGL render target for VRM alpha-mask hit-region probing. The
 // VRM scene is normally rendered to the visible canvas via R3F; for hit
 // queries (per app-shell-contract.md §2.3.1) we need to read pixel alpha
 // at client coordinates without disrupting the main render. This module
-// owns the offscreen FBO + 1×1 alpha probe used by the upcoming
-// vrm-hit-region (chunk 4-B) wiring.
+// owns the offscreen FBO + 1×1 alpha probe used by the VRM hit-region wiring.
 //
 // Algorithm reference: airi `composables/render-target` + `composables/
 // hit-test` (allocate 1/2-res offscreen FBO, render scene/camera into it
 // on demand, then `gl.readPixels(x, y, 1, 1)` for single-point alpha).
-// 0-import policy per design-12: this file MUST NOT import anything from
+// The app-isolation contract forbids importing anything from
 // the airi package directory; only the algorithm shape is reused. License:
 // airi MIT.
 //
-// Performance notes (per packet wave-4 forbidden_shortcuts:
-// `synchronous_readpixels_full_canvas`):
+// Performance notes (per the app-shell contract):
 //   - `gl.readPixels` is a synchronous GPU stall. The 1×1 read at 1/2 res
-//     keeps the per-query budget < 1ms on tier A/B baselines (verified in
-//     packet acceptance_invariants).
-//   - Full-canvas readPixels is explicitly forbidden by the packet; this
+//     keeps the per-query budget < 1ms on tier A/B baselines.
+//   - Full-canvas readPixels is explicitly forbidden; this
 //     file is intentionally limited to a single-pixel readback per query.
 //   - capture() should be called at most once per frame (or less; the
 //     bbox-snapshot 100ms throttle implies the alpha mask only needs to

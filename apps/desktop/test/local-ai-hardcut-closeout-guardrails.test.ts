@@ -39,14 +39,14 @@ const desktopProjectionSources = readProductionSources([
   'src/shell/renderer/features/runtime-config',
 ]);
 
-test('wave 5 closeout: Desktop does not read retired local state or create CUDA truth', () => {
+test('Desktop hardcut does not read retired local state or create CUDA truth', () => {
   assert.doesNotMatch(desktopProjectionSources, /\breadTextFile\b|\bwriteTextFile\b|\bfs\./);
   assert.doesNotMatch(desktopProjectionSources, /state\.json/);
   assert.doesNotMatch(desktopProjectionSources, /CUDA_PATH|cudart|nvidia-smi|nvcc/i);
     assert.doesNotMatch(desktopProjectionSources, /process\.env\.PATH|setx\s+PATH|setEnvironmentVariable/i);
 });
 
-test('wave 5 closeout: Desktop state and dependency actions go through Runtime facade', () => {
+test('Desktop state and dependency actions go through the Runtime facade', () => {
   assert.match(desktopProjectionSources, /resolveEnvironmentPlan/);
   assert.match(desktopProjectionSources, /listEnvironmentDependencyJobs/);
   assert.match(desktopProjectionSources, /startEnvironmentDependencyJob/);

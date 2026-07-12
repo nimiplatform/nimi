@@ -1,7 +1,6 @@
 // Argv parser for scripts/release-preflight.mjs.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-005 verdict semantics, P-RELG-006 fail-closed,
 // P-RELG-014 evidence output paths.
 //

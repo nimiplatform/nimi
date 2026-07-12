@@ -19,7 +19,7 @@ scope:
     - Runtime Agent avatar voice playback and runtime inspect reusable UI primitives
     - Runtime Agent conversation summary and projection-cache hard cut
   excluded:
-    - Runtime External Agent action plane, which remains a separate pending Runtime capability topic until Runtime/spec API admission exists.
+    - Runtime External Agent action plane, which remains outside the admitted Runtime capability surface until Runtime/spec API authority is added.
 audited_globs:
   - apps/desktop/src/shell/renderer/features/chat/chat-agent-*.ts
   - apps/desktop/src/shell/renderer/features/chat/chat-agent-*.tsx

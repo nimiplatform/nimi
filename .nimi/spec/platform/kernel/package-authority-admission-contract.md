@@ -37,3 +37,27 @@ Host-generated `.nimi/spec/**` authority artifacts that are enforced by package 
 ## P-PKG-009 — Delegated Source Projection Admission
 
 When a host `.nimi/spec/**` subtree is a projection from an external implementation authority that owns evidence outside the host worktree, `.nimi/spec/**/kernel/tables/delegated-projection-admissions.yaml` must name the projected authority root, opaque source authority locator, local projection evidence roots, delegated evidence locators, delegated declared-evidence prefixes, and required verifier locators. Spec-first host audit must audit the local projection/parity evidence and delegate matching declared implementation refs through admitted opaque locators; it must not resolve those refs through filesystem topology guesses or rewrite them to unrelated host evidence owners.
+
+## P-PKG-010 — External AI Host Workflow Ownership
+
+The active external AI host is the sole owner of repository task and execution-workflow orchestration. Its authority includes task identity and status, planning and decomposition, agent or subagent scheduling, wait and resume behavior, continuation, and completion or blocked verdicts.
+
+`@nimiplatform/nimi-coding`, its package authority, and its host-local projections must not become a second owner of that workflow state. A deterministic command may consume transient host inputs, but it must not persist or interpret a parallel task state as authority.
+
+External-host workflow ownership does not weaken `.nimi/spec/**` authority or deterministic gate verdicts. The host must consume those authority and gate results when deciding completion; it must not override them or ask nimi-coding to choose the next execution step.
+
+## P-PKG-011 — Nimi-Coding Admission Ceiling And Workflow Hardcut
+
+Nimi admits `@nimiplatform/nimi-coding` only for structured spec and methodology semantics, deterministic validation / generation / gate commands, and evidence contracts or projections. Support configuration has no independent semantic authority and may exist only as an input to those admitted roles. Package files reachable through a broad audit evidence root are evidence inventory, not automatic semantic admission.
+
+The Nimi host must not require, generate, route, or mirror any nimi-coding-owned:
+
+- topic lifecycle or topic status directory;
+- wave / packet execution DAG;
+- run ledger, execution cursor, or package-owned completion state;
+- goal bridge, automatic continuation, or package-owned resume loop;
+- nested launch of the external AI host.
+
+If the installed package still contains those surfaces, they remain unadmitted and must not affect host task execution, gates, evidence validity, or completion. `pnpm check:nimicoding-host-hardcut` must fail closed if a host entrypoint or active projection restores them.
+
+This hardcut governs repository-work orchestration only. It does not rename, retire, or constrain Runtime `K-WF-*` product workflows, Nimi App product or developer workflows, Nimi2D Image2 pipelines, domain-native motion and scenario terms such as `greet_wave`, or other product semantics whose owner contracts are outside `P-PKG-*`.

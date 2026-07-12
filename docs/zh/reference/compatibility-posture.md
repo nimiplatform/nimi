@@ -39,7 +39,7 @@ Nimi 公开文档对兼容性与迁移的姿态参考。
 | `placeholder_success` | 在缺失真相时假装成功或闭合 |
 | `happy_path_only_closure` | 仅完成 happy path 就宣告闭合 |
 | `app_local_shadow_truth` | App 本地便利状态变成隐式规范真相 |
-| `silent_owner_cut_reopen` | 在下游执行 wave 中重开归属域真相 |
+| `silent_owner_cut_reopen` | 在下游实现工作中重开归属域真相 |
 
 ## 发布前公开声明的约束
 

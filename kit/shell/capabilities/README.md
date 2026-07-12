@@ -6,5 +6,5 @@ error envelope consumed by Tauri, Electron, and renderer bridge code.
 
 The machine authority for this module is
 `.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml`.
-Topic documents, acceptance matrices, and gate descriptions may reference that
+Human guides, acceptance matrices, and gate descriptions may reference that
 table, but they do not create a parallel source of truth.

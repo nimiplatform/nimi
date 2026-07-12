@@ -1,9 +1,8 @@
-// Wave 3 chunk 3-D of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
-// VRM BackendBranch factory. Wave 3 chunk 3-D rewires the wave_2 chunk
-// 2-C scaffolding to the real chunk 3-A (emote state) + chunk 3-B
-// (generated motion runtime) + chunk 3-C (lipsync driver + projection
-// adapter) + new vrm-audio-consumer. The generated motion runtime is the
+// VRM BackendBranch factory. It composes emote state, generated motion
+// runtime, the lipsync driver, projection adapter, and VRM audio consumer.
+// The generated motion runtime is the
 // product path; physical `.vrma` assets are interchange-only and missing
 // deterministic generation fails closed rather than falling back.
 //

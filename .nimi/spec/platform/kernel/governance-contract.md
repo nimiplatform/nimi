@@ -39,7 +39,7 @@ No-Go 条件（任一命中）：发布依赖人工脚本、机密/漏洞门禁�
 
 ## P-GOV-020 — 治理任务清单
 
-`MUST`: 平台治理执行项必须使用 `OSG-<Priority>-NN` 命名并记录在 local execution workspaces such as `.local/work/<topic-id>/**` 或等效非规范执行面中。kernel 只定义任务分级口径（P0/P1/P2）与命名约束，不承载具体待办清单。
+`MUST`: 平台治理执行项必须使用 `OSG-<Priority>-NN` 命名；其执行计划和状态遵循 `P-PKG-010` 的 external-host ownership。必要的非权威证据或 decision dossier 可记录在 `.local/work/<work-id>/**`、等效 local evidence surface 或 Git history 中。kernel 只定义任务分级口径（P0/P1/P2）与命名约束，不承载具体待办清单或执行状态。
 
 ## P-GOV-021 — Repository Governance Evidence Ownership
 
@@ -55,15 +55,18 @@ Release and CI workflow files must remain traceable to their governed release su
 
 ## P-GOV-024 — Spec Final Authority Only
 
-`.nimi/spec/**` records active final authority only. It must not use topic,
-wave, subordinate-process, historical-process, or process-provenance wording as
-the source of truth for an active rule, table, status, evidence requirement, or
-fact source.
+`.nimi/spec/**` records active final authority only. It must not use
+repository-work task lifecycle, subordinate-process, historical-process, or
+process-provenance wording as the source of truth for an active rule, table,
+status, evidence requirement, or fact source.
 
-Operational planning, execution evidence, topic lifecycle reports, worker
-results, and historical provenance belong in Git history, `.nimi/topics/**`, or
-`.nimi/local/**`. Spec may mention those surfaces only to state that they are not
-product authority.
+Operational planning and task state follow the external-host ownership defined
+by `P-PKG-010`.
+Execution evidence, worker results, durable decision dossiers, and historical
+provenance remain non-authoritative and belong in explicitly admitted local
+evidence surfaces or Git history. Spec must not prescribe a repository task
+lifecycle mirror; it may mention operational surfaces only to state that they
+are not product authority.
 
 ## P-GOV-025 — Cross-Domain Audit Evidence Root Admission
 

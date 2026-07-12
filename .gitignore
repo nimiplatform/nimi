@@ -62,6 +62,8 @@ reports/
 .tmp/
 .nimi/local/
 .nimi/cache/
+# Quarantined pre-hardcut topic artifacts remain ignored until their owner
+# explicitly migrates or removes them; they are not an active workflow root.
 .nimi/topics/
 config/audit-calibration-fixtures/
 

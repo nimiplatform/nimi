@@ -696,13 +696,13 @@ describe('avatar runtime carrier', () => {
     expect(handler.execute).toHaveBeenCalledTimes(1);
   });
 
-  // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch hard-cut: the two
+  // The backend-branch hard cut removes the two
   // carrier tests that exercised the deleted frame_batch consume path
   // and the runtime voice_timing → Live2D mouth bridge are removed. Per-frame
   // mouth movement now flows through BackendAudioConsumer.snapshot() in the
-  // surface useFrame loop, written by the wLipSync driver. wave_1 lands the
-  // wLipSync e2e test fixture (see voice-lipsync/lipsync-e2e.test.ts) which
-  // is the new authority for end-to-end Live2D + VRM mouth proof.
+  // surface useFrame loop, written by the wLipSync driver. Regression coverage
+  // lives in voice-lipsync/lipsync-e2e.test.ts; normative authority remains in
+  // .nimi/spec/avatar/kernel/backend-branch-contract.md.
 
   it('fails closed and records model error when backend branch creation fails', async () => {
     createLive2DBackendSessionMock.mockRejectedValue(new Error('Live2D backend load failed'));

@@ -1,9 +1,8 @@
 /**
- * T2.5 — ordinary-tasks acceptance closeout.
+ * Runtime ordinary-tasks acceptance.
  *
- * Acceptance coverage for the product manual "Runtime / AI Environment" section
- * (`.nimi/topics/ongoing/2026-05-20-nimi-product-manual-authority-recovery/`
- * `product-manual-full-authority.md`):
+ * Acceptance coverage for the canonical Runtime/Desktop contracts under
+ * `.nimi/spec`:
  *
  *  - the Runtime surface renders exactly the six-section IA
  *    (Overview / Profiles / Models / Cloud Connectors / Environment / Advanced);
@@ -19,7 +18,7 @@
  * E2E posture: a real WebdriverIO screenshot of the six-section Runtime is not
  * producible in the current renderer-shell harness. These renderer-markup /
  * source-assertion tests are the honest substitute; the whole-product
- * screenshot / E2E matrix is deferred to portfolio topic T11.
+ * screenshot / E2E matrix is owned by app acceptance.
  */
 
 import assert from 'node:assert/strict';

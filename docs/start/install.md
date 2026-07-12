@@ -13,20 +13,19 @@ Nimi Coding is admitted as a host-agnostic methodology and is
 distributed as the npm package
 [`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding).
 
-For the install command, project bootstrap layout, host adapter
-selection, and adoption path, see
-[Nimi Coding → Installation](/nimicoding/installation).
+For the Nimi workspace install and host compatibility checks, see
+[Nimi Coding → Host Integration](/nimicoding/installation).
 
 A minimal first-run path:
 
-1. Add the package to a host project.
-2. Run the bootstrap command described on the installation page.
+1. Install the Nimi workspace dependencies.
+2. Run the host-hardcut, projection, and doctor wrappers.
 3. Walk through
-   [First Topic Bootstrap](/nimicoding/tutorials/first-topic) to
-   confirm the methodology surface works end-to-end.
+   [Verify The Nimi Governance Setup](/nimicoding/tutorials/project-bootstrap)
+   to confirm ownership and truth surfaces end-to-end.
 
-The package is host-agnostic, so the same install path applies under
-any admitted AI host.
+The package remains host-agnostic; the Nimi repository applies its own
+explicit admission boundary around it.
 
 ### Nimi App Tools
 

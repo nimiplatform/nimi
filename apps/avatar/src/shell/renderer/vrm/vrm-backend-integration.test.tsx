@@ -1,4 +1,4 @@
-// Wave 3 chunk 3-D of topic 2026-04-30-avatar-vrm-backend-branch.
+// Integration tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Smoke-level integration verification of `createVrmBackendBranch` after
 // chunk 3-D rewires emote state + motion preset registry + lipsync driver

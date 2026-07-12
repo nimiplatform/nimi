@@ -1,14 +1,12 @@
-// Wave 2 of topic 2026-04-30-avatar-vrm-backend-branch admit
-// (closes wave_1 acceptance_invariant #15: real non-synthetic runtime
-// end-to-end sanity).
+// Deterministic non-synthetic audio contract test for
+// .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // Why this file exists:
-//   Wave 1's lipsync-e2e.test.ts proves the orchestrator + state-bus + sink
-//   loop. Wave 1 invariant #15 ("real non-synthetic runtime e2e") was
-//   not covered there because spinning up the runtime daemon and ingesting a real
-//   .wav artifact is out of scope for a renderer-level test gate.
+//   lipsync-e2e.test.ts proves the orchestrator + state-bus + sink loop. This
+//   file adds deterministic RIFF/WAVE coverage without claiming live Runtime
+//   daemon acceptance from a renderer-level test.
 //
-//   Wave 2 satisfies #15 deterministically without daemon startup by:
+//   The test covers the contract deterministically without daemon startup by:
 //     1. Constructing a real RIFF/WAVE byte sequence (not a synthetic mime,
 //        not a zero buffer with a fabricated header).
 //     2. Driving the byte sequence through the SAME public surface that the
@@ -38,8 +36,8 @@
 //   - state machine transitions across the full happy path + 2 fail-close
 //     branches (artifact_not_found, decode_failed)
 //
-// This is the strictest renderer-level proof point we can ship without a
-// live daemon. wave_5 (smoke matrix) will add the daemon-backed variant.
+// This is renderer-level contract coverage only. Live Runtime/App acceptance
+// remains an independent required verification surface.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -174,7 +172,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
+describe('Audio non-synthetic contract path', () => {
   it('happy path: real .wav bytes flow runtime.artifacts.readArtifactBytes → decodeAudioData → source.start → sink.attachAudioSource → started → completed', async () => {
     const fakeWav = makeFakeWavBytes();
     expect(fakeWav.byteLength).toBe(44 + 9600);

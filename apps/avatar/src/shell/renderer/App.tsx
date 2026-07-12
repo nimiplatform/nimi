@@ -171,7 +171,7 @@ export function App() {
   }, []);
 
   const getEmbodimentBounds = useCallback(() => {
-    // Wave_1 step_4: bounds are sourced from the active BackendBranch
+    // Bounds are sourced from the active BackendBranch
     // (`backend.nominalBounds`) so the window resize loop is decoupled
     // from the Live2D-specific projection-api.getSurfaceBounds path.
     const bounds = bootstrapHandle?.carrier?.backend?.nominalBounds ?? null;

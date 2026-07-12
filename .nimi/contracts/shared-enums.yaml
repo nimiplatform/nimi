@@ -13,9 +13,7 @@ surface_class_enum:
   - methodology_authority
   - nimicoding_managed_projection
   - host_projection_anchor
-  - candidate_roadmap
   - support_registry
-  - lifecycle_progress_state
 authority_rank_enum:
   - active_product_canonical
   - package_canonical
@@ -24,9 +22,7 @@ authority_rank_enum:
   - guidance_only
   - derived_non_authority
   - evidence_only
-  - lifecycle_state
   - operational_local
-  - candidate_only
 tracking_policy_enum:
   - tracked_required
   - tracked_forbidden
@@ -59,8 +55,6 @@ artifact_class_enum:
   - state_manifest
   - audit_index
   - audit_summary
-  - roadmap_index
-  - roadmap_summary
 semantic_constraints:
   - all_contracts_must_use_underscore_enum_values
   - hyphenated_dispositions_are_forbidden

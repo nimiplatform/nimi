@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-A of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Apply a neutral standing idle pose to a freshly-loaded VRM. The default
 // VRM rig comes up in T-pose with arms extended horizontally; without an

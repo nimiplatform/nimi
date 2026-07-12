@@ -6,18 +6,16 @@
 // viseme expression presets (aa/ih/ou/ee/oh) are NOT flushed this frame -
 // the lipsync driver owns viseme writes during active speech.
 //
-// Construction enforces the primary-weight cap (<= 0.8 per emote bundle)
-// (lineage: airi useVRMEmote pattern; see design-04 "VrmEmoteState" +
-// design-05 "Coordination with emote layer").
+// Construction enforces the primary-weight cap (<= 0.8 per emote bundle),
+// as declared by `.nimi/spec/avatar/kernel/tables/vrm-emote-states.yaml`.
 //
 // expressionManager.setValue is wrapped safely: when a model lacks a
 // referenced preset, the call may throw - we catch + skip silently
 // (partial degrade is allowed per vrm-emote-states.yaml constraint #3).
 
 /** Viseme expression preset names that are owned by the lipsync driver
- *  during active speech. Hard-coded per design-05 "VRM Lipsync Driver
- *  Envelope" RAW_TO_LIP map (5 names; S projects to I but is not a viseme
- *  preset name on the VRM side). */
+ *  during active speech. The five-name set is fixed by the VRM backend
+ *  contract; S projects to I but is not a VRM-side viseme preset name. */
 export const VISEME_NAMES: ReadonlySet<string> = new Set([
   'aa',
   'ih',
@@ -104,7 +102,7 @@ function easeInOutCubic(t: number): number {
  *  saturating ("smiles too much"), so we exempt the literal `neutral`
  *  preset name from the cap. Every other expressive preset (happy / sad
  *  / angry / surprised / aa / ih / ou / ee / oh / relaxed / ...) is
- *  capped, which preserves the negative-test from packet wave-3 #1. */
+ *  capped, which preserves the canonical primary-expression cap. */
 const PRIMARY_CAP_EXEMPT_PRESETS: ReadonlySet<string> = new Set(['neutral']);
 
 function bundlePrimaryExpressiveWeight(bundle: VrmEmoteBundle): number {

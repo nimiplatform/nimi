@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-speaking-with-audio",
   "version": "1",
-  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives the AudioPipelineController voice playback path with a NON-synthetic audio mime (audio/wav). Exercises runtime.artifacts.readArtifactBytes -> decodeAudioData -> source.start -> BackendAudioConsumer.attachAudioSource -> wLipSync snapshot -> vrm-lipsync-driver tick -> emote state setLipsyncActive(true) -> viseme suppression coordination. Audio playback state machine progresses idle -> requested -> started -> completed; sink.silent on completion.",
+  "description": "Drives the AudioPipelineController voice playback path with a NON-synthetic audio mime (audio/wav). Exercises runtime.artifacts.readArtifactBytes -> decodeAudioData -> source.start -> BackendAudioConsumer.attachAudioSource -> wLipSync snapshot -> vrm-lipsync-driver tick -> emote state setLipsyncActive(true) -> viseme suppression coordination. Audio playback state machine progresses idle -> requested -> started -> completed; sink.silent on completion.",
   "duration_ms": 4000,
   "loop": false,
 

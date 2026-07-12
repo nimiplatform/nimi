@@ -10,25 +10,24 @@ required_top_level_fields:
   - source_findings_ref
   - grouping_policy
   - remediation_bundles
-  - waves
+  - remediation_candidates
   - unmapped_findings
   - created_at
   - updated_at
-wave_required_fields:
-  - wave_id
+remediation_candidate_required_fields:
+  - candidate_id
   - status
   - owner_domain
   - priority
-  - actionability
   - finding_ids
   - cluster_ids
   - clustered_symptom_count
   - source_chunks
   - files
-  - write_set
-  - depends_on
+  - suggested_write_set
   - remediation_bundle
-  - admission_checklist
+  - authority_refs
+  - required_gates
 remediation_bundle_required_fields:
   - bundle_id
   - cluster_ids
@@ -39,8 +38,8 @@ remediation_bundle_required_fields:
   - repair_targets
 status_enum:
   - proposed
-  - admitted
-  - superseded
+  - needs_decision
+  - blocked
   - empty
 hard_constraints:
   - remediation_map_must_not_mutate_source_ledger
@@ -48,5 +47,6 @@ hard_constraints:
   - duplicate_symptoms_must_remain_traceable_inside_remediation_bundles
   - duplicate_symptoms_do_not_count_as_independent_remediation_obligations_by_default
   - write_set_conflicts_must_be_visible
-  - needs_decision_findings_require_manager_decision_admission
-  - remediation_map_is_not_a_substitute_for_sweep_design_when_fork_review_or_user_decision_is_required
+  - needs_decision_findings_require_authority_owner_review
+  - remediation_candidates_must_not_authorize_or_schedule_implementation
+  - external_ai_host_owns_planning_decomposition_and_execution_state

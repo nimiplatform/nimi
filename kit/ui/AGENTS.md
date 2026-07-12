@@ -32,17 +32,15 @@
 
 - The material axis admits exactly **5 tiers** (2026-04-18): `solid`,
   `glass-thin`, `glass-regular`, `glass-thick`, `glass-chrome`. This
-  5-tier taxonomy supersedes the W1 3-tier admission (`solid`,
-  `glass-regular`, `glass-thick`) under parent topic
-  `2026-04-16-kit-glass-material-and-parentos-alignment`; the 3 prior
-  tier names are preserved byte-for-byte.
+  5-tier taxonomy supersedes the earlier 3-tier admission (`solid`,
+  `glass-regular`, `glass-thick`); the 3 prior tier names are preserved
+  byte-for-byte.
 - Glass consumption is **only** via `<Surface material="...">` or the
   5-tier marker classes emitted by kit (`nimi-material-glass-thin`,
   `nimi-material-glass-regular`, `nimi-material-glass-thick`,
   `nimi-material-glass-chrome`).
 - Named `backdrop-blur-*` Tailwind tokens outside kit-emitted utility
-  classes are **forbidden** at `check:ui-glass-boundary` (Phase 1 of
-  the topic `2026-04-18-nimi-ui-glassmorphism-system-uplift`). Governed
+  classes are **forbidden** at `check:ui-glass-boundary`. Governed
   modules must not inline `rgba(...)` material fills, inline
   `backdrop-filter` declarations, or hand-pick `backdrop-blur-[Npx]`
   arbitrary values outside kit surfaces.

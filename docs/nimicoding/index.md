@@ -35,27 +35,23 @@ scope, or product meaning, this section is for you.
 
 The first successful Nimi Coding path is intentionally bounded:
 
-1. **Install the package** in an existing repository. See
-   [Installation](/nimicoding/installation).
-2. **Bootstrap `.nimi/`.** Use `nimicoding start`, then check the
-   result with `nimicoding doctor --json`.
-3. **Hand off spec reconstruction** with
-   `nimicoding handoff --skill spec_reconstruction --json`.
-4. **Let the admitted AI host reconstruct authority** into
+1. **Install the Nimi workspace.** See
+   [Host Integration](/nimicoding/installation).
+2. **Verify the host hardcut** with the project compatibility wrappers.
+3. **Select a retained skill** from `.nimi/config/skill-manifest.yaml`.
+4. **Let the admitted AI host reconstruct authority when required** into
    `.nimi/spec/**`, recording source basis and unresolved gaps instead
    of inventing clean rules.
-5. **Validate the result** with `nimicoding validate-spec-tree
-   .nimi/spec` and `nimicoding validate-spec-audit`.
+5. **Validate the tree** with `pnpm exec nimicoding validate-spec-tree
+   .nimi/spec`; when reconstruction ran, also validate its declared
+   audit with `pnpm exec nimicoding validate-spec-audit`.
 
-That path gives the project a local truth surface and mechanical
-validators. It does not require topics, waves, packets, or high-risk
-gates. Those come later, when the work is authority-bearing,
-cross-module, multi-wave, or audit-sensitive.
-
-When work becomes high-risk, the escalation path is explicit: create a
-topic, split it into waves, freeze a packet before worker execution, run
-or hand off work through an admitted host, and close only when authority,
-semantic, consumer, and drift-resistance closure all hold.
+That path verifies the project truth surface and mechanical validators.
+The admitted AI host remains the sole owner of task
+planning, execution, delegation, retries, resume behavior, and completion.
+For high-risk work, Nimi Coding strengthens the host with explicit
+preflight, authority convergence, scoped gates, and typed evidence; it
+does not introduce another execution lifecycle.
 
 ## What's In This Section
 
@@ -74,23 +70,19 @@ semantic, consumer, and drift-resistance closure all hold.
 
 ### Roles And Convergence
 
-- [Role Separation](/nimicoding/role-separation) — manager,
-  worker, auditor.
+- [Role Separation](/nimicoding/role-separation) — host executor,
+  authority owner, independent reviewer, and human decision owner.
 - [Authority Convergence](/nimicoding/authority-convergence) —
   why an independent audit has to come before implementation
   when spec changes.
 
-### Lifecycle
+### Methodology And Evidence
 
-- [Topic Lifecycle](/nimicoding/topic-lifecycle) — proposal,
-  ongoing, pending, closed; wave fine-grained states; true close.
 - [Whitepaper](/nimicoding/whitepaper) — the conceptual case
   argument for treating AI-assisted implementation as
   authority-bearing work.
-- [Topic Workflow](/nimicoding/topic-workflow) — the operational
-  topic / wave / packet / preflight / audit / closeout flow.
 - [Walkthrough](/nimicoding/walkthrough) — a synthetic example
-  end-to-end.
+  of host-owned execution with spec, gates, and evidence end-to-end.
 
 ### The Package
 
@@ -98,43 +90,27 @@ semantic, consumer, and drift-resistance closure all hold.
   `@nimiplatform/nimi-coding` ships, what it does not ship.
 - [Host-Agnostic Boundary](/nimicoding/host-agnostic) — why
   switching AI hosts does not change the methodology.
-- [Skills](/nimicoding/skills) — the four declared skills
-  (`spec_reconstruction`, `doc_spec_audit`, `audit_sweep`,
-  `high_risk_execution`).
+- [Skills](/nimicoding/skills) — the three declared skills
+  (`spec_reconstruction`, `doc_spec_audit`, `audit_sweep`).
 - [CLI Surface](/nimicoding/cli) — concept-level overview of the
   command surface.
 - [Installation](/nimicoding/installation) — current installation
   posture.
 
-### Comparison And Adoption
-
-- [Comparison](/nimicoding/comparison) — vs vanilla AI coding,
-  code review, DevOps governance, DDD, agile.
-- [Adoption Path](/nimicoding/adoption-path) — who would adopt
-  this and why.
-
 ### Practical Sub-Trees
 
 - [Tutorials](/nimicoding/tutorials/) — learning-oriented
   step-by-step lessons, including the full path from install to
-  `.nimi/spec/**`, topic execution, sweep audit, sweep design, and
-  long-running host work.
+  `.nimi/spec/**`, scoped validation, and host-owned execution.
 - [How-to](/nimicoding/how-to/) — problem-shaped recipes.
 - [Reference](/nimicoding/reference/) — schema-level dictionary.
 
-### Appendix
-
-- [oh-my-codex Adapter](/nimicoding/appendix/oh-my-codex) — one
-  admitted external host adapter overlay.
-
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
-- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
-- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
-- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
-- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
-- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
+- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
+- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
+- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)

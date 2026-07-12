@@ -18,31 +18,6 @@ workflow_consumer_required_fields:
   - output_class
   - fail_closed_cases
 workflow_consumers:
-  - workflow_id: topic_runner
-    package_entrypoint: nimicoding topic-runner
-    required_inputs:
-      - placement_report
-      - selected_wave
-      - packet_ref
-      - topic_lifecycle_state
-    required_surface_classes:
-      - product_authority
-      - methodology_authority
-      - host_projection_anchor
-    forbidden_surface_classes:
-      - unclassified
-      - derived_view
-      - audit_evidence_state
-    forbidden_authority_input_classes:
-      - lifecycle_progress_state
-    required_gates:
-      - block_unclassified_authority_changes
-      - block_forbidden_root_class_combinations
-      - require_human_confirmation_for_product_semantic_fork
-    output_class: lifecycle_progress_state
-    fail_closed_cases:
-      - placement_report_missing
-      - authority_update_without_post_update_review
   - workflow_id: audit_sweep
     package_entrypoint: nimicoding sweep audit
     required_inputs:
@@ -54,7 +29,6 @@ workflow_consumers:
       - support_registry
     forbidden_surface_classes:
       - derived_view
-      - lifecycle_progress_state
     forbidden_authority_input_classes: []
     required_gates:
       - authority_and_evidence_coverage_separated
@@ -75,7 +49,6 @@ workflow_consumers:
       - host_projection_anchor
     forbidden_surface_classes:
       - audit_evidence_state
-      - lifecycle_progress_state
       - spec_generation_state
       - derived_view
     forbidden_authority_input_classes: []
@@ -86,25 +59,9 @@ workflow_consumers:
     output_class: derived_view
     fail_closed_cases:
       - generated_view_used_as_authority
-  - workflow_id: closeout
-    package_entrypoint: nimicoding topic closeout
-    required_inputs:
-      - placement_report
-      - validation_report
-      - result_ref
-    required_surface_classes:
-      - lifecycle_progress_state
-    forbidden_surface_classes:
-      - unclassified
-    forbidden_authority_input_classes: []
-    required_gates:
-      - placement_report_pass_required
-      - no_unresolved_block_disposition
-    output_class: lifecycle_progress_state
-    fail_closed_cases:
-      - closeout_claims_drift_resistance_with_placement_violations
 semantic_constraints:
   - workflow_must_not_infer_authority_from_path_shape_only
   - workflow_outputs_must_have_declared_surface_class
   - workflow_must_fail_closed_when_placement_report_is_missing
-  - workflow_must_not_promote_audit_or_lifecycle_state_to_product_authority
+  - workflow_must_not_promote_audit_or_host_operational_state_to_product_authority
+  - external_ai_host_owns_task_planning_and_completion_state

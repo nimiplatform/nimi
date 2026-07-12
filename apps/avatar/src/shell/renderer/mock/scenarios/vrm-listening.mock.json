@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-listening",
   "version": "1",
-  "description": "Wave 3 chunk 3-E fixture updated for topic 2026-05-01-avatar-apml-auto-adapter. Drives applyActivity('listening') through typed runtime projection into Avatar generated motion routing. The listening route resolves to vrm.motion='listen_lean' (fade=0.3). With the missing-provider test path, generatedMotionRuntime.play returns {played: false, reason: 'missing_profile'}; no .vrma fallback is treated as APML runtime support proof.",
+  "description": "Drives applyActivity('listening') through typed runtime projection into Avatar generated motion routing. The listening route resolves to vrm.motion='listen_lean' (fade=0.3). With the missing-provider test path, generatedMotionRuntime.play returns {played: false, reason: 'missing_profile'}; no .vrma fallback is treated as APML runtime support proof.",
   "duration_ms": 6000,
   "loop": false,
 

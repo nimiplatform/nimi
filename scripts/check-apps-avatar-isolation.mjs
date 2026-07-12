@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit (design-12).
-// Static scanner enforcing apps/avatar self-contained import policy.
+// Static scanner enforcing the spec-owned apps/avatar self-contained import policy.
 //
 // Policy:
 //   apps/avatar/src/** must NOT import:

@@ -15,7 +15,7 @@ not own.
 | Realm | World truth, world state, world history, chat, social, economy, asset, transit, binding, resource, bundle | Runtime execution; SDK projection; Desktop UI decisions; Cognition memory authority |
 | Avatar | Embodied agent presentation, embodiment projection, carrier visual acceptance, backend branches (Live2D / VRM / generated motion), agent script, avatar event surface | Agent identity (Runtime); agent memory (Cognition); world truth (Realm); generation (Runtime) |
 | Cognition | Standalone memory, knowledge, prompt serving, references, completion gates, skill service, runtime bridge contract, runtime upgrade contract | Runtime execution; Realm truth; Avatar embodiment; Desktop UI |
-| Nimi Coding | Topic / wave / packet / preflight / audit / closeout methodology, four-closure framework, role-separation policy, authority-convergence policy, forbidden-shortcuts catalog, host-agnostic boundary, declared skills | Runtime execution; product code; AI host implementation; provider invocation |
+| Nimi Coding | Project truth projections, preflight methodology, four-closure framework, review separation, authority-convergence policy, forbidden-shortcuts catalog, deterministic gates, evidence contracts, declared skills | Task planning or progress; subagent coordination; retry or resume; Runtime execution; product code; AI host implementation; provider invocation |
 
 ## Cross-Domain Relationships
 

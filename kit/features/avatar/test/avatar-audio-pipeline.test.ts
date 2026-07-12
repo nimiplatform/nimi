@@ -1,4 +1,4 @@
-// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit (design-05).
+// Contract tests for .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // AudioPipelineController test (renamed from AudioPlaybackController).
 // Verifies hard-cut surface:

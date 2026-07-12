@@ -32,7 +32,7 @@ export function createVrmAudioConsumer(deps: VrmAudioConsumerDeps): VrmAudioCons
     createNode: deps.createNode,
     onSilent: deps.onSilent,
     missingProfileMessage:
-      '[avatar:vrm:lipsync] wlipsync profile missing — lipsync silent (wave_3 chunk 3-D)',
+      '[avatar:vrm:lipsync] wlipsync profile missing — lipsync silent',
     createFailureMessage:
       '[avatar:vrm:lipsync] createWLipSyncNode failed; lipsync silent',
     connectFailureMessage:

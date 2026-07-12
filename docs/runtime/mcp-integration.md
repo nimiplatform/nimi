@@ -102,8 +102,8 @@ contract amendment — and worse, Runtime semantics would be hostage to
 provider implementation choices.
 
 Instead, Runtime normalizes MCP outputs into the admitted
-`K-DELEG-001..K-DELEG-099` contract surfaces before any later firewall
-wave admits them to model context, projection, or action paths. The
+`K-DELEG-001..K-DELEG-099` contract surfaces before Runtime admits them
+to model context, projection, or action paths. The
 adapter boundary is what protects Runtime ontology.
 
 ## Reader Scenario: Future App Author Wires Up An MCP Tool Provider
@@ -153,8 +153,8 @@ An MCP provider updates one of its tool schemas mid-session.
   session directly.
 - It does not allow tool calls to bypass the delegated output
   firewall.
-- It does not allow production MCP transport to ship without the later
-  admission packet.
+- It does not allow production MCP transport to ship without matching
+  authority admission.
 - It does not let the official SDK adapter define Nimi semantic
   authority.
 
@@ -167,7 +167,7 @@ An MCP provider updates one of its tool schemas mid-session.
 | Server session lifecycle | Runtime | `K-DELEG-104` |
 | Tool discovery + drift | Runtime | `K-DELEG-105`, `K-DELEG-107` |
 | Tool call admission + firewall | Runtime + delegated output firewall | `K-DELEG-001..099` |
-| Result entry into model context / projection / action path | Runtime + firewall | (admitted later wave) |
+| Result entry into model context / projection / action path | Runtime + firewall | Separately admitted |
 
 ## Source Basis
 

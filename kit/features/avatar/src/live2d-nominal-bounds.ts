@@ -1,4 +1,4 @@
-// Wave 1 (step 2) of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // Computes BackendNominalBounds for the Live2D branch. Authority for the
 // nominal viewport size is the model's CanvasInfo (model3 / Cubism Core)

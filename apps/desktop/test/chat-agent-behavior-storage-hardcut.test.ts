@@ -28,8 +28,7 @@ test('agent shell keeps behavior settings in process state instead of localStora
   assert.doesNotMatch(chatAgentShellAdapterSource, /sessionStorage/);
 });
 
-test('agent behavior storage hardcut does not use lifecycle packets or retired spec admissions as active oracle', () => {
-  const closedTopicOraclePattern = new RegExp(`${String.raw`\.nimi`}\\/topics\\/closed`);
+test('agent behavior storage hardcut keeps local admission evidence non-authoritative', () => {
   const retiredSpecAdmissionPattern = new RegExp(
     `${String.raw`\.nimi`}\\/spec\\/high-risk-admissions${String.raw`\.yaml`}`,
   );
@@ -43,6 +42,5 @@ test('agent behavior storage hardcut does not use lifecycle packets or retired s
     /local_admission_records_must_not_be_used_as_product_authority/,
   );
   assert.doesNotMatch(hardcutTestSource, /\.nimi\\?\/local\\?\/high-risk-admissions\.yaml/);
-  assert.doesNotMatch(hardcutTestSource, closedTopicOraclePattern);
   assert.doesNotMatch(hardcutTestSource, retiredSpecAdmissionPattern);
 });

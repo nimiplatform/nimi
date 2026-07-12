@@ -1,8 +1,8 @@
-// Wave 4 chunk 4-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/app-shell-contract.md.
 //
 // Generic trailing-edge debouncer used to throttle the per-frame
 // `onHitRegionChange` consumer callback inside the embodiment-stage. Per
-// app-shell-contract.md §2.3.1 + packet acceptance_invariant 8, the
+// app-shell-contract.md §2.3.1, the
 // hit-region bbox snapshot must not be delivered to the consumer faster
 // than 100ms. The carrier surface may emit on every captured frame; the
 // embodiment-stage owns the throttle (so the consumer never sees the raw
@@ -18,8 +18,8 @@
 // and a deep equality check would be expensive on the hot per-frame path.
 // Consumers should be idempotent against same-bbox repeats.
 
-/** 100ms = packet acceptance_invariant 8 default. NAMED constant per
- *  packet acceptance_invariant 13 (no scattered float literals). */
+/** 100ms minimum from app-shell-contract.md. Kept as a named constant so
+ *  throttle logic contains no scattered float literals. */
 export const THROTTLED_EMIT_DEFAULT_MIN_INTERVAL_MS = 100;
 
 export type ThrottledEmitHandle<T> = {

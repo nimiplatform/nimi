@@ -1,12 +1,11 @@
 /**
- * Wave 3 (topic 2026-05-10-runtime-bearer-revocation-contract-closure)
- * drift-gate fixture tests for `scripts/check-no-anonymous-fallback-shim.mjs`.
+ * Drift-gate fixture tests for `scripts/check-no-anonymous-fallback-shim.mjs`.
  *
  * Strategy: copy the script + a synthetic renderer tree into a temp work
  * dir, inject one forbidden pattern at a time, run the script with the
  * temp dir as cwd, and assert non-zero exit. Also assert clean baseline
  * (no fixture, no offenders) exits 0, and that the boundary-preserved
- * files remain unflagged after Wave 3 deliverable.
+ * files remain unflagged after the bearer-boundary hard cut.
  */
 
 import assert from 'node:assert/strict';

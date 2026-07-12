@@ -1,144 +1,78 @@
-# CLI Surface
+# Nimi Coding Command Surface
 
-The `nimicoding` CLI is the package boundary for Nimi Coding. It
-bootstraps package-owned methodology into a project, validates the
-resulting `.nimi/**` surface, emits handoff payloads for external AI
-hosts, records local closeout evidence, and enforces topic / wave /
-packet gates for high-risk work.
+Nimi consumes `@nimiplatform/nimi-coding` through a host hardcut. The
+project wrappers expose health and projection checks; admitted package
+validators inspect spec and governance. Codex owns task execution.
 
-It does not write product code, call AI providers as the package
-runtime, own scheduling, or run an autonomous agent loop. Execution
-belongs to the admitted host; the CLI owns the contract boundary.
-
-For per-command field-level reference see
+For exact syntax, see
 [Reference → CLI Commands](/nimicoding/reference/cli-commands).
 
-## Command Categories
+## Supported Categories
 
-| Category | Commands |
+| Category | Nimi surface |
 | --- | --- |
-| Bootstrap and seed sync | `start`, `start --host <host>`, `clear`, `sync`, `doctor` |
-| Skill handoff and closeout | `handoff --skill ...`, `closeout --skill ...`, `closeout --from ...` |
-| Topic lifecycle | `topic create`, `topic status`, `topic validate`, `topic wave ...`, `topic packet freeze`, `topic worker dispatch`, `topic audit dispatch`, `topic result record`, `topic remediation open`, `topic overflow continue`, `topic hold`, `topic resume`, `topic closeout ...`, `topic true-close-audit`, `topic decision-review` |
-| Topic runner | `topic run-next-step`, `topic run-ledger ...`, `topic-runner step`, `topic-runner run` |
-| Sweep audit | `sweep audit plan`, `sweep audit chunk ...`, `sweep audit ledger build`, `sweep audit remediation-map build`, `sweep audit finding resolve`, `sweep audit closeout summary`, `sweep audit status` |
-| Sweep design | `sweep design intake`, `packet-build`, `packet-build-batch`, `auditor-prompt`, `result-ingest`, `ledger-validate`, `finalize`, `wave-plan`, `fix-topic` |
-| High-risk execution gates | `admit-high-risk-decision`, `ingest-high-risk-execution`, `review-high-risk-execution`, `decide-high-risk-execution` |
-| Mechanical artifact validators | `validate-execution-packet`, `validate-orchestration-state`, `validate-prompt`, `validate-worker-output`, `validate-acceptance` |
-| Spec and placement validators | `validate-spec-tree`, `validate-spec-audit`, `validate-spec-governance`, `classify-spec-tree`, `generate-spec-migration-plan`, `validate-placement`, `validate-table-family`, `validate-projection-edges`, `validate-guidance-bodies`, `validate-domain-admission`, `validate-tracked-output-admission`, `generate-spec-derived-docs`, `validate-ai-governance`, `blueprint-audit` |
+| Host hardcut | `pnpm check:nimicoding-host-hardcut` |
+| Package projection check | `pnpm check:nimi-coding-seed-sync` |
+| Compatibility doctor | `pnpm nimicoding:doctor` |
+| Skill declarations | `.nimi/config/skill-manifest.yaml` |
+| Spec validation | `validate-spec-tree`, `validate-spec-audit`, `validate-spec-governance` |
+| Derived-doc validation | `generate-spec-derived-docs --check` |
+| AI governance validation | `validate-ai-governance` |
+| Spec structure | `classify-spec-tree`, `validate-placement`, `validate-table-family`, `validate-projection-edges`, `validate-guidance-bodies`, `validate-domain-admission`, `validate-tracked-output-admission`, `blueprint-audit` |
 
-Each category is bounded by typed contracts. New command families are
-package authority changes, not convenience aliases.
-
-## Bootstrap
-
-### `nimicoding start`
-
-`start` creates or resumes the project-local `.nimi/**` surface. It
-seeds package-owned config, contracts, methodology, and bootstrap spec
-material, updates managed AI entrypoint blocks when accepted, and
-prepares the next external handoff.
-
-| Mode | Command |
-| --- | --- |
-| Interactive | `nimicoding start` |
-| Non-interactive | `nimicoding start --yes` |
-| Host-targeted prompt | `nimicoding start --host <host>` |
-
-`start` preserves project-owned truth: `.nimi/spec/**`,
-`.nimi/local/**`, `.nimi/cache/**`, and locally modified bootstrap files
-are not silently overwritten.
-
-### `nimicoding sync`
-
-`sync` is the package-owned seed projection contract.
-
-| Mode | Meaning |
-| --- | --- |
-| `--check` | Fail non-zero when package-canonical seed files drift or are missing |
-| `--apply` | Rewrite drifted package-canonical files and seed missing entries |
-| `--dry-run` | Report what would change |
-
-Host-owned seed entries are seeded once and are not overwritten by
-`sync`.
-
-### `nimicoding doctor`
-
-`doctor` validates bootstrap health, local state roots, cross-contract
-references, host adapter posture, skill result contracts, high-risk
-schemas, and canonical-tree readiness. Use `--json` for machine output
-and `--verbose` for internal contract detail.
-
-## Minimal Adoption Path
-
-The first path for a new project is:
+## Verify The Host Boundary
 
 ```bash
-nimicoding start
-nimicoding doctor --json
-nimicoding handoff --skill spec_reconstruction --json
-nimicoding validate-spec-tree .nimi/spec
-nimicoding validate-spec-audit
+pnpm check:nimicoding-host-hardcut
+pnpm check:nimi-coding-seed-sync
+pnpm nimicoding:doctor
 ```
 
-`handoff` exports a payload. The external AI host consumes it and
-materializes `.nimi/spec/**`; local validators check the result.
+The wrappers enforce the forbidden projection set and the admitted
+host-owned override set. A generic package mutation cannot make that
+judgement.
 
-## Topic Lifecycle
-
-Topics are for authority-bearing, high-risk, cross-module, or
-multi-wave work. The CLI records durable state under
-`.nimi/topics/{proposal,ongoing,pending,closed}/`.
+## Validate Product Truth
 
 ```bash
-nimicoding topic create <slug> --justification <text>
-nimicoding topic wave add <topic-id> <wave-id> <slug> \
-  --goal <text> --owner-domain <domain>
-nimicoding topic wave select <topic-id> <wave-id>
-nimicoding topic wave admit <topic-id> <wave-id>
-nimicoding topic packet freeze <topic-id> --from <draft-path>
-nimicoding topic run-next-step <topic-id> --json
+pnpm exec nimicoding validate-spec-tree .nimi/spec
+pnpm exec nimicoding validate-spec-audit
+pnpm exec nimicoding validate-spec-governance --profile nimi --scope <scope>
+pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope <scope> --check
+pnpm exec nimicoding validate-ai-governance --profile nimi --scope <scope>
 ```
 
-`run-next-step` computes the next typed decision. For repeated stepping,
-use `topic-runner step` or `topic-runner run` with an explicit run id
-and adapter. Do not replace the runner with ad hoc `topic run-ledger`
-primitive chains.
+Use the affected scope declared by the repository. Broad validation is
+required when a change crosses authority boundaries.
 
-## Sweep Audit And Design
+## Skills
 
-`sweep audit` splits a target root into chunks, records auditor
-evidence, builds ledgers, maps remediation candidates, and records
-finding resolution.
+The active host reads `.nimi/config/skill-manifest.yaml` and the
+referenced context directly. The retained skills are
+`spec_reconstruction`, `doc_spec_audit`, and `audit_sweep`. Their result
+contracts remain project-local; the host decides how to plan and execute
+the work.
 
-`sweep design` starts from sweep findings. It builds bounded
-design-auditor packets, ingests typed results, validates revision
-provenance, produces final local design state, and emits candidate topic
-waves. `sweep design wave-plan` is non-mutating; `sweep design
-fix-topic` can apply a validated wave plan to a topic.
+## High-Risk Work
 
-## Host-Specific Paths
+High-risk work uses authority preflight, the static/local evidence
+contract at `.nimi/contracts/high-risk-admission.schema.yaml`, affected
+validators, and real runtime acceptance. There is no Nimi-side execution
+command family.
 
-Commands such as `sweep audit chunk audit-codex` and
-`start --host codex` are adapter-specific surfaces. They do not change
-the package boundary: Nimi Coding remains host-agnostic, and provider
-runtime ownership stays outside the package.
+## Boundary Summary
 
-## What The CLI Does Not Do
-
-| Concern | Boundary |
+| Concern | Owner |
 | --- | --- |
-| Product implementation | The admitted AI host or human worker changes product code |
-| Provider invocation as package runtime | The package does not own AI provider execution |
-| Scheduling | Host or surrounding workflow concern |
-| Notification | Host or product UX concern |
-| Autonomous packet execution | The package gates packet execution; it does not become the worker |
+| Task, plan, subagents, retry, resume, completion | Codex or another admitted host |
+| Product authority | `.nimi/spec/**` |
+| Methodology and evidence contracts | `.nimi/methodology/**` and `.nimi/contracts/**` |
+| Deterministic validation | Project wrappers and admitted package validators |
+| Runtime and UI acceptance | Real app/runtime checks initiated by the host |
 
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
-- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
-- [`nimi-coding/cli/help.mjs`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/help.mjs)
-- [`nimi-coding/cli/index.mjs`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/index.mjs)
-- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/skill-handoff.yaml)
-- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic-step-decision.schema.yaml)
+- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
+- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

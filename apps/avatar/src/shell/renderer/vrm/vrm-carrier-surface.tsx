@@ -1,7 +1,6 @@
-// Wave 3 chunk 3-D of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
-// VRM BackendBranch surface — extends the wave_2 chunk 2-C scaffolding
-// with the chunk 3-D integration: emote state, generated motion runtime,
+// VRM BackendBranch surface integrates emote state, generated motion runtime,
 // lipsync driver, and projection adapter are all wired through the
 // surface useFrame loop.
 //
@@ -458,12 +457,12 @@ function VrmFrameLoop({
 }
 
 /**
- * Wave 4 chunk 4-C: drives the alpha-mask hit-test render-target capture
- * at ~10Hz (≥100ms between captures). Per packet wave-4
- * forbidden_shortcuts the capture must not run every frame: full-canvas
+ * Drives the alpha-mask hit-test render-target capture at ~10Hz (≥100ms
+ * between captures). Per the app-shell contract, capture must not run every
+ * frame: full-canvas
  * readPixels is forbidden, and even a 1×1 readback after `renderer.render`
  * is a synchronous GPU stall. 10Hz matches the 100ms hit-region snapshot
- * throttle (acceptance_invariant 8) — finer cadence buys nothing because
+ * throttle — finer cadence buys nothing because
  * the consumer cannot deliver bbox updates faster.
  */
 const VRM_RENDER_TARGET_CAPTURE_INTERVAL_MS = 100;

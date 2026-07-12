@@ -1,8 +1,4 @@
-// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit (design-02).
-//
-// Multi-backend BackendBranch carrier abstraction. Wave 0 admits the type
-// surface; full BackendBranch factory + per-backend implementations land in
-// topic-internal wave_1 (= feature-matrix v3 wave_6).
+// Multi-backend BackendBranch carrier abstraction.
 //
 // Spec authority: .nimi/spec/avatar/kernel/backend-branch-contract.md
 // Drift rule: type definitions here MUST stay in sync with that contract.

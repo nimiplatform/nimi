@@ -95,7 +95,7 @@ If the project still exposes only bootstrap seed files, use the reconstruction g
 
 Default posture:
 - use risk-shaped methodology only for authority-bearing or high-risk work
-- prefer inline manager-worker unless a later admitted packet expands runtime ownership
+- keep task decomposition, dispatch, waiting, resumption, and completion state in the external AI host
 - keep code changes AI-context-efficient: prefer bounded cohesive files and split by responsibility during implementation instead of first concentrating unrelated logic into one file
 - keep continuity-agnostic semantics; do not assume persistent automation or self-hosting
 - treat handoff --json as the authoritative machine contract and handoff --prompt as a human-readable projection only

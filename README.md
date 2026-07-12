@@ -232,7 +232,6 @@ original Chinese content, not sentence-by-sentence translation.
 | `.nimi/spec/` | Active product, architecture, and behavior contracts |
 | `.nimi/methodology/` | Nimi Coding methodology and governance material |
 | `.nimi/contracts/` | Machine contracts for reconstruction, audit, admission |
-| `.nimi/topics/` | Human-authored topic lifecycle artifacts |
 | `runtime/` | Go runtime daemon and CLI (`runtime/cmd/nimi`) |
 | `sdks/` | SDK family root; TypeScript vNext package target is `@nimiplatform/sdk` |
 | `kit/` | Cross-app design system, auth, telemetry, and feature modules |

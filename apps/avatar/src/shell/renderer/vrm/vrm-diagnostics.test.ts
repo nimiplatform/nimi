@@ -1,7 +1,7 @@
-// Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Verifies the diagnostics module: window global wiring, snapshot shape,
-// SSR-safe attach, frameStats wave_2 invariant (visibleDrawableCount
+// SSR-safe attach, and the frameStats boundary (visibleDrawableCount
 // stays null), and detach removes the global.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -122,7 +122,7 @@ describe('attachVrmDiagnostics', () => {
     detach();
   });
 
-  it('frameStats.visibleDrawableCount stays null in wave_2 (visual-pixels evidence is wave_5)', () => {
+  it('keeps frameStats.visibleDrawableCount null because visual acceptance owns pixels', () => {
     const { runtime } = makeMockRuntime();
     const detach = attachVrmDiagnostics(runtime);
     updateVrmDiagnosticsFrameStats({ framedHeight: 1.5, framedWidth: 0.7 });

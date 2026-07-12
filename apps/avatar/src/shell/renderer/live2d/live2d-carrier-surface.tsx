@@ -1,4 +1,4 @@
-// Wave 1 (step 2) + Wave 4 chunk 4-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/live2d-render-contract.md.
 //
 // Live2D BackendSurface adapter — wraps `Live2DCarrierVisualSurface` so
 // the embodiment-stage can mount `backend.surface.Component` directly
@@ -8,7 +8,7 @@
 //   * `onAudioConsumerReady` — fires once per mount with the
 //     branch-supplied BackendAudioConsumer so the audio pipeline
 //     orchestrator can register it as a sink.
-//   * `onHitRegionChange` — wave_4 chunk 4-C wires the alpha-mask probe
+//   * `onHitRegionChange` — wires the alpha-mask probe
 //     via `createLive2DHitRegion` (canvas-bound construction — needs the
 //     mounted cubism canvas to read pixels from). On tier C, fires the
 //     bbox-only fallback exactly once and `onLifecycleEvidence` carries
@@ -52,7 +52,7 @@ export function createLive2DCarrierSurface(
       props.onAudioConsumerReady?.(deps.audioConsumer);
     }, [props.onAudioConsumerReady]);
 
-    // Wave 4 chunk 4-C: build the hit-region with alpha-mask path on
+    // Build the hit-region with alpha-mask path on
     // tier A/B, bbox-only on tier C. The cubism canvas is created
     // lazily by Live2DCarrierVisualSurface inside `hostRef`; we read
     // it through a closure each probe instead of capturing a stale

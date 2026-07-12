@@ -40,7 +40,7 @@ present its admitted scoped binding (issued by
 `RuntimeAccountService.IssueScopedAppBinding`). The binding carries
 non-secret binding id / optional handle / non-secret relation
 selectors. This is why the app-messaging surface lives in the
-auth/identity wave — the binding is itself auth-bearing.
+auth/identity authority slice — the binding is itself auth-bearing.
 
 ## SubscribeAppMessages
 

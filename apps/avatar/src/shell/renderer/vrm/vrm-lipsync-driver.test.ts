@@ -58,8 +58,8 @@ function makeSnapshot(
 
 describe('vrm-lipsync-driver constants', () => {
   it('exposes RUNNER_CAP as the relative-ratio form (CAP * 0.5)', () => {
-    // The packet wave_3 negative_test #2 + acceptance_invariant 8
-    // require this relationship; the audit grep also enforces
+    // The canonical relative-ratio drift rule requires this relationship;
+    // the audit grep also enforces
     // "no literal 0.35" in the source file.
     expect(RUNNER_CAP).toBe(CAP * 0.5);
     expect(RUNNER_CAP).toBeCloseTo(0.35, 10);

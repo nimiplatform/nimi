@@ -38,7 +38,7 @@
 
 **Cognition**。独立持有 memory、知识、prompt 服务、引用、completion、技能服务，以及 Runtime 桥语义。
 
-**Nimi Coding**。AI 编码治理工作流：topic、wave、packet、preflight、审计、closeout 证据。
+**Nimi Coding**。围绕宿主自有 AI 开发提供项目真相、方法论、确定性门禁和证据的治理层。
 
 ## Runtime 词汇
 
@@ -98,19 +98,13 @@
 
 ## Nimi Coding 词汇
 
-**Topic**。高风险或承载权威工作的受治理工作主线。
-
-**Wave**。Topic 内有边界的归属切片。一个 wave 在同一时间只隔离一个闭合域。
-
-**Packet**。Wave 的执行契约的冻结版，包括允许的读、允许的写、接受不变式、负向测试、停止线。
-
-**Preflight**。Wave 实施前的停止线检查。
+**Preflight**。高风险实现前，对 spec status、authority owner、work type 和平行真相风险进行的有边界检查。
 
 **审计（Audit）**。证明工作匹配权威与使用者需求的证据。
 
-**Closeout**。判断工作在所有闭合维度上确实做完的决定。
+**验收（Acceptance）**。根据权威对齐、证据充分性与最终 disposition 作出的判断。
 
-**闭合维度**。权威闭合、语义闭合、使用者闭合、抗漂移闭合。Wave 只有四者全部满足才算闭合。
+**闭合维度**。权威闭合、语义闭合、使用者闭合、抗漂移闭合。高风险任务只有四者全部满足，Codex 才能标记完成。
 
 **伪闭合**。一个维度看似完成、另一维度其实失败的产物。常见形态：构建过了但页面不可读；页面可读但缺权威源；路由存在但对读者无价值。
 
@@ -131,5 +125,5 @@
 - [`.nimi/spec/desktop/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)
 - [`.nimi/spec/cognition/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/index.md)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

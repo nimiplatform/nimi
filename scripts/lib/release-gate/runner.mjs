@@ -1,7 +1,6 @@
 // Gate execution engine — implements D7 verdict decision algorithm.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-005 verdict-set lock, P-RELG-006 fail-closed,
 // P-RELG-007 no pseudo-success.
 //

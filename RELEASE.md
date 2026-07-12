@@ -61,8 +61,8 @@ verdict + summary 输出到 `.local/report/release/preflight-evidence-<ISO8601>.
 `--require-release` 让 blocked verdict 计为 fail（CI release 必须用此 flag）；
 开发者本地可省略，让 live / external-repo tier 的 blocked 不阻断。
 
-详细命令行参考 `pnpm preflight --help`。Topic 闭环：
-`2026-05-10-release-preflight-gate-authority-hardcut`（已 closed）。
+详细命令行参考 `pnpm preflight --help`。门禁权威由
+`.nimi/spec/platform/kernel/tables/release-gate-registry.yaml` 持有。
 如需自定义日志文件，可设置 `NIMI_RELEASE_PREFLIGHT_LOG_FILE=/abs/path/to.log`。
 如需调整失败时回显的日志尾部行数，可设置 `NIMI_RELEASE_PREFLIGHT_TAIL_LINES=120`。
 

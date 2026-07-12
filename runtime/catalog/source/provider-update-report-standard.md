@@ -5,8 +5,8 @@
 This document defines the standard shape and review rules for provider catalog
 update reports.
 
-It exists outside any specific topic because it is a reusable maintenance
-standard for `runtime/catalog/source/providers/*.source.yaml`.
+It is a repository-wide reusable maintenance standard for
+`runtime/catalog/source/providers/*.source.yaml`.
 
 ## Core Rule
 

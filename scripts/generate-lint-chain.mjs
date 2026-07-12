@@ -3,8 +3,7 @@
 // Generate (or check) package.json scripts.lint body from the
 // release-gate registry projection.
 //
-// Owner: scripts (W3 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; this generator projects the registry authority below.
 // Authority: P-RELG-003 projection-only execution surfaces, P-RELG-013
 // registry version discipline.
 //

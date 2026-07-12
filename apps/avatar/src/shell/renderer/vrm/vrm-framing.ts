@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Glue layer between Three.js (`Box3` / `Vector3`) and the Avatar-owned pure
 // `computeVrmCameraFraming` domain function.

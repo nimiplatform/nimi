@@ -1,7 +1,6 @@
 // Evidence JSON writer (release-gate-evidence/v1 schema).
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-004 locked evidence JSON shape, P-RELG-014 local
 // workspace evidence output paths.
 //

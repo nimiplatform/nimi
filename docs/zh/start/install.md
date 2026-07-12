@@ -8,15 +8,15 @@ Nimi 平台包含多个公开层（Surface），每层均有独立的分发渠�
 
 Nimi Coding 作为独立于宿主环境（Host-agnostic）的方法论，已获得官方准入，并以 npm 软件包形式发布：[`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding)。
 
-关于安装命令、项目 Bootstrap 布局、宿主适配器选择及完整的采用路径，请参阅 [Nimi Coding → 安装](/zh/nimicoding/installation)。
+Nimi workspace 安装与 host compatibility 检查见 [Nimi Coding → Host 集成](/zh/nimicoding/installation)。
 
 最小化的首次验证路径如下：
 
-1. 将该 npm 包集成至宿主项目。
-2. 按照“安装”页面提供的 Bootstrap 指令完成初始化。
-3. 参照 [第一个 Topic](/zh/nimicoding/topic-workflow) 的指引，执行一次端到端流程，以验证方法论在本地环境的有效性。
+1. 安装 Nimi workspace dependencies。
+2. 运行 host-hardcut、projection 和 doctor wrappers。
+3. 参照[验证 Nimi 治理设置](/zh/nimicoding/tutorials/project-bootstrap)，验证所有权与真相表面完整可用。
 
-由于该软件包具有宿主无关性，上述安装路径在任何已获准入的 AI 宿主环境下均适用。
+软件包仍然保持宿主无关；Nimi 仓库在它外围应用自己的明确准入边界。
 
 ### Nimi App Tools
 

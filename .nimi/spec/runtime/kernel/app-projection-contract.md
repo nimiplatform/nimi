@@ -156,7 +156,7 @@ for `kill-switched` review-state and `P-NAPP-018` for
 (`forced_update_required`, `publisher_suspended`, `report_received`)
 are Runtime projection inputs for this rule and must be resolved as
 typed evidence before Runtime emits them. Runtime MUST NOT derive one
-response field from another or from topic lifecycle reports.
+response field from another or from host execution dossiers.
 
 `MUST NOT`. `K-APP-020` MUST NOT extend the five-field set above
 under this rule; the typed field set is closed. A new response-state
@@ -165,7 +165,7 @@ admission event. `K-APP-020` MUST NOT silently coerce one typed
 field 's value from another (e.g. inferring
 `forced_update_required: true` from `kill_switch_active: true`); the
 five fields are orthogonal projections. The Apps surface MUST NOT
-read raw P-ECO, descriptor, publisher, report, or topic state directly
+read raw P-ECO, descriptor, publisher, report, or host task state directly
 to compute these fields; the projection seam is `K-APP-020`.
 
 ## K-APP-021 Support Next-Action Mapping

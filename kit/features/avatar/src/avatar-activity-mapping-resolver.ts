@@ -5,7 +5,7 @@
 // The YAML source remains the spec authority; this resolver is the Kit
 // headless projection consumed by concrete avatar backends.
 //
-// Resolution rules (design-04 §"activity-mapping.yaml v2"):
+// Resolution rules from the canonical activity-mapping table:
 //   - core ontology activities MUST have both live2d AND vrm routes;
 //   - `ext:` and `mod-<modid>:` prefix activities are NOT in the table
 //     and fail-close (resolver returns null + the caller emits a

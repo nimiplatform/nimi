@@ -79,11 +79,11 @@ Nimi Coding 规范拒绝以下工程反模式。描述 Nimi Coding 的公开文�
 | `happy_path_only_closure` | 仅验证顺畅路径（Happy Path）便宣告议题闭合。 |
 | `time_phased_layering` | 采用时间版本切片（如 v1/v2）替代合理的架构语义分层。 |
 | `app_local_shadow_truth` | 允许应用层因本地便利性而维护未经约束的“影子规范真相”。 |
-| `silent_owner_cut_reopen` | 在下游执行 Wave 中，越权修改应归属于上游数据所有者的事实真相。 |
+| `silent_owner_cut_reopen` | 在下游实现工作中，越权修改应归属于上游数据所有者的事实真相。 |
 
 ## 自动化检测机制
 
-平台将在集成流水线中使用 Wave 级别的 `grep` 命令对所有公开文档进行核验：
+平台将在集成流水线中使用仓库级 `grep` 命令对所有公开文档进行核验：
 
 ```bash
 grep -rEn 'TODO|TBD|FIXME|coming soon|lorem|placeholder' \

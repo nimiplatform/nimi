@@ -1,7 +1,6 @@
 // Projection function: registry → pnpm lint chain body.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-003 projection-only execution surfaces.
 //
 // Pure function. Given a parsed registry, return the byte string that

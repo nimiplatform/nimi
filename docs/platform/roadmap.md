@@ -10,7 +10,7 @@ not an active product authority source.
 Active product behavior is governed by `.nimi/spec/<domain>/kernel/**`.
 Candidate roadmap and backlog material is not represented as an active spec
 subtree; until a capability graduates into an active product domain, roadmap
-state is handled through the topic lifecycle and product planning process.
+state is handled through the product planning process outside active spec.
 
 ## Why A Roadmap Surface
 
@@ -166,7 +166,7 @@ An accepted item depends on an external standard that has not matured.
 | Concern | Source of truth |
 | --- | --- |
 | Implemented product behavior | Active product domain spec under `.nimi/spec/<domain>/kernel/**` |
-| Candidate roadmap posture | Topic lifecycle and product planning records |
+| Candidate roadmap posture | Product planning records outside active spec |
 | Backlog item shape | Roadmap projection taxonomy |
 | Priority taxonomy | Roadmap projection taxonomy |
 | Status lifecycle | Graduation event evidence |

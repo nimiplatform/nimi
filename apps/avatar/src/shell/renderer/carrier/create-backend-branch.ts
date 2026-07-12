@@ -1,8 +1,7 @@
-// Wave 1 of topic 2026-04-30-avatar-vrm-backend-branch (design-02
-// §"createBackendBranch").
+// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // THIS IS THE ONLY ALLOWED `model.kind` / `backend.kind` SWITCH SITE in
-// `apps/avatar/src/**`. The packet hard-cut grep gate
+// `apps/avatar/src/**`. The static hard-cut grep gate
 // (`kind_branch_outside_factory`) audits this — any new branch must be
 // added here, must update both the discriminated `AvatarModelManifest`
 // union and the `BackendBranch` union, and must keep the exhaustive

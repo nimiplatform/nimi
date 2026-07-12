@@ -1,98 +1,62 @@
-# Nimi Coding Installation
+# Nimi Host Integration
 
-Nimi Coding is distributed as the public npm package
-`@nimiplatform/nimi-coding`. Install it in the project where you want
-the `.nimi/**` governance layer and the `nimicoding` CLI.
+The Nimi repository pins `@nimiplatform/nimi-coding` as a development
+dependency and consumes it through a host compatibility boundary. A
+normal workspace install provides the package; project wrappers verify
+that the Nimi-owned projection remains intact.
 
-## Requirements
+## Prerequisites
 
-| Requirement | Notes |
+| Requirement | Purpose |
 | --- | --- |
-| Node.js | 24 or newer |
-| Package manager | npm, pnpm, yarn, or another tool that can install npm packages |
-| Project root | A version-controlled project is recommended because `start` creates files |
+| Node.js 24 or newer | Workspace runtime |
+| pnpm | Repository package manager |
+| Git checkout of Nimi | Provides the admitted host projections and wrappers |
+| Codex or another admitted external host | Owns task execution |
 
-## Install
-
-Use your project's package manager:
-
-```bash
-npm install --save-dev @nimiplatform/nimi-coding
-```
-
-or:
+## Install Workspace Dependencies
 
 ```bash
-pnpm add -D @nimiplatform/nimi-coding
+pnpm install
 ```
 
-After installation, the project should have a `nimicoding` binary
-available through the package manager:
+Do not bootstrap or mutate `.nimi/**` with generic package commands.
+Nimi owns its host projections and fails closed when a forbidden package
+projection appears.
+
+## Verify The Integration
 
 ```bash
-npx nimicoding --version
-npx nimicoding --help
+pnpm check:nimicoding-host-hardcut
+pnpm check:nimi-coding-seed-sync
+pnpm nimicoding:doctor
 ```
 
-## Bootstrap
+All three checks must pass. The compatibility wrapper enforces the
+declared absent projection set and exact Nimi-owned overrides;
+unexpected drift still fails.
 
-Run `start` from the project root:
+## Verify Product Authority
 
 ```bash
-npx nimicoding start
+pnpm exec nimicoding validate-spec-tree .nimi/spec
 ```
 
-If you want the first prompt shaped for a specific host, use:
+This validator inspects the canonical tree. When the active task
+actually runs `spec_reconstruction`, also run
+`pnpm exec nimicoding validate-spec-audit` against its declared local
+audit artifact; a missing required audit fails closed. Neither command
+creates or updates host task state.
 
-```bash
-npx nimicoding start --host codex
-npx nimicoding start --host claude
-npx nimicoding start --host oh-my-codex
-```
+## Skill Availability
 
-For a non-interactive smoke test, use:
-
-```bash
-npx nimicoding start --yes
-npx nimicoding doctor --json
-```
-
-`start` creates or updates the package-owned bootstrap layer under
-`.nimi/**`, adds managed AI entrypoint blocks when you accept them, and
-prepares the next handoff payload. It preserves project-owned truth:
-`.nimi/spec/**`, `.nimi/local/**`, `.nimi/cache/**`, and locally
-modified bootstrap files are not silently deleted or overwritten.
-
-## First Checks
-
-| Check | Expected result |
-| --- | --- |
-| `nimicoding --version` | Prints the installed package version |
-| `nimicoding --help` | Lists bootstrap, sync, topic, sweep audit, sweep design, handoff, closeout, high-risk gates, and validators |
-| `nimicoding doctor --json` | Reports the bootstrap health state in machine-readable form |
-
-To check package-owned seed projection later:
-
-```bash
-npx nimicoding sync --check
-```
-
-## Remove Package-Managed Bootstrap
-
-If you need to remove the package-managed bootstrap files from a test
-project, run:
-
-```bash
-npx nimicoding clear --yes
-```
-
-`clear` removes managed AI blocks and package-owned bootstrap files
-only when they still match the packaged seed. It preserves
-project-owned truth and local operational evidence.
+`.nimi/config/skill-manifest.yaml` declares three external skills:
+`spec_reconstruction`, `doc_spec_audit`, and `audit_sweep`. The active
+host reads their inputs and result contracts directly.
 
 ## Source Basis
 
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi-coding/blob/main/cli/)
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
+- [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
+- [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
+- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

@@ -959,8 +959,7 @@ func TestValidateFallbackUsesCachedHistoricalKeyOnRefreshFailure(t *testing.T) {
 }
 
 // =============================================================================
-// Wave 4 (topic 2026-05-10-runtime-bearer-revocation-contract-closure):
-// negative-path coverage for the K-AUTHN-006 introspection contract. Decision-
+// Negative-path coverage for the K-AUTHN-006 introspection contract. Decision-
 // matrix rows 3..8 plus 5 network-failure branches plus the
 // revocationUrl-empty pass-without-HTTP case. All fixtures use real
 // httptest.NewServer; no mocked HTTP at the contract seam.

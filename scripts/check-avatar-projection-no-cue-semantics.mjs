@@ -1,27 +1,19 @@
 #!/usr/bin/env node
-// Guard for Avatar projection backpressure wave-0.
+// Guard for the canonical Avatar projection backpressure boundary.
 //
-// Enforces that current work is evidence/audit only: no Avatar-local cue
-// scheduler, no priority/terminal/interrupt ownership, and no voice/lipsync
-// smoothing path.
+// Enforces that Avatar owns renderer-local smoothing only: no Avatar-local cue
+// scheduler, priority/terminal/interrupt ownership, or voice/lipsync smoothing.
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TOPIC_ID = '2026-05-16-avatar-projection-stability-queue';
-const TOPIC_ROOT_CANDIDATES = [
-  `.nimi/topics/ongoing/${TOPIC_ID}`,
-  `.nimi/topics/proposal/${TOPIC_ID}`,
-];
-const DESIGN = resolveTopicDoc('design.md');
-const DOCTRINE = resolveTopicDoc('implementation-doctrine.md');
 const THROTTLED_EMIT = 'apps/avatar/src/shell/renderer/app-shell/throttled-emit.ts';
 const EMBODIMENT_STAGE = 'apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx';
-const WAVE1_CONTRACT = '.nimi/spec/avatar/kernel/projection-backpressure-smoothing-contract.md';
-const PROJECTION_SMOOTHING = 'apps/avatar/src/shell/renderer/nas/projection-smoothing.ts';
-const PROJECTION_SMOOTHING_TEST = 'apps/avatar/src/shell/renderer/nas/projection-smoothing.test.ts';
+const SMOOTHING_CONTRACT = '.nimi/spec/avatar/kernel/projection-backpressure-smoothing-contract.md';
+const PROJECTION_SMOOTHING = 'kit/features/avatar/src/avatar-projection-smoothing.ts';
+const PROJECTION_SMOOTHING_TEST = 'kit/features/avatar/test/avatar-projection-smoothing.test.ts';
 const AVATAR_CARRIER = 'apps/avatar/src/shell/renderer/carrier/avatar-carrier.ts';
 const RENDERER_ROOT = path.join(ROOT, 'apps', 'avatar', 'src', 'shell', 'renderer');
 
@@ -30,16 +22,6 @@ let failures = 0;
 function fail(message) {
   failures += 1;
   console.error(`[avatar-projection-no-cue-semantics] FAIL ${message}`);
-}
-
-function resolveTopicDoc(fileName) {
-  for (const candidate of TOPIC_ROOT_CANDIDATES) {
-    const relPath = path.join(candidate, fileName);
-    if (existsSync(path.join(ROOT, relPath))) {
-      return relPath;
-    }
-  }
-  return path.join(TOPIC_ROOT_CANDIDATES[0], fileName);
 }
 
 function read(relPath) {
@@ -78,16 +60,6 @@ function requireExcludes(relPath, needles) {
   return text;
 }
 
-requireIncludes(DESIGN, [
-  'K-AGCORE-051',
-  'Wave-0 Current Evidence Snapshot',
-  'createThrottledEmit<BackendHitRegion>',
-  'not Runtime cue scheduling',
-  'voice/lipsync modules',
-]);
-
-requireIncludes(DOCTRINE, ['pnpm check:avatar-projection-no-cue-semantics']);
-
 requireIncludes(THROTTLED_EMIT, [
   'THROTTLED_EMIT_DEFAULT_MIN_INTERVAL_MS = 100',
   'onHitRegionChange',
@@ -110,7 +82,7 @@ requireExcludes(EMBODIMENT_STAGE, [
   'createThrottledEmit<AvatarVoice',
 ]);
 
-requireIncludes(WAVE1_CONTRACT, [
+requireIncludes(SMOOTHING_CONTRACT, [
   'K-AGCORE-051',
   'setSignal',
   'addSignal',

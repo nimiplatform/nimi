@@ -17,7 +17,6 @@ host_profile:
     - .nimi/config/skill-manifest.yaml
     - .nimi/config/host-profile.yaml
     - .nimi/config/host-adapter.yaml
-    - .nimi/config/external-execution-artifacts.yaml
     - .nimi/methodology/skill-handoff.yaml
   required_capabilities:
     - read_project_local_nimi_truth
@@ -26,4 +25,5 @@ host_profile:
   hard_constraints:
     - vendor_neutral_profile_only
     - do_not_assume_local_runtime_install
-    - do_not_claim_packet_orchestration_ownership
+    - nimicoding_must_not_claim_host_task_or_workflow_ownership
+    - do_not_start_or_resume_an_ai_host

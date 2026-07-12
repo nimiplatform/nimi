@@ -130,7 +130,7 @@ The agent speaks; lip movement should sync with the audio.
 5. **Visible result.** Lip movement synchronized to audio
    playback.
 
-Lipsync is a wave-3-admitted bridge; it is one of the more
+Lipsync is an admitted bridge; it is one of the more
 elaborate cross-domain choreography paths in the platform.
 
 ## Boundary Summary

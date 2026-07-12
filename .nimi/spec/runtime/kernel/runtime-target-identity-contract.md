@@ -187,7 +187,7 @@ this hard cut unless a downstream owner is explicitly named.
 | `.nimi/spec/runtime/kernel/audit-contract.md` | `model_id`, `connector_id` | `allowed_non_identity_fact` | Post-resolve audit facts only; G5/G8/G12 reject audit fields as target-ref inputs. |
 | `.nimi/spec/runtime/kernel/authz-ownership.md` | `LOCAL_MODEL`, `connector_id` | `must_migrate` | Retire local connector ownership and route local auth through local asset/profile ownership. |
 | `.nimi/spec/runtime/kernel/connector-contract.md` | `connector_id`, `model_id`, `LOCAL_MODEL` | `must_migrate` | Patch connector authority to remote credential custody only. |
-| `.nimi/spec/runtime/kernel/index.md` | `connector_id` | `allowed_non_identity_fact` | Topic index text only; linked authority files carry v2 semantics. |
+| `.nimi/spec/runtime/kernel/index.md` | `connector_id` | `allowed_non_identity_fact` | Index navigation text only; linked authority files carry v2 semantics. |
 | `.nimi/spec/runtime/kernel/key-source-routing.md` | `connector_id`, `model_id`, `target_model_id`, `LOCAL_MODEL`, `targetId`, `profileId`, `localModelId`, `goRuntimeLocalModelId` | `must_migrate` | Patch managed credential routing and cloud target identity separation. |
 | `.nimi/spec/runtime/kernel/local-category-capability.md` | `connector_id`, `model_id` | `must_migrate` | Patch local connector/category identity text to v2 local refs or non-identity facts. |
 | `.nimi/spec/runtime/kernel/local-profile-application-contract.md` | `model_id` | `must_migrate` | Patch raw local model routing and profile application text to v2 local refs or resolved non-identity facts. |

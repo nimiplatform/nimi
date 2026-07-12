@@ -1,4 +1,4 @@
-// Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch.
+// Scenario tests for .nimi/spec/avatar/kernel/tables/scenario-catalog.yaml.
 //
 // Programmatically drives the 5 chunk 3-E mock scenarios through the VRM
 // BackendBranch chain end-to-end (generated motion runtime + emote state +
@@ -112,7 +112,7 @@ afterEach(() => {
 // Shared test fixtures.
 // ────────────────────────────────────────────────────────────────────
 
-/** Wave 0 admitted preset table (mirrors vrm-motion-presets.yaml). */
+/** Admitted preset table projection (mirrors vrm-motion-presets.yaml). */
 function makeMotionTable(): VrmMotionPresetTable {
   return {
     builtinDir: 'apps/avatar/assets/vrm-motion-presets',

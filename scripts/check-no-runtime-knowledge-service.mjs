@@ -2,16 +2,13 @@
 
 // check-no-runtime-knowledge-service.mjs
 //
-// Wave-3 of topic 2026-05-10-runtime-knowledge-cognition-hard-cut.
 // Hard-cut guard: the retired runtime knowledge surface must not
-// reappear under any of the forbidden tokens after the legacy
-// package was deleted in Wave 3 and the spec convergence locked
-// it down in Wave 0.
+// reappear under any forbidden token after the legacy package deletion and
+// canonical spec convergence.
 //
 // Guard scope: production source tree only. The allow-list captures
-// legitimate retired-history references in spec, closed topic
-// archives, this topic's own files, the topic's own deferred mod
-// surface, and self-referential guards.
+// legitimate authority references, local-only evidence, and self-referential
+// guards.
 //
 // Allow-list rationale: per D5 ("New Repo Guard" table), spec is
 // its own review surface; the production-code guard does not
@@ -40,7 +37,6 @@ const FORBIDDEN_TOKENS = [
 // "New Repo Guard" table.
 const ALLOW_PREFIXES = [
   '.nimi/spec/',                                                      // spec retired-history (D5 table)
-  '.nimi/topics/',                                                    // all topic lifecycle artifacts (gitignored; local-only working surface)
   '.nimi/local/',                                                     // local-only operational artifacts (gitignored)
   '.nimi/cache/',                                                     // local cache (gitignored)
   '.local/',                                                          // legacy local execution workspace (gitignored)
@@ -50,10 +46,10 @@ const ALLOW_PREFIXES = [
   'scripts/check-no-runtime-knowledge-service.test.mjs',              // self-test fixtures
 ];
 
-// File-specific allow-list. The wave-4 rename targets
+// File-specific allow-list. The completed rename targets
 // (knowledge_commands_test.go, runtime_knowledge_app_client_test.go)
-// were on this list during wave-3 but are now dropped — wave-4
-// renamed cmdTestRuntimeKnowledgeService and testRuntimeKnowledgeService
+// were previously on this list but are now dropped; the rename removed
+// cmdTestRuntimeKnowledgeService and testRuntimeKnowledgeService
 // out of those files, so any future reintroduction of the retired
 // token there is caught by this guard.
 //

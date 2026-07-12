@@ -327,10 +327,8 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: 'Lifecycle',
+    text: 'Methodology And Evidence',
     items: [
-      { text: 'Topic Lifecycle', link: '/nimicoding/topic-lifecycle' },
-      { text: 'Topic Workflow', link: '/nimicoding/topic-workflow' },
       { text: 'Walkthrough', link: '/nimicoding/walkthrough' },
     ],
   },
@@ -346,30 +344,19 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: 'Comparison And Adoption',
-    items: [
-      { text: 'Comparison', link: '/nimicoding/comparison' },
-      { text: 'Adoption Path', link: '/nimicoding/adoption-path' },
-    ],
-  },
-  {
     text: 'Tutorials',
     items: [
       { text: 'Tutorials Overview', link: '/nimicoding/tutorials/' },
-      { text: 'Project To Governed Execution', link: '/nimicoding/tutorials/project-to-governed-execution' },
-      { text: 'First Topic Bootstrap', link: '/nimicoding/tutorials/first-topic' },
-      { text: 'First Wave End-To-End', link: '/nimicoding/tutorials/first-wave-end-to-end' },
+      { text: 'Governed Codex Project', link: '/nimicoding/tutorials/project-to-governed-execution' },
+      { text: 'Verify Governance Setup', link: '/nimicoding/tutorials/project-bootstrap' },
     ],
   },
   {
     text: 'How-to',
     items: [
       { text: 'How-to Overview', link: '/nimicoding/how-to/' },
-      { text: 'Admit A Wave', link: '/nimicoding/how-to/admit-a-wave' },
       { text: 'Write Fail-Close Invariants', link: '/nimicoding/how-to/write-fail-close-invariants' },
-      { text: 'Handle Pending Acceptance', link: '/nimicoding/how-to/handle-pending-acceptance' },
       { text: 'Reconcile Divergent Audits', link: '/nimicoding/how-to/reconcile-divergent-audits' },
-      { text: 'Reopen After Overflow', link: '/nimicoding/how-to/reopen-after-overflow' },
       { text: 'Admit An External Host', link: '/nimicoding/how-to/admit-an-external-host' },
     ],
   },
@@ -380,12 +367,6 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
       { text: 'CLI Commands', link: '/nimicoding/reference/cli-commands' },
       { text: 'Schemas', link: '/nimicoding/reference/schemas' },
       { text: 'Forbidden Shortcuts Catalog', link: '/nimicoding/reference/forbidden-shortcuts-catalog' },
-    ],
-  },
-  {
-    text: 'Appendix',
-    items: [
-      { text: 'oh-my-codex Adapter', link: '/nimicoding/appendix/oh-my-codex' },
     ],
   },
 ]

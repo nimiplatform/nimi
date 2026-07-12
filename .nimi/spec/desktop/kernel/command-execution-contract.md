@@ -2,7 +2,7 @@
 
 > Owner Domain: `D-GATE-*`
 
-This contract governs Desktop Tauri invoke command execution posture. It is the normative authority for command responsiveness classification; topic audit artifacts are evidence only.
+This contract governs Desktop Tauri invoke command execution posture. It is the normative authority for command responsiveness classification; external-host task state and execution dossiers are non-authoritative evidence only.
 
 ## D-GATE-092 Command Execution Classes
 

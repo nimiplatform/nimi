@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-D of topic 2026-04-30-avatar-vrm-backend-branch.
+// Lifecycle tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // End-to-end VRM lifecycle test that drives the full chain:
 //
@@ -10,7 +10,7 @@
 // The cached `.vrm` binary is gitignored and may not exist in CI, so we
 // short-circuit the actual disk read via the runtime's `loaderOverride`.
 //
-// Covered cases (packet wave-2 acceptance_invariants 18-21):
+// Covered cases from the canonical lifecycle contract:
 //
 //   1. Initial load -> ready: stub loader resolves; surface reaches
 //      `ready`; onAudioConsumerReady fires once; backend metadata exposes

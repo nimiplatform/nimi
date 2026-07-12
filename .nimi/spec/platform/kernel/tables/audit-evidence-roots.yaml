@@ -11,6 +11,7 @@ entries:
   - platform-shared-tauri-kit
   - platform-canonical-capability-catalog-codegen
   - platform-host-local-nimicoding-projection
+  - platform-nimicoding-host-workflow-hardcut
   - spec-generation-audit-nimicoding-implementation
   - platform-repository-governance
   - runtime-proto-root-governance
@@ -84,6 +85,24 @@ roots:
       - .nimi/contracts
       - .nimi/methodology
     source_rule: P-PKG-006
+  - id: platform-nimicoding-host-workflow-hardcut
+    owner_domain: platform
+    authority_refs:
+      - .nimi/spec/platform/kernel/package-authority-admission-contract.md
+    evidence_roots:
+      - package.json
+      - AGENTS.md
+      - CLAUDE.md
+      - .cursorrules
+      - .claude
+      - .github
+      - .gitignore
+      - config/nimicoding-host-hardcut.yaml
+      - scripts/check-nimicoding-host-hardcut.mjs
+      - scripts/nimicoding-host-compat.mjs
+      - scripts/nimicoding-host-hardcut.test.mjs
+      - scripts/lib/nimicoding-host-hardcut.mjs
+    source_rule: P-PKG-011
   - id: spec-generation-audit-nimicoding-implementation
     owner_domain: spec-meta
     authority_refs:

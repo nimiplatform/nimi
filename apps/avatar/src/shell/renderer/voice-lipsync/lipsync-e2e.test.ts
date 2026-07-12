@@ -1,7 +1,5 @@
-// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit
-// (design-05 §"测试基线 wave_1"; rewritten to wLipSync sink path).
-//
-// End-to-end test for the avatar audio + lipsync pipeline. Exercises:
+// Contract test for the avatar audio + lipsync pipeline defined by
+// .nimi/spec/avatar/kernel/backend-branch-contract.md. Exercises:
 //
 //   1. Mock SDK Runtime instance that resolves `runtime.artifacts.readArtifactBytes`
 //      with deterministic .wav-shaped bytes.
@@ -15,7 +13,7 @@
 //   5. Synthetic-mime fail-close path triggers sink.silent without decode.
 //   6. Interrupt path stops audio + state bus deactivates.
 //
-// Wave 0 hard-cut surface (no deviations):
+// Hard-cut surface (no deviations):
 //   - no deprecated runtime presentation per-frame mouth-batch consume
 //   - no caller-injected audio-bytes fetcher
 //   - no Live2D-specific mouth bridge instance

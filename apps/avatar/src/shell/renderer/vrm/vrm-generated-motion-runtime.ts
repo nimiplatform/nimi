@@ -1,4 +1,4 @@
-// Wave 2 of topic 2026-05-01-avatar-apml-auto-adapter.
+// Authority: .nimi/spec/avatar/kernel/generated-motion-provider-contract.md.
 //
 // Avatar-owned VRM generated motion runtime. This is downstream of typed
 // runtime.agent.* projection and does not load .vrma files; .vrma remains

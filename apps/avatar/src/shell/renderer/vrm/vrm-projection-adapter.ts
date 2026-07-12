@@ -1,15 +1,12 @@
-// Wave 3 chunk 3-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // VRM `BackendProjection` adapter — bridges ontology-level projection
 // methods (applyActivity / applyEmotion / applyMotion / applyExpression
-// / reset) to the chunk 3-A `VrmEmoteState` + chunk 3-B
+// / reset) to `VrmEmoteState` and the
 // generated motion runtime, routing activity ids through an injected
 // activity-mapping resolver.
 //
-// Spec: design-04 §"VRM Projection Adapter".
-//
-// Hard contract (per packet wave_3 negative_test #6 +
-// backend-branch-contract.md drift_check): the BackendProjection
+// Hard contract (per backend-branch-contract.md): the BackendProjection
 // surface is ontology-only; NO Live2D parameter id (`ParamMouthOpenY`
 // / `parameterId` / etc) on any method here. Live2D parameter writes
 // are reachable only through the kind-narrowed `live2dExtension`
@@ -20,7 +17,7 @@
 //     is responsible for any further evidence emission).
 //   - Activity route present but only some of {motion, emotion,
 //     expression} populated → only those present branches execute
-//     (each is independently optional per design-04 schema).
+//     (each is independently optional per the activity-mapping schema).
 
 import type { VRM } from '@pixiv/three-vrm';
 import type { VrmActivityRoute } from './vrm-activity-mapping.js';
@@ -43,7 +40,7 @@ export type CreateVrmProjectionAdapterInputs = {
 };
 
 /** Default crossfade duration applied when an activity route omits
- *  the field. Mirrors design-04 §"VRM Projection Adapter" sample. */
+ *  the field, as declared by the VRM projection contract. */
 export const DEFAULT_ACTIVITY_FADE_SEC = 0.2;
 /** Default crossfade duration applied to direct `applyMotion` calls
  *  when the caller omits `fade`. */
@@ -83,7 +80,7 @@ export function createVrmProjectionAdapter(
       }
       if (route.expression) {
         // Single expression overlay (transient; bypasses the bundle
-        // state machine — matches design-04 line 47).
+        // state machine defined by the VRM projection contract.
         emoteState.applyTransientExpression(
           route.expression,
           scaleByIntensity(intensity),

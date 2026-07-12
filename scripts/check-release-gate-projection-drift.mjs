@@ -2,8 +2,7 @@
 //
 // Check release gate projection drift.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; this checker enforces the registry authority below.
 // Authority: P-RELG-003 projection-only execution surfaces, P-RELG-009
 // drift gate self-bootstrap, P-RELG-010 .github/** step block codegen.
 //

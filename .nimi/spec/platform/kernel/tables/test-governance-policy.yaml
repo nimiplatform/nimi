@@ -58,7 +58,7 @@ classification_vocabulary:
     authority_refs: [P-TEST-002, P-TEST-004]
   - classification: evidence_only
     tier: T10
-    meaning: closeout / proof / screenshot / wave / phase artifact
+    meaning: closeout / proof / screenshot / transient execution / phase artifact
     default_gate_eligibility:
       regression: never
       release: never

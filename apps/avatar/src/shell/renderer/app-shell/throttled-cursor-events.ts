@@ -1,8 +1,7 @@
-// Wave 4 chunk 4-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/app-shell-contract.md.
 //
 // 60Hz-capped wrapper around the Tauri `set_ignore_cursor_events` IPC.
-// Per app-shell-contract.md §2.3.1 + packet acceptance_invariant 7 +
-// negative_test #3, the underlying IPC must not be invoked more than once
+// Per app-shell-contract.md §2.3.1, the underlying IPC must not be invoked more than once
 // per ~16.67ms (1000/60). Pointer events on macOS can fire at 60-120Hz
 // during drag; calling Tauri once per pointermove would saturate the IPC
 // channel and lag the click-through transition.
@@ -18,8 +17,8 @@
 
 import { setIgnoreCursorEvents } from './tauri-commands.js';
 
-/** 1000 / 60 ≈ 16.67ms. Frozen here as a NAMED constant per packet
- *  acceptance_invariant 13 (no scattered float literals in throttle
+/** 1000 / 60 ≈ 16.67ms. Frozen here as a named contract constant (no
+ *  scattered float literals in throttle
  *  logic). Tests verify the exported value. */
 export const THROTTLED_CURSOR_EVENTS_MIN_INTERVAL_MS = 1000 / 60;
 

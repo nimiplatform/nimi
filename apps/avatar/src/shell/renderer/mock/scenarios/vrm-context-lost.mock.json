@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-context-lost",
   "version": "1",
-  "description": "Wave 3 of topic 2026-05-15-avatar-vrm-deferral-and-authority-reconciliation. Isolates the VRM lifecycle context-loss proof from the broader lifecycle scenario: first webglcontextlost must recover through the admitted 1500ms retry window; second loss before recovery must fail closed with context_lost_twice.",
+  "description": "Isolates the VRM lifecycle context-loss proof from the broader lifecycle scenario: first webglcontextlost must recover through the admitted 1500ms retry window; second loss before recovery must fail closed with context_lost_twice.",
   "duration_ms": 7000,
   "loop": false,
 

@@ -15,5 +15,6 @@ rules:
   - PASS requires blocking_findings to be empty and ready_for_implementation=true
   - NEEDS_REVISION or FAIL requires ready_for_implementation=false
   - deferred_non_blockers must not hide unresolved authority owner, parallel truth, or downstream vocabulary blockers
-  - auditor output is candidate evidence until recorded by the nimicoding manager as a topic audit result
+  - auditor output is candidate evidence until consumed by the external AI host and admitted by the authority owner
   - auditor must not edit implementation code, mutate spec truth, or decide semantic acceptance
+  - auditor output must not create or advance host workflow state

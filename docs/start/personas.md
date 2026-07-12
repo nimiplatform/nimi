@@ -77,12 +77,12 @@ project of your own.
    package.
 2. [Nimi Coding → Whitepaper](/nimicoding/whitepaper) — the paradigm
    thesis.
-3. [Nimi Coding → Topic Workflow](/nimicoding/topic-workflow) — the
-   topic / wave / packet / preflight / audit / closeout lifecycle.
+3. [Nimi Coding → Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution) —
+   the boundary between host execution and project truth, gates, and evidence.
 4. [Reference → Forbidden Claims](/reference/forbidden-claims) — the
    forbidden-shortcuts mindset applied to docs.
-5. [Reference → State Machines](/reference/state-machines) — topic and
-   wave state machines.
+5. [Reference → Schemas](/nimicoding/reference/schemas) — the contracts
+   for reconstruction, evidence, and acceptance.
 
 ## Auditor / Reviewer
 
@@ -94,13 +94,12 @@ public claims back to source.
 2. [Reference → Authority Domains](/reference/authority-domains) — who
    owns what.
 3. [Reference → Glossary](/reference/glossary) — vocabulary alignment.
-4. [Nimi Coding → Topic Workflow](/nimicoding/topic-workflow) — how
-   work artifacts (topic.yaml, packet, preflight result, audit,
-   closeout) are structured.
+4. [Nimi Coding → Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution) —
+   how authority, gates, runtime checks, and evidence support review.
 
 ## Source Basis
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
+- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)

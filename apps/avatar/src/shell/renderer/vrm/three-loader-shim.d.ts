@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Type bridge governed by .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // `three` does not ship .d.ts for its `examples/jsm/**` add-on modules and
 // we deliberately do not add a workspace-wide `@types/three` dependency at

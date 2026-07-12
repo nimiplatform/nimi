@@ -1,16 +1,15 @@
-// Wave 1 K-NAV-SHELL-COMPOSITION-001..002 + topic
-// `2026-04-30-avatar-vrm-backend-branch` wave_1 step_4 + wave_4 chunk
-// 4-C — per-surface unit test for embodiment-stage covering:
+// K-NAV-SHELL-COMPOSITION-001..002 per-surface unit tests for
+// embodiment-stage covering:
 //  * render presence under ready / fixture_active composition states
 //  * surface-mounted / surface-unmounted evidence emission
 //  * BackendBranch surface mount + the three lifecycle callbacks
 //    (audio-consumer registration, hit-region throttle, lifecycle
-//    evidence record) introduced in step_4
+//    evidence record)
 //  * pointermove → setIgnoreCursorEvents alpha-mask + bbox fallback
-//    routing (chunk 4-C)
+//    routing
 //  * global cursor poll recovery after click-through is enabled, preventing
 //    macOS ignoreCursorEvents deadlock
-//  * 60Hz cap on rapid pointermove (chunk 4-C acceptance_invariant 7)
+//  * canonical 60Hz cap on rapid pointermove
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -269,7 +268,7 @@ describe('EmbodimentStage — composition evidence emit', () => {
   });
 });
 
-describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () => {
+describe('EmbodimentStage — BackendBranch surface mount', () => {
   it('mounts backend.surface.Component when backend is provided', () => {
     const consumer = createAudioConsumerStub();
     const backend = createMockBackend({ audioConsumer: consumer });
@@ -873,7 +872,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       vi.advanceTimersByTime(100);
     });
     // After drain: leading + at most 1 trailing = ≤ 2 total per the
-    // 60Hz cap (packet acceptance_invariant 7 + negative_test #3).
+    // Canonical 60Hz cap.
     expect(setIgnoreCursorEventsMock.mock.calls.length).toBeLessThanOrEqual(2);
   });
 });

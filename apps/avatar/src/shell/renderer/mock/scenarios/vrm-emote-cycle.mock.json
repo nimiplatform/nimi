@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-emote-cycle",
   "version": "1",
-  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Emotion-only sequence neutral → happy → sad → relaxed → neutral driving the chunk 3-A VrmEmoteState through the BackendProjection.applyEmotion path. Validates emote bundle crossfade (each blend_duration_sec ramps), primary expressive weight stays ≤ 0.8 (cap; per vrm-emote-states.yaml constraint), and avatar.emote.applied evidence shape (skipped_count=0 since lipsync inactive). VRM expressionManager.setValue is invoked for each emote bundle's preset names (happy/sad/relaxed/aa/oh/ih/...).",
+  "description": "Emotion-only sequence neutral → happy → sad → relaxed → neutral driving VrmEmoteState through the BackendProjection.applyEmotion path. Validates emote bundle crossfade (each blend_duration_sec ramps), primary expressive weight stays ≤ 0.8 (cap; per vrm-emote-states.yaml constraint), and avatar.emote.applied evidence shape (skipped_count=0 since lipsync inactive). VRM expressionManager.setValue is invoked for each emote bundle's preset names (happy/sad/relaxed/aa/oh/ih/...).",
   "duration_ms": 2000,
   "loop": false,
 

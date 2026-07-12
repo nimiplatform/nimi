@@ -1,4 +1,4 @@
-// Wave 3 chunk 3-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Thin `.vrma` loader + `clipFromVRMAnimation` wrapper. Houses the
 // `loadVrmAnimation` function that previously lived in vrm-loader.ts
@@ -58,8 +58,7 @@ export async function loadVrmAnimation(url: string): Promise<VRMAnimation | null
  * Build a Three.js `AnimationClip` from a `VRMAnimation` for the given
  * VRM instance. Thin wrapper around `@pixiv/three-vrm-animation`'s
  * `createVRMAnimationClip` — exposed under the contract-stable name
- * `clipFromVRMAnimation` (matches vrm-backend-contract.md §3.1 wording
- * and the registry algorithm in design-04 / design-08).
+ * `clipFromVRMAnimation` (matches vrm-backend-contract.md §3.1).
  */
 export function clipFromVRMAnimation(animation: VRMAnimation, vrm: VRM): AnimationClip {
   return createVRMAnimationClip(animation, vrm);

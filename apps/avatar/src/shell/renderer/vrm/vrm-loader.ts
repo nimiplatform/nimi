@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Singleton GLTFLoader wired with VRMLoaderPlugin + VRMAnimationLoaderPlugin
 // + the apps/avatar MToon outline policy plugin. Responsible for loading
@@ -49,8 +49,8 @@ type GltfParserRuntime = {
 
 /**
  * Return the process-singleton GLTFLoader. Plugins are registered on
- * first construction; subsequent calls reuse the same instance — required
- * by acceptance_invariant #6 (singleton) and asserted in tests.
+ * first construction; subsequent calls reuse the same instance, as required
+ * by K-NAV-VRM-001 and asserted in tests.
  *
  * The same loader handles both `.vrm` (VRMLoaderPlugin) and `.vrma`
  * (VRMAnimationLoaderPlugin); each plugin only activates when its

@@ -66,9 +66,8 @@ type Service struct {
 
 // ingestTaskProjection is in-memory UX projection for IngestDocument
 // task ids (slug/title). The cognition store's IngestTask envelope
-// does not carry slug, so we keep this small map until either
-// nimi-cognition extends the envelope or a future topic moves the
-// projection into persistent storage.
+// does not carry slug, so we keep this small map unless nimi-cognition extends
+// the envelope or persistent-storage authority is explicitly admitted.
 type ingestTaskProjection struct {
 	BankID string
 	Slug   string

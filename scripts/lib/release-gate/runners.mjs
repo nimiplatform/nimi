@@ -1,7 +1,6 @@
 // Process runners for the release gate runner.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-005 verdict semantics, P-RELG-007 no pseudo-success.
 //
 // Flat-module deviation from D4 design "scripts/lib/release-gate/runners/{pnpm,node,go,shell}.mjs":

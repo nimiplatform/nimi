@@ -728,8 +728,8 @@ describe('SdkDriver', () => {
           finalArtifact: true,
         },
       };
-      // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch hard-cut:
-      // the deprecated runtime presentation per-frame mouth-batch consume
+      // The backend-branch hard cut removes the deprecated Runtime
+      // presentation per-frame mouth-batch consume
       // path was deleted; the frame batch fixture is no longer emitted
       // into the SdkDriver stream.
       await new Promise(() => {});
@@ -771,7 +771,7 @@ describe('SdkDriver', () => {
         }),
         playbackTarget: 'avatar_autoplay',
       }));
-    // Wave 0 hard-cut: the deprecated per-frame mouth-batch presentation
+    // Hard cut: the deprecated per-frame mouth-batch presentation
     // event is no longer in the SdkDriver event type union nor in the
     // dispatch case set. Typecheck enforces absence; we additionally assert
     // no presentation event outside the runtime-owned voice surfaces is

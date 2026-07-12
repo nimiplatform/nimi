@@ -1,18 +1,16 @@
 # check:ui-glass-boundary allowlist
 #
-# Two-segment schema (per preflight-phase-1.md §stop_line §3):
+# Two-segment schema:
 #
-#   Segment A (time-bounded, topic-in-scope deferrals):
-#     Sites temporarily exempted during an active topic's rollout.
+#   Segment A (time-bounded migration deferrals):
+#     Sites temporarily exempted during an admitted authority migration.
 #     Each entry MUST carry a `cutoff: <phase-or-step-name>` note.
 #     Once the cutoff lands, the entry MUST be removed; remaining
 #     entries past cutoff cause the gate to fail-close on audit.
 #
-#   Segment B (topic-out-of-scope, pinned known debt):
-#     Sites NOT absorbed by the current topic. Each entry MUST carry a
-#     `ticket: <follow-on-ref>` note so debt is traceable. No cutoff.
-#     A future topic may migrate any subset of these and remove the
-#     corresponding entries.
+#   Segment B (pinned known debt):
+#     Sites outside the current authority migration. Each entry MUST carry an
+#     `authority: .nimi/spec/<artifact>[#anchor]` note. No cutoff.
 #
 # Entry format: `<path>:<line>  # <segment-tag> | <note>`
 #   path is repo-relative; line is 1-based.
@@ -21,7 +19,7 @@
 # required for human review.
 
 # ========================================================================
-# Segment A — time-bounded (topic 2026-04-18-nimi-ui-glassmorphism-system-uplift)
+# Segment A — time-bounded migration deferrals
 # ========================================================================
 #
 # Empty. All Phase 1 step 3 deferrals (article.tsx:145, world-list.tsx:148)
@@ -33,10 +31,10 @@
 # declares its cutoff phase.
 
 # ========================================================================
-# Segment B — topic-out-of-scope (pinned known debt)
+# Segment B — pinned known debt
 # ========================================================================
 #
 # Scope origin: 2026-04-18 audit plus subsequent preflight debt intake.
 # Empty. The 110-site UI glass bypass debt was hard-cut by
 # `2026-05-11-ui-glass-material-bypass-cleanup`; future Segment B entries must
-# resolve to a concrete `.nimi/topics/**` disposition artifact.
+# resolve to a concrete canonical `.nimi/spec/**` authority artifact.

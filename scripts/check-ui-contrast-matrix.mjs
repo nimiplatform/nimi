@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // check:ui-contrast-matrix
 //
-// Phase 3a CI gate (topic 2026-04-18-nimi-ui-glassmorphism-system-uplift).
+// CI gate for the spec-owned Nimi UI token and theme matrix.
 //
 // Computes WCAG 2.1 AA contrast ratios for every admitted material tier ×
 // surface tone × theme combination declared in
@@ -13,8 +13,7 @@
 // (UI chrome / large-text target ≥ 3:1).
 //
 // Forward-compat: the tier list is derived from the yaml at runtime. No
-// hardcoded tier names. Works with the 3-tier or 5-tier taxonomy (Phase 1
-// closed 3-tier baseline or Phase 2 closed 5-tier).
+// hardcoded tier names. Works with either admitted 3-tier or 5-tier taxonomy.
 //
 // Spec: P-DESIGN-022 (material layering) + .nimi/spec/platform/kernel/
 // nimi-ui-material-contract.md §3 (4.5:1 threshold).

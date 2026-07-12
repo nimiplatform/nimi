@@ -11,8 +11,8 @@
  * producible in the current renderer-shell harness (the full panel pages need a
  * deep provider tree — QueryClient, Tooltip, runtime-config controller, bridge).
  * This renderer-markup test renders the genuinely-renderable IA unit; it is the
- * honest substitute. The whole-product screenshot / E2E matrix is deferred to
- * portfolio topic T11.
+ * focused structural proof. Whole-product screenshot / E2E acceptance remains
+ * a required live-app verification surface outside this unit test.
  */
 
 import assert from 'node:assert/strict';

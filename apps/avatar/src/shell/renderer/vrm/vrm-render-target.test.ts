@@ -1,4 +1,4 @@
-// Wave 4 chunk 4-A of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Tests for vrm-render-target. Most cases use stubMode because jsdom
 // does not provide WebGL. The real-WebGL path is exercised via a

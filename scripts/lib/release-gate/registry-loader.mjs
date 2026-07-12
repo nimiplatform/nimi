@@ -1,7 +1,6 @@
 // Registry loader — canonical parse path for the release gate registry.
 //
-// Owner: scripts (W1 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-001..014 in
 // .nimi/spec/platform/kernel/release-gate-contract.md.
 //

@@ -29,5 +29,5 @@ Nimi product authority is organized by active domain. Kernel markdown files and 
 ## Non Product Surfaces
 
 - `.nimi/contracts/**`, `.nimi/methodology/**`, and `.nimi/config/**` are host-local nimicoding projections created by CLI initialization or synchronization.
-- `.nimi/topics/**` carries human topic lifecycle records and candidate planning context.
+- Per `P-PKG-010..P-PKG-011`, non-authoritative execution evidence and durable decision dossiers, when needed, belong to external-host-managed context, explicitly admitted local evidence surfaces, or Git history. No repository task-lifecycle directory is product authority.
 - Generated views are rendered on demand by nimicoding commands and are not tracked as product authority.

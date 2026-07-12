@@ -487,13 +487,12 @@ export async function startAvatarVisualCarrier(input: {
           ...(interactionPhysics ? { interactionPhysics } : {}),
         });
       }
-      // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch: voice-lipsync
-      // wiring no longer takes `projection`, `mouthSignalId`, or a caller-
+      // The backend-branch hard cut removes `projection`, `mouthSignalId`, and
+      // the caller-
       // injected byte fetcher. Audio bytes are read via
       // `runtime.artifacts.readArtifactBytes` (S-RUNTIME-111) inside
       // AudioPipelineController; per-frame mouth movement comes from
-      // BackendAudioConsumer.snapshot() once the BackendBranch carrier
-      // wiring (this wave_1) lands the per-backend audio consumer.
+      // BackendAudioConsumer.snapshot() through the mounted backend surface.
       unwireVoiceLipsync = wireAvatarVoiceLipsync({
         driver,
       });

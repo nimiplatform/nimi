@@ -60,9 +60,10 @@ test('repair-runtime-local-models write refuses local_unverified repair without 
 
 test('repair-runtime-local-models write records explicit local_unverified admission ref', async () => {
   const { modelsRoot, localStatePath } = await makeRepairFixture();
+  const admissionRef = '.nimi/spec/desktop/kernel/security-contract.md#D-SEC-006';
   const result = runRepair([
     '--write',
-    '--integrity-admission-ref', 'topic://wave-runtime-local-model-repair-integrity-admission/test-admission',
+    '--integrity-admission-ref', admissionRef,
     '--local-state-path', localStatePath,
     '--models-root', modelsRoot,
   ]);
@@ -73,7 +74,7 @@ test('repair-runtime-local-models write records explicit local_unverified admiss
   const manifestPath = path.join(modelsRoot, 'resolved', 'local', 'test-model', 'asset.manifest.json');
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
   assert.equal(manifest.integrity_mode, 'local_unverified');
-  assert.equal(manifest.repair_admission_ref, 'topic://wave-runtime-local-model-repair-integrity-admission/test-admission');
+  assert.equal(manifest.repair_admission_ref, admissionRef);
 
   const state = JSON.parse(await fs.readFile(localStatePath, 'utf8'));
   assert.equal(state.assets[0].status, 1);

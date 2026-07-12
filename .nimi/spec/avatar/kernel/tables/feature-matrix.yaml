@@ -26,7 +26,7 @@ description: >
   Final capability matrix for Nimi Avatar. This table lists the active
   Avatar product capability baselines, their authority references, dependency
   order, and verification gates. It is not a delivery journal and must not
-  encode topic lifecycle, implementation history, or process provenance.
+  encode host task lifecycle, implementation history, or process provenance.
 
 capabilities: &avatar_capability_matrix_entries
   shell_surface_authority:

@@ -51,8 +51,6 @@ const activeReferenceScanRoots = [
   'config',
   'package.json',
   'pnpm-workspace.yaml',
-  '.nimi/topics/proposal/2026-04-24-live2d-existing-assets-nimi-adaptation',
-  '.nimi/topics/proposal/2026-05-01-avatar-apml-auto-adapter',
 ];
 const generatedMotionBoundaryFiles = new Set([
   `${kernelRoot}/generated-motion-provider-contract.md`,

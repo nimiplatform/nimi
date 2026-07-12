@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // check:ui-glass-boundary
 //
-// Phase 1 CI gate (topic 2026-04-18-nimi-ui-glassmorphism-system-uplift).
+// CI gate for the canonical Nimi UI glass material contract.
 //
 // Fail-closes on any non-kit source that bypasses the admitted glass material
 // contract. Bypass patterns scanned across `apps/**/src/**`, excluding
@@ -27,10 +27,9 @@
 //
 // Known-debt register:
 //   - scripts/ui-glass-boundary.allowlist.txt
-//   - Segment A (time-bounded, topic-in-scope deferrals) — currently empty
-//     after Phase 1 step 3 closed on 2026-04-18.
-//   - Segment B (topic-out-of-scope, pinned known debt) — 35 sites across
-//     web + misc apps; require explicit migration in a future topic.
+//   - Segment A (time-bounded migration deferrals).
+//   - Segment B (pinned known debt); each entry requires an exact canonical
+//     authority reference.
 //
 // Spec companion: .nimi/spec/platform/kernel/nimi-ui-material-contract.md
 //
@@ -80,31 +79,31 @@ function loadAllowlist() {
     entries.add(key);
     const lineNo = index + 1;
     if (line.includes('segment-B')) {
-      const ticketMatch = line.match(/\bticket:\s+(\S+)/);
-      if (!ticketMatch) {
-        errors.push(`${ALLOWLIST_FILE}:${lineNo} ${key} is segment-B but has no ticket`);
+      const authorityMatch = line.match(/\bauthority:\s+(\S+)/);
+      if (!authorityMatch) {
+        errors.push(`${ALLOWLIST_FILE}:${lineNo} ${key} is segment-B but has no authority reference`);
         continue;
       }
-      const ticket = ticketMatch[1];
-      const ticketError = validateTicketRef(ticket);
-      if (ticketError) {
-        errors.push(`${ALLOWLIST_FILE}:${lineNo} ${key} has invalid ticket "${ticket}": ${ticketError}`);
+      const authority = authorityMatch[1];
+      const authorityError = validateAuthorityRef(authority);
+      if (authorityError) {
+        errors.push(`${ALLOWLIST_FILE}:${lineNo} ${key} has invalid authority "${authority}": ${authorityError}`);
       }
     }
   }
   return { entries, errors };
 }
 
-function validateTicketRef(ticket) {
-  if (/^(?:FOLLOWON-|TBD$|TODO$|PLACEHOLDER$)/i.test(ticket)) {
-    return 'placeholder ticket references are forbidden';
+function validateAuthorityRef(authority) {
+  if (/^(?:FOLLOWON-|TBD$|TODO$|PLACEHOLDER$)/i.test(authority)) {
+    return 'placeholder authority references are forbidden';
   }
-  if (!ticket.startsWith('.nimi/topics/')) {
-    return 'ticket must resolve to a .nimi topic artifact';
+  if (!authority.startsWith('.nimi/spec/')) {
+    return 'authority must resolve to a canonical .nimi/spec artifact';
   }
-  const [fileRef, anchor] = ticket.split('#', 2);
-  if (!/^\.nimi\/topics\/(?:proposal|ongoing|pending|closed)\/[^/]+\/.+/.test(fileRef)) {
-    return 'ticket must point inside .nimi/topics/{proposal,ongoing,pending,closed}/<topic-id>/';
+  const [fileRef, anchor] = authority.split('#', 2);
+  if (!/^\.nimi\/spec\/.+/.test(fileRef)) {
+    return 'authority must point inside .nimi/spec/';
   }
   const abs = path.join(repoRoot, fileRef);
   if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {

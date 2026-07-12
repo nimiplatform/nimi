@@ -1,13 +1,12 @@
-// Wave 2 chunk 2-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Pure (non-React) VRM lifecycle state machine. The carrier surface
 // subscribes to state transitions and forwards lifecycle evidence via the
 // BackendSurfaceProps onLifecycleEvidence callback. Owning the state
 // machine here (instead of inside the React component) keeps the
 // context-lost retry timing testable without R3F / WebGL and keeps the
-// 1500ms single-retry contract enforceable as a unit test (acceptance
-// invariant: vrm-backend-contract.md §2.3 + packet wave-2 invariant
-// "1500ms single retry then fail-close on second loss").
+// 1500ms single-retry contract enforceable as a unit test
+// (vrm-backend-contract.md §2.3).
 //
 // State diagram:
 //

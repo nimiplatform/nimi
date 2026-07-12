@@ -1,227 +1,85 @@
-# 流程演示
+# 走查：受治理的认证迁移
 
-下面是一个虚构但贴近现实的 Nimi Coding topic，从开始走到结束。它不是仓库里真实存在的 topic，只是一个用来演示完整流程的示例。
+团队要求 Codex 把桌面端自有认证路径替换为共享 SDK 与 Kit 认证表面。这项工作
+会触及 token custody、runtime 连通性和用户可见 shell，因此属于高风险变更。
 
-## 背景
+下面展示 Codex 自有执行如何与 Nimi Coding 的真相、方法论、门禁和证据结合。
 
-某团队要把认证服务从只用 JWT 迁移到 JWT 加 session bearer 双轨。这次变更触及权威契约、运行时执行和 SDK 接口呈现，正是方法论想要覆盖的跨域工作。
+## 1. 确认权威
 
-下面追踪这个 topic 从 `proposal` 走到 `closed` 的完整过程。
+Codex 读取当前平台、SDK、Kit 与桌面端规范。预检记录：
 
-## 阶段 1：创建 topic（`proposal`）
-
-团队主程写下一个 topic。
-
-`topic.yaml`（初始）：
-
-```yaml
-topic_id: 2026-06-15-auth-jwt-plus-session-migration
-state: proposal
-created_at: 2026-06-15
-last_transition_at: 2026-06-15
-last_transition_reason: topic_created
-title: Auth JWT-Plus-Session Migration
-mode: landed
-posture: no_legacy_hard_cut
-design_policy: complete_contract_first
-parallel_truth: forbidden
-layering: ontology
-risk: high
-applicability: high_risk_refactor
-entry_justification: |
-  Migrate auth from JWT-only to JWT+session bearer. Touches
-  authority contract (P-AUTH-*), runtime execution
-  (K-AUTH-*), SDK projection (S-ERROR-*). Backward-compat
-  path is hard-cut; legacy alias is forbidden.
-execution_mode: manager_worker_auditor
-selected_next_target: null
-current_true_close_status: not_started
-forbidden_shortcuts:
-  - mvp_subset_contract
-  - legacy_alias
-  - compat_shim
-  - dual_read
-  - dual_write
-  - placeholder_success
-  - happy_path_only_closure
-  - time_phased_layering
-  - app_local_shadow_truth
-  - silent_owner_cut_reopen
-waves: []
-```
-
-topic 已存在，但还没有 wave。
-
-## 阶段 2：设计（仍在 `proposal`）
-
-团队写出 `design.md`，明确这次迁移要做成什么形态。设计中点明：
-
-- 新引入的 `SessionBearer` 契约。
-- 已有的 `JWT` 与新 `SessionBearer` 之间的关系：以显式双真相准入登记，并约定切换日期，不走静默的 `legacy_alias`。
-- 这次迁移必须满足的四闭合条件。
-
-## 阶段 3：准入 wave-1（`proposal → ongoing`）
-
-团队准入第一个 wave。
-
-```yaml
-- wave_id: wave-1-auth-spec-update
-  slug: auth-spec-update
-  state: admitted
-  primary_closure_goal: |
-    Update `.nimi/spec/runtime/kernel/auth-service.md` and
-    `.nimi/spec/sdks/kernel/error-projection.md` to admit the
-    SessionBearer contract alongside JWT. Explicit
-    dual-admission with cutover date.
-  deps: []
-  owner_domain: .nimi/spec/runtime/kernel/auth-service.md and .nimi/spec/sdks/kernel/error-projection.md
-  parallelizable_after: stable_authority_contract
-  selected: true
-```
-
-topic 状态从 `proposal` 转入 `ongoing`，`selected_next_target` 指向 wave-1。
-
-## 阶段 4：实施前的权威收敛
-
-wave-1 是 `spec` packet（触及 `.nimi/spec/`）。权威收敛闸门触发。
-
-manager 启动一次独立审计（另一个 AI 会话）：
-
-| 结果类型 | 审计（audit） |
-| 判定 | PASS |
-| 发现 | 无阻断项 |
-
-manager 记录审计结果。wave-1 现在可以派发。
-
-## 阶段 5：冻结 wave-1 packet 并派发 worker
-
-packet 冻结，写明允许的读、允许的写、验收恒定式、负面测试、停止线和重开条件。
-
-worker（AI 宿主）在 packet 边界内执行：
-
-- 读取 `.nimi/spec/runtime/kernel/auth-service.md`。
-- 修改文件，准入 `SessionBearer` 契约。
-- 读取 `.nimi/spec/sdks/kernel/error-projection.md`。
-- 修改文件，新增 SessionBearer 的 error reason code。
-- 抵达 packet 边界即停，不动其他表面。
-
-## 阶段 6：实施后的判定
-
-独立回路对实施结果做复核。
-
-| 结果类型 | 判定（judgement） |
-| 判定 | PASS |
-| 发现 | 无阻断项 |
-
-wave-1 进入 closeout 阶段。
-
-## 阶段 7：wave-1 closeout（四闭合）
-
-| 维度 | 判定 | 证据 |
-| --- | --- | --- |
-| 权威闭合 | closed | 规范属主唯一，未引入并行真相 |
-| 语义闭合 | closed | SessionBearer 必填字段、失败模式已锁定 |
-| 消费方闭合 | closed | App 开发者可读 SessionBearer 契约；runtime 与 SDK 对齐 |
-| 抗漂移闭合 | closed | 已声明禁用 `legacy_alias`、`compat_shim`、`dual_read`、`dual_write`；重开条件显式 |
-
-wave-1 关闭。 topic 仍在 `ongoing`，因为还有后续 wave。
-
-## 阶段 8：准入 wave-2（runtime 实现）
-
-wave-2 按新规范实现 runtime auth-service 的改动。
-
-```yaml
-- wave_id: wave-2-runtime-auth-implementation
-  slug: runtime-auth-implementation
-  state: admitted
-  primary_closure_goal: |
-    Implement SessionBearer issuance and validation in
-    runtime auth-service. JWT path stays operational under
-    explicit dual-truth admission per wave-1.
-  deps:
-    - wave-1-auth-spec-update
-  owner_domain: runtime/internal/auth/**
-```
-
-wave-2 是 `implementation` packet（不触及 `.nimi/spec/`），权威收敛闸门不触发。wave-2 可以直接派发。
-
-## 阶段 9：wave-2 出现 OVERFLOW
-
-实施过程中，worker 在未完成的状态下抵达 packet 边界。所有权域并未被越过，方向仍然正确，也没有引入影子真相。
-
-| 结果 | OVERFLOW |
-| 原因 | packet 边界划得过窄 |
-
-manager 评估：是否允许续作？答案是允许（方向正确、影响范围可控、没有影子真相、无需回退）。
-
-manager 准入一份续作 packet，扩大边界。worker 继续。
-
-## 阶段 10：wave-2 closeout
-
-续作完成后，wave-2 走完四闭合（PASS）并关闭。
-
-## 阶段 11：wave-3（SDK 接口层）
-
-wave-3 让 SDK 暴露新的 SessionBearer error reason code。
-
-经过派发、审计、closeout，关闭并 PASS。
-
-## 阶段 12：topic 进入 pending
-
-所有准入的 wave 都已关闭。机械上看迁移已经完成。但团队希望先在生产环境观察一个完整发布周期，再宣告 true close。
-
-topic 状态从 `ongoing` 转入 `pending`，并附带显式 `pending-note`：
-
-```yaml
-reason: awaiting-deployment-observation
-close_trigger: One full release cycle observed without
-  SessionBearer regression
-reopen_criteria: SessionBearer regression observed; admit
-  remediation wave under this topic
-```
-
-## 阶段 13：pending 解除，true close
-
-一个发布周期之后没有回归。团队触发 true close。
-
-| 步骤 | 动作 |
+| 字段 | 决策 |
 | --- | --- |
-| 1. topic-true-close-audit | 独立审计确认四个闭合在生产环境观察下均成立 |
-| 2. result-topic-true-close | 已记录 |
-| 3. `topic.yaml` 更新 | `state: pending → closed`；`current_true_close_status: not_started → true_closed`；`last_transition_reason: topic_true_close_passed` |
-| 4. 文件夹迁移 | `.nimi/topics/pending/2026-06-15-auth-jwt-plus-session-migration/` → `.nimi/topics/closed/2026-06-15-auth-jwt-plus-session-migration/` |
+| `Spec Status` | 认证与 shell 权威已经存在 |
+| `Authority Owner` | 平台认证契约，以及 SDK 与 Kit 公共表面 |
+| `Work Type` | Alignment，不改变权威设计 |
+| `Parallel Truth` | 禁止桌面端保留应用局部 token custody |
 
-## 这次演示展示了什么
+如果这些来源互相矛盾，实现必须停止，先完成权威收敛。
 
-| 性质 | 在本次演示中如何体现 |
+## 2. 在 Codex 中规划
+
+任务计划留在 Codex App。Codex 可以让子代理分别读取 SDK、Desktop 与验证表面，
+但只有一个任务所有者和一份完成状态。仓库不复制计划，也不保存执行 cursor。
+
+实现边界明确为：
+
+- 复用共享 SDK auth client；
+- 消费 Kit shell 与 auth primitives；
+- 删除 Desktop 局部 token 路径；
+- runtime 或 auth 不可用时保持 fail closed；
+- 在真实 app shell 验证桌面与窄屏布局。
+
+## 3. 沿公共表面实现
+
+如果缺少必要公共能力，Codex 先修改 SDK 或 Kit owner。Desktop 只消费公共表面，
+不能新增内部 REST bypass、token store 或重复 UI primitive。
+
+测试补在真正的 owner 层，并覆盖公共边界与失败态，而不只保护登录成功路径。
+
+## 4. 运行确定性门禁
+
+Codex 运行受影响的 SDK、Desktop 测试和仓库边界检查。只有真实命令实际运行并
+返回结果，才能作为证据。
+
+如果 validator 发现应用层 auth bypass，任务仍然开放。Codex 修复 owner 违规，
+再重新运行检查。
+
+## 5. 验证真实应用
+
+Codex 启动真实 Desktop shell，检查：
+
+- 未登录、登录中、已登录和认证失败状态；
+- runtime 与 SDK 连通性；
+- 禁用态与等待态控件；
+- 桌面与窄屏布局；
+- 长英文与中文文本；
+- 键盘与可访问性行为；
+- console error 和被拒绝的网络操作。
+
+截图支撑视觉判断，DOM 与 runtime 检查确认结构和状态，两者不能互相替代。
+
+## 6. 记录证据并完成
+
+契约要求的本地证据记录命令、结果、runtime 观察和剩余风险。证据放在
+`.nimi/local/**`，不能成为产品权威或任务状态。
+
+只有迁移结果、owner 对齐、确定性门禁和真实 app 验收全部成立，Codex 才能把
+任务标记为完成。长期结果如下：
+
+| 表面 | 长期结果 |
 | --- | --- |
-| 权威被显式命名 | topic 写明 `forbidden_shortcuts`、`owner_domain`、`parallel_truth` 立场 |
-| 执行被 packet 化 | 每个 wave 都有自己的 packet，写明允许的读 / 写 |
-| 闭合是多维的 | wave-1 的 closeout 写出四个独立维度 |
-| 角色被分离 | manager 准入，worker 执行，独立 auditor 复核 |
-| 权威收敛 | 涉及规范的 wave 强制要求实施前审计 + 实施后判定 |
-| 禁用反模式 | 在 packet 层声明，由审计核查 |
-| OVERFLOW 与 PASS | wave-2 触发 OVERFLOW，按显式条件续作 |
-| true close 不等于 wave 关闭 | wave 全部关闭后 topic 仍处于 pending；true close 需要单独审计 |
-| pending 状态 | 用于"等待生产环境观察"，重开条件强类型化 |
-
-每一项都对应包内已准入的机制。
-
-## 这次演示没有展示什么
-
-| 关注点 | 略过原因 |
-| --- | --- |
-| 真实的认证代码 | 不在文档范围内 |
-| 用了哪个 provider / 哪个模型 | 宿主无关，对方法论而言不影响 |
-| CI 管线 | 属于 DevOps 层，不属于 Nimi Coding 层 |
-| 行级 diff | 方法论纪律在 wave 级，不在行级 |
+| `.nimi/spec/**` | 认证与 shell 的规范真相 |
+| SDK / Kit / Desktop | 对齐后的实现 |
+| 脚本与测试 | 回归保护 |
+| `.nimi/local/**` | 复核证据 |
+| Codex | 任务进度与完成状态 |
 
 ## 来源依据
 
-- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
-- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
-- [`nimi-coding/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-convergence-policy.yaml)
-- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/topic.schema.yaml)
-- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/wave.schema.yaml)
-- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
-- [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/closeout.schema.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/contracts/high-risk-admission.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/high-risk-admission.schema.yaml)
+- [`.nimi/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/prompt.schema.yaml)
+- [`.nimi/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/worker-output.schema.yaml)
+- [`.nimi/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/acceptance.schema.yaml)

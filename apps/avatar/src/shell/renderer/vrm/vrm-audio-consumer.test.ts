@@ -1,4 +1,4 @@
-// Wave 3 chunk 3-D of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Verifies the VRM BackendAudioConsumer (vrm-audio-consumer.ts). Mirrors
 // the live2d audio consumer test patterns: stub `createWLipSyncNode` via

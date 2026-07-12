@@ -1,4 +1,4 @@
-// Wave 4 chunk 4-A of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/app-shell-contract.md.
 //
 // Per-device tier detector for the avatar carrier. Implements the
 // Tier A/B/C classification specified in app-shell-contract.md §2.3.2:

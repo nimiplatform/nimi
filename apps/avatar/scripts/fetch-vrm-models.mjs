@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Wave 2 of topic 2026-04-30-avatar-vrm-backend-branch (design-08 / packet
-// acceptance_invariant 18). Downloads representative VRM samples to
+// Projects the representative sample authority from
+// .nimi/spec/avatar/kernel/tables/vrm-sample-catalog.yaml. Downloads samples to
 // apps/avatar/.cache/assets/vrm-models/. Idempotent: skips redownload
 // when an existing file already meets `expectedMinBytes`.
 //

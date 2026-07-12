@@ -28,14 +28,11 @@ artifact_class_enum:
   - state_manifest
   - audit_index
   - audit_summary
-  - roadmap_index
-  - roadmap_summary
 admissions: []
 allowed_roots:
   - .nimi/derived/**
   - .nimi/state/**
   - .nimi/audit/**
-  - .nimi/roadmap/**
 privacy_posture_enum:
   - non_private
   - redacted
@@ -51,14 +48,13 @@ non_parallel_truth_basis_enum:
   - indexes_authority_refs_without_rule_body
   - summarizes_redacted_evidence_without_raw_payload
   - records_regeneration_metadata_without_generated_body
-  - records_product_facing_roadmap_without_implementation_authority
 forbidden_fields:
   - raw_audit_transcript
   - private_prompt
   - private_finding_detail
   - product_rule_body
   - package_methodology_body
-  - current_run_ledger
+  - host_workflow_state
   - raw_evidence_payload
   - personal_or_secret_data
 semantic_constraints:
@@ -67,4 +63,4 @@ semantic_constraints:
   - admission_must_prove_artifact_is_compact_non_private_and_non_parallel_truth
   - audit_raw_materials_are_never_tracked_by_this_contract
   - generated_views_must_be_reproducible_if_tracked
-  - roadmap_records_must_not_authorize_implementation
+  - tracked_outputs_must_not_authorize_or_schedule_implementation

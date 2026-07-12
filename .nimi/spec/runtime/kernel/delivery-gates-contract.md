@@ -119,4 +119,4 @@ external async 事件与任务语义必须一致可追溯。
 
 ## K-GATE-090 Evidence Routing
 
-topic-bound 执行计划与冻结工件可写入 `.local/work/<topic-id>/**`，local-only 执行证据可写入 `.local/report/**`；tracked spec 不依赖具体 `.local` 文件，spec 不承载运行快照。
+repository task / plan / resume state 遵循 `P-PKG-010` 的 external-host ownership，不属于 Runtime authority。必要的冻结工件和非权威 evidence dossier 可写入 `.local/work/<work-id>/**`，local-only 执行证据可写入 `.local/report/**`；tracked spec 不依赖具体 local 文件，spec 不承载运行快照或 task lifecycle mirror。

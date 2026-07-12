@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // MToon material loader plugin factory with an outline-fallback policy for
 // GPU environments that cannot render outline meshes acceptably (software
@@ -8,7 +8,7 @@
 // we fall back to the base MToon material instead of fail-closing.
 //
 // Algorithm reference: airi `AiriMToonMaterialLoaderPlugin`
-// (composables/vrm/material-mtoon). 0-import policy per design-12: this
+// (composables/vrm/material-mtoon). The app-isolation contract requires this
 // file MUST NOT import anything from the airi package directory; only the
 // algorithm shape and constant set are reused. License: airi MIT.
 //

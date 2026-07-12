@@ -1,5 +1,4 @@
-// Tests for workflow-resolver.mjs (W4 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Tests for the release-gate registry workflow resolver.
 //
 // Strategy: assemble a synthetic root dir on tmpfs with a pnpm-workspace.yaml,
 // a root package.json, a workspace package.json, and a few synthetic

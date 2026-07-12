@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-thinking",
   "version": "1",
-  "description": "Wave 3 chunk 3-E fixture updated for topic 2026-05-01-avatar-apml-auto-adapter. Drives applyActivity('thinking') through typed runtime projection into Avatar generated motion routing. The thinking route resolves to vrm.motion='idle_subtle'. With the missing-provider test path, generatedMotionRuntime.play returns {played: false, reason: 'missing_profile'}; idle .vrma is interchange-only evidence, not APML runtime proof.",
+  "description": "Drives applyActivity('thinking') through typed runtime projection into Avatar generated motion routing. The thinking route resolves to vrm.motion='idle_subtle'. With the missing-provider test path, generatedMotionRuntime.play returns {played: false, reason: 'missing_profile'}; idle .vrma is interchange-only evidence, not APML runtime proof.",
   "duration_ms": 6000,
   "loop": false,
 

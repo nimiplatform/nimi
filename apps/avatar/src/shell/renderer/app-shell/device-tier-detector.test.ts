@@ -1,4 +1,4 @@
-// Wave 4 chunk 4-A of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/app-shell-contract.md.
 //
 // Tests for device-tier-detector. Use probeOverride for deterministic
 // classification across all tier boundaries; verify cache + clear

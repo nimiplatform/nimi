@@ -1,8 +1,8 @@
-// Wave 4 chunk 4-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // VRM `BackendHitRegion` factory. Wires the alpha-mask probe path on
 // device tiers A/B (returns a real `isOpaqueAtClientPoint` backed by
-// `vrm-render-target` chunk 4-A) and degrades to bbox-only on tier C
+// `vrm-render-target`) and degrades to bbox-only on tier C
 // (returns `isOpaqueAtClientPoint = null` and fires `onDegraded` once
 // with `reason_code: 'device_tier_c'`).
 //
@@ -12,11 +12,11 @@
 //      `isOpaqueAtClientPoint` indicates device tier C / not-supported)
 //   - .nimi/spec/avatar/kernel/backend-branch-contract.md §BackendHitRegion
 //
-// Alpha-mask threshold is centralized as a NAMED constant per packet
-// acceptance_invariant 13: drift audits forbid scattered float / byte
+// Alpha-mask threshold is centralized as a named contract constant; drift
+// audits forbid scattered float / byte
 // literals in the function body. Tests verify the constant is exported.
 //
-// Per packet forbidden_shortcuts: only 1×1 readPixels is permitted; the
+// Per the app-shell contract, only 1×1 readPixels is permitted; the
 // underlying `vrm-render-target.probeAlphaAtClient` honors that. This
 // file does not perform any pixel reads itself.
 

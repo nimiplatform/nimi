@@ -63,8 +63,8 @@ type RuntimeArtifactServiceClient interface {
 	// ARTIFACT_MIME_MISMATCH is SDK-side only (client expectedMimePrefix check);
 	// server never returns it.
 	//
-	// Inline retrieval is hard-capped at 32 MiB; chunked retrieval is reserved
-	// for follow-up platform topic.
+	// Inline retrieval is hard-capped at 32 MiB; chunked retrieval remains
+	// unadmitted until explicit platform authority is added.
 	//
 	// Errors must be returned via grpcerr.WithReasonCode(codes.X,
 	// runtimev1.ReasonCode_ARTIFACT_*) per K-ERR-003 (ReasonCode in ErrorInfo
@@ -150,8 +150,8 @@ type RuntimeArtifactServiceServer interface {
 	// ARTIFACT_MIME_MISMATCH is SDK-side only (client expectedMimePrefix check);
 	// server never returns it.
 	//
-	// Inline retrieval is hard-capped at 32 MiB; chunked retrieval is reserved
-	// for follow-up platform topic.
+	// Inline retrieval is hard-capped at 32 MiB; chunked retrieval remains
+	// unadmitted until explicit platform authority is added.
 	//
 	// Errors must be returned via grpcerr.WithReasonCode(codes.X,
 	// runtimev1.ReasonCode_ARTIFACT_*) per K-ERR-003 (ReasonCode in ErrorInfo

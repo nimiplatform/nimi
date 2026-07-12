@@ -1,4 +1,4 @@
-// Wave 4 chunk 4-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // Tests for live2d-hit-region:
 //   - `computeLive2DHitRegion` (compatibility-driven bbox)

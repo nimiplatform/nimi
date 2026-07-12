@@ -24,8 +24,8 @@ import (
 )
 
 // MaxInlineBytes is the hard ceiling for inline retrieval (32 MiB).
-// Larger artifacts return ARTIFACT_TOO_LARGE; chunked retrieval is reserved
-// for follow-up platform topic.
+// Larger artifacts return ARTIFACT_TOO_LARGE; chunked retrieval remains
+// unadmitted until explicit platform authority is added.
 const MaxInlineBytes = 32 * 1024 * 1024
 
 // ArtifactRecord holds artifact bytes + metadata indexed by artifact_id.

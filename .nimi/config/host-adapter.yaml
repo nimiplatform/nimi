@@ -8,12 +8,11 @@ host_adapter:
     - claude
   handoff_mode: prompt_output_evidence_handoff
   evidence_mode: candidate_only
-  semantic_review_owner: nimicoding_manager
+  semantic_review_owner: authority_owner
   admitted_execution_surfaces:
     - authority_convergence_audit
   host_profile_ref: .nimi/config/host-profile.yaml
   manifest_ref: .nimi/config/skill-manifest.yaml
-  artifact_contract_ref: .nimi/config/external-execution-artifacts.yaml
   handoff_ref: .nimi/methodology/skill-handoff.yaml
   operational_state_roots:
     - .nimi/local

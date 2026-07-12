@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Module-level cache for parsed VRM scenes keyed by source URL. Avoids
 // re-parsing the same .vrm file when the same model is reloaded (e.g. R3F
@@ -9,9 +9,8 @@
 // Algorithm reference: airi `composables/vrm/instance-cache`. 0-import
 // policy honoured; only the FIFO-bounded-Map shape is reused. License: airi MIT.
 //
-// Bound: 4 entries (FIFO eviction when adding a 5th). LRU is intentionally
-// not implemented at wave_2 — most sessions hold <=2 VRMs concurrently and
-// an LRU pass would overstate the constraints we need at this layer.
+// Bound: 4 entries with FIFO eviction when adding a fifth. This is the
+// contract-owned bounded policy; it does not imply an unadmitted LRU layer.
 
 import type { VRM } from '@pixiv/three-vrm';
 

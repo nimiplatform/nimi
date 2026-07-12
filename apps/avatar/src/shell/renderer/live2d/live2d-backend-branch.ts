@@ -1,15 +1,14 @@
-// Wave 1 (step 2) of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/live2d-render-contract.md.
 //
-// Builds the Live2D BackendBranch by composing the leaf modules added
-// in this step (`live2d-carrier-surface`, `live2d-projection-adapter`,
+// Builds the Live2D BackendBranch by composing the leaf modules
+// (`live2d-carrier-surface`, `live2d-projection-adapter`,
 // `live2d-audio-consumer`, `live2d-lipsync-driver`,
 // `live2d-nominal-bounds`, `live2d-hit-region`) with the existing
 // Cubism session + command bus.
 //
-// Replaces the step_1 stub that lived in `live2d-backend.ts`. All
-// `model.kind` switching MUST stay inside
+// All `model.kind` switching MUST stay inside
 // `carrier/create-backend-branch.ts`; this factory is invoked from
-// there only (per design-02 §"carrier 重构形状").
+// there only, per the backend-branch contract.
 
 import type { Live2DAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type {

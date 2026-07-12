@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-lifecycle",
   "version": "1",
-  "description": "Wave 2 chunk 2-D of topic 2026-04-30-avatar-vrm-backend-branch. Drives the VRM BackendBranch lifecycle (manifest -> carrier-surface -> runtime -> loader) end-to-end with a representative MIT-licensed VRM sample. The fixture's vrm_lifecycle block is consumed by vrm-lifecycle-e2e.test.tsx; the events/agent_bootstrap blocks remain catalog-conformant and are exercised by the mock driver itself.",
+  "description": "Drives the VRM BackendBranch lifecycle (manifest -> carrier-surface -> runtime -> loader) end-to-end with a representative MIT-licensed VRM sample. The fixture's vrm_lifecycle block is consumed by vrm-lifecycle-e2e.test.tsx; the events/agent_bootstrap blocks remain catalog-conformant and are exercised by the mock driver itself.",
   "duration_ms": 8000,
   "loop": false,
 

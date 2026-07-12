@@ -112,7 +112,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
 
   useSurfaceMountEvidence('embodiment-stage', compositionState);
 
-  // ── BackendSurface lifecycle wiring (wave_1 step_4 + wave_4 chunk 4-C) ──
+  // ── BackendSurface lifecycle wiring ──
   // The active BackendBranch exposes a Component that publishes three
   // lifecycle channels: audio-consumer, hit-region, evidence. Each one
   // bridges into an existing app-shell concern:
@@ -120,7 +120,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   //     pipeline (lipsync), unregister on backend swap / unmount.
   //   * onHitRegionChange    → store the latest region (throttled via
   //     `createThrottledEmit` so per-frame snapshot updates are capped at
-  //     ≤ 1 per 100ms per packet acceptance_invariant 8). Pointer hit
+  //     ≤ 1 per 100ms per the app-shell contract). Pointer hit
   //     testing (alpha-mask + bbox fallback) drives the 60Hz-capped
   //     `setIgnoreCursorEvents` throttle below.
   //   * onLifecycleEvidence  → record into the avatar evidence stream so
@@ -130,7 +130,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   const alphaProbeFailureReportedRef = useRef(false);
 
   // 60Hz-capped throttle around the Tauri set_ignore_cursor_events IPC.
-  // Per packet acceptance_invariant 7 + negative_test #3, rapid pointermove
+  // Per the app-shell contract, rapid pointermove
   // (1000+ events in 10ms) must not saturate the IPC channel. The throttle
   // dedupes same-value calls and coalesces with trailing-edge fire.
   const cursorEventsThrottleRef = useMemo(
@@ -152,7 +152,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // 100ms-cap throttle around the bbox-snapshot consumer fan-out. The
   // backend surface may emit on every captured frame; the consumer
   // (window-bounds resize wiring etc.) only needs at most 10 updates per
-  // second per packet acceptance_invariant 8.
+  // second per the canonical hit-region snapshot limit.
   const hitRegionEmitThrottleRef = useMemo(
     () =>
       createThrottledEmit<BackendHitRegion>({

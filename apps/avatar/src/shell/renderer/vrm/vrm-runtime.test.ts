@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Verifies the VRM lifecycle state machine in isolation. Uses
 // `loaderOverride` + `setTimeoutFn` + `clearTimeoutFn` + `nowFn` test

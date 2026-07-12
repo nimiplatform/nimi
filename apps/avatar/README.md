@@ -27,7 +27,7 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 | 2 | i18n + design tokens industrialization | done |
 | 3 | Voice / lipsync end-to-end | done |
 | 4 | Window + settings industrialization | done |
-| 5-10 | BackendBranch, VRM, generated motion, hit-region, representative smoke evidence | done; final launch-readiness / visual-human acceptance remains a separate topic |
+| 5-10 | BackendBranch, VRM, generated motion, hit-region, representative smoke evidence | done; this matrix does not establish final launch-readiness or visual-human acceptance |
 
 ## Launch Model
 

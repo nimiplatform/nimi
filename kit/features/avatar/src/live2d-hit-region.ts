@@ -1,17 +1,17 @@
-// Wave 1 (step 2) + Wave 4 chunk 4-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
 //
 // Computes BackendHitRegion for the Live2D branch.
 //
-// `computeLive2DHitRegion` (wave_1) ships the bbox snapshot path only
+// `computeLive2DHitRegion` provides the bbox snapshot path
 // (body+drag rectangles cover the full nominal viewport so OS-level
 // click-through fallback works) and is consumed by
 // `live2d-backend-branch.ts` to derive an immediate static region from
 // the compatibility report.
 //
-// `createLive2DHitRegion` (wave_4 chunk 4-B) wires the alpha-mask
+// `createLive2DHitRegion` wires the alpha-mask
 // `isOpaqueAtClientPoint` query against the live cubism canvas via
-// `gl.readPixels` (1×1 only — full-canvas reads are forbidden per
-// packet wave-4 forbidden_shortcuts). On device tier C (or capability
+// `gl.readPixels` (1×1 only — full-canvas reads are forbidden by the
+// app-shell contract). On device tier C (or capability
 // failure) it degrades to bbox-only with `isOpaqueAtClientPoint = null`
 // and fires `onDegraded({ reason_code: 'device_tier_c' })` once.
 //
@@ -23,8 +23,8 @@
 //   - .nimi/spec/avatar/kernel/live2d-render-contract.md §"Hit Testing"
 //   - .nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md §6
 //
-// Alpha-mask threshold is centralized as a NAMED constant per packet
-// acceptance_invariant 13: drift audits forbid scattered float / byte
+// Alpha-mask threshold is centralized as a named contract constant; drift
+// audits forbid scattered float / byte
 // literals in the function body. Tests verify the constant is exported.
 
 import type { BackendHitRegion } from './backend-branch.js';
@@ -32,8 +32,7 @@ import type { Live2DCompatibilityReport } from './live2d-compatibility.js';
 
 /** Alpha-mask threshold: pixels with alpha < 10/255 are treated as
  *  transparent for hit-test purposes. Source: app-shell-contract.md
- *  §2.3.1; airi industrial baseline. Centralized constant per packet
- *  acceptance_invariant 13. */
+ *  §2.3.1; airi industrial baseline. */
 export const LIVE2D_ALPHA_MASK_THRESHOLD = 10 / 255;
 
 /** Byte-equivalent of {@link LIVE2D_ALPHA_MASK_THRESHOLD}. Used inside
@@ -52,8 +51,8 @@ export const LIVE2D_DEFAULT_HIT_REGION: BackendHitRegion = Object.freeze({
 
 export type Live2DHitRegionInput = {
   /** Compatibility report drives `hit_regions.fallback`:
-   *   - 'alpha_mask_only' adapter declarations still resolve to bbox at
-   *     wave_1 (alpha-mask is wave_4); we surface the full-viewport
+   *   - 'alpha_mask_only' adapter declarations use bbox when a live canvas
+   *     probe is unavailable; we surface the full-viewport
    *     bbox so click events reach the carrier instead of failing
    *     closed.
    *   - 'fail_closed' is honored by emitting a zero-area body bbox so
@@ -125,7 +124,7 @@ function nowIsoString(): string {
 
 /** Read pixel alpha at the given canvas-pixel coordinate via the gl
  *  context bound on the cubism canvas. 1×1 readback only — full-canvas
- *  reads are forbidden by packet wave-4 forbidden_shortcuts. Returns
+ *  reads are forbidden by the app-shell contract. Returns
  *  null on probe failure (no gl context, readPixels throw).
  *
  *  NOTE on concurrent renders: cubism's render() may be in flight when

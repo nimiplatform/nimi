@@ -1,7 +1,6 @@
 // Projection function: registry → CI workflow YAML step block.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-003 projection-only execution surfaces, P-RELG-010
 // owner of .github/** step block codegen.
 //

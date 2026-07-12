@@ -56,9 +56,9 @@ placement_rules:
     validator_scope: host_overlay
   - root_pattern: .nimi/{config,contracts,methodology}/**
     allowed_classes: [nimicoding_managed_projection]
-    owner: nimi_coding_package_projection
+    owner: nimi_host_with_package_source
     tracking_policy: tracked_required
-    requires_admission: nimicoding_init_or_sync_projection
+    requires_admission: package_projection_or_exact_host_hardcut_manifest
     validator_scope: nimicoding_managed_projection
   - root_pattern: package://@nimiplatform/nimi-coding/{spec,methodology,contracts,config}/**
     allowed_classes: [methodology_authority, support_registry]
@@ -66,15 +66,9 @@ placement_rules:
     tracking_policy: tracked_required
     requires_admission: package_authority
     validator_scope: package_authority
-  - root_pattern: .nimi/topics/**
-    allowed_classes: [lifecycle_progress_state, candidate_roadmap]
-    owner: topic_lifecycle
-    tracking_policy: local_only
-    requires_admission: none
-    validator_scope: topic_lifecycle
   - root_pattern: .nimi/local/state/**
-    allowed_classes: [spec_generation_state, lifecycle_progress_state, operational_local_artifact]
-    owner: execution_workflow
+    allowed_classes: [spec_generation_state, operational_local_artifact]
+    owner: local_tooling
     tracking_policy: local_only
     requires_admission: none
     validator_scope: local_state
@@ -84,8 +78,8 @@ placement_rules:
     tracking_policy: local_only
     requires_admission: none
     validator_scope: audit_state
-  - root_pattern: .nimi/{derived,state,audit,roadmap}/**
-    allowed_classes: [derived_view, spec_generation_state, audit_evidence_state, candidate_roadmap]
+  - root_pattern: .nimi/{derived,state,audit}/**
+    allowed_classes: [derived_view, spec_generation_state, audit_evidence_state]
     owner: tracked_output_admission
     tracking_policy: tracked_only_with_explicit_admission
     requires_admission: tracked_output_admission
@@ -103,7 +97,6 @@ allowed_spec_meta_rules:
 root_policy:
   product_authority_root: .nimi/spec
   package_authority_root: package://@nimiplatform/nimi-coding
-  topic_lifecycle_root: .nimi/topics
   local_artifact_root: .nimi/local
   tracked_non_product_roots:
     default: disabled
@@ -111,10 +104,7 @@ root_policy:
       - .nimi/derived
       - .nimi/state
       - .nimi/audit
-      - .nimi/roadmap
 forbidden_roots:
-  candidate_roadmap:
-    - .nimi/spec/**
   derived_view:
     - .nimi/spec/**/kernel/generated/**
     - .nimi/spec/generated/**
@@ -125,8 +115,6 @@ forbidden_roots:
   audit_evidence_state:
     - .nimi/spec/**/kernel/**
     - .nimi/spec/_meta/**
-  lifecycle_progress_state:
-    - .nimi/spec/**
   methodology_authority:
     - .nimi/spec/**
 forbidden_root_exceptions:
@@ -135,12 +123,9 @@ forbidden_root_exceptions:
     - .nimi/contracts/**
     - .nimi/config/**
 tracking_policy_notes:
-  .nimi/topics/**:
-    tracking_policy: local_only
-    meaning: local_human_authored_lifecycle_workspace_not_product_authority
   .nimi/{config,contracts,methodology}/**:
     tracking_policy: tracked_required
-    meaning: project_local_nimicoding_managed_projection_created_by_init_or_sync_not_product_authority
+    meaning: project_local_nimicoding_projection_or_exact_host_override_not_product_authority
 fail_closed_cases:
   - class_root_mismatch
   - file_under_.nimi/spec_without_product_or_minimal_anchor_class
@@ -154,3 +139,4 @@ semantic_constraints:
   - keep_move_package_move_local_split_rewrite_delete_block_must_be_explicit
   - product_semantic_forks_block_for_user_confirmation
   - high_risk_admission_records_stay_local_evidence_while_domain_spec_holds_product_authority
+  - host_projection_overrides_must_be_enumerated_in_config/nimicoding-host-hardcut.yaml

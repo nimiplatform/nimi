@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-D of topic 2026-04-30-avatar-vrm-backend-branch.
+// Catalog tests for .nimi/spec/avatar/kernel/tables/vrm-sample-catalog.yaml.
 //
 // Unit tests for the VRM sample fetcher script
 // (`apps/avatar/scripts/fetch-vrm-models.mjs`). Network is fully mocked

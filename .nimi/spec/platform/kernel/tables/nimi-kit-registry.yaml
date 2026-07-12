@@ -177,7 +177,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041C
-    notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Topic documents, acceptance matrices, and gate descriptions consume or validate that table only. Installed app standard shell capability-set policy is admitted by P-KIT-044 and remains an allowlist over this module's standard capability vocabulary.
+    notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Non-authoritative execution dossiers, acceptance matrices, and gate descriptions consume or validate that table only. Installed app standard shell capability-set policy is admitted by P-KIT-044 and remains an allowlist over this module's standard capability vocabulary.
   - id: kit.shell.protected-local
     subpath: /shell/protected-local
     kind: infra

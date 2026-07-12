@@ -7,7 +7,6 @@ canonical_contracts_root: .nimi/contracts
 canonical_manifest: .nimi/config/skill-manifest.yaml
 canonical_host_profile: .nimi/config/host-profile.yaml
 canonical_host_adapter: .nimi/config/host-adapter.yaml
-canonical_external_execution_artifacts: .nimi/config/external-execution-artifacts.yaml
 canonical_runtime_contract: .nimi/methodology/skill-runtime.yaml
 canonical_installer: .nimi/config/skill-installer.yaml
 canonical_installer_result_contract: .nimi/methodology/skill-installer-result.yaml
@@ -25,6 +24,3 @@ expected_skill_surfaces:
   - id: audit_sweep
     required: false
     purpose: perform_full_coverage_audit_sweep_and_emit_frozen_findings_ledger
-  - id: high_risk_execution
-    required: false
-    purpose: packetized_execution_after_project_truth_matures

@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Pure presentational R3F scene for the VRM backend. No state, no effects;
 // trusts that the loader has already applied frustumCulled=false on the

@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Derives `BackendNominalBounds` (carrier/backend-branch.ts) from a loaded
 // VRM scene + framing intent. Replaces the static placeholder previously
@@ -13,13 +13,8 @@
 // by `embodiment-stage` for the very first window-resize tick. The
 // post-load truth flows through the per-frame `onHitRegionChange` payload
 // (which embodiment-stage maps to `set_size` if the alpha bounding box
-// shrinks). Wave_2 acceptance_invariant 13 only requires:
-//   1. this file exists,
-//   2. the fallback is 360x720 with `bottom-companion` default,
-//   3. the function is callable on a loaded VRM and returns derived bounds.
-//
-// Future wave_4+ work may switch to dynamic per-frame nominal bounds via
-// a contract evolution — out of scope here.
+// shrinks). The canonical fallback is 360x720 with a `bottom-companion`
+// default, while loaded VRMs return derived bounds through this function.
 
 import type { VRM } from '@pixiv/three-vrm';
 import type { BackendNominalBounds } from '../carrier/backend-branch.js';
@@ -47,7 +42,7 @@ export const VRM_NOMINAL_BOUNDS_MIN_HEIGHT = 480;
 export const VRM_NOMINAL_BOUNDS_MAX_HEIGHT = 960;
 
 /**
- * Wave_2 default nominal bounds. Source: window-bounds-policy.yaml
+ * Default nominal bounds. Source: window-bounds-policy.yaml
  * `backends.vrm` (360 × 720, framing_intent_default=bottom-companion,
  * aspect_default=0.45). `bodyCenterY = 0.55` mirrors the bottom-companion
  * intent (waist-up framing places the body center slightly above

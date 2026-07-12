@@ -1,20 +1,19 @@
-// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit (design-05 §
-// "avatar-voice-lipsync.ts 重构"; design-09 §"kill list").
+// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md and
+// .nimi/spec/avatar/kernel/avatar-event-contract.md.
 //
-// Wave 0 hard-cut surface:
+// Hard-cut surface:
 //   - The deprecated runtime presentation per-frame mouth-batch consume
 //     path is deleted. Per-frame mouth movement now flows through
 //     `BackendAudioConsumer.snapshot()` in the surface useFrame loop,
 //     written by the wLipSync driver. Avatar app no longer subscribes to
-//     that runtime event (platform-side emit deprecation is a separate
-//     topic).
+//     that runtime event; platform-side event ownership remains outside this
+//     app's authority.
 //   - The caller-injected audio-bytes fetcher is removed. Audio
 //     bytes are read directly by AudioPipelineController via
 //     `runtime.artifacts.readArtifactBytes` (S-RUNTIME-111).
-//   - The Live2D-specific mouth bridge instance is dropped; topic-internal
-//     wave_1 lands the Live2D wLipSync driver module for the Cubism
-//     `ParamMouthOpenY` / `ParamMouthForm` write path. Wave 0 close gate
-//     accepts that the Live2D mouth is dormant until that driver lands.
+//   - The Live2D-specific mouth bridge instance is dropped; the Live2D
+//     wLipSync driver owns the Cubism `ParamMouthOpenY` / `ParamMouthForm`
+//     write path.
 //
 // What this orchestrator still does:
 //   - Subscribe to `runtime.agent.presentation.voice_playback_requested`,
@@ -28,9 +27,9 @@
 //
 // Optional `backend?: BackendBranch` argument: when supplied, this
 // orchestrator registers the backend's BackendAudioConsumer with the audio
-// pipeline as its lipsync sink. Topic-internal wave_1 wires this in
-// avatar-carrier.ts; wave_0 callers pass nothing (sink stays unregistered;
-// audio still plays, mouth stays dormant).
+// pipeline as its lipsync sink. `avatar-carrier.ts` supplies it for a mounted
+// backend; callers without a backend leave the sink unregistered while audio
+// playback remains available.
 
 import type { AgentDataDriver, AgentEvent } from '../driver/types.js';
 import {
@@ -553,9 +552,8 @@ function readBytes(value: unknown): Uint8Array | ArrayBuffer | null {
 }
 
 function getBackendAudioConsumer(backend: BackendBranch) {
-  // Wave_1 (topic-internal) attaches BackendAudioConsumer onto BackendBranch
-  // via surface lifecycle; wave_0 admits the carrier-branch types but the
-  // factory + surface mount aren't built yet. This helper reads the consumer
+  // BackendBranch exposes BackendAudioConsumer through the mounted surface
+  // lifecycle. This helper reads the consumer
   // off the backend if the field is present, else throws — never returns
   // a stub: silent stubs hide wiring drift.
   const consumer = (backend as unknown as { audioConsumer?: unknown }).audioConsumer;
@@ -570,7 +568,7 @@ function getBackendAudioConsumer(backend: BackendBranch) {
     return consumer as BackendAudioConsumer;
   }
   throw new Error(
-    'avatar-voice-lipsync: backend.audioConsumer missing (BackendAudioConsumer) — wave_1 carrier wiring required',
+    'avatar-voice-lipsync: backend.audioConsumer missing (mounted BackendSurface wiring required)',
   );
 }
 

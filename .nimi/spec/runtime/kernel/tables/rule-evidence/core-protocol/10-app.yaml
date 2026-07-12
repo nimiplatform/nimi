@@ -158,7 +158,7 @@ rules:
   - rule_id: K-APP-020
     evidence_refs:
       - runtime_kernel_consistency
-    note: AppResponseState typed projection contract; topic lifecycle reports are not source truth for response fields.
+    note: AppResponseState typed projection contract; host task state and execution dossiers are not source truth for response fields.
     evidence_requirement: required
   - rule_id: K-APP-021
     evidence_refs:

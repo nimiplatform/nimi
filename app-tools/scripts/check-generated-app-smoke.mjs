@@ -40,7 +40,7 @@ function fakeNimicodingRunners() {
       mkdirSync(path.join(targetDir, '.nimi', 'contracts'), { recursive: true });
       mkdirSync(path.join(targetDir, '.nimi', 'methodology'), { recursive: true });
       writeFileSync(path.join(targetDir, '.nimi', 'config', 'bootstrap.yaml'), 'source: generated-app-smoke\n');
-      writeFileSync(path.join(targetDir, '.nimi', 'contracts', 'result.schema.yaml'), 'source: generated-app-smoke\n');
+      writeFileSync(path.join(targetDir, '.nimi', 'contracts', 'spec-reconstruction-result.yaml'), 'source: generated-app-smoke\n');
       writeFileSync(path.join(targetDir, '.nimi', 'methodology', 'core.yaml'), 'source: generated-app-smoke\n');
       return {
         ok: true,

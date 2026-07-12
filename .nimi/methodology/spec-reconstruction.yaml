@@ -21,7 +21,7 @@ reconstruction:
     - keep_audit_evidence_under_.nimi/local/audit
     - separate_product_authority_tables_from_support_registries
     - reject_generated_views_as_authority_inputs
-    - reject_lifecycle_state_as_product_authority
+    - reject_host_workflow_state_as_product_authority
     - accept_mixed_inputs_only_through_class_filtered_inputs
     - preserve_authority_explicitness
     - stop_on_authority_ambiguity
@@ -41,8 +41,6 @@ reconstruction:
       - audit_evidence_state
       - operational_local_artifact
       - nimicoding_managed_projection
-      - candidate_roadmap
-      - lifecycle_progress_state
       - methodology_authority
     minimal_required_outputs:
       - .nimi/spec/INDEX.md

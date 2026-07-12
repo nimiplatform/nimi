@@ -9,7 +9,7 @@
 - **Runtime app ID**: `nimi.avatar`
 - **Tauri bundle identifier**: `ai.nimi.apps.nimi.avatar`
 - **One-line**: 桌面悬浮 embodiment carrier，agent 的视觉化身；通过 NAS handler 把 agent semantics 投影到当前 backend branch。
-- **Status**: Productization gate active. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 done; Wave 3 lipsync end-to-end done (orchestrator + live2d/lipsync-bridge split + ParamMouthForm opt-in + audio time anchor + e2e fixture test); Wave 4 window + settings 工业化 done (window-bounds-policy.yaml admitted + dynamic resize wired + drag region limited to embodiment-stage + settings popover + Tauri visible-area constraint + cargo unit tests). Real runtime/SDK consume path is primary; mock is explicit fixture-only.
+- **Status**: Productization gate active. Surface composition, i18n/design tokens, lipsync end-to-end, and window/settings contracts are admitted and implemented. Real runtime/SDK consume path is primary; mock is explicit fixture-only.
 
 ## Architecture
 
@@ -41,37 +41,31 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 - Degraded Surface 单独承载 loading / error / reauth / launch-context-invalid / relaunch-pending 形态，与 ready surface 互斥
 - STT / TTS 通过 runtime 消费；audio bytes 通过 `runtime.artifacts.readArtifactBytes` 获取；lipsync 由 backend `BackendAudioConsumer` + wLipSync 驱动
 
-## Wave Schedule
+## Admitted Capability Status
 
-Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切片，不允许半成品中间态。详细 scope 见 `.nimi/spec/avatar/kernel/tables/feature-matrix.yaml`。
+以下仅是 `.nimi/spec/avatar/kernel/tables/feature-matrix.yaml` 当前能力状态的只读摘要，不定义任务编排、阶段状态或 AI host 工作流。
 
-| Wave | 主题 | 状态 |
+| Group | 能力 | 状态 |
 |---|---|---|
-| 0 | Spec 重构（surface composition / companion / degraded / event 体系 / wave-based feature matrix） | done |
+| 0 | Spec 重构（surface composition / companion / degraded / event 体系 / feature matrix） | done |
 | 1 | Surface composition implementation（embodiment-stage / companion-surface / degraded-surface 三互斥结构 + hard-cut 旧 toggle 路径） | done |
 | 2 | i18n + Design tokens 工业化（locales/{en,zh}/avatar.json + tokens.css + app-owned key-catalog.yaml） | done |
 | 3 | Voice / lipsync end-to-end（runtime voice emitter + SDK 消费 + backend lipsync driver + voice-companion-state slice） | done（Avatar app consume path is voice/audio + backend lipsync；`lipsync_frame_batch` is not consumed under `apps/avatar/src/**`） |
 | 4 | Window + Settings 工业化（dynamic window bounds + drag region 限定 + settings popover + window-bounds-policy.yaml） | done |
-| 5 | Spec admit + platform admission（multi-backend BackendBranch / VRM contract / audio-pipeline + wLipSync / runtime-artifact-contract K-AGCORE-053 / S-RUNTIME-111） | done（topic 2026-04-30-avatar-vrm-backend-branch wave_0 closed complete） |
-| 6 | Carrier abstraction extraction + Live2D refactor + audio pipeline + frame_batch hard-cut | done（topic 2026-04-30 + reconciliation 2026-05-15） |
-| 7 | VRM lifecycle + MToon + framing + diagnostics + instance cache | done（topic 2026-04-30 + reconciliation 2026-05-15） |
+| 5 | Spec admit + platform admission（multi-backend BackendBranch / VRM contract / audio-pipeline + wLipSync / runtime-artifact-contract K-AGCORE-053 / S-RUNTIME-111） | done |
+| 6 | Carrier abstraction extraction + Live2D refactor + audio pipeline + frame_batch hard-cut | done |
+| 7 | VRM lifecycle + MToon + framing + diagnostics + instance cache | done |
 | 8 | VRM generated motion + emote state + projection adapter + activity mapping v2 | done（runtime motion support is generated-provider based；`.vrma` is interchange-only unless a real file is admitted） |
-| 9 | Window bounds multi-backend + alpha-mask hit region + drag region | done（topic 2026-04-30 + reconciliation 2026-05-15） |
-| 10 | Smoke evidence + representative samples + topic closeout | done（21-run deterministic headless matrix；final launch-readiness / visual-human acceptance is separate topic authority） |
-
-> **Wave 编号桥接**：feature-matrix v3 `wave_5..wave_10` ↔ topic-internal
-> wave numbering（candidate-wave-plan.md / packets / design-*）
-> `wave_0..wave_5`. 加 5 偏移；详 `feature-matrix.yaml` v3 description +
-> design-12 §"Wave 编号桥接". topic-internal docs 用 0..5；feature-matrix
-> 用 5..10. 任一改名同步另一处.
+| 9 | Window bounds multi-backend + alpha-mask hit region + drag region | done |
+| 10 | Smoke evidence + representative samples | done（21-run deterministic headless matrix；launch readiness 仍以真实 app 验收为准） |
 
 工程原则：
 
-- 项目未上线，不留 retired compatibility shim；retired v1 feature-phasing 框架已废弃，只用 wave-based 模型
-- 不做 MVP / 不做半成品中间态；每 wave 端到端交付
+- 项目未上线，不留 retired compatibility shim；retired v1 feature-phasing 框架已废弃
+- 不做 MVP / 不做半成品中间态；每次修改都必须端到端交付
 - spec 先行（`.nimi/spec/avatar/kernel/**` 与 `.nimi/spec/**`），spec admit 后再做实现
 - 不做伪实现 / 伪返回；i18n、design tokens、lipsync 必须真实接通
-- nimi-coding 为核心工作流；每 wave 跑完整 spec validators + code 验证
+- 外部 AI host 独占任务编排；nimi-coding 仅提供已保留的方法论、spec 工具与确定性门禁
 
 ## Spec Authority & Sync
 
@@ -79,11 +73,11 @@ Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切�
 
 ### Migrated Contract Lineage
 
-The following contracts were crystallized from lifecycle-topic evidence into
-admitted first-party Avatar authority:
+The following contracts are admitted first-party Avatar authority. Earlier
+derivation history remains in Git and is not an active truth surface:
 
-- `.nimi/spec/avatar/kernel/agent-script-contract.md` ← `nimi-agent-script.md` (议题 4b)
-- `.nimi/spec/avatar/kernel/avatar-event-contract.md` ← `avatar-event-spec.md` (议题 3b)
+- `.nimi/spec/avatar/kernel/agent-script-contract.md` — Avatar agent-script contract
+- `.nimi/spec/avatar/kernel/avatar-event-contract.md` — Avatar event contract
 
 ### Platform-Level Upstream
 
@@ -102,10 +96,10 @@ Nimi Avatar-specific contracts in `.nimi/spec/avatar/kernel/**` do not re-define
 
 | Table | Governs |
 |-------|---------|
-| `feature-matrix.yaml` | Wave 0..4 wave-based feature delivery matrix（v2 schema） |
+| `feature-matrix.yaml` | Admitted Avatar capability and delivery matrix（v2 schema） |
 | `activity-mapping.yaml` | Kit Avatar activity route table consumed by concrete Live2D / VRM backends |
 | `scenario-catalog.yaml` | Dev/test fixture scenarios |
-| `window-bounds-policy.yaml` | Dynamic window sizing rules（Wave 4 admitted） |
+| `window-bounds-policy.yaml` | Dynamic window sizing rules |
 
 ### Sync Rules
 
@@ -348,9 +342,9 @@ Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 
 ---
 
-## External Reference (Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit)
+## External Reference (Canonical Avatar Authority)
 
-### airi 算法借鉴清单（design-11 admit）
+### airi 算法借鉴清单
 
 `_external/airi/**` 是 reference-only。**0 行 import**（hard rule，
 self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
@@ -404,7 +398,7 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 - `@nimiplatform/sdk` / `@nimiplatform/sdk/runtime` /
   `@nimiplatform/sdk/realm` / `@nimiplatform/sdk/features/generation`
 - `@pixiv/three-vrm` / `@pixiv/three-vrm-animation` / `@pixiv/three-vrm-core`
-- `three` / `@react-three/fiber` / `@react-three/drei`（按需，wave_2 可加）/
+- `three` / `@react-three/fiber` / `@react-three/drei`（按已准入实现需要）/
   `@react-three/postprocessing`（按需）
 - `pixi.js`
 - `wlipsync`
@@ -412,17 +406,17 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 - `@tauri-apps/api`
 
 自动化 gate：`pnpm check:apps-avatar-isolation`（root + apps/avatar
-package.json scripts；详 Phase E `scripts/check-apps-avatar-isolation.mjs`）。
+package.json scripts；由 `scripts/check-apps-avatar-isolation.mjs` 执行）。
 
-grep gate（每 wave close gate 必跑）：
+grep gate（相关修改必须运行）：
 
-- `lipsync_frame_batch` 在 `apps/avatar/src/**` 必须 0 hits（wave_6 起强制）
-- `fetchAudioBytes` / `fetchBytes` 在 `apps/avatar/src/**` 必须 0 hits（wave_6 起强制）
+- `lipsync_frame_batch` 在 `apps/avatar/src/**` 必须 0 hits
+- `fetchAudioBytes` / `fetchBytes` 在 `apps/avatar/src/**` 必须 0 hits
 - `apps/desktop` / `_external/` 字符串在 `apps/avatar/src/**` 必须 0 hits
 
 ---
 
-## VRM Backend Pitfalls (Wave 0 admit, design-01 §F must-honor)
+## VRM Backend Pitfalls
 
 VRM 加载 / 运行时**强制**遵守的 10 项；不遵守 → 加载随机失败 / 模型隐形 /
 context-lost 不可恢复 / Tauri webview 加载 hang / 嘴型双写冲突。
@@ -437,8 +431,8 @@ context-lost 不可恢复 / Tauri webview 加载 hang / 嘴型双写冲突。
    网格被剔除）
 5. **expressionManager.setValue 安全 wrap**（缺 preset → throw → catch + 跳过）
 6. **viseme expression preset (aa/ih/ou/ee/oh) 由 lipsync driver 独占**；
-   emote state 当 `lipsyncActive=true` 时 suppress viseme 写入（详 design-05
-   §"Coordination with emote layer"）
+   emote state 当 `lipsyncActive=true` 时 suppress viseme 写入（详
+   `.nimi/spec/avatar/kernel/vrm-backend-contract.md`）
 7. **wLipSyncNode lazy create per AudioContext 单次**（worklet register 是
    per-context；avatar 全局单 AudioContext，所以仅 createWLipSyncNode 一次）
 8. **AnimationMixer crossFadeFrom** 切换 motion preset；不允许累积多 active
@@ -448,10 +442,10 @@ context-lost 不可恢复 / Tauri webview 加载 hang / 嘴型双写冲突。
 
 ---
 
-## Audio Pipeline (Wave 0 admit, design-05)
+## Audio Pipeline
 
-audio-pipeline 直接 consume `runtime.artifacts.readArtifactBytes`（S-RUNTIME-111；
-admit 自本 topic platform admission gate）；**不再 caller-注入 fetchBytes**。
+audio-pipeline 直接 consume `runtime.artifacts.readArtifactBytes`（S-RUNTIME-111）；
+**不再 caller-注入 fetchBytes**。
 
 ### Synthetic mime fail-close
 

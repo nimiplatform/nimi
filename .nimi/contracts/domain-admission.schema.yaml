@@ -26,7 +26,7 @@ domain_admissions:
     owner: runtime
     admitted_by: existing_host_product_authority
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime]
     migration_disposition_when_unadmitted: block
   - domain_id: sdks
@@ -35,7 +35,7 @@ domain_admissions:
     owner: sdks
     admitted_by: sdk_vnext_hardcut
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdks]
     migration_disposition_when_unadmitted: block
   - domain_id: platform
@@ -44,7 +44,7 @@ domain_admissions:
     owner: platform
     admitted_by: existing_host_product_authority
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry, host_projection_anchor]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform]
     migration_disposition_when_unadmitted: block
   - domain_id: nimi2d
@@ -53,11 +53,11 @@ domain_admissions:
     owner: nimi2d
     admitted_by: nimi2d_domain_hardcut
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope nimi2d]
     migration_disposition_when_unadmitted: block
     admission_policy:
-      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      generated_evidence_state_policy: generated_views_and_evidence_state_must_move_or_split_out_of_product_authority_root
       table_policy: product_tables_must_declare_table_family_before_keep
       guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
   - domain_id: realm
@@ -66,7 +66,7 @@ domain_admissions:
     owner: realm_external_projection
     admitted_by: external_realm_consumer_boundary
     allowed_surface_classes: [thin_guidance, host_projection_anchor]
-    forbidden_surface_classes: [product_authority, product_authority_table, derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority, support_registry]
+    forbidden_surface_classes: [product_authority, product_authority_table, derived_view, spec_generation_state, audit_evidence_state, methodology_authority, support_registry]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope realm]
     migration_disposition_when_unadmitted: block
   - domain_id: desktop
@@ -75,33 +75,33 @@ domain_admissions:
     owner: desktop
     admitted_by: existing_host_product_authority
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop]
     migration_disposition_when_unadmitted: block
   - domain_id: avatar
     domain_root: .nimi/spec/avatar
     authority_class: active_product
     owner: avatar
-    admitted_by: wave_1_domain_admission
+    admitted_by: avatar_domain_authority_cut
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope avatar]
     migration_disposition_when_unadmitted: block
     admission_policy:
-      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      generated_evidence_state_policy: generated_views_and_evidence_state_must_move_or_split_out_of_product_authority_root
       table_policy: product_tables_must_declare_table_family_before_keep
       guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
   - domain_id: cognition
     domain_root: .nimi/spec/cognition
     authority_class: active_product
     owner: cognition
-    admitted_by: wave_1_domain_admission
+    admitted_by: cognition_domain_authority_cut
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope cognition]
     migration_disposition_when_unadmitted: block
     admission_policy:
-      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      generated_evidence_state_policy: generated_views_and_evidence_state_must_move_or_split_out_of_product_authority_root
       table_policy: product_tables_must_declare_table_family_before_keep
       guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
   - domain_id: zhiyu
@@ -110,11 +110,11 @@ domain_admissions:
     owner: zhiyu
     admitted_by: zhiyu_authority_reset_zs1
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
-    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope zhiyu]
     migration_disposition_when_unadmitted: block
     admission_policy:
-      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      generated_evidence_state_policy: generated_views_and_evidence_state_must_move_or_split_out_of_product_authority_root
       table_policy: product_tables_must_declare_table_family_before_keep
       guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
   - domain_id: future
@@ -123,7 +123,7 @@ domain_admissions:
     owner: planning
     admitted_by: hardcut_decision_f2
     allowed_surface_classes: []
-    forbidden_surface_classes: [product_authority, product_authority_table, thin_guidance, derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority, support_registry]
+    forbidden_surface_classes: [product_authority, product_authority_table, thin_guidance, derived_view, spec_generation_state, audit_evidence_state, methodology_authority, support_registry]
     validation_commands: [pnpm exec nimicoding validate-placement --profile nimi]
     migration_disposition_when_unadmitted: move_local
 domain_authority_class_enum:
@@ -148,7 +148,6 @@ domain_rules:
   - domain_id: avatar
     required_authority_class: active_product
     forbidden_authority_classes:
-      - candidate_only
       - migration_input_only
     allowed_authority_classes:
       - active_product
@@ -156,7 +155,6 @@ domain_rules:
   - domain_id: cognition
     required_authority_class: active_product
     forbidden_authority_classes:
-      - candidate_only
       - migration_input_only
     allowed_authority_classes:
       - active_product
@@ -164,7 +162,6 @@ domain_rules:
   - domain_id: zhiyu
     required_authority_class: active_product
     forbidden_authority_classes:
-      - candidate_only
       - migration_input_only
     allowed_authority_classes:
       - active_product
@@ -178,5 +175,5 @@ semantic_constraints:
   - active_product_domain_does_not_admit_generated_evidence_or_state_surfaces
   - product_authority_tables_must_declare_table_family
   - thin_guidance_must_not_carry_rule_body
-  - avatar_and_cognition_must_not_be_demoted_to_candidate_only
-  - zhiyu_must_not_be_demoted_to_candidate_only
+  - avatar_and_cognition_must_remain_active_product_authority
+  - zhiyu_must_remain_active_product_authority

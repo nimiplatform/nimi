@@ -16,15 +16,13 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 
 第一条成功路径有意做得很短：
 
-1. **安装 npm 包**到现有仓库。见 [安装指南](/zh/nimicoding/installation)。
-2. **初始化 `.nimi/`**：执行 `nimicoding start`，再用 `nimicoding doctor --json` 确认结果。
-3. **交接规范重建**：执行 `nimicoding handoff --skill spec_reconstruction --json`。
-4. **让已准入的 AI 宿主重建权威**到 `.nimi/spec/**`，记录来源依据和未解决的缺口，而不是凭空写一套漂亮的规则。
-5. **校验结果**：执行 `nimicoding validate-spec-tree .nimi/spec` 和 `nimicoding validate-spec-audit`。
+1. **安装 Nimi workspace**。见 [Host 集成](/zh/nimicoding/installation)。
+2. **用项目 compatibility wrappers 验证 host hardcut**。
+3. **从 `.nimi/config/skill-manifest.yaml` 选择 retained skill**。
+4. **需要重建时，让已准入 AI 宿主重建权威**到 `.nimi/spec/**`，记录来源依据和未解决缺口，而不是凭空写一套漂亮规则。
+5. **校验规范树**：执行 `pnpm exec nimicoding validate-spec-tree .nimi/spec`；本次执行过重建时，再用 `pnpm exec nimicoding validate-spec-audit` 验证声明的 audit。
 
-这条路径会给项目建立本地真相层和机械校验器。它不要求你立刻使用 topic、wave、packet 或高风险关卡。那些机制只在工作承载权威、跨模块、多 wave，或需要审计时启用。
-
-一旦工作进入高风险范围，升级路径才变成：创建 topic，拆分 wave，开工前冻结 packet，经由已准入宿主执行或交接，并且只有权威、语义、消费方、抗漂移四个闭合维度都满足时才关闭。
+这条路径会验证项目真相层和机械校验器。已准入的 AI 宿主始终独立负责任务规划、执行、委派、重试、恢复与完成。进入高风险范围时，Nimi Coding 通过明确预检、权威收敛、范围化门禁和强类型证据增强宿主，不会再引入另一套执行生命周期。
 
 ## 本节目录
 
@@ -37,47 +35,34 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 
 ### 角色与权威收敛
 
-- [角色分离](/zh/nimicoding/role-separation) —— 管理者、执行者、审计者。
+- [角色分离](/zh/nimicoding/role-separation) —— 宿主执行者、权威 owner、独立评审者与人类决策 owner。
 - [权威收敛](/zh/nimicoding/authority-convergence) —— 规范变更时为何独立审计必须先于实现。
 
-### 生命周期
+### 方法论与证据
 
-- [Topic 生命周期](/zh/nimicoding/topic-lifecycle) —— proposal、ongoing、pending、closed；wave 的细粒度状态；true close。
 - [白皮书](/zh/nimicoding/whitepaper) —— 把 AI 辅助实现视为权威性工作的概念论证。
-- [Topic 工作流](/zh/nimicoding/topic-workflow) —— topic / wave / packet / 预检 / 审计 / 关闭的实际流程。
-- [流程演示](/zh/nimicoding/walkthrough) —— 一个端到端的合成示例。
+- [流程演示](/zh/nimicoding/walkthrough) —— 外部宿主执行与规范、门禁、证据结合的端到端示例。
 
 ### 包
 
 - [The Package](/zh/nimicoding/the-package) —— `@nimiplatform/nimi-coding` 包含什么、不包含什么。
 - [宿主无关边界](/zh/nimicoding/host-agnostic) —— 为什么换 AI 宿主不会改变方法论。
-- [技能](/zh/nimicoding/skills) —— 四个声明的技能：`spec_reconstruction`、`doc_spec_audit`、`audit_sweep`、`high_risk_execution`。
+- [技能](/zh/nimicoding/skills) —— 三个声明的技能：`spec_reconstruction`、`doc_spec_audit`、`audit_sweep`。
 - [CLI Surface](/zh/nimicoding/cli) —— 命令面板的概念层概览。
 - [安装](/zh/nimicoding/installation) —— 当前安装姿态。
 
-### 对比与采纳
-
-- [对比](/zh/nimicoding/comparison) —— 与原生 AI 编码、代码评审、DevOps 治理、DDD、敏捷的对比。
-- [采纳路径](/zh/nimicoding/adoption-path) —— 谁会采用，为什么。
-
 ### 实践分支
 
-- [教程](/zh/nimicoding/tutorials/) —— 学习导向的分步课程，覆盖从安装到 `.nimi/spec/**`、topic 执行、sweep 审计、sweep 设计、长任务宿主工作的完整路径。
+- [教程](/zh/nimicoding/tutorials/) —— 学习导向的分步课程，覆盖安装、`.nimi/spec/**`、范围化验证和宿主自有执行。
 - [操作指南](/zh/nimicoding/how-to/) —— 按问题形态组织的操作配方。
 - [参考](/zh/nimicoding/reference/) —— Schema 级数据字典。
 
-### 附录
-
-- [oh-my-codex 适配器](/zh/nimicoding/appendix/oh-my-codex) —— 已准入的外部宿主适配层。
-
 ## 来源依据
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
-- [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi-coding/blob/main/AGENTS.md)
-- [`nimi-coding/CHANGELOG.md`](https://github.com/nimiplatform/nimi-coding/blob/main/CHANGELOG.md)
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
-- [`nimi-coding/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/topic-lifecycle-report.yaml)
-- [`nimi-coding/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/four-closure-policy.yaml)
-- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/contracts/packet.schema.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
+- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
+- [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
+- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
+- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)

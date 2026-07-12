@@ -1,4 +1,4 @@
-// Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
 //
 // Verifies that deriveVrmNominalBounds returns the policy default when
 // the VRM is null (boot placeholder), derives clamped bounds from a

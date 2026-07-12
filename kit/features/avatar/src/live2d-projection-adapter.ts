@@ -1,4 +1,4 @@
-// Wave 1 (step 2) of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/live2d-render-contract.md.
 //
 // Live2D BackendProjection adapter — implements the ontology-level
 // projection surface (`applyActivity / applyEmotion / applyMotion /

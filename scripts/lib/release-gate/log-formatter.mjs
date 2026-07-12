@@ -1,7 +1,6 @@
 // TTY pretty + log-file output for the release preflight runner.
 //
-// Owner: scripts (W2 deliverable for topic
-// 2026-05-10-release-preflight-gate-authority-hardcut).
+// Owner: scripts; governed by the release-gate registry authority.
 // Authority: P-RELG-014 local workspace evidence output.
 //
 // Per-gate stdout/stderr is written to a log file under

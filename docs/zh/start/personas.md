@@ -51,9 +51,9 @@
 
 1. [Nimi Coding → 概览](/zh/nimicoding/)：宏观了解该方法论及其对应的 npm 软件包。
 2. [Nimi Coding → 白皮书](/zh/nimicoding/whitepaper)：查阅支撑该方法论的工程治理理论基础。
-3. [Nimi Coding → 议题工作流](/zh/nimicoding/topic-workflow)：了解从 Topic 创建、Wave 发起，历经 Packet 编排、Preflight 预检，至最终 Closeout 的完整闭环流程。
+3. [Nimi Coding → 用 Codex 开展受治理开发](/zh/nimicoding/tutorials/project-to-governed-execution)：理解宿主执行与项目真相、门禁、证据之间的边界。
 4. [参考 → 禁止主张](/zh/reference/forbidden-claims)：了解开发规范中对“反模式”与“走捷径”做法的严格限制。
-5. [参考 → 状态机](/zh/reference/state-machines)：了解保障协作流程有序推进的 Topic 及 Wave 状态机机制。
+5. [参考 → Schemas](/zh/nimicoding/reference/schemas)：了解规范重建、证据与验收契约。
 
 ## 审计与评审人员
 
@@ -62,11 +62,11 @@
 1. [参考 → 规范地图](/zh/reference/spec-map)：查看公开文档与底层技术契约之间的映射关系。
 2. [参考 → 权威域](/zh/reference/authority-domains)：核查系统中各项数据与权力的最终归属。
 3. [参考 → 术语表](/zh/reference/glossary)：利用统一的术语体系对齐技术语义。
-4. [Nimi Coding → 议题工作流](/zh/nimicoding/topic-workflow)：审查工作产物（如 `topic.yaml`、Packet 存档、预检及审计报告）的组织标准与约束条件。
+4. [Nimi Coding → 用 Codex 开展受治理开发](/zh/nimicoding/tutorials/project-to-governed-execution)：审查权威、门禁、runtime 验收与证据如何相互支撑。
 
 ## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
+- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)

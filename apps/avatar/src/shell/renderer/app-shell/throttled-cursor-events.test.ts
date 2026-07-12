@@ -1,8 +1,8 @@
-// Wave 4 chunk 4-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Contract tests for .nimi/spec/avatar/kernel/app-shell-contract.md.
 //
 // Unit tests for the 60Hz cap on the `set_ignore_cursor_events` IPC
-// wrapper. Covers packet acceptance_invariant 7 + negative_test #3 (rapid
-// pointermove must not saturate IPC) + dedup + leading-edge fire +
+// wrapper. Covers the canonical rapid-pointermove saturation guard, dedup,
+// leading-edge fire,
 // trailing-edge debounce + dispose semantics.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -110,7 +110,7 @@ describe('createThrottledCursorEvents — 60Hz rate cap', () => {
   });
 
   it('caps IPC fires at ~60Hz when 1000 calls are made within 10ms', () => {
-    // packet acceptance_invariant 7 + negative_test #3 — saturation guard.
+    // Canonical 60Hz saturation guard.
     const ipc = vi.fn(async () => undefined);
     let now = 0;
     const handle = createThrottledCursorEvents({

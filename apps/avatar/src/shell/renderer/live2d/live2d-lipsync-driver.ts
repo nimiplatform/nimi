@@ -1,11 +1,11 @@
-// Wave 1 (step 2) of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/live2d-render-contract.md.
 //
 // Live2D lipsync driver: maps the wLipSync 6-dim viseme weight snapshot
 // onto Cubism standard mouth parameters (`ParamMouthOpenY`, optionally
 // `ParamMouthForm`).
 //
-// Algorithm mirrors the VRM driver envelope (design-05
-// §"VRM Lipsync Driver Envelope"): per-frame attack/release smoothing,
+// Algorithm mirrors the VRM backend contract's driver envelope: per-frame
+// attack/release smoothing,
 // winner+runner top-2 viseme selection, silence detection. The output
 // targets are written through a `setParameter` sink supplied by the
 // backend session; tier-driven fallback (no `ParamMouthForm` declared)
@@ -18,7 +18,7 @@
 
 import type { WLipSyncSnapshot } from '../carrier/backend-branch.js';
 
-// ── envelope constants (mirror VRM driver; see design-05) ──────────────
+// ── envelope constants (mirror the contract-owned VRM driver) ─────────
 const ATTACK_RATE = 50;
 const RELEASE_RATE = 30;
 const CAP = 0.7;
@@ -81,7 +81,7 @@ export type Live2DLipsyncTickInput = {
 export type Live2DLipsyncTickResult = {
   active: boolean;
   /** Reason why the frame produced silence; null when active. Surfaces
-   *  the `avatar.lipsync.silent` evidence reason (design-05 §Evidence). */
+   *  the `avatar.lipsync.silent` evidence reason from avatar-event-contract.md. */
   silentReason:
     | 'no_source'
     | 'amp_below'

@@ -1,9 +1,8 @@
-// Wave 3 chunk 3-B of topic 2026-04-30-avatar-vrm-backend-branch.
+// Authority: .nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml.
 //
 // Runtime registry that maps motion preset id → Three.js AnimationAction
 // and drives crossfaded playback against a single per-VRM AnimationMixer.
-// Implements K-NAV-VRM-003 + K-NAV-VRM-004 from vrm-backend-contract.md and
-// the algorithm sketched in design-04 §"VrmMotionPresetRegistry".
+// Implements K-NAV-VRM-003 + K-NAV-VRM-004 from vrm-backend-contract.md.
 //
 // Per-model override semantics (vrm-backend-contract.md §3.3):
 //   `<model_path>/motions/<preset_id>.vrma` shadows the builtin asset
@@ -16,8 +15,7 @@
 // Crossfade semantics:
 //   - First play: `nextAction.play()` on a clean mixer.
 //   - Subsequent play: if a previous loop preset is active, it is
-//     `stop()`-ed BEFORE the crossfade (per packet acceptance_invariant
-//     "loop preset is stopped before next play" + design-04). One-shot
+//     `stop()`-ed BEFORE the crossfade, as required by K-NAV-VRM-004. One-shot
 //     (loop=false) presets are not pre-stopped — they decay naturally
 //     into the crossfade.
 //   - Unknown preset id → fail-close `{ played: false, reason:
@@ -52,8 +50,7 @@ type AnimationActionLike = {
 };
 
 /** Intensity clamp range. Lower bound prevents near-zero timeScale (the
- *  AnimationMixer doesn't progress); upper bound caps strong-emote tempo
- *  per packet acceptance_invariant 11. */
+ *  AnimationMixer doesn't progress); upper bound caps strong-emote tempo. */
 export const MOTION_INTENSITY_MIN = 0.5;
 export const MOTION_INTENSITY_MAX = 1.4;
 /** Default crossfade duration (seconds) when caller does not override. */
@@ -218,7 +215,7 @@ export function createVrmMotionPresetRegistry(
       next.timeScale = 1;
     }
     if (activeAction && activeAction !== next) {
-      // Loop preset stop-before-crossFade per acceptance_invariant 6.
+      // Loop preset stop-before-crossFade per K-NAV-VRM-004.
       const prevEntry = activePresetId ? entriesById.get(activePresetId) : null;
       if (prevEntry?.loop) {
         activeAction.stop();
