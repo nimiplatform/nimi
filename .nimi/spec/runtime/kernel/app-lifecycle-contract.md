@@ -234,10 +234,12 @@ The protected `RuntimeDevelopmentService` owns request/list/revoke of user
 development authorizations and prepare/bind/open/status of technical launches.
 Authorization mutations and launch preparation are accepted only from the live
 `desktop_lifecycle_host` origin. The development host may call only the empty
-bootstrap/session-open surface on its verified `development_bootstrap`
-connection and the exact operations admitted for `development_host`. Public
-TCP, installed host, renderer, app metadata, and app-tools cannot invoke the
-Desktop-owned methods or select a trust class.
+bootstrap/session-open surface on the shared native `installed_host` carrier
+after Runtime derives `verified_local_development_process`, followed by only
+the exact operations admitted for `local_development_host_session`. A
+production-installed process or session on the same carrier, public TCP,
+renderer, app metadata, and app-tools cannot invoke those methods or
+select/convert a trust class.
 
 Authorization creation consumes the current submitted manifest under the
 canonical selected project root, independently validates its closed permission

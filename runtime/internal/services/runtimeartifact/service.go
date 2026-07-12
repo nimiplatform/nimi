@@ -181,7 +181,7 @@ func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice
 	case accountservice.InstalledTrustClassProductionInstalled:
 		return audience.TrustClass == "production-installed" && audience.AuthorizationID == (protectedlocal.Identifier{}) && audience.AuthorizationGeneration == 0 && audience.ProjectRoot == "" && audience.CapabilityFingerprint == (protectedlocal.Identifier{})
 	case accountservice.InstalledTrustClassLocalDevelopment:
-		return audience.TrustClass == "local-development" && audience.AuthorizationID == decision.AuthorizationID && audience.AuthorizationGeneration == decision.AuthorizationGeneration && audience.ProjectRoot == decision.ProjectRoot && audience.CapabilityFingerprint == decision.CapabilityFingerprint
+		return audience.TrustClass == "local-development-installed-admission" && audience.AuthorizationID == decision.AuthorizationID && audience.AuthorizationGeneration == decision.AuthorizationGeneration && audience.ProjectRoot == decision.ProjectRoot && audience.CapabilityFingerprint == decision.CapabilityFingerprint
 	default:
 		return false
 	}

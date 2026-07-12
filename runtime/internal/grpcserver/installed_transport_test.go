@@ -17,6 +17,7 @@ import (
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -33,6 +34,34 @@ func TestProtectedInstalledTransportRejectsOrdinaryConnection(t *testing.T) {
 			_ = accepted.Close()
 		}
 		t.Fatal("ordinary listener connection was promoted to installed authority")
+	}
+}
+
+func TestProtectedInstalledTransportRejectsCrossTrustClassMethodsBeforeHandlers(t *testing.T) {
+	production := newGRPCNativeAppHostConnection(t, protectedlocal.NativeAppHostTrustProductionInstalled, 0xa1)
+	development := newGRPCNativeAppHostConnection(t, protectedlocal.NativeAppHostTrustLocalDevelopment, 0xa5)
+	interceptor := newUnaryProtectedInstalledTransportInterceptor()
+	tests := []struct {
+		name       string
+		connection *protectedlocal.InstalledLaunchConnection
+		method     string
+		reason     runtimev1.ReasonCode
+	}{
+		{name: "production-to-development", connection: production, method: protectedOpenDevelopmentSessionMethod, reason: runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED},
+		{name: "development-to-production", connection: development, method: protectedOpenInstalledSessionMethod, reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedInstalledAuthInfo{connection: testCase.connection}})
+			handlerCalled := false
+			_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{FullMethod: testCase.method}, func(context.Context, any) (any, error) {
+				handlerCalled = true
+				return nil, nil
+			})
+			if handlerCalled || grpcInstalledReason(err) != testCase.reason {
+				t.Fatalf("cross-trust method reached handler=%v reason=%v err=%v", handlerCalled, grpcInstalledReason(err), err)
+			}
+		})
 	}
 }
 
@@ -53,7 +82,7 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	liveness := newGRPCInstalledLiveness()
-	connection, err := protectedlocal.EstablishInstalledLaunchConnection(context.Background(), grpcInstalledVerifier{peer: protectedlocal.VerifiedInstalledLaunchPeer{LaunchID: ticket.LaunchID, Process: process, RuntimeBootEpoch: boot, ProcessLiveness: liveness}})
+	connection, err := protectedlocal.EstablishInstalledLaunchConnection(context.Background(), grpcInstalledVerifier{peer: protectedlocal.VerifiedInstalledLaunchPeer{LaunchID: ticket.LaunchID, Process: process, RuntimeBootEpoch: boot, ProcessLiveness: liveness, TrustClass: protectedlocal.NativeAppHostTrustProductionInstalled}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,6 +110,10 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 	artifactClient := runtimev1.NewRuntimeArtifactServiceClient(clientConn)
 	if _, err := artifactClient.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-installed"}); grpcInstalledReason(err) != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
 		t.Fatalf("artifact read before installed session reason=%v err=%v", grpcInstalledReason(err), err)
+	}
+	developmentClient := runtimev1.NewRuntimeDevelopmentServiceClient(clientConn)
+	if _, err := developmentClient.OpenLocalDevelopmentAppSession(context.Background(), &runtimev1.OpenLocalDevelopmentAppSessionRequest{}); grpcInstalledReason(err) != runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED {
+		t.Fatalf("production-installed origin reached local-development bootstrap reason=%v err=%v", grpcInstalledReason(err), err)
 	}
 	client := runtimev1.NewRuntimeAuthServiceClient(clientConn)
 	response, err := client.OpenDesktopLaunchedAppSession(context.Background(), &runtimev1.OpenDesktopLaunchedAppSessionRequest{})
@@ -124,6 +157,9 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 	artifactResponse, err := artifactClient.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-installed"})
 	if err != nil || string(artifactResponse.GetBytes()) != "installed-artifact" {
 		t.Fatalf("read artifact over installed transport = (%+v, %v)", artifactResponse, err)
+	}
+	if _, err := developmentClient.OpenLocalDevelopmentAppSession(context.Background(), &runtimev1.OpenLocalDevelopmentAppSessionRequest{}); grpcInstalledReason(err) != runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED {
+		t.Fatalf("production-installed session converted to local-development bootstrap reason=%v err=%v", grpcInstalledReason(err), err)
 	}
 	if _, err := artifactClient.CleanupGeneratedVoiceArtifacts(context.Background(), &runtimev1.CleanupGeneratedVoiceArtifactsRequest{AgentId: "agent-1"}); grpcInstalledReason(err) != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 		t.Fatalf("non-allowlisted artifact RPC reason=%v err=%v", grpcInstalledReason(err), err)
@@ -196,4 +232,18 @@ func grpcInstalledIdentifier(value byte) protectedlocal.Identifier {
 func grpcInstalledReason(err error) runtimev1.ReasonCode {
 	reason, _ := grpcerr.ExtractReasonCode(err)
 	return reason
+}
+
+func newGRPCNativeAppHostConnection(t testing.TB, trustClass protectedlocal.NativeAppHostTrustClass, seed byte) *protectedlocal.InstalledLaunchConnection {
+	t.Helper()
+	liveness := newGRPCInstalledLiveness()
+	process := protectedlocal.ProcessTuple{OS: protectedlocal.OSWindows, PID: uint32(seed) + 2000, CreationMarker: "grpc-native-app-host", OSLoginSession: "grpc-native-logon", SecurityPrincipal: "grpc-native-user", CanonicalExecutableIdentity: "grpc-native-file", ExecutableDigest: grpcInstalledIdentifier(seed + 1), ExecutableTrustSetID: "grpc-native-trust"}
+	connection, err := protectedlocal.EstablishInstalledLaunchConnection(context.Background(), grpcInstalledVerifier{peer: protectedlocal.VerifiedInstalledLaunchPeer{
+		LaunchID: grpcInstalledIdentifier(seed), Process: process, RuntimeBootEpoch: grpcInstalledIdentifier(seed + 2), ProcessLiveness: liveness, TrustClass: trustClass,
+	}})
+	if err != nil {
+		t.Fatalf("establish gRPC native app-host connection: %v", err)
+	}
+	t.Cleanup(connection.Revoke)
+	return connection
 }

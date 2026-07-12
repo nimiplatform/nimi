@@ -498,6 +498,8 @@ services:
       - name: ReadArtifactBytes
         type: unary
         authority_status: admitted_installed_and_local_development
+        implementation_status: pending_live_e2e
+        closeout_status: blocked
         transport_disposition: protected_native_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
       - name: CleanupGeneratedVoiceArtifacts

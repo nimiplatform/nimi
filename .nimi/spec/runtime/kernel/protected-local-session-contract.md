@@ -59,16 +59,22 @@ fallback, or compatibility path may manufacture installed-host authority.
 ## K-PLOCAL-002 Transport Classes and Immutable Origin Roles
 
 The closed RPC transport-class vocabulary is `public_tcp`, `desktop_control`,
-`launch_bootstrap`, `installed_host`, `development_bootstrap`, and
-`development_host`. A.1 admits `launch_bootstrap` and `installed_host` on
-Windows only; A.5 admits the two development classes on Windows only.
-Runtime-private refresh is a direct
+`launch_bootstrap`, and `installed_host`. A.1 admits `launch_bootstrap` and the
+production-installed use of `installed_host` on Windows. A.5 admits the
+local-development use of that same native `installed_host` carrier on Windows;
+shared physical carrier does not create shared trust, session, or operation
+authority. Runtime-private refresh is a direct
 in-process helper call and is never a transport class or an invocation of a
 public refresh RPC.
 
 The admitted A.0 origin roles are `binding_only`,
 `verified_desktop_process`, `desktop_account_host`, and
-`desktop_lifecycle_host`. A transport role is derived
+`desktop_lifecycle_host`. The app-host roles are
+`verified_installed_process`, `installed_host_session`,
+`verified_local_development_process`, and
+`local_development_host_session`. Production-installed and local-development
+roles are mutually exclusive on a connection and cannot be converted into one
+another. A transport role is derived
 by Runtime from the verified connection and written to immutable origin
 context before protocol parsing, authentication, authorization, token access,
 or business request parsing. Requests and metadata cannot select, override, or
@@ -124,7 +130,7 @@ Windows is admitted independently. macOS/Linux implementations remain
 `protected-carrier-required` and cannot claim A.1 completion until their native
 handle-transfer, peer verification and signed-release evidence are admitted.
 
-## K-PLOCAL-009 Windows Local-Development Authorization And Session
+## K-PLOCAL-009 Local-Development Authorization And Session
 
 Local development has two different lifetimes. Runtime owns the durable user
 development authorization in protected service state. It binds the canonical
@@ -142,9 +148,12 @@ controlled renderer origin/output roots, account generation, and Runtime boot
 epoch. The Desktop supervisor opens a development launch, starts the exact
 Electron or Tauri host, and binds its retained process witness over the live
 `desktop_lifecycle_host` connection. Runtime then requires the native
-`development_bootstrap` peer PID to equal that bound host before atomically
-creating `development_host` session state. PID, path, parent PID, argv, env,
-project manifest, localhost, and a caller-supplied digest are never sufficient
+`installed_host` carrier peer PID to equal that bound host and derives only the
+`verified_local_development_process` role before atomically creating
+`local_development_host_session` state. The same carrier's production roles,
+session handle, release trust, and operation authorization remain mutually
+exclusive and non-convertible. PID, path, parent PID, argv, env, project
+manifest, localhost, and a caller-supplied digest are never sufficient
 authority.
 
 Session proof and launch material remain Runtime/native-host private. They are
@@ -163,10 +172,13 @@ authorization mismatch, app/root/capability/shell change, uncontrolled output
 or remote dev-server origin revokes the applicable launch/session before the
 next operation. Account change requires a new confirmation.
 
-Windows is the only admitted A.5 positive platform. macOS/Linux development
-bootstrap remains fail-closed. Ordinary installed sessions and production
-release validation remain unchanged; development state cannot be reinterpreted
-as an A.1 production release or installed listing.
+The authorization, session, supervisor, reapproval, operation-ceiling, and
+non-conversion semantics in this rule are platform-neutral. Windows is the
+only authority-admitted A.5 platform and remains pending complete live product
+evidence. macOS/Linux remain fail-closed pending independent native carrier
+admission through their OS profiles. Ordinary installed sessions and
+production release validation remain unchanged; development state cannot be
+reinterpreted as an A.1 production release or installed listing.
 
 ## K-PLOCAL-003 Mutual Endpoint Authentication
 

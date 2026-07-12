@@ -40,7 +40,7 @@ func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudienceWithoutProductionG
 		ProducerJobID: "runtime.local-development.bootstrap", OwnerAccountID: decision.AccountID, AppID: decision.AppID,
 		ReleaseDigest: decision.ReleaseDigest, SessionID: decision.SessionID, AccountGeneration: decision.AccountGeneration,
 		AllowedUse: ArtifactUseReadBytes, ExpiresAt: decision.ExpiresAt,
-		TrustClass: "local-development", AuthorizationID: decision.AuthorizationID,
+		TrustClass: "local-development-installed-admission", AuthorizationID: decision.AuthorizationID,
 		AuthorizationGeneration: decision.AuthorizationGeneration, ProjectRoot: decision.ProjectRoot,
 		CapabilityFingerprint: decision.CapabilityFingerprint,
 	}

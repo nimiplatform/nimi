@@ -272,7 +272,7 @@ func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (Art
 		if input.AuthorizationID != (protectedlocal.Identifier{}) || input.AuthorizationGeneration != 0 || input.ProjectRoot != "" || input.CapabilityFingerprint != (protectedlocal.Identifier{}) {
 			return ArtifactAudience{}, ErrInvalidArtifactRecord
 		}
-	case "local-development":
+	case "local-development-installed-admission":
 		if input.AuthorizationID == (protectedlocal.Identifier{}) || input.AuthorizationGeneration == 0 || input.ProjectRoot == "" || !filepath.IsAbs(input.ProjectRoot) || input.CapabilityFingerprint == (protectedlocal.Identifier{}) {
 			return ArtifactAudience{}, ErrInvalidArtifactRecord
 		}

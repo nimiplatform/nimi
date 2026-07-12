@@ -41,6 +41,17 @@ test('gate rejects session leakage and weak transport fallbacks', () => {
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID'));
 });
 
+test('gate keeps authority admission separate from implementation evidence and closeout', () => {
+  const bundle = loadAuthorityBundle();
+  const policy = YAML.parse(bundle.policy);
+  policy.platform_posture.windows.implementation_status = 'complete';
+  policy.platform_posture.windows.closeout_status = 'green';
+  policy.implementation_evidence.authority_gate_green_means_product_closeout_green = true;
+  const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID'));
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_EVIDENCE_STATUS_INVALID'));
+});
+
 test('gate rejects missing owner and reapproval rules', () => {
   const bundle = loadAuthorityBundle();
   const policy = YAML.parse(bundle.policy);

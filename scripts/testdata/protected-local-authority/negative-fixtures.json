@@ -50,6 +50,16 @@
     }
   },
   {
+    "fixture_id": "local-development-carrier-converts-production-trust",
+    "code": "LOCAL_DEVELOPMENT_CARRIER_AUTHORITY_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  cross_class_conversion: forbidden",
+      "to": "  cross_class_conversion: allowed"
+    }
+  },
+  {
     "fixture_id": "runtime-production-trust-row-removed",
     "code": "RUNTIME_EXECUTABLE_TRUST_REQUIRED",
     "target": ".nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml",

@@ -18,6 +18,7 @@ const paths = {
   trustSets: '.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml',
   accountMatrix: '.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml',
   identityAccess: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+  artifactPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
   interceptorChain: '.nimi/spec/runtime/kernel/tables/interceptor-chain.yaml',
   authService: '.nimi/spec/runtime/kernel/auth-service.md',
   authPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml',
@@ -500,6 +501,40 @@ function validateRpcPosture(bundle, issues) {
   if (matrix?.request_role_selection !== 'forbidden') {
     issues.push(issue('TRANSPORT_ROLE_MATRIX_REQUIRED', paths.transportMatrix, 'Request data cannot select or upgrade a protected origin role.'));
   }
+  const a5 = matrix?.a5_local_development_admission;
+  const sharedCarrier = matrix?.installed_host_carrier;
+  const expectedOriginRoles = [
+    'binding_only',
+    'verified_desktop_process',
+    'desktop_account_host',
+    'desktop_lifecycle_host',
+    'verified_installed_process',
+    'installed_host_session',
+    'verified_local_development_process',
+    'local_development_host_session',
+  ];
+  if (
+    !equalArray(matrix?.transport_classes, ['public_tcp', 'desktop_control', 'launch_bootstrap', 'installed_host'])
+    || !equalArray(matrix?.origin_roles, expectedOriginRoles)
+    || a5?.windows?.authority_status !== 'admitted'
+    || a5?.windows?.implementation_status !== 'pending_live_e2e'
+    || a5?.windows?.closeout_status !== 'blocked'
+    || a5?.macos?.authority_status !== 'pending_independent_admission'
+    || a5?.macos?.implementation_status !== 'fail_closed_not_implemented'
+    || a5?.macos?.closeout_status !== 'blocked'
+    || a5?.linux?.authority_status !== 'pending_independent_admission'
+    || a5?.linux?.implementation_status !== 'fail_closed_not_implemented'
+    || a5?.linux?.closeout_status !== 'blocked'
+    || a5?.trust_class !== 'local-development-installed-admission'
+    || !equalArray(sharedCarrier?.physical_transport_shared_by, ['production_installed', 'local_development'])
+    || sharedCarrier?.trust_classes_mutually_exclusive !== true
+    || sharedCarrier?.process_roles_mutually_exclusive !== true
+    || sharedCarrier?.session_handles_mutually_exclusive !== true
+    || sharedCarrier?.operation_authorization_revalidated_per_call !== true
+    || sharedCarrier?.cross_class_conversion !== 'forbidden'
+  ) {
+    issues.push(issue('LOCAL_DEVELOPMENT_CARRIER_AUTHORITY_REQUIRED', paths.transportMatrix, 'Local development and production may share only the installed_host physical carrier; their trust, process roles, sessions, and per-operation authorization must remain explicit, mutually exclusive, and non-convertible.'));
+  }
   const desktopWire = matrix?.open_desktop_session_wire;
   if (
     desktopWire?.request?.message !== 'OpenDesktopSessionRequest'
@@ -566,6 +601,26 @@ function validateRpcPosture(bundle, issues) {
   const openApp = rows.find((candidate) => candidate.method_id?.endsWith('/OpenApp'));
   if (!openApp || openApp.lifecycle_challenge_required !== false || openApp.source_rule !== 'K-PLOCAL-007') {
     issues.push(issue('LIFECYCLE_OPERATION_PROTOCOL_REQUIRED', paths.transportMatrix, 'OpenApp must use direct protected transactional admission without a prepare challenge.'));
+  }
+  const readArtifact = rows.find((candidate) => candidate.method_id?.endsWith('/ReadArtifactBytes'));
+  const openDevelopment = rows.find((candidate) => candidate.method_id?.endsWith('/OpenLocalDevelopmentAppSession'));
+  const developmentStatus = rows.find((candidate) => candidate.method_id?.endsWith('/GetLocalDevelopmentSessionStatus'));
+  const artifactPosture = parseYaml(bundle, paths.artifactPosture, issues);
+  const artifactPostureRow = artifactPosture?.methods?.find((candidate) => candidate.method_id?.endsWith('/ReadArtifactBytes'));
+  if (
+    !readArtifact
+    || !equalArray(readArtifact.allowed_transport_classes, ['installed_host'])
+    || !equalArray(readArtifact.required_origin_roles, ['installed_host_session', 'local_development_host_session'])
+    || !openDevelopment
+    || !equalArray(openDevelopment.allowed_transport_classes, ['installed_host'])
+    || !equalArray(openDevelopment.required_origin_roles, ['verified_local_development_process'])
+    || !developmentStatus
+    || !equalArray(developmentStatus.allowed_transport_classes, ['installed_host'])
+    || !equalArray(developmentStatus.required_origin_roles, ['local_development_host_session'])
+    || artifactPostureRow?.protected_transport_class !== 'installed_host'
+    || !equalArray(artifactPostureRow?.required_origin_roles, ['installed_host_session', 'local_development_host_session'])
+  ) {
+    issues.push(issue('LOCAL_DEVELOPMENT_CARRIER_AUTHORITY_REQUIRED', paths.transportMatrix, 'Runtime development bootstrap/status and artifact reads must use explicit mutually exclusive installed_host origin roles with no fictional union role.'));
   }
   const refresh = rows.find((candidate) => candidate.method_id?.endsWith('/RefreshAccountSession'));
   if (refresh) {

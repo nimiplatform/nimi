@@ -8,8 +8,17 @@ import (
 )
 
 const (
-	RoleVerifiedInstalledProcess OriginRole = "verified_installed_process"
-	RoleInstalledHostSession     OriginRole = "installed_host_session"
+	RoleVerifiedInstalledProcess        OriginRole = "verified_installed_process"
+	RoleInstalledHostSession            OriginRole = "installed_host_session"
+	RoleVerifiedLocalDevelopmentProcess OriginRole = "verified_local_development_process"
+	RoleLocalDevelopmentHostSession     OriginRole = "local_development_host_session"
+)
+
+type NativeAppHostTrustClass string
+
+const (
+	NativeAppHostTrustProductionInstalled NativeAppHostTrustClass = "production-installed"
+	NativeAppHostTrustLocalDevelopment    NativeAppHostTrustClass = "local-development-installed-admission"
 )
 
 type VerifiedInstalledLaunchPeer struct {
@@ -17,6 +26,7 @@ type VerifiedInstalledLaunchPeer struct {
 	Process          ProcessTuple
 	RuntimeBootEpoch Identifier
 	ProcessLiveness  DesktopProcessLiveness
+	TrustClass       NativeAppHostTrustClass
 }
 
 // InstalledSessionHandle is the Runtime-private selector and proof attached to
@@ -45,6 +55,7 @@ type InstalledLaunchConnection struct {
 	process            ProcessTuple
 	boot               Identifier
 	liveness           DesktopProcessLiveness
+	trustClass         NativeAppHostTrustClass
 	live               atomic.Bool
 	done               chan struct{}
 	revokeMu           sync.Mutex
@@ -62,7 +73,7 @@ func EstablishInstalledLaunchConnection(ctx context.Context, verifier InstalledL
 	if err != nil {
 		return nil, err
 	}
-	if peer.LaunchID == (Identifier{}) || peer.RuntimeBootEpoch == (Identifier{}) || peer.ProcessLiveness == nil {
+	if peer.LaunchID == (Identifier{}) || peer.RuntimeBootEpoch == (Identifier{}) || peer.ProcessLiveness == nil || !peer.TrustClass.valid() {
 		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "relaunch_app", fmt.Errorf("installed launch peer is incomplete"))
 	}
 	livenessSignal := peer.ProcessLiveness.Revoked()
@@ -74,7 +85,7 @@ func EstablishInstalledLaunchConnection(ctx context.Context, verifier InstalledL
 		_ = peer.ProcessLiveness.Close()
 		return nil, fail(ReasonDesktopExecutableTrustFailed, false, "reinstall_app", fmt.Errorf("validate installed process: %w", err))
 	}
-	connection := &InstalledLaunchConnection{launchID: peer.LaunchID, process: peer.Process, boot: peer.RuntimeBootEpoch, liveness: peer.ProcessLiveness, done: make(chan struct{})}
+	connection := &InstalledLaunchConnection{launchID: peer.LaunchID, process: peer.Process, boot: peer.RuntimeBootEpoch, liveness: peer.ProcessLiveness, trustClass: peer.TrustClass, done: make(chan struct{})}
 	connection.live.Store(true)
 	go func() {
 		select {
@@ -111,6 +122,43 @@ func (connection *InstalledLaunchConnection) Live() bool {
 	return connection != nil && connection.live.Load()
 }
 
+func (trustClass NativeAppHostTrustClass) valid() bool {
+	return trustClass == NativeAppHostTrustProductionInstalled || trustClass == NativeAppHostTrustLocalDevelopment
+}
+
+func (connection *InstalledLaunchConnection) TrustClass() NativeAppHostTrustClass {
+	if connection == nil {
+		return ""
+	}
+	return connection.trustClass
+}
+
+func (connection *InstalledLaunchConnection) Origin() OriginContext {
+	if connection == nil || !connection.live.Load() || !connection.trustClass.valid() {
+		return OriginContext{}
+	}
+	roles := make(map[OriginRole]struct{}, 2)
+	connection.sessionMu.RLock()
+	if !connection.live.Load() {
+		connection.sessionMu.RUnlock()
+		return OriginContext{}
+	}
+	switch connection.trustClass {
+	case NativeAppHostTrustProductionInstalled:
+		roles[RoleVerifiedInstalledProcess] = struct{}{}
+		if connection.session != nil {
+			roles[RoleInstalledHostSession] = struct{}{}
+		}
+	case NativeAppHostTrustLocalDevelopment:
+		roles[RoleVerifiedLocalDevelopmentProcess] = struct{}{}
+		if connection.developmentSession != nil {
+			roles[RoleLocalDevelopmentHostSession] = struct{}{}
+		}
+	}
+	connection.sessionMu.RUnlock()
+	return OriginContext{TransportClass: TransportInstalledHost, roles: roles}
+}
+
 // BindInstalledSession attaches the one installed session created from this
 // connection's launch record. A connection can never be rebound or promoted
 // by caller-provided metadata.
@@ -122,6 +170,9 @@ func (connection *InstalledLaunchConnection) BindInstalledSession(handle Install
 	defer connection.sessionMu.Unlock()
 	if !connection.live.Load() {
 		return fmt.Errorf("installed launch connection is revoked")
+	}
+	if connection.trustClass != NativeAppHostTrustProductionInstalled {
+		return fmt.Errorf("local-development connection cannot bind a production-installed session")
 	}
 	if connection.session != nil {
 		return fmt.Errorf("installed launch connection already has a session")
@@ -143,6 +194,9 @@ func (connection *InstalledLaunchConnection) BindLocalDevelopmentSession(handle 
 	if !connection.live.Load() {
 		return fmt.Errorf("installed launch connection is revoked")
 	}
+	if connection.trustClass != NativeAppHostTrustLocalDevelopment {
+		return fmt.Errorf("production-installed connection cannot bind a local-development session")
+	}
 	if connection.session != nil || connection.developmentSession != nil {
 		return fmt.Errorf("installed launch connection already has a session")
 	}
@@ -152,7 +206,7 @@ func (connection *InstalledLaunchConnection) BindLocalDevelopmentSession(handle 
 }
 
 func (connection *InstalledLaunchConnection) LocalDevelopmentSession() (LocalDevelopmentSessionHandle, bool) {
-	if connection == nil || !connection.live.Load() {
+	if connection == nil || !connection.live.Load() || connection.trustClass != NativeAppHostTrustLocalDevelopment {
 		return LocalDevelopmentSessionHandle{}, false
 	}
 	connection.sessionMu.RLock()
@@ -169,7 +223,7 @@ func (connection *InstalledLaunchConnection) RotateLocalDevelopmentSession(previ
 	}
 	connection.sessionMu.Lock()
 	defer connection.sessionMu.Unlock()
-	if !connection.live.Load() || connection.session != nil || connection.developmentSession == nil || *connection.developmentSession != previous {
+	if !connection.live.Load() || connection.trustClass != NativeAppHostTrustLocalDevelopment || connection.session != nil || connection.developmentSession == nil || *connection.developmentSession != previous {
 		return fmt.Errorf("local-development session rotation lost its exact connection binding")
 	}
 	rotated := next
@@ -178,7 +232,7 @@ func (connection *InstalledLaunchConnection) RotateLocalDevelopmentSession(previ
 }
 
 func (connection *InstalledLaunchConnection) InstalledSession() (InstalledSessionHandle, bool) {
-	if connection == nil || !connection.live.Load() {
+	if connection == nil || !connection.live.Load() || connection.trustClass != NativeAppHostTrustProductionInstalled {
 		return InstalledSessionHandle{}, false
 	}
 	connection.sessionMu.RLock()

@@ -296,8 +296,9 @@ unary/stream/storage/config/lifecycle operations remain forbidden.
 
 Kit owns one typed local-development bootstrap/status and operation surface for
 Electron and Tauri. Native host adapters consume only the Runtime-created
-`development_bootstrap` connection opened through the Desktop-owned supervisor
-flow. They automatically open, rotate, invalidate, and re-open the technical
+`installed_host` native carrier opened through the Desktop-owned supervisor
+flow and carrying the mutually exclusive local-development process/session
+roles. They automatically open, rotate, invalidate, and re-open the technical
 session across controlled host restarts and Runtime restart; app code cannot
 provide a Runtime endpoint, launch correlation, session, proof, epoch, PID,
 root, capability fingerprint, or trust class.
@@ -313,7 +314,8 @@ The Wave A positive surface contains only
 `artifacts.readRuntimeBytes`. Kit must not expose a generic protected proxy or
 use development mode to enable account, lifecycle, Realm, AI, realtime, or
 media methods. A missing or untrusted development carrier fails closed and
-cannot fall back to ordinary gRPC or an installed-production carrier.
+cannot fall back to ordinary gRPC or reuse/convert production-installed trust
+or session state on the shared carrier.
 
 ## P-KIT-043 — Runtime Capabilities Module
 

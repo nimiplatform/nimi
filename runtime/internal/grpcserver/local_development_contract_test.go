@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -60,6 +61,26 @@ func TestLocalDevelopmentMethodsHaveClosedTransportPosture(t *testing.T) {
 	for _, method := range desktopMethods {
 		if protectedInstalledUnaryMethodAllowed(method) {
 			t.Fatalf("Desktop lifecycle method %s leaked onto app-host transport", method)
+		}
+	}
+	assertProtectedInstalledMethodRoles(t, protectedOpenInstalledSessionMethod, protectedlocal.RoleVerifiedInstalledProcess)
+	assertProtectedInstalledMethodRoles(t, protectedOpenDevelopmentSessionMethod, protectedlocal.RoleVerifiedLocalDevelopmentProcess)
+	assertProtectedInstalledMethodRoles(t, protectedGetDevelopmentStatusMethod, protectedlocal.RoleLocalDevelopmentHostSession)
+	assertProtectedInstalledMethodRoles(t, protectedReadArtifactBytesMethod, protectedlocal.RoleInstalledHostSession, protectedlocal.RoleLocalDevelopmentHostSession)
+}
+
+func assertProtectedInstalledMethodRoles(t testing.TB, method string, expected ...protectedlocal.OriginRole) {
+	t.Helper()
+	policy, ok := protectedInstalledMethodPolicies[method]
+	if !ok {
+		t.Fatalf("missing installed_host policy for %s", method)
+	}
+	if len(policy.requiredRoles) != len(expected) {
+		t.Fatalf("installed_host roles for %s = %v, want %v", method, policy.requiredRoles, expected)
+	}
+	for index := range expected {
+		if policy.requiredRoles[index] != expected[index] {
+			t.Fatalf("installed_host roles for %s = %v, want %v", method, policy.requiredRoles, expected)
 		}
 	}
 }

@@ -29,12 +29,28 @@ a1_platform_admission:
   linux: fail_closed_pending_native_admission
   forbidden_fallbacks: [localhost_grpc, same_user_daemon, argv, env, temp_file, renderer_ipc, portable_bearer]
 a5_local_development_admission:
-  windows: admitted
-  macos: fail_closed_pending_independent_native_admission
-  linux: fail_closed_pending_independent_native_admission
-  trust_class: local-development
+  windows:
+    authority_status: admitted
+    implementation_status: pending_live_e2e
+    closeout_status: blocked
+  macos:
+    authority_status: pending_independent_admission
+    implementation_status: fail_closed_not_implemented
+    closeout_status: blocked
+  linux:
+    authority_status: pending_independent_admission
+    implementation_status: fail_closed_not_implemented
+    closeout_status: blocked
+  trust_class: local-development-installed-admission
   production_release_conversion: forbidden
   forbidden_fallbacks: [localhost_grpc, same_user_daemon, direct_tauri_dev, manual_electron, renderer_ipc, portable_bearer]
+installed_host_carrier:
+  physical_transport_shared_by: [production_installed, local_development]
+  trust_classes_mutually_exclusive: true
+  process_roles_mutually_exclusive: true
+  session_handles_mutually_exclusive: true
+  operation_authorization_revalidated_per_call: true
+  cross_class_conversion: forbidden
 origin_roles:
   - binding_only
   - verified_desktop_process
@@ -44,7 +60,6 @@ origin_roles:
   - installed_host_session
   - verified_local_development_process
   - local_development_host_session
-  - verified_app_host_session
 operation_classes:
   - binding_bootstrap
   - desktop_session_bootstrap
@@ -135,7 +150,7 @@ open_local_development_session_wire:
     authority_fields: []
     projection_fields: [state, app_id, bootstrap_artifact_id, expires_at, account_generation, runtime_boot_epoch, reason_code]
     forbidden_fields: [session_id, session_proof, launch_ticket, token, credential]
-  connection_binding: exact_verified_desktop_supervised_local_development_process
+  connection_binding: installed_host_carrier_exact_verified_desktop_supervised_local_development_process
   atomic_transition: development_launch_consume_and_private_session_insert
   renderer_projection: typed_status_and_bootstrap_artifact_selector_only
   ordinary_grpc_disposition: deny
@@ -180,7 +195,7 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
     operation_class: installed_artifact_read
     allowed_transport_classes: [installed_host]
-    required_origin_roles: [verified_app_host_session]
+    required_origin_roles: [installed_host_session, local_development_host_session]
     request_may_select_role: false
     portable_session_allowed: false
     public_tcp_disposition: deny

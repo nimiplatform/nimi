@@ -162,7 +162,7 @@ func newInstalledSessionFixtureWithAuthority(t *testing.T, storeBoot, peerBoot p
 	}
 	liveness := newDesktopSessionTestLiveness()
 	connection, err := protectedlocal.EstablishInstalledLaunchConnection(context.Background(), installedSessionVerifier{peer: protectedlocal.VerifiedInstalledLaunchPeer{
-		LaunchID: ticket.LaunchID, Process: process, RuntimeBootEpoch: peerBoot, ProcessLiveness: liveness,
+		LaunchID: ticket.LaunchID, Process: process, RuntimeBootEpoch: peerBoot, ProcessLiveness: liveness, TrustClass: protectedlocal.NativeAppHostTrustProductionInstalled,
 	}})
 	if err != nil {
 		t.Fatal(err)

@@ -32,7 +32,7 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
     posture: protected_origin_required
     protected_transport_class: installed_host
-    required_origin_role: installed_host_session
+    required_origin_roles: [installed_host_session, local_development_host_session]
     rationale: artifact id is a selector only; production installed callers require the current catalog/inventory/release/grant chain, while local-development callers require the explicit approved capability fingerprint and live Desktop-supervised technical session; both require an exact durable account/app/trust/session/use audience match
     kernel_refs:
       - K-AUTHN-001

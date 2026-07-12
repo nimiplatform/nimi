@@ -49,7 +49,7 @@ func TestWindowsVerifiedInstalledListenerMatchesRealPipePeerToPreboundProcess(t 
 	server := awaitWindowsVerifiedListenerConnection(t, accepted)
 	t.Cleanup(func() { _ = server.Close() })
 	connection, ok := NativeInstalledConnectionFromNetConn(server)
-	if !ok || connection.LaunchID() != launchID || connection.Process() != process || connection.RuntimeBootEpoch() != boot {
+	if !ok || connection.LaunchID() != launchID || connection.Process() != process || connection.RuntimeBootEpoch() != boot || connection.TrustClass() != NativeAppHostTrustProductionInstalled {
 		t.Fatalf("installed native authority mismatch: connection=%+v ok=%v", connection, ok)
 	}
 }
@@ -97,7 +97,7 @@ func TestWindowsVerifiedInstalledListenerKeepsLocalDevelopmentPeerInSeparateTrus
 	server := awaitWindowsVerifiedListenerConnection(t, accepted)
 	t.Cleanup(func() { _ = server.Close() })
 	connection, ok := NativeInstalledConnectionFromNetConn(server)
-	if !ok || connection.LaunchID() != launchID || connection.Process() != bound || connection.Process().ExecutableTrustSetID != WindowsLocalDevelopmentTrustSetID || connection.RuntimeBootEpoch() != boot {
+	if !ok || connection.LaunchID() != launchID || connection.Process() != bound || connection.Process().ExecutableTrustSetID != WindowsLocalDevelopmentTrustSetID || connection.RuntimeBootEpoch() != boot || connection.TrustClass() != NativeAppHostTrustLocalDevelopment {
 		t.Fatalf("local-development native authority mismatch: connection=%+v ok=%v", connection, ok)
 	}
 }

@@ -22,7 +22,7 @@ type InstalledTrustClass string
 
 const (
 	InstalledTrustClassProductionInstalled InstalledTrustClass = "production-installed"
-	InstalledTrustClassLocalDevelopment    InstalledTrustClass = "local-development"
+	InstalledTrustClassLocalDevelopment    InstalledTrustClass = "local-development-installed-admission"
 )
 
 type InstalledInventoryAccountState string

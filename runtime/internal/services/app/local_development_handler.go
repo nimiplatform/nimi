@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const localDevelopmentTrustClass = "local-development"
+const localDevelopmentTrustClass = "local-development-installed-admission"
 
 func (s *Service) RevokeAccountAuthority(ctx context.Context, accountID string) error {
 	if s == nil || s.localDevelopment == nil {

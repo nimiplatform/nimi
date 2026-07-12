@@ -22,16 +22,33 @@ const (
 	protectedGetDevelopmentStatusMethod   = "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus"
 )
 
+type protectedInstalledMethodPolicy struct {
+	requiredRoles     []protectedlocal.OriginRole
+	missingRoleReason runtimev1.ReasonCode
+}
+
+var protectedInstalledMethodPolicies = map[string]protectedInstalledMethodPolicy{
+	protectedOpenInstalledSessionMethod: {
+		requiredRoles:     []protectedlocal.OriginRole{protectedlocal.RoleVerifiedInstalledProcess},
+		missingRoleReason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	},
+	protectedOpenDevelopmentSessionMethod: {
+		requiredRoles:     []protectedlocal.OriginRole{protectedlocal.RoleVerifiedLocalDevelopmentProcess},
+		missingRoleReason: runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED,
+	},
+	protectedGetDevelopmentStatusMethod: {
+		requiredRoles:     []protectedlocal.OriginRole{protectedlocal.RoleLocalDevelopmentHostSession},
+		missingRoleReason: runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SESSION_REVOKED,
+	},
+	protectedReadArtifactBytesMethod: {
+		requiredRoles:     []protectedlocal.OriginRole{protectedlocal.RoleInstalledHostSession, protectedlocal.RoleLocalDevelopmentHostSession},
+		missingRoleReason: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+	},
+}
+
 func protectedInstalledUnaryMethodAllowed(method string) bool {
-	switch method {
-	case protectedOpenInstalledSessionMethod,
-		protectedOpenDevelopmentSessionMethod,
-		protectedGetDevelopmentStatusMethod,
-		protectedReadArtifactBytesMethod:
-		return true
-	default:
-		return false
-	}
+	_, allowed := protectedInstalledMethodPolicies[method]
+	return allowed
 }
 
 type protectedInstalledNetConn struct {
@@ -120,7 +137,11 @@ func newProtectedInstalledRPCServer(authService runtimev1.RuntimeAuthServiceServ
 
 func newUnaryProtectedInstalledTransportInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if info == nil || !protectedInstalledUnaryMethodAllowed(info.FullMethod) {
+		if info == nil {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		policy, allowed := protectedInstalledMethodPolicies[info.FullMethod]
+		if !allowed {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		peerInfo, ok := peer.FromContext(ctx)
@@ -131,17 +152,23 @@ func newUnaryProtectedInstalledTransportInterceptor() grpc.UnaryServerIntercepto
 		if !ok || authInfo == nil || authInfo.connection == nil || !authInfo.connection.Live() {
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE)
 		}
-		if info.FullMethod == protectedReadArtifactBytesMethod {
-			_, installed := authInfo.connection.InstalledSession()
-			_, development := authInfo.connection.LocalDevelopmentSession()
-			if !installed && !development {
-				return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		origin := authInfo.connection.Origin()
+		roleAllowed := origin.TransportClass == protectedlocal.TransportInstalledHost
+		if roleAllowed {
+			roleAllowed = false
+			for _, role := range policy.requiredRoles {
+				if origin.HasRole(role) {
+					roleAllowed = true
+					break
+				}
 			}
 		}
-		if info.FullMethod == protectedGetDevelopmentStatusMethod {
-			if _, ok := authInfo.connection.LocalDevelopmentSession(); !ok {
-				return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SESSION_REVOKED)
+		if !roleAllowed {
+			code := codes.PermissionDenied
+			if policy.missingRoleReason == runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED || policy.missingRoleReason == runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SESSION_REVOKED {
+				code = codes.Unauthenticated
 			}
+			return nil, grpcerr.WithReasonCode(code, policy.missingRoleReason)
 		}
 		return handler(protectedlocal.ContextWithInstalledLaunchConnection(ctx, authInfo.connection), req)
 	}

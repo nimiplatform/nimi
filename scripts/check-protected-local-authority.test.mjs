@@ -27,6 +27,7 @@ const expectedCodes = [
   'WINDOWS_CUSTODY_PRINCIPAL_BINDING_REQUIRED',
   'WINDOWS_RESTRICTED_PIPE_BOOTSTRAP_REQUIRED',
   'MUTUAL_ENDPOINT_AUTH_REQUIRED',
+  'LOCAL_DEVELOPMENT_CARRIER_AUTHORITY_REQUIRED',
   'RUNTIME_EXECUTABLE_TRUST_REQUIRED',
   'TRANSPORT_ROLE_MATRIX_REQUIRED',
   'PUBLIC_PRIVILEGED_RPC_FORBIDDEN',
@@ -53,6 +54,22 @@ function runGate(args) {
 
 function parseAuthority(relative) {
   return YAML.parse(fs.readFileSync(path.join(repoRoot, relative), 'utf8'));
+}
+
+function readAuthority(relative) {
+  return fs.readFileSync(path.join(repoRoot, relative), 'utf8');
+}
+
+function extractContractRule(source, ruleId) {
+  const start = source.indexOf(`## ${ruleId} `);
+  assert.notEqual(start, -1, `missing ${ruleId}`);
+  const end = source.indexOf('\n## ', start + 3);
+  return source.slice(start, end === -1 ? source.length : end);
+}
+
+function runtimeStringConstants(relative, typeName) {
+  const source = readAuthority(relative);
+  return [...source.matchAll(new RegExp(`${typeName}\\s*=\\s*"([^"]+)"`, 'gu'))].map((match) => match[1]);
 }
 
 test('supported OS authority uses exact isolated principals and macOS privileged XPC', () => {
@@ -100,6 +117,64 @@ test('Windows restricted service bootstraps an account-scoped pipe without openi
   assert.equal(windows.endpoint_ownership, 'first_pipe_instance_service_owned_dacl_connect_only_active_account_sid_remote_clients_rejected');
   assert.equal(windows.client_peer_verification, 'GetNamedPipeClientProcessId_active_user_sid_terminal_session_token_logon_luid_and_same_file_executable_trust');
   assert.equal(windowsPrincipal.endpoint_connect_boundary, 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_verifies_client_token_logon_luid');
+});
+
+test('local development shares the native installed_host carrier without parallel transport or origin truth', () => {
+  const contract = readAuthority('.nimi/spec/runtime/kernel/protected-local-session-contract.md');
+  const transportRule = extractContractRule(contract, 'K-PLOCAL-002');
+  const matrix = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
+  const identity = parseAuthority('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml');
+  const artifact = parseAuthority('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml');
+  const expectedTransports = ['public_tcp', 'desktop_control', 'launch_bootstrap', 'installed_host'];
+  const expectedRoles = [
+    'binding_only',
+    'verified_desktop_process',
+    'desktop_account_host',
+    'desktop_lifecycle_host',
+    'verified_installed_process',
+    'installed_host_session',
+    'verified_local_development_process',
+    'local_development_host_session',
+  ];
+
+  assert.doesNotMatch(transportRule, /`development_(?:bootstrap|host)`/u);
+  for (const transport of expectedTransports) assert.match(transportRule, new RegExp(`\\b${transport}\\b`, 'u'));
+  assert.deepEqual(matrix.transport_classes, expectedTransports);
+
+  const runtimeTransports = runtimeStringConstants('runtime/internal/protectedlocal/core.go', 'TransportClass');
+  const runtimeRoles = [
+    ...runtimeStringConstants('runtime/internal/protectedlocal/core.go', 'OriginRole'),
+    ...runtimeStringConstants('runtime/internal/protectedlocal/installed_launch_connection.go', 'OriginRole'),
+  ];
+  assert.deepEqual(runtimeTransports, expectedTransports);
+  assert.deepEqual(runtimeRoles, expectedRoles);
+  assert.deepEqual(matrix.origin_roles, expectedRoles);
+
+  const postureRows = [...identity.methods, ...artifact.methods];
+  for (const methodId of [
+    '/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession',
+    '/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus',
+    '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes',
+  ]) {
+    const matrixRow = matrix.methods.find((row) => row.method_id === methodId);
+    const postureRow = postureRows.find((row) => row.method_id === methodId);
+    assert.ok(matrixRow && postureRow, `missing transport/posture row for ${methodId}`);
+    assert.deepEqual(matrixRow.allowed_transport_classes, [postureRow.protected_transport_class]);
+    const postureRoles = postureRow.required_origin_roles ?? [postureRow.required_origin_role];
+    assert.deepEqual(matrixRow.required_origin_roles, postureRoles);
+  }
+
+  const readArtifact = matrix.methods.find((row) => row.method_id === '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes');
+  assert.deepEqual(readArtifact.required_origin_roles, ['installed_host_session', 'local_development_host_session']);
+  const runtimeCarrier = readAuthority('runtime/internal/grpcserver/installed_transport.go');
+  assert.match(runtimeCarrier, /protectedReadArtifactBytesMethod[\s\S]*RoleInstalledHostSession[\s\S]*RoleLocalDevelopmentHostSession/u);
+
+  const closedVocabulary = `${transportRule}\n${JSON.stringify(matrix)}\n${JSON.stringify(identity)}\n${JSON.stringify(artifact)}`;
+  assert.doesNotMatch(closedVocabulary, /`development_(?:bootstrap|host)`|"development_(?:bootstrap|host)"|verified_app_host_session/u);
+  const admittedRoles = new Set(expectedRoles);
+  for (const row of matrix.methods) {
+    for (const role of row.required_origin_roles) assert.ok(admittedRoles.has(role), `fictional matrix role ${role}`);
+  }
 });
 
 test('production config and Desktop service lifecycle have one closed authority', () => {

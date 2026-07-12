@@ -164,7 +164,11 @@ func (registry *InstalledLaunchRegistry) Promote(peer ProcessTuple, pipeLiveness
 	close(binding.done)
 	registry.mu.Unlock()
 	_ = pipeLiveness.Close()
-	return VerifiedInstalledLaunchPeer{LaunchID: binding.launchID, Process: binding.process, RuntimeBootEpoch: registry.bootEpoch, ProcessLiveness: binding.liveness}, nil
+	trustClass := NativeAppHostTrustProductionInstalled
+	if binding.developmentPolicy != nil {
+		trustClass = NativeAppHostTrustLocalDevelopment
+	}
+	return VerifiedInstalledLaunchPeer{LaunchID: binding.launchID, Process: binding.process, RuntimeBootEpoch: registry.bootEpoch, ProcessLiveness: binding.liveness, TrustClass: trustClass}, nil
 }
 
 func (registry *InstalledLaunchRegistry) remove(binding *installedLaunchBinding, revoke bool) {

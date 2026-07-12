@@ -77,6 +77,16 @@ const ownerRows = Object.freeze({
   runtime: 'authorization_admission_generation_revocation_and_session_truth',
   kit: 'electron_tauri_typed_bootstrap_status_rotation_and_operation_surface',
 });
+const admittedWindowsPosture = Object.freeze({
+  authority_status: 'admitted',
+  implementation_status: 'pending_live_e2e',
+  closeout_status: 'blocked',
+});
+const unimplementedPlatformPosture = Object.freeze({
+  authority_status: 'pending_independent_admission',
+  implementation_status: 'fail_closed_not_implemented',
+  closeout_status: 'blocked',
+});
 
 function issue(code, target, reason) {
   return { code, target, reason };
@@ -195,13 +205,26 @@ export function validateLocalDevelopmentAuthority(bundle) {
   }
 
   if (
-    policy.platform_posture?.windows !== 'admitted_for_local_development_implementation'
-    || policy.platform_posture?.macos !== 'fail_closed_pending_independent_admission'
-    || policy.platform_posture?.linux !== 'fail_closed_pending_independent_admission'
+    JSON.stringify(policy.platform_posture?.windows) !== JSON.stringify(admittedWindowsPosture)
+    || JSON.stringify(policy.platform_posture?.macos) !== JSON.stringify(unimplementedPlatformPosture)
+    || JSON.stringify(policy.platform_posture?.linux) !== JSON.stringify(unimplementedPlatformPosture)
     || policy.platform_posture?.localhost_grpc_fallback !== 'forbidden'
     || policy.platform_posture?.same_user_daemon_fallback !== 'forbidden'
   ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID', authorityPaths.policy, 'Windows must be independently implementable while macOS/Linux and all weak fallbacks remain fail-closed.'));
+    issues.push(issue('LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID', authorityPaths.policy, 'Authority admission, implementation evidence, and closeout must remain separate while unimplemented platforms and weak fallbacks fail closed.'));
+  }
+
+  const evidence = policy.implementation_evidence;
+  if (
+    evidence?.windows_restricted_runtime_service !== 'green'
+    || evidence?.desktop_confirmation_and_supervisor !== 'pending'
+    || evidence?.kit_typed_bootstrap_and_rotation !== 'pending'
+    || evidence?.app_tools_one_command_launcher !== 'pending'
+    || evidence?.electron_live_shell !== 'pending'
+    || evidence?.tauri_live_shell !== 'pending'
+    || evidence?.authority_gate_green_means_product_closeout_green !== false
+  ) {
+    issues.push(issue('LOCAL_DEVELOPMENT_EVIDENCE_STATUS_INVALID', authorityPaths.policy, 'Restricted-service evidence cannot promote pending Desktop, Kit, app-tools, or live-shell evidence into product closeout.'));
   }
 
   if (
