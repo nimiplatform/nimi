@@ -232,11 +232,11 @@ func TestWindowsRuntimeProcessDACLNamesExactServiceAndLimitsInteractiveAccessToV
 }
 
 func TestWindowsRuntimeProcessMandatoryLabelAllowsReadOnlyMutualVerification(t *testing.T) {
-	descriptor, label, err := buildWindowsRuntimeProcessMandatoryLabel()
+	descriptor, label, err := buildWindowsRuntimeMandatoryLabel()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := validateWindowsRuntimeProcessMandatoryLabel(label); err != nil {
+	if err := validateWindowsRuntimeMandatoryLabel(label); err != nil {
 		t.Fatalf("built mandatory label rejected: %v", err)
 	}
 	runtime.KeepAlive(descriptor)
@@ -249,10 +249,51 @@ func TestWindowsRuntimeProcessMandatoryLabelAllowsReadOnlyMutualVerification(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := validateWindowsRuntimeProcessMandatoryLabel(noReadLabel); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
+	if err := validateWindowsRuntimeMandatoryLabel(noReadLabel); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
 		t.Fatalf("no-read-up mandatory label error = %v", err)
 	}
 	runtime.KeepAlive(noReadDescriptor)
+}
+
+func TestWindowsRuntimeTokenDACLNamesExactServiceAndLimitsInteractiveAccessToQuery(t *testing.T) {
+	serviceSID, err := windows.StringToSid(mustActiveWindowsRuntimeProfile().serviceSID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	interactiveSID, err := windows.StringToSid(windowsInteractiveLogonSID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remoteInteractiveSID, err := windows.StringToSid(windowsRemoteInteractiveLogonSID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	acl, err := buildWindowsRuntimeTokenACL(serviceSID, interactiveSID, remoteInteractiveSID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateWindowsRuntimeTokenDACL(acl); err != nil {
+		t.Fatalf("built token DACL rejected: %v", err)
+	}
+
+	var interactiveACE *windows.ACCESS_ALLOWED_ACE
+	for index := uint32(0); index < uint32(acl.AceCount); index++ {
+		var ace *windows.ACCESS_ALLOWED_ACE
+		if err := windows.GetAce(acl, index, &ace); err != nil {
+			t.Fatal(err)
+		}
+		if ace.Header.AceType == windows.ACCESS_ALLOWED_ACE_TYPE && (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String() == windowsInteractiveLogonSID {
+			interactiveACE = ace
+			break
+		}
+	}
+	if interactiveACE == nil {
+		t.Fatal("built token DACL omitted interactive verification ACE")
+	}
+	interactiveACE.Mask |= windows.TOKEN_DUPLICATE
+	if err := validateWindowsRuntimeTokenDACL(acl); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
+		t.Fatalf("widened interactive token access error = %v", err)
+	}
 }
 
 func TestWindowsDPAPINGLocalUserDescriptorRoundTripsOnlyUnderTheCurrentFixedHostUser(t *testing.T) {

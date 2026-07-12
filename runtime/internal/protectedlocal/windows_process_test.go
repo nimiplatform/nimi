@@ -43,6 +43,8 @@ func TestWindowsProcessTrustStartupExitCodesAreStableAndUnique(t *testing.T) {
 		WindowsProcessTrustStageLivenessState,
 		WindowsProcessTrustStageTuple,
 		WindowsProcessTrustStageProcessOpenAccessDenied,
+		WindowsProcessTrustStageTokenIsolationHarden,
+		WindowsProcessTrustStageTokenIsolationValidation,
 	}
 	seen := make(map[uint32]struct{}, len(stages))
 	for _, stage := range stages {
@@ -78,6 +80,16 @@ func TestWindowsRuntimeProcessVerificationHandleIsReadOnlyAndCanReadItsDACL(t *t
 	}
 	if windowsRuntimeProcessVerificationAccess&windowsSensitiveProcessAccess != 0 {
 		t.Fatalf("Runtime process verification requested sensitive process access: 0x%x", windowsRuntimeProcessVerificationAccess)
+	}
+}
+
+func TestWindowsRuntimeTokenVerificationHandleIsQueryOnlyAndCanReadItsDACL(t *testing.T) {
+	required := uint32(windows.TOKEN_QUERY | windows.READ_CONTROL)
+	if windowsRuntimeTokenVerificationAccess&required != required {
+		t.Fatalf("Runtime token verification access = 0x%x, want required 0x%x", windowsRuntimeTokenVerificationAccess, required)
+	}
+	if windowsRuntimeTokenVerificationAccess&windowsSensitiveTokenAccess != 0 {
+		t.Fatalf("Runtime token verification requested sensitive token access: 0x%x", windowsRuntimeTokenVerificationAccess)
 	}
 }
 

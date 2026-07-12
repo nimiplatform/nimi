@@ -21,11 +21,11 @@ const windowsSensitiveProcessAccess = windows.PROCESS_VM_READ |
 	windows.PROCESS_CREATE_THREAD
 
 const (
-	windowsRuntimeProcessMandatoryLabelSDDL   = "S:(ML;;NW;;;SI)"
-	windowsRuntimeProcessMandatoryLabelPolicy = "system_integrity_no_write_up_only"
-	windowsMandatoryLabelACEType              = 0x11
-	windowsMandatoryLabelNoWriteUp            = 0x1
-	windowsSystemMandatoryLevelSID            = "S-1-16-16384"
+	windowsRuntimeMandatoryLabelSDDL   = "S:(ML;;NW;;;SI)"
+	windowsRuntimeMandatoryLabelPolicy = "system_integrity_no_write_up_only"
+	windowsMandatoryLabelACEType       = 0x11
+	windowsMandatoryLabelNoWriteUp     = 0x1
+	windowsSystemMandatoryLevelSID     = "S-1-16-16384"
 )
 
 func ValidateWindowsProductionPrincipal(ctx context.Context) (WindowsServicePrincipal, error) {
@@ -178,26 +178,26 @@ func validateWindowsProcessIsolationHandle(ctx context.Context, process windows.
 	if label == nil {
 		return principalFailure("read Runtime process mandatory label", fmt.Errorf("mandatory label is absent"))
 	}
-	return validateWindowsRuntimeProcessMandatoryLabel(label)
+	return validateWindowsRuntimeMandatoryLabel(label)
 }
 
-func validateWindowsRuntimeProcessMandatoryLabel(label *windows.ACL) error {
+func validateWindowsRuntimeMandatoryLabel(label *windows.ACL) error {
 	if label == nil || label.AceCount != 1 {
-		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("exact one-entry mandatory label required"))
+		return principalFailure("validate Runtime mandatory label", fmt.Errorf("exact one-entry mandatory label required"))
 	}
 	var ace *windows.ACCESS_ALLOWED_ACE
 	if err := windows.GetAce(label, 0, &ace); err != nil {
-		return principalFailure("read Runtime process mandatory label", err)
+		return principalFailure("read Runtime mandatory label", err)
 	}
 	if ace.Header.AceType != windowsMandatoryLabelACEType || ace.Header.AceFlags != 0 {
-		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("exact mandatory label ACE required"))
+		return principalFailure("validate Runtime mandatory label", fmt.Errorf("exact mandatory label ACE required"))
 	}
 	if uint32(ace.Mask) != windowsMandatoryLabelNoWriteUp {
-		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("mandatory label must be %s", windowsRuntimeProcessMandatoryLabelPolicy))
+		return principalFailure("validate Runtime mandatory label", fmt.Errorf("mandatory label must be %s", windowsRuntimeMandatoryLabelPolicy))
 	}
 	sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
 	if sid == nil || sid.String() != windowsSystemMandatoryLevelSID {
-		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("System integrity label required"))
+		return principalFailure("validate Runtime mandatory label", fmt.Errorf("System integrity label required"))
 	}
 	return nil
 }
@@ -301,7 +301,7 @@ func HardenWindowsCurrentProcessIsolation(ctx context.Context, principal Windows
 	); err != nil {
 		return principalFailure("apply Runtime process DACL", err)
 	}
-	labelDescriptor, label, err := buildWindowsRuntimeProcessMandatoryLabel()
+	labelDescriptor, label, err := buildWindowsRuntimeMandatoryLabel()
 	if err != nil {
 		return err
 	}
@@ -320,19 +320,19 @@ func HardenWindowsCurrentProcessIsolation(ctx context.Context, principal Windows
 	return ValidateWindowsCurrentProcessIsolation(ctx, principal)
 }
 
-func buildWindowsRuntimeProcessMandatoryLabel() (*windows.SECURITY_DESCRIPTOR, *windows.ACL, error) {
-	descriptor, err := windows.SecurityDescriptorFromString(windowsRuntimeProcessMandatoryLabelSDDL)
+func buildWindowsRuntimeMandatoryLabel() (*windows.SECURITY_DESCRIPTOR, *windows.ACL, error) {
+	descriptor, err := windows.SecurityDescriptorFromString(windowsRuntimeMandatoryLabelSDDL)
 	if err != nil {
-		return nil, nil, principalFailure("build Runtime process mandatory label", err)
+		return nil, nil, principalFailure("build Runtime mandatory label", err)
 	}
 	label, _, err := descriptor.SACL()
 	if err != nil {
-		return nil, nil, principalFailure("build Runtime process mandatory label", err)
+		return nil, nil, principalFailure("build Runtime mandatory label", err)
 	}
 	if label == nil {
-		return nil, nil, principalFailure("build Runtime process mandatory label", fmt.Errorf("mandatory label is absent"))
+		return nil, nil, principalFailure("build Runtime mandatory label", fmt.Errorf("mandatory label is absent"))
 	}
-	if err := validateWindowsRuntimeProcessMandatoryLabel(label); err != nil {
+	if err := validateWindowsRuntimeMandatoryLabel(label); err != nil {
 		return nil, nil, err
 	}
 	return descriptor, label, nil

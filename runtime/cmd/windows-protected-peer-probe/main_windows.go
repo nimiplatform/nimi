@@ -67,6 +67,9 @@ func main() {
 	}
 	server, err := protectedlocal.VerifyWindowsProductionPipeServer(ctx, handleProvider.Fd(), verifier)
 	if err != nil {
+		if code, present := protectedlocal.WindowsPrincipalStartupExitCode(err); present {
+			fail(fmt.Errorf("verify Runtime native server: windows_principal:%d", code))
+		}
 		if code, present := protectedlocal.WindowsProcessTrustStartupExitCode(err); present {
 			fail(fmt.Errorf("verify Runtime native server: windows_process_trust:%d", code))
 		}

@@ -77,6 +77,8 @@ const (
 	WindowsProcessTrustStageLivenessState
 	WindowsProcessTrustStageTuple
 	WindowsProcessTrustStageProcessOpenAccessDenied
+	WindowsProcessTrustStageTokenIsolationHarden
+	WindowsProcessTrustStageTokenIsolationValidation
 )
 
 type windowsProcessTrustStageError struct {
@@ -96,7 +98,7 @@ func windowsProcessTrustStageFailure(stage WindowsProcessTrustFailureStage, caus
 
 func WindowsProcessTrustStageFromError(err error) (WindowsProcessTrustFailureStage, bool) {
 	var failure *windowsProcessTrustStageError
-	if !errors.As(err, &failure) || failure.stage < WindowsProcessTrustStagePrincipalRevalidation || failure.stage > WindowsProcessTrustStageProcessOpenAccessDenied {
+	if !errors.As(err, &failure) || failure.stage < WindowsProcessTrustStagePrincipalRevalidation || failure.stage > WindowsProcessTrustStageTokenIsolationValidation {
 		return 0, false
 	}
 	return failure.stage, true
@@ -153,6 +155,9 @@ func VerifyWindowsProductionRuntimeProcess(ctx context.Context, principal Window
 	if err := HardenWindowsCurrentProcessIsolation(ctx, principal); err != nil {
 		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageIsolationHarden, err)
 	}
+	if err := HardenWindowsCurrentTokenIsolation(ctx, principal); err != nil {
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageTokenIsolationHarden, err)
+	}
 	pid := uint32(os.Getpid())
 	// The service validates its own already-open kernel object through the
 	// documented current-process pseudo handle. Reopening the same process by
@@ -203,8 +208,12 @@ func verifyWindowsRuntimeProcessHandle(ctx context.Context, pid uint32, process 
 		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageIsolationValidation, err)
 	}
 	var token windows.Token
-	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
+	if err := windows.OpenProcessToken(process, windowsRuntimeTokenVerificationAccess, &token); err != nil {
 		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageTokenOpen, principalFailure("open Runtime service process token", err))
+	}
+	if err := validateWindowsRuntimeTokenIsolationHandle(ctx, token, principal); err != nil {
+		_ = token.Close()
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageTokenIsolationValidation, err)
 	}
 	user, userErr := token.GetTokenUser()
 	sessionID, sessionErr := readWindowsTokenUint32(token, windows.TokenSessionId)

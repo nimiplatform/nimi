@@ -17,6 +17,7 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   const activeSession = read('../runtime/internal/protectedlocal/windows_active_session_windows.go');
   const process = read('../runtime/internal/protectedlocal/windows_process_windows.go');
   const processPrincipal = read('../runtime/internal/protectedlocal/windows_principal_windows.go');
+  const tokenSecurity = read('../runtime/internal/protectedlocal/windows_token_security_windows.go');
   const listener = read('../runtime/internal/protectedlocal/windows_verified_listener_windows.go');
   const windowsService = read('../runtime/internal/entrypoint/runtime_production_windows.go');
   const peerProbe = read('../runtime/cmd/windows-protected-peer-probe/main_windows.go');
@@ -47,6 +48,8 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /42523 = 'principal-service-host-account'/);
   assert.match(installer, /42778 = 'process-tuple'/);
   assert.match(installer, /42779 = 'process-open-access-denied'/);
+  assert.match(installer, /42780 = 'process-token-isolation-harden'/);
+  assert.match(installer, /42781 = 'process-token-isolation-validation'/);
   assert.match(installer, /43029 = 'security-desktop-identity'/);
   assert.match(installer, /43265 = 'custody-secret-name'/);
   assert.match(installer, /43281 = 'custody-protect'/);
@@ -91,7 +94,12 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(process, /verifyWindowsRuntimeProcessHandle\(ctx, pid, windows\.CurrentProcess\(\), principal, verifier\)/);
   assert.match(processPrincipal, /LABEL_SECURITY_INFORMATION/);
   assert.match(processPrincipal, /system_integrity_no_write_up_only/);
+  assert.match(tokenSecurity, /windowsRuntimeTokenVerificationAccess/);
+  assert.match(tokenSecurity, /TOKEN_QUERY/);
+  assert.match(tokenSecurity, /validateWindowsRuntimeTokenIsolationHandle/);
   assert.match(peerProbe, /ClientElevated/);
+  assert.match(peerProbe, /WindowsPrincipalStartupExitCode/);
+  assert.ok(peerProbe.indexOf('WindowsPrincipalStartupExitCode') < peerProbe.indexOf('WindowsProcessTrustStartupExitCode'));
   assert.match(interactivePeerGate, /clientElevated[\s\S]*false/);
   assert.match(interactivePeerGate, /interactivePeerProbeVerified/);
   assert.match(installer, /elevatedPeerProbeVerified/);
