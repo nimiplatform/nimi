@@ -5,7 +5,7 @@
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  - os: windows\n    production_principal: NT_SERVICE_NimiRuntime_restricted_service_sid\n    interactive_user_relation: distinct_os_security_principal",
+      "from": "  - os: windows\n    production_principal: LocalSystem_token_user_with_restricted_NT_SERVICE_NimiRuntime_authorization_principal\n    interactive_user_relation: distinct_os_security_principal",
       "to": "  - os: windows\n    production_principal: interactive_desktop_user\n    interactive_user_relation: same_os_security_principal"
     }
   },
@@ -30,6 +30,16 @@
     }
   },
   {
+    "fixture_id": "windows-virtual-account-bypasses-cross-session-authority",
+    "code": "WINDOWS_RUNTIME_PRINCIPAL_SELECTION_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  selected_profile: local_system_host_with_restricted_service_sid",
+      "to": "  selected_profile: virtual_account_with_added_cross_session_privilege"
+    }
+  },
+  {
     "fixture_id": "windows-restricted-service-preopens-user-token",
     "code": "WINDOWS_RESTRICTED_PIPE_BOOTSTRAP_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
@@ -45,7 +55,7 @@
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "    server_peer_verification: GetNamedPipeServerProcessId_service_sid_and_same_file_runtime_trust",
+      "from": "    server_peer_verification: GetNamedPipeServerProcessId_SCM_service_binding_exact_service_token_read_only_process_DACL_and_same_file_runtime_trust_before_protocol_bytes",
       "to": "    server_peer_verification: GetNamedPipeServerProcessId_only"
     }
   },

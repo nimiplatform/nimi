@@ -209,7 +209,7 @@ Reconnect 行为：先 snapshot，再按 sequence 投递。replay 不可用时�
 
 | 平台 | Primary custody | 不可用时行为 |
 |---|---|---|
-| Windows | fixed non-interactive LocalSystem service host；restricted `NT SERVICE\NimiRuntime` service SID；DPAPI-NG `LOCAL=user` fixed-host-user protector；service-SID-only state/process ACL | host token、protector、ACL 或 service principal 不匹配时 `unavailable`；authenticated 调用 fail-close |
+| Windows | fixed non-interactive LocalSystem token user (`S-1-5-18`)；restricted `NT SERVICE\NimiRuntime` service SID；DPAPI-NG `LOCAL=user` protector；service-SID-only state ACL；process DACL grants the service SID full authority, denies interactive sensitive rights, and permits only read-only Runtime peer verification | host token、protector、ACL、active-logon query authority 或 service principal 不匹配时 `unavailable`；authenticated 调用 fail-close |
 | Linux | dedicated non-login Runtime system UID；0600 encrypted store；root-loaded system credential key | dedicated UID、key 或 protected state 不可用时 `unavailable` |
 | macOS | hardened LaunchDaemon Runtime principal；code-identity-ACL system Keychain item bound to the Runtime designated requirement | code identity、Keychain ACL 或 LaunchDaemon principal 不匹配时 `unavailable` |
 

@@ -25,6 +25,7 @@ const expectedCodes = [
   'RUNTIME_OS_PRINCIPAL_ISOLATION_REQUIRED',
   'USER_SCOPED_CUSTODY_FORBIDDEN',
   'WINDOWS_CUSTODY_PRINCIPAL_BINDING_REQUIRED',
+  'WINDOWS_RUNTIME_PRINCIPAL_SELECTION_REQUIRED',
   'WINDOWS_RESTRICTED_PIPE_BOOTSTRAP_REQUIRED',
   'MUTUAL_ENDPOINT_AUTH_REQUIRED',
   'LOCAL_DEVELOPMENT_CARRIER_AUTHORITY_REQUIRED',
@@ -76,7 +77,7 @@ test('supported OS authority uses exact isolated principals and macOS privileged
   const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
   const profiles = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml');
   assert.deepEqual(principals.profiles.map((row) => row.production_principal), [
-    'NT_SERVICE_NimiRuntime_restricted_service_sid',
+    'LocalSystem_token_user_with_restricted_NT_SERVICE_NimiRuntime_authorization_principal',
     'dedicated_nimi_runtime_system_uid',
     'dedicated_nimi_runtime_launchdaemon_principal',
   ]);
@@ -92,11 +93,27 @@ test('Windows custody binds local-user encryption to the fixed service host and 
     scm_account: 'LocalSystem',
     token_user_sid: 'S-1-5-18',
     dpapi_ng_descriptor: 'LOCAL=user',
-    cryptographic_scope: 'fixed_noninteractive_service_host_user',
-    authorization_scope: 'exact_restricted_service_sid_acl_and_process_dacl',
+    cryptographic_scope: 'local_system_token_user_sid_S-1-5-18',
+    state_acl_scope: 'exact_restricted_service_sid_only',
+    process_dacl_scope: 'service_sid_full_authority_interactive_read_only_sync_query_limited_read_control',
+    active_logon_query_authority: 'local_system_required_for_cross_session_WTSSessionInfo_and_exact_LSA_logon_record',
     local_machine_descriptor_allowed: false,
+    system_or_administrator_compromise: 'outside_current_threat_boundary',
   });
   assert.equal(windows.custody_store, 'dpapi_ng_local_user_fixed_local_system_host_plus_exact_service_sid_acl_state');
+  assert.deepEqual(principals.windows_principal_selection, {
+    authority_status: 'admitted',
+    selected_profile: 'local_system_host_with_restricted_service_sid',
+    selected_fixture: 'NimiRuntimeE2E',
+    selected_fixture_result: 'mutual_peer_custody_restart_state_acl_workgroup_green',
+    product_closeout_implication: 'none_authority_selection_only',
+    a5_closeout_status: 'blocked',
+    rejected_candidate: 'NT_SERVICE_NimiRuntimeE2EVirtual_virtual_account',
+    rejected_fixture_result: 'fail_closed_pipe_active_session_info_access_ERROR_ACCESS_DENIED',
+    rejection_boundary: 'WTSQuerySessionInformation_for_another_user_requires_Query_Information_and_exact_LsaGetLogonSessionData_requires_session_owner_or_local_system_administrator',
+    privilege_grant_to_rescue_virtual_account: 'forbidden',
+    rationale: 'exact_active_logon_bootstrap_without_interactive_user_token_retention_requires_LocalSystem_host',
+  });
 });
 
 test('Windows restricted service binds the connected process AuthenticationId before exposing NetConn', () => {
@@ -123,7 +140,9 @@ test('Windows restricted service binds the connected process AuthenticationId be
   });
   assert.equal(windows.endpoint_ownership, 'first_pipe_instance_service_owned_dacl_connect_only_active_account_sid_remote_clients_rejected');
   assert.equal(windows.client_peer_verification, 'GetNamedPipeClientProcessId_token_logon_sid_AuthenticationId_exact_LSA_record_active_WTS_session_and_same_file_executable_trust_before_NetConn');
+  assert.equal(windows.server_peer_verification, 'GetNamedPipeServerProcessId_SCM_service_binding_exact_service_token_read_only_process_DACL_and_same_file_runtime_trust_before_protocol_bytes');
   assert.equal(windowsPrincipal.endpoint_connect_boundary, 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_exact_process_token_LSA_and_active_WTS_verification_before_NetConn');
+  assert.equal(windowsPrincipal.process_isolation, 'service_process_dacl_denies_interactive_sensitive_rights_and_allows_only_sync_query_limited_read_control_for_mutual_runtime_verification');
 });
 
 test('local development shares the native installed_host carrier without parallel transport or origin truth', () => {

@@ -302,8 +302,8 @@ function validateCore(bundle, issues) {
   const macosPrincipal = principalByOs.get('macos');
   if (
     (windowsPrincipal?.interactive_user_relation === 'distinct_os_security_principal'
-      && windowsPrincipal?.production_principal !== 'NT_SERVICE_NimiRuntime_restricted_service_sid')
-    || !String(windowsPrincipal?.process_isolation ?? '').includes('service_process_dacl_denies_interactive')
+      && windowsPrincipal?.production_principal !== 'LocalSystem_token_user_with_restricted_NT_SERVICE_NimiRuntime_authorization_principal')
+    || windowsPrincipal?.process_isolation !== 'service_process_dacl_denies_interactive_sensitive_rights_and_allows_only_sync_query_limited_read_control_for_mutual_runtime_verification'
     || linuxPrincipal?.production_principal !== 'dedicated_nimi_runtime_system_uid'
     || !String(linuxPrincipal?.service_installation ?? '').includes('systemd_system_service')
     || macosPrincipal?.production_principal !== 'dedicated_nimi_runtime_launchdaemon_principal'
@@ -316,12 +316,31 @@ function validateCore(bundle, issues) {
     principalAuthority?.windows_service_host?.scm_account !== 'LocalSystem'
     || principalAuthority?.windows_service_host?.token_user_sid !== 'S-1-5-18'
     || principalAuthority?.windows_service_host?.dpapi_ng_descriptor !== 'LOCAL=user'
-    || principalAuthority?.windows_service_host?.cryptographic_scope !== 'fixed_noninteractive_service_host_user'
-    || principalAuthority?.windows_service_host?.authorization_scope !== 'exact_restricted_service_sid_acl_and_process_dacl'
+    || principalAuthority?.windows_service_host?.cryptographic_scope !== 'local_system_token_user_sid_S-1-5-18'
+    || principalAuthority?.windows_service_host?.state_acl_scope !== 'exact_restricted_service_sid_only'
+    || principalAuthority?.windows_service_host?.process_dacl_scope !== 'service_sid_full_authority_interactive_read_only_sync_query_limited_read_control'
+    || principalAuthority?.windows_service_host?.active_logon_query_authority !== 'local_system_required_for_cross_session_WTSSessionInfo_and_exact_LSA_logon_record'
     || principalAuthority?.windows_service_host?.local_machine_descriptor_allowed !== false
+    || principalAuthority?.windows_service_host?.system_or_administrator_compromise !== 'outside_current_threat_boundary'
     || windowsPrincipal?.custody_store !== 'dpapi_ng_local_user_fixed_local_system_host_plus_exact_service_sid_acl_state'
   ) {
     issues.push(issue('WINDOWS_CUSTODY_PRINCIPAL_BINDING_REQUIRED', paths.principalProfiles, 'Windows custody must combine fixed non-interactive LocalSystem user encryption with exact restricted service-SID ACL and process isolation; local-machine or AD-only SID descriptors are forbidden.'));
+  }
+  const windowsPrincipalSelection = principalAuthority?.windows_principal_selection;
+  if (
+    windowsPrincipalSelection?.authority_status !== 'admitted'
+    || windowsPrincipalSelection?.selected_profile !== 'local_system_host_with_restricted_service_sid'
+    || windowsPrincipalSelection?.selected_fixture !== 'NimiRuntimeE2E'
+    || windowsPrincipalSelection?.selected_fixture_result !== 'mutual_peer_custody_restart_state_acl_workgroup_green'
+    || windowsPrincipalSelection?.product_closeout_implication !== 'none_authority_selection_only'
+    || windowsPrincipalSelection?.a5_closeout_status !== 'blocked'
+    || windowsPrincipalSelection?.rejected_candidate !== 'NT_SERVICE_NimiRuntimeE2EVirtual_virtual_account'
+    || windowsPrincipalSelection?.rejected_fixture_result !== 'fail_closed_pipe_active_session_info_access_ERROR_ACCESS_DENIED'
+    || windowsPrincipalSelection?.rejection_boundary !== 'WTSQuerySessionInformation_for_another_user_requires_Query_Information_and_exact_LsaGetLogonSessionData_requires_session_owner_or_local_system_administrator'
+    || windowsPrincipalSelection?.privilege_grant_to_rescue_virtual_account !== 'forbidden'
+    || windowsPrincipalSelection?.rationale !== 'exact_active_logon_bootstrap_without_interactive_user_token_retention_requires_LocalSystem_host'
+  ) {
+    issues.push(issue('WINDOWS_RUNTIME_PRINCIPAL_SELECTION_REQUIRED', paths.principalProfiles, 'Windows must retain the evidence-selected LocalSystem host plus restricted service-SID boundary; widening a virtual account to cross-session WTS/LSA authority is forbidden.'));
   }
 
   const lifecycleIntent = parseYaml(bundle, paths.lifecycleIntent, issues);
@@ -364,22 +383,28 @@ function validateCore(bundle, issues) {
   }
   const windowsProfile = profiles.find((row) => row.os === 'windows');
   const windowsRestrictedBootstrap = osProfiles?.windows_restricted_service_bootstrap;
+  const exactLogonCorrelation = windowsRestrictedBootstrap?.exact_logon_correlation;
   if (
     windowsRestrictedBootstrap?.active_identity_source !== 'WTSGetActiveConsoleSessionId_and_WTSSessionInfo'
     || windowsRestrictedBootstrap?.user_token_preopen !== 'forbidden'
     || windowsRestrictedBootstrap?.endpoint_acl_subject !== 'active_account_sid_connect_only'
     || windowsRestrictedBootstrap?.account_partition !== 'user_sid_terminal_session_id_wts_logon_time'
-    || windowsRestrictedBootstrap?.active_session_revalidation !== 'before_each_native_process_admission'
-    || windowsRestrictedBootstrap?.post_connect_identity !== 'GetNamedPipeClientProcessId_then_process_token_user_sid_session_id_logon_luid'
+    || windowsRestrictedBootstrap?.active_session_revalidation !== 'connection_liveness_revoked_on_wts_account_session_or_logon_time_change'
+    || windowsRestrictedBootstrap?.post_connect_identity !== 'GetNamedPipeClientProcessId_then_process_token_logon_sid_AuthenticationId_LsaGetLogonSessionData_before_NetConn'
     || windowsRestrictedBootstrap?.post_connect_executable !== 'same_open_hfile_native_trust'
     || windowsRestrictedBootstrap?.mismatch_disposition !== 'reject_close_and_reopen'
+    || !equalArray(exactLogonCorrelation?.fields, ['account_sid', 'terminal_session_id', 'wts_logon_time', 'token_logon_sid', 'token_authentication_id', 'lsa_logon_time', 'interactive_logon_type', 'active_console'])
+    || !equalArray(exactLogonCorrelation?.allowed_logon_types, ['interactive', 'remote_interactive', 'cached_interactive', 'cached_remote_interactive'])
+    || exactLogonCorrelation?.lsa_lookup_key !== 'token_statistics_authentication_id_exact'
+    || exactLogonCorrelation?.time_rule !== 'lsa_logon_time_positive_and_not_after_wts_session_logon_time'
+    || exactLogonCorrelation?.enumeration_or_first_candidate_selection !== 'forbidden'
     || windowsProfile?.endpoint_ownership !== 'first_pipe_instance_service_owned_dacl_connect_only_active_account_sid_remote_clients_rejected'
-    || windowsProfile?.client_peer_verification !== 'GetNamedPipeClientProcessId_active_user_sid_terminal_session_token_logon_luid_and_same_file_executable_trust'
-    || windowsPrincipal?.endpoint_connect_boundary !== 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_verifies_client_token_logon_luid'
+    || windowsProfile?.client_peer_verification !== 'GetNamedPipeClientProcessId_token_logon_sid_AuthenticationId_exact_LSA_record_active_WTS_session_and_same_file_executable_trust_before_NetConn'
+    || windowsPrincipal?.endpoint_connect_boundary !== 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_exact_process_token_LSA_and_active_WTS_verification_before_NetConn'
   ) {
     issues.push(issue('WINDOWS_RESTRICTED_PIPE_BOOTSTRAP_REQUIRED', paths.osProfiles, 'The restricted Windows service must bootstrap only the active account/session marker, then derive token logon identity and executable trust from the connected native client process.'));
   }
-  if (!String(windowsProfile?.server_peer_verification ?? '').includes('service_sid_and_same_file_runtime_trust')) {
+  if (windowsProfile?.server_peer_verification !== 'GetNamedPipeServerProcessId_SCM_service_binding_exact_service_token_read_only_process_DACL_and_same_file_runtime_trust_before_protocol_bytes') {
     issues.push(issue('MUTUAL_ENDPOINT_AUTH_REQUIRED', paths.osProfiles, 'The protected client must verify Runtime service identity and live executable trust, not only its PID.'));
   }
   if (!String(windowsProfile?.client_executable_verification ?? '').startsWith('same_open_hfile_')) {

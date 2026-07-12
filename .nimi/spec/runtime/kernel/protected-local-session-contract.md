@@ -211,14 +211,26 @@ terminal-session id.
 
 Runtime then obtains the connected client PID with
 `GetNamedPipeClientProcessId`, opens that exact process and token, and derives
-the user SID, terminal-session id and token logon LUID before verifying the
-same opened executable object. Before every native process admission Runtime
-also re-queries the active session and requires the original account SID,
-terminal-session id, and WTS logon-time marker. A mismatch closes the
-connection and reopens a fresh pipe instance. The client obtains and verifies the Runtime PID with
-`GetNamedPipeServerProcessId`. Both peers bind SID, OS logon session, PID,
-creation marker, and executable trust to the handshake. An account-SID pipe
-connection alone never authorizes a protected operation.
+the user SID, terminal-session id, token logon SID and
+`TokenStatistics.AuthenticationId`. Before `NetConn` or gRPC exposure,
+Runtime performs one exact `LsaGetLogonSessionData(AuthenticationId)` lookup
+and requires the LSA record to match that token LUID, account SID and terminal
+session, use an admitted interactive logon type, carry a positive logon time
+not later than the WTS session logon time, and still name the active console
+session. Enumerating logon sessions or choosing the first matching account is
+forbidden. The retained connection liveness re-queries the active WTS session;
+an account, terminal-session or WTS logon-time change revokes the connection
+and reopens a fresh pipe instance.
+
+The client obtains the Runtime PID with `GetNamedPipeServerProcessId` and,
+before sending protocol bytes, binds it to the fixed SCM service, exact service
+token, closed process DACL and the same opened Runtime executable object. The
+process DACL grants interactive callers only `SYNCHRONIZE`,
+`PROCESS_QUERY_LIMITED_INFORMATION` and `READ_CONTROL` for this verification;
+it explicitly denies sensitive VM, handle-duplication and thread-creation
+rights. Both peers bind SID, OS logon session, PID, creation marker, and
+executable trust to the handshake. An account-SID pipe connection alone never
+authorizes a protected operation.
 
 On Linux, the endpoint is a filesystem UDS in a Runtime-service-owned
 directory/socket with an explicit connect ACL for the active interactive UID.
@@ -285,13 +297,33 @@ the same opened `hFile`; the leaf signing identity must match the installer-owne
 Nimi signer policy. The production process uses the signed service definition's
 fixed non-interactive LocalSystem host token and the restricted Nimi Runtime
 service SID. DPAPI-NG uses the exact `LOCAL=user` descriptor to bind encrypted
-material to that fixed host token, while state ACLs and the process DACL name
-only the exact restricted service SID and deny interactive VM
-read/write/operation, handle duplication and remote thread creation. A
+material to the LocalSystem token user (`S-1-5-18`). State ACLs name only the
+exact restricted service SID. The process DACL gives that service SID full
+authority, gives interactive callers only the read-only mutual-verification
+mask, and denies interactive VM read/write/operation, handle duplication and
+remote thread creation. A
 DPAPI-NG `SID=` descriptor is not Windows local-service authority because its
 key distribution requires an Active Directory principal and fails on
 workgroup machines; `LOCAL=machine` is also forbidden because it widens
-decryption to the machine. On Linux, Runtime opens `/proc/<pid>/exe`, binds device/inode,
+decryption to the machine.
+
+The LocalSystem host is an evidence-selected Windows requirement, not an
+installer convenience. The restricted virtual-account fixture successfully
+established its SCM principal, restricted token and process isolation, but
+failed closed with `ERROR_ACCESS_DENIED` when querying `WTSSessionInfo` for the
+other interactive user's active session. Windows also limits exact
+`LsaGetLogonSessionData` for that user's AuthenticationId to the session owner
+or a local system administrator. Granting the virtual account cross-session
+query or administrator authority to bypass those boundaries is forbidden;
+the selected LocalSystem host supplies those read authorities while the
+restricted service SID remains the state and sensitive-process authorization
+principal. This fixture comparison admits only the Windows principal choice;
+it does not complete A.5 product implementation or closeout. Compromise of
+SYSTEM or an administrator is outside the current
+threat boundary and does not authorize weakening protection against renderer,
+third-party app or ordinary same-user processes.
+
+On Linux, Runtime opens `/proc/<pid>/exe`, binds device/inode,
 and verifies the package/repository signature identity selected by the signed
 system service definition; the service uses
 the dedicated non-login system UID. On macOS,
