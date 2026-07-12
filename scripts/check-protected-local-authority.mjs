@@ -320,6 +320,8 @@ function validateCore(bundle, issues) {
     || principalAuthority?.windows_service_host?.state_acl_scope !== 'exact_restricted_service_sid_only'
     || principalAuthority?.windows_service_host?.process_dacl_scope !== 'service_sid_full_authority_interactive_read_only_sync_query_limited_read_control'
     || principalAuthority?.windows_service_host?.process_mandatory_label_scope !== 'system_integrity_no_write_up_only_read_control_remains_available_for_mutual_verification'
+    || principalAuthority?.windows_service_host?.process_token_dacl_scope !== 'service_sid_full_authority_interactive_token_query_read_control_only'
+    || principalAuthority?.windows_service_host?.process_token_mandatory_label_scope !== 'system_integrity_no_write_up_only_token_query_remains_available_for_mutual_verification'
     || principalAuthority?.windows_service_host?.active_logon_query_authority !== 'local_system_required_for_cross_session_WTSSessionInfo_and_exact_LSA_logon_record'
     || principalAuthority?.windows_service_host?.local_machine_descriptor_allowed !== false
     || principalAuthority?.windows_service_host?.system_or_administrator_compromise !== 'outside_current_threat_boundary'
@@ -332,7 +334,7 @@ function validateCore(bundle, issues) {
     windowsPrincipalSelection?.authority_status !== 'admitted'
     || windowsPrincipalSelection?.selected_profile !== 'local_system_host_with_restricted_service_sid'
     || windowsPrincipalSelection?.selected_fixture !== 'NimiRuntimeE2E'
-    || windowsPrincipalSelection?.selected_fixture_result !== 'elevated_installer_fixture_green_unelevated_mutual_peer_blocked_process_read_control'
+    || windowsPrincipalSelection?.selected_fixture_result !== 'elevated_installer_fixture_green_unelevated_process_security_green_token_query_blocked'
     || windowsPrincipalSelection?.product_closeout_implication !== 'none_authority_selection_only'
     || windowsPrincipalSelection?.a5_closeout_status !== 'blocked'
     || windowsPrincipalSelection?.rejected_candidate !== 'NT_SERVICE_NimiRuntimeE2EVirtual_virtual_account'

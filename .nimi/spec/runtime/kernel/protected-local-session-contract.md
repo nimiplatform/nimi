@@ -232,7 +232,13 @@ rights. The process object's mandatory label remains System integrity and
 uses only `SYSTEM_MANDATORY_LABEL_NO_WRITE_UP`; `NO_READ_UP` is forbidden
 because it would override the exact DACL and prevent an ordinary interactive
 Desktop from obtaining `READ_CONTROL` for mutual verification. Both peers
-bind SID, OS logon session, PID, creation marker, and
+The Runtime primary-token object follows the same boundary: the exact service
+SID retains full authority, while interactive callers receive only
+`TOKEN_QUERY | READ_CONTROL`; token duplication, impersonation, primary-token
+assignment and every adjustment right remain denied. Its mandatory label is
+System integrity with `NO_WRITE_UP` only so the caller can verify the token
+user, restricted service SID, session zero and logon LUID without receiving a
+usable or mutable token. Both peers bind SID, OS logon session, PID, creation marker, and
 executable trust to the handshake. An account-SID pipe connection alone never
 authorizes a protected operation.
 
@@ -307,7 +313,12 @@ authority, gives interactive callers only the read-only mutual-verification
 mask, and denies interactive VM read/write/operation, handle duplication and
 remote thread creation. Its System-integrity mandatory label carries only
 `NO_WRITE_UP`, so the read-only DACL can be verified by the unelevated Desktop
-without granting any process mutation right. A
+without granting any process mutation right. The primary-token object likewise
+grants interactive callers only `TOKEN_QUERY | READ_CONTROL`, keeps all
+duplication, impersonation, assignment and adjustment rights unavailable, and
+uses the same System-integrity `NO_WRITE_UP`-only label. Queryable token
+identity is verification evidence, not portable authority or credential
+custody. A
 DPAPI-NG `SID=` descriptor is not Windows local-service authority because its
 key distribution requires an Active Directory principal and fails on
 workgroup machines; `LOCAL=machine` is also forbidden because it widens
@@ -325,9 +336,11 @@ the selected LocalSystem host supplies those read authorities while the
 restricted service SID remains the state and sensitive-process authorization
 principal. This fixture comparison admits only the Windows principal choice;
 the elevated installer probe does not complete mutual-peer acceptance because
-its administrator token bypasses the Runtime process DACL. Until the separately
-unelevated signed probe can open the Runtime with the exact read-only mask, the
-LocalSystem fixture and A.5 remain blocked.
+its administrator token bypasses Runtime object DACLs. The separately
+unelevated signed probe now verifies the process DACL and mandatory label, but
+fails closed opening the Runtime primary token for `TOKEN_QUERY`; until the
+token object exposes only that read-only verification mask, the LocalSystem
+fixture and A.5 remain blocked.
 it does not complete A.5 product implementation or closeout. Compromise of
 SYSTEM or an administrator is outside the current
 threat boundary and does not authorize weakening protection against renderer,
