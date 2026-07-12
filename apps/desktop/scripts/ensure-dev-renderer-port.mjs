@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global AbortSignal, console, fetch, process, setInterval, setTimeout */
+/* global console, process, setInterval, setTimeout */
 
 import { execFileSync, spawn } from 'node:child_process';
 import path from 'node:path';
@@ -9,6 +9,7 @@ import {
   planRendererCommand,
   planRendererPortResolution,
 } from './dev-renderer-port-policy.mjs';
+import { probeRendererHealth } from './dev-renderer-health.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(__dirname, '..');
@@ -120,17 +121,6 @@ function getRendererPortProcesses() {
     pid,
     commandLine: readProcessCommandLine(pid),
   }));
-}
-
-async function isRendererReachable() {
-  try {
-    const response = await fetch(`http://127.0.0.1:${rendererPort}/`, {
-      signal: AbortSignal.timeout(rendererProbeTimeoutMs),
-    });
-    return response.status >= 200 && response.status < 600;
-  } catch {
-    return false;
-  }
 }
 
 function sleep(ms) {
@@ -289,7 +279,10 @@ async function resolveRendererPort() {
     desktopRoot,
     rendererPort,
     processes,
-    isRendererReachable: await isRendererReachable(),
+    isRendererReachable: await probeRendererHealth({
+      baseUrl: `http://127.0.0.1:${rendererPort}`,
+      timeoutMs: rendererProbeTimeoutMs,
+    }),
     forceRestart: process.env.NIMI_DESKTOP_DEV_RENDERER_RESTART === '1',
   });
 

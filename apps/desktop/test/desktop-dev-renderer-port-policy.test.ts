@@ -9,6 +9,7 @@ import {
   planRendererCommand,
   planRendererPortResolution,
 } from '../scripts/dev-renderer-port-policy.mjs';
+import { probeRendererHealth } from '../scripts/dev-renderer-health.mjs';
 
 type RendererPortProcess = {
   pid: number;
@@ -72,6 +73,62 @@ test('unresponsive desktop renderer on the dev port is stopped before restart', 
 
   assert.equal(plan.action, 'restart');
   assert.deepEqual(plan.pidsToStop, [42]);
+});
+
+test('renderer health probe requires a successful transformed entry module', async () => {
+  const requests: string[] = [];
+  const healthy = await probeRendererHealth({
+    baseUrl: 'http://127.0.0.1:1420',
+    cacheKey: 'test',
+    fetchImpl: async (url: string) => {
+      requests.push(url);
+      if (url.endsWith('/')) {
+        return new Response('<!doctype html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        });
+      }
+      return new Response('export {};', {
+        status: 200,
+        headers: { 'content-type': 'text/javascript' },
+      });
+    },
+  });
+
+  assert.equal(healthy, true);
+  assert.deepEqual(requests, [
+    'http://127.0.0.1:1420/',
+    'http://127.0.0.1:1420/main.tsx?nimi-renderer-health=test',
+  ]);
+});
+
+test('renderer health probe rejects a root-only server with a dead transform worker', async () => {
+  const healthy = await probeRendererHealth({
+    baseUrl: 'http://127.0.0.1:1420',
+    cacheKey: 'test',
+    fetchImpl: async (url: string) => new Response(
+      url.endsWith('/') ? '<!doctype html>' : 'The service is no longer running',
+      {
+        status: url.endsWith('/') ? 200 : 500,
+        headers: { 'content-type': url.endsWith('/') ? 'text/html' : 'text/plain' },
+      },
+    ),
+  });
+
+  assert.equal(healthy, false);
+});
+
+test('renderer health probe rejects an HTML fallback for the entry path', async () => {
+  const healthy = await probeRendererHealth({
+    baseUrl: 'http://127.0.0.1:1420',
+    cacheKey: 'test',
+    fetchImpl: async () => new Response('<!doctype html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    }),
+  });
+
+  assert.equal(healthy, false);
 });
 
 test('non-desktop process on the dev port fails closed', () => {
