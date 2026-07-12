@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -247,9 +248,19 @@ func (s *Service) BindLocalDevelopmentHostProcess(ctx context.Context, req *runt
 		func() { _ = s.localDevelopment.RevokeLaunch(context.Background(), launchID) },
 	)
 	if err != nil {
-		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED)
+		return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED, localDevelopmentBindDiagnosticStage(err))
 	}
 	return &runtimev1.BindLocalDevelopmentHostProcessResponse{LaunchId: append([]byte(nil), launchID[:]...), BindDeadline: timestamppb.New(deadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+}
+
+func localDevelopmentBindDiagnosticStage(err error) string {
+	if stage, ok := protectedlocal.WindowsProcessTrustStageFromError(err); ok {
+		return "bind-process-trust-" + strconv.FormatUint(uint64(stage), 10)
+	}
+	if stage, ok := protectedlocal.WindowsPipeStageFromError(err); ok {
+		return "bind-pipe-" + strconv.FormatUint(uint64(stage), 10)
+	}
+	return "bind-witness"
 }
 
 func (s *Service) OpenLocalDevelopmentAppSession(ctx context.Context, _ *runtimev1.OpenLocalDevelopmentAppSessionRequest) (*runtimev1.OpenLocalDevelopmentAppSessionResponse, error) {

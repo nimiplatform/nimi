@@ -24,6 +24,13 @@ func TestLocalDevelopmentFailureStageIsStructuredAndNonSensitive(t *testing.T) {
 	}
 }
 
+func TestLocalDevelopmentBindDiagnosticStageDoesNotExposeCause(t *testing.T) {
+	stage := localDevelopmentBindDiagnosticStage(errors.New(`private path C:\\secret token=opaque`))
+	if stage != "bind-witness" {
+		t.Fatalf("bind diagnostic stage = %q", stage)
+	}
+}
+
 func createLocalDevelopmentDirectoryLink(t *testing.T, target string, link string) {
 	t.Helper()
 	if runtime.GOOS == "windows" {
