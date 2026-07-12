@@ -432,14 +432,11 @@ func canonicalLocalDevelopmentHostExecutable(projectRoot string, raw string, she
 	if !filepath.IsAbs(path) {
 		return "", errLocalDevelopmentProjectChanged
 	}
-	canonical, err := filepath.EvalSymlinks(path)
+	canonical, err := canonicalLocalDevelopmentFilePath(path)
 	if err != nil {
 		return "", err
 	}
 	canonical = filepath.Clean(canonical)
-	if !pathWithinLocalDevelopmentRoot(projectRoot, canonical) {
-		return "", errLocalDevelopmentProjectChanged
-	}
 	info, err := os.Stat(canonical)
 	if err != nil || !info.Mode().IsRegular() {
 		return "", errLocalDevelopmentProjectChanged
@@ -450,7 +447,7 @@ func canonicalLocalDevelopmentHostExecutable(projectRoot string, raw string, she
 		if !pathWithinLocalDevelopmentRoot(projectRoot, electronAlias) {
 			return "", errLocalDevelopmentProjectChanged
 		}
-		electronAliasCanonical, err = filepath.EvalSymlinks(electronAlias)
+		electronAliasCanonical, err = canonicalLocalDevelopmentFilePath(electronAlias)
 		if err != nil {
 			return "", errLocalDevelopmentProjectChanged
 		}
