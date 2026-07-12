@@ -23,16 +23,18 @@ pub(crate) struct SupervisedDevelopmentProcess {
 unsafe impl Send for SupervisedDevelopmentProcess {}
 
 impl SupervisedDevelopmentProcess {
-    pub(crate) fn create(
+    pub(crate) fn create_runtime_authorized(
         executable: &Path,
         arguments: &[String],
         working_directory: &Path,
     ) -> Result<Self, NimiHostError> {
         let executable = canonical_file(executable)?;
         let working_directory = canonical_directory(working_directory)?;
-        if !path_is_within(&working_directory, &executable) {
-            return Err(project_changed());
-        }
+        // Runtime admitted this exact executable and issued the pending launch
+        // immediately before creation. Electron package managers may resolve
+        // the project alias to a package-store file outside the project root;
+        // lpApplicationName still fixes the exact authorized image and the
+        // child remains suspended until Runtime binds its PID.
         let mut application = wide_null_terminated(executable.as_os_str())?;
         let mut command_line = build_windows_command_line(&executable, arguments)?
             .encode_utf16()
@@ -144,21 +146,6 @@ fn canonical_directory(path: &Path) -> Result<PathBuf, NimiHostError> {
     }
     let path = std::fs::canonicalize(path).map_err(|_| project_changed())?;
     path.is_dir().then_some(path).ok_or_else(project_changed)
-}
-
-fn path_is_within(root: &Path, candidate: &Path) -> bool {
-    let root = root
-        .to_string_lossy()
-        .replace('/', "\\")
-        .to_ascii_lowercase();
-    let candidate = candidate
-        .to_string_lossy()
-        .replace('/', "\\")
-        .to_ascii_lowercase();
-    candidate == root
-        || candidate
-            .strip_prefix(&root)
-            .is_some_and(|suffix| suffix.starts_with('\\'))
 }
 
 fn wide_null_terminated(value: &std::ffi::OsStr) -> Result<Vec<u16>, NimiHostError> {

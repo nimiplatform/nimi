@@ -155,6 +155,7 @@ pub(crate) async fn list_authorizations(
         .await
         .map_err(host_error_from_status)?
         .into_inner();
+    report_windows_e2e_projection_stage("launch-prepare-response");
     require_success_reason(response.reason_code)?;
     response
         .authorizations
@@ -222,11 +223,12 @@ pub(crate) async fn launch_host(
     require_success_reason(response.reason_code)?;
     let launch_id = required_identifier(response.launch_id)?;
     let prepare_deadline = required_timestamp_ms(response.bind_deadline)?;
-    let mut process = SupervisedDevelopmentProcess::create(
+    let mut process = SupervisedDevelopmentProcess::create_runtime_authorized(
         &host_executable_path,
         &request.host_arguments,
         &working_directory,
     )?;
+    report_windows_e2e_projection_stage("launch-process-created-suspended");
     let bound = RuntimeDevelopmentServiceClient::new(channel)
         .bind_local_development_host_process(BindLocalDevelopmentHostProcessRequest {
             launch_id: launch_id.to_vec(),
