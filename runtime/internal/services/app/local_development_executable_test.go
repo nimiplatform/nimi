@@ -9,7 +9,20 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
+
+func TestLocalDevelopmentFailureStageIsStructuredAndNonSensitive(t *testing.T) {
+	err := localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED, "host-executable")
+	metadata, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok || metadata["diagnostic_stage"] != "host-executable" {
+		t.Fatalf("diagnostic stage metadata = %#v, %v", metadata, ok)
+	}
+	if len(metadata) != 2 || metadata["action_hint"] == "" {
+		t.Fatalf("diagnostic metadata must contain only stage and standard action hint: %#v", metadata)
+	}
+}
 
 func createLocalDevelopmentDirectoryLink(t *testing.T, target string, link string) {
 	t.Helper()

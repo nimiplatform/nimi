@@ -50,7 +50,7 @@ func (s *Service) EvaluateLocalDevelopmentProject(ctx context.Context, req *runt
 	}
 	project, err := resolveLocalDevelopmentProject(req.GetProjectRoot(), req.GetExpectedAppId(), req.GetShellKind(), account.GetAccountId(), generation)
 	if err != nil {
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
+		return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED, "project-authority")
 	}
 	evaluation, err := s.localDevelopment.Evaluate(ctx, project, runID)
 	if err != nil {
@@ -179,14 +179,14 @@ func (s *Service) PrepareLocalDevelopmentLaunch(ctx context.Context, req *runtim
 		if s.logger != nil {
 			s.logger.Warn("local development launch rejected", "stage", "project-authority", "app_id", authorization.Project.AppID, "error", err)
 		}
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
+		return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED, "project-authority")
 	}
 	hostExecutable, err := canonicalLocalDevelopmentHostExecutable(project.ProjectRoot, req.GetHostExecutablePath(), req.GetShellKind())
 	if err != nil {
 		if s.logger != nil {
 			s.logger.Warn("local development launch rejected", "stage", "host-executable", "app_id", authorization.Project.AppID, "error", err)
 		}
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
+		return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED, "host-executable")
 	}
 	ticket, err := s.localDevelopment.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
 		AuthorizationID: authorizationID,
@@ -199,6 +199,9 @@ func (s *Service) PrepareLocalDevelopmentLaunch(ctx context.Context, req *runtim
 	if err != nil {
 		if s.logger != nil {
 			s.logger.Warn("local development launch rejected", "stage", "launch-store", "app_id", authorization.Project.AppID, "error", err)
+		}
+		if errors.Is(err, errLocalDevelopmentProjectChanged) {
+			return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED, "launch-store")
 		}
 		return nil, localDevelopmentStoreError(err)
 	}
@@ -571,4 +574,8 @@ func localDevelopmentStoreError(err error) error {
 
 func localDevelopmentFailure(code codes.Code, reason runtimev1.ReasonCode) error {
 	return grpcerr.WithReasonCode(code, reason)
+}
+
+func localDevelopmentFailureAtStage(code codes.Code, reason runtimev1.ReasonCode, stage string) error {
+	return grpcerr.WithReasonCodeOptions(code, reason, grpcerr.ReasonOptions{Metadata: map[string]string{"diagnostic_stage": stage}})
 }
