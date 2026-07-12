@@ -116,3 +116,84 @@ context composition or model-visible inputs.
 - AUTHORITY-RELATION subject=behavior-batch-ledger action=retain object=all-raw-trials value=required polarity=require
 - AUTHORITY-RELATION subject=behavior-evaluator action=mutate object=source-snapshot-localagent-transcript-memory-state value=denied polarity=forbid
 - AUTHORITY-RELATION subject=evaluator-score action=become object=personality-truth value=denied polarity=forbid
+
+## P-TEST-015 — LocalAgent acceptance uses the closed L0–L5 execution layers and their hard budgets.
+
+LocalAgent tests use the execution-layer contract in
+`tables/test-governance-policy.yaml`: L0 static/unit, L1 module
+integration/contract, L2 core product journey, L3 extended/risk journey, L4
+exhaustive deterministic, and L5 live behavior. The minimum sufficient layer
+is selected by the product fact being proved. Enumeration, property,
+schema-mutation, and high-repeat negative coverage stays in L0/L1/L4 and may
+not create an Electron Cartesian product. An L2 or L3 budget breach is a test
+architecture failure; increasing a timeout is not an admission remedy.
+
+- AUTHORITY-RELATION subject=localagent-acceptance action=classify object=execution-layer value=l0-through-l5-closed-set polarity=require
+- AUTHORITY-RELATION subject=enum-property-schema-mutation action=execute object=electron-cartesian-product value=denied polarity=forbid
+- AUTHORITY-RELATION subject=journey-budget-breach action=resolve object=timeout-increase-only value=denied polarity=forbid
+
+## P-TEST-016 — Acceptance points are product facts; checkpoints collect them inside pollution-bounded Journey Trials.
+
+An acceptance point identifies one independently traceable product fact. A
+checkpoint is the position inside a product Journey where one or more facts
+are observed. A Journey Trial starts from one clean environment and may emit
+many checkpoint and leaf results. Environment isolation follows account,
+source, agent, transcript, memory, destructive-state, and platform pollution
+boundaries; it never follows leaf count. Ordinary new assertions extend an
+existing checkpoint unless they require a distinct user path, state machine,
+initial subject, destructive boundary, recovery boundary, or native platform.
+Every Journey repeat allocates fresh logical account, world, source, Runtime
+source, and LocalAgent identities wherever those entities exist, and records
+the observed identities in `environmentIdentity`. A fresh filesystem root does
+not admit a repeat that reuses logical product identity.
+
+- AUTHORITY-RELATION subject=acceptance-point action=identify object=product-fact value=independently-traceable polarity=require
+- AUTHORITY-RELATION subject=journey-trial action=emit object=leaf-results value=many-per-clean-environment polarity=require
+- AUTHORITY-RELATION subject=leaf-count action=determine object=environment-process-starts value=denied polarity=forbid
+- AUTHORITY-RELATION subject=journey-repeat action=allocate object=logical-product-identities value=fresh-and-observed polarity=require
+
+## P-TEST-017 — Acceptance catalog, Journey registry, and execution policy are separate non-authoritative support inputs.
+
+The acceptance-point catalog owns leaf identity, iteration owner, group,
+requirement, assertion identity, minimum sufficient layer, and evidence class.
+The Journey registry owns environments, prerequisites, checkpoints, leaf
+coverage, isolation, repeats, and budgets. The execution policy owns local,
+PR, stability, extended, exhaustive, and live gate selection. No file may mix
+these ownership roles. All 169 LocalAgent leaves remain catalogued; I7 owns
+145 deterministic leaves, while the 24 P leaves remain I8-owned L5 structure
+and produce no I7 result, pass, skip, or blocked record.
+
+- AUTHORITY-RELATION subject=localagent-test-support-inputs action=separate object=catalog-journey-policy value=required polarity=require
+- AUTHORITY-RELATION subject=i7-execution action=emit object=i8-p-leaf-result value=denied polarity=forbid
+- AUTHORITY-RELATION subject=localagent-leaf-catalog action=retain object=leaf-identities value=169 polarity=require
+
+## P-TEST-018 — Journey results, checkpoints, leaf results, artifacts, and prerequisite outcomes fail closed.
+
+Every Journey result binds source state, environment identity, duration,
+checkpoints, leaf results, artifacts, process problems, privacy, and outcome.
+Each checkpoint binds prerequisites, timestamps, Runtime/source/agent/turn
+correlations, assertions, artifact references, and outcome. Each leaf result
+binds its Journey Trial, checkpoint IDs, assertion IDs, evidence references,
+outcome, and failure class. A failed prerequisite makes every dependent leaf
+`failed` or `blocked_by_failed_prerequisite`; neither blocked, skipped,
+missing, nor unexecuted can count as pass. Artifact hashes, source digests,
+privacy, process errors, and provider-visible lane evidence are admission
+inputs, not optional diagnostics.
+
+- AUTHORITY-RELATION subject=failed-checkpoint-prerequisite action=permit object=dependent-leaf-pass value=denied polarity=forbid
+- AUTHORITY-RELATION subject=blocked-skipped-missing-unexecuted action=count object=acceptance-pass value=denied polarity=forbid
+- AUTHORITY-RELATION subject=journey-evidence action=bind object=source-artifact-privacy-process-provider-integrity value=required polarity=require
+
+## P-TEST-019 — Required regression gates are Journey-based and budget-enforced; leaf-per-process is forbidden.
+
+The required local/PR path runs L0+L1+one L2 core Journey within the policy
+budget. Core stability runs three independent L2 Journey Trials; extended
+and exhaustive gates run only their policy-selected work. L5 live behavior is
+separate and never blocks ordinary deterministic feedback. A required runner,
+package script, checker, or fallback that starts a complete
+Runtime/Desktop/Zhiyu environment once per leaf is forbidden. Process-start
+counts must match the Journey environment declaration, not `leaf × repeat`.
+
+- AUTHORITY-RELATION subject=required-local-pr-gate action=run object=l0-l1-l2-core value=budget-enforced polarity=require
+- AUTHORITY-RELATION subject=required-runner action=start object=full-environment-per-leaf value=denied polarity=forbid
+- AUTHORITY-RELATION subject=process-start-count action=derive object=journey-environment-declaration value=required polarity=require

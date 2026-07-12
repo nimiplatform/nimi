@@ -352,16 +352,18 @@ func (r publicChatRuntime) runTurn(
 		r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, runtimev1.ReasonCode_AI_STREAM_BROKEN, "commit Runtime transcript failed: "+commitErr.Error())
 		return
 	}
-	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil {
-		r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat message_committed event failed: "+err.Error())
-		return
-	}
-	// After the commit point succeeds, app-facing text_delta may expose the
-	// typed message text. It must never expose raw APML/model chunks.
+	// Once the durable commit succeeds, app-facing text_delta may expose the
+	// typed message text. It must never expose raw APML/model chunks, and it
+	// must precede the public message_committed event so consumers can treat
+	// every delta as provisional until that explicit commit point.
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
 		"text": structured.Message.Text,
 	}); err != nil {
 		r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat committed text_delta event failed: "+err.Error())
+		return
+	}
+	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil {
+		r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat message_committed event failed: "+err.Error())
 		return
 	}
 	// Project committed runtime interpretation into state+presentation per

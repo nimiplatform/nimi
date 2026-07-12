@@ -129,10 +129,8 @@ func validatePublicChatStructuredStatusCue(cue *publicChatStructuredStatusCue, m
 		return fmt.Errorf("statusCue.sourceMessageId must equal message.messageId")
 	}
 	if cue.Mood != "" {
-		switch cue.Mood {
-		case "neutral", "joy", "focus", "calm", "playful", "concerned", "surprised":
-		default:
-			return fmt.Errorf("statusCue.mood is invalid")
+		if !publicChatStatusCueMoodAdmitted(cue.Mood) {
+			return fmt.Errorf("statusCue.mood %q is invalid", cue.Mood)
 		}
 	}
 	if cue.Intensity != nil && (*cue.Intensity < 0 || *cue.Intensity > 1) {

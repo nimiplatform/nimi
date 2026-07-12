@@ -9,6 +9,19 @@ const MATERIALIZATION_KEY_ID = 'sdk-runtime-live-source-materialization-rs256';
 const MATERIALIZATION_KEYS = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const MATERIALIZATION_PUBLIC_JWK = MATERIALIZATION_KEYS.publicKey.export({ format: 'jwk' });
 const FIXTURE_TIME = '2026-07-10T05:00:00.000Z';
+function fixtureIdentity(environmentKey, fallback) {
+    const value = String(process.env[environmentKey] || fallback).trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(value)) {
+        throw new Error(`${environmentKey} must be a bounded product identity`);
+    }
+    return value;
+}
+export const FIXTURE_ACCOUNT_ID = fixtureIdentity('NIMI_LOCAL_AGENT_PRODUCT_ACCOUNT_ID', 'user-runtime-agent-live');
+const FIXTURE_WORLD_ID = fixtureIdentity('NIMI_LOCAL_AGENT_PRODUCT_WORLD_ID', 'world-runtime-live');
+const FIXTURE_SOURCE_ID = fixtureIdentity('NIMI_LOCAL_AGENT_PRODUCT_SOURCE_ID', 'source-runtime-live');
+const FIXTURE_PERSONA_SOURCE_ID = fixtureIdentity('NIMI_LOCAL_AGENT_PRODUCT_PERSONA_SOURCE_ID', 'persona-runtime-live');
+const FIXTURE_ENTITY_ID = fixtureIdentity('NIMI_LOCAL_AGENT_PRODUCT_ENTITY_ID', 'entity-runtime-live');
+const FIXTURE_RESOURCE_ID = fixtureIdentity('NIMI_LOCAL_AGENT_PRODUCT_RESOURCE_ID', 'resource-runtime-live-avatar');
 export let FIXTURE_REALM_ISSUER = 'https://realm.sdk-runtime-agent-live.test';
 export function configureFixtureRealmIssuer(issuer) {
     const normalized = String(issuer || '').trim();
@@ -55,7 +68,7 @@ const worldCore = {
         displayFormat: null,
     },
     timeline: { events: [] },
-    entities: [{ entityId: 'entity-runtime-live', kind: 'person', label: 'Runtime Live Source' }],
+    entities: [{ entityId: FIXTURE_ENTITY_ID, kind: 'person', label: 'Runtime Live Source' }],
     relationships: [],
     systems: [],
     scenes: [],
@@ -63,18 +76,18 @@ const worldCore = {
     authoring: { source: 'sdk-runtime-live-fixture' },
 };
 const world = {
-    id: 'world-runtime-live',
+    id: FIXTURE_WORLD_ID,
     schemaVersion: 'realm.world-core/v1',
     contentRevision: 7,
     contentHash: hashCanonicalJSON({
         schemaVersion: 'realm.world-core/v1',
         origin,
-        creatorId: 'user-runtime-agent-live',
+        creatorId: FIXTURE_ACCOUNT_ID,
         visibility: 'public',
         core: worldCore,
     }),
     origin,
-    creatorId: 'user-runtime-agent-live',
+    creatorId: FIXTURE_ACCOUNT_ID,
     visibility: 'public',
     core: worldCore,
     createdAt: FIXTURE_TIME,
@@ -89,11 +102,11 @@ const characterCore = {
     presentation: {
         displayName: 'Runtime Live Source',
         shortBio: 'Canonical Runtime source materialization fixture.',
-        avatarResourceRef: 'resource-runtime-live-avatar',
+        avatarResourceRef: FIXTURE_RESOURCE_ID,
     },
     placement: {
         worldId: world.id,
-        entityId: 'entity-runtime-live',
+        entityId: FIXTURE_ENTITY_ID,
         role: 'Verification Guide',
         faction: 'Runtime Verification',
         rank: 'Canonical',
@@ -130,7 +143,7 @@ const characterCore = {
         dialogueExemplars: ['I will distinguish source truth from inference.'],
     },
     assets: {
-        resourceRefs: [{ refId: 'resource-runtime-live-avatar', kind: 'image', purpose: 'avatar' }],
+        resourceRefs: [{ refId: FIXTURE_RESOURCE_ID, kind: 'image', purpose: 'avatar' }],
         externalRefs: [],
         intents: [{ intentId: 'intent-runtime-live-voice', kind: 'voice', summary: 'Measured voice.' }],
     },
@@ -142,24 +155,50 @@ const characterCore = {
 };
 const source = {
     kind: 'worldCharacter',
-    id: 'source-runtime-live',
+    id: FIXTURE_SOURCE_ID,
     schemaVersion: 'realm.world-character-core/v1',
     contentRevision: 7,
     contentHash: hashCanonicalJSON({
         schemaVersion: 'realm.world-character-core/v1',
         origin,
         worldId: world.id,
-        entityId: 'entity-runtime-live',
+        entityId: FIXTURE_ENTITY_ID,
         core: characterCore,
     }),
     createdAt: FIXTURE_TIME,
     updatedAt: FIXTURE_TIME,
     origin,
-    creatorId: 'user-runtime-agent-live',
+    creatorId: FIXTURE_ACCOUNT_ID,
     visibility: 'public',
     worldId: world.id,
-    entityId: 'entity-runtime-live',
+    entityId: FIXTURE_ENTITY_ID,
     core: characterCore,
+};
+const personaCore = {
+    identity: { handle: 'solace', name: 'Solace', summary: 'A canonical source-grounded persona.', aliases: ['Guide'] },
+    presentation: { displayName: 'Solace', profileLine: 'Clear, calm, and source grounded.' },
+    personaStyle: { archetype: 'advisor', traits: ['calm', 'direct'], voice: 'clear', pacing: 'measured' },
+    contentProfile: { topics: ['Runtime source snapshot verification'], boundaries: ['Never invent private context'], guidelines: [{ guidelineId: 'source-truth', statement: 'Separate source truth from inference', source: 'fixture' }] },
+    interactionProfile: { homeWorldId: world.id, interactionModes: ['conversation'] },
+    assets: { resourceRefs: [], externalRefs: [], intents: [] },
+    authoring: { source: 'desktop-local-agent-product-fixture' },
+};
+const personaSource = {
+    kind: 'realmPersona',
+    id: FIXTURE_PERSONA_SOURCE_ID,
+    schemaVersion: 'realm.persona/v1',
+    contentRevision: 4,
+    contentHash: hashCanonicalJSON({
+        schemaVersion: 'realm.persona/v1', origin, ownerId: FIXTURE_ACCOUNT_ID,
+        homeWorldId: world.id, visibility: 'public', core: personaCore,
+    }),
+    createdAt: FIXTURE_TIME,
+    updatedAt: FIXTURE_TIME,
+    origin,
+    ownerId: FIXTURE_ACCOUNT_ID,
+    homeWorldId: world.id,
+    visibility: 'public',
+    core: personaCore,
 };
 const entityCore = {
     identity: {
@@ -174,15 +213,15 @@ const entityCore = {
             type: 'fixture-fact',
             label: 'Source-grounded fixture fact',
             value: { sourceGrounded: true },
-            sourceRefs: ['fixture:entity-runtime-live'],
+            sourceRefs: [`fixture:${FIXTURE_ENTITY_ID}`],
             confidence: 'recorded',
         }],
-    evidence: { sourceRefs: ['fixture:entity-runtime-live'], completeness: 'complete' },
+    evidence: { sourceRefs: [`fixture:${FIXTURE_ENTITY_ID}`], completeness: 'complete' },
     assets: { resourceRefs: [], externalRefs: [], intents: [] },
     authoring: { source: 'sdk-runtime-live-fixture', maintainers: ['sdk-runtime-live-suite'] },
 };
 const boundEntity = {
-    id: 'entity-runtime-live',
+    id: FIXTURE_ENTITY_ID,
     schemaVersion: 'realm.world-entity-core/v1',
     contentRevision: 3,
     contentHash: hashCanonicalJSON({
@@ -205,57 +244,111 @@ export const FIXTURE_SOURCE_REF = {
     sourceId: source.id,
     sourceContentHash: source.contentHash,
 };
+export const FIXTURE_PERSONA_SOURCE_REF = {
+    kind: 'realmPersona',
+    worldId: world.id,
+    sourceId: personaSource.id,
+    sourceContentHash: personaSource.contentHash,
+};
+export function createFixtureRealmCoreSeed(identitySuffix) {
+    const suffix = String(identitySuffix || '').trim().replace(/[^a-zA-Z0-9-]/gu, '-').slice(-40);
+    if (!suffix) {
+        throw new Error('fixture Realm core seed requires an identity suffix');
+    }
+    const ids = {
+        world: `world-local-agent-${suffix}`,
+        entity: `entity-local-agent-${suffix}`,
+        character: `character-local-agent-${suffix}`,
+        persona: `persona-local-agent-${suffix}`,
+    };
+    const replacements = new Map([
+        [world.id, ids.world],
+        [boundEntity.id, ids.entity],
+        [source.id, ids.character],
+        [personaSource.id, ids.persona],
+    ]);
+    const replace = (value) => {
+        if (typeof value === 'string') return replacements.get(value) || value;
+        if (Array.isArray(value)) return value.map(replace);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, replace(nested)]));
+        }
+        return value;
+    };
+    const withoutUnseededAssets = (value) => {
+        if (Array.isArray(value)) return value.map(withoutUnseededAssets);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).flatMap(([key, nested]) => {
+                if (/ResourceRef$/u.test(key)) return [];
+                if (key === 'resourceRefs' || key === 'externalRefs') return [[key, []]];
+                return [[key, withoutUnseededAssets(nested)]];
+            }));
+        }
+        return value;
+    };
+    const seededWorldCore = withoutUnseededAssets(replace(world.core));
+    seededWorldCore.identity.name = `LocalAgent Product ${suffix}`;
+    seededWorldCore.presentation.title = `LocalAgent Product ${suffix}`;
+    return {
+        displayName: seededWorldCore.identity.name,
+        world: { id: ids.world, visibility: 'public', origin, core: seededWorldCore },
+        entity: { id: ids.entity, kind: boundEntity.kind, origin, core: withoutUnseededAssets(replace(boundEntity.core)) },
+        character: { id: ids.character, entityId: ids.entity, origin, core: withoutUnseededAssets(replace(source.core)) },
+        persona: { id: ids.persona, homeWorldId: ids.world, visibility: 'public', origin, core: withoutUnseededAssets(replace(personaSource.core)) },
+    };
+}
 export function createFixtureSourceMaterializationPacket(request) {
     assertFixtureRequest(request);
     const packetId = `packet-${randomUUID()}`;
-    const initial = [
-        component('worldCharacter', source.worldId, source.id, source.schemaVersion, source.contentRevision, source.contentHash, source),
-        component('worldCore', world.id, world.id, world.schemaVersion, world.contentRevision, world.contentHash, world),
-        component('worldEntity', boundEntity.worldId, boundEntity.id, boundEntity.schemaVersion, boundEntity.contentRevision, boundEntity.contentHash, boundEntity),
-    ];
-    const requiredSections = Object.keys(source.core)
+    const isPersona = request.sourceRef.kind === 'realmPersona';
+    const selectedSource = isPersona ? personaSource : source;
+    const initial = isPersona
+        ? [
+            component('realmPersona', personaSource.homeWorldId, personaSource.id, personaSource.schemaVersion, personaSource.contentRevision, personaSource.contentHash, personaSource),
+            component('worldCore', world.id, world.id, world.schemaVersion, world.contentRevision, world.contentHash, world),
+        ]
+        : [
+            component('worldCharacter', source.worldId, source.id, source.schemaVersion, source.contentRevision, source.contentHash, source),
+            component('worldCore', world.id, world.id, world.schemaVersion, world.contentRevision, world.contentHash, world),
+            component('worldEntity', boundEntity.worldId, boundEntity.id, boundEntity.schemaVersion, boundEntity.contentRevision, boundEntity.contentHash, boundEntity),
+        ];
+    const requiredSections = Object.keys(selectedSource.core)
         .sort(compareUtf8)
         .map((section) => ({ path: `source.core.${section}`, state: 'present' }));
-    const sourceCompactRef = `worldCharacter:${source.worldId}:${source.id}`;
+    const sourceCompactRef = `${selectedSource.kind}:${request.sourceRef.worldId}:${selectedSource.id}`;
+    const requiredRefs = isPersona
+        ? [
+            { path: 'source.core.interactionProfile.homeWorldId', refKind: 'worldCore', refId: world.id, state: 'resolved' },
+            { path: 'source.homeWorldId', refKind: 'worldCore', refId: world.id, state: 'resolved' },
+        ]
+        : [
+            { path: 'source.entityId', refKind: 'worldEntity', refId: boundEntity.id, state: 'resolved' },
+            { path: 'source.worldId', refKind: 'worldCore', refId: world.id, state: 'resolved' },
+        ];
+    const optionalRefs = isPersona ? [
+        { path: 'source.core.presentation.avatarResourceRef', refKind: 'resource', refId: 'absent:source.core.presentation.avatarResourceRef', state: 'omitted', omissionReason: 'not-declared' },
+        { path: 'source.core.presentation.profileCoverResourceRef', refKind: 'resource', refId: 'absent:source.core.presentation.profileCoverResourceRef', state: 'omitted', omissionReason: 'not-declared' },
+    ] : [
+        { path: 'source.core.presentation.avatarResourceRef', refKind: 'resource', refId: characterCore.presentation.avatarResourceRef, state: 'resolved' },
+        { path: 'source.core.presentation.profileCoverResourceRef', refKind: 'resource', refId: 'absent:source.core.presentation.profileCoverResourceRef', state: 'omitted', omissionReason: 'not-declared' },
+    ];
+    const crossReferenceChecks = isPersona
+        ? [
+            { checkId: 'persona-interaction-home-world', state: 'valid', sourceRef: sourceCompactRef, targetRef: `worldCore:${world.id}:${world.id}` },
+            { checkId: 'source-owning-world', state: 'valid', sourceRef: sourceCompactRef, targetRef: `worldCore:${world.id}:${world.id}` },
+        ]
+        : [
+            { checkId: 'source-bound-entity', state: 'valid', sourceRef: sourceCompactRef, targetRef: `worldEntity:${boundEntity.worldId}:${boundEntity.id}` },
+            { checkId: 'source-owning-world', state: 'valid', sourceRef: sourceCompactRef, targetRef: `worldCore:${world.id}:${world.id}` },
+        ];
     const coverageUnsigned = {
         manifestSchemaVersion: 'realm.materialization-coverage/v1',
         closurePolicyVersion: 'realm.materialization-closure/v1',
         requiredSections,
-        requiredRefs: [{
-                path: 'source.entityId',
-                refKind: 'worldEntity',
-                refId: boundEntity.id,
-                state: 'resolved',
-            }, {
-                path: 'source.worldId',
-                refKind: 'worldCore',
-                refId: world.id,
-                state: 'resolved',
-            }],
-        optionalRefs: [{
-                path: 'source.core.presentation.avatarResourceRef',
-                refKind: 'resource',
-                refId: characterCore.presentation.avatarResourceRef,
-                state: 'resolved',
-            }, {
-                path: 'source.core.presentation.profileCoverResourceRef',
-                refKind: 'resource',
-                refId: 'absent:source.core.presentation.profileCoverResourceRef',
-                state: 'omitted',
-                omissionReason: 'not-declared',
-            }],
+        requiredRefs,
+        optionalRefs,
         components: initial.map(componentMetadata),
-        crossReferenceChecks: [{
-                checkId: 'source-bound-entity',
-                state: 'valid',
-                sourceRef: sourceCompactRef,
-                targetRef: `worldEntity:${boundEntity.worldId}:${boundEntity.id}`,
-            }, {
-                checkId: 'source-owning-world',
-                state: 'valid',
-                sourceRef: sourceCompactRef,
-                targetRef: `worldCore:${world.id}:${world.id}`,
-            }],
+        crossReferenceChecks,
         aggregateStatus: 'complete',
     };
     const coverageManifestHash = hashDomain(COVERAGE_DOMAIN, coverageUnsigned);
@@ -274,13 +367,9 @@ export function createFixtureSourceMaterializationPacket(request) {
         contextSchemaVersion: 'realm.materialization-context/v1',
         sourceRef: request.sourceRef,
         owningWorld: world,
-        dependencyClosure: {
-            kind: 'worldCharacter',
-            boundEntity,
-            incidentRelationships: [],
-            endpointEntities: [],
-            explicitDependencies: [],
-        },
+        dependencyClosure: isPersona
+            ? { kind: 'realmPersona', explicitDependencies: [] }
+            : { kind: 'worldCharacter', boundEntity, incidentRelationships: [], endpointEntities: [], explicitDependencies: [] },
         sourceComponentDigests,
         worldAndClosureComponentDigests,
         closurePolicyVersion: 'realm.materialization-closure/v1',
@@ -290,7 +379,7 @@ export function createFixtureSourceMaterializationPacket(request) {
     const semanticPayload = {
         payloadSchemaVersion: 'realm.source-materialization-payload/v2',
         payloadAssemblyVersion: 'realm.materialization-assembly/v1',
-        source,
+        source: selectedSource,
         materializationContext,
         coverageManifest,
         coverageManifestHash,
@@ -421,10 +510,11 @@ function buildTransport(packetId, request, components) {
     };
 }
 function assertFixtureRequest(request) {
-    if (request.sourceRef.kind !== FIXTURE_SOURCE_REF.kind
-        || request.sourceRef.worldId !== FIXTURE_SOURCE_REF.worldId
-        || request.sourceRef.sourceId !== FIXTURE_SOURCE_REF.sourceId
-        || request.sourceRef.sourceContentHash !== FIXTURE_SOURCE_REF.sourceContentHash) {
+    const expected = request.sourceRef.kind === 'realmPersona' ? FIXTURE_PERSONA_SOURCE_REF : FIXTURE_SOURCE_REF;
+    if (request.sourceRef.kind !== expected.kind
+        || request.sourceRef.worldId !== expected.worldId
+        || request.sourceRef.sourceId !== expected.sourceId
+        || request.sourceRef.sourceContentHash !== expected.sourceContentHash) {
         throw new Error('Realm fixture received an unknown canonical source ref');
     }
     if (!request.materializerAccountId

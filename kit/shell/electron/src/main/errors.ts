@@ -8,6 +8,12 @@ const RUNTIME_ENDPOINT_UNAVAILABLE_REASON_CODES: ReadonlySet<string> = new Set([
   'RUNTIME_GRPC_DEADLINE_EXCEEDED',
   'electron-runtime-endpoint-unavailable',
 ]);
+const RUNTIME_TRUSTED_METADATA_INVALID_REASON_CODES: ReadonlySet<string> = new Set([
+  ReasonCode.APP_GRANT_INVALID,
+  ReasonCode.APP_NOT_REGISTERED,
+  ReasonCode.PRINCIPAL_UNAUTHORIZED,
+  ReasonCode.SESSION_EXPIRED,
+]);
 
 function normalizeErrorText(value: unknown): string {
   return String(value ?? '').trim();
@@ -198,7 +204,7 @@ export function isRuntimeEndpointUnavailableLike(error: unknown): boolean {
     || message.startsWith('4 DEADLINE_EXCEEDED:');
 }
 
-export function isRuntimeAppGrantInvalidLike(error: unknown): boolean {
+export function runtimeTrustedMetadataInvalidationReason(error: unknown): string | null {
   const message = errorMessage(error);
   const embedded = parseRuntimeErrorPayload(message);
   const record = asOptionalRecord(error) ?? {};
@@ -211,7 +217,15 @@ export function isRuntimeAppGrantInvalidLike(error: unknown): boolean {
     ?? details?.reasonCode
     ?? details?.reason_code,
   );
-  return reasonCode === ReasonCode.APP_GRANT_INVALID || message.includes(ReasonCode.APP_GRANT_INVALID);
+  if (RUNTIME_TRUSTED_METADATA_INVALID_REASON_CODES.has(reasonCode)) {
+    return reasonCode;
+  }
+  for (const candidate of RUNTIME_TRUSTED_METADATA_INVALID_REASON_CODES) {
+    if (message.includes(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 function runtimeGrpcCode(error: unknown): number {

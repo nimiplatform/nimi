@@ -79,7 +79,7 @@ func sourceMaterializationVerifiedControlFixture(t *testing.T, kind string) (*ru
 		PacketProof: sourceMaterializationTestProof(t, envelope.KeyID, packetHash, false), BundleTransportManifest: protoManifest,
 	}
 	provider := &sourceMaterializationTestJWKSProvider{documents: []sourceMaterializationJWKSDocument{{Issuer: envelope.Issuer, Keys: []sourceMaterializationJWK{sourceMaterializationTestJWK(t, envelope.KeyID)}}}}
-	expected := sourceMaterializationBeginExpectationsV2{MaterializerAccountID: envelope.MaterializerAccountID, ChallengeID: envelope.ChallengeID, IntendedRuntimeAudience: envelope.IntendedRuntimeAudience, ChallengeDigest: envelope.ChallengeDigest, SourceRef: protoSourceRef, Limits: protoLimits, ExpiresAt: expiresAt}
+	expected := sourceMaterializationBeginExpectationsV2{MaterializerAccountID: envelope.MaterializerAccountID, ChallengeID: envelope.ChallengeID, IntendedRuntimeAudience: envelope.IntendedRuntimeAudience, ChallengeDigest: envelope.ChallengeDigest, SourceRef: protoSourceRef, Limits: protoLimits, ExpiresAt: expiresAt.Add(time.Minute)}
 	return control, expected, provider, now
 }
 
@@ -137,6 +137,9 @@ func TestVerifySourceMaterializationBeginControlV2FailsClosed(t *testing.T) {
 		},
 		"source binding": func(_ *runtimev1.SourceMaterializationBeginControl, expected *sourceMaterializationBeginExpectationsV2) {
 			expected.SourceRef.SourceId = "source-other"
+		},
+		"packet expiry exceeds challenge": func(_ *runtimev1.SourceMaterializationBeginControl, expected *sourceMaterializationBeginExpectationsV2) {
+			expected.ExpiresAt = expected.ExpiresAt.Add(-2 * time.Minute)
 		},
 		"unknown component kind": func(control *runtimev1.SourceMaterializationBeginControl, _ *sourceMaterializationBeginExpectationsV2) {
 			control.BundleTransportManifest.Components[0].Kind = runtimev1.AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED

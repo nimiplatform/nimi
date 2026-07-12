@@ -46,6 +46,7 @@ export interface RuntimeAgentLiveE2ERealmFixtureContext {
     readonly refreshToken: string;
     readonly sessionId: string;
   };
+  readonly setTranscriptionFailure: (enabled: boolean) => void;
 }
 
 type RuntimeAccountFixtureState = {
@@ -69,6 +70,7 @@ export async function withRealmFixtureServer(
     sessionId: RUNTIME_ACCOUNT_SESSION_ID,
     sequence: 0,
   };
+  const failureState = { transcription: false };
   const run = typeof input === 'function' ? input : input.run;
   const options = {
     localChatCompletionStreamDelayMs: typeof input === 'function'
@@ -80,7 +82,7 @@ export async function withRealmFixtureServer(
   };
   const server = createServer(async (request, response) => {
     try {
-      await handleRealmFixtureRequest(request, response, requests, options, accountState);
+      await handleRealmFixtureRequest(request, response, requests, options, accountState, failureState);
     } catch (error) {
       writeJSON(response, 500, {
         message: error instanceof Error ? error.message : String(error),
@@ -106,6 +108,9 @@ export async function withRealmFixtureServer(
         refreshToken: accountState.refreshToken,
         sessionId: accountState.sessionId,
       }),
+      setTranscriptionFailure: (enabled) => {
+        failureState.transcription = enabled === true;
+      },
     });
   } finally {
     await closeServer(server);
@@ -130,6 +135,7 @@ async function handleRealmFixtureRequest(
     readonly voiceSpeechStreamDelayMs: number;
   },
   accountState: RuntimeAccountFixtureState,
+  failureState: { transcription: boolean },
 ): Promise<void> {
   const url = new URL(request.url || '/', 'http://127.0.0.1');
   const rawBody = await readRequestBody(request);
@@ -311,6 +317,10 @@ async function handleRealmFixtureRequest(
   }
 
   if (request.method === 'POST' && url.pathname === '/v1/audio/transcriptions') {
+    if (failureState.transcription) {
+      writeJSON(response, 503, { error: { code: 'fixture_transcription_failed', message: 'Deterministic transcription failure.' } });
+      return;
+    }
     writeOpenAITranscription(response, rawBody);
     return;
   }

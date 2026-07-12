@@ -329,7 +329,7 @@ function createElectronRuntimeAgentStreamTurn(
       },
       request,
       signal: options?.signal,
-      interruptReason: 'zhiyu_agent_chat_abort',
+      interruptReason: 'user_cancel',
     });
   };
 }

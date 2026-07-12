@@ -462,7 +462,7 @@ describe('SdkDriver', () => {
             text: 'reply',
             structured: {
               status_cue: {
-                mood: 'joy',
+                mood: 'happy',
                 action_cue: 'greet',
                 activity_category: 'interaction',
                 ...admissionDetail(),

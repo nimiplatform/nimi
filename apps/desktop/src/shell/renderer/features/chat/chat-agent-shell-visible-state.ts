@@ -1,6 +1,10 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { NimiRuntimeAgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
-import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  mapRuntimeAgentEmotionToAvatarCue,
+  parseRuntimeAgentEmotionId,
+  type AvatarPresentationProfile,
+} from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 
@@ -54,7 +58,7 @@ function resolveStatusCueInteractionState(
     phase: 'idle',
     busy: false,
     ...(statusCue.label || statusCue.actionCue ? { label: statusCue.label || statusCue.actionCue || undefined } : {}),
-    ...(statusCue.mood ? { emotion: statusCue.mood } : {}),
+    ...(statusCue.mood ? { emotion: mapRuntimeAgentEmotionToAvatarCue(parseRuntimeAgentEmotionId(statusCue.mood)) } : {}),
     amplitude: clampUnit(statusCue.intensity ?? 0.14),
   };
 }

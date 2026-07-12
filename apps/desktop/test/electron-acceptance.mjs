@@ -90,7 +90,9 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
       const loginScreen = page.getByTestId('login-screen');
       assert.equal(await loginScreen.getAttribute('data-auth-mode'), 'desktop-browser');
       await page.getByTestId('login-logo-trigger').click();
-      await page.getByText(/Runtime account service is unavailable|external Runtime daemon/i).waitFor({
+      await page.getByText(
+        /App is still starting|Runtime account service is unavailable|external Runtime daemon/i,
+      ).waitFor({
         state: 'visible',
         timeout: 10_000,
       });

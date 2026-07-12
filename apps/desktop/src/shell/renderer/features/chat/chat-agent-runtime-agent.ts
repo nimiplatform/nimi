@@ -92,7 +92,7 @@ export async function streamChatAgentRuntimeAgentTurn(
       requestId,
     },
     signal: request.signal,
-    interruptReason: 'desktop_agent_chat_abort',
+    interruptReason: 'user_cancel',
     logEvent: safeLogRuntimeAgentEvent,
     logTiming: (event) => {
       const stageByRunnerStage = {

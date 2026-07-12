@@ -1,4 +1,4 @@
-import { createNimiClientId } from '@nimiplatform/sdk';
+import { createNimiClientId, createNimiError } from '@nimiplatform/sdk';
 import {
   Runtime,
   createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
@@ -10,10 +10,12 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountCallerMode,
+  AccountReasonCode,
   AccountSessionState,
   AuthorizationPreset,
   ExternalPrincipalType,
   PolicyMode,
+  ReasonCode as RuntimeGeneratedReasonCode,
   type AuthorizeExternalPrincipalResponse,
 } from '@nimiplatform/sdk/runtime/generated';
 import { ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
@@ -550,6 +552,25 @@ async function readRuntimeSubjectUserId(
     { caller: accountCaller },
     { metadata },
   );
+  if (
+    session.reasonCode === RuntimeGeneratedReasonCode.PRINCIPAL_UNAUTHORIZED
+    && (
+      session.accountReasonCode === AccountReasonCode.CALLER_UNAUTHORIZED
+      || session.accountReasonCode === AccountReasonCode.CALLER_ENVELOPE_MISMATCH
+    )
+  ) {
+    throw createNimiError({
+      message: 'Electron Runtime account status rejected stale host-owned app registration or session metadata.',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+      actionHint: 'refresh_runtime_app_session',
+      source: 'runtime',
+      details: {
+        accountReasonCode: session.accountReasonCode === AccountReasonCode.CALLER_UNAUTHORIZED
+          ? 'CALLER_UNAUTHORIZED'
+          : 'CALLER_ENVELOPE_MISMATCH',
+      },
+    });
+  }
   if (session.state === AccountSessionState.AUTHENTICATED && session.accountProjection?.accountId) {
     return normalizeText(session.accountProjection.accountId);
   }

@@ -9,6 +9,7 @@ import {
   type NimiRuntimeAgentConsumeEvent,
   type NimiRuntimeAgentMessage,
   type NimiRuntimeAgentSessionSnapshotRequest,
+  type NimiRuntimeAgentTurnCancellationReason,
   type NimiRuntimeAgentTurnInterruptRequest,
   type NimiRuntimeAgentTurnRequest,
   type NimiRuntimeAgentTurnsModule,
@@ -267,7 +268,7 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
           runtimeSourceRef: normalizeTestText(lastTurnRequest?.runtimeSourceRef),
           localAgentRef: normalizeTestText(lastTurnRequest?.localAgentRef),
           conversationAnchorId: normalizeTestText(interruptPayload.conversation_anchor_id),
-          reason: normalizeTestText(interruptPayload.reason) || undefined,
+          reason: normalizeTestTurnCancellationReason(interruptPayload.reason),
           ...(normalizeTestText(interruptPayload.turn_id) ? { turnId: normalizeTestText(interruptPayload.turn_id) } : {}),
         };
         const response = await input.turns.interrupt(interrupt);
@@ -279,6 +280,21 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
       },
     },
   };
+}
+
+function normalizeTestTurnCancellationReason(value: unknown): NimiRuntimeAgentTurnCancellationReason | undefined {
+  const reason = normalizeTestText(value);
+  if (!reason) return undefined;
+  if ([
+    'user_cancel',
+    'room_closed',
+    'superseded_turn',
+    'budget_exhausted',
+    'timeout',
+    'gateway_revoked',
+    'policy_refusal',
+  ].includes(reason)) return reason as NimiRuntimeAgentTurnCancellationReason;
+  throw new Error(`test Runtime turn interrupt received unadmitted cancellation reason ${reason}`);
 }
 
 function normalizeDesktopTestRuntime(appId: string, runtime: unknown) {

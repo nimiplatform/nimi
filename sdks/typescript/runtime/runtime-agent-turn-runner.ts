@@ -23,6 +23,7 @@ export type {
   NimiRuntimeAgentSessionSnapshotRequest,
   NimiRuntimeAgentTimelineSummary,
   NimiRuntimeAgentTranscriptMessage,
+  NimiRuntimeAgentTurnCancellationReason,
   NimiRuntimeAgentTurnInterruptRequest,
   NimiRuntimeAgentTurnRequest,
   NimiRuntimeAgentTurnRunnerCommittedMessage,
@@ -79,7 +80,7 @@ export async function runNimiRuntimeAgentTurn(
       ...localIdentity,
       conversationAnchorId: options.request.conversationAnchorId,
       ...(normalizeNimiRuntimeAgentText(runtimeTurnRef.turnId) ? { turnId: runtimeTurnRef.turnId } : {}),
-      reason: normalizeNimiRuntimeAgentText(options.interruptReason) || 'runtime_agent_turn_abort',
+      reason: options.interruptReason || 'user_cancel',
       ...(options.request.scopedBinding ? { scopedBinding: options.request.scopedBinding } : {}),
       ...(normalizeNimiRuntimeAgentText(options.request.worldId) ? { worldId: options.request.worldId } : {}),
     }).catch(() => undefined);

@@ -200,8 +200,12 @@ func TestLocalAgentSourceSnapshotProvenanceCorruptionFailsRestart(t *testing.T) 
 }
 
 func sourceMaterializationTransportTestCandidate(t *testing.T, kind string, packetID string) localAgentSourceSnapshotCandidateV1 {
+	return sourceMaterializationTransportTestCandidateWithPresentation(t, kind, packetID, "")
+}
+
+func sourceMaterializationTransportTestCandidateWithPresentation(t *testing.T, kind string, packetID string, displayName string) localAgentSourceSnapshotCandidateV1 {
 	t.Helper()
-	begin, components := sourceMaterializationNormalizeFixture(t, kind, packetID)
+	begin, components := sourceMaterializationNormalizeFixtureWithPresentation(t, kind, packetID, displayName)
 	normalized, err := verifyAndNormalizeSourceMaterializationV2(begin, components)
 	if err != nil {
 		t.Fatalf("normalize source materialization fixture: %v", err)

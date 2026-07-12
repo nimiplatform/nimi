@@ -44,6 +44,7 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     'census',
     'module_owner_map',
     'local_agent_behavior_evaluation',
+    'local_agent_journey_acceptance',
   ], 'entries');
 
   const expectedClassifications = new Map([
@@ -121,6 +122,19 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     'behavior_batch_retry_or_mutable_inputs',
     'behavior_trial_not_retained',
     'evaluator_product_state_or_personality_mutation',
+    'local_agent_execution_layer_outside_closed_set',
+    'electron_cartesian_product',
+    'mixed_acceptance_journey_policy_truth',
+    'i8_leaf_executed_by_i7',
+    'missing_checkpoint_or_leaf_evidence',
+    'prerequisite_failure_downstream_pass',
+    'non_pass_counted_as_pass',
+    'source_artifact_privacy_or_process_integrity_failure',
+    'journey_environment_start_count_mismatch',
+    'journey_repeat_logical_identity_reuse',
+    'journey_or_gate_budget_exceeded',
+    'leaf_result_orphan_duplicate_conflict',
+    'leaf_per_process_required_path',
   ], 'hard_blocks.id');
   for (const row of hardBlocks) {
     const id = String(row?.id || '').trim() || '<empty>';
@@ -130,6 +144,12 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
 
   checkLocalAgentBehaviorEvaluation({
     contract: testGovernancePolicyTable.local_agent_behavior_evaluation,
+    definedRuleIds,
+    fail,
+    rel,
+  });
+  checkLocalAgentJourneyAcceptance({
+    contract: testGovernancePolicyTable.local_agent_journey_acceptance,
     definedRuleIds,
     fail,
     rel,
@@ -147,6 +167,163 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     rel,
     moduleRows: testGovernancePolicyTable.module_owner_map,
   });
+}
+
+function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel }) {
+  const base = 'local_agent_journey_acceptance';
+  if (!contract || typeof contract !== 'object' || Array.isArray(contract)) {
+    fail(`${rel} must declare ${base}`);
+    return;
+  }
+  expectScalar(fail, rel, `${base}.contract_version`, contract.contract_version, 1);
+
+  const layers = contract.execution_layers;
+  expectObject(fail, rel, `${base}.execution_layers`, layers);
+  expectExactSet(fail, rel, Object.keys(layers || {}), ['L0', 'L1', 'L2', 'L3', 'L4', 'L5'], `${base}.execution_layers keys`);
+  const expectedLayers = new Map([
+    ['L0', {
+      name: 'static_unit',
+      frequency: 'every_related_change',
+      budgetField: 'hard_budget_ms',
+      budget: 180000,
+      scope: ['schema', 'codec', 'hash', 'pure_function', 'type_boundary', 'state_mapping'],
+    }],
+    ['L1', {
+      name: 'module_integration_contract',
+      frequency: 'every_pr_iteration',
+      budgetField: 'hard_budget_ms',
+      budget: 480000,
+      scope: ['packet_challenge_snapshot', 'context_compiler', 'sdk_kit_projection', 'provider_capture', 'security_predicate', 'targeted_persistence_restart'],
+    }],
+    ['L2', {
+      name: 'core_product_journey',
+      frequency: 'every_product_affecting_iteration',
+      budgetField: 'hard_budget_ms',
+      budget: 1200000,
+      scope: ['realm', 'runtime', 'sdk_kit', 'desktop', 'zhiyu', 'provider_visible_context', 'transcript_memory', 'voice_emotion_apml', 'isolation', 'restart_offline'],
+    }],
+    ['L3', {
+      name: 'extended_risk_journeys',
+      frequency: 'related_change_or_nightly',
+      budgetField: 'aggregate_hard_budget_ms',
+      budget: 2700000,
+      scope: ['access_denial_forgery', 'replay_concurrency', 'destructive_lifecycle', 'source_no_rebase', 'crash_recovery', 'native_platform', 'operator_recovery'],
+    }],
+    ['L4', {
+      name: 'exhaustive_deterministic',
+      frequency: 'nightly_release_true_close',
+      budgetField: 'single_platform_hard_budget_ms',
+      budget: 5400000,
+      scope: ['property_repetition', 'enum_schema_mutation', 'high_repeat_negative', 'platform_variants', 'stability_three'],
+    }],
+    ['L5', {
+      name: 'live_behavior',
+      frequency: 'i8_only',
+      budgetField: null,
+      budget: null,
+      scope: ['real_provider_subject', 'independent_evaluator', 'calibration', 'two_batches_of_ten', 'raw_trial_ledger'],
+    }],
+  ]);
+  for (const [layerId, expected] of expectedLayers) {
+    const layer = layers?.[layerId];
+    expectObject(fail, rel, `${base}.execution_layers.${layerId}`, layer);
+    expectScalar(fail, rel, `${base}.execution_layers.${layerId}.name`, layer?.name, expected.name);
+    expectScalar(fail, rel, `${base}.execution_layers.${layerId}.frequency`, layer?.frequency, expected.frequency);
+    expectExactSet(fail, rel, layer?.scope, expected.scope, `${base}.execution_layers.${layerId}.scope`);
+    if (expected.budgetField) {
+      expectScalar(fail, rel, `${base}.execution_layers.${layerId}.${expected.budgetField}`, layer?.[expected.budgetField], expected.budget);
+    }
+    checkAuthorityRefs(fail, rel, `${base}.execution_layers.${layerId}.authority_refs`, layer?.authority_refs, definedRuleIds);
+  }
+  expectScalar(fail, rel, `${base}.execution_layers.L2.target_budget_ms`, layers?.L2?.target_budget_ms, 900000);
+  expectScalar(fail, rel, `${base}.execution_layers.L4.full_electron_per_leaf`, layers?.L4?.full_electron_per_leaf, 'forbidden');
+  expectScalar(fail, rel, `${base}.execution_layers.L5.ordinary_core_regression`, layers?.L5?.ordinary_core_regression, 'forbidden');
+
+  const budgets = contract.required_gate_budgets;
+  expectObject(fail, rel, `${base}.required_gate_budgets`, budgets);
+  for (const [field, expected] of Object.entries({
+    local_pr_l0_l1_l2_target_ms: 1500000,
+    required_pr_job_hard_max_ms: 1800000,
+    i7_core_stability_hard_max_ms: 3600000,
+    extended_aggregate_hard_max_ms: 2700000,
+    deterministic_exhaustive_hard_max_ms: 5400000,
+    live_provider_separate_clock: true,
+  })) expectScalar(fail, rel, `${base}.required_gate_budgets.${field}`, budgets?.[field], expected);
+  checkAuthorityRefs(fail, rel, `${base}.required_gate_budgets.authority_refs`, budgets?.authority_refs, definedRuleIds);
+
+  const identity = contract.execution_identity;
+  expectObject(fail, rel, `${base}.execution_identity`, identity);
+  for (const [field, expected] of Object.entries({
+    acceptance_point_role: 'independently_traceable_product_fact',
+    checkpoint_role: 'fact_collection_position_within_journey',
+    journey_trial_role: 'one_clean_environment_complete_product_path',
+    leaf_results_per_journey: 'many',
+    isolation_boundary: 'state_pollution',
+    leaf_count_drives_process_starts: false,
+    ordinary_assertion_change: 'extend_existing_checkpoint',
+    fresh_logical_identity_per_repeat: true,
+    observed_identity_record: 'environmentIdentity',
+  })) expectScalar(fail, rel, `${base}.execution_identity.${field}`, identity?.[field], expected);
+  expectExactSet(fail, rel, identity?.repeat_identity_scope, [
+    'account',
+    'world',
+    'source',
+    'runtime_source',
+    'local_agent',
+  ], `${base}.execution_identity.repeat_identity_scope`);
+  expectExactSet(fail, rel, identity?.new_journey_reasons, [
+    'different_initial_subject',
+    'different_user_path',
+    'different_state_machine',
+    'destructive_boundary',
+    'recovery_boundary',
+    'native_platform',
+    'unsafe_state_reset',
+  ], `${base}.execution_identity.new_journey_reasons`);
+  checkAuthorityRefs(fail, rel, `${base}.execution_identity.authority_refs`, identity?.authority_refs, definedRuleIds);
+
+  const ownership = contract.registry_ownership;
+  expectObject(fail, rel, `${base}.registry_ownership`, ownership);
+  expectExactSet(fail, rel, ownership?.acceptance_point_catalog, [
+    'leaf_id', 'owner_iteration', 'group', 'product_requirement', 'assertion_ids', 'minimum_sufficient_layer', 'evidence_class',
+  ], `${base}.registry_ownership.acceptance_point_catalog`);
+  expectExactSet(fail, rel, ownership?.journey_registry, [
+    'journey_id', 'applicable_layer', 'environment', 'real_realm', 'desktop', 'zhiyu', 'native_macos', 'checkpoints', 'covered_leaf_ids', 'prerequisites', 'isolation_level', 'repeat_policy', 'time_budget',
+  ], `${base}.registry_ownership.journey_registry`);
+  expectExactSet(fail, rel, ownership?.execution_policy, [
+    'gate_journey_selection', 'gate_suite_selection', 'repeat_counts', 'exhaustive_frequency', 'time_budgets', 'platform_requirements',
+  ], `${base}.registry_ownership.execution_policy`);
+  expectScalar(fail, rel, `${base}.registry_ownership.mixed_truth`, ownership?.mixed_truth, 'forbidden');
+  checkAuthorityRefs(fail, rel, `${base}.registry_ownership.authority_refs`, ownership?.authority_refs, definedRuleIds);
+
+  const boundary = contract.iteration_boundary;
+  expectObject(fail, rel, `${base}.iteration_boundary`, boundary);
+  expectScalar(fail, rel, `${base}.iteration_boundary.total_leaf_count`, boundary?.total_leaf_count, 169);
+  expectScalar(fail, rel, `${base}.iteration_boundary.i7_leaf_count`, boundary?.i7_leaf_count, 145);
+  expectScalar(fail, rel, `${base}.iteration_boundary.i8_p_leaf_count`, boundary?.i8_p_leaf_count, 24);
+  expectScalar(fail, rel, `${base}.iteration_boundary.i7_result_for_i8_leaf`, boundary?.i7_result_for_i8_leaf, 'forbidden');
+  expectScalar(fail, rel, `${base}.iteration_boundary.i8_layer`, boundary?.i8_layer, 'L5');
+  checkAuthorityRefs(fail, rel, `${base}.iteration_boundary.authority_refs`, boundary?.authority_refs, definedRuleIds);
+
+  const integrity = contract.result_integrity;
+  expectObject(fail, rel, `${base}.result_integrity`, integrity);
+  expectExactSet(fail, rel, integrity?.prerequisite_failure_outcomes, ['failed', 'blocked_by_failed_prerequisite'], `${base}.result_integrity.prerequisite_failure_outcomes`);
+  expectScalar(fail, rel, `${base}.result_integrity.passing_outcome`, integrity?.passing_outcome, 'passed');
+  expectExactSet(fail, rel, integrity?.non_passing_outcomes, ['failed', 'blocked_by_failed_prerequisite', 'blocked', 'skipped', 'missing', 'unexecuted'], `${base}.result_integrity.non_passing_outcomes`);
+  expectExactSet(fail, rel, integrity?.required_journey_fields, ['schemaVersion', 'journeyTrialId', 'journeyId', 'tier', 'batch', 'repeatIndex', 'sourceState', 'environmentIdentity', 'durationMs', 'checkpoints', 'leafResults', 'artifacts', 'processProblems', 'privacy', 'outcome'], `${base}.result_integrity.required_journey_fields`);
+  expectExactSet(fail, rel, integrity?.required_checkpoint_fields, ['checkpointId', 'prerequisiteIds', 'startedAt', 'completedAt', 'correlations', 'assertions', 'artifactRefs', 'outcome'], `${base}.result_integrity.required_checkpoint_fields`);
+  expectExactSet(fail, rel, integrity?.required_leaf_result_fields, ['leafId', 'journeyTrialId', 'checkpointIds', 'assertionIds', 'evidenceRefs', 'outcome', 'failureClass'], `${base}.result_integrity.required_leaf_result_fields`);
+  expectExactSet(fail, rel, integrity?.required_integrity, ['source_digest', 'nimi_head', 'realm_head', 'artifact_sha256', 'privacy_zero', 'process_problems_zero', 'provider_capture_complete', 'environment_start_count', 'logical_identity_unique_per_repeat', 'duration_budget'], `${base}.result_integrity.required_integrity`);
+  checkAuthorityRefs(fail, rel, `${base}.result_integrity.authority_refs`, integrity?.authority_refs, definedRuleIds);
+
+  const runner = contract.active_runner;
+  expectObject(fail, rel, `${base}.active_runner`, runner);
+  expectScalar(fail, rel, `${base}.active_runner.scheduling_unit`, runner?.scheduling_unit, 'journey');
+  expectScalar(fail, rel, `${base}.active_runner.repeat_unit`, runner?.repeat_unit, 'independent_journey_environment');
+  expectScalar(fail, rel, `${base}.active_runner.full_environment_per_leaf`, runner?.full_environment_per_leaf, 'forbidden');
+  expectScalar(fail, rel, `${base}.active_runner.process_start_formula`, runner?.process_start_formula, 'declared_journey_environment');
+  expectScalar(fail, rel, `${base}.active_runner.legacy_fallback`, runner?.legacy_fallback, 'forbidden');
+  checkAuthorityRefs(fail, rel, `${base}.active_runner.authority_refs`, runner?.authority_refs, definedRuleIds);
 }
 
 function checkLocalAgentBehaviorEvaluation({ contract, definedRuleIds, fail, rel }) {
@@ -416,6 +593,7 @@ function checkModuleOwnerMap({ definedRuleIds, fail, rel, moduleRows }) {
     ['sdks-typescript', ['sdks', 'sdks/typescript', 'config/sdks-typescript-test-inventory.yaml']],
     ['avatar', ['avatar', 'apps/avatar', 'config/avatar-test-inventory.yaml']],
     ['scripts', ['platform', 'scripts', 'config/scripts-test-inventory.yaml']],
+    ['local-agent-product', ['platform', 'tests/local-agent-product', 'config/local-agent-product-test-inventory.yaml']],
     ['zhiyu', ['zhiyu', 'apps/zhiyu/test', 'config/zhiyu-test-inventory.yaml']],
     ['nimi-cognition', ['cognition', 'nimi-cognition', 'config/nimi-cognition-test-inventory.yaml']],
     ['tester', ['tester', 'apps/tester', 'config/tester-test-inventory.yaml']],
@@ -501,6 +679,11 @@ function checkTestGovernanceRuleEvidenceFragment({
     'P-TEST-012',
     'P-TEST-013',
     'P-TEST-014',
+    'P-TEST-015',
+    'P-TEST-016',
+    'P-TEST-017',
+    'P-TEST-018',
+    'P-TEST-019',
   ];
   expectExactSet(fail, fragmentRel, testGovernanceRuleEvidenceFragment.entries, expectedRules, 'entries');
   const rows = Array.isArray(testGovernanceRuleEvidenceFragment.rules) ? testGovernanceRuleEvidenceFragment.rules : [];

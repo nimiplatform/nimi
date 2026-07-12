@@ -92,7 +92,7 @@ AppMessaging 的安全基线规则，实现必须满足：
 | **应用认证** | `SendAppMessage` 必须验证 `from_app_id` 已通过 RuntimeAuthService 注册且当前 session 持有对应 token。未认证请求返回 `UNAUTHENTICATED` | 防止任意进程冒充已注册应用发送消息 |
 | **消息大小限制** | `payload` Struct 序列化后不得超过 **64 KB**。超限返回 `INVALID_ARGUMENT` + `APP_MESSAGE_PAYLOAD_TOO_LARGE` | 防止单条消息耗尽 Runtime 内存 |
 | **发送速率限制** | 单个 `from_app_id` 发送速率上限为 **100 条/秒**（滑动窗口）。超限返回 `RESOURCE_EXHAUSTED` + `APP_MESSAGE_RATE_LIMITED` | 防止消息风暴和 DoS |
-| **消息回路检测** | Runtime 检测 A→B→A 回路：同一 `(from_app_id, to_app_id)` 对在 **1 秒内双向消息数 > 20** 时，自动熔断该对后续消息 **60 秒**，返回 `FAILED_PRECONDITION` + `APP_MESSAGE_LOOP_DETECTED`。熔断期间双方仍可与其他 app 通信 | 防止两个 app 之间形成无限消息回路（fork bomb 风险） |
+| **消息回路检测** | Runtime 检测 A→B→A 回路：同一无序 app pair 在 **1 秒内方向切换达到 20 次** 时，自动熔断该 pair 后续消息 **60 秒**，返回 `FAILED_PRECONDITION` + `APP_MESSAGE_LOOP_DETECTED`。单个请求后同向产生多个 streaming / presentation 投影只形成一次方向切换，不得按投影数量误判为回路；熔断期间双方仍可与其他 app 通信 | 防止两个 app 之间形成无限 ping-pong 回路，同时保留合法的一对多流式投影 |
 
 ## K-APP-006 — No Desktop-Local Alternate Message Bus
 

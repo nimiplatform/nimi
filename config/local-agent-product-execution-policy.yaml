@@ -1,0 +1,85 @@
+schema_version: nimi.local-agent-product-execution-policy/v2
+authority_class: non_authoritative_execution_manifest
+owner: platform-test-governance
+source_rules: [P-TEST-015, P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
+layer_budgets_ms:
+  L0: 180000
+  L1: 480000
+  L2_target: 900000
+  L2_hard: 1200000
+  L3_aggregate_hard: 2700000
+  L4_single_platform_hard: 5400000
+gate_budgets_ms:
+  local_pr_l0_l1_l2_target: 1500000
+  required_pr_job_hard: 1800000
+  core_stability_hard: 3600000
+  extended_hard: 2700000
+  exhaustive_hard: 5400000
+repeat_policies:
+  contract: {local: 1, pr: 1, nightly: 1, process_repeat: false}
+  core: {local: 1, pr: 1, stability: 3, nightly: 3, clean_root_per_repeat: true, fresh_logical_identity_per_repeat: true}
+  extended: {local: 1, related_change: 1, nightly: 1, clean_root_per_repeat: true}
+  exhaustive: {nightly: 1, release: 1, property_repetition_inside_suite: true, full_environment_per_leaf: false}
+  live: {owner_iteration: I8, batches: 2, trials_per_batch: 10, retry: none}
+suites:
+  - suite_id: contract-smoke
+    layers: [L0, L1]
+    command: pnpm test:local-agent-product-contract
+    max_duration_ms: 480000
+    repeat_policy_ref: contract
+  - suite_id: deterministic-exhaustive
+    layers: [L0, L1, L4]
+    command: pnpm test:local-agent-product:exhaustive
+    max_duration_ms: 5400000
+    repeat_policy_ref: exhaustive
+    repetition_boundary: property_generator_or_schema_mutator_inside_suite
+  - suite_id: live-behavior-i8
+    layers: [L5]
+    command: null
+    owner_iteration: I8
+    ordinary_regression: forbidden
+gates:
+  coverage:
+    command: pnpm check:local-agent-product-coverage
+    suites: []
+    journeys: []
+  contract:
+    command: pnpm test:local-agent-product-contract
+    suites: [contract-smoke]
+    journeys: []
+  core:
+    command: pnpm test:e2e:local-agent-product:core
+    suites: []
+    journeys: [{journey_id: full-chain-core, repeats: 1}]
+  core_stability:
+    command: pnpm test:e2e:local-agent-product:core-stability
+    suites: []
+    journeys: [{journey_id: full-chain-core, repeats: 3}]
+  extended:
+    command: pnpm test:e2e:local-agent-product:extended
+    suites: []
+    journeys:
+      - {journey_id: access-denial, repeats: 1}
+      - {journey_id: source-revision-no-rebase, repeats: 1}
+      - {journey_id: destructive-termination, repeats: 1}
+      - {journey_id: challenge-replay-concurrency, repeats: 1}
+      - {journey_id: crash-recovery, repeats: 1}
+      - {journey_id: pre-materialization-offline, repeats: 1}
+      - {journey_id: turn-media-recovery, repeats: 1}
+      - {journey_id: native-macos-input, repeats: 1, requires: macos}
+  exhaustive:
+    command: pnpm test:local-agent-product:exhaustive
+    suites: [deterministic-exhaustive]
+    journeys: []
+  acceptance:
+    command: pnpm check:local-agent-product-acceptance
+    suites: [contract-smoke]
+    journeys: [full-chain-core, access-denial, source-revision-no-rebase, destructive-termination, challenge-replay-concurrency, crash-recovery, pre-materialization-offline, turn-media-recovery, native-macos-input]
+required_local_pr_composition: [coverage, contract, core, acceptance]
+active_required_runner: tests/local-agent-product/harness/run-gate.mjs
+forbidden_active_paths:
+  - tests/local-agent-product/harness/run-tier.mjs
+  - tests/local-agent-product/harness/orchestrator.mjs
+  - leaf_per_process
+  - full_environment_starts_equals_leaf_count_times_repeat
+i8_execution_in_i7: forbidden

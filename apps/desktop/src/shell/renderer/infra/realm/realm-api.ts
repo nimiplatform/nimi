@@ -2,6 +2,7 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 import {
   extractNimiErrorFields,
   isRealmOfflineErrorLike as isRealmOfflineError,
+  isRuntimeOfflineErrorLike as isRuntimeOfflineError,
   normalizeApiError,
   ReasonCode,
   tryParseJsonLike,
@@ -40,11 +41,13 @@ export function emitRealmDataError(
   details: Record<string, unknown> = {},
 ): void {
   const errorFields = extractNimiErrorFields(error);
-  if (errorFields.reasonCode === ReasonCode.REALM_UNAVAILABLE || isRealmOfflineError(error)) {
+  const realmOffline = errorFields.reasonCode === ReasonCode.REALM_UNAVAILABLE || isRealmOfflineError(error);
+  const runtimeOffline = errorFields.reasonCode === ReasonCode.RUNTIME_UNAVAILABLE || isRuntimeOfflineError(error);
+  if (realmOffline) {
     getOfflineCoordinator().markRealmRestReachable(false);
   }
   emitRuntimeLog({
-    level: 'error',
+    level: realmOffline || runtimeOffline ? 'warn' : 'error',
     area: 'realm-data',
     message: `action:${action}:failed`,
     traceId: errorFields.traceId,

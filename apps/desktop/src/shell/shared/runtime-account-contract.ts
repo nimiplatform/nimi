@@ -24,6 +24,7 @@ export const DESKTOP_RUNTIME_ACCOUNT_BROKER_CAPABILITIES = [
   'account.session.read',
   'data.scope.read#realm.worlds.read-probe',
   'data.scope.read#realm.core.world-characters',
+  'data.scope.read#realm.core.personas',
   'data.scope.read#realm.core.world-entities',
   'data.scope.read#realm.core.world-relationships',
   'data.scope.read#realm.account.private',

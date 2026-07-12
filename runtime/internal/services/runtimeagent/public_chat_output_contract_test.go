@@ -165,7 +165,7 @@ func TestAIBackedPublicChatTurnExecutorPreservesRuntimeComposedAPMLOutputContrac
 	if !strings.Contains(prompt, "Return APML only") || !strings.Contains(prompt, `<message id="message-0">`) {
 		t.Fatalf("expected APML output contract in system prompt, got %q", prompt)
 	}
-	if !strings.Contains(prompt, "<emotion>calm|concerned|focus|joy|neutral|playful|surprised</emotion>") {
+	if !strings.Contains(prompt, "<emotion>angry|confused|embarrassed|excited|ext:apologetic|ext:grateful|ext:lonely|ext:proud|happy|neutral|sad|shy|surprised|worried</emotion>") {
 		t.Fatalf("expected APML emotion choices to be projected from admitted runtime emotions, got %q", prompt)
 	}
 	if !strings.Contains(prompt, "ext:grateful") || !strings.Contains(prompt, "thinking") {

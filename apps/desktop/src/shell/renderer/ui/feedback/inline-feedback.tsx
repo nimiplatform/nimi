@@ -55,7 +55,7 @@ export function InlineFeedback(props: {
   }
   const tone = TONE_STYLES[feedback.kind];
   return (
-    <div className={cn('rounded-2xl border px-4 py-3', tone.shell, className)}>
+    <div data-feedback-kind={feedback.kind} className={cn('rounded-2xl border px-4 py-3', tone.shell, className)}>
       <div className="flex items-start gap-3">
         <div className={cn('flex h-7 min-w-7 items-center justify-center rounded-full text-[11px] font-semibold', tone.title)}>
           {tone.icon}

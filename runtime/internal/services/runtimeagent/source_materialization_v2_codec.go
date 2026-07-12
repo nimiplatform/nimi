@@ -487,8 +487,8 @@ func verifySourceMaterializationBeginControlV2(
 		return nil, sourceMaterializationDenied("challenge limits binding mismatch")
 	}
 	envelopeExpiry, _ := time.Parse(time.RFC3339Nano, envelope.ExpiresAt)
-	if expected.ExpiresAt.IsZero() || !envelopeExpiry.Equal(expected.ExpiresAt.UTC()) {
-		return nil, sourceMaterializationDenied("challenge expiry binding mismatch")
+	if expected.ExpiresAt.IsZero() || envelopeExpiry.After(expected.ExpiresAt.UTC()) {
+		return nil, sourceMaterializationDenied("packet expiry exceeds challenge expiry")
 	}
 	issuedAt, _ := time.Parse(time.RFC3339Nano, envelope.IssuedAt)
 	if !issuedAt.Before(envelopeExpiry) || now.UTC().Before(issuedAt) || !now.UTC().Before(envelopeExpiry) {

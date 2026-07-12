@@ -49,9 +49,16 @@ export function classifyOfflineError(
   error: unknown,
   options: OfflineErrorClassificationOptions = {},
 ): OfflineReasonCodeOwner | null {
-  const reasonOwner = classifyOfflineReasonCode(offlineErrorReasonCode(error));
+  const reasonCode = offlineErrorReasonCode(error);
+  const reasonOwner = classifyOfflineReasonCode(reasonCode);
   if (reasonOwner) {
     return reasonOwner;
+  }
+  if (/realm(?:[_-]|\s|.)*unavailable/i.test(reasonCode)) {
+    return 'realm';
+  }
+  if (/runtime(?:[_-]|\s|.)*unavailable|electron-runtime-endpoint-unavailable/i.test(reasonCode)) {
+    return 'runtime';
   }
 
   const message = offlineErrorMessage(error);
@@ -62,7 +69,7 @@ export function classifyOfflineError(
   if (/\bREALM_UNAVAILABLE\b|realm unavailable/i.test(message)) {
     return 'realm';
   }
-  if (/\bRUNTIME_UNAVAILABLE\b|runtime unavailable|daemon unavailable|bridge unavailable/i.test(message)) {
+  if (/\bRUNTIME_UNAVAILABLE\b|runtime unavailable|runtime (?:endpoint|bridge|daemon) is unavailable|daemon unavailable|bridge unavailable/i.test(message)) {
     return 'runtime';
   }
   if (/network|fetch failed|failed to fetch|load failed|timeout/i.test(message)) {

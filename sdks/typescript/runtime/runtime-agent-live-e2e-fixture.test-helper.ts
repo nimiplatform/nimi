@@ -97,7 +97,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
   await withRealmFixtureServer({
     localChatCompletionStreamDelayMs: input.localChatCompletionStreamDelayMs,
     voiceSpeechStreamDelayMs: input.voiceSpeechStreamDelayMs,
-    run: async ({ baseUrl, requests }) => {
+    run: async ({ baseUrl, requests, setTranscriptionFailure }) => {
       await withRuntimeDaemon({
       appId: DESKTOP_APP_ID,
       runtimeEnv: {
@@ -258,6 +258,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
               conversationAnchorId,
               text,
             }),
+            setTranscriptionFailure,
             admitDeveloperRegisteredRuntimeAccountCaller: (accountInput) =>
               admitDeveloperRegisteredRuntimeAccountCaller(
                 createRuntimeForEndpoint(endpoint, requireText(accountInput.appId, 'appId')),

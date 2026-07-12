@@ -1,0 +1,36 @@
+version: 1
+inventory_id: local_agent_product_test_inventory
+owner: platform
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+tests:
+  - path: tests/local-agent-product/harness/harness.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs: [P-TEST-008, P-TEST-010]
+  - path: tests/local-agent-product/harness/extended-plan.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs: [P-TEST-008, P-TEST-010]
+  - path: tests/local-agent-product/harness/exhaustive-plan.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs: [P-TEST-008, P-TEST-010]

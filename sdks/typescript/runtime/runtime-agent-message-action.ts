@@ -6,13 +6,20 @@ export type NimiRuntimeAgentResolvedMessage = {
 };
 
 export const NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS = [
-  'neutral',
-  'joy',
-  'focus',
-  'calm',
-  'playful',
-  'concerned',
+  'happy',
+  'sad',
+  'shy',
+  'angry',
   'surprised',
+  'confused',
+  'excited',
+  'worried',
+  'embarrassed',
+  'neutral',
+  'ext:apologetic',
+  'ext:proud',
+  'ext:lonely',
+  'ext:grateful',
 ] as const;
 
 export type NimiRuntimeAgentResolvedStatusCueMood =

@@ -150,6 +150,19 @@ tests:
       - Z-AUTH-004
       - Z-GATE-001
     removal_condition: replace with admitted capability-room behavior coverage or delete once Z-AUTH-004 and Z-GATE-005 are no longer represented by this drift fossil
+  - path: apps/zhiyu/test/chat-transcript-merge.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-015
+      - Z-CHAT-001
+      - Z-CHAT-002
   - path: apps/zhiyu/test/chat-turn-apply-guard.test.mjs
     owner: zhiyu
     classification: behavior_unit
@@ -282,6 +295,22 @@ tests:
       - Z-GATE-005
       - Z-STATE-004
       - Z-COPY-001
+  - path: apps/zhiyu/test/e2e/electron-local-agent-recovery-journey.test.mjs
+    owner: zhiyu
+    classification: product_acceptance
+    tier: T6
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: after_real_shell_evidence
+    spec_refs:
+      - P-TEST-015
+      - P-TEST-018
+      - P-TEST-019
+      - Z-CHAT-001
+      - Z-CHAT-002
+      - Z-GATE-005
   - path: apps/zhiyu/test/e2e/electron-real-local-agent-acceptance.test.mjs
     owner: zhiyu
     classification: product_acceptance

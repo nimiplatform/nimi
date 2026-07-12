@@ -115,11 +115,11 @@ type appLoopDetector struct {
 }
 
 type loopBucket struct {
-	rollMu        sync.Mutex
-	currentSecond atomic.Int64
-	forwardCount  atomic.Int64
-	reverseCount  atomic.Int64
-	breakerUntil  atomic.Int64
+	rollMu           sync.Mutex
+	currentSecond    atomic.Int64
+	lastDirection    atomic.Int64
+	directionChanges atomic.Int64
+	breakerUntil     atomic.Int64
 }
 
 func newAppLoopDetector() *appLoopDetector {
@@ -140,21 +140,13 @@ func (d *appLoopDetector) Allow(fromAppID string, toAppID string, now time.Time)
 
 	second := now.Unix()
 	bucket.rollWindow(second)
-	if forward {
-		bucket.forwardCount.Add(1)
-	} else {
-		bucket.reverseCount.Add(1)
+	direction := int64(1)
+	if !forward {
+		direction = -1
 	}
-
-	forwardCount := bucket.forwardCount.Load()
-	reverseCount := bucket.reverseCount.Load()
-	if forwardCount > 0 && reverseCount > 0 && forwardCount+reverseCount > loopLimitPerSecond {
+	previousDirection := bucket.lastDirection.Swap(direction)
+	if previousDirection != 0 && previousDirection != direction && bucket.directionChanges.Add(1) >= loopLimitPerSecond {
 		bucket.breakerUntil.Store(now.Add(loopBreakDurationSeconds * time.Second).Unix())
-		if forward {
-			bucket.forwardCount.Add(-1)
-		} else {
-			bucket.reverseCount.Add(-1)
-		}
 		return false
 	}
 	return true
@@ -174,8 +166,8 @@ func (b *loopBucket) rollWindow(second int64) {
 		return
 	}
 	b.currentSecond.Store(second)
-	b.forwardCount.Store(0)
-	b.reverseCount.Store(0)
+	b.lastDirection.Store(0)
+	b.directionChanges.Store(0)
 }
 
 func orderedPair(left string, right string) (string, bool) {

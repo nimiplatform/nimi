@@ -2,8 +2,13 @@ import {
   DISABLED_CHARACTER_ID,
   OWNER_USER_ID,
   VALID_CHARACTER_ID,
+  VALID_PERSONA_SOURCE_REF,
   VALID_SOURCE_REF,
 } from './acceptance-constants.mjs';
+import {
+  createFixtureRuntimeAccessToken,
+  FIXTURE_RUNTIME_AUTH_JWKS,
+} from '../../e2e/fixtures/runtime-auth-fixture.mjs';
 
 function mediaUrl(mediaOrigin, name) {
   return `${mediaOrigin}/__fixture/media/${name}.svg`;
@@ -22,6 +27,7 @@ export function createRealmFixtureManifest(origin, mediaOrigin = origin) {
     scenarioId: 'desktop.explore.world-character-materialization.acceptance',
     realmFixture: {
       restOnline: true,
+      authJwks: FIXTURE_RUNTIME_AUTH_JWKS,
       currentUser: {
         id: OWNER_USER_ID,
         displayName: '验收用户',
@@ -232,6 +238,48 @@ export function createRealmFixtureManifest(origin, mediaOrigin = origin) {
           createdAt: '2026-03-15T00:00:00.000Z',
           updatedAt: '2026-03-15T00:00:00.000Z',
         }],
+        personas: [{
+          id: VALID_PERSONA_SOURCE_REF.sourceId,
+          homeWorldId: VALID_PERSONA_SOURCE_REF.worldId,
+          sourceKind: 'realmPersona',
+          sourceRef: VALID_PERSONA_SOURCE_REF,
+          contentHash: VALID_PERSONA_SOURCE_REF.sourceContentHash,
+          ownerId: OWNER_USER_ID,
+          visibility: 'public',
+          origin: { kind: 'manual' },
+          displayName: 'Solace',
+          name: 'Solace',
+          handle: '~solace',
+          summary: '清晰、冷静并坚持来源边界的验证 Persona。',
+          core: {
+            identity: { handle: 'solace', name: 'Solace', summary: 'A canonical source-grounded persona.', aliases: ['Guide'] },
+            presentation: { displayName: 'Solace', profileLine: 'Clear, calm, and source grounded.' },
+            personaStyle: { archetype: 'advisor', traits: ['calm', 'direct'], voice: 'clear', pacing: 'measured' },
+            contentProfile: { topics: ['Runtime source snapshot verification'], boundaries: ['Never invent private context'], guidelines: [{ guidelineId: 'source-truth', statement: 'Separate source truth from inference', source: 'fixture' }] },
+            interactionProfile: { homeWorldId: VALID_PERSONA_SOURCE_REF.worldId, interactionModes: ['conversation'] },
+            assets: { resourceRefs: [], externalRefs: [], intents: [] },
+            authoring: { source: 'desktop-local-agent-product-fixture' },
+          },
+          createdAt: '2026-03-15T00:00:00.000Z',
+          updatedAt: '2026-03-15T00:00:00.000Z',
+        }],
+        events: [],
+        levelAudits: [],
+        worldview: {},
+        worldviewEvents: [],
+        worldviewSnapshots: [],
+      }, {
+        id: 'world-local-agent-decoy',
+        name: 'Decoy World',
+        summary: 'DECOY_WORLD_NEVER_ADMIT_7',
+        description: 'A separate public world used only to prove cross-source isolation.',
+        visibility: 'public',
+        tags: ['decoy', 'isolation'],
+        type: 'OASIS',
+        status: 'DISCOVERABLE',
+        createdAt: '2026-03-15T00:00:00.000Z',
+        updatedAt: '2026-03-15T00:00:00.000Z',
+        characters: [],
         personas: [],
         events: [],
         levelAudits: [],
@@ -248,7 +296,11 @@ export function createRealmFixtureManifest(origin, mediaOrigin = origin) {
         realm: {
           realmBaseUrl: origin,
           realtimeUrl: origin,
-          accessToken: 'desktop-acceptance-access-token',
+          accessToken: createFixtureRuntimeAccessToken({
+            issuer: origin,
+            subject: OWNER_USER_ID,
+            sessionId: 'desktop-local-agent-product-session',
+          }),
           jwksUrl: `${origin}/api/auth/jwks`,
           revocationUrl: `${origin}/api/auth/sessions/introspect`,
           jwtIssuer: origin,

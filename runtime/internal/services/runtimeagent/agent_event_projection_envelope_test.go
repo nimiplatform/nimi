@@ -198,7 +198,7 @@ func TestPublicChatCommittedPresentationReachesTypedStream(t *testing.T) {
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := `<message id="message-presentation"><emotion>joy</emotion>presentation committed</message>`
+			envelope := `<message id="message-presentation"><emotion>happy</emotion>presentation committed</message>`
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				TraceId:   "trace-presentation-stream",
@@ -298,8 +298,8 @@ func TestPublicChatCommittedPresentationReachesTypedStream(t *testing.T) {
 	if strings.TrimSpace(detail.GetTurnId()) == "" || strings.TrimSpace(detail.GetStreamId()) == "" {
 		t.Fatalf("expected committed presentation turn_id + stream_id, got %#v", detail)
 	}
-	if strings.TrimSpace(detail.GetExpressionId()) != "joy" {
-		t.Fatalf("expected committed expression_id=joy, got %#v", detail)
+	if strings.TrimSpace(detail.GetExpressionId()) != "happy" {
+		t.Fatalf("expected committed expression_id=happy, got %#v", detail)
 	}
 }
 

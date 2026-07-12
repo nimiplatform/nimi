@@ -38,6 +38,11 @@ entries:
   - P-TEST-012
   - P-TEST-013
   - P-TEST-014
+  - P-TEST-015
+  - P-TEST-016
+  - P-TEST-017
+  - P-TEST-018
+  - P-TEST-019
 rules:
   - rule_id: P-TEST-001
     evidence_requirement: test-governance-policy.yaml
@@ -81,3 +86,28 @@ rules:
     test_files:
       - scripts/lib/platform-spec-test-governance-checks.mjs
       - scripts/check-local-agent-full-chain-hardcut.mjs
+  - rule_id: P-TEST-015
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/lib/platform-spec-test-governance-checks.mjs
+      - scripts/check-local-agent-product-coverage.mjs
+  - rule_id: P-TEST-016
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/check-local-agent-product-coverage.mjs
+      - tests/local-agent-product/harness/harness.test.mjs
+  - rule_id: P-TEST-017
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/check-local-agent-product-coverage.mjs
+      - scripts/check-local-agent-product-acceptance.mjs
+  - rule_id: P-TEST-018
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/check-local-agent-product-acceptance.mjs
+      - tests/local-agent-product/harness/harness.test.mjs
+  - rule_id: P-TEST-019
+    evidence_requirement: test-governance-policy.yaml
+    test_files:
+      - scripts/check-local-agent-product-coverage.mjs
+      - scripts/check-local-agent-product-acceptance.mjs

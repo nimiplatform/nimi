@@ -7,6 +7,9 @@ import {
 
 const ACCOUNT_SESSION_STATE_ANONYMOUS = 1;
 const ACCOUNT_SESSION_STATE_AUTHENTICATED = 3;
+const REASON_CODE_PRINCIPAL_UNAUTHORIZED = 8;
+const ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED = 10;
+const ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH = 25;
 const ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP = 1;
 const ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP = 7;
 const ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP = 8;
@@ -261,6 +264,96 @@ describe('Electron Runtime account trusted metadata provider', () => {
     expect(registerCount).toBe(4);
     expect(openSessionCount).toBe(2);
     expect(authorizeCount).toBe(2);
+  });
+
+  it.each([
+    ['lost host registration', ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED],
+    ['stale host session', ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH],
+  ])('signals %s when account status rejects host metadata after restart', async (_case, rejectedAccountReasonCode) => {
+    let registerCount = 0;
+    let openSessionCount = 0;
+    let statusCount = 0;
+    const provider = createNimiElectronRuntimeAccountTrustedMetadataProvider({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      accountCaller: {
+        appId: 'nimi.zhiyu',
+        appInstanceId: 'nimi.zhiyu.local-first-party',
+        deviceId: 'nimi-zhiyu-local-first-party-device',
+        mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+        scopes: ['account.session.read'],
+      },
+      protectedAccess: {
+        consentId: 'zhiyu-runtime-account',
+        authorizationVersion: 'zhiyu-runtime-account-v1',
+        scopeCatalogVersion: 'sdk-v2',
+        scopes: ['account.session.read'],
+      },
+      appSession: {
+        appInstanceId: 'nimi.zhiyu.local-first-party',
+        deviceId: 'nimi-zhiyu-local-first-party-device',
+        capabilities: ['account.session.read'],
+      },
+      runtime: {
+        account: {
+          getAccountSessionStatus: async () => {
+            statusCount += 1;
+            if (statusCount === 1) {
+              return {
+                state: ACCOUNT_SESSION_STATE_AUTHENTICATED,
+                reasonCode: REASON_CODE_PRINCIPAL_UNAUTHORIZED,
+                accountReasonCode: rejectedAccountReasonCode,
+              };
+            }
+            return {
+              state: ACCOUNT_SESSION_STATE_AUTHENTICATED,
+              accountProjection: { accountId: 'acct-zhiyu', displayName: 'Zhiyu' },
+            };
+          },
+        },
+        auth: {
+          registerApp: async () => {
+            registerCount += 1;
+            return { accepted: true };
+          },
+          openSession: async () => {
+            openSessionCount += 1;
+            return {
+              sessionId: `session-${openSessionCount}`,
+              sessionToken: 'session-secret',
+              expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+            };
+          },
+        },
+        grants: {
+          authorizeExternalPrincipal: async () => ({
+            tokenId: 'grant-zhiyu',
+            secret: 'grant-secret',
+            expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+          }),
+        },
+      },
+    });
+    const input = {
+      command: 'nimi.shell.runtime.unary',
+      methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+      event: {},
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+    } as never;
+
+    await expect(provider(input)).rejects.toMatchObject({
+      reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+      actionHint: 'refresh_runtime_app_session',
+    });
+    provider.invalidate?.('PRINCIPAL_UNAUTHORIZED');
+    const refreshed = await provider(input);
+
+    expect(refreshed?.appSession?.sessionId).toBe('session-2');
+    expect(refreshed?.protectedAccessToken?.tokenId).toBe('grant-zhiyu');
+    expect(registerCount).toBe(4);
+    expect(openSessionCount).toBe(2);
+    expect(statusCount).toBe(2);
   });
 
   it('passes a safe protected access scope signature to custom idempotency keys', async () => {

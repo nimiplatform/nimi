@@ -77,6 +77,10 @@ test('SDK types classify offline errors and create NimiError values', () => {
     actionHint: 'check_runtime',
   });
   assert.equal(isRuntimeOfflineErrorLike(runtimeError), true);
+  assert.equal(isRuntimeOfflineErrorLike({
+    reasonCode: 'electron-runtime-endpoint-unavailable',
+    message: 'Electron Runtime endpoint is unavailable.',
+  }), true);
 });
 
 test('SDK types create cryptographic Nimi client ids', () => {

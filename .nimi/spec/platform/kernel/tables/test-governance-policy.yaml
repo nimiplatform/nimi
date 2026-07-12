@@ -10,6 +10,7 @@ entries:
   - census
   - module_owner_map
   - local_agent_behavior_evaluation
+  - local_agent_journey_acceptance
 classification_vocabulary:
   - classification: authority_boundary_guard
     tier: T3
@@ -170,6 +171,45 @@ hard_blocks:
   - id: evaluator_product_state_or_personality_mutation
     condition: evaluator mutates product state or its score becomes personality truth/context input
     authority_refs: [P-TEST-009, P-TEST-014]
+  - id: local_agent_execution_layer_outside_closed_set
+    condition: LocalAgent acceptance uses an execution layer outside L0 through L5
+    authority_refs: [P-TEST-015]
+  - id: electron_cartesian_product
+    condition: enum, property, schema mutation, or high-repeat negative coverage starts a full Electron environment per case
+    authority_refs: [P-TEST-015, P-TEST-019]
+  - id: mixed_acceptance_journey_policy_truth
+    condition: leaf identity, Journey topology, and gate scheduling are owned by one mixed registry
+    authority_refs: [P-TEST-017]
+  - id: i8_leaf_executed_by_i7
+    condition: an I8 P leaf receives an I7 result, pass, skip, or blocked record
+    authority_refs: [P-TEST-017]
+  - id: missing_checkpoint_or_leaf_evidence
+    condition: an applicable leaf lacks its admitted layer checkpoint, result, assertion, or evidence reference
+    authority_refs: [P-TEST-016, P-TEST-018]
+  - id: prerequisite_failure_downstream_pass
+    condition: a failed prerequisite checkpoint produces a dependent passing leaf
+    authority_refs: [P-TEST-018]
+  - id: non_pass_counted_as_pass
+    condition: blocked, skipped, missing, unexecuted, or unknown outcome is counted as pass
+    authority_refs: [P-TEST-018]
+  - id: source_artifact_privacy_or_process_integrity_failure
+    condition: source digest, artifact hash, privacy, console/page error, process problem, or provider lane integrity is invalid
+    authority_refs: [P-TEST-018]
+  - id: journey_environment_start_count_mismatch
+    condition: observed process starts differ from the Journey environment declaration
+    authority_refs: [P-TEST-016, P-TEST-019]
+  - id: journey_repeat_logical_identity_reuse
+    condition: a Journey repeat reuses an account, world, source, Runtime source, or LocalAgent identity from another repeat, or omits the observed identities from environmentIdentity
+    authority_refs: [P-TEST-016, P-TEST-018]
+  - id: journey_or_gate_budget_exceeded
+    condition: a required Journey or aggregate gate exceeds its hard budget
+    authority_refs: [P-TEST-015, P-TEST-019]
+  - id: leaf_result_orphan_duplicate_conflict
+    condition: catalog, Journey checkpoint, and leaf result identities contain an orphan, duplicate, or conflicting owner
+    authority_refs: [P-TEST-017, P-TEST-018]
+  - id: leaf_per_process_required_path
+    condition: an active required script, runner, checker, or fallback derives full environment starts from leaf count
+    authority_refs: [P-TEST-016, P-TEST-019]
 local_agent_behavior_evaluation:
   contract_version: 1
   expectation_manifest:
@@ -234,6 +274,97 @@ local_agent_behavior_evaluation:
     score_truth_role: non_authoritative_evaluation_evidence
     score_context_influence: forbidden
     authority_refs: [P-TEST-009, P-TEST-014]
+local_agent_journey_acceptance:
+  contract_version: 1
+  execution_layers:
+    L0:
+      name: static_unit
+      scope: [schema, codec, hash, pure_function, type_boundary, state_mapping]
+      frequency: every_related_change
+      hard_budget_ms: 180000
+      authority_refs: [P-TEST-015]
+    L1:
+      name: module_integration_contract
+      scope: [packet_challenge_snapshot, context_compiler, sdk_kit_projection, provider_capture, security_predicate, targeted_persistence_restart]
+      frequency: every_pr_iteration
+      hard_budget_ms: 480000
+      authority_refs: [P-TEST-015]
+    L2:
+      name: core_product_journey
+      scope: [realm, runtime, sdk_kit, desktop, zhiyu, provider_visible_context, transcript_memory, voice_emotion_apml, isolation, restart_offline]
+      frequency: every_product_affecting_iteration
+      target_budget_ms: 900000
+      hard_budget_ms: 1200000
+      authority_refs: [P-TEST-015, P-TEST-019]
+    L3:
+      name: extended_risk_journeys
+      scope: [access_denial_forgery, replay_concurrency, destructive_lifecycle, source_no_rebase, crash_recovery, native_platform, operator_recovery]
+      frequency: related_change_or_nightly
+      aggregate_hard_budget_ms: 2700000
+      authority_refs: [P-TEST-015, P-TEST-019]
+    L4:
+      name: exhaustive_deterministic
+      scope: [property_repetition, enum_schema_mutation, high_repeat_negative, platform_variants, stability_three]
+      frequency: nightly_release_true_close
+      single_platform_hard_budget_ms: 5400000
+      full_electron_per_leaf: forbidden
+      authority_refs: [P-TEST-015, P-TEST-019]
+    L5:
+      name: live_behavior
+      scope: [real_provider_subject, independent_evaluator, calibration, two_batches_of_ten, raw_trial_ledger]
+      frequency: i8_only
+      ordinary_core_regression: forbidden
+      authority_refs: [P-TEST-011, P-TEST-013, P-TEST-014, P-TEST-015]
+  required_gate_budgets:
+    local_pr_l0_l1_l2_target_ms: 1500000
+    required_pr_job_hard_max_ms: 1800000
+    i7_core_stability_hard_max_ms: 3600000
+    extended_aggregate_hard_max_ms: 2700000
+    deterministic_exhaustive_hard_max_ms: 5400000
+    live_provider_separate_clock: true
+    authority_refs: [P-TEST-015, P-TEST-019]
+  execution_identity:
+    acceptance_point_role: independently_traceable_product_fact
+    checkpoint_role: fact_collection_position_within_journey
+    journey_trial_role: one_clean_environment_complete_product_path
+    leaf_results_per_journey: many
+    isolation_boundary: state_pollution
+    leaf_count_drives_process_starts: false
+    ordinary_assertion_change: extend_existing_checkpoint
+    repeat_identity_scope: [account, world, source, runtime_source, local_agent]
+    fresh_logical_identity_per_repeat: true
+    observed_identity_record: environmentIdentity
+    new_journey_reasons: [different_initial_subject, different_user_path, different_state_machine, destructive_boundary, recovery_boundary, native_platform, unsafe_state_reset]
+    authority_refs: [P-TEST-016]
+  registry_ownership:
+    acceptance_point_catalog: [leaf_id, owner_iteration, group, product_requirement, assertion_ids, minimum_sufficient_layer, evidence_class]
+    journey_registry: [journey_id, applicable_layer, environment, real_realm, desktop, zhiyu, native_macos, checkpoints, covered_leaf_ids, prerequisites, isolation_level, repeat_policy, time_budget]
+    execution_policy: [gate_journey_selection, gate_suite_selection, repeat_counts, exhaustive_frequency, time_budgets, platform_requirements]
+    mixed_truth: forbidden
+    authority_refs: [P-TEST-017]
+  iteration_boundary:
+    total_leaf_count: 169
+    i7_leaf_count: 145
+    i8_p_leaf_count: 24
+    i7_result_for_i8_leaf: forbidden
+    i8_layer: L5
+    authority_refs: [P-TEST-017]
+  result_integrity:
+    prerequisite_failure_outcomes: [failed, blocked_by_failed_prerequisite]
+    passing_outcome: passed
+    non_passing_outcomes: [failed, blocked_by_failed_prerequisite, blocked, skipped, missing, unexecuted]
+    required_journey_fields: [schemaVersion, journeyTrialId, journeyId, tier, batch, repeatIndex, sourceState, environmentIdentity, durationMs, checkpoints, leafResults, artifacts, processProblems, privacy, outcome]
+    required_checkpoint_fields: [checkpointId, prerequisiteIds, startedAt, completedAt, correlations, assertions, artifactRefs, outcome]
+    required_leaf_result_fields: [leafId, journeyTrialId, checkpointIds, assertionIds, evidenceRefs, outcome, failureClass]
+    required_integrity: [source_digest, nimi_head, realm_head, artifact_sha256, privacy_zero, process_problems_zero, provider_capture_complete, environment_start_count, logical_identity_unique_per_repeat, duration_budget]
+    authority_refs: [P-TEST-018]
+  active_runner:
+    scheduling_unit: journey
+    repeat_unit: independent_journey_environment
+    full_environment_per_leaf: forbidden
+    process_start_formula: declared_journey_environment
+    legacy_fallback: forbidden
+    authority_refs: [P-TEST-019]
 census:
   include_globs:
     - '**/*.test.ts'
@@ -285,6 +416,11 @@ module_owner_map:
     root: scripts
     inventory: config/scripts-test-inventory.yaml
     authority_refs: [P-TEST-008]
+  - domain: local-agent-product
+    owner: platform
+    root: tests/local-agent-product
+    inventory: config/local-agent-product-test-inventory.yaml
+    authority_refs: [P-TEST-008, P-TEST-010]
   - domain: zhiyu
     owner: zhiyu
     root: apps/zhiyu/test

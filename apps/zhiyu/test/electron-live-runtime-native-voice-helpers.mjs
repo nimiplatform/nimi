@@ -45,58 +45,49 @@ export async function assertMidStreamFailureFlow(page, pageProblems, readyEviden
   );
   await page.locator('[data-chat-composer-send="true"]').click();
   await waitForEvidence(page, ({ expectedPartialText, failurePrompt }) =>
-    globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'failed'
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.ready === false
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode !== 'runtime-agent-turn-completed'
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode !== 'runtime-turn-request-accepted'
+    globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'completed'
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'runtime-agent-turn-completed'
     && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('text-delta')
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('turn-failed')
     && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === failurePrompt)
     && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) =>
-      message?.text === expectedPartialText
-      && message?.status === 'error'
-      && typeof message?.error === 'string'
-      && message.error.length > 0
+      message?.text === expectedPartialText && message?.status === 'complete'
+    )
+    && globalThis.window.__nimiZhiyuEvidence?.companion?.diagnostics?.runtimeProjectionEvents?.some((event) =>
+      event?.eventName === 'runtime.agent.turn.action_failed'
+      && event?.detail?.actionId === 'action-mid-stream-failure'
+      && event?.detail?.reasonCode === 'AI_OUTPUT_INVALID'
     ),
-    'mid-stream failed Runtime Agent chat evidence',
+    'committed message with typed Runtime action failure evidence',
     {
       expectedPartialText,
       failurePrompt,
     },
   );
   const failedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-  assert.equal(failedEvidence.chat.ready, false);
-  assert.equal(failedEvidence.chat.state, 'failed');
-  assert.notEqual(failedEvidence.chat.reasonCode, 'runtime-agent-turn-completed');
-  assert.notEqual(failedEvidence.chat.reasonCode, 'runtime-turn-request-accepted');
+  assert.equal(failedEvidence.chat.ready, true);
+  assert.equal(failedEvidence.chat.state, 'completed');
+  assert.equal(failedEvidence.chat.reasonCode, 'runtime-agent-turn-completed');
   assert.equal(failedEvidence.chat.eventTypes.includes('text-delta'), true);
-  assert.equal(failedEvidence.chat.eventTypes.includes('turn-failed'), true);
+  assert.equal(failedEvidence.chat.eventTypes.includes('turn-failed'), false);
   assert.equal(
     failedEvidence.chat.messages.some((message) =>
       message?.text === expectedPartialText
-      && message?.status === 'error'
-      && typeof message?.error === 'string'
-      && message.error.length > 0
+      && message?.status === 'complete'
     ),
     true,
   );
-  assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'failed');
-  assert.equal(await page.locator('[data-zhiyu-agent-chat-ready]').getAttribute('data-zhiyu-agent-chat-ready'), 'false');
-  const failureNotice = page.locator('[data-zhiyu-agent-chat-failure="true"]').last();
-  await failureNotice.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-reason'), failedEvidence.chat.reasonCode);
-  assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-action'), failedEvidence.chat.actionHint);
-  assert.match(await failureNotice.innerText(), new RegExp(escapeRegExp(failedEvidence.chat.reasonCode)));
-  assert.match(await failureNotice.innerText(), /failed|failure|失败|处理/i);
+  assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'completed');
+  assert.equal(await page.locator('[data-zhiyu-agent-chat-ready]').getAttribute('data-zhiyu-agent-chat-ready'), 'true');
+  assert.equal(await page.locator('[data-zhiyu-agent-chat-failure="true"]').count(), 0);
+  assert.equal(await page.locator('[data-zhiyu-runtime-action-artifact-preview="rendered"]').count(), 0);
   const failedConversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
   assert.match(failedConversationText, new RegExp(escapeRegExp(expectedPartialText)));
-  assert.doesNotMatch(failedConversationText, /runtime-agent-turn-completed|runtime-turn-request-accepted/);
   await page.locator('[data-chat-composer-textarea="true"]').fill('follow up after failure');
   await page.waitForFunction(() =>
     document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
     && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false,
   );
-  await captureLiveRuntimeEvidence(page, 'chatFailed', pageProblems, {
+  await captureLiveRuntimeEvidence(page, 'chatCompleted', pageProblems, {
     readyEvidence,
     failedEvidence,
   });

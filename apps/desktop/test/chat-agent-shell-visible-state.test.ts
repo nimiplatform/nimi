@@ -313,7 +313,7 @@ test('agent visible state consumes the latest accepted statusCue during idle fal
     submittingThreadId: null,
     latestStatusCue: {
       sourceMessageId: 'message-0',
-      mood: 'playful',
+      mood: 'excited',
       label: 'Feeling playful',
       intensity: 0.58,
     },
@@ -387,7 +387,7 @@ test('agent visible state keeps the latest accepted statusCue ahead of runtime c
     submittingThreadId: null,
     latestStatusCue: {
       sourceMessageId: 'message-0',
-      mood: 'playful',
+      mood: 'excited',
       label: 'Feeling playful',
       intensity: 0.58,
     },
@@ -418,7 +418,7 @@ test('agent visible state preserves loading over the latest accepted statusCue',
     submittingThreadId: null,
     latestStatusCue: {
       sourceMessageId: 'message-0',
-      mood: 'joy',
+      mood: 'happy',
       label: 'Feeling bright',
       intensity: 0.72,
     },

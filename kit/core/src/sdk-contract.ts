@@ -96,6 +96,7 @@ export type { NimiClientConfig } from '@nimiplatform/sdk';
 // are runtime values, not type-only — keep their value-side export.
 export { Runtime, createNimiHostRuntimeAgentInspectSurface, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/sdk/runtime';
 export {
+  NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS,
   NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER,
   assertNimiRuntimeAgentContextProjectionCorrelation,
   buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
@@ -136,6 +137,7 @@ export type {
   NimiRuntimeAgentMemoryObservatorySnapshot,
   NimiRuntimeAgentPendingHookInspect,
   NimiRuntimeAgentPresentationProfileProjection,
+  NimiRuntimeAgentResolvedStatusCueMood,
   NimiRuntimeAgentStateSnapshot,
   NimiRuntimeCanonicalCapability,
   NimiRuntimeCatalogModelDetail,

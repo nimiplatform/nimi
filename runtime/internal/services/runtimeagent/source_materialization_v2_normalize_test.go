@@ -84,6 +84,10 @@ func sourceMaterializationFixtureDescriptor(t *testing.T, id, kind, schema strin
 }
 
 func sourceMaterializationNormalizeFixture(t *testing.T, kind string, packetID string) (*verifiedSourceMaterializationBeginV2, map[string][]byte) {
+	return sourceMaterializationNormalizeFixtureWithPresentation(t, kind, packetID, "")
+}
+
+func sourceMaterializationNormalizeFixtureWithPresentation(t *testing.T, kind string, packetID string, displayName string) (*verifiedSourceMaterializationBeginV2, map[string][]byte) {
 	t.Helper()
 	origin := map[string]any{"kind": "manual"}
 	worldCore := sourceMaterializationFixtureWorldCore(nil)
@@ -106,6 +110,10 @@ func sourceMaterializationNormalizeFixture(t *testing.T, kind string, packetID s
 	var sourceRef sourceMaterializationSourceRefV2
 	if kind == "worldCharacter" {
 		core := sourceMaterializationFixtureCharacterCore()
+		if strings.TrimSpace(displayName) != "" {
+			core["identity"].(map[string]any)["name"] = displayName
+			core["presentation"].(map[string]any)["displayName"] = displayName
+		}
 		hash := sourceMaterializationFixtureHash(t, map[string]any{"schemaVersion": "realm.world-character-core/v1", "origin": origin, "worldId": "world-1", "entityId": "entity-bound", "core": core})
 		record := map[string]any{"kind": "worldCharacter", "id": "character-1", "schemaVersion": "realm.world-character-core/v1", "contentRevision": float64(3), "contentHash": hash, "createdAt": "2026-07-10T05:00:00.000Z", "updatedAt": "2026-07-10T05:00:00.000Z", "origin": origin, "creatorId": "character-creator-2", "visibility": "unlisted", "worldId": "world-1", "entityId": "entity-bound", "core": core}
 		raw := sourceMaterializationFixtureBytes(t, record)
@@ -144,6 +152,10 @@ func sourceMaterializationNormalizeFixture(t *testing.T, kind string, packetID s
 		componentBytes[explicitID] = explicitRaw
 	} else {
 		core := sourceMaterializationFixturePersonaCore()
+		if strings.TrimSpace(displayName) != "" {
+			core["identity"].(map[string]any)["name"] = displayName
+			core["presentation"].(map[string]any)["displayName"] = displayName
+		}
 		hash := sourceMaterializationFixtureHash(t, map[string]any{"schemaVersion": "realm.persona/v1", "origin": origin, "ownerId": "owner-1", "homeWorldId": "world-1", "visibility": "public", "core": core})
 		record := map[string]any{"kind": "realmPersona", "id": "persona-1", "schemaVersion": "realm.persona/v1", "contentRevision": float64(4), "contentHash": hash, "createdAt": "2026-07-10T05:00:00.000Z", "updatedAt": "2026-07-10T05:00:00.000Z", "origin": origin, "ownerId": "owner-1", "homeWorldId": "world-1", "visibility": "public", "core": core}
 		raw := sourceMaterializationFixtureBytes(t, record)

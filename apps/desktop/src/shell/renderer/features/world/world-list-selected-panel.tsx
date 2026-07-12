@@ -117,14 +117,14 @@ export function SelectedWorldPanel({
   const peopleQuery = useQuery({
     queryKey: worldPrimaryDisplayDetailQueryKey(world.id),
     queryFn: () => fetchWorldPrimaryDisplayDetail(world.id),
-    enabled: peopleCount > 0,
+    enabled: Boolean(world.id),
     staleTime: 30_000,
   });
   const people = useMemo(
     () => previewPeople(world, peopleQuery.data?.characters),
     [world, peopleQuery.data],
   );
-  const peopleLoading = peopleCount > 0 && people.length === 0 && (peopleQuery.isPending || peopleQuery.isFetching);
+  const peopleLoading = people.length === 0 && (peopleQuery.isPending || peopleQuery.isFetching);
   const peopleEmptyTitle = peopleCount > 0
     ? t('World.atlas.preview.people.unavailable')
     : t('World.atlas.preview.people.empty');

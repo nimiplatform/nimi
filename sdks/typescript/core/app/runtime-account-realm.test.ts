@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { AccountCallerMode } from '../../core-generated/runtime-typed-client';
+import {
+  AccountCallerMode,
+  AccountReasonCode,
+  ReasonCode as RuntimeWireReasonCode,
+} from '../../core-generated/runtime-typed-client';
 import { NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID } from '../../runtime/account-caller';
+import { ReasonCode } from '../../types';
 import { createInstalledNimiAppBootstrap } from './installed-app-bootstrap';
 import {
   createRealmWithRuntimeAccountToken,
@@ -97,6 +102,41 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
     repeatedOptions?.metadata?.idempotencyKey,
     options?.metadata?.idempotencyKey,
     'separate Realm broker invocations must not replay an authorization result across account-session changes',
+  );
+});
+
+test('Runtime-mediated Realm transport maps broker upstream failure to typed Realm offline truth', async () => {
+  const transport = createRuntimeAccountMediatedRealmTransport({
+    accountCaller: {
+      appId: 'nimi.desktop',
+      appInstanceId: 'nimi.desktop.local-first-party',
+      deviceId: 'desktop-device',
+      mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+      scopes: [],
+    },
+    runtime: {
+      account: {
+        invokeRealmUnary: async () => ({
+          accepted: false,
+          responseJson: '',
+          reasonCode: RuntimeWireReasonCode.AI_PROVIDER_UNAVAILABLE,
+          accountReasonCode: AccountReasonCode.BROKER_UPSTREAM_FAILED,
+          productionInert: false,
+          httpStatus: 503,
+          errorMessage: 'Realm is offline.',
+        }),
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => transport.unary({ methodId: 'WorldCoreController_listWorldCores', body: {} }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.REALM_UNAVAILABLE);
+      assert.equal((error as { source?: string }).source, 'realm');
+      assert.equal((error as { retryable?: boolean }).retryable, true);
+      return true;
+    },
   );
 });
 

@@ -68,10 +68,19 @@ export type NimiRuntimeAgentTurnRequest = RuntimeLocalAgentIdentityInput & {
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 
+export type NimiRuntimeAgentTurnCancellationReason =
+  | 'user_cancel'
+  | 'room_closed'
+  | 'superseded_turn'
+  | 'budget_exhausted'
+  | 'timeout'
+  | 'gateway_revoked'
+  | 'policy_refusal';
+
 export type NimiRuntimeAgentTurnInterruptRequest = RuntimeLocalAgentIdentityInput & {
   readonly conversationAnchorId: string;
   readonly turnId?: string;
-  readonly reason?: string;
+  readonly reason?: NimiRuntimeAgentTurnCancellationReason;
   readonly worldId?: string;
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
@@ -298,7 +307,7 @@ export type NimiRuntimeAgentTurnRunnerOptions = {
   readonly request: NimiRuntimeAgentTurnRequest;
   readonly subscribe?: NimiRuntimeAgentConsumeRequest;
   readonly signal?: AbortSignal;
-  readonly interruptReason?: string;
+  readonly interruptReason?: NimiRuntimeAgentTurnCancellationReason;
   // Ignored by the runner: execution route/model/provider identity is Runtime
   // accepted-turn/config projection, not caller-supplied SDK input.
   readonly route?: string;

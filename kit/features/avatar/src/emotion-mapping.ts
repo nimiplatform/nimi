@@ -1,23 +1,12 @@
 import type { AvatarEmotionCue } from './types.js';
+import {
+  NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS,
+  type NimiRuntimeAgentResolvedStatusCueMood,
+} from '@nimiplatform/kit/core/sdk-contract';
 
-export const RUNTIME_AGENT_EMOTION_IDS = [
-  'happy',
-  'sad',
-  'shy',
-  'angry',
-  'surprised',
-  'confused',
-  'excited',
-  'worried',
-  'embarrassed',
-  'neutral',
-  'ext:apologetic',
-  'ext:proud',
-  'ext:lonely',
-  'ext:grateful',
-] as const;
+export const RUNTIME_AGENT_EMOTION_IDS = NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS;
 
-export type RuntimeAgentEmotionId = (typeof RUNTIME_AGENT_EMOTION_IDS)[number];
+export type RuntimeAgentEmotionId = NimiRuntimeAgentResolvedStatusCueMood;
 export type RuntimeAgentEmotionIntensity = 'weak' | 'moderate' | 'strong';
 
 const RUNTIME_AGENT_EMOTION_ID_SET = new Set<string>(RUNTIME_AGENT_EMOTION_IDS);

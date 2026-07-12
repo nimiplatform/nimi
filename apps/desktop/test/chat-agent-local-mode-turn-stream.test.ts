@@ -108,7 +108,7 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-a',
-      reason: 'desktop_agent_chat_abort',
+      reason: 'user_cancel',
     }]);
   } finally {
     clearDesktopTestNimiClientSession();

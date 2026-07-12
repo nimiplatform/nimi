@@ -3,6 +3,10 @@ import http from 'node:http';
 import { Server as SocketIOServer } from 'socket.io';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  handleLocalAgentProviderControl,
+  handleLocalAgentProviderRequest,
+} from './local-agent-provider-fixture.mjs';
+import {
   configureFixtureRealmIssuer,
   createFixtureSourceMaterializationPacket,
   FIXTURE_SOURCE_MATERIALIZATION_JWKS,
@@ -799,6 +803,7 @@ async function handleControl(request, response, manifestPath) {
     json(response, 200, { restOnline: manifest.realmFixture.restOnline });
     return;
   }
+  if (handleLocalAgentProviderControl({ body, manifest, manifestPath, pathname, response })) return;
   if (pathname === '/__fixture/control/manifest') {
     json(response, 200, manifest);
     return;
@@ -816,6 +821,8 @@ async function handleApi(request, response, manifestPath) {
     options(response);
     return undefined;
   }
+
+  if (await handleLocalAgentProviderRequest({ manifest, manifestPath, pathname, request, response })) return undefined;
 
   if (pathname.startsWith('/__fixture/control/')) {
     return handleControl(request, response, manifestPath);
@@ -990,6 +997,8 @@ async function handleApi(request, response, manifestPath) {
         : []),
       {
         sourceRef,
+        challengeId: text(body?.challengeId, ''),
+        challengeDigest: text(body?.challengeDigest, ''),
         intendedRuntimeAudience: text(body?.intendedRuntimeAudience, ''),
         packetId: packet.packetId,
         runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
@@ -1005,7 +1014,7 @@ async function handleApi(request, response, manifestPath) {
     const visibility = nullableString(requestUrl.searchParams.get('visibility'));
     const take = positiveInt(requestUrl.searchParams.get('take'), 100);
     const rows = listRealmPersonaCores(manifest)
-      .filter((row) => !visibility || row.visibility === visibility)
+      .filter((row) => !visibility || String(row.visibility || '').toLowerCase() === visibility.toLowerCase())
       .slice(0, take);
     json(response, 200, rows);
     return undefined;

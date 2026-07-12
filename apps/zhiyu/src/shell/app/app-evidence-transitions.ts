@@ -217,7 +217,7 @@ export function turnStatusFromChat(chat: ZhiyuRuntimeAgentChatStatus): ZhiyuEvid
     requestId: chat.requestId,
     runtimeTurnId: chat.runtimeTurnId,
     runtimeStreamId: chat.runtimeStreamId,
-    messageId: latestAssistant?.id ?? null,
+    messageId: latestAssistant ? originalConversationMessageId(latestAssistant) : null,
   };
 }
 
@@ -352,7 +352,24 @@ function mergedConversationMessageKey(
 ): string {
   const turnId = conversationMessageTurnId(message);
   const originalMessageId = originalConversationMessageId(message);
-  return turnId ? `${turnId}:${originalMessageId}` : originalMessageId;
+  if (!turnId) {
+    return originalMessageId;
+  }
+  if (isPrimaryConversationTextMessage(message)) {
+    if (message.role === 'user') {
+      return `${turnId}:primary-user`;
+    }
+    if (message.role === 'agent' || message.role === 'assistant') {
+      return `${turnId}:primary-assistant`;
+    }
+  }
+  return `${turnId}:${originalMessageId}`;
+}
+
+function isPrimaryConversationTextMessage(
+  message: RuntimeAgentConversationProjectionState['messages'][number],
+): boolean {
+  return message.kind === undefined || message.kind === 'text' || message.kind === 'streaming';
 }
 
 function originalConversationMessageId(

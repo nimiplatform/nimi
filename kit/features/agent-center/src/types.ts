@@ -717,6 +717,8 @@ export interface AgentCenterState {
   readonly runtimeStatus: AgentCenterRuntimeStatus;
   readonly statusTone: AgentCenterStatusTone;
   readonly baseTextReady: boolean;
+  /** Complete Runtime-owned intent set, including capabilities not rendered by Agent Center. */
+  readonly runtimeAgentAIConfigIntents?: AgentCenterAgentAIConfigIntents;
   readonly baseTextDisabledReason: string | null;
   readonly configRevision: number | null;
   readonly capabilities: readonly AgentCenterCapabilityState[];
