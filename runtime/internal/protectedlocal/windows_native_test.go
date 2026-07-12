@@ -14,6 +14,29 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+func TestWindowsPrincipalInputAdmitsOnlyExactCurrentProcessPseudoHandle(t *testing.T) {
+	currentPID := uint32(os.Getpid())
+	if err := validateWindowsPrincipalProcessInput(currentPID, windows.CurrentProcess()); err != nil {
+		t.Fatalf("exact current-process pseudo-handle rejected: %v", err)
+	}
+	for name, input := range map[string]struct {
+		pid     uint32
+		process windows.Handle
+	}{
+		"zero PID":       {pid: 0, process: windows.CurrentProcess()},
+		"zero handle":    {pid: currentPID, process: 0},
+		"mismatched PID": {pid: currentPID + 1, process: windows.InvalidHandle},
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := validateWindowsPrincipalProcessInput(input.pid, input.process)
+			stage, ok := WindowsPrincipalStageFromError(err)
+			if !ok || stage != WindowsPrincipalStageInput {
+				t.Fatalf("input failure stage = (%v, %v), want %v", stage, ok, WindowsPrincipalStageInput)
+			}
+		})
+	}
+}
+
 func TestWindowsProductionPrincipalNeverAdmitsInteractiveProcess(t *testing.T) {
 	principal, err := ValidateWindowsProductionPrincipal(context.Background())
 	if err == nil {

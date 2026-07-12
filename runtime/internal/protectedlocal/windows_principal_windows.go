@@ -28,8 +28,8 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 	if err := ctx.Err(); err != nil {
 		return WindowsServicePrincipal{}, fmt.Errorf("validate Windows Runtime principal: %w", err)
 	}
-	if expectedPID == 0 || process == 0 || process == windows.InvalidHandle {
-		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageInput, "validate Windows Runtime service process", fmt.Errorf("process handle and PID are required"))
+	if err := validateWindowsPrincipalProcessInput(expectedPID, process); err != nil {
+		return WindowsServicePrincipal{}, err
 	}
 	serviceManager, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
 	if err != nil {
@@ -104,6 +104,19 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 		RestrictedSIDs:     restrictedSIDs,
 	}
 	return validateWindowsPrincipalSnapshot(snapshot)
+}
+
+func validateWindowsPrincipalProcessInput(expectedPID uint32, process windows.Handle) error {
+	if expectedPID == 0 || process == 0 {
+		return windowsPrincipalProbeFailure(WindowsPrincipalStageInput, "validate Windows Runtime service process", fmt.Errorf("process handle and PID are required"))
+	}
+	// GetCurrentProcess returns the documented pseudo-handle value -1, which is
+	// numerically identical to INVALID_HANDLE_VALUE. Admit it only for the exact
+	// current PID; external-process validation still requires a real handle.
+	if process == windows.InvalidHandle && expectedPID != uint32(os.Getpid()) {
+		return windowsPrincipalProbeFailure(WindowsPrincipalStageInput, "validate Windows Runtime service process", fmt.Errorf("current-process pseudo-handle does not match the current PID"))
+	}
+	return nil
 }
 
 // ValidateWindowsCurrentProcessIsolation verifies the process-object DACL
