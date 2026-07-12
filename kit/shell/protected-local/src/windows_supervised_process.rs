@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, WAIT_TIMEOUT};
 use windows_sys::Win32::System::Threading::{
-    CreateProcessW, ResumeThread, TerminateProcess, WaitForSingleObject, CREATE_SUSPENDED,
-    PROCESS_INFORMATION, STARTUPINFOW,
+    CreateProcessW, GetExitCodeProcess, ResumeThread, TerminateProcess, WaitForSingleObject,
+    CREATE_SUSPENDED, PROCESS_INFORMATION, STARTUPINFOW,
 };
 
 use crate::{NimiHostError, NimiHostErrorReasonCode};
@@ -103,7 +103,19 @@ impl SupervisedDevelopmentProcess {
 
     pub(crate) fn running(&self) -> bool {
         // SAFETY: process is a retained live kernel handle.
-        unsafe { WaitForSingleObject(self.process, 0) == WAIT_TIMEOUT }
+        let running = unsafe { WaitForSingleObject(self.process, 0) == WAIT_TIMEOUT };
+        #[cfg(feature = "windows-e2e-fixture")]
+        if !running {
+            let mut exit_code = 0u32;
+            // SAFETY: process is the retained kernel handle returned by CreateProcessW.
+            let available = unsafe { GetExitCodeProcess(self.process, &mut exit_code) } != 0;
+            eprintln!(
+                "[protected-local local-development windows-e2e-fixture] stage=host-exited exit_code_available={} exit_code={}",
+                available,
+                exit_code
+            );
+        }
+        running
     }
 
     pub(crate) fn terminate(&mut self) {
