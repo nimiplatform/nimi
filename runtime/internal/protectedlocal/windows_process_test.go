@@ -14,6 +14,53 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+func TestWindowsProcessTrustStartupExitCodesAreStableAndUnique(t *testing.T) {
+	stages := []WindowsProcessTrustFailureStage{
+		WindowsProcessTrustStagePrincipalRevalidation,
+		WindowsProcessTrustStagePrincipalBinding,
+		WindowsProcessTrustStageIsolationHarden,
+		WindowsProcessTrustStageProcessOpen,
+		WindowsProcessTrustStageIsolationValidation,
+		WindowsProcessTrustStageTokenOpen,
+		WindowsProcessTrustStageTokenUserQuery,
+		WindowsProcessTrustStageTokenUserMatch,
+		WindowsProcessTrustStageSessionQuery,
+		WindowsProcessTrustStageSessionZero,
+		WindowsProcessTrustStageLogonLUID,
+		WindowsProcessTrustStageCreationMarker,
+		WindowsProcessTrustStageExecutableInput,
+		WindowsProcessTrustStageExecutablePath,
+		WindowsProcessTrustStageExecutablePathEncoding,
+		WindowsProcessTrustStageExecutableLock,
+		WindowsProcessTrustStageExecutableHandle,
+		WindowsProcessTrustStageExecutableFileType,
+		WindowsProcessTrustStageExecutableIdentity,
+		WindowsProcessTrustStageExecutableHash,
+		WindowsProcessTrustStageExecutableContext,
+		WindowsProcessTrustStageExecutableTrustRecord,
+		WindowsProcessTrustStageExecutableTrustSet,
+		WindowsProcessTrustStageLivenessQuery,
+		WindowsProcessTrustStageLivenessState,
+		WindowsProcessTrustStageTuple,
+	}
+	seen := make(map[uint32]struct{}, len(stages))
+	for _, stage := range stages {
+		err := windowsProcessTrustStageFailure(stage, fmt.Errorf("private process detail"))
+		projected, ok := WindowsProcessTrustStageFromError(err)
+		if !ok || projected != stage {
+			t.Fatalf("process trust stage = (%v, %v), want %v", projected, ok, stage)
+		}
+		code, ok := WindowsProcessTrustStartupExitCode(err)
+		if !ok || code != WindowsProcessTrustStartupExitCodeBase+uint32(stage) {
+			t.Fatalf("process trust exit code = (%x, %v), want %x", code, ok, WindowsProcessTrustStartupExitCodeBase+uint32(stage))
+		}
+		if _, exists := seen[code]; exists {
+			t.Fatalf("duplicate process trust exit code %x", code)
+		}
+		seen[code] = struct{}{}
+	}
+}
+
 func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(t *testing.T) {
 	identity, connection, closePipe := openCurrentProcessWindowsTestPipe(t)
 	defer closePipe()

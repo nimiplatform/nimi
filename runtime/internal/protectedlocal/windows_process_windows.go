@@ -5,6 +5,7 @@ package protectedlocal
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -36,6 +37,70 @@ type windowsLockedExecutable struct {
 type windowsInstalledProcessVerifier struct {
 	identity WindowsDesktopIdentity
 	verifier WindowsExecutableTrustVerifier
+}
+
+type WindowsProcessTrustFailureStage uint32
+
+const WindowsProcessTrustStartupExitCodeBase uint32 = 0xA700
+
+const (
+	WindowsProcessTrustStagePrincipalRevalidation WindowsProcessTrustFailureStage = iota + 1
+	WindowsProcessTrustStagePrincipalBinding
+	WindowsProcessTrustStageIsolationHarden
+	WindowsProcessTrustStageProcessOpen
+	WindowsProcessTrustStageIsolationValidation
+	WindowsProcessTrustStageTokenOpen
+	WindowsProcessTrustStageTokenUserQuery
+	WindowsProcessTrustStageTokenUserMatch
+	WindowsProcessTrustStageSessionQuery
+	WindowsProcessTrustStageSessionZero
+	WindowsProcessTrustStageLogonLUID
+	WindowsProcessTrustStageCreationMarker
+	WindowsProcessTrustStageExecutableInput
+	WindowsProcessTrustStageExecutablePath
+	WindowsProcessTrustStageExecutablePathEncoding
+	WindowsProcessTrustStageExecutableLock
+	WindowsProcessTrustStageExecutableHandle
+	WindowsProcessTrustStageExecutableFileType
+	WindowsProcessTrustStageExecutableIdentity
+	WindowsProcessTrustStageExecutableHash
+	WindowsProcessTrustStageExecutableContext
+	WindowsProcessTrustStageExecutableTrustRecord
+	WindowsProcessTrustStageExecutableTrustSet
+	WindowsProcessTrustStageLivenessQuery
+	WindowsProcessTrustStageLivenessState
+	WindowsProcessTrustStageTuple
+)
+
+type windowsProcessTrustStageError struct {
+	stage WindowsProcessTrustFailureStage
+	cause error
+}
+
+func (failure *windowsProcessTrustStageError) Error() string { return failure.cause.Error() }
+func (failure *windowsProcessTrustStageError) Unwrap() error { return failure.cause }
+
+func windowsProcessTrustStageFailure(stage WindowsProcessTrustFailureStage, cause error) error {
+	if cause == nil {
+		cause = errors.New("Windows process trust verification failed")
+	}
+	return &windowsProcessTrustStageError{stage: stage, cause: cause}
+}
+
+func WindowsProcessTrustStageFromError(err error) (WindowsProcessTrustFailureStage, bool) {
+	var failure *windowsProcessTrustStageError
+	if !errors.As(err, &failure) || failure.stage < WindowsProcessTrustStagePrincipalRevalidation || failure.stage > WindowsProcessTrustStageTuple {
+		return 0, false
+	}
+	return failure.stage, true
+}
+
+func WindowsProcessTrustStartupExitCode(err error) (uint32, bool) {
+	stage, ok := WindowsProcessTrustStageFromError(err)
+	if !ok {
+		return 0, false
+	}
+	return WindowsProcessTrustStartupExitCodeBase + uint32(stage), true
 }
 
 func NewWindowsInstalledProcessVerifier(identity WindowsDesktopIdentity, verifier WindowsExecutableTrustVerifier) (InstalledProcessVerifier, error) {
@@ -73,18 +138,18 @@ func (locked *windowsLockedExecutable) NativeHandle() uintptr {
 func VerifyWindowsProductionRuntimeProcess(ctx context.Context, principal WindowsServicePrincipal, verifier WindowsExecutableTrustVerifier) (WindowsRuntimeProcess, error) {
 	validatedPrincipal, err := ValidateWindowsProductionPrincipal(ctx)
 	if err != nil {
-		return WindowsRuntimeProcess{}, err
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStagePrincipalRevalidation, err)
 	}
 	if validatedPrincipal != principal {
-		return WindowsRuntimeProcess{}, principalFailure("bind Runtime executable verification to service principal", fmt.Errorf("principal capability mismatch"))
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStagePrincipalBinding, principalFailure("bind Runtime executable verification to service principal", fmt.Errorf("principal capability mismatch")))
 	}
 	if err := HardenWindowsCurrentProcessIsolation(ctx, principal); err != nil {
-		return WindowsRuntimeProcess{}, err
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageIsolationHarden, err)
 	}
 	pid := uint32(os.Getpid())
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
-		return WindowsRuntimeProcess{}, principalFailure("open Runtime service process", err)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageProcessOpen, principalFailure("open Runtime service process", err))
 	}
 	defer windows.CloseHandle(process)
 	return verifyWindowsRuntimeProcessHandle(ctx, pid, process, principal, verifier)
@@ -120,34 +185,34 @@ func VerifyWindowsProductionPipeServer(ctx context.Context, clientPipeHandle uin
 
 func verifyWindowsRuntimeProcessHandle(ctx context.Context, pid uint32, process windows.Handle, principal WindowsServicePrincipal, verifier WindowsExecutableTrustVerifier) (WindowsRuntimeProcess, error) {
 	if err := validateWindowsProcessIsolationHandle(ctx, process, principal); err != nil {
-		return WindowsRuntimeProcess{}, err
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageIsolationValidation, err)
 	}
 	var token windows.Token
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return WindowsRuntimeProcess{}, principalFailure("open Runtime service process token", err)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageTokenOpen, principalFailure("open Runtime service process token", err))
 	}
 	user, userErr := token.GetTokenUser()
 	sessionID, sessionErr := readWindowsTokenUint32(token, windows.TokenSessionId)
 	logonLUID, luidErr := windowsTokenLogonLUID(token)
 	_ = token.Close()
 	if userErr != nil {
-		return WindowsRuntimeProcess{}, principalFailure("bind Runtime service token user", userErr)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageTokenUserQuery, principalFailure("bind Runtime service token user", userErr))
 	}
 	if user == nil || user.User.Sid == nil || user.User.Sid.String() != principal.tokenUserSID {
-		return WindowsRuntimeProcess{}, principalFailure("bind Runtime service token user", fmt.Errorf("token user SID mismatch"))
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageTokenUserMatch, principalFailure("bind Runtime service token user", fmt.Errorf("token user SID mismatch")))
 	}
 	if sessionErr != nil {
-		return WindowsRuntimeProcess{}, principalFailure("bind Runtime service session zero", sessionErr)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageSessionQuery, principalFailure("bind Runtime service session zero", sessionErr))
 	}
 	if sessionID != 0 {
-		return WindowsRuntimeProcess{}, principalFailure("bind Runtime service session zero", fmt.Errorf("service process is not in session zero"))
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageSessionZero, principalFailure("bind Runtime service session zero", fmt.Errorf("service process is not in session zero")))
 	}
 	if luidErr != nil {
-		return WindowsRuntimeProcess{}, principalFailure("bind Runtime service logon LUID", luidErr)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageLogonLUID, principalFailure("bind Runtime service logon LUID", luidErr))
 	}
 	creationMarker, err := windowsProcessCreationMarker(process)
 	if err != nil {
-		return WindowsRuntimeProcess{}, principalFailure("read Runtime service creation marker", err)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageCreationMarker, principalFailure("read Runtime service creation marker", err))
 	}
 	profile := mustActiveWindowsRuntimeProfile()
 	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleRuntime, verifier, profile.runtimeTrustSetID)
@@ -155,9 +220,9 @@ func verifyWindowsRuntimeProcessHandle(ctx context.Context, pid uint32, process 
 		return WindowsRuntimeProcess{}, err
 	}
 	if result, err := windows.WaitForSingleObject(process, 0); err != nil {
-		return WindowsRuntimeProcess{}, principalFailure("validate live Runtime service process", err)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageLivenessQuery, principalFailure("validate live Runtime service process", err))
 	} else if result != uint32(windows.WAIT_TIMEOUT) {
-		return WindowsRuntimeProcess{}, principalFailure("validate live Runtime service process", fmt.Errorf("service process already exited"))
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageLivenessState, principalFailure("validate live Runtime service process", fmt.Errorf("service process already exited")))
 	}
 	tuple := ProcessTuple{
 		OS:                          OSWindows,
@@ -170,7 +235,7 @@ func verifyWindowsRuntimeProcessHandle(ctx context.Context, pid uint32, process 
 		ExecutableTrustSetID:        trustSetID,
 	}
 	if err := tuple.validate(); err != nil {
-		return WindowsRuntimeProcess{}, principalFailure("validate Runtime service process tuple", err)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageTuple, principalFailure("validate Runtime service process tuple", err))
 	}
 	return WindowsRuntimeProcess{principalSID: principal.serviceSID, tuple: tuple}, nil
 }
@@ -344,15 +409,15 @@ func verifyWindowsInstalledProcess(ctx context.Context, pid uint32, identity Win
 
 func verifyWindowsLockedExecutable(ctx context.Context, process windows.Handle, pid uint32, creationMarker string, role WindowsExecutableRole, verifier WindowsExecutableTrustVerifier, expectedTrustSetID string) (WindowsExecutableEvidence, string, error) {
 	if verifier == nil || strings.TrimSpace(expectedTrustSetID) == "" {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("verify locked Windows executable", fmt.Errorf("executable trust verifier and exact trust set are required"))
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableInput, windowsExecutableTrustFailure("verify locked Windows executable", fmt.Errorf("executable trust verifier and exact trust set are required")))
 	}
 	path, err := windowsProcessImagePath(process)
 	if err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("resolve Windows process executable", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutablePath, windowsExecutableTrustFailure("resolve Windows process executable", err))
 	}
 	pathPointer, err := windows.UTF16PtrFromString(path)
 	if err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("encode Windows process executable path", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutablePathEncoding, windowsExecutableTrustFailure("encode Windows process executable path", err))
 	}
 	handle, err := windows.CreateFile(
 		pathPointer,
@@ -364,25 +429,25 @@ func verifyWindowsLockedExecutable(ctx context.Context, process windows.Handle, 
 		0,
 	)
 	if err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("lock Windows process executable", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableLock, windowsExecutableTrustFailure("lock Windows process executable", err))
 	}
 	file := os.NewFile(uintptr(handle), path)
 	if file == nil {
 		_ = windows.CloseHandle(handle)
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("wrap locked Windows process executable", fmt.Errorf("invalid file handle"))
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableHandle, windowsExecutableTrustFailure("wrap locked Windows process executable", fmt.Errorf("invalid file handle")))
 	}
 	defer file.Close()
 	if err := validateWindowsRegularFile(handle); err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("validate locked Windows process executable", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableFileType, windowsExecutableTrustFailure("validate locked Windows process executable", err))
 	}
 	var information windows.ByHandleFileInformation
 	if err := windows.GetFileInformationByHandle(handle, &information); err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("read locked Windows executable identity", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableIdentity, windowsExecutableTrustFailure("read locked Windows executable identity", err))
 	}
 	canonicalIdentity := fmt.Sprintf("windows-volume-%08x-file-%016x", information.VolumeSerialNumber, uint64(information.FileIndexHigh)<<32|uint64(information.FileIndexLow))
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("hash locked Windows process executable", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableHash, windowsExecutableTrustFailure("hash locked Windows process executable", err))
 	}
 	var digest Identifier
 	copy(digest[:], hash.Sum(nil))
@@ -394,16 +459,16 @@ func verifyWindowsLockedExecutable(ctx context.Context, process windows.Handle, 
 		Digest:                digest,
 	}
 	if err := ctx.Err(); err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("verify locked Windows process executable", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableContext, windowsExecutableTrustFailure("verify locked Windows process executable", err))
 	}
 	locked := &windowsLockedExecutable{handle: handle, evidence: evidence}
 	trustSetID, err := verifier.VerifyWindowsExecutable(ctx, role, locked)
 	if err != nil {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("verify Windows executable trust record", err)
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableTrustRecord, windowsExecutableTrustFailure("verify Windows executable trust record", err))
 	}
 	trustSetID = strings.TrimSpace(trustSetID)
 	if trustSetID != expectedTrustSetID {
-		return WindowsExecutableEvidence{}, "", windowsExecutableTrustFailure("verify Windows executable trust set", fmt.Errorf("exact trust set mismatch"))
+		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableTrustSet, windowsExecutableTrustFailure("verify Windows executable trust set", fmt.Errorf("exact trust set mismatch")))
 	}
 	return evidence, trustSetID, nil
 }
