@@ -34,6 +34,7 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   const localDevelopmentProjection = read('../kit/shell/protected-local/src/windows_local_development.rs');
   const runtimeServiceControl = read('../kit/shell/tauri/src/runtime_bridge/service_control.rs');
   const desktopLocalDevelopment = read('../apps/desktop/src-tauri/src/desktop_local_development/mod.rs');
+  const desktopLocalDevelopmentSupervisor = read('../apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs');
   const listener = read('../runtime/internal/protectedlocal/windows_verified_listener_windows.go');
   const windowsService = read('../runtime/internal/entrypoint/runtime_production_windows.go');
   const peerProbe = read('../runtime/cmd/windows-protected-peer-probe/main_windows.go');
@@ -126,6 +127,9 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(localDevelopmentContract, /LOCAL_DEVELOPMENT_TRUST_CLASS[^\n]*"local-development-installed-admission"/);
   assert.match(desktopLocalDevelopment, /protected-local-e2e-fixture[\s\S]*stage[\s\S]*reason_code/);
   assert.doesNotMatch(desktopLocalDevelopment, /e2e[^\n]*(?:error|status)\.to_string\(\)/i);
+  assert.match(desktopLocalDevelopmentSupervisor, /GetSystemDirectoryW[\s\S]*taskkill\.exe/);
+  assert.match(desktopLocalDevelopmentSupervisor, /\/pid[\s\S]*\/t[\s\S]*\/f/);
+  assert.ok(desktopLocalDevelopmentSupervisor.indexOf('tree_kill') < desktopLocalDevelopmentSupervisor.indexOf('child.kill().await'));
   assert.match(runtimeServiceControl, /windows-e2e-fixture[\s\S]*stage[\s\S]*reason_code/);
   assert.doesNotMatch(runtimeServiceControl, /e2e[^\n]*(?:error|status)\.to_string\(\)/i);
   assert.match(interactivePeerGate, /clientElevated[\s\S]*false/);
@@ -260,6 +264,7 @@ test('Windows protected candidate gate batches every non-admin preinstall bounda
   assert.match(commandText, /go test \.\/internal\/protectedlocal \.\/internal\/services\/app -count=1/);
   assert.match(commandText, /go build \.\/\.\.\./);
   assert.match(commandText, /cargo test --manifest-path kit\/shell\/protected-local\/Cargo\.toml --features windows-e2e-fixture/);
+  assert.match(commandText, /cargo check --manifest-path apps\/desktop\/src-tauri\/Cargo\.toml --no-default-features --features protected-local-e2e-fixture/);
   assert.match(commandText, /build-windows-protected-e2e\.mjs/);
   assert.match(commandText, /git diff --check/);
 });
