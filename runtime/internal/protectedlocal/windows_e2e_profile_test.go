@@ -13,6 +13,11 @@ func TestWindowsE2ERuntimeProfileIsSeparateAndClosed(t *testing.T) {
 		profile.serviceSID != "S-1-5-80-2508001767-432113807-2225235661-2974466524-556849280" {
 		t.Fatalf("active E2E principal profile = %+v", profile)
 	}
+	if profile.serviceHostAccount != WindowsServiceHostAccount ||
+		profile.serviceHostSID != WindowsServiceHostSID ||
+		profile.custodyDescriptor != windowsDPAPINGLocalUserDescriptor {
+		t.Fatalf("active E2E custody host profile = %+v", profile)
+	}
 	if profile.desktopPipeName != `\\.\pipe\nimi-runtime-e2e-protected-v1` ||
 		profile.installedPipeName != `\\.\pipe\nimi-runtime-e2e-installed-v1` {
 		t.Fatalf("active E2E pipe profile = %+v", profile)
@@ -33,7 +38,8 @@ func TestWindowsE2EProfileDrivesPrincipalAndExecutableAdmission(t *testing.T) {
 	profile := activeWindowsRuntimeProfile()
 	principal, err := validateWindowsPrincipalSnapshot(windowsPrincipalSnapshot{
 		ResolvedServiceSID: profile.serviceSID,
-		TokenUserSID:       "S-1-5-18",
+		ServiceStartName:   WindowsServiceHostAccount,
+		TokenUserSID:       WindowsServiceHostSID,
 		TokenSessionID:     0,
 		TokenType:          windowsTokenPrimary,
 		TokenRestricted:    true,

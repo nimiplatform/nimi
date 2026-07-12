@@ -24,6 +24,12 @@ func TestWindowsPrincipalSnapshotRequiresExactRestrictedNonInteractiveService(t 
 		"different service SID": {stage: WindowsPrincipalStageResolvedSID, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.ResolvedServiceSID = "S-1-5-80-1-2-3-4-5"
 		}},
+		"different service host": {stage: WindowsPrincipalStageServiceHostAccount, mutate: func(snapshot *windowsPrincipalSnapshot) {
+			snapshot.ServiceStartName = "NT AUTHORITY\\LocalService"
+		}},
+		"different service host token user": {stage: WindowsPrincipalStageTokenUser, mutate: func(snapshot *windowsPrincipalSnapshot) {
+			snapshot.TokenUserSID = "S-1-5-19"
+		}},
 		"unrestricted SCM service": {stage: WindowsPrincipalStageServiceSIDType, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.ServiceSIDType = 1
 		}},
@@ -135,7 +141,8 @@ func validWindowsPrincipalSnapshot() windowsPrincipalSnapshot {
 	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
 	return windowsPrincipalSnapshot{
 		ResolvedServiceSID: serviceSID,
-		TokenUserSID:       "S-1-5-18",
+		ServiceStartName:   WindowsServiceHostAccount,
+		TokenUserSID:       WindowsServiceHostSID,
 		TokenSessionID:     0,
 		TokenType:          windowsTokenPrimary,
 		TokenRestricted:    true,

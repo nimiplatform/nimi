@@ -74,6 +74,9 @@ func windowsStartupExitCode(err error) uint32 {
 	if code, ok := protectedlocal.WindowsProcessTrustStartupExitCode(err); ok {
 		return code
 	}
+	if code, ok := protectedlocal.WindowsCustodyStartupExitCode(err); ok {
+		return code
+	}
 	if code, ok := protectedlocal.WindowsSecurityStateStartupExitCode(err); ok {
 		return code
 	}

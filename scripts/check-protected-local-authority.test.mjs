@@ -24,6 +24,7 @@ const modes = [
 const expectedCodes = [
   'RUNTIME_OS_PRINCIPAL_ISOLATION_REQUIRED',
   'USER_SCOPED_CUSTODY_FORBIDDEN',
+  'WINDOWS_CUSTODY_PRINCIPAL_BINDING_REQUIRED',
   'MUTUAL_ENDPOINT_AUTH_REQUIRED',
   'RUNTIME_EXECUTABLE_TRUST_REQUIRED',
   'TRANSPORT_ROLE_MATRIX_REQUIRED',
@@ -64,6 +65,20 @@ test('supported OS authority uses exact isolated principals and macOS privileged
   const macos = profiles.profiles.find((row) => row.os === 'macos');
   assert.equal(macos.endpoint_kind, 'privileged_xpc_service');
   assert.equal(macos.endpoint_ownership, 'launchdaemon_privileged_xpc_mach_service');
+});
+
+test('Windows custody binds local-user encryption to the fixed service host and exact restricted service SID', () => {
+  const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
+  const windows = principals.profiles.find((row) => row.os === 'windows');
+  assert.deepEqual(principals.windows_service_host, {
+    scm_account: 'LocalSystem',
+    token_user_sid: 'S-1-5-18',
+    dpapi_ng_descriptor: 'LOCAL=user',
+    cryptographic_scope: 'fixed_noninteractive_service_host_user',
+    authorization_scope: 'exact_restricted_service_sid_acl_and_process_dacl',
+    local_machine_descriptor_allowed: false,
+  });
+  assert.equal(windows.custody_store, 'dpapi_ng_local_user_fixed_local_system_host_plus_exact_service_sid_acl_state');
 });
 
 test('production config and Desktop service lifecycle have one closed authority', () => {

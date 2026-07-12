@@ -9,12 +9,17 @@ import (
 	"io"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 const (
 	WindowsProductionServiceName    = "NimiRuntime"
 	WindowsProductionServiceAccount = `NT SERVICE\NimiRuntime`
 	WindowsProductionServiceSID     = "S-1-5-80-152272774-1324336204-4147968316-71209937-3548791786"
+	WindowsServiceHostAccount       = "LocalSystem"
+	WindowsServiceHostSID           = "S-1-5-18"
+
+	windowsDPAPINGLocalUserDescriptor = "LOCAL=user"
 
 	WindowsLedgerRecordMACKeyName  = "ledger-record-hmac-v1"
 	windowsLedgerAnchorSecretName  = "ledger-anchor-v1"
@@ -78,6 +83,7 @@ type windowsSIDAttributes struct {
 
 type windowsPrincipalSnapshot struct {
 	ResolvedServiceSID string
+	ServiceStartName   string
 	TokenUserSID       string
 	TokenSessionID     uint32
 	TokenType          uint32
@@ -123,6 +129,7 @@ const (
 	WindowsPrincipalStageServiceLogonGroup
 	WindowsPrincipalStageInteractiveGroup
 	WindowsPrincipalStageTokenUser
+	WindowsPrincipalStageServiceHostAccount
 )
 
 type windowsPrincipalStageError struct {
@@ -135,7 +142,7 @@ func (failure *windowsPrincipalStageError) Unwrap() error { return failure.cause
 
 func WindowsPrincipalStageFromError(err error) (WindowsPrincipalFailureStage, bool) {
 	var failure *windowsPrincipalStageError
-	if !errors.As(err, &failure) || failure.stage < WindowsPrincipalStageInput || failure.stage > WindowsPrincipalStageTokenUser {
+	if !errors.As(err, &failure) || failure.stage < WindowsPrincipalStageInput || failure.stage > WindowsPrincipalStageServiceHostAccount {
 		return 0, false
 	}
 	return failure.stage, true
@@ -173,6 +180,9 @@ func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (Window
 	if snapshot.ResolvedServiceSID != profile.serviceSID {
 		return windowsPrincipalStageFailure(WindowsPrincipalStageResolvedSID, "validate Windows Runtime principal: fixed service SID resolution mismatch")
 	}
+	if !strings.EqualFold(snapshot.ServiceStartName, profile.serviceHostAccount) {
+		return windowsPrincipalStageFailure(WindowsPrincipalStageServiceHostAccount, "validate Windows Runtime principal: fixed non-interactive service host mismatch")
+	}
 	if snapshot.ServiceSIDType != windowsServiceSIDTypeRestricted {
 		return windowsPrincipalStageFailure(WindowsPrincipalStageServiceSIDType, "validate Windows Runtime principal: NimiRuntime service SID is not restricted")
 	}
@@ -200,8 +210,8 @@ func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (Window
 	if containsSID(snapshot.Groups, windowsInteractiveLogonSID) || containsSID(snapshot.Groups, windowsRemoteInteractiveLogonSID) {
 		return windowsPrincipalStageFailure(WindowsPrincipalStageInteractiveGroup, "validate Windows Runtime principal: interactive logon membership is forbidden")
 	}
-	if snapshot.TokenUserSID == "" || snapshot.TokenUserSID == profile.serviceSID {
-		return windowsPrincipalStageFailure(WindowsPrincipalStageTokenUser, "validate Windows Runtime principal: invalid token user identity")
+	if snapshot.TokenUserSID != profile.serviceHostSID {
+		return windowsPrincipalStageFailure(WindowsPrincipalStageTokenUser, "validate Windows Runtime principal: fixed service host token user mismatch")
 	}
 	return WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: snapshot.TokenUserSID}, nil
 }

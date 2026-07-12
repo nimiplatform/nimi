@@ -257,10 +257,16 @@ signer-policy mismatch fails protected control closed.
 
 On Windows, volume serial, file ID and `WinVerifyTrust` are evaluated against
 the same opened `hFile`; the leaf signing identity must match the installer-owned
-Nimi signer policy. The production process runs under the restricted Nimi Runtime service
-SID; DPAPI-NG protectors, state ACLs and the process DACL name that exact SID
-and deny interactive VM read/write/operation, handle duplication and remote
-thread creation. On Linux, Runtime opens `/proc/<pid>/exe`, binds device/inode,
+Nimi signer policy. The production process uses the signed service definition's
+fixed non-interactive LocalSystem host token and the restricted Nimi Runtime
+service SID. DPAPI-NG uses the exact `LOCAL=user` descriptor to bind encrypted
+material to that fixed host token, while state ACLs and the process DACL name
+only the exact restricted service SID and deny interactive VM
+read/write/operation, handle duplication and remote thread creation. A
+DPAPI-NG `SID=` descriptor is not Windows local-service authority because its
+key distribution requires an Active Directory principal and fails on
+workgroup machines; `LOCAL=machine` is also forbidden because it widens
+decryption to the machine. On Linux, Runtime opens `/proc/<pid>/exe`, binds device/inode,
 and verifies the package/repository signature identity selected by the signed
 system service definition; the service uses
 the dedicated non-login system UID. On macOS,

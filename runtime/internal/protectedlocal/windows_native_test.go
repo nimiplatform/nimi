@@ -197,48 +197,45 @@ func TestWindowsRuntimeProcessDACLNamesExactServiceAndDeniesInteractiveAccess(t 
 	}
 }
 
-func TestWindowsDPAPINGExactServiceSIDDescriptorFailsClosedOutsideService(t *testing.T) {
-	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
-	protector, err := newWindowsDPAPINGProtector(serviceSID)
+func TestWindowsDPAPINGLocalUserDescriptorRoundTripsOnlyUnderTheCurrentFixedHostUser(t *testing.T) {
+	profile := mustActiveWindowsRuntimeProfile()
+	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
+	protector, err := newWindowsDPAPINGProtector(principal)
 	if err != nil {
-		if !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
-			t.Fatalf("DPAPI-NG availability error = %v", err)
-		}
-		return
+		t.Fatalf("create local-user DPAPI-NG protector: %v", err)
+	}
+	if protector.descriptor != windowsDPAPINGLocalUserDescriptor {
+		t.Fatalf("DPAPI-NG descriptor = %q", protector.descriptor)
 	}
 	secret := []byte("synthetic-non-product-secret")
 	protected, err := protector.Protect(secret)
 	if err != nil {
-		if !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
-			t.Fatalf("protect exact service-SID secret: %v", err)
-		}
-		t.Logf("exact service-SID DPAPI-NG protection unavailable in this process: %v", errors.Unwrap(err))
-		return
+		t.Fatalf("protect local-user secret: %v", err)
 	}
-	principal, principalErr := ValidateWindowsProductionPrincipal(context.Background())
 	plaintext, unprotectErr := protector.Unprotect(protected)
-	if principalErr == nil {
-		if unprotectErr != nil {
-			t.Fatalf("validated service principal could not unprotect: %v", unprotectErr)
-		}
-		if principal.ServiceSID() != serviceSID || !bytes.Equal(plaintext, secret) {
-			t.Fatal("DPAPI-NG service-principal round trip mismatch")
-		}
-		zeroBytes(plaintext)
-		return
+	if unprotectErr != nil {
+		t.Fatalf("unprotect local-user secret: %v", unprotectErr)
 	}
-	if unprotectErr == nil {
-		zeroBytes(plaintext)
-		t.Fatal("interactive process unprotected exact service-SID secret")
+	if !bytes.Equal(plaintext, secret) {
+		t.Fatal("DPAPI-NG local-user round trip mismatch")
 	}
-	if !IsReason(unprotectErr, ReasonProtectedLocalCustodyBoundaryUnavailable) {
-		t.Fatalf("unprotect error = %v", unprotectErr)
+	zeroBytes(plaintext)
+
+	for name, invalid := range map[string]WindowsServicePrincipal{
+		"wrong service SID": {serviceSID: "S-1-5-80-1-2-3-4-5", tokenUserSID: profile.serviceHostSID},
+		"wrong host user":   {serviceSID: profile.serviceSID, tokenUserSID: "S-1-5-19"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := newWindowsDPAPINGProtector(invalid); !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
+				t.Fatalf("invalid protector principal error = %v", err)
+			}
+		})
 	}
 }
 
 func TestWindowsDPAPINGRejectsBroaderEmbeddedDescriptorBeforeDecryption(t *testing.T) {
-	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
-	protector, err := newWindowsDPAPINGProtector(serviceSID)
+	profile := mustActiveWindowsRuntimeProfile()
+	protector, err := newWindowsDPAPINGProtector(WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID})
 	if err != nil {
 		if !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
 			t.Fatal(err)
@@ -250,7 +247,7 @@ func TestWindowsDPAPINGRejectsBroaderEmbeddedDescriptorBeforeDecryption(t *testi
 	if err != nil {
 		t.Fatalf("prepare broader DPAPI-NG blob: %v", err)
 	}
-	protector.descriptor = "SID=" + serviceSID
+	protector.descriptor = windowsDPAPINGLocalUserDescriptor
 	if _, err := protector.Unprotect(protected); !IsReason(err, ReasonProtectedLocalLedgerRollbackDetected) {
 		t.Fatalf("descriptor mismatch error = %v", err)
 	}

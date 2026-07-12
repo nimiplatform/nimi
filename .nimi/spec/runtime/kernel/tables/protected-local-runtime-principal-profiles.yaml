@@ -36,6 +36,13 @@ desktop_service_control:
     running_success_requirement: verified_new_or_existing_runtime_process_and_protected_handshake
     restart_success_requirement: new_pid_creation_marker_and_runtime_boot_epoch_verified
     hung_runtime_recovery: signed_installer_service_updater_or_administrator_only
+windows_service_host:
+  scm_account: LocalSystem
+  token_user_sid: S-1-5-18
+  dpapi_ng_descriptor: LOCAL=user
+  cryptographic_scope: fixed_noninteractive_service_host_user
+  authorization_scope: exact_restricted_service_sid_acl_and_process_dacl
+  local_machine_descriptor_allowed: false
 production_boot_security_configuration_authority: signed_service_definition_and_signed_release_descriptor_only
 mutable_product_configuration_authority: typed_protected_desktop_control_write_to_service_owned_state_only
 production_environment_or_argv_override: forbidden
@@ -73,9 +80,9 @@ profiles:
   - os: windows
     production_principal: NT_SERVICE_NimiRuntime_restricted_service_sid
     interactive_user_relation: distinct_os_security_principal
-    service_installation: signed_installer_creates_restricted_windows_service_no_interactive_logon
+    service_installation: signed_installer_creates_fixed_local_system_host_with_restricted_windows_service_sid_no_interactive_logon
     account_partition_derivation: verified_pipe_client_user_sid_and_logon_luid
-    custody_store: dpapi_ng_exact_service_sid_protector_in_service_sid_acl_state
+    custody_store: dpapi_ng_local_user_fixed_local_system_host_plus_exact_service_sid_acl_state
     transaction_store_and_durable_anchor: service_sid_acl_transaction_db_plus_dpapi_ng_anchor_only_for_admitted_nonrollbackable_generation
     process_isolation: service_process_dacl_denies_interactive_vm_read_vm_write_vm_operation_dup_handle_create_thread
     endpoint_connect_boundary: named_pipe_acl_grants_connect_only_to_active_interactive_sid_and_service_sid

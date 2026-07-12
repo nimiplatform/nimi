@@ -302,7 +302,6 @@ function validateCore(bundle, issues) {
   if (
     (windowsPrincipal?.interactive_user_relation === 'distinct_os_security_principal'
       && windowsPrincipal?.production_principal !== 'NT_SERVICE_NimiRuntime_restricted_service_sid')
-    || !String(windowsPrincipal?.custody_store ?? '').includes('dpapi_ng_exact_service_sid')
     || !String(windowsPrincipal?.process_isolation ?? '').includes('service_process_dacl_denies_interactive')
     || linuxPrincipal?.production_principal !== 'dedicated_nimi_runtime_system_uid'
     || !String(linuxPrincipal?.service_installation ?? '').includes('systemd_system_service')
@@ -311,6 +310,17 @@ function validateCore(bundle, issues) {
     || !String(macosPrincipal?.custody_store ?? '').includes('code_identity_acl_system_keychain')
   ) {
     issues.push(issue('SUPPORTED_OS_PRINCIPAL_PROFILE_REQUIRED', paths.principalProfiles, 'Every supported OS must use the selected isolated service principal, custody, and process-isolation profile.'));
+  }
+  if (
+    principalAuthority?.windows_service_host?.scm_account !== 'LocalSystem'
+    || principalAuthority?.windows_service_host?.token_user_sid !== 'S-1-5-18'
+    || principalAuthority?.windows_service_host?.dpapi_ng_descriptor !== 'LOCAL=user'
+    || principalAuthority?.windows_service_host?.cryptographic_scope !== 'fixed_noninteractive_service_host_user'
+    || principalAuthority?.windows_service_host?.authorization_scope !== 'exact_restricted_service_sid_acl_and_process_dacl'
+    || principalAuthority?.windows_service_host?.local_machine_descriptor_allowed !== false
+    || windowsPrincipal?.custody_store !== 'dpapi_ng_local_user_fixed_local_system_host_plus_exact_service_sid_acl_state'
+  ) {
+    issues.push(issue('WINDOWS_CUSTODY_PRINCIPAL_BINDING_REQUIRED', paths.principalProfiles, 'Windows custody must combine fixed non-interactive LocalSystem user encryption with exact restricted service-SID ACL and process isolation; local-machine or AD-only SID descriptors are forbidden.'));
   }
 
   const lifecycleIntent = parseYaml(bundle, paths.lifecycleIntent, issues);

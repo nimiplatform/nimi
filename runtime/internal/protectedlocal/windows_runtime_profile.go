@@ -19,6 +19,9 @@ type windowsRuntimeProfile struct {
 	serviceName           string
 	serviceAccount        string
 	serviceSID            string
+	serviceHostAccount    string
+	serviceHostSID        string
+	custodyDescriptor     string
 	desktopPipeName       string
 	installedPipeName     string
 	runtimeTrustSetID     string
@@ -31,7 +34,8 @@ type windowsRuntimeProfile struct {
 
 func (profile windowsRuntimeProfile) validate() error {
 	if profile.id == "" || profile.serviceName == "" || profile.serviceAccount == "" ||
-		profile.serviceSID == "" || profile.desktopPipeName == "" || profile.installedPipeName == "" ||
+		profile.serviceSID == "" || profile.serviceHostAccount == "" || profile.serviceHostSID == "" || profile.custodyDescriptor == "" ||
+		profile.desktopPipeName == "" || profile.installedPipeName == "" ||
 		profile.runtimeTrustSetID == "" || profile.desktopTrustSetID == "" ||
 		profile.runtimeExecutableName == "" || profile.desktopExecutableName == "" ||
 		profile.stateRelativePath == "" {
@@ -42,6 +46,9 @@ func (profile windowsRuntimeProfile) validate() error {
 			profile.serviceName != WindowsE2EServiceName ||
 			profile.serviceAccount != WindowsE2EServiceAccount ||
 			profile.serviceSID != WindowsE2EServiceSID ||
+			profile.serviceHostAccount != WindowsServiceHostAccount ||
+			profile.serviceHostSID != WindowsServiceHostSID ||
+			profile.custodyDescriptor != windowsDPAPINGLocalUserDescriptor ||
 			profile.desktopPipeName != WindowsE2EDesktopPipeName ||
 			profile.installedPipeName != WindowsE2EInstalledPipeName ||
 			profile.runtimeTrustSetID != WindowsRuntimeE2ETrustSetID ||
@@ -57,6 +64,9 @@ func (profile windowsRuntimeProfile) validate() error {
 		profile.serviceName != WindowsProductionServiceName ||
 		profile.serviceAccount != WindowsProductionServiceAccount ||
 		profile.serviceSID != WindowsProductionServiceSID ||
+		profile.serviceHostAccount != WindowsServiceHostAccount ||
+		profile.serviceHostSID != WindowsServiceHostSID ||
+		profile.custodyDescriptor != windowsDPAPINGLocalUserDescriptor ||
 		profile.desktopPipeName != WindowsProductionDesktopPipeName ||
 		profile.installedPipeName != WindowsProductionInstalledPipeName ||
 		profile.runtimeTrustSetID != WindowsRuntimeProductionTrustSetID ||

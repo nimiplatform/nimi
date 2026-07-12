@@ -20,6 +20,16 @@
     }
   },
   {
+    "fixture_id": "windows-custody-uses-machine-wide-dpapi",
+    "code": "WINDOWS_CUSTODY_PRINCIPAL_BINDING_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  dpapi_ng_descriptor: LOCAL=user",
+      "to": "  dpapi_ng_descriptor: LOCAL=machine"
+    }
+  },
+  {
     "fixture_id": "client-only-endpoint-auth",
     "code": "MUTUAL_ENDPOINT_AUTH_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",

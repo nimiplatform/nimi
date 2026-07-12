@@ -94,6 +94,7 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 	}
 	snapshot := windowsPrincipalSnapshot{
 		ResolvedServiceSID: resolvedSID.String(),
+		ServiceStartName:   configuration.ServiceStartName,
 		TokenUserSID:       user.User.Sid.String(),
 		TokenSessionID:     sessionID,
 		TokenType:          tokenType,

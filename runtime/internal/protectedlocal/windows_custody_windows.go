@@ -74,7 +74,7 @@ func OpenWindowsProductionSecretStore(ctx context.Context, principal WindowsServ
 	if _, err := inspectWindowsStateRoot(root.path, principal.serviceSID, &root.identity); err != nil {
 		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageSecretRoot, err)
 	}
-	protector, err := newWindowsDPAPINGProtector(principal.serviceSID)
+	protector, err := newWindowsDPAPINGProtector(principal)
 	if err != nil {
 		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageDPAPIProtector, err)
 	}
@@ -130,7 +130,7 @@ func OpenWindowsProductionSecretStore(ctx context.Context, principal WindowsServ
 
 func (store *WindowsServiceSecretStore) Load(ctx context.Context, name string) ([]byte, error) {
 	if err := validateWindowsSecretName(name); err != nil {
-		return nil, err
+		return nil, windowsCustodyStageFailure(WindowsCustodyStageSecretName, err)
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -142,11 +142,11 @@ func (store *WindowsServiceSecretStore) Load(ctx context.Context, name string) (
 		return nil, err
 	}
 	if len(encoded) < windowsSecretHeaderBytes || string(encoded[:8]) != windowsSecretEncodingMagic {
-		return nil, rollbackFailure("decode Windows protected secret", fmt.Errorf("invalid encoding"))
+		return nil, windowsCustodyRollbackFailure(WindowsCustodyStageDecode, "decode Windows protected secret", fmt.Errorf("invalid encoding"))
 	}
 	protectedBytes := int(binary.BigEndian.Uint32(encoded[8:12]))
 	if protectedBytes <= 0 || protectedBytes > windowsMaxProtectedBytes || protectedBytes != len(encoded)-windowsSecretHeaderBytes {
-		return nil, rollbackFailure("decode Windows protected secret", fmt.Errorf("invalid protected payload length"))
+		return nil, windowsCustodyRollbackFailure(WindowsCustodyStageDecode, "decode Windows protected secret", fmt.Errorf("invalid protected payload length"))
 	}
 	plaintext, err := store.protector.Unprotect(encoded[windowsSecretHeaderBytes:])
 	if err != nil {
@@ -158,17 +158,17 @@ func (store *WindowsServiceSecretStore) Load(ctx context.Context, name string) (
 	}
 	if len(plaintext) == 0 || len(plaintext) > windowsMaxSecretBytes {
 		zeroBytes(plaintext)
-		return nil, rollbackFailure("decode Windows protected secret", fmt.Errorf("invalid plaintext length"))
+		return nil, windowsCustodyRollbackFailure(WindowsCustodyStagePlaintext, "decode Windows protected secret", fmt.Errorf("invalid plaintext length"))
 	}
 	return plaintext, nil
 }
 
 func (store *WindowsServiceSecretStore) Store(ctx context.Context, name string, secret []byte) error {
 	if err := validateWindowsSecretName(name); err != nil {
-		return err
+		return windowsCustodyStageFailure(WindowsCustodyStageSecretName, err)
 	}
 	if len(secret) == 0 || len(secret) > windowsMaxSecretBytes {
-		return custodyFailure("store Windows protected secret", fmt.Errorf("secret length outside fixed bounds"))
+		return windowsCustodyFailure(WindowsCustodyStageProtectInput, "store Windows protected secret", fmt.Errorf("secret length outside fixed bounds"))
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -184,7 +184,7 @@ func (store *WindowsServiceSecretStore) Store(ctx context.Context, name string, 
 		return err
 	}
 	if len(protected) == 0 || len(protected) > windowsMaxProtectedBytes {
-		return custodyFailure("store Windows protected secret", fmt.Errorf("DPAPI-NG payload length outside fixed bounds"))
+		return windowsCustodyFailure(WindowsCustodyStageProtect, "store Windows protected secret", fmt.Errorf("DPAPI-NG payload length outside fixed bounds"))
 	}
 	encoded := make([]byte, windowsSecretHeaderBytes+len(protected))
 	copy(encoded[:8], windowsSecretEncodingMagic)
@@ -194,7 +194,7 @@ func (store *WindowsServiceSecretStore) Store(ctx context.Context, name string, 
 
 	suffix := make([]byte, 16)
 	if _, err := io.ReadFull(store.random, suffix); err != nil {
-		return custodyFailure("generate Windows secret temporary name", err)
+		return windowsCustodyFailure(WindowsCustodyStageTemporaryName, "generate Windows secret temporary name", err)
 	}
 	destination := store.secretPath(name)
 	temporary := fmt.Sprintf("%s.tmp-%x", destination, suffix)
@@ -212,38 +212,38 @@ func (store *WindowsServiceSecretStore) Store(ctx context.Context, name string, 
 		windows.FILE_ATTRIBUTE_NORMAL|windows.FILE_FLAG_OPEN_REPARSE_POINT|windows.FILE_FLAG_WRITE_THROUGH,
 	)
 	if err != nil {
-		return custodyFailure("create Windows secret temporary file", err)
+		return windowsCustodyFailure(WindowsCustodyStageTemporaryCreate, "create Windows secret temporary file", err)
 	}
 	if err := store.secureFile(handle); err != nil {
 		windows.CloseHandle(handle)
-		return err
+		return windowsCustodyStageFailure(WindowsCustodyStageTemporaryACL, err)
 	}
 	file := os.NewFile(uintptr(handle), temporary)
 	if file == nil {
 		windows.CloseHandle(handle)
-		return custodyFailure("create Windows secret file wrapper", fmt.Errorf("invalid file handle"))
+		return windowsCustodyFailure(WindowsCustodyStageTemporaryWrapper, "create Windows secret file wrapper", fmt.Errorf("invalid file handle"))
 	}
 	if _, err := file.Write(encoded); err != nil {
 		_ = file.Close()
-		return custodyFailure("write Windows secret temporary file", err)
+		return windowsCustodyFailure(WindowsCustodyStageTemporaryWrite, "write Windows secret temporary file", err)
 	}
 	if err := file.Sync(); err != nil {
 		_ = file.Close()
-		return custodyFailure("flush Windows secret temporary file", err)
+		return windowsCustodyFailure(WindowsCustodyStageTemporaryFlush, "flush Windows secret temporary file", err)
 	}
 	if err := file.Close(); err != nil {
-		return custodyFailure("close Windows secret temporary file", err)
+		return windowsCustodyFailure(WindowsCustodyStageTemporaryClose, "close Windows secret temporary file", err)
 	}
 	from, err := windows.UTF16PtrFromString(temporary)
 	if err != nil {
-		return custodyFailure("encode Windows secret temporary path", err)
+		return windowsCustodyFailure(WindowsCustodyStageTemporaryPath, "encode Windows secret temporary path", err)
 	}
 	to, err := windows.UTF16PtrFromString(destination)
 	if err != nil {
-		return custodyFailure("encode Windows secret destination path", err)
+		return windowsCustodyFailure(WindowsCustodyStageDestinationPath, "encode Windows secret destination path", err)
 	}
 	if err := windows.MoveFileEx(from, to, windows.MOVEFILE_REPLACE_EXISTING|windows.MOVEFILE_WRITE_THROUGH); err != nil {
-		return custodyFailure("atomically replace Windows secret", err)
+		return windowsCustodyFailure(WindowsCustodyStageAtomicReplace, "atomically replace Windows secret", err)
 	}
 	removeTemporary = false
 	if err := store.validateStoredFile(destination); err != nil {
@@ -254,7 +254,7 @@ func (store *WindowsServiceSecretStore) Store(ctx context.Context, name string, 
 
 func (store *WindowsServiceSecretStore) Delete(ctx context.Context, name string) error {
 	if err := validateWindowsSecretName(name); err != nil {
-		return err
+		return windowsCustodyStageFailure(WindowsCustodyStageSecretName, err)
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -273,33 +273,33 @@ func (store *WindowsServiceSecretStore) Delete(ctx context.Context, name string)
 		return ErrProtectedSecretNotFound
 	}
 	if err != nil {
-		return custodyFailure("open Windows secret for deletion", err)
+		return windowsCustodyFailure(WindowsCustodyStageDeleteOpen, "open Windows secret for deletion", err)
 	}
 	if err := store.validateFile(handle); err != nil {
 		windows.CloseHandle(handle)
-		return err
+		return windowsCustodyStageFailure(WindowsCustodyStageDeleteACL, err)
 	}
 	if err := windows.CloseHandle(handle); err != nil {
-		return custodyFailure("close Windows secret before deletion", err)
+		return windowsCustodyFailure(WindowsCustodyStageDeleteClose, "close Windows secret before deletion", err)
 	}
 	if err := deleteWindowsPath(path); err != nil {
 		if isWindowsNotFound(err) {
 			return ErrProtectedSecretNotFound
 		}
-		return custodyFailure("delete Windows protected secret", err)
+		return windowsCustodyFailure(WindowsCustodyStageDelete, "delete Windows protected secret", err)
 	}
 	return nil
 }
 
 func (store *WindowsServiceSecretStore) validate(ctx context.Context) error {
 	if store == nil || store.protector == nil || store.validateRoot == nil || store.secureFile == nil || store.validateFile == nil || store.random == nil {
-		return custodyFailure("validate Windows secret store", fmt.Errorf("incomplete store capability"))
+		return windowsCustodyFailure(WindowsCustodyStageStoreCapability, "validate Windows secret store", fmt.Errorf("incomplete store capability"))
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := store.validateRoot(ctx); err != nil {
-		return err
+		return windowsCustodyStageFailure(WindowsCustodyStageStateRoot, err)
 	}
 	return nil
 }
@@ -322,31 +322,31 @@ func (store *WindowsServiceSecretStore) readEncoded(name string) ([]byte, error)
 		return nil, ErrProtectedSecretNotFound
 	}
 	if err != nil {
-		return nil, custodyFailure("open Windows protected secret", err)
+		return nil, windowsCustodyFailure(WindowsCustodyStageReadOpen, "open Windows protected secret", err)
 	}
 	if err := validateWindowsRegularFile(handle); err != nil {
 		windows.CloseHandle(handle)
-		return nil, err
+		return nil, windowsCustodyStageFailure(WindowsCustodyStageReadIdentity, err)
 	}
 	if err := store.validateFile(handle); err != nil {
 		windows.CloseHandle(handle)
-		return nil, err
+		return nil, windowsCustodyStageFailure(WindowsCustodyStageReadACL, err)
 	}
 	file := os.NewFile(uintptr(handle), path)
 	if file == nil {
 		windows.CloseHandle(handle)
-		return nil, custodyFailure("create Windows secret file wrapper", fmt.Errorf("invalid file handle"))
+		return nil, windowsCustodyFailure(WindowsCustodyStageReadWrapper, "create Windows secret file wrapper", fmt.Errorf("invalid file handle"))
 	}
 	encoded, readErr := io.ReadAll(io.LimitReader(file, windowsSecretHeaderBytes+windowsMaxProtectedBytes+1))
 	closeErr := file.Close()
 	if readErr != nil {
-		return nil, custodyFailure("read Windows protected secret", readErr)
+		return nil, windowsCustodyFailure(WindowsCustodyStageRead, "read Windows protected secret", readErr)
 	}
 	if closeErr != nil {
-		return nil, custodyFailure("close Windows protected secret", closeErr)
+		return nil, windowsCustodyFailure(WindowsCustodyStageReadClose, "close Windows protected secret", closeErr)
 	}
 	if len(encoded) > windowsSecretHeaderBytes+windowsMaxProtectedBytes {
-		return nil, rollbackFailure("read Windows protected secret", fmt.Errorf("encoded payload exceeds fixed bounds"))
+		return nil, windowsCustodyRollbackFailure(WindowsCustodyStageDecode, "read Windows protected secret", fmt.Errorf("encoded payload exceeds fixed bounds"))
 	}
 	return encoded, nil
 }
@@ -360,13 +360,16 @@ func (store *WindowsServiceSecretStore) validateStoredFile(path string) error {
 		windows.FILE_ATTRIBUTE_NORMAL|windows.FILE_FLAG_OPEN_REPARSE_POINT,
 	)
 	if err != nil {
-		return custodyFailure("reopen stored Windows secret", err)
+		return windowsCustodyFailure(WindowsCustodyStageStoredReopen, "reopen stored Windows secret", err)
 	}
 	defer windows.CloseHandle(handle)
 	if err := validateWindowsRegularFile(handle); err != nil {
-		return err
+		return windowsCustodyStageFailure(WindowsCustodyStageStoredIdentity, err)
 	}
-	return store.validateFile(handle)
+	if err := store.validateFile(handle); err != nil {
+		return windowsCustodyStageFailure(WindowsCustodyStageStoredACL, err)
+	}
+	return nil
 }
 
 func validateWindowsStateRootPath(path string) (string, error) {
@@ -527,14 +530,14 @@ type windowsDPAPINGProtector struct {
 	unprotect  *windows.LazyProc
 }
 
-func newWindowsDPAPINGProtector(serviceSID string) (*windowsDPAPINGProtector, error) {
+func newWindowsDPAPINGProtector(principal WindowsServicePrincipal) (*windowsDPAPINGProtector, error) {
 	profile := mustActiveWindowsRuntimeProfile()
-	if serviceSID != profile.serviceSID {
-		return nil, custodyFailure("create DPAPI-NG protector", fmt.Errorf("exact active service SID required"))
+	if principal.serviceSID != profile.serviceSID || principal.tokenUserSID != profile.serviceHostSID {
+		return nil, custodyFailure("create DPAPI-NG protector", fmt.Errorf("exact active service and fixed host principal required"))
 	}
 	library := windows.NewLazySystemDLL("ncrypt.dll")
 	protector := &windowsDPAPINGProtector{
-		descriptor: "SID=" + profile.serviceSID,
+		descriptor: profile.custodyDescriptor,
 		create:     library.NewProc("NCryptCreateProtectionDescriptor"),
 		close:      library.NewProc("NCryptCloseProtectionDescriptor"),
 		info:       library.NewProc("NCryptGetProtectionDescriptorInfo"),
@@ -551,16 +554,16 @@ func newWindowsDPAPINGProtector(serviceSID string) (*windowsDPAPINGProtector, er
 
 func (protector *windowsDPAPINGProtector) Protect(plaintext []byte) ([]byte, error) {
 	if len(plaintext) == 0 || len(plaintext) > windowsMaxSecretBytes {
-		return nil, custodyFailure("DPAPI-NG protect secret", fmt.Errorf("plaintext length outside fixed bounds"))
+		return nil, windowsCustodyFailure(WindowsCustodyStageProtectInput, "DPAPI-NG protect secret", fmt.Errorf("plaintext length outside fixed bounds"))
 	}
 	descriptor, err := windows.UTF16PtrFromString(protector.descriptor)
 	if err != nil {
-		return nil, custodyFailure("encode DPAPI-NG descriptor", err)
+		return nil, windowsCustodyFailure(WindowsCustodyStageDescriptorEncode, "encode DPAPI-NG descriptor", err)
 	}
 	var descriptorHandle uintptr
 	status, _, _ := protector.create.Call(uintptr(unsafe.Pointer(descriptor)), 0, uintptr(unsafe.Pointer(&descriptorHandle)))
 	if status != 0 || descriptorHandle == 0 {
-		return nil, custodyFailure("create DPAPI-NG descriptor", ncryptStatusError(status))
+		return nil, windowsCustodyFailure(WindowsCustodyStageDescriptorCreate, "create DPAPI-NG descriptor", ncryptStatusError(status))
 	}
 	defer protector.close.Call(descriptorHandle)
 	var protectedPointer *byte
@@ -580,7 +583,7 @@ func (protector *windowsDPAPINGProtector) Protect(plaintext []byte) ([]byte, err
 		if protectedPointer != nil {
 			windows.LocalFree(windows.Handle(unsafe.Pointer(protectedPointer)))
 		}
-		return nil, custodyFailure("DPAPI-NG protect secret", ncryptStatusError(status))
+		return nil, windowsCustodyFailure(WindowsCustodyStageProtect, "DPAPI-NG protect secret", ncryptStatusError(status))
 	}
 	native := unsafe.Slice(protectedPointer, int(protectedBytes))
 	result := append([]byte(nil), native...)
@@ -591,7 +594,7 @@ func (protector *windowsDPAPINGProtector) Protect(plaintext []byte) ([]byte, err
 
 func (protector *windowsDPAPINGProtector) Unprotect(protected []byte) ([]byte, error) {
 	if len(protected) == 0 || len(protected) > windowsMaxProtectedBytes {
-		return nil, rollbackFailure("DPAPI-NG unprotect secret", fmt.Errorf("protected payload length outside fixed bounds"))
+		return nil, windowsCustodyRollbackFailure(WindowsCustodyStageUnprotect, "DPAPI-NG unprotect secret", fmt.Errorf("protected payload length outside fixed bounds"))
 	}
 	if err := protector.verifyEmbeddedDescriptor(protected); err != nil {
 		return nil, err
@@ -617,7 +620,7 @@ func (protector *windowsDPAPINGProtector) Unprotect(protected []byte) ([]byte, e
 		if plaintextPointer != nil {
 			windows.LocalFree(windows.Handle(unsafe.Pointer(plaintextPointer)))
 		}
-		return nil, custodyFailure("DPAPI-NG unprotect secret", ncryptStatusError(status))
+		return nil, windowsCustodyFailure(WindowsCustodyStageUnprotect, "DPAPI-NG unprotect secret", ncryptStatusError(status))
 	}
 	if err := protector.verifyDescriptorHandle(descriptorHandle); err != nil {
 		native := unsafe.Slice(plaintextPointer, int(plaintextBytes))
@@ -654,14 +657,14 @@ func (protector *windowsDPAPINGProtector) verifyEmbeddedDescriptor(protected []b
 		defer protector.close.Call(descriptorHandle)
 	}
 	if status != 0 || descriptorHandle == 0 {
-		return rollbackFailure("inspect DPAPI-NG descriptor", ncryptStatusError(status))
+		return windowsCustodyRollbackFailure(WindowsCustodyStageDescriptorInspect, "inspect DPAPI-NG descriptor", ncryptStatusError(status))
 	}
 	return protector.verifyDescriptorHandle(descriptorHandle)
 }
 
 func (protector *windowsDPAPINGProtector) verifyDescriptorHandle(descriptorHandle uintptr) error {
 	if descriptorHandle == 0 {
-		return rollbackFailure("inspect DPAPI-NG descriptor", fmt.Errorf("missing descriptor handle"))
+		return windowsCustodyRollbackFailure(WindowsCustodyStageDescriptorInspect, "inspect DPAPI-NG descriptor", fmt.Errorf("missing descriptor handle"))
 	}
 	var descriptorPointer *uint16
 	status, _, _ := protector.info.Call(
@@ -671,12 +674,12 @@ func (protector *windowsDPAPINGProtector) verifyDescriptorHandle(descriptorHandl
 		uintptr(unsafe.Pointer(&descriptorPointer)),
 	)
 	if status != 0 || descriptorPointer == nil {
-		return rollbackFailure("inspect DPAPI-NG descriptor", ncryptStatusError(status))
+		return windowsCustodyRollbackFailure(WindowsCustodyStageDescriptorInspect, "inspect DPAPI-NG descriptor", ncryptStatusError(status))
 	}
 	defer windows.LocalFree(windows.Handle(unsafe.Pointer(descriptorPointer)))
 	descriptor := windows.UTF16PtrToString(descriptorPointer)
 	if descriptor != protector.descriptor {
-		return rollbackFailure("inspect DPAPI-NG descriptor", fmt.Errorf("protection descriptor mismatch"))
+		return windowsCustodyRollbackFailure(WindowsCustodyStageDescriptorInspect, "inspect DPAPI-NG descriptor", fmt.Errorf("protection descriptor mismatch"))
 	}
 	return nil
 }
@@ -686,6 +689,14 @@ func ncryptStatusError(status uintptr) error {
 		return fmt.Errorf("DPAPI-NG returned incomplete output")
 	}
 	return fmt.Errorf("DPAPI-NG security status 0x%08x", uint32(status))
+}
+
+func windowsCustodyFailure(stage WindowsCustodyFailureStage, operation string, cause error) error {
+	return windowsCustodyStageFailure(stage, custodyFailure(operation, cause))
+}
+
+func windowsCustodyRollbackFailure(stage WindowsCustodyFailureStage, operation string, cause error) error {
+	return windowsCustodyStageFailure(stage, rollbackFailure(operation, cause))
 }
 
 func custodyFailure(operation string, cause error) error {
