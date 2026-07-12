@@ -22,8 +22,9 @@ const runtimeAccountContractSource = readFileSync(
 
 test('desktop bootstrap reads Runtime account projection instead of shared auth-session truth', () => {
   assert.match(runtimeBootstrapSource, /configureDesktopRuntimeRealmSession\(/);
-  assert.match(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller\(/);
-  assert.match(runtimeBootstrapSource, /desktopSession\.accountRuntime\.account\.getAccountSessionStatus\(\{/);
+  assert.match(runtimeBootstrapSource, /desktopBridge\.getRuntimeAccountSessionStatus\(\)/);
+  assert.doesNotMatch(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller\(/);
+  assert.doesNotMatch(runtimeBootstrapSource, /accountRuntime\.account\.getAccountSessionStatus/);
   assert.doesNotMatch(runtimeBootstrapSource, /getAccessToken|refreshAccountSession/);
   assert.doesNotMatch(runtimeBootstrapSource, /accessTokenProvider:/);
   assert.doesNotMatch(runtimeBootstrapSource, /bootstrapAuthSession\(/);
@@ -32,10 +33,9 @@ test('desktop bootstrap reads Runtime account projection instead of shared auth-
 });
 
 test('desktop bootstrap projects authenticated state from Runtime account truth without raw token access', () => {
-  assert.match(runtimeBootstrapSource, /AccountSessionState\.AUTHENTICATED/);
   assert.match(
     runtimeBootstrapSource,
-    /accountStatus\.state === AccountSessionState\.AUTHENTICATED\s*&& accountProjection\?\.accountId/s,
+    /accountStatus\.state === 'authenticated'\s*&& accountProjection\?\.accountId/s,
   );
   assert.match(
     runtimeBootstrapSource,
@@ -64,7 +64,7 @@ test('desktop bootstrap fails closed without a Realm-only token fallback when Ru
   assert.doesNotMatch(runtimeBootstrapSource, /configureDesktopRealmOnlySession/);
   const firstRuntimeUnavailableBranch = runtimeBootstrapSource.indexOf('if (runtimeUnavailable) {');
   const runtimeAccountStatusIndex = runtimeBootstrapSource.indexOf(
-    'desktopSession.accountRuntime.account.getAccountSessionStatus',
+    'desktopBridge.getRuntimeAccountSessionStatus',
   );
 
   assert.notEqual(firstRuntimeUnavailableBranch, -1);

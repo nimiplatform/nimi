@@ -150,7 +150,7 @@ test('Desktop auth custody stays RuntimeAccountService-owned', () => {
   assert.doesNotMatch(authAdapterSource, /auth_session_load|auth_session_save|auth_session_clear/);
   assert.match(authAdapterSource, /RuntimeAccountService/);
   assert.match(authAdapterSource, /createRuntimeAccountBrowserBroker/);
-  assert.match(authAdapterSource, /getAccountSessionStatus/);
+  assert.match(authAdapterSource, /getRuntimeAccountSessionStatus/);
   assert.doesNotMatch(authAdapterSource, /getAccessToken|refreshAccountSession/);
 
   assert.equal(fs.existsSync(authSessionCommandsPath), false);
@@ -243,13 +243,15 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.doesNotMatch(mainSource, /function isRetryableEntryImportError|function createEntryImportError|Failed to fetch dynamically imported module|Importing a module script failed/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
-  for (const source of [authAdapterSource, runtimeBootstrapSource, smokeDriverSource]) {
+  for (const source of [authAdapterSource, smokeDriverSource]) {
     assert.match(source, /createNimiDesktopShellRuntimeAccountCaller/);
     assert.doesNotMatch(source, /appInstanceId:\s*['"`]nimi\.desktop\.local-first-party/);
     assert.doesNotMatch(source, /deviceId:\s*['"`]desktop-shell/);
     assert.doesNotMatch(source, /mode:\s*2/);
     assert.doesNotMatch(source, /scopes:\s*\[\]/);
   }
+  assert.match(runtimeBootstrapSource, /desktopBridge\.getRuntimeAccountSessionStatus\(\)/);
+  assert.doesNotMatch(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller/);
   assert.match(desktopClientSessionSource, /createNimiDesktopShellRuntimeAccountCaller/);
   assert.doesNotMatch(desktopClientSessionSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.match(desktopClientSessionSource, /desktop shell Runtime account caller registration rejected/);

@@ -20,9 +20,10 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::OpenDesktopSessionRequest;
 use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
 use crate::{
-    FixedRuntimeServiceControl, InstalledAppLaunchOutcome, InstalledAppLaunchRequest,
-    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, FixedRuntimeServiceControl,
+    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, LocalDevelopmentAuthorization,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
     NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
     RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
@@ -50,6 +51,17 @@ struct WindowsDesktopControl {
 }
 
 impl NimiDesktopControl for WindowsDesktopControl {
+    fn get_account_session_status(
+        &self,
+        request: DesktopAccountSessionStatusRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<DesktopAccountSessionStatus, NimiHostError>> + Send + '_>>
+    {
+        Box::pin(crate::windows_desktop_account::get_account_session_status(
+            self._channel.clone(),
+            request,
+        ))
+    }
+
     fn launch_installed_app(
         &self,
         request: InstalledAppLaunchRequest,

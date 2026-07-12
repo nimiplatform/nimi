@@ -13,10 +13,10 @@ use nimi_shell_tauri::{
         set_standard_local_assets_host_hooks, StandardLocalAssetsHostHooks,
     },
     capabilities::runtime::{
-        RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
-        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata,
-        RuntimeBridgeTrustedMetadataRequest, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
-        RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
+        DesktopAccountSessionStatusRequest, RuntimeBridgeHostAppSessionConfig,
+        RuntimeBridgeHostAppSessionProvider, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
+        RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataRequest,
+        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID, RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
     },
     capabilities::shell_ui::{StandardConfirmDialogPayload, StandardShellUiHostHooks},
 };
@@ -96,6 +96,11 @@ fn install_shared_runtime_bridge_hooks() {
         .expect("Desktop Runtime host app-session constants must be valid"),
     )
     .expect("Desktop Runtime host app-session provider must initialize");
+    let desktop_account_status_request = DesktopAccountSessionStatusRequest {
+        app_id: desktop_account_caller.app_id.clone(),
+        app_instance_id: desktop_account_caller.app_instance_id.clone(),
+        device_id: desktop_account_caller.device_id.clone(),
+    };
     let hooks = RuntimeBridgeHostHooks {
         status_override: {
             #[cfg(any(test, feature = "desktop-e2e-fixture"))]
@@ -145,6 +150,7 @@ fn install_shared_runtime_bridge_hooks() {
         })),
         resolve_nimi_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_dir)),
         resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
+        desktop_account_status_request: Some(desktop_account_status_request),
     };
     let _ = nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(hooks);
 }
@@ -463,6 +469,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_oauth_runtime_bridge_handler![
             @with_runtime_defaults super::defaults_and_commands::runtime_defaults;
             desktop_release::desktop_release_info_get,
+            nimi_shell_tauri::capabilities::runtime::runtime_account_session_status,
             desktop_updates::desktop_update_state_get,
             desktop_updates::desktop_update_check,
             desktop_updates::desktop_update_download,

@@ -1,8 +1,9 @@
 use crate::{
-    AppHostBootstrapStatus, FixedRuntimeServiceControl, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, NimiHostError, ProtectedCarrierError,
+    AppHostBootstrapStatus, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
+    FixedRuntimeServiceControl, LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
+    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, NimiHostError,
+    ProtectedCarrierError,
 };
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -91,6 +92,11 @@ impl Error for AppHostArtifactReadError {}
 /// the compile-only carrier slice prevents a generic method-id or byte proxy
 /// from becoming a protected transport bypass.
 pub trait NimiDesktopControl: Send + Sync {
+    fn get_account_session_status(
+        &self,
+        request: DesktopAccountSessionStatusRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<DesktopAccountSessionStatus, NimiHostError>> + Send + '_>>;
+
     fn launch_installed_app(
         &self,
         request: InstalledAppLaunchRequest,

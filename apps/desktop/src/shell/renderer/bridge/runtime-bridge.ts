@@ -1,5 +1,10 @@
 import { logRendererEvent, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
-import { getRuntimeDefaults, hasShellHostInvoke, hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  getRuntimeAccountSessionStatus,
+  getRuntimeDefaults,
+  hasShellHostInvoke,
+  hasTauriInvoke,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   desktopUpdateCheck,
   desktopUpdateDownload,
@@ -87,6 +92,12 @@ export type {
   OauthListenForCodeResult,
 } from '@nimiplatform/kit/core/oauth';
 
+export type {
+  DesktopAccountProjection,
+  DesktopAccountSessionState,
+  DesktopAccountSessionStatus,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+
 export {
   getDesktopReleaseInfo,
   getDesktopUpdateState,
@@ -100,6 +111,7 @@ export {
   logRendererEvent,
   toRendererLogMessage,
   getRuntimeBridgeStatus,
+  getRuntimeAccountSessionStatus,
   getSystemResourceSnapshot,
   startRuntimeBridge,
   restartRuntimeBridge,

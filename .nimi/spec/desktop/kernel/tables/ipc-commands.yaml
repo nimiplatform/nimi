@@ -479,6 +479,11 @@ commands:
     description: Close an active server-streaming gRPC call via IPC bridge
     source_rule: D-IPC-012
 
+  - command: runtime_account_session_status
+    module: protected-local-host
+    description: Project exact Runtime account state over the verified Desktop control carrier with no renderer input and no token, session, credential, endpoint, or native authority material.
+    source_rule: D-IPC-001
+
   - command: runtime_bridge_status
     module: protected-local-host
     description: Return redacted fixed-service status through the shared native carrier; no PID, address, path, service selector, or credential.
@@ -493,6 +498,32 @@ commands:
     module: protected-local-host
     description: Request verified Runtime self-exit plus OS service-manager recovery and report success only after new-process mutual verification.
     source_rule: D-IPC-002
+
+  # Local-development confirmation and supervisor (desktop_local_development)
+  - command: local_development_pending_approvals
+    module: desktop-local-development
+    description: List renderer-safe pending project confirmations with app, canonical root, shell, current account, and requested capabilities; no native carrier or technical-session material.
+    source_rule: D-IPC-019
+
+  - command: local_development_decide
+    module: desktop-local-development
+    description: Submit one Desktop confirmation decision for a pending evaluation; the decision does not itself mint or return protected session material.
+    source_rule: D-IPC-019
+
+  - command: local_development_authorizations_list
+    module: desktop-local-development
+    description: List renderer-safe Runtime-owned remembered development authorization projections for Desktop settings and revocation UX.
+    source_rule: D-IPC-019
+
+  - command: local_development_runs_list
+    module: desktop-local-development
+    description: List stable Desktop supervisor run states without PID, launch ticket, Runtime epoch, protected endpoint, credential, or technical-session proof.
+    source_rule: D-IPC-019
+
+  - command: local_development_authorization_revoke
+    module: desktop-local-development
+    description: Revoke one Runtime-owned remembered development authorization through the live protected Desktop control connection.
+    source_rule: D-IPC-019
 
   # Local runtime (local_runtime::commands)
   - command: runtime_local_pick_asset_manifest_path

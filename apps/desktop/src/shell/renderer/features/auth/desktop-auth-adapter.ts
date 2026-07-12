@@ -28,7 +28,6 @@ import {
   type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
@@ -70,12 +69,9 @@ type OAuthLoginResultDto = NimiRealmOAuthLoginResult;
 const desktopRuntimeAccountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
 
 async function loadDesktopRuntimeAccountUser(): Promise<Record<string, unknown> | null> {
-  const runtime = getDesktopAccountRuntime();
-  const response = await runtime.account.getAccountSessionStatus({
-    caller: desktopRuntimeAccountCaller,
-  });
+  const response = await desktopBridge.getRuntimeAccountSessionStatus();
   const projection = response.accountProjection;
-  if (response.state !== AccountSessionState.AUTHENTICATED || !projection?.accountId) {
+  if (response.state !== 'authenticated' || !projection?.accountId) {
     return null;
   }
   return toNimiRealmAuthUserRecord({

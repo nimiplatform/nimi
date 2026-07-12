@@ -422,6 +422,31 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
+  - family: protected_desktop_account_projection
+    match:
+      exact:
+        - runtime_account_session_status
+    origin_crate: kit/shell/tauri
+    owner_domain: runtime-account-protected-carrier
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: local_development_supervisor
+    match:
+      prefix: local_development_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-local-development-supervisor
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - process_command
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
   # Retained app-local in the 2026-07-09 Tauri shell refactor batch;
   # future owner is pending explicit decision between admitted Desktop local truth and runtime ownership.
   - family: chat_ai_local_store
@@ -550,6 +575,18 @@ registered_command_families:
     source_rule: D-GATE-092
 
 dormant_command_families:
+  - family: kit_installed_app_commands_for_non_desktop_hosts
+    match:
+      exact:
+        - app_host_bootstrap
+        - artifacts_read_runtime_bytes
+    origin_crate: kit/shell/tauri
+    owner_domain: installed-app-standard-shell
+    dormant_class: dormant_admitted
+    remediation_required: false
+    reason: Shared Kit installed-app commands are registered only by supervised installed or local-development app hosts; the Desktop renderer does not expose this app-host surface.
+    source_rule: D-GATE-095
+
   - family: kit_shell_floating_window_for_non_desktop_hosts
     match:
       prefix: floating_window_

@@ -5,9 +5,10 @@ use nimi_shell_protected_local::MacOsPrivilegedXpcCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsNamedPipeCarrier;
 use nimi_shell_protected_local::{
-    FixedRuntimeServiceControl, InstalledAppLaunchOutcome, InstalledAppLaunchRequest,
-    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, FixedRuntimeServiceControl,
+    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, LocalDevelopmentAuthorization,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError,
     NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
     RuntimeServiceAction, RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
@@ -170,6 +171,23 @@ pub(super) async fn launch_installed_app(
         )
     })?;
     control.launch_installed_app(request).await
+}
+
+pub(super) async fn get_account_session_status(
+    request: DesktopAccountSessionStatusRequest,
+) -> Result<DesktopAccountSessionStatus, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.get_account_session_status(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(&control);
+            control_for_call()
+                .await?
+                .get_account_session_status(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
 }
 
 pub(super) async fn evaluate_local_development_project(

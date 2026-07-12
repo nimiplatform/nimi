@@ -22,7 +22,7 @@ function assertGuardedCall(handlerName: string): void {
   assert.notEqual(guardIndex, -1, `${handlerName} must await ensureAuthApiReady()`);
   const nextHandlerIndex = authAdapterSource.indexOf('\n\n', start);
   const searchEnd = nextHandlerIndex === -1 ? authAdapterSource.length : nextHandlerIndex;
-  const runtimeProjectionIndex = authAdapterSource.indexOf('runtime.account.getAccountSessionStatus', start);
+  const runtimeProjectionIndex = authAdapterSource.indexOf('desktopBridge.getRuntimeAccountSessionStatus', start);
   const realmSecurityProjectionIndex = authAdapterSource.indexOf('updateNimiRealmPassword', start);
   const sharedRuntimeProjectionIndex = authAdapterSource.indexOf('loadDesktopRuntimeAccountUser()', start);
   const guardedIndex = [runtimeProjectionIndex, realmSecurityProjectionIndex]
@@ -69,7 +69,8 @@ test('desktop auth adapter guards Runtime-backed auth API calls behind bootstrap
   }
   assertGuardedCall('updatePassword');
   assertGuardedCall('loadCurrentUser');
-  assert.match(authAdapterSource, /runtime\.account\.getAccountSessionStatus\(\{\s*caller:/s);
+  assert.match(authAdapterSource, /desktopBridge\.getRuntimeAccountSessionStatus\(\)/);
+  assert.doesNotMatch(authAdapterSource, /getDesktopAccountRuntime\(\)\.account\.getAccountSessionStatus/);
   assert.doesNotMatch(authAdapterSource, /getAccessToken|refreshAccountSession/);
 });
 

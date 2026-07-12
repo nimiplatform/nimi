@@ -14,8 +14,6 @@ import {
   safeBootstrapErrorMessage,
   withBootstrapStepTimeout,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
-import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
@@ -334,19 +332,16 @@ export function bootstrapRuntime(): Promise<void> {
       clearDesktopConversationCapabilityRouteRuntime();
       useAppStore.getState().clearAuthSession();
     } else {
-      const desktopSession = await configureDesktopRuntimeRealmSession({
+      await configureDesktopRuntimeRealmSession({
         appId: 'nimi.desktop',
         realmBaseUrl: defaults.realm.realmBaseUrl,
         runtimeTransport: resolveDesktopRuntimeTransport(),
       });
       bindDesktopConversationCapabilityRouteRuntime();
-      const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
-      const accountStatus = await desktopSession.accountRuntime.account.getAccountSessionStatus({
-        caller: accountCaller,
-      });
+      const accountStatus = await desktopBridge.getRuntimeAccountSessionStatus();
       const accountProjection = accountStatus.accountProjection;
       if (
-        accountStatus.state === AccountSessionState.AUTHENTICATED
+        accountStatus.state === 'authenticated'
         && accountProjection?.accountId
       ) {
         useAppStore.getState().setAuthSession({

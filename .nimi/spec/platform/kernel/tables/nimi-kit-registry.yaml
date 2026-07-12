@@ -183,7 +183,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalHostCarrier
-    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession/bootstrap, typed fixed-service status/start/restart, and the host-only installed read_artifact_bytes method, including its fixed Windows x64 Node-API ABI projection for Electron main. Kit carries typed calls only; Runtime and the OS remain security, account, grant, artifact, and lifecycle authorities.
+    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession/bootstrap, typed fixed-service status/start/restart, the exact Desktop account-session-status projection, and the host-only installed read_artifact_bytes method, including its fixed Windows x64 Node-API ABI projection for Electron main. Kit carries typed calls only; Runtime and the OS remain security, account, grant, artifact, and lifecycle authorities.
     dependencies: []
     peer_dependencies: []
     exports: []
@@ -216,7 +216,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Tauri host glue consuming the native protected-local carrier for typed fixed-service status/start/restart and one catalogued renderer-safe artifact read over a single cached opaque installed session; owns no executable selection, service stop, config document, credential, Realm endpoint, account/grant truth, or Runtime lifecycle truth.
+    description: Shared Tauri host glue consuming the native protected-local carrier for typed fixed-service status/start/restart, one no-input Desktop account-session-status projection, and one catalogued renderer-safe artifact read over a single cached opaque installed session; owns no executable selection, service stop, config document, credential, Realm endpoint, account/grant truth, or Runtime lifecycle truth.
     dependencies:
       - kit.shell.protected-local
     peer_dependencies: []
@@ -236,7 +236,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellRendererBridge
-    description: Shared renderer shell glue for Tauri and Electron hosts - host-neutral command wrappers, bridge primitives, bootstrap skeleton, and the exact installed artifacts.readRuntimeBytes projection whose payload cannot carry protected session or authorization material. Delivered as subpath exports of the single nimi-kit npm package.
+    description: Shared renderer shell glue for Tauri and Electron hosts - host-neutral command wrappers, bridge primitives, bootstrap skeleton, the exact no-input Desktop account-session-status projection, and the exact installed artifacts.readRuntimeBytes projection; neither protected projection can carry session, token, credential, endpoint, or authorization material. Delivered as subpath exports of the single nimi-kit npm package.
     dependencies:
       - kit.shell.capabilities
       - kit.core

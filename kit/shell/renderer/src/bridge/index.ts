@@ -33,6 +33,15 @@ export {
   setDaemonConfig,
 } from './runtime-daemon.js';
 export {
+  getRuntimeAccountSessionStatus,
+  parseDesktopAccountSessionStatus,
+} from './runtime-account.js';
+export type {
+  DesktopAccountProjection,
+  DesktopAccountSessionState,
+  DesktopAccountSessionStatus,
+} from './runtime-account.js';
+export {
   oauthTokenExchange,
   oauthListenForCode,
   createStandardShellOAuthCodeBridge,

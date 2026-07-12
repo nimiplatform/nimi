@@ -2,6 +2,7 @@
 
 mod adapters;
 mod carrier;
+mod desktop_account;
 mod grpc_status;
 mod local_development;
 mod reason;
@@ -9,6 +10,8 @@ mod service;
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }
+#[cfg(target_os = "windows")]
+mod windows_desktop_account;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_installed_launch;
@@ -35,6 +38,10 @@ pub use carrier::{
     AppHostArtifactBytes, AppHostArtifactReadError, AppHostArtifactReadReasonCode,
     InstalledAppLaunchOutcome, InstalledAppLaunchRequest, NimiAppHostCarrier, NimiAppHostSession,
     NimiDesktopControl, NimiProtectedLocalHostCarrier,
+};
+pub use desktop_account::{
+    DesktopAccountProjection, DesktopAccountSessionState, DesktopAccountSessionStatus,
+    DesktopAccountSessionStatusRequest,
 };
 pub use local_development::{
     AppHostBootstrapState, AppHostBootstrapStatus, AppHostTrustClass,

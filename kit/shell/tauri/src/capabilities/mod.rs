@@ -17,18 +17,19 @@ pub mod runtime {
         local_development_host_running, reset_channel_invalidation_count, restart_daemon_async,
         revoke_local_development_authorization, set_runtime_bridge_host_hooks, start_daemon_async,
         stream_event_name_with_namespace, terminate_local_development_host,
-        LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState,
-        LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-        LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-        LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
-        LocalDevelopmentShellKind, NimiHostError, NimiHostErrorReasonCode, RuntimeBridgeAppHost,
-        RuntimeBridgeAppHostError, RuntimeBridgeAppSession, RuntimeBridgeDaemonStatus,
-        RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
-        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
-        RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload,
-        RuntimeBridgeStreamOpenResult, RuntimeBridgeTrustedMetadata,
-        RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeTrustedMetadataRequest,
-        RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
+        DesktopAccountSessionStatusRequest, LocalDevelopmentAuthorization,
+        LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
+        LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+        LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+        LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentShellKind,
+        NimiHostError, NimiHostErrorReasonCode, RuntimeBridgeAppHost, RuntimeBridgeAppHostError,
+        RuntimeBridgeAppSession, RuntimeBridgeDaemonStatus, RuntimeBridgeDesktopAccountProjection,
+        RuntimeBridgeDesktopAccountSessionStatus, RuntimeBridgeHostAppSessionConfig,
+        RuntimeBridgeHostAppSessionProvider, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
+        RuntimeBridgeProtectedAccessToken, RuntimeBridgeStreamClosePayload,
+        RuntimeBridgeStreamOpenPayload, RuntimeBridgeStreamOpenResult,
+        RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
+        RuntimeBridgeTrustedMetadataRequest, RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
         RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID, RUNTIME_AGENT_GET_AGENT_METHOD_ID,
         RUNTIME_AGENT_GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD_ID,
         RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID,
@@ -59,6 +60,12 @@ pub mod runtime {
         RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
         RUNTIME_LOCAL_SET_PRODUCT_CONTROL_FIRST_RUN_INSTALL_LEVEL_METHOD_ID,
     };
+
+    #[tauri::command]
+    pub async fn runtime_account_session_status(
+    ) -> Result<RuntimeBridgeDesktopAccountSessionStatus, String> {
+        crate::runtime_bridge::runtime_account_session_status().await
+    }
 
     #[tauri::command]
     pub async fn runtime_bridge_unary(

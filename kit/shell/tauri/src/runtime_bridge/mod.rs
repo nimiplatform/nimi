@@ -27,11 +27,11 @@ pub use host_app_session::{
 pub use installed_host::{RuntimeBridgeAppHost, RuntimeBridgeAppHostError};
 pub use metadata::{RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata};
 pub use nimi_shell_protected_local::{
-    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentShellKind,
-    NimiHostError, NimiHostErrorReasonCode,
+    DesktopAccountSessionStatusRequest, LocalDevelopmentAuthorization,
+    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
+    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+    LocalDevelopmentShellKind, NimiHostError, NimiHostErrorReasonCode,
 };
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{
@@ -50,6 +50,21 @@ pub struct RuntimeBridgeDaemonStatus {
     pub version: Option<String>,
     pub last_error: Option<String>,
     pub debug_log_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeBridgeDesktopAccountProjection {
+    pub account_id: String,
+    pub display_name: String,
+    pub realm_environment_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeBridgeDesktopAccountSessionStatus {
+    pub state: String,
+    pub account_projection: Option<RuntimeBridgeDesktopAccountProjection>,
 }
 
 #[allow(clippy::all, dead_code)]
@@ -164,6 +179,7 @@ pub struct RuntimeBridgeHostHooks {
     pub current_release_version: Option<OptionalStringHook>,
     pub resolve_nimi_dir: Option<ResultPathHook>,
     pub resolve_nimi_data_dir: Option<ResultPathHook>,
+    pub desktop_account_status_request: Option<DesktopAccountSessionStatusRequest>,
 }
 
 static HOST_HOOKS: OnceLock<Mutex<RuntimeBridgeHostHooks>> = OnceLock::new();
@@ -237,6 +253,17 @@ fn host_hooks() -> Option<RuntimeBridgeHostHooks> {
     HOST_HOOKS
         .get()
         .and_then(|hooks| hooks.lock().ok().map(|hooks| hooks.clone()))
+}
+
+fn desktop_account_status_request() -> Result<DesktopAccountSessionStatusRequest, String> {
+    host_hooks()
+        .and_then(|hooks| hooks.desktop_account_status_request)
+        .ok_or_else(|| {
+            bridge_error(
+                "RUNTIME_ACCOUNT_SESSION_STATUS_UNAVAILABLE",
+                NimiHostErrorReasonCode::ProtectedCarrierRequired.as_str(),
+            )
+        })
 }
 
 fn call_status_override_hook() -> Result<Option<RuntimeBridgeDaemonStatus>, String> {
@@ -492,6 +519,29 @@ pub async fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus 
     status
 }
 
+pub async fn runtime_account_session_status(
+) -> Result<RuntimeBridgeDesktopAccountSessionStatus, String> {
+    let request = desktop_account_status_request()?;
+    let status = service_control::get_account_session_status(request)
+        .await
+        .map_err(|error| {
+            bridge_error(
+                "RUNTIME_ACCOUNT_SESSION_STATUS_UNAVAILABLE",
+                error.reason_code().as_str(),
+            )
+        })?;
+    Ok(RuntimeBridgeDesktopAccountSessionStatus {
+        state: status.state.as_str().to_string(),
+        account_projection: status.account_projection.map(|projection| {
+            RuntimeBridgeDesktopAccountProjection {
+                account_id: projection.account_id,
+                display_name: projection.display_name,
+                realm_environment_id: projection.realm_environment_id,
+            }
+        }),
+    })
+}
+
 pub async fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     set_action_in_flight_hook(&app, Some("start"));
     let result = start_daemon_async().await;
@@ -630,13 +680,25 @@ mod tests {
     use super::{
         channel_invalidation_count, current_daemon_status, invoke_unary_typed_with_metadata,
         is_allowlisted_method, is_stream_method, launch_installed_app_host,
-        reset_channel_invalidation_count, restart_daemon_async, runtime_bridge_unary,
-        start_daemon_async, stream_event_name_with_namespace, with_runtime_bridge_host_hooks,
+        reset_channel_invalidation_count, restart_daemon_async, runtime_account_session_status,
+        runtime_bridge_unary, start_daemon_async, stream_event_name_with_namespace,
+        with_runtime_bridge_host_hooks, with_runtime_bridge_host_hooks_async,
         RuntimeBridgeAppSession, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
         RuntimeBridgeProtectedAccessToken, RuntimeBridgeTrustedMetadata,
         RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeUnaryPayload,
         RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
     };
+
+    #[tokio::test]
+    async fn protected_account_status_fails_closed_without_host_identity() {
+        let error =
+            with_runtime_bridge_host_hooks_async(RuntimeBridgeHostHooks::default(), || async {
+                runtime_account_session_status().await
+            })
+            .await
+            .expect_err("account status without native host identity must fail closed");
+        assert!(error.contains("protected-carrier-required"));
+    }
 
     #[test]
     fn public_lifecycle_routes_do_not_delegate_to_legacy_daemon_manager() {
