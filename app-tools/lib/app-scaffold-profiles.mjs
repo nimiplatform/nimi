@@ -59,6 +59,7 @@ const DEFAULT_VITE_CONFIG = [
   '',
   'export default defineConfig({',
   "  base: './',",
+  "  cacheDir: '.vite',",
   '  plugins: [react(), tailwindcss()],',
   '  resolve: {',
   "    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],",

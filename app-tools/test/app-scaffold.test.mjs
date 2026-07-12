@@ -309,6 +309,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.doesNotMatch(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench|WorldTourViewerRoute|tester/i);
     assert.match(generated.read('src/main.tsx'), /entry:acme-widget-app/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
+    assert.match(generated.read('vite.config.ts'), /cacheDir: '\.vite'/);
     assert.doesNotMatch(generated.read('src/main.tsx'), /installTesterElectronSdkAcceptanceProbe/);
     assert.doesNotMatch(generated.read('src-tauri/src/main.rs'), /tester_storage|world_tour|tester_/);
     assertGeneratedPathMissing(generated, 'src/tester');
@@ -643,7 +644,7 @@ test('workspace-app scaffold uses workspace + path deps and writes an app-slice 
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], 'workspace:*');
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], 'workspace:*');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], 'workspace:*');
-    assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], 'workspace:*');
+    assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], versions.nimicodingVersion);
     assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = \{ path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri" \}/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);

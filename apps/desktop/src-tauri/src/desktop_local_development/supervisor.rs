@@ -374,6 +374,19 @@ async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
     let canonical_main = std::fs::canonicalize(main_entry)
         .map_err(|_| "local-development-project-changed".to_string())?;
     ensure_path_within(&run.plan.project_root, &canonical_main)?;
+    let electron_main_argument = electron_cli_path(&canonical_main)?;
+    let mut host_arguments = vec![
+        electron_main_argument,
+        format!("--nimi-dev-renderer-url={}", run.plan.renderer_origin),
+    ];
+    #[cfg(feature = "protected-local-e2e-fixture")]
+    host_arguments.splice(
+        0..0,
+        [
+            "--remote-debugging-address=127.0.0.1".to_string(),
+            "--remote-debugging-port=0".to_string(),
+        ],
+    );
     let authorization_id = run.authorization_id().await?;
     let outcome = runtime_bridge::launch_local_development_host(LocalDevelopmentLaunchRequest {
         authorization_id,
@@ -381,10 +394,7 @@ async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
         shell_kind: run.plan.shell.kind(),
         host_executable_path: electron_executable.clone(),
         renderer_origin: run.plan.renderer_origin.clone(),
-        host_arguments: vec![
-            canonical_main.to_string_lossy().into_owned(),
-            format!("--nimi-dev-renderer-url={}", run.plan.renderer_origin),
-        ],
+        host_arguments,
         working_directory: run.plan.project_root.clone(),
     })
     .await
@@ -673,6 +683,23 @@ mod tests {
             .expect("wait task");
         assert_eq!(result.unwrap_err(), RUN_CANCELLED_REASON);
     }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn electron_cli_receives_a_drive_path_after_canonical_identity_validation() {
+        assert_eq!(
+            electron_cli_path(Path::new(r"\\?\D:\project\dist-electron\main.js"))
+                .expect("projected Electron entry"),
+            r"D:\project\dist-electron\main.js"
+        );
+        assert_eq!(
+            electron_cli_path(Path::new(r"D:\project\dist-electron\main.js"))
+                .expect("ordinary Electron entry"),
+            r"D:\project\dist-electron\main.js"
+        );
+        assert!(electron_cli_path(Path::new(r"\\server\share\main.js")).is_err());
+        assert!(electron_cli_path(Path::new(r"\\?\UNC\server\share\main.js")).is_err());
+    }
 }
 
 fn ensure_path_within(root: &Path, path: &Path) -> Result<(), String> {
@@ -691,6 +718,21 @@ fn ensure_path_within(root: &Path, path: &Path) -> Result<(), String> {
         return Ok(());
     }
     Err("local-development-project-changed".to_string())
+}
+
+#[cfg(target_os = "windows")]
+fn electron_cli_path(path: &Path) -> Result<String, String> {
+    let raw = path.to_string_lossy();
+    let projected = raw.strip_prefix(r"\\?\").unwrap_or(&raw);
+    let bytes = projected.as_bytes();
+    if bytes.len() < 3
+        || !bytes[0].is_ascii_alphabetic()
+        || bytes[1] != b':'
+        || !matches!(bytes[2], b'\\' | b'/')
+    {
+        return Err("local-development-project-changed".to_string());
+    }
+    Ok(projected.to_string())
 }
 
 fn is_tauri_source_event(event: &notify::Event) -> bool {

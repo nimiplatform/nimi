@@ -304,7 +304,7 @@ function buildPackageJson(profile, versions, identity) {
     },
     devDependencies: {
       '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
-      '@nimiplatform/nimi-coding': profile === 'workspace-app' ? 'workspace:*' : versions.nimicodingVersion,
+      '@nimiplatform/nimi-coding': versions.nimicodingVersion,
       '@tailwindcss/vite': versions.tailwindcssViteVersion,
       '@tauri-apps/cli': versions.tauriCliVersion,
       '@types/node': versions.nodeTypesVersion,
@@ -600,7 +600,7 @@ function buildDependencyMatrix(profile, versions) {
   return {
     npm: {
       '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
-      '@nimiplatform/nimi-coding': profile === 'workspace-app' ? 'workspace:*' : versions.nimicodingVersion,
+      '@nimiplatform/nimi-coding': versions.nimicodingVersion,
       '@nimiplatform/sdk': profile === 'workspace-app' ? 'workspace:*' : versions.sdkVersion,
       '@nimiplatform/kit': profile === 'workspace-app' ? 'workspace:*' : versions.kitVersion,
       '@tauri-apps/api': versions.tauriApiVersion,

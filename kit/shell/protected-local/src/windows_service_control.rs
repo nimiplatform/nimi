@@ -141,7 +141,11 @@ impl NimiDesktopControl for WindowsDesktopControl {
             let mut processes = self.development_processes.lock().map_err(|_| {
                 NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
             })?;
-            processes.insert(run_id, process);
+            let replaced = processes.insert(run_id, process).is_some();
+            #[cfg(feature = "windows-e2e-fixture")]
+            eprintln!(
+                "[protected-local local-development windows-e2e-fixture] stage=host-carrier-retained replaced={replaced}"
+            );
             Ok(outcome)
         })
     }
@@ -175,9 +179,15 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        Ok(processes
+        let present = processes.contains_key(&supervisor_run_id);
+        let running = processes
             .get(&supervisor_run_id)
-            .is_some_and(|process| process.running()))
+            .is_some_and(|process| process.running());
+        #[cfg(feature = "windows-e2e-fixture")]
+        eprintln!(
+            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-health present={present} running={running}"
+        );
+        Ok(running)
     }
 
     fn terminate_local_development_host(
@@ -193,7 +203,11 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let mut processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        processes.remove(&supervisor_run_id);
+        let removed = processes.remove(&supervisor_run_id).is_some();
+        #[cfg(feature = "windows-e2e-fixture")]
+        eprintln!(
+            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-removed removed={removed}"
+        );
         Ok(())
     }
 }

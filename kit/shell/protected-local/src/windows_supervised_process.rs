@@ -29,14 +29,15 @@ impl SupervisedDevelopmentProcess {
         working_directory: &Path,
     ) -> Result<Self, NimiHostError> {
         let executable = canonical_file(executable)?;
+        let process_executable = windows_process_path(&executable)?;
         let working_directory = canonical_directory(working_directory)?;
         // Runtime admitted this exact executable and issued the pending launch
         // immediately before creation. Electron package managers may resolve
         // the project alias to a package-store file outside the project root;
         // lpApplicationName still fixes the exact authorized image and the
         // child remains suspended until Runtime binds its PID.
-        let mut application = wide_null_terminated(executable.as_os_str())?;
-        let mut command_line = build_windows_command_line(&executable, arguments)?
+        let mut application = wide_null_terminated(process_executable.as_os_str())?;
+        let mut command_line = build_windows_command_line(&process_executable, arguments)?
             .encode_utf16()
             .collect::<Vec<_>>();
         command_line.push(0);
@@ -122,6 +123,10 @@ impl SupervisedDevelopmentProcess {
         if self.process.is_null() || !self.running() {
             return;
         }
+        #[cfg(feature = "windows-e2e-fixture")]
+        eprintln!(
+            "[protected-local local-development windows-e2e-fixture] stage=host-terminate"
+        );
         // SAFETY: process is the exact retained child handle, so PID reuse
         // cannot redirect termination to another process.
         unsafe {
@@ -132,6 +137,10 @@ impl SupervisedDevelopmentProcess {
 
 impl Drop for SupervisedDevelopmentProcess {
     fn drop(&mut self) {
+        #[cfg(feature = "windows-e2e-fixture")]
+        eprintln!(
+            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-drop"
+        );
         self.terminate();
         unsafe {
             if !self.thread.is_null() {
@@ -158,6 +167,20 @@ fn canonical_directory(path: &Path) -> Result<PathBuf, NimiHostError> {
     }
     let path = std::fs::canonicalize(path).map_err(|_| project_changed())?;
     path.is_dir().then_some(path).ok_or_else(project_changed)
+}
+
+fn windows_process_path(path: &Path) -> Result<PathBuf, NimiHostError> {
+    let raw = path.to_string_lossy();
+    let projected = raw.strip_prefix(r"\\?\").unwrap_or(&raw);
+    let bytes = projected.as_bytes();
+    if bytes.len() < 3
+        || !bytes[0].is_ascii_alphabetic()
+        || bytes[1] != b':'
+        || !matches!(bytes[2], b'\\' | b'/')
+    {
+        return Err(project_changed());
+    }
+    Ok(PathBuf::from(projected.to_string()))
 }
 
 fn wide_null_terminated(value: &std::ffi::OsStr) -> Result<Vec<u16>, NimiHostError> {
@@ -242,6 +265,16 @@ mod tests {
             quote_windows_argument("folder with space\\"),
             "\"folder with space\\\\\""
         );
+    }
+
+    #[test]
+    fn process_creation_uses_a_drive_path_after_canonical_identity_validation() {
+        assert_eq!(
+            windows_process_path(Path::new(r"\\?\D:\store\electron.exe"))
+                .expect("projected executable"),
+            PathBuf::from(r"D:\store\electron.exe")
+        );
+        assert!(windows_process_path(Path::new(r"\\?\UNC\server\electron.exe")).is_err());
     }
 
     #[test]
