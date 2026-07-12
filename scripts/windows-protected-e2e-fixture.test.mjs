@@ -20,6 +20,9 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /ProgramData[\s\S]*Nimi[\s\S]*Runtime[\s\S]*E2E/);
   assert.match(installer, /sc\.exe @Arguments 2>&1/);
   assert.match(installer, /sc\.exe exit \$exitCode/);
+  assert.match(installer, /New-Service[\s\S]*-BinaryPathName \$BinaryPathName/);
+  assert.match(installer, /Invoke-CimMethod[\s\S]*-MethodName Change/);
+  assert.doesNotMatch(installer, /Invoke-ServiceControl -Arguments @\('(?:create|config)'/);
   assert.doesNotMatch(installer, /sc(?:\.exe)?\s+(?:delete|stop)\s+NimiRuntime(?:\s|$)/i);
 });
 

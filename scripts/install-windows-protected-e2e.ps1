@@ -15,6 +15,8 @@ $ProgressPreference = 'SilentlyContinue'
 
 $ServiceName = 'NimiRuntimeE2E'
 $ServiceAccount = 'NT SERVICE\NimiRuntimeE2E'
+$ServiceHostAccount = 'LocalSystem'
+$ServiceDisplayName = 'Nimi Runtime E2E (Non-Product)'
 $ExpectedServiceSid = 'S-1-5-80-2508001767-432113807-2225235661-2974466524-556849280'
 $ExpectedSignerSubject = 'CN=Nimi Local Development Code Signing'
 $InstallRoot = Join-Path $env:ProgramFiles 'Nimi E2E\Runtime'
@@ -77,6 +79,47 @@ function Resolve-ServiceSid {
   $sidMatch = [regex]::Match($showSid, 'S-1-5-80-(?:\d+-){4}\d+')
   if (-not $sidMatch.Success) { return $null }
   return $sidMatch.Value
+}
+
+function New-FixtureService {
+  param([Parameter(Mandatory = $true)] [string] $BinaryPathName)
+  try {
+    $service = New-Service `
+      -Name $ServiceName `
+      -BinaryPathName $BinaryPathName `
+      -DisplayName $ServiceDisplayName `
+      -StartupType Manual `
+      -Description 'Isolated non-product Nimi protected Runtime fixture.'
+    if ($null -eq $service) {
+      throw 'New-Service returned no service record.'
+    }
+  } catch {
+    throw "SCM creation failed for $ServiceName`: $($_.Exception.Message)"
+  }
+}
+
+function Update-FixtureService {
+  param(
+    [Parameter(Mandatory = $true)] $ServiceRecord,
+    [Parameter(Mandatory = $true)] [string] $BinaryPathName
+  )
+  try {
+    $result = Invoke-CimMethod -InputObject $ServiceRecord -MethodName Change -Arguments @{
+      DesktopInteract = $false
+      DisplayName = $ServiceDisplayName
+      ErrorControl = [byte] 1
+      PathName = $BinaryPathName
+      ServiceType = [byte] 16
+      StartMode = 'Manual'
+      StartName = $ServiceHostAccount
+    }
+  } catch {
+    throw "SCM configuration failed for $ServiceName`: $($_.Exception.Message)"
+  }
+  if ($null -eq $result -or [uint32] $result.ReturnValue -ne 0) {
+    $returnValue = if ($null -eq $result) { 'missing' } else { [string] $result.ReturnValue }
+    throw "SCM configuration failed for $ServiceName (Win32_Service.Change return $returnValue)."
+  }
 }
 
 function Wait-ServiceAbsent {
@@ -177,21 +220,9 @@ function Install-Fixture {
 
   $binPath = "`"$InstalledBinary`" serve"
   if ($null -eq $existing) {
-    Invoke-ServiceControl -Arguments @(
-      'create', $ServiceName,
-      'binPath=', $binPath,
-      'start=', 'demand',
-      'obj=', 'LocalSystem',
-      'DisplayName=', 'Nimi Runtime E2E (Non-Product)'
-    ) -FailureMessage "SCM creation failed for $ServiceName."
+    New-FixtureService -BinaryPathName $binPath
   } else {
-    Invoke-ServiceControl -Arguments @(
-      'config', $ServiceName,
-      'binPath=', $binPath,
-      'start=', 'demand',
-      'obj=', 'LocalSystem',
-      'DisplayName=', 'Nimi Runtime E2E (Non-Product)'
-    ) -FailureMessage "SCM configuration failed for $ServiceName."
+    Update-FixtureService -ServiceRecord $existing -BinaryPathName $binPath
   }
   Invoke-ServiceControl -Arguments @('sidtype', $ServiceName, 'restricted') -FailureMessage "SCM restricted SID configuration failed for $ServiceName."
   Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/2000/restart/5000/none/0') -FailureMessage "SCM recovery configuration failed for $ServiceName."
@@ -207,6 +238,7 @@ function Install-Fixture {
   if ($status.serviceSid -ne $ExpectedServiceSid -or
       -not $status.restrictedSid -or
       -not $status.binaryPathMatches -or
+      -not $status.serviceAccountMatches -or
       $status.signatureStatus -ne 'Valid' -or
       $status.state -ne 'running') {
     throw "$ServiceName failed protected fixture post-install validation."
@@ -260,6 +292,8 @@ function Get-FixtureStatus {
     startMode = if ($null -eq $record) { $null } else { $record.StartMode }
     binaryPath = if ($null -eq $record) { $null } else { $record.PathName }
     binaryPathMatches = $null -ne $record -and $record.PathName -eq $expectedBinaryPath
+    serviceAccount = if ($null -eq $record) { $null } else { $record.StartName }
+    serviceAccountMatches = $null -ne $record -and $record.StartName -eq $ServiceHostAccount
     serviceSid = $resolvedSid
     expectedServiceSid = $ExpectedServiceSid
     serviceSidMatches = $null -ne $resolvedSid -and $resolvedSid -eq $ExpectedServiceSid
