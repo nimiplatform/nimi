@@ -13,7 +13,7 @@ func TestWindowsPrincipalSnapshotRequiresExactRestrictedNonInteractiveService(t 
 	if err != nil {
 		t.Fatalf("valid snapshot rejected: %v", err)
 	}
-	if principal.ServiceSID() != WindowsProductionServiceSID {
+	if principal.ServiceSID() != mustActiveWindowsRuntimeProfile().serviceSID {
 		t.Fatalf("service SID = %q", principal.ServiceSID())
 	}
 
@@ -123,19 +123,20 @@ func TestWindowsLogicalSecretNamesAreNotPaths(t *testing.T) {
 }
 
 func validWindowsPrincipalSnapshot() windowsPrincipalSnapshot {
+	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
 	return windowsPrincipalSnapshot{
-		ResolvedServiceSID: WindowsProductionServiceSID,
+		ResolvedServiceSID: serviceSID,
 		TokenUserSID:       "S-1-5-18",
 		TokenSessionID:     0,
 		TokenType:          windowsTokenPrimary,
 		TokenRestricted:    true,
 		ServiceSIDType:     windowsServiceSIDTypeRestricted,
 		Groups: []windowsSIDAttributes{
-			{SID: WindowsProductionServiceSID, Attributes: windowsGroupEnabled},
+			{SID: serviceSID, Attributes: windowsGroupEnabled},
 			{SID: windowsServiceLogonSID, Attributes: windowsGroupEnabled},
 		},
 		RestrictedSIDs: []windowsSIDAttributes{
-			{SID: WindowsProductionServiceSID},
+			{SID: serviceSID},
 		},
 	}
 }

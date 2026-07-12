@@ -17,7 +17,7 @@ import (
 func TestWindowsProductionPrincipalNeverAdmitsInteractiveProcess(t *testing.T) {
 	principal, err := ValidateWindowsProductionPrincipal(context.Background())
 	if err == nil {
-		if principal.ServiceSID() != WindowsProductionServiceSID {
+		if principal.ServiceSID() != mustActiveWindowsRuntimeProfile().serviceSID {
 			t.Fatalf("admitted SID = %q", principal.ServiceSID())
 		}
 		return
@@ -28,7 +28,7 @@ func TestWindowsProductionPrincipalNeverAdmitsInteractiveProcess(t *testing.T) {
 }
 
 func TestWindowsServiceOnlyFileACLValidationRejectsAdditionalPrincipal(t *testing.T) {
-	serviceSID, err := windows.StringToSid(WindowsProductionServiceSID)
+	serviceSID, err := windows.StringToSid(mustActiveWindowsRuntimeProfile().serviceSID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestWindowsServiceOnlyFileACLValidationRejectsAdditionalPrincipal(t *testin
 }
 
 func TestWindowsRuntimeProcessDACLNamesExactServiceAndDeniesInteractiveAccess(t *testing.T) {
-	serviceSID, err := windows.StringToSid(WindowsProductionServiceSID)
+	serviceSID, err := windows.StringToSid(mustActiveWindowsRuntimeProfile().serviceSID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,8 @@ func TestWindowsRuntimeProcessDACLNamesExactServiceAndDeniesInteractiveAccess(t 
 }
 
 func TestWindowsDPAPINGExactServiceSIDDescriptorFailsClosedOutsideService(t *testing.T) {
-	protector, err := newWindowsDPAPINGProtector(WindowsProductionServiceSID)
+	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
+	protector, err := newWindowsDPAPINGProtector(serviceSID)
 	if err != nil {
 		if !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
 			t.Fatalf("DPAPI-NG availability error = %v", err)
@@ -197,7 +198,7 @@ func TestWindowsDPAPINGExactServiceSIDDescriptorFailsClosedOutsideService(t *tes
 		if unprotectErr != nil {
 			t.Fatalf("validated service principal could not unprotect: %v", unprotectErr)
 		}
-		if principal.ServiceSID() != WindowsProductionServiceSID || !bytes.Equal(plaintext, secret) {
+		if principal.ServiceSID() != serviceSID || !bytes.Equal(plaintext, secret) {
 			t.Fatal("DPAPI-NG service-principal round trip mismatch")
 		}
 		zeroBytes(plaintext)
@@ -213,7 +214,8 @@ func TestWindowsDPAPINGExactServiceSIDDescriptorFailsClosedOutsideService(t *tes
 }
 
 func TestWindowsDPAPINGRejectsBroaderEmbeddedDescriptorBeforeDecryption(t *testing.T) {
-	protector, err := newWindowsDPAPINGProtector(WindowsProductionServiceSID)
+	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
+	protector, err := newWindowsDPAPINGProtector(serviceSID)
 	if err != nil {
 		if !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
 			t.Fatal(err)
@@ -225,7 +227,7 @@ func TestWindowsDPAPINGRejectsBroaderEmbeddedDescriptorBeforeDecryption(t *testi
 	if err != nil {
 		t.Fatalf("prepare broader DPAPI-NG blob: %v", err)
 	}
-	protector.descriptor = "SID=" + WindowsProductionServiceSID
+	protector.descriptor = "SID=" + serviceSID
 	if _, err := protector.Unprotect(protected); !IsReason(err, ReasonProtectedLocalLedgerRollbackDetected) {
 		t.Fatalf("descriptor mismatch error = %v", err)
 	}
@@ -236,7 +238,7 @@ func TestWindowsBinarySecretStoreAtomicLifecycleWithInjectedSyntheticProtector(t
 	store := &WindowsServiceSecretStore{
 		root: WindowsProtectedStateRoot{
 			path:       root,
-			serviceSID: WindowsProductionServiceSID,
+			serviceSID: mustActiveWindowsRuntimeProfile().serviceSID,
 		},
 		protector: syntheticWindowsProtector{},
 		random:    rand.Reader,

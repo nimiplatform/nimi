@@ -11,10 +11,11 @@ import (
 )
 
 func OpenWindowsVerifiedInstalledListener(ctx context.Context, state *WindowsRuntimeSecurityState, verifier WindowsExecutableTrustVerifier) (net.Listener, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	if ctx == nil || state == nil || verifier == nil || state.installedLaunches == nil {
 		return nil, verifiedWindowsListenerFailure("open verified installed listener", fmt.Errorf("complete Windows installed transport authority is required"))
 	}
-	if state.principal.serviceSID != WindowsProductionServiceSID || state.process.validate() != nil || state.desktopIdentity.validate() != nil {
+	if state.principal.serviceSID != profile.serviceSID || state.process.validate() != nil || state.desktopIdentity.validate() != nil {
 		return nil, verifiedWindowsListenerFailure("open verified installed listener", fmt.Errorf("verified Runtime and Desktop identity are required"))
 	}
 	state.transportMu.Lock()
@@ -22,7 +23,7 @@ func OpenWindowsVerifiedInstalledListener(ctx context.Context, state *WindowsRun
 	if state.closed || state.installedTransport != nil {
 		return nil, verifiedWindowsListenerFailure("open verified installed listener", fmt.Errorf("installed listener is closed or already claimed"))
 	}
-	initial, err := createWindowsDesktopPipeInstance(ctx, WindowsProductionInstalledPipeName, state.principal, state.desktopIdentity, true)
+	initial, err := createWindowsDesktopPipeInstance(ctx, profile.installedPipeName, state.principal, state.desktopIdentity, true)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func (listener *windowsVerifiedInstalledListener) nextPipe() (*WindowsDesktopPip
 		return pipe, nil
 	}
 	listener.mu.Unlock()
-	return createWindowsDesktopPipeInstance(listener.ctx, WindowsProductionInstalledPipeName, listener.state.principal, listener.state.desktopIdentity, false)
+	return createWindowsDesktopPipeInstance(listener.ctx, mustActiveWindowsRuntimeProfile().installedPipeName, listener.state.principal, listener.state.desktopIdentity, false)
 }
 
 func (listener *windowsVerifiedInstalledListener) track(connection *windowsVerifiedInstalledNetConn) bool {
@@ -185,7 +186,7 @@ func (listener *windowsVerifiedInstalledListener) Close() error {
 }
 
 func (*windowsVerifiedInstalledListener) Addr() net.Addr {
-	return windowsDesktopPipeAddress(WindowsProductionInstalledPipeName)
+	return windowsDesktopPipeAddress(mustActiveWindowsRuntimeProfile().installedPipeName)
 }
 
 type staticInstalledPeerVerifier struct{ peer VerifiedInstalledLaunchPeer }

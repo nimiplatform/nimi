@@ -10,14 +10,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/daemon"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 )
-
-const windowsProtectedStateRelativePath = `Nimi\Runtime\Protected`
 
 func runProductionDaemon(version string) error {
 	isService, err := svc.IsWindowsService()
@@ -26,11 +23,11 @@ func runProductionDaemon(version string) error {
 	}
 	if !isService {
 		return fmt.Errorf(
-			"%s: production Runtime must be launched by the fixed Windows service",
+			"%s: protected Runtime must be launched by its fixed Windows service",
 			protectedlocal.ReasonProtectedLocalRuntimePrincipalRequired,
 		)
 	}
-	return svc.Run(protectedlocal.WindowsProductionServiceName, &windowsRuntimeService{version: version})
+	return svc.Run(protectedlocal.WindowsRuntimeServiceName(), &windowsRuntimeService{version: version})
 }
 
 type windowsRuntimeService struct {
@@ -93,7 +90,7 @@ func (service *windowsRuntimeService) open(ctx context.Context) (*daemon.Daemon,
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("resolve fixed Windows ProgramData root: %w", err)
 	}
-	root, err := protectedlocal.ValidateWindowsProtectedStateRoot(ctx, filepath.Join(programData, windowsProtectedStateRelativePath), principal)
+	root, err := protectedlocal.ValidateWindowsProtectedStateRoot(ctx, filepath.Join(programData, protectedlocal.WindowsRuntimeStateRelativePath()), principal)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -112,7 +109,13 @@ func (service *windowsRuntimeService) open(ctx context.Context) (*daemon.Daemon,
 		_ = securityState.Close()
 		return nil, nil, nil, err
 	}
-	cfg, err := config.Load()
+	if err := prepareWindowsRuntimeFixture(ctx, securityState); err != nil {
+		_ = installedListener.Close()
+		_ = desktopListener.Close()
+		_ = securityState.Close()
+		return nil, nil, nil, err
+	}
+	cfg, err := loadWindowsProtectedRuntimeConfig(root.Path())
 	if err != nil {
 		_ = installedListener.Close()
 		_ = desktopListener.Close()

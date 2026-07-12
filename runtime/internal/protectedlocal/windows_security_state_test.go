@@ -15,8 +15,9 @@ import (
 
 func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t *testing.T) {
 	ctx := context.Background()
-	root := WindowsProtectedStateRoot{path: t.TempDir(), serviceSID: WindowsProductionServiceSID}
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: "S-1-5-18"}
+	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
+	root := WindowsProtectedStateRoot{path: t.TempDir(), serviceSID: serviceSID}
+	principal := WindowsServicePrincipal{serviceSID: serviceSID, tokenUserSID: "S-1-5-18"}
 	secrets := &memoryBinarySecrets{values: map[string][]byte{}}
 	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
 	if err != nil {
@@ -70,14 +71,15 @@ func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t 
 
 func TestWindowsRuntimeSecurityStateClosesLedgerWhenPipeInitializationFails(t *testing.T) {
 	ctx := context.Background()
-	root := WindowsProtectedStateRoot{path: t.TempDir(), serviceSID: WindowsProductionServiceSID}
+	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
+	root := WindowsProtectedStateRoot{path: t.TempDir(), serviceSID: serviceSID}
 	secrets := &memoryBinarySecrets{values: map[string][]byte{}}
 	pipeFailure := fmt.Errorf("synthetic pipe failure")
 	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID}
+	principal := WindowsServicePrincipal{serviceSID: serviceSID}
 	var failedPipe *WindowsDesktopPipeInstance
 	if _, err := assembleWindowsRuntimeSecurityState(ctx, root, secrets, func(ctx context.Context) (*WindowsDesktopPipeInstance, WindowsDesktopIdentity, error) {
 		name := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-state-failure-%d-%d`, os.Getpid(), time.Now().UnixNano())

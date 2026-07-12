@@ -108,11 +108,12 @@ func (connection *windowsDesktopPipeNetConn) SetWriteDeadline(deadline time.Time
 }
 
 func ResolveWindowsActiveDesktopIdentity(ctx context.Context, principal WindowsServicePrincipal) (WindowsDesktopIdentity, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	if err := ctx.Err(); err != nil {
 		return WindowsDesktopIdentity{}, fmt.Errorf("resolve active Windows desktop identity: %w", err)
 	}
-	if principal.serviceSID != WindowsProductionServiceSID {
-		return WindowsDesktopIdentity{}, windowsPipeFailure("validate Runtime principal capability", fmt.Errorf("exact production service principal required"))
+	if principal.serviceSID != profile.serviceSID {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate Runtime principal capability", fmt.Errorf("exact active service principal required"))
 	}
 	sessionID := windows.WTSGetActiveConsoleSessionId()
 	if sessionID == windowsNoActiveConsoleSession || sessionID == 0 {
@@ -127,13 +128,17 @@ func ResolveWindowsActiveDesktopIdentity(ctx context.Context, principal WindowsS
 }
 
 func inspectWindowsDesktopToken(token windows.Token, expectedSessionID *uint32) (WindowsDesktopIdentity, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	user, err := token.GetTokenUser()
 	if err != nil || user == nil || user.User.Sid == nil {
 		return WindowsDesktopIdentity{}, windowsPipeFailure("read active desktop user SID", err)
 	}
 	userSID := user.User.Sid.String()
 	switch userSID {
-	case "", WindowsProductionServiceSID, "S-1-5-18", "S-1-5-19", "S-1-5-20":
+	case "", "S-1-5-18", "S-1-5-19", "S-1-5-20":
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop user SID", fmt.Errorf("service identities are forbidden"))
+	}
+	if userSID == profile.serviceSID {
 		return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop user SID", fmt.Errorf("service identities are forbidden"))
 	}
 	sessionID, err := readWindowsTokenUint32(token, windows.TokenSessionId)
@@ -192,7 +197,7 @@ func OpenWindowsProductionDesktopPipe(ctx context.Context, principal WindowsServ
 	if err != nil {
 		return nil, WindowsDesktopIdentity{}, err
 	}
-	instance, err := createWindowsDesktopPipeInstance(ctx, WindowsProductionDesktopPipeName, principal, identity, true)
+	instance, err := createWindowsDesktopPipeInstance(ctx, mustActiveWindowsRuntimeProfile().desktopPipeName, principal, identity, true)
 	if err != nil {
 		return nil, WindowsDesktopIdentity{}, err
 	}
@@ -200,11 +205,12 @@ func OpenWindowsProductionDesktopPipe(ctx context.Context, principal WindowsServ
 }
 
 func createWindowsDesktopPipeInstance(ctx context.Context, name string, principal WindowsServicePrincipal, identity WindowsDesktopIdentity, firstInstance bool) (*WindowsDesktopPipeInstance, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("create Windows desktop pipe: %w", err)
 	}
-	if principal.serviceSID != WindowsProductionServiceSID {
-		return nil, windowsPipeFailure("validate pipe service principal", fmt.Errorf("exact production service principal required"))
+	if principal.serviceSID != profile.serviceSID {
+		return nil, windowsPipeFailure("validate pipe service principal", fmt.Errorf("exact active service principal required"))
 	}
 	if err := identity.validate(); err != nil {
 		return nil, windowsPipeFailure("validate pipe desktop identity", err)
@@ -412,7 +418,7 @@ func windowsDesktopPipeSecurityDescriptor(logonSID string) (*windows.SECURITY_DE
 	if _, err := windows.StringToSid(logonSID); err != nil || !strings.HasPrefix(logonSID, "S-1-5-5-") {
 		return nil, windowsPipeFailure("parse active desktop logon SID", err)
 	}
-	sddl := fmt.Sprintf("D:P(A;;GA;;;%s)(A;;0x%08x;;;%s)", WindowsProductionServiceSID, uint32(windowsPipeClientAccess), logonSID)
+	sddl := fmt.Sprintf("D:P(A;;GA;;;%s)(A;;0x%08x;;;%s)", mustActiveWindowsRuntimeProfile().serviceSID, uint32(windowsPipeClientAccess), logonSID)
 	descriptor, err := windows.SecurityDescriptorFromString(sddl)
 	if err != nil {
 		return nil, windowsPipeFailure("build service-owned pipe DACL", err)
@@ -437,6 +443,7 @@ func validateWindowsDesktopPipeACL(handle windows.Handle, logonSID string) error
 }
 
 func validateWindowsDesktopPipeDACL(dacl *windows.ACL, logonSID string) error {
+	profile := mustActiveWindowsRuntimeProfile()
 	if dacl == nil || dacl.AceCount != 2 {
 		return windowsPipeFailure("validate Windows desktop pipe DACL entries", fmt.Errorf("exact closed two-entry DACL required"))
 	}
@@ -453,7 +460,7 @@ func validateWindowsDesktopPipeDACL(dacl *windows.ACL, logonSID string) error {
 		sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String()
 		mask := uint32(ace.Mask)
 		switch sid {
-		case WindowsProductionServiceSID:
+		case profile.serviceSID:
 			if mask != windows.GENERIC_ALL && mask != windowsFileAllAccess {
 				return windowsPipeFailure("validate Windows desktop pipe service ACE", fmt.Errorf("full service access required"))
 			}

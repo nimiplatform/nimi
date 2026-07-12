@@ -61,10 +61,11 @@ type WindowsRuntimeProcess struct {
 func (process WindowsRuntimeProcess) ProcessTuple() ProcessTuple { return process.tuple }
 
 func (process WindowsRuntimeProcess) validate() error {
-	if process.principalSID != WindowsProductionServiceSID || process.tuple.OS != OSWindows ||
-		process.tuple.SecurityPrincipal != WindowsProductionServiceSID ||
-		process.tuple.ExecutableTrustSetID != WindowsRuntimeProductionTrustSetID {
-		return fmt.Errorf("verified production Runtime process capability required")
+	profile := mustActiveWindowsRuntimeProfile()
+	if process.principalSID != profile.serviceSID || process.tuple.OS != OSWindows ||
+		process.tuple.SecurityPrincipal != profile.serviceSID ||
+		process.tuple.ExecutableTrustSetID != profile.runtimeTrustSetID {
+		return fmt.Errorf("verified protected Runtime process capability required")
 	}
 	return process.tuple.validate()
 }

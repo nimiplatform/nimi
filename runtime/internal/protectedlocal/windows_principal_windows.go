@@ -24,6 +24,7 @@ func ValidateWindowsProductionPrincipal(ctx context.Context) (WindowsServicePrin
 }
 
 func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID uint32, process windows.Handle, allowStartPending bool) (WindowsServicePrincipal, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	if err := ctx.Err(); err != nil {
 		return WindowsServicePrincipal{}, fmt.Errorf("validate Windows Runtime principal: %w", err)
 	}
@@ -35,7 +36,7 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 		return WindowsServicePrincipal{}, principalFailure("open Windows service manager", err)
 	}
 	defer windows.CloseServiceHandle(serviceManager)
-	serviceName, err := windows.UTF16PtrFromString(WindowsProductionServiceName)
+	serviceName, err := windows.UTF16PtrFromString(profile.serviceName)
 	if err != nil {
 		return WindowsServicePrincipal{}, principalFailure("encode fixed NimiRuntime service name", err)
 	}
@@ -43,7 +44,7 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 	if err != nil {
 		return WindowsServicePrincipal{}, principalFailure("open fixed NimiRuntime service definition", err)
 	}
-	service := &mgr.Service{Name: WindowsProductionServiceName, Handle: serviceHandle}
+	service := &mgr.Service{Name: profile.serviceName, Handle: serviceHandle}
 	defer service.Close()
 	configuration, err := service.Config()
 	if err != nil {
@@ -58,7 +59,7 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 		return WindowsServicePrincipal{}, principalFailure("bind fixed NimiRuntime service process", fmt.Errorf("SCM state or process id mismatch"))
 	}
 
-	resolvedSID, _, _, err := windows.LookupSID("", WindowsProductionServiceAccount)
+	resolvedSID, _, _, err := windows.LookupSID("", profile.serviceAccount)
 	if err != nil {
 		return WindowsServicePrincipal{}, principalFailure("resolve fixed NimiRuntime service SID", err)
 	}
@@ -113,10 +114,11 @@ func ValidateWindowsCurrentProcessIsolation(ctx context.Context, principal Windo
 }
 
 func validateWindowsProcessIsolationHandle(ctx context.Context, process windows.Handle, principal WindowsServicePrincipal) error {
+	profile := mustActiveWindowsRuntimeProfile()
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("validate Windows Runtime process isolation: %w", err)
 	}
-	if principal.serviceSID != WindowsProductionServiceSID {
+	if principal.serviceSID != profile.serviceSID {
 		return principalFailure("validate process isolation capability", fmt.Errorf("invalid service principal capability"))
 	}
 	descriptor, err := windows.GetSecurityInfo(
@@ -139,6 +141,7 @@ func validateWindowsProcessIsolationHandle(ctx context.Context, process windows.
 }
 
 func validateWindowsProcessDACL(dacl *windows.ACL) error {
+	profile := mustActiveWindowsRuntimeProfile()
 	if dacl == nil {
 		return principalFailure("validate Runtime process DACL entries", fmt.Errorf("DACL is absent"))
 	}
@@ -174,7 +177,7 @@ func validateWindowsProcessDACL(dacl *windows.ACL) error {
 		case windows.ACCESS_ALLOWED_ACE_TYPE:
 			sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String()
 			mask := uint32(ace.Mask)
-			if sid != WindowsProductionServiceSID || (mask != windows.GENERIC_ALL && mask&windows.PROCESS_ALL_ACCESS != windows.PROCESS_ALL_ACCESS) {
+			if sid != profile.serviceSID || (mask != windows.GENERIC_ALL && mask&windows.PROCESS_ALL_ACCESS != windows.PROCESS_ALL_ACCESS) {
 				return principalFailure("validate Runtime process DACL entry", fmt.Errorf("unexpected allowed principal or access mask"))
 			}
 			serviceAllowed = true
@@ -191,13 +194,14 @@ func validateWindowsProcessDACL(dacl *windows.ACL) error {
 // HardenWindowsCurrentProcessIsolation installs the frozen process DACL before
 // listeners or custody are opened, then reads it back through the kernel handle.
 func HardenWindowsCurrentProcessIsolation(ctx context.Context, principal WindowsServicePrincipal) error {
+	profile := mustActiveWindowsRuntimeProfile()
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("harden Windows Runtime process isolation: %w", err)
 	}
-	if principal.serviceSID != WindowsProductionServiceSID {
+	if principal.serviceSID != profile.serviceSID {
 		return principalFailure("harden process isolation capability", fmt.Errorf("invalid service principal capability"))
 	}
-	serviceSID, err := windows.StringToSid(WindowsProductionServiceSID)
+	serviceSID, err := windows.StringToSid(profile.serviceSID)
 	if err != nil {
 		return principalFailure("parse fixed Runtime service SID", err)
 	}

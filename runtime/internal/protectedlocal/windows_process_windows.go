@@ -149,7 +149,8 @@ func verifyWindowsRuntimeProcessHandle(ctx context.Context, pid uint32, process 
 	if err != nil {
 		return WindowsRuntimeProcess{}, principalFailure("read Runtime service creation marker", err)
 	}
-	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleRuntime, verifier, WindowsRuntimeProductionTrustSetID)
+	profile := mustActiveWindowsRuntimeProfile()
+	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleRuntime, verifier, profile.runtimeTrustSetID)
 	if err != nil {
 		return WindowsRuntimeProcess{}, err
 	}
@@ -175,7 +176,7 @@ func verifyWindowsRuntimeProcessHandle(ctx context.Context, pid uint32, process 
 }
 
 func (connection *WindowsDesktopPipeConnection) VerifyClientProcess(ctx context.Context, verifier WindowsExecutableTrustVerifier) (ProcessTuple, DesktopProcessLiveness, error) {
-	return connection.verifyAndBindClientProcess(ctx, verifier, WindowsDesktopProductionTrustSetID)
+	return connection.verifyAndBindClientProcess(ctx, verifier, mustActiveWindowsRuntimeProfile().desktopTrustSetID)
 }
 
 func (connection *WindowsDesktopPipeConnection) verifyAndBindClientProcess(ctx context.Context, verifier WindowsExecutableTrustVerifier, expectedTrustSetID string) (ProcessTuple, DesktopProcessLiveness, error) {

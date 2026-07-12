@@ -64,7 +64,8 @@ type windowsFileIdentity struct {
 }
 
 func WindowsProtectedLedgerPath(root WindowsProtectedStateRoot) (string, error) {
-	if root.path == "" || root.serviceSID != WindowsProductionServiceSID || !filepath.IsAbs(root.path) {
+	profile := mustActiveWindowsRuntimeProfile()
+	if root.path == "" || root.serviceSID != profile.serviceSID || !filepath.IsAbs(root.path) {
 		return "", fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("resolve Windows protected-local ledger path: invalid state-root capability"))
 	}
 	return filepath.Join(root.path, LedgerFilename), nil
@@ -98,10 +99,11 @@ const (
 )
 
 func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (WindowsServicePrincipal, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	failure := func(message string) (WindowsServicePrincipal, error) {
 		return WindowsServicePrincipal{}, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "repair_runtime_service", errors.New(message))
 	}
-	if snapshot.ResolvedServiceSID != WindowsProductionServiceSID {
+	if snapshot.ResolvedServiceSID != profile.serviceSID {
 		return failure("validate Windows Runtime principal: fixed service SID resolution mismatch")
 	}
 	if snapshot.ServiceSIDType != windowsServiceSIDTypeRestricted {
@@ -119,10 +121,10 @@ func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (Window
 	if !snapshot.TokenRestricted {
 		return failure("validate Windows Runtime principal: restricted process token required")
 	}
-	if !containsEnabledSID(snapshot.Groups, WindowsProductionServiceSID) {
+	if !containsEnabledSID(snapshot.Groups, profile.serviceSID) {
 		return failure("validate Windows Runtime principal: exact NimiRuntime service SID is not enabled")
 	}
-	if !containsSID(snapshot.RestrictedSIDs, WindowsProductionServiceSID) {
+	if !containsSID(snapshot.RestrictedSIDs, profile.serviceSID) {
 		return failure("validate Windows Runtime principal: exact NimiRuntime service SID is absent from restricted SIDs")
 	}
 	if !containsEnabledSID(snapshot.Groups, windowsServiceLogonSID) {
@@ -131,10 +133,10 @@ func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (Window
 	if containsSID(snapshot.Groups, windowsInteractiveLogonSID) || containsSID(snapshot.Groups, windowsRemoteInteractiveLogonSID) {
 		return failure("validate Windows Runtime principal: interactive logon membership is forbidden")
 	}
-	if snapshot.TokenUserSID == "" || snapshot.TokenUserSID == WindowsProductionServiceSID {
+	if snapshot.TokenUserSID == "" || snapshot.TokenUserSID == profile.serviceSID {
 		return failure("validate Windows Runtime principal: invalid token user identity")
 	}
-	return WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: snapshot.TokenUserSID}, nil
+	return WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: snapshot.TokenUserSID}, nil
 }
 
 func containsEnabledSID(values []windowsSIDAttributes, expected string) bool {

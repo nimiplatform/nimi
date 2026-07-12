@@ -9,10 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"golang.org/x/sys/windows"
 )
 
 func protectedPlatformAppResourceBindings() (string, string, error) {
+	if protectedlocal.WindowsRuntimeIsNonProductFixture() {
+		return "", "", nil
+	}
 	executable, err := os.Executable()
 	if err != nil {
 		return "", "", fmt.Errorf("resolve Runtime executable for Platform resources: %w", err)

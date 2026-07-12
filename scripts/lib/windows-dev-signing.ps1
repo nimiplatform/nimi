@@ -113,6 +113,23 @@ function Get-StoreStatus {
   }
 }
 
+function Get-CertificateSha256 {
+  param(
+    [System.Security.Cryptography.X509Certificates.X509Certificate2] $Cert
+  )
+
+  if ($null -eq $Cert) {
+    return $null
+  }
+  $sha256 = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = $sha256.ComputeHash($Cert.RawData)
+    return ([System.BitConverter]::ToString($bytes)).Replace('-', '').ToLowerInvariant()
+  } finally {
+    $sha256.Dispose()
+  }
+}
+
 function Convert-CertSummary {
   param(
     [System.Security.Cryptography.X509Certificates.X509Certificate2] $Cert,
@@ -124,6 +141,7 @@ function Convert-CertSummary {
       status = $Status
       subject = $Subject
       thumbprint = $null
+      certificateSha256 = $null
       notBefore = $null
       notAfter = $null
       stores = Get-StoreStatus -Cert $null
@@ -134,6 +152,7 @@ function Convert-CertSummary {
     status = $Status
     subject = $Cert.Subject
     thumbprint = $Cert.Thumbprint
+    certificateSha256 = Get-CertificateSha256 -Cert $Cert
     notBefore = $Cert.NotBefore.ToString('o')
     notAfter = $Cert.NotAfter.ToString('o')
     stores = Get-StoreStatus -Cert $Cert
@@ -165,6 +184,7 @@ function Get-SignatureSummary {
       statusMessage = 'File not found.'
       signerSubject = $null
       signerThumbprint = $null
+      signerCertificateSha256 = $null
     }
   }
 
@@ -176,6 +196,7 @@ function Get-SignatureSummary {
     statusMessage = [string] $signature.StatusMessage
     signerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { $null }
     signerThumbprint = if ($signature.SignerCertificate) { $signature.SignerCertificate.Thumbprint } else { $null }
+    signerCertificateSha256 = if ($signature.SignerCertificate) { Get-CertificateSha256 -Cert $signature.SignerCertificate } else { $null }
   }
 }
 
@@ -298,6 +319,7 @@ function Invoke-Sign {
     status = 'signed'
     subject = $cert.Subject
     thumbprint = $cert.Thumbprint
+    certificateSha256 = Get-CertificateSha256 -Cert $cert
     signatures = @($signatures)
   })
 }

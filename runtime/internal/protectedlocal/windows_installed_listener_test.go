@@ -20,7 +20,7 @@ func TestWindowsVerifiedInstalledListenerMatchesRealPipePeerToPreboundProcess(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: "S-1-5-18"}
+	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-installed-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	initial, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
@@ -64,7 +64,7 @@ func TestWindowsVerifiedInstalledListenerKeepsLocalDevelopmentPeerInSeparateTrus
 	if err != nil {
 		t.Fatal(err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: "S-1-5-18"}
+	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-development-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	initial, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {

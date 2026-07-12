@@ -125,9 +125,9 @@ func TestWindowsProductionRuntimeProcessVerificationRejectsInteractiveHost(t *te
 		t.Fatal(err)
 	}
 	_, err = VerifyWindowsProductionRuntimeProcess(context.Background(), WindowsServicePrincipal{
-		serviceSID:   WindowsProductionServiceSID,
+		serviceSID:   mustActiveWindowsRuntimeProfile().serviceSID,
 		tokenUserSID: user.User.Sid.String(),
-	}, &capturingWindowsExecutableVerifier{trustSetID: WindowsRuntimeProductionTrustSetID})
+	}, &capturingWindowsExecutableVerifier{trustSetID: mustActiveWindowsRuntimeProfile().runtimeTrustSetID})
 	if !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
 		t.Fatalf("interactive Runtime verification error = %v", err)
 	}
@@ -160,7 +160,7 @@ func openCurrentProcessWindowsTestPipe(t *testing.T) (WindowsDesktopIdentity, *W
 	if err != nil {
 		t.Fatal(err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: "S-1-5-18"}
+	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-process-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	instance, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {

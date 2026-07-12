@@ -21,7 +21,7 @@ func TestWindowsVerifiedDesktopListenerBindsAuthenticatedPipeAndReopens(t *testi
 	if err != nil {
 		t.Fatalf("inspect current Desktop token: %v", err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: "S-1-5-18"}
+	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-verified-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	initialPipe, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
@@ -79,17 +79,18 @@ func TestWindowsVerifiedDesktopListenerBindsAuthenticatedPipeAndReopens(t *testi
 }
 
 func windowsVerifiedListenerTestRuntimeProcess() WindowsRuntimeProcess {
+	profile := mustActiveWindowsRuntimeProfile()
 	return WindowsRuntimeProcess{
-		principalSID: "NT SERVICE\\NimiRuntimeE2EFixture",
+		principalSID: profile.serviceSID,
 		tuple: ProcessTuple{
 			OS:                          OSWindows,
 			PID:                         9001,
 			CreationMarker:              "verified-listener-runtime-fixture",
 			OSLoginSession:              "service-session-0",
-			SecurityPrincipal:           "NT SERVICE\\NimiRuntimeE2EFixture",
+			SecurityPrincipal:           profile.serviceSID,
 			CanonicalExecutableIdentity: "verified-listener-runtime-fixture-file",
 			ExecutableDigest:            windowsVerifiedListenerTestIdentifier(0x72),
-			ExecutableTrustSetID:        "nimi-runtime-e2e-fixture-v1",
+			ExecutableTrustSetID:        profile.runtimeTrustSetID,
 		},
 	}
 }

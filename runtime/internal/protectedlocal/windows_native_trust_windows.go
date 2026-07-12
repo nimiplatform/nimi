@@ -15,9 +15,7 @@ import (
 )
 
 const (
-	windowsRuntimeExecutableName = "nimi.exe"
-	windowsDesktopExecutableName = "Nimi Desktop Runtime.exe"
-	cmsgSignerInfoParam          = 6
+	cmsgSignerInfoParam = 6
 )
 
 var (
@@ -52,12 +50,12 @@ type windowsCMSGSignerInfo struct {
 	unauthAttributes        windowsCryptAttributes
 }
 
-// NewWindowsNativeExecutableTrustVerifier returns the single production
-// Windows verifier. Trust comes from the platform signature chain plus the
-// build-admitted Nimi signer and executable role; no portable release record
-// or caller-selected trust root participates.
+// NewWindowsNativeExecutableTrustVerifier returns the verifier compiled for
+// this binary's fixed production or separately tagged E2E profile. Trust comes
+// from the platform chain plus the build-admitted signer and executable role;
+// no runtime selector, portable record, or caller-selected trust root exists.
 func NewWindowsNativeExecutableTrustVerifier() (WindowsExecutableTrustVerifier, error) {
-	digest, err := decodeWindowsSignerCertSHA256(WindowsProductionSignerCertSHA256)
+	digest, err := decodeWindowsSignerCertSHA256(activeWindowsSignerCertSHA256())
 	if err != nil {
 		return nil, windowsExecutableTrustFailure("load Windows signer policy", err)
 	}
@@ -95,11 +93,12 @@ func (verifier *windowsNativeExecutableTrustVerifier) VerifyWindowsExecutable(ct
 }
 
 func windowsExecutableRolePolicy(role WindowsExecutableRole) (string, string, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	switch role {
 	case WindowsExecutableRoleRuntime:
-		return windowsRuntimeExecutableName, WindowsRuntimeProductionTrustSetID, nil
+		return profile.runtimeExecutableName, profile.runtimeTrustSetID, nil
 	case WindowsExecutableRoleDesktop:
-		return windowsDesktopExecutableName, WindowsDesktopProductionTrustSetID, nil
+		return profile.desktopExecutableName, profile.desktopTrustSetID, nil
 	case WindowsExecutableRoleInstalled:
 		// Installed publisher identity and release authority are supplied by the
 		// Platform release digest. This verifier contributes only the native

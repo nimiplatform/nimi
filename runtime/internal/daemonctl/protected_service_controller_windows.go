@@ -108,15 +108,16 @@ func openWindowsProtectedService(access uint32) (windows.Handle, func(), error) 
 	if err != nil {
 		return 0, nil, fmt.Errorf("open Windows service manager: %w", err)
 	}
-	name, err := windows.UTF16PtrFromString(protectedlocal.WindowsProductionServiceName)
+	serviceName := protectedlocal.WindowsRuntimeServiceName()
+	name, err := windows.UTF16PtrFromString(serviceName)
 	if err != nil {
 		_ = windows.CloseServiceHandle(manager)
-		return 0, nil, fmt.Errorf("encode NimiRuntime service name: %w", err)
+		return 0, nil, fmt.Errorf("encode %s service name: %w", serviceName, err)
 	}
 	service, err := windows.OpenService(manager, name, access)
 	if err != nil {
 		_ = windows.CloseServiceHandle(manager)
-		return 0, nil, fmt.Errorf("open NimiRuntime service: %w", err)
+		return 0, nil, fmt.Errorf("open %s service: %w", serviceName, err)
 	}
 	return service, func() {
 		_ = windows.CloseServiceHandle(service)

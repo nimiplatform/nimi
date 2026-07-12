@@ -15,8 +15,8 @@ func OpenWindowsRuntimeSecurityState(
 	process WindowsRuntimeProcess,
 	root WindowsProtectedStateRoot,
 ) (*WindowsRuntimeSecurityState, error) {
-	if principal.serviceSID != WindowsProductionServiceSID || principal.tokenUserSID == "" {
-		return nil, principalFailure("open Windows Runtime security state", fmt.Errorf("exact production service-principal capability required"))
+	if principal.serviceSID != mustActiveWindowsRuntimeProfile().serviceSID || principal.tokenUserSID == "" {
+		return nil, principalFailure("open Windows Runtime security state", fmt.Errorf("exact active service-principal capability required"))
 	}
 	if err := process.validate(); err != nil {
 		return nil, principalFailure("open Windows Runtime security state", err)

@@ -49,10 +49,11 @@ type WindowsServiceSecretStore struct {
 }
 
 func ValidateWindowsProtectedStateRoot(ctx context.Context, path string, principal WindowsServicePrincipal) (WindowsProtectedStateRoot, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	if err := ctx.Err(); err != nil {
 		return WindowsProtectedStateRoot{}, fmt.Errorf("validate Windows protected state root: %w", err)
 	}
-	if principal.serviceSID != WindowsProductionServiceSID {
+	if principal.serviceSID != profile.serviceSID {
 		return WindowsProtectedStateRoot{}, custodyFailure("validate Windows state-root principal", fmt.Errorf("invalid service principal capability"))
 	}
 	cleaned, err := validateWindowsStateRootPath(path)
@@ -67,7 +68,7 @@ func ValidateWindowsProtectedStateRoot(ctx context.Context, path string, princip
 }
 
 func OpenWindowsProductionSecretStore(ctx context.Context, principal WindowsServicePrincipal, root WindowsProtectedStateRoot) (*WindowsServiceSecretStore, error) {
-	if principal.serviceSID != WindowsProductionServiceSID || root.serviceSID != principal.serviceSID || root.path == "" {
+	if principal.serviceSID != mustActiveWindowsRuntimeProfile().serviceSID || root.serviceSID != principal.serviceSID || root.path == "" {
 		return nil, custodyFailure("open Windows protected secret store", fmt.Errorf("invalid principal or state-root capability"))
 	}
 	if _, err := inspectWindowsStateRoot(root.path, principal.serviceSID, &root.identity); err != nil {
@@ -527,12 +528,13 @@ type windowsDPAPINGProtector struct {
 }
 
 func newWindowsDPAPINGProtector(serviceSID string) (*windowsDPAPINGProtector, error) {
-	if serviceSID != WindowsProductionServiceSID {
-		return nil, custodyFailure("create DPAPI-NG protector", fmt.Errorf("exact production service SID required"))
+	profile := mustActiveWindowsRuntimeProfile()
+	if serviceSID != profile.serviceSID {
+		return nil, custodyFailure("create DPAPI-NG protector", fmt.Errorf("exact active service SID required"))
 	}
 	library := windows.NewLazySystemDLL("ncrypt.dll")
 	protector := &windowsDPAPINGProtector{
-		descriptor: "SID=" + WindowsProductionServiceSID,
+		descriptor: "SID=" + profile.serviceSID,
 		create:     library.NewProc("NCryptCreateProtectionDescriptor"),
 		close:      library.NewProc("NCryptCloseProtectionDescriptor"),
 		info:       library.NewProc("NCryptGetProtectionDescriptorInfo"),

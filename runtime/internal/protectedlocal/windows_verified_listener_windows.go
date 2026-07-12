@@ -18,6 +18,7 @@ import (
 // carry protected Desktop gRPC. Production callers cannot supply an endpoint,
 // peer tuple, or trust-set identifier.
 func OpenWindowsVerifiedDesktopListener(ctx context.Context, state *WindowsRuntimeSecurityState, verifier WindowsExecutableTrustVerifier) (net.Listener, error) {
+	profile := mustActiveWindowsRuntimeProfile()
 	if ctx == nil {
 		return nil, verifiedWindowsListenerFailure("open verified Desktop listener", fmt.Errorf("context is required"))
 	}
@@ -27,7 +28,7 @@ func OpenWindowsVerifiedDesktopListener(ctx context.Context, state *WindowsRunti
 	if verifier == nil {
 		return nil, verifiedWindowsListenerFailure("open verified Desktop listener", fmt.Errorf("Desktop executable trust verifier is required"))
 	}
-	if state.principal.serviceSID != WindowsProductionServiceSID || state.process.principalSID != state.principal.serviceSID || state.root.serviceSID != state.principal.serviceSID {
+	if state.principal.serviceSID != profile.serviceSID || state.process.principalSID != state.principal.serviceSID || state.root.serviceSID != state.principal.serviceSID {
 		return nil, verifiedWindowsListenerFailure("open verified Desktop listener", fmt.Errorf("exact Runtime service principal and protected state root are required"))
 	}
 	if err := state.process.validate(); err != nil {
@@ -55,8 +56,8 @@ func OpenWindowsVerifiedDesktopListener(ctx context.Context, state *WindowsRunti
 	pipeName := state.desktopPipe.name
 	pipeClosed := state.desktopPipe.closed
 	state.desktopPipe.mu.Unlock()
-	if pipeClosed || pipeName != WindowsProductionDesktopPipeName {
-		return nil, verifiedWindowsListenerFailure("open verified Desktop listener", fmt.Errorf("fixed production Desktop pipe is required"))
+	if pipeClosed || pipeName != profile.desktopPipeName {
+		return nil, verifiedWindowsListenerFailure("open verified Desktop listener", fmt.Errorf("fixed protected Desktop pipe is required"))
 	}
 
 	listener, err := newWindowsVerifiedDesktopListener(ctx, windowsVerifiedDesktopListenerOptions{
@@ -64,10 +65,10 @@ func OpenWindowsVerifiedDesktopListener(ctx context.Context, state *WindowsRunti
 		runtimeProcess:            state.process,
 		bootEpoch:                 state.bootEpoch,
 		verifier:                  verifier,
-		expectedDesktopTrustSetID: WindowsDesktopProductionTrustSetID,
+		expectedDesktopTrustSetID: profile.desktopTrustSetID,
 		random:                    cryptorand.Reader,
 		reopen: func(ctx context.Context) (*WindowsDesktopPipeInstance, error) {
-			return createWindowsDesktopPipeInstance(ctx, WindowsProductionDesktopPipeName, state.principal, state.desktopIdentity, false)
+			return createWindowsDesktopPipeInstance(ctx, profile.desktopPipeName, state.principal, state.desktopIdentity, false)
 		},
 	})
 	if err != nil {

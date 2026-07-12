@@ -22,7 +22,7 @@ func TestWindowsNamedPipeBindsExactACLAndPeerProcessIDs(t *testing.T) {
 		t.Fatalf("inspect current interactive token: %v", err)
 	}
 	principal := WindowsServicePrincipal{
-		serviceSID:   WindowsProductionServiceSID,
+		serviceSID:   mustActiveWindowsRuntimeProfile().serviceSID,
 		tokenUserSID: "S-1-5-18",
 	}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-%d-%d`, os.Getpid(), time.Now().UnixNano())
@@ -93,7 +93,7 @@ func TestWindowsNamedPipeBindsExactACLAndPeerProcessIDs(t *testing.T) {
 	if client.serverPID != uint32(os.Getpid()) {
 		t.Fatalf("server PID = %d, want %d", client.serverPID, os.Getpid())
 	}
-	if _, err := VerifyWindowsProductionPipeServer(context.Background(), uintptr(client.handle), &capturingWindowsExecutableVerifier{trustSetID: WindowsRuntimeProductionTrustSetID}); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
+	if _, err := VerifyWindowsProductionPipeServer(context.Background(), uintptr(client.handle), &capturingWindowsExecutableVerifier{trustSetID: mustActiveWindowsRuntimeProfile().runtimeTrustSetID}); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
 		t.Fatalf("interactive test server verification error = %v", err)
 	}
 	if err := validateWindowsDesktopPipeACL(instance.handle, identity.logonSID); err != nil {
@@ -102,7 +102,7 @@ func TestWindowsNamedPipeBindsExactACLAndPeerProcessIDs(t *testing.T) {
 }
 
 func TestWindowsNamedPipeACLRejectsAdditionalPrincipal(t *testing.T) {
-	serviceSID, err := windows.StringToSid(WindowsProductionServiceSID)
+	serviceSID, err := windows.StringToSid(mustActiveWindowsRuntimeProfile().serviceSID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestWindowsNamedPipeHandshakeDeadlineCancelsOverlappedConnect(t *testing.T)
 		t.Fatalf("inspect current interactive token: %v", err)
 	}
 	principal := WindowsServicePrincipal{
-		serviceSID:   WindowsProductionServiceSID,
+		serviceSID:   mustActiveWindowsRuntimeProfile().serviceSID,
 		tokenUserSID: "S-1-5-18",
 	}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-timeout-%d-%d`, os.Getpid(), time.Now().UnixNano())
@@ -164,7 +164,7 @@ func TestWindowsNamedPipeConnectedHandleTransfersOnceToDeadlineNetConn(t *testin
 	if err != nil {
 		t.Fatalf("inspect current interactive token: %v", err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: "S-1-5-18"}
+	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-stream-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	instance, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
@@ -280,7 +280,7 @@ func TestWindowsNamedPipeNetConnRejectsReleasedVerifiedProcessWitness(t *testing
 }
 
 func TestWindowsProductionNamedPipeRequiresVerifiedRuntimeExecutableCapability(t *testing.T) {
-	principal := WindowsServicePrincipal{serviceSID: WindowsProductionServiceSID, tokenUserSID: "S-1-5-18"}
+	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
 	if _, _, err := OpenWindowsProductionDesktopPipe(context.Background(), principal, WindowsRuntimeProcess{}); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
 		t.Fatalf("missing Runtime executable capability error = %v", err)
 	}
