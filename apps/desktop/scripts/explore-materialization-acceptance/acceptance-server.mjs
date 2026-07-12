@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import { createPublicKey, verify } from 'node:crypto';
 import { formatError } from './acceptance-files.mjs';
 
 export function localhostOrigin(origin) {
@@ -12,11 +13,12 @@ export function localhostOrigin(origin) {
 }
 
 export async function startAcceptanceRendererServer({ distDir, apiOrigin }) {
+  const capturedRequests = [];
   const server = http.createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url || '/', 'http://localhost');
       if (requestUrl.pathname.startsWith('/api/') || requestUrl.pathname.startsWith('/__fixture/')) {
-        await proxyRendererApiRequest({ request, response, requestUrl, apiOrigin });
+        await proxyRendererApiRequest({ request, response, requestUrl, apiOrigin, capturedRequests });
         return;
       }
       serveRendererAsset({ response, requestUrl, distDir });
@@ -36,12 +38,29 @@ export async function startAcceptanceRendererServer({ distDir, apiOrigin }) {
   }
   return {
     origin: `http://localhost:${address.port}`,
+    capturedRequests,
     close: () => new Promise((resolve) => server.close(() => resolve())),
   };
 }
 
-async function proxyRendererApiRequest({ request, response, requestUrl, apiOrigin }) {
+async function proxyRendererApiRequest({ request, response, requestUrl, apiOrigin, capturedRequests }) {
   const body = await readRequestBodyBuffer(request);
+  let captureRecord = null;
+  let packetRequestBody = null;
+  if (request.method === 'POST' && requestUrl.pathname === '/api/realm/core/source-materialization-packets') {
+    let sourceRef = null;
+    try {
+      packetRequestBody = JSON.parse(body.toString('utf8'));
+      sourceRef = packetRequestBody.sourceRef || null;
+    } catch {
+      packetRequestBody = null;
+    }
+    captureRecord = { method: request.method, pathname: requestUrl.pathname, sourceRef };
+    capturedRequests.push(captureRecord);
+  } else if (request.method === 'GET' && requestUrl.pathname === '/api/auth/jwks/source-materialization') {
+    captureRecord = { method: request.method, pathname: requestUrl.pathname };
+    capturedRequests.push(captureRecord);
+  }
   const target = new URL(`${requestUrl.pathname}${requestUrl.search}`, apiOrigin);
   const headers = { ...request.headers };
   delete headers.host;
@@ -49,6 +68,7 @@ async function proxyRendererApiRequest({ request, response, requestUrl, apiOrigi
     method: request.method || 'GET',
     headers,
     body: body.length > 0 && request.method !== 'GET' && request.method !== 'HEAD' ? body : undefined,
+    redirect: 'manual',
   });
   response.statusCode = upstream.status;
   upstream.headers.forEach((value, key) => {
@@ -56,7 +76,50 @@ async function proxyRendererApiRequest({ request, response, requestUrl, apiOrigi
       response.setHeader(key, value);
     }
   });
-  response.end(Buffer.from(await upstream.arrayBuffer()));
+  const responseBytes = Buffer.from(await upstream.arrayBuffer());
+  if (captureRecord) {
+    captureRecord.status = upstream.status;
+    try {
+      const responseBody = JSON.parse(responseBytes.toString('utf8'));
+      if (upstream.ok && captureRecord.pathname === '/api/realm/core/source-materialization-packets') {
+        const [protectedHeader, detachedPayload, signature] = String(responseBody?.packetProof || '').split('.');
+        let detachedProofVerified = false;
+        if (protectedHeader && detachedPayload === '' && signature && responseBody?.packetHash) {
+          const jwksResponse = await fetch(new URL('/api/auth/jwks/source-materialization', apiOrigin));
+          const jwks = await jwksResponse.json();
+          const jwk = jwks?.keys?.find((key) => key?.kid === responseBody.keyId);
+          if (jwk) {
+            const payload = Buffer.from(`nimi.realm.source-materialization-proof/v2\0${responseBody.packetHash}`, 'utf8').toString('base64url');
+            detachedProofVerified = verify('RSA-SHA256', Buffer.from(`${protectedHeader}.${payload}`, 'ascii'), createPublicKey({ key: jwk, format: 'jwk' }), Buffer.from(signature, 'base64url'));
+          }
+        }
+        captureRecord.packet = {
+          schemaVersion: responseBody?.packetSchemaVersion || '',
+          issuer: responseBody?.issuer || '',
+          keyId: responseBody?.keyId || '',
+          algorithm: responseBody?.algorithm || '',
+          detachedProofVerified,
+          materializerBindingMatch: responseBody?.materializerAccountId === packetRequestBody?.materializerAccountId,
+          challengeBindingMatch: responseBody?.challengeId === packetRequestBody?.challengeId
+            && responseBody?.challengeDigest === packetRequestBody?.challengeDigest,
+          audienceBindingMatch: responseBody?.intendedRuntimeAudience === packetRequestBody?.intendedRuntimeAudience,
+          expiryBindingMatch: responseBody?.expiresAt === packetRequestBody?.challengeExpiresAt,
+          limitsBindingMatch: JSON.stringify(responseBody?.challengeLimits) === JSON.stringify(packetRequestBody?.challengeLimits),
+          sourceBindingMatch: JSON.stringify(responseBody?.sourceRef) === JSON.stringify(packetRequestBody?.sourceRef),
+        };
+      } else if (upstream.ok) {
+        captureRecord.keyIds = (responseBody?.keys || []).map((key) => key?.kid).filter(Boolean);
+        captureRecord.keyPurposes = (responseBody?.keys || []).map((key) => key?.purpose).filter(Boolean);
+      } else {
+        const errorBody = responseBody;
+        captureRecord.reasonCode = String(errorBody?.reasonCode || errorBody?.code || '');
+        captureRecord.message = String(errorBody?.message || '').slice(0, 240);
+      }
+    } catch {
+      captureRecord.responseJsonObserved = false;
+    }
+  }
+  response.end(responseBytes);
 }
 
 function serveRendererAsset({ response, requestUrl, distDir }) {

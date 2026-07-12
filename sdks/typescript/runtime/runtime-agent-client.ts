@@ -87,9 +87,15 @@ import {
 import type {
   NimiRuntimeAgentConsumeEvent,
   NimiRuntimeAgentConversationAnchorSnapshot,
+  NimiRuntimeAgentConversationSummariesInput,
+  NimiRuntimeAgentConversationSummariesResult,
+  NimiRuntimeAgentConsumeRuntime,
   NimiRuntimeAgentSessionSnapshot,
 } from './runtime-agent-consume-types';
-import { decodeNimiRuntimeAgentConversationAnchorSnapshot } from './runtime-agent-consume-client';
+import {
+  createNimiRuntimeAgentConsumeClient,
+  decodeNimiRuntimeAgentConversationAnchorSnapshot,
+} from './runtime-agent-consume-client';
 import type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentSessionSnapshotRequest,
@@ -135,6 +141,10 @@ export interface NimiRuntimeAgentClientAgentModule {
   listAgents(request: ListAgentsRequest, options?: RuntimeTypedCallOptions): Promise<ListAgentsResponse>;
   terminateAgent(request: TerminateAgentRequest, options?: RuntimeTypedCallOptions): Promise<TerminateAgentResponse>;
   openConversationAnchor(request: OpenConversationAnchorRequest, options?: RuntimeTypedCallOptions): Promise<OpenConversationAnchorResponse>;
+  listAgentConversationSummaries?(
+    request: unknown,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<{ summaries?: unknown[]; nextPageToken?: string }>;
   getPublicChatSessionSnapshot(
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeTypedCallOptions,
@@ -198,6 +208,7 @@ export interface NimiRuntimeAgentClient {
   initialize(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
   terminate(input: NimiRuntimeAgentTerminateLocalAgentInput): Promise<void>;
   openConversation(input: NimiRuntimeAgentOpenConversationInput): Promise<NimiRuntimeAgentConversationAnchorSnapshot>;
+  listConversationSummaries(input: NimiRuntimeAgentConversationSummariesInput): Promise<NimiRuntimeAgentConversationSummariesResult>;
   sendTurn(input: NimiRuntimeAgentTurnRequest): Promise<SendAppMessageResponse>;
   streamTurn(input: NimiRuntimeAgentTurnRequest, options?: NimiRuntimeAgentClientStreamTurnOptions): Promise<{
     readonly stream: AsyncIterable<NimiRuntimeAgentTurnRunnerPart>;
@@ -283,6 +294,13 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     getSubjectUserId: options.getSubjectUserId,
     withScopes: options.withScopes,
   });
+  const consume = createNimiRuntimeAgentConsumeClient({
+    runtime: {
+      agents: runtime.agent as unknown as NimiRuntimeAgentConsumeRuntime['agents'],
+      appMessages: runtime.appMessages,
+    },
+    runtimeAppId: runtime.appId,
+  });
 
   return {
     materialize: materialization.materializeRealmSource,
@@ -327,6 +345,17 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
       return decodeNimiRuntimeAgentConversationAnchorSnapshot(
         response.snapshot,
         identity.localAgentRef,
+      );
+    },
+    async listConversationSummaries(input) {
+      const identity = runtimeAgentIdentity(input);
+      const subjectUserId = normalizeNimiRuntimeAgentText(await options.getSubjectUserId()) || identity.ownerUserId;
+      return withRuntimeAgentScopes(
+        runtime,
+        options.withScopes,
+        subjectUserId,
+        ['runtime.agent.read'],
+        (callOptions) => consume.anchors.listSummaries(input, callOptions),
       );
     },
     sendTurn: turns.request,

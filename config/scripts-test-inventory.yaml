@@ -71,6 +71,17 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: scripts/check-desktop-tauri-acceptance-runner.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: scripts/check-high-risk-doc-metadata.test.mjs
     owner: platform
     classification: behavior_unit
@@ -171,6 +182,17 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: scripts/check-standard-shell-tauri-hardcut.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: scripts/check-text-encoding-gate.test.mjs
     owner: platform
     classification: behavior_unit
@@ -250,7 +272,7 @@ tests:
       - P-TEST-001
     supersede_ref: gate.generate-spec-derived-docs-spec-human-doc-check
     removal_condition: drop from test census once the *-helpers.mjs census glob is scoped to test-helpers only; generator behavior is covered end-to-end by the pnpm generate-spec-derived-docs --scope spec-human-doc --check drift gate
-  - path: scripts/lib/read-yaml-fragment-consumers.test.mjs
+  - path: scripts/lib/pnpm-command.test.mjs
     owner: platform
     classification: behavior_unit
     tier: T4
@@ -261,7 +283,7 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: scripts/lib/pnpm-command.test.mjs
+  - path: scripts/lib/read-yaml-fragment-consumers.test.mjs
     owner: platform
     classification: behavior_unit
     tier: T4

@@ -6,10 +6,11 @@ import { createRequire } from 'node:module';
 import { _electron as electron } from 'playwright';
 import { Runtime } from '@nimiplatform/sdk/runtime';
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
+import { prepareRealRealmProductSession } from '../e2e/fixtures/real-realm-product-session.mjs';
 import {
   APP_ID,
   OWNER_USER_ID,
-  VALID_CHARACTER_ID,
+  VALID_PERSONA_SOURCE_REF,
   VALID_SOURCE_REF,
 } from './explore-materialization-acceptance/acceptance-constants.mjs';
 import { createRealmFixtureManifest } from './explore-materialization-acceptance/acceptance-fixture.mjs';
@@ -20,6 +21,8 @@ import {
   normalizeOptionalPath,
   safeResetDir,
   seedAdmittedProductControlFromUserHome,
+  retargetAdmittedProductControlSeed,
+  seedDeterministicAttachedLocalRoutes,
   terminateDaemon,
   writeJsonFile,
 } from './explore-materialization-acceptance/acceptance-files.mjs';
@@ -29,7 +32,6 @@ import {
   inspectLayout,
   normalizeWhitespace,
   openExploreWorlds,
-  readAIConfigStorageSnapshot,
   setElectronWindowSize,
   waitForDesktopSurface,
 } from './explore-materialization-acceptance/acceptance-page.mjs';
@@ -40,9 +42,25 @@ import {
   startRuntimeDaemon,
 } from './explore-materialization-acceptance/acceptance-runtime.mjs';
 import {
+  createDeterministicMediaRoutes,
+} from './explore-materialization-acceptance/acceptance-media-routes.mjs';
+import {
+  completeDisabledActionAcceptance,
+  createProductJourneySettings,
+  createProviderCheckpointController,
+  holdCrossAppJourney,
+  materializeJourneyPersona,
+  materializePrimaryPersona,
+  runDesktopAgentChatJourney,
+  runPreMaterializationOfflineJourney,
+} from './explore-materialization-acceptance/acceptance-product-journey.mjs';
+import {
   localhostOrigin,
   startAcceptanceRendererServer,
 } from './explore-materialization-acceptance/acceptance-server.mjs';
+import { resolveConversationScenarioRegistry, readConversationScenarioRegistry } from '../../../tests/local-agent-product/conversation-report/registry.mjs';
+import { resolveAndProvisionConversationRoute, safeConversationRouteSummary } from '../../../tests/local-agent-product/conversation-report/route.mjs';
+import { commitConversationReportRoute } from '../../../tests/local-agent-product/conversation-report/runtime-config.mjs';
 
 const appRoot = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(appRoot, '..', '..');
@@ -51,12 +69,33 @@ const require = createRequire(import.meta.url);
 const electronExecutablePath = require('electron');
 const mainEntry = path.join(appRoot, 'dist-electron', 'main.js');
 let rendererUrl;
-const artifactsDir = path.join(appRoot, 'reports', 'e2e', 'explore-materialization-acceptance');
-const sourcePacketSecret = process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET
-  || 'desktop-e2e-source-materialization-secret';
+const {
+  artifactsDir,
+  crossAppHandoffPath,
+  crossAppReleasePath,
+  crossAppProviderRawPath,
+  crossAppControlRoot,
+  productJourneyId,
+  fullChainCore,
+  conversationReport,
+  preMaterializationOffline,
+  disabledActionOnly,
+  productSourceKind,
+  realRealmBaseUrl,
+  standardDataRoot,
+  desktopChromiumUserDataRoot,
+  productTrialRuntimeDataRoot,
+} = createProductJourneySettings({ appRoot });
 const acceptanceBaseEnv = { ...process.env };
-delete acceptanceBaseEnv.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET;
-safeResetDir(artifactsDir, { reportsRoot: path.join(appRoot, 'reports', 'e2e') });
+class AcceptanceCompletedSignal extends Error {}
+let productOwnerUserId = OWNER_USER_ID;
+let activeSourceRef = productSourceKind === 'realmPersona' ? VALID_PERSONA_SOURCE_REF : VALID_SOURCE_REF;
+let realRealmSession = null;
+safeResetDir(artifactsDir, {
+  reportsRoot: process.env.NIMI_LOCAL_AGENT_PRODUCT_DESKTOP_ARTIFACTS_ROOT
+    ? path.dirname(artifactsDir)
+    : path.join(appRoot, 'reports', 'e2e'),
+});
 const runtimeStdoutPath = path.join(artifactsDir, 'runtime-stdout.log');
 const runtimeStderrPath = path.join(artifactsDir, 'runtime-stderr.log');
 const desktopScreenshotPath = path.join(artifactsDir, 'desktop-explore-world-character.png');
@@ -65,16 +104,20 @@ const narrowScreenshotPath = path.join(artifactsDir, 'narrow-world-character-det
 const chatScreenshotPath = path.join(artifactsDir, 'desktop-chat-consumption.png');
 const sourceDetailOpenPartnerScreenshotPath = path.join(artifactsDir, 'desktop-source-detail-open-partner.png');
 const sourceDetailMaterializationFailureScreenshotPath = path.join(artifactsDir, 'desktop-source-detail-materialization-failure.png');
+const realmOfflineBeforeMaterializeScreenshotPath = path.join(artifactsDir, 'realm-offline-before-materialize.png');
+const runtimeOfflineBeforeMaterializeScreenshotPath = path.join(artifactsDir, 'runtime-offline-before-materialize.png');
+const realmOfflineBeforeMaterializeEvidencePath = path.join(artifactsDir, 'realm-offline-before-materialize.json');
+const runtimeOfflineBeforeMaterializeEvidencePath = path.join(artifactsDir, 'runtime-offline-before-materialize.json');
 const chatSendAttemptScreenshotPath = path.join(artifactsDir, 'desktop-chat-send-after-model-selection.png');
 const agentModelSettingsScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-settings.png');
 const agentModelChatDetailScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-chat-detail.png');
 const agentModelPickerScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-picker.png');
 const agentModelSelectedScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-selected.png');
+const personaMaterializedScreenshotPath = path.join(artifactsDir, 'desktop-persona-materialized.png');
 const firstRunScreenshotPath = path.join(artifactsDir, 'blocked-first-run.png');
 const resultPath = path.join(artifactsDir, 'acceptance-result.json');
 const manifestPath = path.join(artifactsDir, 'realm-fixture-manifest.json');
 const isolatedHome = path.join(artifactsDir, 'home');
-const standardDataRoot = path.join(artifactsDir, 'electron-standard-data');
 const runtimeStateRoot = path.join(artifactsDir, 'runtime-state');
 const runtimeDataRoot = path.join(artifactsDir, 'runtime-data');
 const runtimeConfigPath = path.join(runtimeStateRoot, 'config.json');
@@ -82,15 +125,30 @@ fs.mkdirSync(isolatedHome, { recursive: true });
 fs.mkdirSync(standardDataRoot, { recursive: true });
 fs.mkdirSync(runtimeStateRoot, { recursive: true });
 fs.mkdirSync(runtimeDataRoot, { recursive: true });
-const admittedProductControlSeed = seedAdmittedProductControlFromUserHome({
+let admittedProductControlSeed = seedAdmittedProductControlFromUserHome({
   homeDir: isolatedHome,
   stateRoot: runtimeStateRoot,
 });
-const acceptedRuntimeDataRoot = normalizeOptionalPath(admittedProductControlSeed.sourceDataRoot) || runtimeDataRoot;
+if (productTrialRuntimeDataRoot) admittedProductControlSeed = retargetAdmittedProductControlSeed({
+  seed: admittedProductControlSeed,
+  targetDataRoot: productTrialRuntimeDataRoot,
+});
+const acceptedRuntimeDataRoot = productTrialRuntimeDataRoot
+  || normalizeOptionalPath(admittedProductControlSeed.sourceDataRoot)
+  || runtimeDataRoot;
+if (realRealmBaseUrl) {
+  realRealmSession = await prepareRealRealmProductSession({
+    realmBaseUrl: realRealmBaseUrl,
+    trialId: process.env.NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID || `${productSourceKind}-${Date.now()}`,
+  });
+  productOwnerUserId = realRealmSession.accountId;
+  activeSourceRef = realRealmSession.sourceRefs[productSourceKind];
+}
 
 writeJsonFile(manifestPath, createRealmFixtureManifest('http://127.0.0.1:0'));
 writeJsonFile(runtimeConfigPath, {
   schemaVersion: 1,
+  runtimeId: 'runtime-instance-desktop-explore-materialization',
   dataRootRef: acceptedRuntimeDataRoot,
   managedRoots: {
     models: path.join(acceptedRuntimeDataRoot, 'models'),
@@ -99,33 +157,45 @@ writeJsonFile(runtimeConfigPath, {
     logs: path.join(acceptedRuntimeDataRoot, 'logs'),
     audit: path.join(acceptedRuntimeDataRoot, 'audit'),
   },
-  sourceMaterializationPacketHmacSecret: sourcePacketSecret,
 });
 const fixtureServer = await startRealmFixtureServer({ manifestPath });
 let rendererServer;
 rendererServer = await startAcceptanceRendererServer({
   distDir: path.join(appRoot, 'dist'),
-  apiOrigin: fixtureServer.origin,
+  apiOrigin: realRealmSession?.realmBaseUrl || fixtureServer.origin,
 });
 rendererUrl = `${rendererServer.origin}/index.html?nimiExploreMaterializationAcceptance=1`;
 const desktopFixtureOrigin = rendererServer.origin;
 const realtimeFixtureOrigin = localhostOrigin(fixtureServer.origin);
+admittedProductControlSeed = seedDeterministicAttachedLocalRoutes({
+  seed: admittedProductControlSeed,
+  stateRoot: runtimeStateRoot,
+  providerBaseUrl: `${fixtureServer.origin}/v1`,
+});
 writeJsonFile(manifestPath, createRealmFixtureManifest(desktopFixtureOrigin, fixtureServer.origin));
 
 let runtimeDaemon = null;
 let electronApp = null;
+let conversationReportContext = null;
 const consoleErrors = [];
 const consoleErrorDetails = [];
 const pageErrors = [];
 const observations = {};
+observations.processStarts = { provider: 1, realm: 1, runtime: 0, desktop: 1, zhiyu: 0 };
+const {
+  queue: queueProviderPlan,
+  count: providerCheckpointCount,
+  wait: waitForProviderCheckpoint,
+  waitForFile: waitForControlFile,
+} = createProviderCheckpointController(fixtureServer.origin);
 
-async function waitForDiscoveredLocalAgent(agentClient) {
-  const deadline = Date.now() + 60_000;
+async function waitForDiscoveredLocalAgent(agentClient, sourceRef = activeSourceRef) {
+  const deadline = Date.now() + (sourceRef.kind === 'realmPersona' ? 20_000 : 60_000);
   let discovered = [];
   while (Date.now() < deadline) {
     discovered = await agentClient.discoverBySource({
-      ownerUserId: OWNER_USER_ID,
-      sourceRef: VALID_SOURCE_REF,
+      ownerUserId: productOwnerUserId,
+      sourceRef,
     });
     if (discovered.length > 0) {
       return discovered;
@@ -137,8 +207,8 @@ async function waitForDiscoveredLocalAgent(agentClient) {
 
 function runtimeAgentIdentity(localAgentRef, runtimeSourceRef) {
   return {
-    ownerUserId: OWNER_USER_ID,
-    subjectUserId: OWNER_USER_ID,
+    ownerUserId: productOwnerUserId,
+    subjectUserId: productOwnerUserId,
     localAgentRef,
     runtimeSourceRef,
   };
@@ -174,8 +244,10 @@ async function waitForRuntimeTextGenerateTargetRef(agentClient, identity) {
 }
 
 try {
-  const runtimeContext = await startRuntimeDaemon({
+  let runtimeContext = await startRuntimeDaemon({
     fixtureOrigin: desktopFixtureOrigin,
+    realmIssuerOrigin: realRealmSession?.realmIssuer || desktopFixtureOrigin,
+    providerOrigin: fixtureServer.origin,
     homeDir: isolatedHome,
     stateRoot: runtimeStateRoot,
     runtimeDir,
@@ -186,30 +258,47 @@ try {
   });
   observations.admittedProductControlSeed = admittedProductControlSeed;
   runtimeDaemon = runtimeContext.daemon;
-  const runtime = new Runtime({
+  observations.processStarts.runtime += 1;
+  let runtime = new Runtime({
     appId: APP_ID,
     transport: {
       type: 'node-grpc',
       endpoint: runtimeContext.endpoint,
     },
   });
-  await completeRuntimeAccountLogin(runtime, observations);
+  await completeRuntimeAccountLogin(runtime, observations, realRealmSession);
+  if (conversationReport) {
+    const registry = await resolveConversationScenarioRegistry(readConversationScenarioRegistry());
+    const scenario = registry.scenarios.find((candidate) => candidate.scenario_id === 'conversation-report-baseline');
+    assert.ok(scenario, 'conversation report baseline scenario is missing');
+    const route = await resolveAndProvisionConversationRoute({
+      runtime,
+      env: acceptanceBaseEnv,
+      runId: process.env.NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID || `conversation-report-${Date.now()}`,
+    });
+    conversationReportContext = { scenario, route };
+    observations.conversationReportRoute = safeConversationRouteSummary(route);
+  }
   observations.productControl = await prepareRuntimeProductControl(runtime, runtimeDataRoot).catch((error) => ({
     state: 'setup_failed',
     error: formatError(error),
   }));
-  const agentClient = createAcceptanceAgentClient(runtime);
+  let agentClient = createAcceptanceAgentClient(runtime, productOwnerUserId);
+  const mediaRoutes = fullChainCore
+    ? await createDeterministicMediaRoutes(runtime, fixtureServer.origin)
+    : null;
+  const journeyAgents = [];
 
   electronApp = await electron.launch({
     executablePath: electronExecutablePath,
-    args: [mainEntry],
+    args: [mainEntry, `--user-data-dir=${desktopChromiumUserDataRoot}`],
     env: {
       ...acceptanceBaseEnv,
       NIMI_REALM_URL: desktopFixtureOrigin,
       NIMI_REALTIME_URL: realtimeFixtureOrigin,
       NIMI_REALM_JWKS_URL: `${desktopFixtureOrigin}/api/auth/jwks`,
       NIMI_REALM_REVOCATION_URL: `${desktopFixtureOrigin}/api/auth/sessions/introspect`,
-      NIMI_REALM_JWT_ISSUER: desktopFixtureOrigin,
+      NIMI_REALM_JWT_ISSUER: realRealmSession?.realmIssuer || desktopFixtureOrigin,
       NIMI_REALM_JWT_AUDIENCE: 'nimi-runtime',
       NIMI_RUNTIME_GRPC_ADDR: runtimeContext.endpoint,
       NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT: runtimeContext.endpoint,
@@ -255,13 +344,54 @@ try {
   }
 
   await openExploreWorlds(page);
+  if (realRealmSession && productSourceKind === 'worldCharacter') {
+    const seededWorldCard = page.getByTestId('world-atlas-world-grid').locator('article').filter({ hasText: realRealmSession.displayName }).first();
+    await seededWorldCard.waitFor({ state: 'visible', timeout: 60_000 });
+    await seededWorldCard.locator('button[aria-pressed]:not([data-testid])').click();
+    await page.getByTestId('world-atlas-hero-title').filter({ hasText: realRealmSession.displayName }).waitFor({ state: 'visible', timeout: 30_000 });
+  }
+  let localAgentRef;
+  let agentIdentity;
+  if (productSourceKind === 'realmPersona') {
+    ({ localAgentRef, agentIdentity } = await materializePrimaryPersona({
+      page,
+      electronApp,
+      activeSourceRef,
+      agentClient,
+      observations,
+      journeyAgents,
+      desktopScreenshotPath,
+      narrowScreenshotPath,
+      materializationFailureScreenshotPath: sourceDetailMaterializationFailureScreenshotPath,
+      waitForDiscoveredLocalAgent,
+      runtimeAgentIdentity,
+    }));
+  } else {
   const worldPreviewPeople = page.getByTestId('world-atlas-preview-people');
   await worldPreviewPeople.waitFor({ state: 'visible', timeout: 60_000 });
-  observations.worldPreviewDisabledActions = await worldPreviewPeople.locator('button:disabled').count();
-  assert.ok(
-    observations.worldPreviewDisabledActions > 0,
-    'World preview must expose a disabled/unavailable source action.',
-  );
+  if (!realRealmSession || disabledActionOnly) {
+    await worldPreviewPeople.locator('button:disabled').first().waitFor({ state: 'visible', timeout: 30_000 });
+    observations.worldPreviewDisabledActions = await worldPreviewPeople.locator('button:disabled').count();
+    assert.ok(observations.worldPreviewDisabledActions > 0, 'World preview must expose a disabled/unavailable source action.');
+  }
+
+  if (disabledActionOnly) {
+    assert.equal(realRealmSession, null, 'disabled-action-only acceptance must use the deterministic negative fixture');
+    await completeDisabledActionAcceptance({
+      page,
+      electronApp,
+      observations,
+      desktopScreenshotPath,
+      narrowScreenshotPath,
+      resultPath,
+      runtimeEndpoint: runtimeContext.endpoint,
+      fixtureOrigin: desktopFixtureOrigin,
+      consoleErrors,
+      consoleErrorDetails,
+      pageErrors,
+    });
+    throw new AcceptanceCompletedSignal('disabled-action-only acceptance completed');
+  }
 
   await captureScreenshot(page, desktopScreenshotPath);
   const desktopLayout = await inspectLayout(page);
@@ -297,14 +427,15 @@ try {
     'Source Detail must render the world-character page, not the legacy compact page.',
   );
   observations.sourceDetailSurface = 'world-character';
-  await page.locator('[data-testid="world-character-hero-avatar"] img[src*="yan-zhenqing-avatar"]').waitFor({
-    state: 'visible',
-    timeout: 30_000,
-  });
-  observations.worldCharacterHeroAvatarImages = await page
-    .locator('[data-testid="world-character-hero-avatar"] img[src*="yan-zhenqing-avatar"]')
-    .count();
-  await page.getByTestId('world-character-media-section').waitFor({ state: 'visible', timeout: 30_000 });
+  if (!realRealmSession) {
+    await page.locator('[data-testid="world-character-hero-avatar"] img[src*="yan-zhenqing-avatar"]').waitFor({
+      state: 'visible', timeout: 30_000,
+    });
+    observations.worldCharacterHeroAvatarImages = await page
+      .locator('[data-testid="world-character-hero-avatar"] img[src*="yan-zhenqing-avatar"]')
+      .count();
+    await page.getByTestId('world-character-media-section').waitFor({ state: 'visible', timeout: 30_000 });
+  }
 
   await setElectronWindowSize(electronApp, 390, 860);
   await captureScreenshot(page, narrowScreenshotPath);
@@ -324,6 +455,43 @@ try {
     .first();
   await becomePartnerAction.waitFor({ state: 'visible', timeout: 30_000 });
   assert.equal(await becomePartnerAction.isEnabled(), true, 'world-character materialization action must be enabled');
+
+  if (preMaterializationOffline) {
+    ({ runtimeContext, runtimeDaemon, runtime, agentClient } = await runPreMaterializationOfflineJourney({
+      runtimeContext,
+      runtimeDaemon,
+      page,
+      becomePartnerAction,
+      agentClient,
+      productOwnerUserId,
+      fixtureOrigin: fixtureServer.origin,
+      observations,
+      consoleErrors,
+      consoleErrorDetails,
+      pageErrors,
+      resultPath,
+      productJourneyId,
+      paths: {
+        realmScreenshot: realmOfflineBeforeMaterializeScreenshotPath,
+        runtimeScreenshot: runtimeOfflineBeforeMaterializeScreenshotPath,
+        realmEvidence: realmOfflineBeforeMaterializeEvidencePath,
+        runtimeEvidence: runtimeOfflineBeforeMaterializeEvidencePath,
+      },
+      restart: {
+        fixtureOrigin: desktopFixtureOrigin,
+        realmIssuerOrigin: realRealmSession?.realmIssuer || desktopFixtureOrigin,
+        providerOrigin: fixtureServer.origin,
+        homeDir: isolatedHome,
+        stateRoot: runtimeStateRoot,
+        runtimeDir,
+        baseEnv: acceptanceBaseEnv,
+        runtimeConfigPath,
+        stdoutPath: runtimeStdoutPath,
+        stderrPath: runtimeStderrPath,
+      },
+    }));
+    throw new AcceptanceCompletedSignal('pre-materialization-offline acceptance completed');
+  }
   await becomePartnerAction.click();
 
   const discovered = await waitForDiscoveredLocalAgent(agentClient);
@@ -331,14 +499,43 @@ try {
     observations.sourceDetailAfterMaterializationText = normalizeWhitespace(await page.locator('body').innerText())
       .slice(0, 2200);
     await captureScreenshot(page, sourceDetailMaterializationFailureScreenshotPath);
+    observations.sourceMaterializationProxyCapture = rendererServer.capturedRequests
+      .filter((item) => item.pathname === '/api/realm/core/source-materialization-packets').at(-1) || null;
+    observations.sourceMaterializationJwksCapture = rendererServer.capturedRequests
+      .filter((item) => item.pathname === '/api/auth/jwks/source-materialization').at(-1) || null;
   }
-  assert.equal(discovered.length, 1, `expected one Runtime-owned local agent, got ${discovered.length}`);
-  const localAgentRef = discovered[0].localAgentRef;
+  assert.equal(discovered.length, 1, `expected one Runtime-owned local agent, got ${discovered.length}; capture=${JSON.stringify(observations.sourceMaterializationProxyCapture || null)}; jwks=${JSON.stringify(observations.sourceMaterializationJwksCapture || null)}; surface=${observations.sourceDetailAfterMaterializationText}`);
+  localAgentRef = discovered[0].localAgentRef;
   assert.match(localAgentRef, /^local-agent:runtime-/u, `localAgentRef is not Runtime-owned opaque ref: ${localAgentRef}`);
-  assert.ok(!localAgentRef.includes(VALID_CHARACTER_ID), `localAgentRef leaks app source id: ${localAgentRef}`);
+  assert.ok(!localAgentRef.includes(activeSourceRef.sourceId), `localAgentRef leaks app source id: ${localAgentRef}`);
   observations.localAgentRef = localAgentRef;
   observations.runtimeSourceRef = discovered[0].runtimeSourceRef;
-  const agentIdentity = runtimeAgentIdentity(localAgentRef, discovered[0].runtimeSourceRef);
+  observations.materializedSourceSnapshotHash = discovered[0].snapshotHash;
+  observations.materializedSourceContextState = discovered[0].sourceContextStatus?.state || null;
+  assert.equal(discovered[0].sourceContextStatus?.ready, true, 'Character Runtime source snapshot must be ready');
+  assert.match(discovered[0].snapshotHash || '', /^[a-f0-9]{64}$/u, 'Character Runtime source snapshot hash must be bounded');
+  agentIdentity = runtimeAgentIdentity(localAgentRef, discovered[0].runtimeSourceRef);
+  if (conversationReportContext) {
+    const configured = await commitConversationReportRoute({
+      agentClient,
+      identity: agentIdentity,
+      route: conversationReportContext.route,
+    });
+    observations.conversationReportAIConfig = {
+      revision: configured.committed.revision,
+      route: configured.committed.intents['text.generate']?.route,
+      routeFingerprint: conversationReportContext.route.fingerprint,
+    };
+  }
+  journeyAgents.push({
+    sourceKind: 'worldCharacter',
+    sourceRef: activeSourceRef,
+    localAgentRef,
+    runtimeSourceRef: discovered[0].runtimeSourceRef,
+    snapshotHash: discovered[0].snapshotHash || null,
+    materializedAt: new Date().toISOString(),
+    displayName: observations.sourceDetailDisplayName || observations.agentDisplayName || 'Runtime Live Source',
+  });
 
   await page.getByTestId('world-character-back-button').click();
   await page.getByTestId('nav-tab:agents').waitFor({ state: 'visible', timeout: 30_000 });
@@ -359,292 +556,153 @@ try {
   assert.equal(await openPartnerAction.isEnabled(), true, 'Source Detail Open partner action must be enabled for existing Runtime localAgent.');
   await captureScreenshot(page, sourceDetailOpenPartnerScreenshotPath);
   await openPartnerAction.click();
+  }
   await page.getByTestId('chat-page').waitFor({ state: 'visible', timeout: 30_000 });
   await page.getByTestId(`chat-target:${localAgentRef}`).waitFor({ state: 'visible', timeout: 30_000 });
   observations.sourceDetailOpenPartnerRoutedToAgentChat = true;
   await page.getByTestId('message-timeline').waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined);
 
-  const agentRailTarget = page.getByTestId(`chat-target:${localAgentRef}`);
-  await agentRailTarget.waitFor({ state: 'visible', timeout: 30_000 });
-  observations.agentChatLocalAgentRailTargetVisible = await agentRailTarget.isVisible();
-  assert.equal(observations.agentChatLocalAgentRailTargetVisible, true, 'Agent Chat rail must list Runtime ListAgents localAgent targets.');
-  await agentRailTarget.locator('img[src*="yan-zhenqing-avatar"]').waitFor({ state: 'visible', timeout: 30_000 });
-  observations.agentChatLocalAgentRailAvatarImages = await agentRailTarget
-    .locator('img[src*="yan-zhenqing-avatar"]')
-    .count();
-  assert.ok(observations.agentChatLocalAgentRailAvatarImages > 0, 'Agent Chat rail must render the source-backed avatar image.');
-  await captureScreenshot(page, chatScreenshotPath);
-  observations.chatAccessibility = await inspectAccessibility(page);
-  assert.equal(
-    observations.chatAccessibility.unnamedInteractiveControls.length,
-    0,
-    `chat interactive controls require accessible names: ${JSON.stringify(observations.chatAccessibility)}`,
-  );
-  observations.agentChatInitialAIConfigStorage = await readAIConfigStorageSnapshot(page);
-  observations.agentChatInitialRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
-
-  const sharedAuthSessionCommands = await page.evaluate(async (commands) => {
-    const bridge = globalThis.window?.__NIMI_ELECTRON_RUNTIME__;
-    if (!bridge || typeof bridge.invoke !== 'function') {
-      throw new Error('Desktop Electron Runtime bridge is unavailable');
-    }
-    return Promise.all(commands.map(async (command) => {
-      try {
-        await bridge.invoke(command, {});
-        return { command, denied: false };
-      } catch (error) {
-        const record = error && typeof error === 'object' ? error : {};
-        return {
-          command,
-          denied: true,
-          code: String(record.code || ''),
-          reasonCode: String(record.reasonCode || ''),
-          message: error instanceof Error ? error.message : String(record.message || error || ''),
-        };
-      }
-    }));
-  }, [
-    'nimi.shell.auth.session.load',
-    'nimi.shell.auth.session.save',
-    'nimi.shell.auth.session.clear',
-  ]);
-  assert.equal(
-    sharedAuthSessionCommands.every((row) => row.denied),
-    true,
-    `Desktop Electron auth.session commands must be denied: ${JSON.stringify(sharedAuthSessionCommands)}`,
-  );
-  observations.sharedAuthSessionCommands = sharedAuthSessionCommands;
-
-  const rendererCredentialProjection = await page.evaluate(() => {
-    const storage = (source) => Object.fromEntries(
-      Array.from({ length: source.length }, (_, index) => source.key(index))
-        .filter(Boolean)
-        .map((key) => [key, source.getItem(key)]),
-    );
-    const windowStrings = Object.fromEntries(Object.getOwnPropertyNames(globalThis).flatMap((key) => {
-      try {
-        const value = globalThis[key];
-        return typeof value === 'string' && value.length < 4096 ? [[key, value]] : [];
-      } catch {
-        return [];
-      }
-    }));
-    return {
-      html: globalThis.document.documentElement.outerHTML,
-      bodyText: globalThis.document.body?.innerText || '',
-      localStorage: storage(globalThis.localStorage),
-      sessionStorage: storage(globalThis.sessionStorage),
-      windowStrings,
-    };
+  const { sharedAuthSessionCommands, sharedAgentIntents } = await runDesktopAgentChatJourney({
+    page,
+    localAgentRef,
+    productSourceKind,
+    realRealmSession,
+    chatScreenshotPath,
+    observations,
+    agentClient,
+    agentIdentity,
+    readRuntimeAgentAIConfig,
+    waitForRuntimeTextGenerateTargetRef,
+    paths: {
+      modelSettings: agentModelSettingsScreenshotPath,
+      modelChatDetail: agentModelChatDetailScreenshotPath,
+      modelPicker: agentModelPickerScreenshotPath,
+      modelSelected: agentModelSelectedScreenshotPath,
+      chatSendAttempt: chatSendAttemptScreenshotPath,
+    },
+    fullChainCore,
+    conversationReport,
+    conversationScenario: conversationReportContext?.scenario || null,
+    conversationReportRoute: conversationReportContext?.route || null,
+    mediaRoutes,
+    artifactsDir,
+    queueProviderPlan,
+    waitForProviderCheckpoint,
+    providerCheckpointCount,
+    consoleErrors,
+    pageErrors,
   });
-  const rendererCredentialRaw = JSON.stringify(rendererCredentialProjection);
-  const tokenLeakFindings = [];
-  if (rendererCredentialRaw.includes('desktop-acceptance-access-token')) {
-    tokenLeakFindings.push('Runtime fixture access token projected into Desktop renderer');
-  }
-  if (rendererCredentialRaw.includes('e2e-runtime-refresh-user-e2e-primary')) {
-    tokenLeakFindings.push('Runtime fixture refresh token projected into Desktop renderer');
-  }
-  if (/Bearer\s+[A-Za-z0-9._~-]{12,}/u.test(rendererCredentialRaw)) {
-    tokenLeakFindings.push('Bearer-shaped credential in Desktop renderer projection');
-  }
-  if (/refresh[_-]?token["'=:\s]+[A-Za-z0-9._~-]{8,}/iu.test(rendererCredentialRaw)) {
-    tokenLeakFindings.push('refresh-token-shaped credential in Desktop renderer projection');
-  }
-  assert.deepEqual(tokenLeakFindings, [], `Desktop renderer credential leak: ${JSON.stringify(tokenLeakFindings)}`);
-  observations.tokenLeak = {
-    passed: true,
-    findings: tokenLeakFindings,
-    inspected: ['DOM', 'localStorage', 'sessionStorage', 'window string globals'],
-  };
-
-  const composerTextarea = page.locator('[data-chat-composer-textarea="true"]').first();
-  await composerTextarea.waitFor({ state: 'visible', timeout: 30_000 });
-  observations.agentComposerInitiallyDisabled = await composerTextarea.isDisabled();
-  observations.agentComposerInitialRouteHintVisible = await page.getByText(/发送消息前请先选择|Choose a local or cloud runtime route|local or cloud runtime route|本地.*云端.*runtime.*路由/i).count();
-
-  const settingsToggle = page.getByTestId('chat-settings-toggle');
-  await settingsToggle.waitFor({ state: 'visible', timeout: 30_000 });
-  await settingsToggle.click();
-  await page.getByTestId('chat-agent-center-section:model').waitFor({ state: 'visible', timeout: 30_000 });
-  await page.getByTestId('chat-agent-center-section:model').click();
-  await page.waitForTimeout(2500);
-  await captureScreenshot(page, agentModelSettingsScreenshotPath);
-  observations.agentModelSettingsAIConfigStorage = await readAIConfigStorageSnapshot(page);
-  observations.agentModelSettingsRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
-  observations.agentModelSettingsEnglishCopyVisible = await page
-    .locator('[data-agent-center-model-surface="runtime-model-config-hub"]')
-    .first()
-    .getByText(/Runtime ready|Needs setup|Import AI Profile|No profile applied|AI Profile/i)
-    .count();
-  observations.agentModelSettingsEnglishStatusTransitionCopyVisible = await page
-    .locator('[data-agent-center-model-surface="runtime-model-config-hub"]')
-    .first()
-    .getByText(/Saving Runtime Agent AI Config|Saved Runtime Agent AI Config|Runtime Agent AI Config adapter unavailable|Runtime Agent AI Config revision unavailable|Runtime Agent AI Config update failed/i)
-    .count();
-  observations.agentModeUnavailableVisible = await page.getByText(/Agent mode is temporarily unavailable/i).count();
-  assert.equal(observations.agentModelSettingsEnglishCopyVisible, 0, 'Agent model settings must not leak English model/profile status copy in zh shell.');
-  assert.equal(observations.agentModelSettingsEnglishStatusTransitionCopyVisible, 0, 'Agent model settings must not leak English Runtime AIConfig transition status copy in zh shell.');
-  assert.equal(observations.agentModeUnavailableVisible, 0, 'Agent model settings must not fall back to unavailable mode.');
-  const chatModelSection = page.locator('[data-nimi-model-config-section="chat"]').first();
-  if (await chatModelSection.count()) {
-    await chatModelSection.click();
-    await page.waitForTimeout(1000);
-    await captureScreenshot(page, agentModelChatDetailScreenshotPath);
-    observations.agentModelChatDetailVisible = await page.locator('[data-nimi-model-config-detail-section="chat"]').count();
-    observations.agentModelChatDetailEnglishConfigurationVisible = await page
-      .locator('[data-nimi-model-config-detail-section="chat"]')
-      .first()
-      .getByText(/Configuration/i)
-      .count();
-    observations.agentModelChatDetailEnglishStatusVisible = await page
-      .locator('[data-nimi-model-config-detail-section="chat"]')
-      .first()
-      .getByText(/Runtime ready|Needs setup|Setup required|Model selection required|Not configured|Click to change model/i)
-      .count();
-    observations.agentModeUnavailableAfterChatDetailVisible = await page.getByText(/Agent mode is temporarily unavailable/i).count();
-    assert.equal(observations.agentModelChatDetailEnglishConfigurationVisible, 0, 'Agent chat model detail must not leak English Configuration copy in zh shell.');
-    assert.equal(observations.agentModelChatDetailEnglishStatusVisible, 0, 'Agent chat model detail must not leak English status copy in zh shell.');
-    assert.equal(observations.agentModeUnavailableAfterChatDetailVisible, 0, 'Agent chat model detail must not fall back to unavailable mode.');
-    const textGenerateCard = page.locator('[data-nimi-model-config-capability="text.generate"]').first();
-    observations.agentTextGenerateCardVisible = await textGenerateCard.count();
-    if (await textGenerateCard.count()) {
-      await textGenerateCard.locator('button').first().click();
-      await page.waitForTimeout(2500);
-      await captureScreenshot(page, agentModelPickerScreenshotPath);
-      const modelPickerDialog = page.locator('[role="dialog"][aria-modal="true"]').filter({ hasText: /选择模型|Select Model/u }).first();
-      await modelPickerDialog.waitFor({ state: 'visible', timeout: 30_000 });
-      observations.agentModelPickerDialogVisible = await modelPickerDialog.count();
-      observations.agentModelPickerLocalizedTitleVisible = await modelPickerDialog.getByText('选择模型').count();
-      observations.agentModelPickerLocalizedLocalTabVisible = await modelPickerDialog.getByText('本地').count();
-      observations.agentModelPickerLocalizedCloudTabVisible = await modelPickerDialog.getByText('云端').count();
-      observations.agentModelPickerLocalizedSearchVisible = await modelPickerDialog.getByPlaceholder('搜索模型').count();
-      observations.agentModelPickerEnglishCopyVisible = await modelPickerDialog.getByText(/Select Model|Search models|Text Generation/i).count();
-      observations.agentModelPickerNoModelsVisible = await page.getByText(/没有可用模型|当前能力没有可用的本地模型|No models available|No local models available/i).count();
-      observations.agentModeUnavailableAfterPickerVisible = await page.getByText(/Agent mode is temporarily unavailable/i).count();
-      assert.equal(observations.agentModeUnavailableAfterPickerVisible, 0, 'Agent model picker must not fall back to unavailable mode.');
-      assert.equal(observations.agentModelPickerDialogVisible, 1, 'Agent text.generate model picker must open.');
-      assert.ok(observations.agentModelPickerLocalizedTitleVisible > 0, 'Agent model picker must render localized Chinese title.');
-      assert.ok(observations.agentModelPickerLocalizedLocalTabVisible > 0, 'Agent model picker must render localized Local tab.');
-      assert.ok(observations.agentModelPickerLocalizedCloudTabVisible > 0, 'Agent model picker must render localized Cloud tab.');
-      assert.ok(observations.agentModelPickerLocalizedSearchVisible > 0, 'Agent model picker must render localized search placeholder.');
-      assert.equal(observations.agentModelPickerEnglishCopyVisible, 0, 'Agent model picker must not leak English default copy in zh shell.');
-      assert.equal(observations.agentModelPickerNoModelsVisible, 0, 'Agent text.generate picker must expose real Runtime route options.');
-
-      const firstLocalModelButton = modelPickerDialog.locator('button').filter({ hasText: /local\./i }).first();
-      await firstLocalModelButton.waitFor({ state: 'visible', timeout: 30_000 });
-      observations.agentModelSelectedButtonText = normalizeWhitespace(await firstLocalModelButton.innerText());
-      await firstLocalModelButton.click();
-      await modelPickerDialog.waitFor({ state: 'detached', timeout: 30_000 }).catch(async () => {
-        await modelPickerDialog.waitFor({ state: 'hidden', timeout: 30_000 });
-      });
-      const selectedAIConfig = await waitForRuntimeTextGenerateTargetRef(agentClient, agentIdentity);
-      observations.agentModelSelectedAIConfigTargetRef = selectedAIConfig.targetRef;
-      observations.agentModelSelectedRuntimeAIConfig = selectedAIConfig.snapshot;
-      observations.agentModelSelectedAIConfigStorage = await readAIConfigStorageSnapshot(page);
-      await page.waitForTimeout(500);
-      await captureScreenshot(page, agentModelSelectedScreenshotPath);
-      observations.agentModelSelectedRouteUnavailableVisible = await page.getByText(/Route unhealthy|Route needs setup|路由不健康|路由需要配置|未通过最近一次健康检查|尚未就绪|latest health check|not ready/i).count();
-      observations.agentModelSelectedEnglishStatusTransitionCopyVisible = await page
-        .getByText(/Saving Runtime Agent AI Config|Saved Runtime Agent AI Config|Runtime Agent AI Config adapter unavailable|Runtime Agent AI Config revision unavailable|Runtime Agent AI Config update failed/i)
-        .count();
-      assert.equal(observations.agentModelSelectedEnglishStatusTransitionCopyVisible, 0, 'Agent model selection must not leak English Runtime AIConfig transition status copy in zh shell.');
-    }
-  }
-  assert.ok(observations.agentModelChatDetailVisible, 'Agent chat model detail must be visible.');
-  assert.ok(observations.agentTextGenerateCardVisible, 'Agent chat model detail must expose text.generate.');
-  assert.ok(observations.agentModelSelectedAIConfigTargetRef, 'Selecting a model must write a text.generate targetRef.');
-
-  await settingsToggle.click();
-  await composerTextarea.waitFor({ state: 'visible', timeout: 30_000 });
-  const sendButton = page.locator('[data-chat-composer-send="true"]').first();
-  if (observations.agentModelSelectedRouteUnavailableVisible > 0) {
-    observations.agentComposerTextareaDisabledAfterRouteSelection = await composerTextarea.isDisabled();
-    observations.agentComposerSendDisabledAfterRouteSelection = await sendButton.isDisabled();
-    observations.agentComposerRouteDisabledHintVisible = await page.getByText(/当前选择的 runtime 路由|selected runtime route|健康检查|health check|尚未就绪|not ready/i).count();
-    await captureScreenshot(page, chatSendAttemptScreenshotPath);
-    observations.agentChatAfterSendAIConfigStorage = await readAIConfigStorageSnapshot(page);
-    observations.agentChatAfterSendRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
-    observations.agentChatSendSkippedReason = 'runtime_route_unavailable';
-    assert.equal(
-      observations.agentComposerTextareaDisabledAfterRouteSelection,
-      true,
-      'Agent composer textarea must be disabled when Runtime reports the selected route is unavailable.',
-    );
-    assert.equal(
-      observations.agentComposerSendDisabledAfterRouteSelection,
-      true,
-      'Agent composer send must be disabled when Runtime reports the selected route is unavailable.',
-    );
-    assert.ok(
-      observations.agentComposerRouteDisabledHintVisible > 0,
-      'Agent composer must show a readable route-unavailable hint when Runtime reports the selected route is unavailable.',
-    );
-  } else {
-    const longChineseMessage = '共享账户授权由运行时统一托管；这个长文本用于验证桌面与窄屏布局、中文可读性以及输入框在真实 Desktop Electron 外壳中的可用性。';
-    await composerTextarea.fill(longChineseMessage);
-    observations.agentComposerLongChineseText = await composerTextarea.inputValue();
-    await sendButton.click();
-    await page.waitForTimeout(2500);
-    await captureScreenshot(page, chatSendAttemptScreenshotPath);
-    observations.agentChatAfterSendAIConfigStorage = await readAIConfigStorageSnapshot(page);
-    observations.agentChatAfterSendRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
-    observations.agentChatSendRouteErrorVisible = await page.getByText(/A local or cloud runtime route is required before sending a message|local or cloud runtime route|本地.*云端.*runtime.*路由/i).count();
-    observations.agentChatTranscriptLocalizedTodayVisible = await page.getByText('今天').count();
-    observations.agentChatTranscriptEnglishTodayVisible = await page.getByText(/^Today$/u).count();
-    observations.agentChatTranscriptLocalizedThinkingVisible = await page.getByText(/正在思考/u).count();
-    observations.agentChatTranscriptEnglishThinkingVisible = await page.getByText(/Thinking(?:\.\.\.|…)?/i).count();
-    assert.equal(observations.agentChatSendRouteErrorVisible, 0, 'Agent Chat must not report missing route after selecting a model.');
-    assert.ok(observations.agentChatTranscriptLocalizedTodayVisible > 0, 'Agent Chat transcript must render localized today date label in zh shell.');
-    assert.equal(observations.agentChatTranscriptEnglishTodayVisible, 0, 'Agent Chat transcript must not leak English Today date label in zh shell.');
-    assert.equal(observations.agentChatTranscriptEnglishThinkingVisible, 0, 'Agent Chat transcript must not leak English Thinking pending label in zh shell.');
-  }
 
   const fixtureManifest = await fetchJson(`${fixtureServer.origin}/__fixture/control/manifest`);
-  const packetRequests = fixtureManifest.realmFixture?.sourceMaterializationPacketRequests || [];
+  const packetRequests = realRealmSession
+    ? rendererServer.capturedRequests.filter((item) => item.pathname === '/api/realm/core/source-materialization-packets')
+    : fixtureManifest.realmFixture?.sourceMaterializationPacketRequests || [];
   const packetRequest = packetRequests.find((item) =>
-    item?.sourceRef?.kind === VALID_SOURCE_REF.kind
-    && item?.sourceRef?.worldId === VALID_SOURCE_REF.worldId
-    && item?.sourceRef?.sourceId === VALID_SOURCE_REF.sourceId
-    && item?.sourceRef?.sourceContentHash === VALID_SOURCE_REF.sourceContentHash
+    item?.sourceRef?.kind === activeSourceRef.kind
+    && item?.sourceRef?.worldId === activeSourceRef.worldId
+    && item?.sourceRef?.sourceId === activeSourceRef.sourceId
+    && item?.sourceRef?.sourceContentHash === activeSourceRef.sourceContentHash
   );
   assert.ok(packetRequest, `expected fresh SourceMaterializationPacket request, got ${JSON.stringify(packetRequests)}`);
   observations.packetRequest = packetRequest;
 
-  const accountMenuTrigger = page.getByTestId('desktop-account-menu-trigger');
-  await accountMenuTrigger.waitFor({ state: 'visible', timeout: 30_000 });
-  await accountMenuTrigger.click();
-  const switchAccountButton = page.getByTestId('desktop-account-switch');
-  await switchAccountButton.waitFor({ state: 'visible', timeout: 30_000 });
-  observations.desktopAccountSwitchEnabled = await switchAccountButton.isEnabled();
-  assert.equal(observations.desktopAccountSwitchEnabled, true, 'Desktop Switch account control must be enabled');
-  await switchAccountButton.click();
-  await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 30_000 });
-  observations.desktopAccountSwitchReachedLoginRequired = true;
+  const materializePersonaForJourney = () => materializeJourneyPersona({
+    page,
+    realRealmSession,
+    agentClient,
+    mediaRoutes,
+    sharedAgentIntents,
+    journeyAgents,
+    observations,
+    personaMaterializedScreenshotPath,
+    waitForDiscoveredLocalAgent,
+    runtimeAgentIdentity,
+    conversationReportRoute: conversationReportContext?.route || null,
+    commitConversationReportRoute,
+  });
 
-  const reauthObservations = {};
-  await completeRuntimeAccountLogin(runtime, reauthObservations);
-  observations.desktopRuntimeFixtureReauthentication = reauthObservations.runtimeAccount;
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  assert.equal(
-    await waitForDesktopSurface(page),
-    'main',
-    'Desktop must restore the main shell after Runtime-owned fixture re-authentication',
-  );
+  if (!crossAppHandoffPath) {
+    const accountMenuTrigger = page.getByTestId('desktop-account-menu-trigger');
+    await accountMenuTrigger.waitFor({ state: 'visible', timeout: 30_000 });
+    await accountMenuTrigger.click();
+    const switchAccountButton = page.getByTestId('desktop-account-switch');
+    await switchAccountButton.waitFor({ state: 'visible', timeout: 30_000 });
+    observations.desktopAccountSwitchEnabled = await switchAccountButton.isEnabled();
+    assert.equal(observations.desktopAccountSwitchEnabled, true, 'Desktop Switch account control must be enabled');
+    await switchAccountButton.click();
+    await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 30_000 });
+    observations.desktopAccountSwitchReachedLoginRequired = true;
 
-  const restoredAccountMenuTrigger = page.getByTestId('desktop-account-menu-trigger');
-  await restoredAccountMenuTrigger.waitFor({ state: 'visible', timeout: 30_000 });
-  await restoredAccountMenuTrigger.click();
-  const logoutButton = page.getByTestId('desktop-account-logout');
-  await logoutButton.waitFor({ state: 'visible', timeout: 30_000 });
-  observations.desktopAccountLogoutEnabled = await logoutButton.isEnabled();
-  assert.equal(observations.desktopAccountLogoutEnabled, true, 'Desktop Log out control must be enabled');
-  await logoutButton.click();
-  await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 30_000 });
-  observations.desktopAccountLogoutReachedLoginRequired = true;
+    const reauthObservations = {};
+    await completeRuntimeAccountLogin(runtime, reauthObservations);
+    observations.desktopRuntimeFixtureReauthentication = reauthObservations.runtimeAccount;
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    assert.equal(await waitForDesktopSurface(page), 'main', 'Desktop must restore the main shell after Runtime-owned fixture re-authentication');
 
-  if (consoleErrors.length || pageErrors.length) {
+    const restoredAccountMenuTrigger = page.getByTestId('desktop-account-menu-trigger');
+    await restoredAccountMenuTrigger.waitFor({ state: 'visible', timeout: 30_000 });
+    await restoredAccountMenuTrigger.click();
+    const logoutButton = page.getByTestId('desktop-account-logout');
+    await logoutButton.waitFor({ state: 'visible', timeout: 30_000 });
+    observations.desktopAccountLogoutEnabled = await logoutButton.isEnabled();
+    assert.equal(observations.desktopAccountLogoutEnabled, true, 'Desktop Log out control must be enabled');
+    await logoutButton.click();
+    await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 30_000 });
+    observations.desktopAccountLogoutReachedLoginRequired = true;
+  }
+
+  if (!conversationReport && (consoleErrors.length || pageErrors.length)) {
     throw new Error(`renderer console/page errors observed: ${JSON.stringify({ consoleErrors, pageErrors }, null, 2)}`);
+  }
+
+  if (crossAppHandoffPath) {
+    ({ runtimeContext, runtimeDaemon, runtime, agentClient } = await holdCrossAppJourney({
+      runtimeContext,
+      runtimeDaemon,
+      runtime,
+      agentClient,
+      crossAppHandoffPath,
+      crossAppReleasePath,
+      crossAppProviderRawPath,
+      crossAppControlRoot,
+      fullChainCore,
+      conversationReport,
+      productJourneyId,
+      fixtureManifest,
+      fixtureOrigin: fixtureServer.origin,
+      realtimeFixtureOrigin,
+      desktopFixtureOrigin,
+      standardDataRoot,
+      acceptedRuntimeDataRoot,
+      productOwnerUserId,
+      agentIdentity,
+      localAgentRef,
+      displayName: observations.sourceDetailDisplayName || observations.agentDisplayName || (productSourceKind === 'realmPersona' ? 'Solace' : 'Runtime Live Source'),
+      activeSourceRef,
+      packetRequest,
+      mediaRoutes,
+      journeyAgents,
+      observations,
+      conversationScenario: conversationReportContext?.scenario || null,
+      conversationReportRouteSummary: conversationReportContext ? safeConversationRouteSummary(conversationReportContext.route) : null,
+      screenshots: [desktopScreenshotPath, narrowScreenshotPath, chatScreenshotPath],
+      materializePersona: materializePersonaForJourney,
+      waitForControlFile,
+      consoleErrors,
+      pageErrors,
+      restart: {
+        fixtureOrigin: desktopFixtureOrigin,
+        realmIssuerOrigin: realRealmSession?.realmIssuer || desktopFixtureOrigin,
+        providerOrigin: fixtureServer.origin,
+        homeDir: isolatedHome,
+        stateRoot: runtimeStateRoot,
+        runtimeDir,
+        baseEnv: acceptanceBaseEnv,
+        runtimeConfigPath,
+        stdoutPath: runtimeStdoutPath,
+        stderrPath: runtimeStderrPath,
+      },
+    }));
   }
 
   writeJsonFile(resultPath, {
@@ -666,6 +724,7 @@ try {
       agentModelChatDetail: agentModelChatDetailScreenshotPath,
       agentModelPicker: agentModelPickerScreenshotPath,
       agentModelSelected: agentModelSelectedScreenshotPath,
+      personaMaterialized: fs.existsSync(personaMaterializedScreenshotPath) ? personaMaterializedScreenshotPath : null,
     },
     sharedAuth: {
       success: {
@@ -700,6 +759,7 @@ try {
     localAgentRef,
   }, null, 2));
 } catch (error) {
+  if (!(error instanceof AcceptanceCompletedSignal)) {
   writeJsonFile(resultPath, {
     ok: false,
     error: formatError(error),
@@ -724,6 +784,7 @@ try {
     pageErrors,
   });
   throw error;
+  }
 } finally {
   if (electronApp) {
     await electronApp.close().catch(() => undefined);

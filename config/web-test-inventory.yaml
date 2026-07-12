@@ -37,6 +37,17 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
+  - path: apps/web/test/hash-scroll.test.ts
+    owner: web
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: apps/web/test/import-meta-env.test.ts
     owner: web
     classification: behavior_unit
@@ -48,7 +59,29 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: apps/web/test/landing-assets.test.ts
+    owner: web
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: apps/web/test/landing-links.test.ts
+    owner: web
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/web/test/landing-styles.test.ts
     owner: web
     classification: behavior_unit
     tier: T4

@@ -11,15 +11,15 @@ import (
 
 const neutralCurrentEmotion = "neutral"
 
-var admittedCurrentEmotions = map[string]struct{}{
-	"neutral":   {},
-	"joy":       {},
-	"focus":     {},
-	"calm":      {},
-	"playful":   {},
-	"concerned": {},
-	"surprised": {},
-}
+var admittedCurrentEmotions = func() map[string]struct{} {
+	values := make(map[string]struct{})
+	for activityID, category := range admittedActivityCategories {
+		if category == "emotion" {
+			values[activityID] = struct{}{}
+		}
+	}
+	return values
+}()
 
 var admittedEmotionSources = map[string]struct{}{
 	"chat_status_cue": {},

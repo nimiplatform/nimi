@@ -203,6 +203,20 @@ export function createNimiRuntimeAgentTurnStream(
           currentTurnAccepted,
           currentRuntimeTurnId: input.runtimeTurnRef.turnId,
         });
+    const admitProvisionalTextDelta = (text: string): boolean => {
+      if (!text) return false;
+      if (!messageSealedEmitted) {
+        provisionalText += text;
+        return true;
+      }
+      const nextProvisionalText = provisionalText + text;
+      const committedText = committedMessage?.text || '';
+      if (!committedText || !committedText.startsWith(nextProvisionalText)) {
+        throw new Error('runtime.agent emitted divergent text_delta after message_committed');
+      }
+      provisionalText = nextProvisionalText;
+      return false;
+    };
     const shouldDrainBeforeTerminal = (event: NimiRuntimeAgentConsumeEvent): boolean => {
       if (
         event.eventName === 'runtime.agent.turn.completed'
@@ -306,8 +320,7 @@ export function createNimiRuntimeAgentTurnStream(
         case 'runtime.agent.turn.text_delta': {
           if (!eventMatchesCurrentTurn(event)) break;
           const text = detailText(event, 'text');
-          provisionalText += text;
-          if (text) {
+          if (admitProvisionalTextDelta(text)) {
             if (!firstDeltaObserved) {
               firstDeltaObserved = true;
               if (startedAt > 0) {
@@ -547,8 +560,7 @@ export function createNimiRuntimeAgentTurnStream(
           case 'runtime.agent.turn.text_delta': {
             if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
             const text = detailText(event, 'text');
-            provisionalText += text;
-            if (text) {
+            if (admitProvisionalTextDelta(text)) {
               if (!firstDeltaObserved) {
                 firstDeltaObserved = true;
                 if (startedAt > 0) {

@@ -85,7 +85,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       const query = props.searchText.trim() || undefined;
       return realmExploreData.loadExplorePersonas({ tag, query, limit: PAGE_SIZE });
     },
-    enabled: authStatus === 'authenticated',
+    enabled: bootstrapReady,
   });
 
   const personaSourceBase = useMemo(

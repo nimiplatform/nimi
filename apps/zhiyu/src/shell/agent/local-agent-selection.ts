@@ -2,7 +2,6 @@ import type { ZhiyuRuntimeAgentInventoryStatus } from './agent-inventory';
 import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
 
 export type ZhiyuRuntimeLocalAgentSelectionInput = {
-  readonly sourceLocalAgent: ZhiyuLocalAgentStatus;
   readonly inventory: ZhiyuRuntimeAgentInventoryStatus;
   readonly selectedLocalAgentRef?: string | null;
 };
@@ -10,11 +9,14 @@ export type ZhiyuRuntimeLocalAgentSelectionInput = {
 export function resolveZhiyuRuntimeLocalAgentSelection(
   input: ZhiyuRuntimeLocalAgentSelectionInput,
 ): ZhiyuLocalAgentStatus {
-  if (input.sourceLocalAgent.ready) {
-    return input.sourceLocalAgent;
-  }
   if (!input.inventory.ready) {
-    return input.sourceLocalAgent;
+    return localAgentUnavailable({
+      reasonCode: input.inventory.reasonCode,
+      actionHint: input.inventory.actionHint,
+      source: input.inventory.source,
+      message: input.inventory.message,
+      ownerUserId: input.inventory.ownerUserId,
+    });
   }
 
   const localAgents = input.inventory.localAgents;
@@ -30,8 +32,18 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   const selectedLocalAgentRef = stringOr(input.selectedLocalAgentRef, '');
   if (selectedLocalAgentRef) {
     const selected = localAgents.find((agent) => agent.localAgentRef === selectedLocalAgentRef);
-    if (selected) {
+    if (selected && selected.sourceContextStatus?.ready === true) {
       return localAgentSelected(selected);
+    }
+    if (selected) {
+      return localAgentUnavailable({
+        reasonCode: 'zhiyu-runtime-local-agent-source-not-ready',
+        actionHint: 'refresh_runtime_local_agent_inventory',
+        source: 'runtime',
+        message: 'The selected Runtime LocalAgent source snapshot is not ready.',
+        ownerUserId: selected.ownerUserId,
+        runtimeSourceRef: selected.runtimeSourceRef,
+      });
     }
     return localAgentUnavailable({
       reasonCode: 'zhiyu-runtime-local-agent-selection-not-found',
@@ -60,12 +72,17 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
     });
   }
 
+  const only = localAgents[0];
+  if (only?.sourceContextStatus?.ready === true) {
+    return localAgentSelected(only);
+  }
   return localAgentUnavailable({
-    reasonCode: 'zhiyu-realm-materialized-partner-required',
-    actionHint: 'desktop_open_select_partner',
+    reasonCode: 'zhiyu-runtime-local-agent-source-not-ready',
+    actionHint: 'refresh_runtime_local_agent_inventory',
     source: 'runtime',
-    message: 'Zhiyu requires a Runtime-owned partner selected from Desktop Explore character/persona context before opening chat.',
-    ownerUserId: input.inventory.ownerUserId,
+    message: 'The Runtime LocalAgent source snapshot is not ready.',
+    ownerUserId: only?.ownerUserId ?? input.inventory.ownerUserId,
+    runtimeSourceRef: only?.runtimeSourceRef ?? null,
   });
 }
 

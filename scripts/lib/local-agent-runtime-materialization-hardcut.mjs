@@ -53,6 +53,21 @@ const rejectionAllowlist = new Map([
   ],
 ]);
 
+// HMAC is forbidden as source-materialization proof authority, not as a
+// cryptographic primitive everywhere in Runtime. These two files belong to
+// the protected-local rollback ledger and are admitted only while their
+// package-local custody markers remain present.
+const boundedSecurityPrimitiveAllowlist = new Map([
+  [
+    'runtime/internal/protectedlocal/anchor_file.go::hmac-proof',
+    /package protectedlocal[\s\S]*type FileAnchorStore struct[\s\S]*macKey \[\]byte/u,
+  ],
+  [
+    'runtime/internal/protectedlocal/ledger.go::hmac-proof',
+    /package protectedlocal[\s\S]*LedgerFilename[\s\S]*RecordMACKey \[\]byte/u,
+  ],
+]);
+
 function trackedFiles(repoRoot) {
   const output = execFileSync(
     'git',
@@ -79,6 +94,8 @@ export async function runtimeMaterializationCodeFindings(repoRoot) {
       if (matches.length === 0) continue;
       const allowance = rejectionAllowlist.get(`${relPath}::${rule.id}`);
       if (allowance?.classification === 'rejected' && allowance.proof.test(content)) continue;
+      const boundedSecurityPrimitive = boundedSecurityPrimitiveAllowlist.get(`${relPath}::${rule.id}`);
+      if (boundedSecurityPrimitive?.test(content)) continue;
       const lines = [...new Set(matches.map((match) => content.slice(0, match.index).split('\n').length))];
       findings.push(`${rule.id}: ${relPath}:${lines.join(',')} (${matches.length} occurrence(s))`);
     }

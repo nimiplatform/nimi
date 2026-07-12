@@ -608,6 +608,17 @@ test('Desktop shell left rail uses migrated Nimi logo asset instead of a placeho
   );
 });
 
+test('Electron window uses the Zhiyu logo asset for its taskbar icon', async () => {
+  const electronMainSource = await readFile(path.join(appRoot, 'src-electron', 'main.ts'), 'utf8');
+  const appIconPath = path.join(appRoot, 'src', 'shell', 'assets', 'app-icon.png');
+
+  assert.equal(existsSync(appIconPath), true, 'Zhiyu must carry its dedicated taskbar icon asset');
+  assert.match(electronMainSource, /const windowIconPath = path\.join\(currentDir, 'app-icon\.png'\);/);
+  assert.match(electronMainSource, /new BrowserWindow\(\{[\s\S]*?icon: windowIconPath,/);
+  const bundleScript = await readFile(path.join(appRoot, 'scripts', 'bundle-electron-preload.mjs'), 'utf8');
+  assert.match(bundleScript, /copyFile\([\s\S]*?'app-icon\.png'[\s\S]*?electronDistRoot, 'app-icon\.png'/);
+});
+
 test('Desktop contacts rail keeps compact density inside the left presence rail', async () => {
   const railSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentPanel.tsx'), 'utf8');
   const css = await readFile(path.join(appRoot, 'src', 'shell', 'app', 'home-surface.css'), 'utf8');

@@ -1,3 +1,4 @@
+import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { NIMI_STANDARD_SHELL_ERROR_CODES } from '@nimiplatform/kit/shell/capabilities';
 import { NimiElectronShellHostError } from './types.js';
 
@@ -6,6 +7,11 @@ const RUNTIME_ENDPOINT_UNAVAILABLE_REASON_CODES: ReadonlySet<string> = new Set([
   'RUNTIME_GRPC_UNAVAILABLE',
   'RUNTIME_GRPC_DEADLINE_EXCEEDED',
   'electron-runtime-endpoint-unavailable',
+]);
+const RUNTIME_TRUSTED_METADATA_INVALID_REASON_CODES: ReadonlySet<string> = new Set([
+  ReasonCode.APP_NOT_REGISTERED,
+  ReasonCode.PRINCIPAL_UNAUTHORIZED,
+  ReasonCode.SESSION_EXPIRED,
 ]);
 
 function normalizeErrorText(value: unknown): string {
@@ -195,6 +201,30 @@ export function isRuntimeEndpointUnavailableLike(error: unknown): boolean {
     || RUNTIME_ENDPOINT_UNAVAILABLE_REASON_CODES.has(reasonCode)
     || message.startsWith('14 UNAVAILABLE:')
     || message.startsWith('4 DEADLINE_EXCEEDED:');
+}
+
+export function runtimeTrustedMetadataInvalidationReason(error: unknown): string | null {
+  const message = errorMessage(error);
+  const embedded = parseRuntimeErrorPayload(message);
+  const record = asOptionalRecord(error) ?? {};
+  const details = asOptionalRecord(record.details);
+  const reasonCode = normalizeErrorText(
+    embedded.reasonCode
+    ?? embedded.reason_code
+    ?? record.reasonCode
+    ?? record.reason_code
+    ?? details?.reasonCode
+    ?? details?.reason_code,
+  );
+  if (RUNTIME_TRUSTED_METADATA_INVALID_REASON_CODES.has(reasonCode)) {
+    return reasonCode;
+  }
+  for (const candidate of RUNTIME_TRUSTED_METADATA_INVALID_REASON_CODES) {
+    if (message.includes(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 function runtimeGrpcCode(error: unknown): number {

@@ -25,6 +25,7 @@ const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
+const windowIconPath = path.join(currentDir, 'app-icon.png');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
@@ -107,6 +108,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     height: 860,
     minWidth: 980,
     minHeight: 720,
+    icon: windowIconPath,
     title: '织羽 Zhiyu',
     autoHideMenuBar: true,
     webPreferences: {

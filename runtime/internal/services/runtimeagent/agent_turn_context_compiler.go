@@ -211,9 +211,8 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 		if err != nil {
 			return "", 0, err
 		}
-		content := agentTurnContextTypedContent("Runtime-scoped relationship projection",
+		content := agentTurnContextTypedContent("Runtime relationship",
 			agentTurnContextTextField{Name: "scope", Values: []string{relationship.Scope}},
-			agentTurnContextTextField{Name: "provenance_ref", Values: []string{relationship.ProvenanceRef}},
 			agentTurnContextTextField{Name: "summary", Values: []string{relationship.Summary}},
 		)
 		item, err := newAgentTurnContextItem(agentTurnContextLaneRelationshipContext, "runtime.relationship."+relationship.RelationshipID, "runtime.relationships."+relationship.RelationshipID, ref, agentTurnContextAuthorityRuntimeRelation, agentTurnContextTrustRuntimeScoped, 650, relationship.Rank, true, agentTurnContextTruncationNone, []agentTurnContextSegment{{Role: "system", Content: content}}, nil)

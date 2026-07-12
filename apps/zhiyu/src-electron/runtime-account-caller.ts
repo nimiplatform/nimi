@@ -1,4 +1,29 @@
-import { createNimiLocalFirstPartyRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiLocalFirstPartyRuntimeAccountCaller,
+  createNimiRuntimeAppSessionMetadataProvider,
+  type NimiRuntimeAppSessionMetadataProviderInput,
+} from '@nimiplatform/sdk/runtime';
+
+export const ZHIYU_RUNTIME_PROTECTED_SCOPES = [
+  'runtime.agent.read',
+  'runtime.agent.write',
+  'runtime.agent.autonomy.write',
+  'runtime.agent.turn.read',
+  'runtime.agent.turn.write',
+  'runtime.agent.delegation.read',
+  'runtime.agent.delegation.write',
+  'runtime.agent.ai_config.read',
+  'runtime.agent.ai_config.write',
+  'ai.spend.meter',
+] as const;
+export const ZHIYU_RUNTIME_REGISTRATION_CAPABILITIES = [
+  ...ZHIYU_RUNTIME_PROTECTED_SCOPES,
+  'account.session.read',
+  'data.scope.read#realm.worlds.read-probe',
+] as const;
+const runtimeDeveloperRegistrationRequested = false;
+const runtimeAppSessionTtlSeconds = 3600;
+const runtimeAppSessionRefreshSkewMs = 30_000;
 
 export function createZhiyuElectronRuntimeAccountCaller(appId: string) {
   const normalizedAppId = requireText(appId, 'appId');
@@ -8,6 +33,24 @@ export function createZhiyuElectronRuntimeAccountCaller(appId: string) {
     appId: normalizedAppId,
     appInstanceId: `${normalizedAppId}.local-first-party`,
     deviceId: runtimeAccountDeviceId,
+  });
+}
+
+export function createZhiyuElectronRuntimeAppSessionMetadataProvider(input: {
+  readonly appId: string;
+  readonly auth: NimiRuntimeAppSessionMetadataProviderInput['auth'];
+}) {
+  const appId = requireText(input.appId, 'appId');
+  const clientIdPrefix = normalizeClientIdPrefix(appId);
+  return createNimiRuntimeAppSessionMetadataProvider({
+    auth: input.auth,
+    appId,
+    appInstanceId: `${appId}.local-first-party`,
+    deviceId: `${clientIdPrefix}-local-first-party-device`,
+    capabilities: [...ZHIYU_RUNTIME_REGISTRATION_CAPABILITIES],
+    ttlSeconds: runtimeAppSessionTtlSeconds,
+    refreshSkewMs: runtimeAppSessionRefreshSkewMs,
+    developerRegistration: runtimeDeveloperRegistrationRequested,
   });
 }
 

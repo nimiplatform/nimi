@@ -28,6 +28,7 @@ type AgentRuntimeChatProviderMetadata = {
   runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
+  runtimeThreadId: string;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
   textMaxOutputTokensRequested: number | null;
 };
@@ -48,6 +49,7 @@ function requireProviderMetadata(value: unknown): AgentRuntimeChatProviderMetada
     runtimeSourceRef: normalizeText(record.runtimeSourceRef),
     localAgentRef: normalizeText(record.localAgentRef),
     conversationAnchorId: normalizeText(record.conversationAnchorId),
+    runtimeThreadId: normalizeText(record.runtimeThreadId),
     reasoningPreference: (record.reasoningPreference || 'auto') as AgentRuntimeChatProviderMetadata['reasoningPreference'],
     textMaxOutputTokensRequested: Number.isFinite(Number(record.textMaxOutputTokensRequested))
       ? Math.floor(Number(record.textMaxOutputTokensRequested))
@@ -113,7 +115,7 @@ async function* runRuntimeOwnedAgentTurn(input: {
     runtimeSourceRef: input.metadata.runtimeSourceRef,
     localAgentRef: input.metadata.localAgentRef,
     conversationAnchorId: input.metadata.conversationAnchorId,
-    threadId: input.baseInput.threadId,
+    threadId: input.metadata.runtimeThreadId,
     userMessageId: input.baseInput.userMessage.id,
     userText: input.userText,
     userAttachments: input.userAttachments,
@@ -318,8 +320,8 @@ export function createRuntimeAgentChatConversationProvider(
       const userAttachments = Array.isArray(input.userMessage.attachments)
         ? input.userMessage.attachments as readonly AgentChatUserAttachment[]
         : [];
-      if (!metadata.ownerUserId || !metadata.runtimeSourceRef || !metadata.localAgentRef || !metadata.conversationAnchorId) {
-        throw new Error('runtime.agent chat metadata requires ownerUserId, runtimeSourceRef, localAgentRef, and conversationAnchorId');
+      if (!metadata.ownerUserId || !metadata.runtimeSourceRef || !metadata.localAgentRef || !metadata.conversationAnchorId || !metadata.runtimeThreadId) {
+        throw new Error('runtime.agent chat metadata requires ownerUserId, runtimeSourceRef, localAgentRef, conversationAnchorId, and Runtime-owned threadId');
       }
       if (!userText && userAttachments.length === 0) {
         throw new Error('runtime.agent chat requires a non-empty user message or admitted attachment projection');

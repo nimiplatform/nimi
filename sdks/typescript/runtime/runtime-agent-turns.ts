@@ -623,7 +623,10 @@ export function createNimiRuntimeAgentTurnsModule(
           messageType: TURN_REQUEST_TYPE,
           payload,
           requireAck: false,
-        }, callOptions),
+        }, withNimiRuntimeIdempotencyMetadata(
+          callOptions,
+          optionalString(request.requestId) || createNimiClientId('runtime-agent-turn-request'),
+        )),
       );
       return assertAccepted(response, TURN_REQUEST_TYPE);
     },
@@ -651,7 +654,10 @@ export function createNimiRuntimeAgentTurnsModule(
           messageType: TURN_INTERRUPT_TYPE,
           payload,
           requireAck: false,
-        }, callOptions),
+        }, withNimiRuntimeIdempotencyMetadata(
+          callOptions,
+          createNimiClientId('runtime-agent-turn-interrupt'),
+        )),
       );
       return assertAccepted(response, TURN_INTERRUPT_TYPE);
     },

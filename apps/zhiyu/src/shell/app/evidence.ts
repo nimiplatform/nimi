@@ -12,6 +12,8 @@ import type {
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentIdentitySafetyProjection,
   NimiRuntimeAgentPresentationProfileProjection,
+  NimiRuntimeAgentSourceContextStatus,
+  NimiRuntimeAgentTurnContextSummary,
   NimiRuntimeAgentProactiveDeliveryChannel,
   NimiRuntimeAgentProactiveFrequencyCapState,
   NimiRuntimeAgentProactiveOptInState,
@@ -223,6 +225,9 @@ export type ZhiyuEvidence = {
       readonly sourceId: string;
       readonly sourceContentHash: string;
     } | null;
+    readonly projectionState: 'ready' | 'blocked' | 'truncated' | 'failed' | 'unknown';
+    readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
+    readonly turnContextSummary: NimiRuntimeAgentTurnContextSummary | null;
   };
   readonly inventory: {
     readonly transport: 'electron-ipc';
@@ -243,6 +248,7 @@ export type ZhiyuEvidence = {
       readonly sourceWorldName: string | null;
       readonly sourceId: string | null;
       readonly sourceContentHash: string | null;
+      readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
     }[];
   };
   readonly localAgent: {
@@ -267,6 +273,7 @@ export type ZhiyuEvidence = {
     readonly runtimeSourceRef: string | null;
     readonly localAgentRef: string | null;
     readonly conversationAnchorId: string | null;
+    readonly threadId: string | null;
   };
   readonly memory: {
     readonly transport: 'electron-ipc';
@@ -486,6 +493,9 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       ownerUserId: null,
       runtimeSourceRef: null,
       sourceRef: null,
+      projectionState: 'unknown',
+      sourceContextStatus: null,
+      turnContextSummary: null,
     },
     inventory: {
       transport: 'electron-ipc',
@@ -520,6 +530,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       runtimeSourceRef: null,
       localAgentRef: null,
       conversationAnchorId: null,
+      threadId: null,
     },
     memory: {
       transport: 'electron-ipc',

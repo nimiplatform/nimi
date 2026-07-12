@@ -502,48 +502,6 @@
   overflow-wrap: anywhere;
 }
 
-.zhiyu-home__desktop-open-callout {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.12));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 88%, var(--nimi-action-primary-bg, #4ecca3) 12%);
-}
-
-.zhiyu-home__desktop-open-copy {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-}
-
-.zhiyu-home__desktop-open-copy span {
-  color: var(--nimi-text-primary, #17211c);
-  font-size: 13px;
-  font-weight: 750;
-}
-
-.zhiyu-home__desktop-open-copy p,
-.zhiyu-home__desktop-open-copy small {
-  margin: 0;
-  color: var(--nimi-text-secondary, #475569);
-  font-size: 11.5px;
-  line-height: 1.45;
-}
-
-.zhiyu-home__desktop-open-callout button {
-  display: inline-flex;
-  min-width: 118px;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 12px;
-  white-space: nowrap;
-}
-
 .zhiyu-home__chat-failure-notice {
   display: grid;
   min-width: 0;

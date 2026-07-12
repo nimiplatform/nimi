@@ -42,13 +42,13 @@ describe('Electron standard shell source boundaries', () => {
 
     for (const moduleFile of [
       'runtime.ts',
+      'runtime-trusted-metadata.ts',
       'runtime-lifecycle.ts',
       'auth.ts',
       'oauth.ts',
       'shell-ui.ts',
       'diagnostics.ts',
       'data-storage.ts',
-      'config.ts',
       'local-assets.ts',
       'local-agent.ts',
       'ai-profile.ts',

@@ -33,6 +33,7 @@ test('Desktop Runtime account contract keeps protected scopes in a single shared
     'account.session.read',
     'data.scope.read#realm.worlds.read-probe',
     'data.scope.read#realm.core.world-characters',
+    'data.scope.read#realm.core.personas',
     'data.scope.read#realm.core.world-entities',
     'data.scope.read#realm.core.world-relationships',
     'data.scope.read#realm.account.private',

@@ -199,7 +199,7 @@ export async function runZhiyuAgentChatTurn(
     ?? createElectronRuntimeAgentStreamTurn(identity.ownerUserId, runtimeBinding);
   const initialProjection = createRuntimeAgentConversationProjectionState({
     modeId: 'runtime-agent-chat-v1',
-    threadId: identity.conversationAnchorId,
+    threadId: identity.threadId,
     turnId: requestId,
     sessionId: identity.conversationAnchorId,
     targetId: identity.localAgentRef,
@@ -220,7 +220,7 @@ export async function runZhiyuAgentChatTurn(
     let projection = initialProjection;
     for await (const event of streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
       modeId: 'runtime-agent-chat-v1',
-      threadId: identity.conversationAnchorId,
+      threadId: identity.threadId,
       turnId: requestId,
       parts: streamed.stream,
       resolveArtifactPreviewUri,
@@ -254,6 +254,7 @@ function buildRuntimeAgentTurnRequest(input: {
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
   readonly conversationAnchorId: string;
+  readonly threadId: string;
   readonly route: ZhiyuRuntimeAgentChatRouteEvidence;
   readonly requestId: string;
   readonly text: string;
@@ -267,7 +268,7 @@ function buildRuntimeAgentTurnRequest(input: {
     localAgentRef: input.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     requestId: input.requestId,
-    threadId: input.conversationAnchorId,
+    threadId: input.threadId,
     messages: [
       {
         role: 'user',
@@ -329,7 +330,7 @@ function createElectronRuntimeAgentStreamTurn(
       },
       request,
       signal: options?.signal,
-      interruptReason: 'zhiyu_agent_chat_abort',
+      interruptReason: 'user_cancel',
     });
   };
 }
@@ -415,6 +416,7 @@ function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
   readonly conversationAnchorId: string;
+  readonly threadId: string;
 } | null {
   if (!conversation.ready) {
     return null;
@@ -423,7 +425,8 @@ function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
   const runtimeSourceRef = stringOr(conversation.runtimeSourceRef, '');
   const localAgentRef = stringOr(conversation.localAgentRef, '');
   const conversationAnchorId = stringOr(conversation.conversationAnchorId, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) {
+  const threadId = stringOr(conversation.threadId, '');
+  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId || !threadId) {
     return null;
   }
   return {
@@ -431,6 +434,7 @@ function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
     runtimeSourceRef,
     localAgentRef,
     conversationAnchorId,
+    threadId,
   };
 }
 

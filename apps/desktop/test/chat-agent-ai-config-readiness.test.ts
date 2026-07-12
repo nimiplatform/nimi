@@ -51,6 +51,21 @@ test('RLA3 Desktop Agent Center placement consumes Kit surface only', () => {
   assert.equal(fs.existsSync(desktopPanelPath), false, 'Desktop-owned AgentCenterPanel must be removed');
 });
 
+test('RLA3 Desktop Agent Center refreshes bounded context after committed turns', () => {
+  const placementSource = fs.readFileSync(path.join(chatDir, 'chat-agent-shell-presentation-settings.tsx'), 'utf8');
+
+  assert.match(
+    placementSource,
+    /runtimeAdapter\.loadSnapshot\(\{[\s\S]*conversationAnchorId:\s*input\.activeConversationAnchorId[\s\S]*\}\)/,
+    'Agent Center must load the active conversation anchor explicitly',
+  );
+  assert.match(
+    placementSource,
+    /\[input\.activeConversationAnchorId,\s*input\.messages\.length,\s*runtimeAdapter\]/,
+    'Agent Center must refresh its bounded projection when a committed transcript message arrives',
+  );
+});
+
 test('RLA3 Desktop Agent Center injects localized Runtime AIConfig status copy', () => {
   const placementSource = fs.readFileSync(path.join(chatDir, 'chat-agent-shell-presentation-settings.tsx'), 'utf8');
   const requiredCopyFields = [

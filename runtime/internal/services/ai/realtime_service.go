@@ -305,12 +305,18 @@ func (s *Service) CloseRealtimeSession(ctx context.Context, req *runtimev1.Close
 }
 
 func (s *Service) consumeRealtimeEvents(record *realtimeSessionRecord) {
-	if record == nil || record.conn == nil {
+	if record == nil {
+		return
+	}
+	record.mu.Lock()
+	conn := record.conn
+	record.mu.Unlock()
+	if conn == nil {
 		return
 	}
 	for {
 		var payload map[string]any
-		if err := record.conn.Receive(&payload); err != nil {
+		if err := conn.Receive(&payload); err != nil {
 			if !errors.Is(err, io.EOF) {
 				s.realtimeSessions.appendEvent(record.sessionID, &runtimev1.RealtimeEvent{
 					EventType: runtimev1.RealtimeEventType_REALTIME_EVENT_FAILED,

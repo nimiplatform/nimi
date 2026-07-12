@@ -84,6 +84,7 @@ pub(super) fn runtime_agent_record(
         local_agent_ref,
         owner_user_id,
         runtime_source_ref,
+        source_context_status: None,
     }
 }
 
@@ -227,6 +228,8 @@ pub(super) fn runtime_agent_anchor_snapshot(
         }),
         active_turn_id: String::new(),
         active_stream_id: String::new(),
+        source_context_status: None,
+        turn_context_summary: None,
     }
 }
 
@@ -410,6 +413,8 @@ pub(super) fn runtime_agent_list_conversation_summaries_response(
                 last_message_id: String::new(),
                 transcript_message_count: 0,
                 updated_at: Some(fixture_timestamp()),
+                source_context_status: None,
+                last_turn_context_summary: None,
             }],
             next_page_token: String::new(),
         },

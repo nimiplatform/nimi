@@ -1,5 +1,7 @@
-import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
-import { type AgentConversationSummary } from '@nimiplatform/sdk/runtime/wire-types';
+import {
+  createNimiRuntimeAgentConsumeClient,
+  type NimiRuntimeAgentConversationSummary,
+} from '@nimiplatform/sdk/runtime';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
@@ -44,7 +46,7 @@ function timestampToMs(value: RuntimeTimestampLike | null | undefined): number {
 
 export function toAgentRuntimeConversationSummary(
   target: AgentLocalTargetSnapshot,
-  summary: AgentConversationSummary,
+  summary: NimiRuntimeAgentConversationSummary,
 ): AgentRuntimeConversationSummary | null {
   const anchor = summary.anchor;
   const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);

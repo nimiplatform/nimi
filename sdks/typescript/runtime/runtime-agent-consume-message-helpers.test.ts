@@ -62,7 +62,7 @@ test('Runtime Agent message-action helpers parse structured envelopes and fail c
     },
     status_cue: {
       source_message_id: 'assistant-1',
-      mood: 'joy',
+      mood: 'happy',
       label: 'Ready',
       intensity: 0.8,
       action_cue: 'show-and-say',
@@ -92,7 +92,7 @@ test('Runtime Agent message-action helpers parse structured envelopes and fail c
   });
 
   assert.equal(envelope.schemaId, NIMI_RUNTIME_AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID);
-  assert.equal(envelope.statusCue?.mood, 'joy');
+  assert.equal(envelope.statusCue?.mood, 'happy');
   assert.equal(envelope.actions[0]?.promptPayload.kind, 'image-prompt');
   assert.equal(envelope.actions[1]?.promptPayload.kind, 'voice-prompt');
   assert.equal(buildNimiRuntimeAgentResolvedOutputText(envelope), 'Paint the gate and speak the cue.');
@@ -110,7 +110,7 @@ test('Runtime Agent message-action helpers parse structured envelopes and fail c
     () => parseNimiRuntimeAgentResolvedMessageActionEnvelopeFromPayload({
       schemaId: NIMI_RUNTIME_AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
       message: { messageId: 'assistant-1', text: 'hello' },
-      statusCue: { sourceMessageId: 'assistant-1', mood: 'angry' },
+      statusCue: { sourceMessageId: 'assistant-1', mood: 'joy' },
       actions: [],
     }),
     /statusCue\.mood is invalid/u,

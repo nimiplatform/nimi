@@ -462,6 +462,15 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 			Payload:   payload,
 		}},
 	})
+	if err == nil {
+		if resp == nil || resp.GetJob() == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "" {
+			t.Fatalf("expected submit response with job, got %#v", resp)
+		}
+		// SubmitScenarioJob deliberately returns before the async execution path
+		// completes. Wait for that path before inspecting the shared resolver so
+		// this test cannot leak a writer into the following test.
+		waitScenarioJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	}
 	resolver, _ := svc.localImageProfile.(*fakeLocalImageProfileResolver)
 	if resolver == nil || resolver.resolveProfileCalls < 1 {
 		t.Fatalf("expected managed image profile to be resolved during submit, got resolver=%#v", resolver)
@@ -474,9 +483,6 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 	}
 	if err != nil && strings.Contains(err.Error(), "supply_profile_entries") {
 		t.Fatalf("submit path should not drop image profile extensions, got %v", err)
-	}
-	if err == nil && (resp == nil || resp.GetJob() == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "") {
-		t.Fatalf("expected submit response with job, got %#v", resp)
 	}
 }
 

@@ -127,6 +127,9 @@ persistent `AgentPresentationProfile` truth and not as renderer-local truth.
 Fixed rules:
 
 - current emotion must project through `AgentStateProjection.current_emotion`
+- current emotion ids are exactly the `emotion` category (core plus extended)
+  admitted by `tables/agent-activity-ontology.yaml`; Runtime must not substitute
+  downstream Avatar cue names such as `joy`, `calm`, `focus`, or `concerned`
 - public change notification must use `runtime.agent.state.emotion_changed`
 - emotion is durable-until-replace runtime state and must not be collapsed into
   posture or persistent presentation profile fields
@@ -145,6 +148,9 @@ Fixed rules:
 
 - `runtime.agent.turn.text_delta` is provisional until
   `runtime.agent.turn.message_committed`
+- every same-turn `text_delta` must be projected before `message_committed`;
+  consumers must not append a late or replayed delta after sealing the
+  committed message
 - if a hard turn failure occurs before `message_committed`, consumers must
   discard provisional text from that stream
 - sidecar runtime-owned state units such as posture, emotion, memory

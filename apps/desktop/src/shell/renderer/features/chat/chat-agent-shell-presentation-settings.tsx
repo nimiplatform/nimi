@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -21,6 +22,10 @@ type AgentConversationSettingsContentProps = {
 export function AgentConversationSettingsContent(props: AgentConversationSettingsContentProps) {
   const { input } = props;
   const [activeSection, setActiveSection] = useState<AgentCenterSectionId>('overview');
+  const [boundedContext, setBoundedContext] = useState<{
+    sourceContextStatus: Awaited<ReturnType<NonNullable<typeof input.runtimeAgentCenterAdapter>['loadSnapshot']>>['sourceContextStatus'];
+    turnContextSummary: Awaited<ReturnType<NonNullable<typeof input.runtimeAgentCenterAdapter>['loadSnapshot']>>['turnContextSummary'];
+  } | null>(null);
   const localAssetsQuery = useLocalAssets({ enabled: activeSection === 'model' });
   const localAssetSource = useMemo(() => ({
     loading: localAssetsQuery.isFetching,
@@ -39,17 +44,42 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
       },
     };
   }, [input.runtimeAgentCenterAdapter, localAssetSource]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!runtimeAdapter) {
+      setBoundedContext(null);
+      return () => { cancelled = true; };
+    }
+    void runtimeAdapter.loadSnapshot({
+      ...(input.activeConversationAnchorId
+        ? { conversationAnchorId: input.activeConversationAnchorId }
+        : {}),
+    }).then((snapshot) => {
+      if (!cancelled) {
+        setBoundedContext({
+          sourceContextStatus: snapshot.sourceContextStatus,
+          turnContextSummary: snapshot.turnContextSummary,
+        });
+      }
+    }).catch(() => {
+      if (!cancelled) setBoundedContext(null);
+    });
+    return () => { cancelled = true; };
+  }, [input.activeConversationAnchorId, input.messages.length, runtimeAdapter]);
   const state = useMemo<AgentCenterStateInput>(() => ({
     agentAIConfig: input.runtimeAgentAIConfig,
     readiness: input.runtimeAgentAIConfigReadiness,
     inspect: input.runtimeInspect,
     runtimeError: input.runtimeAgentAIConfigError,
+    sourceContextStatus: boundedContext?.sourceContextStatus ?? null,
+    turnContextSummary: boundedContext?.turnContextSummary ?? null,
     autonomyMutationAvailable: Boolean(runtimeAdapter?.setAutonomyConfig),
   }), [
     input.runtimeAgentAIConfig,
     input.runtimeAgentAIConfigError,
     input.runtimeAgentAIConfigReadiness,
     input.runtimeInspect,
+    boundedContext,
     runtimeAdapter?.setAutonomyConfig,
   ]);
   const agentCenterCopy = useMemo<AgentCenterCopy>(() => ({

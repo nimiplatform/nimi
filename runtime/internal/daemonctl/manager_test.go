@@ -8,11 +8,29 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
+
+type synchronizedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *synchronizedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *synchronizedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
 
 func newTestManager(t *testing.T) (*Manager, Paths, map[int]bool) {
 	t.Helper()
@@ -505,7 +523,7 @@ func TestManagerPrintLogsFollowStreamsAppendedContent(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var out bytes.Buffer
+	var out synchronizedBuffer
 	done := make(chan error, 1)
 	go func() {
 		done <- manager.PrintLogs(ctx, &out, 10, true)

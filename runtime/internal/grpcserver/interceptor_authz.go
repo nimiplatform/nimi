@@ -30,6 +30,10 @@ func (protectedCarrierOnlyCapabilityAuthorizer) ValidateProtectedCapability(stri
 	return runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH, "use_protected_desktop_carrier", false
 }
 
+type protectedCapabilityIdentityAuthorizer interface {
+	ValidateProtectedCapabilityIdentity(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, string, bool)
+}
+
 const deferredStreamCapability = "__deferred__"
 
 func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.UnaryServerInterceptor {
@@ -54,13 +58,36 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 		if appID == "" {
 			appID = appIDFromRequest(req)
 		}
-		if reasonCode, actionHint, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, capability); !ok {
+		reasonCode, actionHint, ok := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", false
+		validatedSubjectUserID := ""
+		if identityAuthorizer, supportsIdentity := authorizer.(protectedCapabilityIdentityAuthorizer); supportsIdentity {
+			reasonCode, actionHint, validatedSubjectUserID, ok = identityAuthorizer.ValidateProtectedCapabilityIdentity(appID, tokenID, secret, capability)
+		} else {
+			reasonCode, actionHint, ok = authorizer.ValidateProtectedCapability(appID, tokenID, secret, capability)
+		}
+		if !ok {
 			return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, reasonCode, grpcerr.ReasonOptions{
 				ActionHint: actionHint,
 			})
 		}
+		if isSourceMaterializationMethod(info.FullMethod) && authn.IdentityFromContext(ctx) == nil && strings.TrimSpace(validatedSubjectUserID) != "" {
+			ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: strings.TrimSpace(validatedSubjectUserID)})
+		}
 		ctx = envelope.WithValidatedProtectedCapability(ctx, appID, capability)
 		return handler(ctx, req)
+	}
+}
+
+func isSourceMaterializationMethod(methodID string) bool {
+	switch methodID {
+	case "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
+		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
+		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
+		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload":
+		return true
+	default:
+		return false
 	}
 }
 

@@ -90,6 +90,9 @@ func (s *Service) nextPublicChatStreamSequence(turnID string) uint64 {
 		return 0
 	}
 	turn.StreamSequence++
+	if turn.TerminalProjection != nil {
+		turn.TerminalProjection.StreamSequence = turn.StreamSequence
+	}
 	if turn.Projection != nil {
 		turn.Projection.StreamSequence = turn.StreamSequence
 		if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil && session.ActiveTurnSnapshot != nil {

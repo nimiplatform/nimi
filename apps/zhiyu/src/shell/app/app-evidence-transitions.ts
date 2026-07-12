@@ -217,7 +217,7 @@ export function turnStatusFromChat(chat: ZhiyuRuntimeAgentChatStatus): ZhiyuEvid
     requestId: chat.requestId,
     runtimeTurnId: chat.runtimeTurnId,
     runtimeStreamId: chat.runtimeStreamId,
-    messageId: latestAssistant?.id ?? null,
+    messageId: latestAssistant ? originalConversationMessageId(latestAssistant) : null,
   };
 }
 
@@ -253,7 +253,8 @@ function createSubmittedUserMessage(input: {
 }): RuntimeAgentConversationProjectionState['messages'][number] {
   const conversationAnchorId = input.conversation.conversationAnchorId;
   const localAgentRef = input.conversation.localAgentRef;
-  if (!conversationAnchorId || !localAgentRef) {
+  const threadId = input.conversation.threadId;
+  if (!conversationAnchorId || !localAgentRef || !threadId) {
     throw new Error('Zhiyu submitted user message requires Runtime conversation identity.');
   }
   return {
@@ -271,7 +272,7 @@ function createSubmittedUserMessage(input: {
     senderKind: 'human',
     metadata: {
       modeId: 'runtime-agent-chat-v1',
-      threadId: conversationAnchorId,
+      threadId,
       turnId: input.requestId,
       sessionId: conversationAnchorId,
       targetId: localAgentRef,
@@ -352,7 +353,24 @@ function mergedConversationMessageKey(
 ): string {
   const turnId = conversationMessageTurnId(message);
   const originalMessageId = originalConversationMessageId(message);
-  return turnId ? `${turnId}:${originalMessageId}` : originalMessageId;
+  if (!turnId) {
+    return originalMessageId;
+  }
+  if (isPrimaryConversationTextMessage(message)) {
+    if (message.role === 'user') {
+      return `${turnId}:primary-user`;
+    }
+    if (message.role === 'agent' || message.role === 'assistant') {
+      return `${turnId}:primary-assistant`;
+    }
+  }
+  return `${turnId}:${originalMessageId}`;
+}
+
+function isPrimaryConversationTextMessage(
+  message: RuntimeAgentConversationProjectionState['messages'][number],
+): boolean {
+  return message.kind === undefined || message.kind === 'text' || message.kind === 'streaming';
 }
 
 function originalConversationMessageId(

@@ -134,6 +134,8 @@ jobs:
       # >>> nimi-release-gate-projection: live-smoke-checks >>>
       - name: gate.live.live2d-companion-timeline-acceptance
         run: pnpm check:live2d-companion-timeline-acceptance
+      - name: gate.live.local-agent-conversation-report
+        run: pnpm test:e2e:local-agent-conversation-report
       - name: gate.live.provider-invariants
         run: pnpm check:live-provider-invariants
       - name: gate.live.test-matrix

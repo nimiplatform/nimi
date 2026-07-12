@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { AccountCallerMode } from '../../core-generated/runtime-typed-client';
 import {
-  createRuntimeAccountMediatedRealmTransport,
-} from './runtime-account-realm';
+  AccountCallerMode,
+  AccountReasonCode,
+  ReasonCode as RuntimeWireReasonCode,
+} from '../../core-generated/runtime-typed-client';
+import { ReasonCode } from '../../types';
+import { createRuntimeAccountMediatedRealmTransport } from './runtime-account-realm';
 
 test('Runtime-mediated Realm transport delegates unary calls without renderer token custody', async () => {
   const caller = {
@@ -23,7 +26,7 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
           calls.push({ request, options });
           return {
             accepted: true,
-            responseJson: JSON.stringify({ id: 'world-1', name: '鍞愪唬鏂囦汉涓栫晫' }),
+            responseJson: JSON.stringify({ id: 'world-1', name: 'Tang literary world' }),
           };
         },
       },
@@ -41,7 +44,7 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
     timeoutMs: 15_000,
   });
 
-  assert.deepEqual(response, { id: 'world-1', name: '鍞愪唬鏂囦汉涓栫晫' });
+  assert.deepEqual(response, { id: 'world-1', name: 'Tang literary world' });
   assert.deepEqual(calls.map((call) => call.request), [{
     caller,
     methodId: 'WorldPublicController_getWorld',
@@ -62,7 +65,42 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
   assert.notEqual(
     repeatedOptions?.metadata?.idempotencyKey,
     options?.metadata?.idempotencyKey,
-    'separate Realm broker invocations must not replay an authorization result across account-session changes',
+    'separate Realm broker invocations must not replay authorization across account-session changes',
+  );
+});
+
+test('Runtime-mediated Realm transport maps upstream failure to typed Realm offline truth', async () => {
+  const transport = createRuntimeAccountMediatedRealmTransport({
+    accountCaller: {
+      appId: 'nimi.zhiyu',
+      appInstanceId: 'nimi.zhiyu.local-first-party',
+      deviceId: 'desktop-device',
+      mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+      scopes: [],
+    },
+    runtime: {
+      account: {
+        invokeRealmUnary: async () => ({
+          accepted: false,
+          responseJson: '',
+          reasonCode: RuntimeWireReasonCode.AI_PROVIDER_UNAVAILABLE,
+          accountReasonCode: AccountReasonCode.BROKER_UPSTREAM_FAILED,
+          productionInert: false,
+          httpStatus: 503,
+          errorMessage: 'Realm is offline.',
+        }),
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => transport.unary({ methodId: 'WorldCoreController_listWorldCores', body: {} }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.REALM_UNAVAILABLE);
+      assert.equal((error as { source?: string }).source, 'realm');
+      assert.equal((error as { retryable?: boolean }).retryable, true);
+      return true;
+    },
   );
 });
 

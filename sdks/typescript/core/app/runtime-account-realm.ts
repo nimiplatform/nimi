@@ -1,5 +1,9 @@
 import type { CoreTransport } from '../../core-client';
-import { AccountCallerMode } from '../../core-generated/runtime-typed-client';
+import {
+  AccountCallerMode,
+  AccountReasonCode,
+  ReasonCode as RuntimeWireReasonCode,
+} from '../../core-generated/runtime-typed-client';
 import type { NimiRuntimeAccountCaller, Runtime } from '../../runtime';
 import { createNimiClientId, createNimiError, type CoreStreamRequest, type CoreUnaryRequest, ReasonCode } from '../../types';
 
@@ -31,14 +35,17 @@ export function createRuntimeAccountMediatedRealmTransport(input: {
         responseMetadataObserver: request.responseMetadataObserver,
       });
       if (!response.accepted) {
+        const failure = runtimeMediatedRealmFailure(response);
         throw createNimiError({
           message: `Runtime Realm mediation rejected ${request.methodId}.`,
-          reasonCode: normalizeText(response.reasonCode) || ReasonCode.RUNTIME_UNAVAILABLE,
-          actionHint: 'check_runtime_realm_mediation',
-          source: 'runtime',
+          reasonCode: failure.reasonCode,
+          actionHint: failure.actionHint,
+          retryable: failure.retryable,
+          source: failure.source,
           details: {
             methodId: request.methodId,
-            accountReasonCode: normalizeText(response.accountReasonCode),
+            accountReasonCode: runtimeEnumName(AccountReasonCode, response.accountReasonCode),
+            httpStatus: response.httpStatus,
             errorMessage: normalizeText(response.errorMessage),
           },
         });
@@ -58,6 +65,44 @@ export function createRuntimeAccountMediatedRealmTransport(input: {
   };
 }
 
+function runtimeMediatedRealmFailure(response: {
+  readonly reasonCode: RuntimeWireReasonCode;
+  readonly accountReasonCode: AccountReasonCode;
+  readonly httpStatus: number;
+}): {
+  readonly reasonCode: string;
+  readonly actionHint: string;
+  readonly retryable: boolean;
+  readonly source: 'realm' | 'runtime';
+} {
+  if (response.accountReasonCode === AccountReasonCode.BROKER_UPSTREAM_FAILED) {
+    const reasonCode = response.httpStatus === 404
+      ? ReasonCode.REALM_NOT_FOUND
+      : response.httpStatus === 409
+        ? ReasonCode.REALM_CONFLICT
+        : response.httpStatus === 429
+          ? ReasonCode.REALM_RATE_LIMITED
+          : ReasonCode.REALM_UNAVAILABLE;
+    return {
+      reasonCode,
+      actionHint: reasonCode === ReasonCode.REALM_UNAVAILABLE
+        ? 'retry_realm_operation_when_available'
+        : 'inspect_realm_operation_failure',
+      retryable: reasonCode === ReasonCode.REALM_UNAVAILABLE || reasonCode === ReasonCode.REALM_RATE_LIMITED,
+      source: 'realm',
+    };
+  }
+  return {
+    reasonCode: runtimeEnumName(RuntimeWireReasonCode, response.reasonCode) || ReasonCode.RUNTIME_UNAVAILABLE,
+    actionHint: 'check_runtime_realm_mediation',
+    retryable: false,
+    source: 'runtime',
+  };
+}
+
+function runtimeEnumName(enumType: Record<number, string>, value: number): string {
+  return normalizeText(enumType[value]);
+}
 function assertRuntimeMediatedRealmCallerMode(caller: NimiRuntimeAccountCaller): void {
   if (
     caller.mode !== AccountCallerMode.LOCAL_FIRST_PARTY_APP

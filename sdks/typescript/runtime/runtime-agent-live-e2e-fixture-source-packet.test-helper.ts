@@ -79,6 +79,8 @@ const world = {
   createdAt: FIXTURE_TIME,
   updatedAt: FIXTURE_TIME,
 };
+export const FIXTURE_SOURCE_WORLD_ID = world.id;
+export const FIXTURE_SOURCE_WORLD_NAME = world.core.identity.name;
 const characterCore = {
   identity: {
     name: 'Runtime Live Source',

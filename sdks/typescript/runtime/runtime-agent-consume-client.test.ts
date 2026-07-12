@@ -1156,7 +1156,7 @@ test('Runtime Agent consume client parses public chat session snapshots', async 
               text: 'hello',
               structured: {
                 status_cue: {
-                  mood: 'joy',
+                  mood: 'happy',
                 },
               },
             },
@@ -1190,7 +1190,7 @@ test('Runtime Agent consume client parses public chat session snapshots', async 
   assert.equal(snapshot.lastTurn?.messageId, 'message-1');
   assert.deepEqual(snapshot.lastTurn?.structured, {
     status_cue: {
-      mood: 'joy',
+      mood: 'happy',
     },
   });
 });

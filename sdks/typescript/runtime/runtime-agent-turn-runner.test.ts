@@ -34,6 +34,51 @@ function textTimeline(sequence: number) {
   } as const;
 }
 
+test('Runtime Agent turn runner abort uses the admitted user cancellation reason', async () => {
+  const controller = new AbortController();
+  let interruptRequest: Parameters<NimiRuntimeAgentTurnsModule['interrupt']>[0] | undefined;
+  let resolveInterrupt!: () => void;
+  const interrupted = new Promise<void>((resolve) => {
+    resolveInterrupt = resolve;
+  });
+  const turns: NimiRuntimeAgentTurnsModule = {
+    async subscribe() {
+      return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+        await new Promise(() => undefined);
+      })();
+    },
+    async request() {
+      return { messageId: 'request-message', accepted: true, reasonCode: 0 as never };
+    },
+    async interrupt(request) {
+      interruptRequest = request;
+      resolveInterrupt();
+      return { messageId: 'interrupt-message', accepted: true, reasonCode: 0 as never };
+    },
+    async getSessionSnapshot() {
+      return {};
+    },
+  };
+
+  await runNimiRuntimeAgentTurn({
+    turns,
+    signal: controller.signal,
+    request: {
+      ownerUserId: 'owner',
+      runtimeSourceRef: 'source',
+      localAgentRef: 'local-agent:owner:source',
+      conversationAnchorId: 'anchor',
+      requestId: 'request',
+      messages: [{ role: 'user', content: 'cancel me' }],
+    },
+  });
+  controller.abort('user stopped the turn');
+  await interrupted;
+
+  assert.equal(interruptRequest?.reason, 'user_cancel');
+  assert.equal(interruptRequest?.conversationAnchorId, 'anchor');
+});
+
 test('Runtime Agent turn runner filters backlog and seals committed message', async () => {
   const requestIds: string[] = [];
   let snapshotQueryCount = 0;
@@ -137,7 +182,7 @@ test('Runtime Agent turn runner filters backlog and seals committed message', as
   assert.equal(snapshotQueryCount, 0);
 });
 
-test('Runtime Agent turn runner drains same-turn text timeline events before terminal completion', async () => {
+test('Runtime Agent turn runner drains same-turn timeline without replaying committed text after seal', async () => {
   const requestIds: string[] = [];
   const turns: NimiRuntimeAgentTurnsModule = {
     async subscribe() {
@@ -225,11 +270,10 @@ test('Runtime Agent turn runner drains same-turn text timeline events before ter
   assert.deepEqual(parts.map((part) => part.type), [
     'message-sealed',
     'reasoning-delta',
-    'text-delta',
     'turn-completed',
   ]);
   assert.equal(parts.find((part) => part.type === 'reasoning-delta')?.textDelta, 'reasoning stays separate');
-  assert.equal(parts.find((part) => part.type === 'text-delta')?.textDelta, 'runner complete');
+  assert.equal(parts.some((part) => part.type === 'text-delta'), false);
   assert.equal(parts.find((part) => part.type === 'turn-completed')?.outputText, 'runner complete');
 });
 

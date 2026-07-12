@@ -1,17 +1,19 @@
 import { i18n } from '@renderer/i18n';
 import {
-  createNimiRealmSourceMaterializationPacket,
-  type NimiRealmSourceMaterializationPacket,
-} from '@nimiplatform/sdk/realm';
-import {
   createNimiHostRuntimeAgentLifecycleSurface,
+  createNimiHostRuntimeAgentMaterializationSurface,
   isRuntimeLocalAgentRef,
   normalizeNimiRuntimeAgentText,
   type NimiRuntimeAgentDiscoveredLocalAgent,
+  type NimiRuntimeAgentMaterializedRealmSource,
 } from '@nimiplatform/sdk/runtime';
-import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
+import { emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import {
+  getDesktopAccountRuntime,
+  getDesktopAppId,
+  getDesktopRealm,
   getDesktopHostRuntimeAgentClient,
+  getDesktopRuntime,
   withDesktopRuntimeProtectedScopes,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
@@ -23,8 +25,6 @@ export {
   realmSourceRefKey,
   resolveRealmCoreSourceRef,
 };
-
-export const DESKTOP_SOURCE_MATERIALIZATION_AUDIENCE = 'nimi.desktop.local-agent.materialization';
 
 export type RealmPersonaSourceState =
   | 'source_materialization_available'
@@ -109,10 +109,7 @@ export function realmPersonaSourceMaterializationFailureMessage(error: unknown):
       ? error.trim()
       : '';
   const normalized = message.toLowerCase();
-  if (
-    message.includes('SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET')
-    || normalized.includes('source materialization packet verifier is not configured')
-  ) {
+  if (normalized.includes('source materialization packet verifier is not configured')) {
     return realmPersonaSourceMaterializationVerifierUnavailableMessage();
   }
   if (
@@ -126,20 +123,42 @@ export function realmPersonaSourceMaterializationFailureMessage(error: unknown):
   return message || realmPersonaSourceMaterializationMessage();
 }
 
-export async function createRealmSourceMaterializationPacket(input: unknown): Promise<NimiRealmSourceMaterializationPacket> {
+function createMaterializationRequestId(): string {
+  const cryptoLike = globalThis.crypto as { randomUUID?: () => string } | undefined;
+  if (typeof cryptoLike?.randomUUID === 'function') {
+    return `desktop-source-materialization:${cryptoLike.randomUUID()}`;
+  }
+  return `desktop-source-materialization:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+export async function materializeRealmSourceLocalAgent(
+  input: unknown,
+  ownerUserIdInput: unknown,
+): Promise<NimiRuntimeAgentMaterializedRealmSource> {
   const sourceRef = resolveRealmCoreSourceRef(input);
+  const ownerUserId = normalizeNimiRuntimeAgentText(ownerUserIdInput);
   if (!sourceRef) {
     throw new Error(realmPersonaSourceMaterializationMessage());
   }
-  return callRealmApi(
-    (realm) => createNimiRealmSourceMaterializationPacket(
-      realm,
-      emitRealmDataError,
-      sourceRef,
-      DESKTOP_SOURCE_MATERIALIZATION_AUDIENCE,
-    ),
-    'Failed to create Realm source materialization packet',
-  );
+  if (!ownerUserId) {
+    throw new Error('Realm source materialization requires an authenticated Runtime owner.');
+  }
+  const materialization = createNimiHostRuntimeAgentMaterializationSurface({
+    getRuntime: () => ({
+      appId: getDesktopAppId(),
+      auth: getDesktopAccountRuntime().auth,
+      appAuth: getDesktopAccountRuntime().grants,
+      agent: getDesktopRuntime().agents,
+    }),
+    getSubjectUserId: () => ownerUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
+  });
+  return materialization.materializeRealmSource({
+    sourceRef,
+    requestId: createMaterializationRequestId(),
+    realm: getDesktopRealm(),
+    emitRealmDataError,
+  });
 }
 
 export async function discoverRealmSourceLocalAgents(

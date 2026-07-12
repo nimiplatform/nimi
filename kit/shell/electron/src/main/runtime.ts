@@ -2,7 +2,6 @@ import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type 
 import { runtimeRpcAuthPosture } from '@nimiplatform/sdk/runtime/generated';
 import {
   createElectronRuntimeEndpointUnavailableError,
-  isRuntimeEndpointUnavailableLike,
   toElectronRuntimeBridgeError,
 } from './errors.js';
 import { asRecord, normalizeRequiredToken, normalizeText, parseOptionalPositiveNumber } from './paths.js';
@@ -22,6 +21,13 @@ import type {
   RuntimeGrpcBridgeUnaryResponse,
 } from './types.js';
 import { NimiElectronShellHostError } from './types.js';
+import {
+  resolveTrustedRuntimeMetadata,
+  resolveTrustedRuntimeMetadataWithSingleInvalidation,
+  trustedRuntimeMetadataInvalidationReason,
+} from './runtime-trusted-metadata.js';
+
+export { resolveTrustedRuntimeMetadata } from './runtime-trusted-metadata.js';
 
 let electronRuntimeBridgeIdempotencyCounter = 1;
 
@@ -90,25 +96,50 @@ export async function invokeElectronRuntimeTrustedUnary(input: {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 }): Promise<RuntimeGrpcBridgeUnaryResponse> {
   const request = input.request;
-  const trusted = await resolveTrustedRuntimeMetadata({
+  const metadataInput = {
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
     methodId: request.methodId,
     event: input.event,
     appId: input.appId,
     runtimeEndpoint: input.runtimeEndpoint,
-  });
-  const metadata = buildElectronRuntimeGrpcMetadata(request, input.appId, trusted);
+  };
+  const initialResolution = await resolveTrustedRuntimeMetadataWithSingleInvalidation(metadataInput);
+  let trusted = initialResolution.trusted;
+  let invalidationConsumed = initialResolution.invalidationConsumed;
+  let metadata = buildElectronRuntimeGrpcMetadata(request, input.appId, trusted);
+  let response: RuntimeGrpcBridgeUnaryResponse;
   try {
-    return await input.client.unary({
+    response = await input.client.unary({
       methodId: request.methodId,
       requestBytes: input.requestBytes,
       metadata,
       timeoutMs: request.timeoutMs,
     });
   } catch (error) {
-    throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
+    const invalidationReason = invalidationConsumed
+      ? null
+      : trustedRuntimeMetadataInvalidationReason(input.trustedRuntimeMetadataProvider, error);
+    if (invalidationReason) {
+      invalidationConsumed = true;
+      input.trustedRuntimeMetadataProvider?.invalidate?.(invalidationReason);
+      trusted = await resolveTrustedRuntimeMetadata(metadataInput);
+      metadata = buildElectronRuntimeGrpcMetadata(request, input.appId, trusted);
+      try {
+        response = await input.client.unary({
+          methodId: request.methodId,
+          requestBytes: input.requestBytes,
+          metadata,
+          timeoutMs: request.timeoutMs,
+        });
+      } catch (retryError) {
+        throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, retryError);
+      }
+    } else {
+      throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
+    }
   }
+  return response;
 }
 
 export async function openElectronRuntimeStream(input: {
@@ -125,31 +156,46 @@ export async function openElectronRuntimeStream(input: {
 }): Promise<ElectronRuntimeBridgeStreamOpenResponse> {
   const request = parseElectronRuntimeStreamOpenRequest(input.payload);
   assertElectronGenericRuntimeMethodAllowed(request.methodId);
-  const trusted = await resolveTrustedRuntimeMetadata({
+  const metadataInput = {
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
     methodId: request.methodId,
     event: input.event,
     appId: input.appId,
     runtimeEndpoint: input.runtimeEndpoint,
-  });
-  let stream: RuntimeGrpcBridgeStream;
-  try {
-    stream = input.client.serverStream({
+  };
+  const initialResolution = await resolveTrustedRuntimeMetadataWithSingleInvalidation(metadataInput);
+  let invalidationConsumed = initialResolution.invalidationConsumed;
+  const requestBytes = fromBase64(request.requestBytesBase64);
+  const createStream = (trusted: ElectronRuntimeBridgeTrustedMetadata | undefined): RuntimeGrpcBridgeStream =>
+    input.client.serverStream({
       methodId: request.methodId,
-      requestBytes: fromBase64(request.requestBytesBase64),
+      requestBytes,
       metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),
       timeoutMs: request.timeoutMs,
     });
+  let stream: RuntimeGrpcBridgeStream;
+  try {
+    stream = createStream(initialResolution.trusted);
   } catch (error) {
     throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
   }
   const eventName = createElectronRuntimeBridgeEventName(request.streamId, request.eventNamespace || input.eventNamespace);
   const channel = `${input.eventChannelPrefix}${eventName}`;
-  input.streams.set(request.streamId, stream);
-  try {
-    stream.start({
+  let recoveringStream: RuntimeGrpcBridgeStream | null = null;
+  const sendStreamError = (error: unknown) => {
+    input.event.sender?.send?.(channel, {
+      streamId: request.streamId,
+      eventType: 'error',
+      error: toElectronRuntimeBridgeError(createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error)),
+    });
+  };
+  const startStream = (current: RuntimeGrpcBridgeStream) => {
+    current.start({
       onData: (bytes) => {
+        if (input.streams.get(request.streamId) !== current) {
+          return;
+        }
         input.event.sender?.send?.(channel, {
           streamId: request.streamId,
           eventType: 'next',
@@ -157,14 +203,53 @@ export async function openElectronRuntimeStream(input: {
         });
       },
       onError: (error) => {
-        input.streams.delete(request.streamId);
-        input.event.sender?.send?.(channel, {
-          streamId: request.streamId,
-          eventType: 'error',
-          error: toElectronRuntimeBridgeError(createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error)),
-        });
+        if (input.streams.get(request.streamId) !== current) {
+          return;
+        }
+        const invalidationReason = invalidationConsumed
+          ? null
+          : trustedRuntimeMetadataInvalidationReason(input.trustedRuntimeMetadataProvider, error);
+        if (!invalidationReason) {
+          input.streams.delete(request.streamId);
+          sendStreamError(error);
+          return;
+        }
+        invalidationConsumed = true;
+        recoveringStream = current;
+        input.trustedRuntimeMetadataProvider?.invalidate?.(invalidationReason);
+        void (async () => {
+          try {
+            const trusted = await resolveTrustedRuntimeMetadata(metadataInput);
+            if (input.streams.get(request.streamId) !== current) {
+              return;
+            }
+            const replacement = createStream(trusted);
+            input.streams.set(request.streamId, replacement);
+            recoveringStream = null;
+            try {
+              startStream(replacement);
+            } catch (retryError) {
+              if (input.streams.get(request.streamId) === replacement) {
+                input.streams.delete(request.streamId);
+                sendStreamError(retryError);
+              }
+            }
+          } catch (retryError) {
+            if (input.streams.get(request.streamId) === current) {
+              recoveringStream = null;
+              input.streams.delete(request.streamId);
+              sendStreamError(retryError);
+            }
+          }
+        })();
       },
       onEnd: () => {
+        if (
+          input.streams.get(request.streamId) !== current
+          || recoveringStream === current
+        ) {
+          return;
+        }
         input.streams.delete(request.streamId);
         input.event.sender?.send?.(channel, {
           streamId: request.streamId,
@@ -172,6 +257,10 @@ export async function openElectronRuntimeStream(input: {
         });
       },
     });
+  };
+  input.streams.set(request.streamId, stream);
+  try {
+    startStream(stream);
   } catch (error) {
     input.streams.delete(request.streamId);
     throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
@@ -288,29 +377,6 @@ function createElectronRuntimeBridgeIdempotencyKey(methodId: string): string {
   return `bridge-${methodId.replaceAll('/', '_')}-${Date.now()}-${counter}`;
 }
 
-export async function resolveTrustedRuntimeMetadata(input: {
-  readonly provider: ElectronRuntimeBridgeTrustedMetadataProvider | undefined;
-  readonly command: string;
-  readonly methodId: string;
-  readonly event: NimiElectronIpcMainInvokeEvent;
-  readonly appId: string;
-  readonly runtimeEndpoint: string;
-}): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> {
-  try {
-    return await input.provider?.({
-      command: input.command,
-      methodId: input.methodId,
-      event: input.event,
-      appId: input.appId,
-      runtimeEndpoint: input.runtimeEndpoint,
-    });
-  } catch (error) {
-    if (isRuntimeEndpointUnavailableLike(error)) {
-      throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
-    }
-    throw error;
-  }
-}
 export async function probeElectronRuntimeStatus(input: {
   readonly client: RuntimeGrpcBridgeClient;
   readonly appId: string;

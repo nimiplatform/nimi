@@ -115,6 +115,26 @@ func TestResolvePublicChatTextBindingAllowsColdLocalBackend(t *testing.T) {
 	}
 }
 
+func TestResolvePublicChatTextBindingPreservesCommittedCloudRouteForUnprefixedProviderModel(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: "https://dashscope.example/v1", APIKey: "fixture-key"},
+		},
+	})
+
+	route, modelResolved, err := svc.ResolvePublicChatTextBinding(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		"Moonshot-Kimi-K2-Instruct",
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextBinding committed cloud route: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || modelResolved != "Moonshot-Kimi-K2-Instruct" {
+		t.Fatalf("committed cloud binding drifted: route=%v model=%q", route, modelResolved)
+	}
+}
+
 func TestResolveProviderStillRequiresColdLocalBackendAvailability(t *testing.T) {
 	selector := newRouteSelector(Config{})
 
@@ -171,6 +191,42 @@ func TestResolvePublicChatTextContextMetadataUsesResolvedCatalogRow(t *testing.T
 	}
 	if window != 32768 || catalogRevision == "" || modelRevision == "" || provider != "local" {
 		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
+	}
+}
+
+func TestResolvePublicChatTextContextMetadataResolvesLocalRuntimeBindingToLogicalCatalogModel(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-asset-gemma",
+			AssetId:              "local.chat.gemma-4-e2b-it.q8-0",
+			LogicalModelId:       "gemma-4-e2b-it-local",
+			Engine:               "llama",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			LocalInvokeProfileId: "invoke-gemma",
+			Capabilities:         []string{"text.generate"},
+		}},
+	}}}
+	targetRef := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+		LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+			Version: "nimi.runtime.target.local/v1",
+			Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+				ProfileBindingId: "local-runtime:local-asset-gemma",
+			},
+		},
+	}}
+
+	window, _, _, provider, err := svc.ResolvePublicChatTextContextMetadata(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		"local-runtime:local-asset-gemma",
+		targetRef,
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextContextMetadata local-runtime binding: %v", err)
+	}
+	if window != 32768 || provider != "local" {
+		t.Fatalf("context metadata = window:%d provider:%q", window, provider)
 	}
 }
 

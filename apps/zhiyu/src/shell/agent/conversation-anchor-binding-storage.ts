@@ -8,6 +8,7 @@ export type ZhiyuAgentConversationAnchorBinding = {
   runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
+  threadId: string;
   updatedAtMs: number;
 };
 
@@ -18,7 +19,7 @@ let storageHydrated = false;
 let storageHydration: Promise<void> | null = null;
 
 const STORAGE_PATH = 'agent-chat/conversation-anchor-bindings.json';
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 export function getZhiyuAgentConversationAnchorBinding(
   localAgentRef: string | null | undefined,
@@ -139,7 +140,8 @@ function normalizeBinding(
   const runtimeSourceRef = normalizeText(record.runtimeSourceRef);
   const localAgentRef = normalizeText(record.localAgentRef);
   const conversationAnchorId = normalizeText(record.conversationAnchorId);
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) {
+  const threadId = normalizeText(record.threadId);
+  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId || !threadId) {
     return null;
   }
   try {
@@ -152,6 +154,7 @@ function normalizeBinding(
     runtimeSourceRef,
     localAgentRef,
     conversationAnchorId,
+    threadId,
     updatedAtMs: normalizeUpdatedAtMs(record.updatedAtMs),
   };
 }
@@ -164,6 +167,7 @@ function encodeStoredBindings(): JsonValue {
       runtimeSourceRef: binding.runtimeSourceRef,
       localAgentRef: binding.localAgentRef,
       conversationAnchorId: binding.conversationAnchorId,
+      threadId: binding.threadId,
       updatedAtMs: binding.updatedAtMs,
     })),
   };

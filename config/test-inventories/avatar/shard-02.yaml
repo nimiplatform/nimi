@@ -1,109 +1,10 @@
 version: 1
 inventory_id: avatar_test_inventory
-shard_id: avatar_test_inventory_shard_02
 owner: avatar
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: avatar_test_inventory_shard_02
 tests:
-  - path: apps/avatar/src/shell/renderer/nimi2d/nimi2d-backend-branch.test.tsx
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/nimi2d/nimi2d-carrier-visual-proof.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/nimi2d/nimi2d-live-action-bench.test.tsx
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/nimi2d/nimi2d-pixi-renderer.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/sdk/SdkDriver.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/voice-companion-state.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/voice-lipsync/audio-non-synthetic-e2e.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/voice-lipsync/avatar-voice-lipsync.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/voice-lipsync/lipsync-e2e.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
   - path: apps/avatar/src/shell/renderer/vrm/fetch-vrm-models.test.ts
     owner: avatar
     classification: behavior_unit
@@ -368,6 +269,17 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: apps/avatar/src/shell/renderer/vrm/vrm-real-sample-smoke.test.ts
+    owner: avatar
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: apps/avatar/src/shell/renderer/vrm/vrm-render-target.test.ts
     owner: avatar
     classification: behavior_unit
@@ -402,17 +314,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: apps/avatar/src/shell/renderer/vrm/vrm-viewport-state.test.ts
-    owner: avatar
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/avatar/src/shell/renderer/vrm/vrm-real-sample-smoke.test.ts
     owner: avatar
     classification: behavior_unit
     tier: T4

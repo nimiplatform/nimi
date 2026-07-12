@@ -40,7 +40,7 @@ func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *test
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-preflight-failure",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -274,7 +274,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-cancel-follow-up",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -308,7 +308,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-cancel-follow-up",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "new user reply"},
 			},
@@ -418,7 +418,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-recovery",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -554,7 +554,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-session-reuse-cancel",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -720,7 +720,7 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-follow-up-cancel-action-hint",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -840,7 +840,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-restart-snapshot",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},

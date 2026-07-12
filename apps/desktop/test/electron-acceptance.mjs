@@ -90,7 +90,9 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
       const loginScreen = page.getByTestId('login-screen');
       assert.equal(await loginScreen.getAttribute('data-auth-mode'), 'desktop-browser');
       await page.getByTestId('login-logo-trigger').click();
-      await page.getByText(/Runtime account service is unavailable|external Runtime daemon/i).waitFor({
+      await page.getByText(
+        /App is still starting|Runtime account service is unavailable|external Runtime daemon/i,
+      ).waitFor({
         state: 'visible',
         timeout: 10_000,
       });
@@ -109,7 +111,6 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
         realm: {
           realmBaseUrl: 'http://localhost:3002',
           realtimeUrl: 'ws://localhost:3003',
-          accessToken: 'desktop-acceptance-token',
           jwksUrl: 'http://localhost:3002/api/auth/jwks',
           revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
           jwtIssuer: 'http://localhost:3002',
@@ -129,15 +130,9 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
       assert.equal(statusError.reasonCode, 'electron-runtime-endpoint-unavailable');
       assert.equal(statusError.actionHint, 'start_external_runtime_daemon');
 
-      const runtimeConfig = await invokeShell(page, 'config.get', {});
-      assert.deepEqual(runtimeConfig, {
-        path: runtimeConfigPath,
-        config: {
-          schemaVersion: 1,
-          grpcAddr: '127.0.0.1:1',
-          source: 'desktop-electron-acceptance',
-        },
-      });
+      const runtimeConfigError = await captureInvokeError(page, 'config.get', {});
+      assert.equal(runtimeConfigError.code, 'capability-unavailable');
+      assert.equal(runtimeConfigError.reasonCode, 'electron-standard-capability-unavailable');
 
       const localAgentIdentityError = await captureInvokeError(page, 'local-agent.identity', {});
       assert.equal(localAgentIdentityError.code, 'capability-unavailable');

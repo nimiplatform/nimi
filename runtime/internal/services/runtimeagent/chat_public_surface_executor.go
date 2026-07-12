@@ -32,32 +32,27 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 	return &aiBackedPublicChatTurnExecutor{ai: ai}
 }
 
-const publicChatAPMLOutputContractPromptTemplate = `Runtime output contract:
-- Return APML only. The first non-whitespace characters must be <message id="message-0">.
-- Do not output Markdown, JSON, code fences, prose before APML, or <think> reasoning tags.
-- Required shape: <message id="message-0">assistant-visible reply text</message>.
-- Optional message cues are child elements inside <message>, at most one each: <emotion>%s</emotion> and <activity>%s</activity>.
-- Optional voice action after message: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
+const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
+- Return APML only; begin <message id="message-0">, put reply and optional cue children inside <message>, then close </message>. No Markdown, JSON, fences, <think>, or prefix prose.
+- Optional cues (omit if unsure): never top-level; at most one each; <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, never emotion.
+- Optional voice sibling: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
 %s
-- Optional follow-up hook after message: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>follow-up instruction</prompt-text></effect></time-hook>.
-- Top-level tags are limited to the first <message>, then optional sibling <action>, <time-hook>, or <event-hook>.
-- Every opened tag must close.`
+- Optional follow-up sibling: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.
+- Order: message first, then only action, time-hook, or event-hook siblings. Close every tag.`
 
-const publicChatImageActionAvailablePrompt = `- Optional image action after message: <action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
-- If the user asks to create, draw, generate, send, or show an image, photo, picture, avatar, selfie, or visual, include exactly one sibling <action kind="image"> after the message.
-- For an agent photo/avatar/selfie request, do not answer that you lack a physical body as a reason to skip the action; create a representative or stylized visual prompt for the agent instead.`
+const publicChatImageActionAvailablePrompt = `- Image sibling: <action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action>.
+- If the user asks to create, draw, generate, send, or show an image/photo/picture/avatar/selfie/visual, include exactly one sibling <action kind="image"> after the message.
+- For an agent photo/avatar/selfie request, create a representative or stylized visual prompt; do not claim a missing physical body to skip it.`
 
 // publicChatImageActionNotConfiguredPrompt is the truthful K-AGCORE-148 copy
 // for the `not_configured` state: no committed image.generate binding exists.
-const publicChatImageActionNotConfiguredPrompt = `- Image actions are not available on this turn because image generation is not configured. Do not output <action kind="image">.
-- If the user asks to create, draw, generate, send, or show an image, photo, picture, avatar, selfie, or visual, answer in message text that image generation is not configured and needs a configured image route before you can create it.`
+const publicChatImageActionNotConfiguredPrompt = `- Image: image generation is not configured. Do not output <action kind="image">. If asked for an image/photo/picture/avatar/selfie/visual, say it needs a configured image route.`
 
 // publicChatImageActionRouteUnavailablePrompt is the truthful K-AGCORE-148
 // copy for the `unavailable` state: a committed image binding exists but its
 // route is currently not usable. Telling the model the route is unconfigured
 // when a committed binding exists is not admitted.
-const publicChatImageActionRouteUnavailablePrompt = `- Image actions are not available on this turn because the image route is configured but currently unavailable. Do not output <action kind="image">.
-- If the user asks to create, draw, generate, send, or show an image, photo, picture, avatar, selfie, or visual, answer in message text that the configured image route is currently unavailable and to retry later.`
+const publicChatImageActionRouteUnavailablePrompt = `- Image route is configured but currently unavailable. Do not output <action kind="image">. If asked for an image/photo/picture/avatar/selfie/visual, say the configured route is unavailable and retry later.`
 
 func publicChatAPMLOutputContractPrompt(actions publicChatAvailableActions) string {
 	var imagePrompt string

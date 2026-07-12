@@ -380,17 +380,19 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterStateSource, /loadDesktopRouteOptions\('text\.generate'\)/);
   assert.match(adapterStateSource, /findNimiRuntimeRouteModelProfile/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);
-  assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentLifecycleSurface/);
   assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentPresentationProfileSurface/);
   assert.match(hostActionHelpersSource, /createNimiRuntimeAgentConsumeClient/);
   assert.match(hostActionHelpersSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
   assert.match(runtimeAgentTurnSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
   assert.match(runtimeAgentMemorySource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
   assert.match(runtimeAgentInspectSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
-  assert.match(hostActionHelpersSource, /ensureLocalAgentInitialized/);
+  assert.match(hostActionHelpersSource, /runtime\.agent\.getAgent/);
+  assert.doesNotMatch(hostActionHelpersSource, /ensureLocalAgentInitialized/);
   assert.doesNotMatch(hostActionHelpersSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
   assert.match(hostActionHelpersSource, /client\.anchors\.getSnapshot/);
+  assert.match(hostActionHelpersSource, /client\.turns\.getSessionSnapshot/);
+  assert.match(hostActionHelpersSource, /const threadId = normalizeText\(snapshot\.threadId\)/);
   assert.match(hostActionHelpersSource, /clearAgentConversationAnchorBinding/);
   assert.doesNotMatch(
     hostActionHelpersSource,
@@ -454,6 +456,8 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionSubmitSource, /getRuntimeAgentAIConfigReadiness/);
   assert.doesNotMatch(hostActionSubmitSource, /ensureAgentConversationSubmitRouteReady/);
   assert.match(runtimeProviderSource, /case 'text-delta':/);
+  assert.match(runtimeProviderSource, /threadId:\s*input\.metadata\.runtimeThreadId/);
+  assert.doesNotMatch(runtimeProviderSource, /threadId:\s*input\.baseInput\.threadId,\s*userMessageId/);
   assert.match(runtimeProviderSource, /feedStreamEvent\(input\.baseInput\.threadId,\s*\{\s*type:\s*'keepalive'\s*\}\)/);
   assert.doesNotMatch(runtimeProviderSource, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);
   assert.doesNotMatch(runtimeProviderSource, /chatAgentStoreClient\.commitTurnResult/);

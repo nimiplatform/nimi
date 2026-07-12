@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
@@ -12,6 +12,7 @@ import {
   type ElectronRuntimeBridgeTrustedMetadataProvider,
   type ElectronRuntimeBridgeUnaryRequest,
   type RuntimeGrpcBridgeClient,
+  type RuntimeGrpcBridgeStreamHandlers,
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 import {
@@ -260,6 +261,247 @@ describe('registerNimiElectronRuntimeBridge', () => {
     expect(unaryCalls).toBe(1);
     expect(metadataCalls).toBe(1);
     expect(invalidatedReason).toBe('');
+  });
+
+  it('re-registers trusted Runtime metadata once after Runtime restart invalidates the app session', async () => {
+    const capturedSessions: string[] = [];
+    let unaryCalls = 0;
+    let invalidatedReason = '';
+    const fakeClient: RuntimeGrpcBridgeClient = {
+      unary: async (request) => {
+        unaryCalls += 1;
+        capturedSessions.push(request.metadata['x-nimi-session-id'] || '');
+        if (unaryCalls === 1) {
+          throw Object.assign(new Error('16 UNAUTHENTICATED: APP_NOT_REGISTERED'), { code: 16 });
+        }
+        return { responseBytes: Uint8Array.from([4, 2]) };
+      },
+      serverStream: () => {
+        throw new Error('not used');
+      },
+      close: () => undefined,
+    };
+    let metadataCalls = 0;
+    const provider: ElectronRuntimeBridgeTrustedMetadataProvider = async () => {
+      metadataCalls += 1;
+      return {
+        appSession: {
+          sessionId: metadataCalls === 1 ? 'pre-restart-session' : 'post-restart-session',
+          sessionToken: 'session-token',
+        },
+      };
+    };
+    Object.defineProperty(provider, 'invalidate', {
+      value: (reason: string) => {
+        invalidatedReason = reason;
+      },
+    });
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => fakeClient,
+      trustedRuntimeMetadataProvider: provider,
+    });
+
+    const response = await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeAgentService/ListLocalAgents',
+        requestBytesBase64: '',
+      },
+    }) as { responseBytesBase64: string };
+
+    expect([...fromBase64(response.responseBytesBase64)]).toEqual([4, 2]);
+    expect(unaryCalls).toBe(2);
+    expect(metadataCalls).toBe(2);
+    expect(invalidatedReason).toBe('APP_NOT_REGISTERED');
+    expect(capturedSessions).toEqual(['pre-restart-session', 'post-restart-session']);
+  });
+
+  it('re-registers once when trusted metadata resolution itself observes a Runtime restart', async () => {
+    const capturedSessions: string[] = [];
+    let invalidatedReason = '';
+    const fakeClient: RuntimeGrpcBridgeClient = {
+      unary: async (request) => {
+        capturedSessions.push(request.metadata['x-nimi-session-id'] || '');
+        return { responseBytes: Uint8Array.from([5, 1]) };
+      },
+      serverStream: () => {
+        throw new Error('not used');
+      },
+      close: () => undefined,
+    };
+    let metadataCalls = 0;
+    const provider: ElectronRuntimeBridgeTrustedMetadataProvider = async () => {
+      metadataCalls += 1;
+      if (metadataCalls === 1) {
+        throw Object.assign(new Error('16 UNAUTHENTICATED: APP_NOT_REGISTERED'), { code: 16 });
+      }
+      return {
+        appSession: { sessionId: 'post-restart-session', sessionToken: 'session-token' },
+      };
+    };
+    Object.defineProperty(provider, 'invalidate', {
+      value: (reason: string) => {
+        invalidatedReason = reason;
+      },
+    });
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => fakeClient,
+      trustedRuntimeMetadataProvider: provider,
+    });
+
+    const response = await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+        requestBytesBase64: '',
+      },
+    }) as { responseBytesBase64: string };
+
+    expect([...fromBase64(response.responseBytesBase64)]).toEqual([5, 1]);
+    expect(metadataCalls).toBe(2);
+    expect(invalidatedReason).toBe('APP_NOT_REGISTERED');
+    expect(capturedSessions).toEqual(['post-restart-session']);
+  });
+
+  it('reopens a server stream once when Runtime restart invalidates trusted metadata', async () => {
+    const capturedSessions: string[] = [];
+    const handlers: RuntimeGrpcBridgeStreamHandlers[] = [];
+    let invalidatedReason = '';
+    let streamCalls = 0;
+    const fakeClient: RuntimeGrpcBridgeClient = {
+      unary: async () => {
+        throw new Error('not used');
+      },
+      serverStream: (request) => {
+        streamCalls += 1;
+        capturedSessions.push(request.metadata['x-nimi-session-id'] || '');
+        const call = streamCalls;
+        return {
+          cancel: () => undefined,
+          start: (nextHandlers) => {
+            handlers.push(nextHandlers);
+            queueMicrotask(() => {
+              if (call === 1) {
+                nextHandlers.onError(Object.assign(new Error('16 UNAUTHENTICATED: APP_NOT_REGISTERED'), { code: 16 }));
+                return;
+              }
+              nextHandlers.onData(Uint8Array.from([4, 2]));
+              nextHandlers.onEnd();
+            });
+          },
+        };
+      },
+      close: () => undefined,
+    };
+    let metadataCalls = 0;
+    const provider: ElectronRuntimeBridgeTrustedMetadataProvider = async () => {
+      metadataCalls += 1;
+      return {
+        appSession: {
+          sessionId: metadataCalls === 1 ? 'pre-restart-session' : 'post-restart-session',
+          sessionToken: 'session-token',
+        },
+      };
+    };
+    Object.defineProperty(provider, 'invalidate', {
+      value: (reason: string) => {
+        invalidatedReason = reason;
+      },
+    });
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => fakeClient,
+      trustedRuntimeMetadataProvider: provider,
+    });
+    const { event, sent } = createInvokeEvent();
+
+    await invokeBridge(ipcMain, event, {
+      command: STANDARD_COMMANDS.stream_open,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents',
+        streamId: 'restart-stream',
+        requestBytesBase64: '',
+      },
+    });
+
+    await expect.poll(() => streamCalls).toBe(2);
+    await expect.poll(() => sent.length).toBe(2);
+    expect(metadataCalls).toBe(2);
+    expect(invalidatedReason).toBe('APP_NOT_REGISTERED');
+    expect(capturedSessions).toEqual(['pre-restart-session', 'post-restart-session']);
+    expect(handlers).toHaveLength(2);
+    expect(sent.map(({ payload }) => (payload as { eventType: string }).eventType)).toEqual(['next', 'completed']);
+  });
+
+  it('does not reopen a server stream for an ordinary endpoint failure', async () => {
+    let streamCalls = 0;
+    let metadataCalls = 0;
+    let invalidationCalls = 0;
+    const fakeClient: RuntimeGrpcBridgeClient = {
+      unary: async () => {
+        throw new Error('not used');
+      },
+      serverStream: () => {
+        streamCalls += 1;
+        return {
+          cancel: () => undefined,
+          start: ({ onError }) => {
+            queueMicrotask(() => onError(Object.assign(new Error('14 UNAVAILABLE: daemon is offline'), { code: 14 })));
+          },
+        };
+      },
+      close: () => undefined,
+    };
+    const provider: ElectronRuntimeBridgeTrustedMetadataProvider = async () => {
+      metadataCalls += 1;
+      return {
+        appSession: { sessionId: 'current-session', sessionToken: 'session-token' },
+      };
+    };
+    Object.defineProperty(provider, 'invalidate', {
+      value: () => {
+        invalidationCalls += 1;
+      },
+    });
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => fakeClient,
+      trustedRuntimeMetadataProvider: provider,
+    });
+    const { event, sent } = createInvokeEvent();
+
+    await invokeBridge(ipcMain, event, {
+      command: STANDARD_COMMANDS.stream_open,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents',
+        streamId: 'ordinary-failure-stream',
+        requestBytesBase64: '',
+      },
+    });
+
+    await expect.poll(() => sent.length).toBe(1);
+    expect(streamCalls).toBe(1);
+    expect(metadataCalls).toBe(1);
+    expect(invalidationCalls).toBe(0);
+    expect((sent[0]?.payload as { eventType: string }).eventType).toBe('error');
   });
 
   it('uses host trusted Runtime identity metadata ahead of renderer metadata', async () => {

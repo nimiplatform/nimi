@@ -29,6 +29,12 @@ type atomicSourceProduct struct {
 func materializeProductionSourceProduct(t *testing.T, svc *Service, kind, suffix string) *atomicSourceProduct {
 	t.Helper()
 	candidate := sourceMaterializationTransportTestCandidate(t, kind, "packet-"+suffix)
+	return materializeProductionSourceProductCandidate(t, svc, candidate, suffix)
+}
+
+func materializeProductionSourceProductCandidate(t *testing.T, svc *Service, candidate localAgentSourceSnapshotCandidateV1, suffix string) *atomicSourceProduct {
+	t.Helper()
+	kind := candidate.Normalized.SourceRef.Kind
 	svc.SetSourceMaterializationAdmission(&sourceMaterializationTransportTestAdmission{candidate: candidate})
 	svc.SetSourceMaterializationProductCommitter(svc)
 	ctx := sourceMaterializationTransportTestContext(sourceMaterializationTransportTestAccount)

@@ -58,6 +58,7 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
   assert.equal(captured[0].request.runtimeSourceRef, 'runtime-source:opaque');
   assert.equal(captured[0].request.localAgentRef, 'runtime-local-agent:opaque');
   assert.equal(captured[0].request.conversationAnchorId, 'conversation-anchor:opaque');
+  assert.equal(captured[0].request.threadId, 'runtime-thread:opaque');
   assert.equal(captured[0].request.requestId, 'zhiyu-turn-test-1');
   assert.deepEqual(captured[0].request.scopedBinding, {
     bindingId: 'binding-turn-ready',
@@ -561,6 +562,7 @@ function conversationReady(overrides = {}) {
     runtimeSourceRef: 'runtime-source:opaque',
     localAgentRef: 'runtime-local-agent:opaque',
     conversationAnchorId: 'conversation-anchor:opaque',
+    threadId: 'runtime-thread:opaque',
     ...overrides,
   };
 }

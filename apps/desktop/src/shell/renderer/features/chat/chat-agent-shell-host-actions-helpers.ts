@@ -1,6 +1,5 @@
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import {
-  createNimiHostRuntimeAgentLifecycleSurface,
   createNimiHostRuntimeAgentPresentationProfileSurface,
   createNimiRuntimeAgentConsumeClient,
   buildRuntimeAgentRequestContext,
@@ -78,53 +77,9 @@ function isRecoverableRuntimeAnchorError(error: unknown): boolean {
 }
 
 export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSnapshot): JsonObject {
-  const realmProfileContext: JsonObject = {
-    displayName: normalizeText(target.displayName),
-    handle: normalizeText(target.handle),
-    runtimeSourceRef: normalizeText(target.runtimeSourceRef),
-    localAgentRef: normalizeText(target.localAgentRef),
-  };
-  const optionalFields: Array<[string, string | null | undefined]> = [
-    ['avatarUrl', target.avatarUrl],
-    ['defaultVoiceReference', target.defaultVoiceReference],
-    ['worldId', target.worldId],
-    ['worldName', target.worldName],
-    ['description', target.bio],
-    ['greeting', target.greeting],
-    ['ownershipType', target.ownershipType],
-  ];
-  for (const [key, value] of optionalFields) {
-    const normalized = normalizeText(value);
-    if (normalized) {
-      realmProfileContext[key] = normalized;
-    }
-  }
-  if (target.avatarAutoplay === true) {
-    realmProfileContext.avatarAutoplay = true;
-  }
-  if (target.ownershipType === 'WORLD_OWNED' && normalizeText(target.worldId).startsWith('cbdb-')) {
-    realmProfileContext.ownerScope = 'cbdb-curated-system';
-    realmProfileContext.sourceProfileId = 'cbdb-historical';
-  }
-  const ownerSettingsProjection = target.ownerSettingsProjection ?? null;
-  if (ownerSettingsProjection) {
-    if (typeof ownerSettingsProjection.sourceCoreVersion === 'number') {
-      realmProfileContext.sourceCoreVersion = ownerSettingsProjection.sourceCoreVersion;
-    }
-    const communicationStyle = normalizeText(ownerSettingsProjection.communicationStyle);
-    if (communicationStyle) {
-      realmProfileContext.communicationStyle = communicationStyle;
-    }
-    const selectedFields = ownerSettingsProjection.selectedOwnerSettingFields
-      .map((field) => normalizeText(field))
-      .filter(Boolean);
-    if (selectedFields.length > 0) {
-      realmProfileContext.selectedOwnerSettingFields = selectedFields;
-    }
-  }
+  void target;
   return {
     surface: 'desktop-agent-chat',
-    realmProfileContext,
   };
 }
 
@@ -188,18 +143,23 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
     runtimeSourceRef: target.runtimeSourceRef,
     localAgentRef: target.localAgentRef,
   };
-  const lifecycleSurface = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: () => runtime,
-    getSubjectUserId: () => subjectUserId,
-    withScopes: withDesktopRuntimeProtectedScopes,
-  });
-  await lifecycleSurface.ensureLocalAgentInitialized({
-    localAgentRef: target.localAgentRef,
-    ownerUserId: target.ownerUserId,
-    runtimeSourceRef: target.runtimeSourceRef,
-    displayName: target.displayName || target.runtimeSourceRef,
-    worldId: normalizeText(target.worldId),
-  });
+  const response = await withDesktopRuntimeProtectedScopes(
+    ['runtime.agent.read'],
+    (callOptions) => runtime.agent.getAgent({
+      context: buildRuntimeAgentRequestContext({
+        runtimeAppId: context.appId,
+        subjectUserId,
+        ownerUserId: context.ownerUserId,
+        runtimeSourceRef: context.runtimeSourceRef,
+        localAgentRef: context.localAgentRef,
+      }),
+      agentId: context.localAgentRef,
+    }, callOptions),
+  );
+  const returnedLocalAgentRef = normalizeText(response.agent?.localAgentRef || response.agent?.agentId);
+  if (returnedLocalAgentRef !== context.localAgentRef) {
+    throw new Error('Runtime LocalAgent inventory did not return the selected opaque localAgentRef.');
+  }
   await syncRuntimePresentationProfile({ target, context });
 }
 
@@ -223,7 +183,10 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
 
 async function openConversationAnchorForTarget(
   target: AgentLocalTargetSnapshot,
-): Promise<string> {
+): Promise<{
+  conversationAnchorId: string;
+  threadId: string;
+}> {
   const client = createNimiRuntimeAgentConsumeClient({
     runtime: getDesktopRuntime(),
     runtimeAppId: getDesktopAppId(),
@@ -255,7 +218,30 @@ async function openConversationAnchorForTarget(
   if (!conversationAnchorId) {
     throw new Error('runtime.agent anchor open did not return conversationAnchorId');
   }
-  return conversationAnchorId;
+  const threadId = await readConversationThreadId({
+    client,
+    target,
+    conversationAnchorId,
+  });
+  return { conversationAnchorId, threadId };
+}
+
+async function readConversationThreadId(input: {
+  client: ReturnType<typeof createNimiRuntimeAgentConsumeClient>;
+  target: AgentLocalTargetSnapshot;
+  conversationAnchorId: string;
+}): Promise<string> {
+  const snapshot = await input.client.turns.getSessionSnapshot({
+    localAgentRef: input.target.localAgentRef,
+    ownerUserId: input.target.ownerUserId,
+    runtimeSourceRef: input.target.runtimeSourceRef,
+    conversationAnchorId: input.conversationAnchorId,
+  });
+  const threadId = normalizeText(snapshot.threadId);
+  if (!threadId) {
+    throw new Error('Runtime conversation session snapshot returned no threadId.');
+  }
+  return threadId;
 }
 
 async function ensureConversationAnchorBindingUpstream(input: {
@@ -274,7 +260,19 @@ async function ensureConversationAnchorBindingUpstream(input: {
       runtimeSourceRef: input.target.runtimeSourceRef,
       conversationAnchorId: input.binding.conversationAnchorId,
     });
-    return input.binding;
+    const threadId = await readConversationThreadId({
+      client,
+      target: input.target,
+      conversationAnchorId: input.binding.conversationAnchorId,
+    });
+    if (threadId === input.binding.threadId) {
+      return input.binding;
+    }
+    return persistAgentConversationAnchorBinding({
+      ...input.binding,
+      threadId,
+      updatedAtMs: Date.now(),
+    });
   } catch (error) {
     if (!isRecoverableRuntimeAnchorError(error)) {
       const normalized = normalizeRuntimeError(error, 'get_runtime_agent_anchor_snapshot');
@@ -334,12 +332,13 @@ export async function ensureThreadAnchorBindingForTarget(input: {
     }
   }
   if (!anchorBinding) {
-    const conversationAnchorId = await openConversationAnchorForTarget(input.target);
+    const { conversationAnchorId, threadId } = await openConversationAnchorForTarget(input.target);
     anchorBinding = persistAgentConversationAnchorBinding({
       ownerUserId: input.target.ownerUserId,
       runtimeSourceRef: input.target.runtimeSourceRef,
       localAgentRef: input.target.localAgentRef,
       conversationAnchorId,
+      threadId,
       updatedAtMs: Date.now(),
     });
   }

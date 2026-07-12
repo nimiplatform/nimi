@@ -97,11 +97,11 @@ rules:
       - runtime_kernel_consistency
     test_files:
       - scripts/check-local-agent-full-chain-hardcut.mjs
-    note: Runtime alone executes live behavior subjects and semantic evaluators through independently resolved AI Config/catalog routes; complete provider/model/revision-or-fingerprint identities must differ, while app/test direct provider calls, constants, bindings, and same-route self-evaluation are forbidden.
+    note: Runtime alone executes live conversation-report turns through one AI Config/catalog route per baseline run; every turn records complete provider/model/revision-or-fingerprint identity, while app/test direct provider calls, constants, bindings, and silent within-run route drift are forbidden.
   - rule_id: K-AGCORE-160
     evidence_requirement: required
     evidence_refs:
       - runtime_kernel_consistency
     test_files:
       - scripts/check-local-agent-full-chain-hardcut.mjs
-    note: Evaluator execution uses a separate non-product scope, strict allowlisted input and JSON result, no retry, no raw system/private lane or product anchor/memory access, no product-state commit, and no score promotion into personality or context truth.
+    note: Conversation-report capture retains bounded Runtime context/state plus committed transcript correlation, never raw system/private inputs; it performs no provider retry or product-state mutation, and no captured observation or optional annotation becomes semantic/personality truth.

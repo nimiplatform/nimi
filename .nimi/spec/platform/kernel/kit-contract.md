@@ -202,6 +202,16 @@
   renderer payloads. Protected session/origin material stays inside the native
   carrier and is neither injected by Electron main providers nor exposed to
   preload/renderer.
+- Runtime restart invalidates public/binding-only host registration metadata
+  and every native protected session. On the exact typed restart boundary,
+  public/binding-only metadata may be rebuilt and a unary call or server stream
+  retried at most once; a protected caller must reopen through the native
+  carrier and must not be reconstructed as Electron metadata. The typed account
+  probe may classify only `PRINCIPAL_UNAUTHORIZED` paired with
+  `CALLER_UNAUTHORIZED` or `CALLER_ENVELOPE_MISMATCH`; explicit
+  `APP_NOT_REGISTERED`, `APP_GRANT_INVALID`, and `SESSION_EXPIRED` retain their
+  owner-specific typed handling. Endpoint, business, other permission, and
+  unclassified failures never enter this recovery path or retry indefinitely.
 - Public/binding-only Runtime gRPC calls may use raw identity byte
   serialization/deserialization through `@grpc/grpc-js`; generated Runtime
   truth remains owned by Runtime proto/SDK. This path cannot carry protected

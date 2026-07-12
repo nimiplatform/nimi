@@ -4,18 +4,13 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { fullScopeAppCodeFindings } from './lib/local-agent-full-chain-app-scan.mjs';
 import { runtimeMaterializationCodeFindings } from './lib/local-agent-runtime-materialization-hardcut.mjs';
 import { runtimeContextConsumerCodeFindings } from './lib/local-agent-runtime-context-hardcut.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const validScopes = new Set([
-  'runtime-authority',
-  'consumer-authority',
-  'authority',
-  'runtime-materialization',
-  'runtime-consumer',
-]);
+const validScopes = new Set(['runtime-authority', 'consumer-authority', 'authority', 'runtime-materialization', 'runtime-consumer', 'all']);
 const textExtensions = new Set(['.md', '.yaml', '.yml']);
 const excludedDirectoryNames = new Set([
   '.git',
@@ -230,18 +225,18 @@ const runtimeRequirements = [
     }),
   )),
   ...[
-    ['LAHC-R028', 'K-AGCORE-159', ['runtime', 'execute', 'live-behavior-subject-ai', 'runtime-ai-execution', 'require', 'executed-by'], { subject: 'app-or-test-runner', value: 'direct-provider-execution' }],
-    ['LAHC-R029', 'K-AGCORE-159', ['runtime', 'execute', 'semantic-behavior-evaluator-ai', 'runtime-ai-execution', 'require', 'executed-by'], { subject: 'app-or-test-runner', value: 'direct-provider-execution' }],
-    ['LAHC-R030', 'K-AGCORE-159', ['subject-evaluator-route-fingerprints', 'set-independence', 'behavior-evaluation', 'complete-and-distinct', 'require', 'independence-set-by'], { value: 'missing-unproven-or-equal' }],
-    ['LAHC-R031', 'K-AGCORE-159', ['app-or-test-runner', 'call', 'behavior-provider-or-model-directly', 'denied', 'forbid', 'called-by'], { value: 'allowed', polarity: 'require' }],
-    ['LAHC-R032', 'K-AGCORE-159', ['app-or-test-runner', 'supply', 'behavior-provider-model-constant-or-binding', 'denied', 'forbid', 'supplied-by'], { value: 'allowed', polarity: 'require' }],
-    ['LAHC-R033', 'K-AGCORE-160', ['runtime-evaluator-execution', 'set-isolation', 'product-agent-state', 'separate-evaluation-scope', 'require', 'isolation-set-by'], { value: 'shared-product-scope' }],
-    ['LAHC-R034', 'K-AGCORE-160', ['runtime-evaluator-execution', 'use', 'product-anchor-or-memory-scope', 'denied', 'forbid', 'used-by'], { value: 'allowed', polarity: 'require' }],
-    ['LAHC-R035', 'K-AGCORE-160', ['runtime-evaluator-execution', 'read', 'raw-system-prompt-or-private-context-lanes', 'denied', 'forbid', 'read-by'], { value: 'allowed', polarity: 'require' }],
-    ['LAHC-R036', 'K-AGCORE-160', ['runtime-evaluator-result', 'admit', 'behavior-score', 'strict-json-schema-only', 'require', 'admitted-by'], { value: 'free-form-or-malformed' }],
-    ['LAHC-R037', 'K-AGCORE-160', ['runtime-evaluator-execution', 'retry', 'provider-attempt', 'denied', 'forbid', 'retried-by'], { value: 'allowed', polarity: 'require' }],
-    ['LAHC-R038', 'K-AGCORE-160', ['runtime-evaluator-execution', 'commit', 'product-turn-message-transcript-memory-localagent-state', 'denied', 'forbid', 'committed-by'], { value: 'allowed', polarity: 'require' }],
-    ['LAHC-R039', 'K-AGCORE-160', ['runtime-evaluator-score', 'become', 'personality-or-context-truth', 'denied', 'forbid', 'become-by'], { value: 'allowed', polarity: 'require' }],
+    ['LAHC-R028', 'K-AGCORE-159', ['runtime', 'execute', 'live-conversation-report-turn', 'runtime-ai-execution', 'require', 'executed-by'], { subject: 'app-or-test-runner', value: 'direct-provider-execution' }],
+    ['LAHC-R029', 'K-AGCORE-159', ['conversation-report-turn', 'bind', 'runtime-model-fingerprint', 'provider-model-revision-complete', 'require', 'bound-by'], { value: 'missing-or-unresolved' }],
+    ['LAHC-R030', 'K-AGCORE-159', ['conversation-report-run', 'keep', 'selected-runtime-route', 'stable-within-run', 'require', 'kept-by'], { value: 'silently-changed' }],
+    ['LAHC-R031', 'K-AGCORE-159', ['app-or-test-runner', 'call', 'conversation-provider-or-model-directly', 'denied', 'forbid', 'called-by'], { value: 'allowed', polarity: 'require' }],
+    ['LAHC-R032', 'K-AGCORE-159', ['app-or-test-runner', 'supply', 'conversation-provider-model-constant-or-binding', 'denied', 'forbid', 'supplied-by'], { value: 'allowed', polarity: 'require' }],
+    ['LAHC-R033', 'K-AGCORE-160', ['conversation-report-capture', 'retain', 'runtime-bounded-context-and-state', 'required', 'require', 'retained-by'], { value: 'omitted' }],
+    ['LAHC-R034', 'K-AGCORE-160', ['conversation-report-capture', 'correlate', 'localagent-anchor-turn-model-lineage', 'complete', 'require', 'correlated-by'], { value: 'incomplete' }],
+    ['LAHC-R035', 'K-AGCORE-160', ['conversation-report-capture', 'read', 'raw-system-prompt-or-private-context-lanes', 'denied', 'forbid', 'read-by'], { value: 'allowed', polarity: 'require' }],
+    ['LAHC-R036', 'K-AGCORE-160', ['conversation-report-capture', 'expose', 'credential-proof-or-private-runtime-input', 'denied', 'forbid', 'exposed-by'], { value: 'allowed', polarity: 'require' }],
+    ['LAHC-R037', 'K-AGCORE-160', ['conversation-report-execution', 'retry', 'provider-attempt', 'denied', 'forbid', 'retried-by'], { value: 'allowed', polarity: 'require' }],
+    ['LAHC-R038', 'K-AGCORE-160', ['conversation-report-capture', 'commit', 'product-turn-message-transcript-memory-localagent-state', 'denied', 'forbid', 'committed-by'], { value: 'allowed', polarity: 'require' }],
+    ['LAHC-R039', 'K-AGCORE-160', ['captured-behavior-observation', 'become', 'semantic-or-personality-truth', 'denied', 'forbid', 'become-by'], { value: 'allowed', polarity: 'require' }],
   ].map(([id, ruleId, relationArgs, inverse]) => (
     markdownRelationRequirement(id, ownerPaths.runtimeContext, ruleId, relationArgs, inverse)
   )),
@@ -349,30 +344,30 @@ const consumerRequirements = [
   })),
 ];
 
-const behaviorEvaluationRequirements = [
-  ['LAHC-B001', 'P-TEST-009', ['platform-test-governance', 'derive', 'localagent-behavior-expectations', 'typed-source-world-relationship-knowledge', 'require', 'derived-by'], { value: 'test-authored' }],
-  ['LAHC-B002', 'P-TEST-009', ['test-or-evaluator', 'author', 'localagent-personality-truth', 'denied', 'forbid', 'authored-by'], { value: 'allowed', polarity: 'require' }],
-  ['LAHC-B003', 'P-TEST-010', ['localagent-deterministic-context-admission', 'classify', 'test-governance', 'behavior-unit-t4', 'require', 'classified-by'], { value: 'new-localagent-class' }],
-  ['LAHC-B004', 'P-TEST-010', ['localagent-electron-product-acceptance', 'classify', 'test-governance', 'product-acceptance-t6', 'require', 'classified-by'], { value: 'behavior-unit-t4' }],
-  ['LAHC-B005', 'P-TEST-010', ['provider-visible-request-capture', 'prove', 'localagent-context-admission', 'required', 'require', 'proved-by'], { value: 'omitted' }],
-  ['LAHC-B006', 'P-TEST-011', ['localagent-live-subject-and-semantic-evaluator', 'classify', 'test-governance', 'live-provider-proof-t7-after-env-evidence', 'require', 'classified-by'], { value: 'product-acceptance-only' }],
-  ['LAHC-B007', 'P-TEST-011', ['fixture-or-canned-reply', 'substitute', 'live-provider-behavior-admission', 'denied', 'forbid', 'substituted-by'], { value: 'allowed', polarity: 'require' }],
-  ['LAHC-B008', 'P-TEST-012', ['localagent-behavior-admission', 'require', 'subject-evaluator-route-fingerprints', 'complete-and-distinct', 'require', 'required-by'], { value: 'same-or-unproven' }],
-  ['LAHC-B009', 'P-TEST-012', ['app-or-test-runner', 'call', 'provider-or-model-directly', 'denied', 'forbid', 'called-by'], { value: 'allowed', polarity: 'require' }],
-  ['LAHC-B010', 'P-TEST-012', ['app-or-test-runner', 'hardcode', 'provider-or-model-selection', 'denied', 'forbid', 'hardcoded-by'], { value: 'allowed', polarity: 'require' }],
-  ['LAHC-B011', 'P-TEST-013', ['semantic-evaluator-result', 'admit', 'behavior-score', 'strict-json-schema-only', 'require', 'admitted-by'], { value: 'free-form-or-malformed' }],
-  ['LAHC-B012', 'P-TEST-013', ['behavior-evaluator-calibration', 'require', 'known-pass-and-deliberate-fail-controls', 'every-dimension', 'require', 'required-by'], { value: 'missing-or-partial' }],
-  ['LAHC-B013', 'P-TEST-013', ['behavior-batch', 'change', 'threshold-controls-rubric-schema-after-start', 'denied', 'forbid', 'changed-by'], { value: 'allowed', polarity: 'require' }],
-  ['LAHC-B014', 'P-TEST-013', ['behavior-evaluator', 'retry', 'trial', 'denied', 'forbid', 'retried-by'], { value: 'allowed', polarity: 'require' }],
-  ['LAHC-B015', 'P-TEST-014', ['behavior-batch-ledger', 'retain', 'all-raw-trials', 'required', 'require', 'retained-by'], { value: 'successful-only' }],
-  ['LAHC-B016', 'P-TEST-014', ['behavior-evaluator', 'mutate', 'source-snapshot-localagent-transcript-memory-state', 'denied', 'forbid', 'mutated-by'], { value: 'allowed', polarity: 'require' }],
-  ['LAHC-B017', 'P-TEST-014', ['evaluator-score', 'become', 'personality-truth', 'denied', 'forbid', 'become-by'], { value: 'allowed', polarity: 'require' }],
+const conversationReportRequirements = [
+  ['LAHC-B001', 'P-TEST-009', ['localagent-i8', 'produce', 'semantic-behavior-observations', 'human-review-report', 'require', 'produced-by'], { value: 'automatic-verdict' }],
+  ['LAHC-B002', 'P-TEST-009', ['automatic-test-or-evaluator', 'admit', 'localagent-semantic-quality', 'denied', 'forbid', 'admitted-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B003', 'P-TEST-009', ['test-or-report', 'author', 'localagent-personality-truth', 'denied', 'forbid', 'authored-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B004', 'P-TEST-010', ['localagent-deterministic-context', 'classify', 'test-governance', 'behavior-unit-t4', 'require', 'classified-by'], { value: 'new-localagent-class' }],
+  ['LAHC-B005', 'P-TEST-010', ['localagent-electron-product-facts', 'classify', 'test-governance', 'product-acceptance-t6', 'require', 'classified-by'], { value: 'behavior-unit-t4' }],
+  ['LAHC-B006', 'P-TEST-010', ['semantic-wording-style-or-naturalness', 'produce', 'automatic-failure', 'denied', 'forbid', 'produced-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B007', 'P-TEST-011', ['localagent-conversation-report', 'classify', 'real-provider-execution', 'live-provider-proof-t7-after-env-evidence', 'require', 'classified-by'], { value: 'product-acceptance-only' }],
+  ['LAHC-B008', 'P-TEST-011', ['fixture-or-canned-reply', 'substitute', 'live-conversation-report', 'denied', 'forbid', 'substituted-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B009', 'P-TEST-011', ['l5-conversation-report', 'admit', 'semantic-quality', 'denied', 'forbid', 'admitted-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B010', 'P-TEST-012', ['conversation-report-turn', 'bind', 'model-fingerprint', 'provider-model-revision-complete', 'require', 'bound-by'], { value: 'missing-or-unresolved' }],
+  ['LAHC-B011', 'P-TEST-012', ['app-or-test-runner', 'hardcode', 'provider-or-model-selection', 'denied', 'forbid', 'hardcoded-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B012', 'P-TEST-012', ['baseline-conversation-report', 'execute', 'model-run-repeat-retry', 'one-one-one-none', 'require', 'executed-by'], { value: 'matrix-or-retry' }],
+  ['LAHC-B013', 'P-TEST-013', ['generated-conversation-report', 'initialize', 'human-review-status', 'unreviewed', 'require', 'initialized-by'], { value: 'accepted' }],
+  ['LAHC-B014', 'P-TEST-013', ['automatic-semantic-evaluator', 'set', 'review-status-or-admission', 'denied', 'forbid', 'set-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B015', 'P-TEST-013', ['optional-ai-annotation', 'become', 'authoritative-verdict', 'denied', 'forbid', 'become-by'], { value: 'allowed', polarity: 'require' }],
+  ['LAHC-B016', 'P-TEST-014', ['baseline-conversation-report', 'retain', 'complete-turn-and-state-bundle', 'required', 'require', 'retained-by'], { value: 'partial' }],
+  ['LAHC-B017', 'P-TEST-014', ['realm-source', 'own', 'materialized-localagent-conversation', 'denied', 'forbid', 'owned-by'], { value: 'allowed', polarity: 'require' }],
 ].map(([id, ruleId, relationArgs, inverse]) => (
   markdownRelationRequirement(id, ownerPaths.platformTestGovernance, ruleId, relationArgs, inverse)
 ));
 
 function usage() {
-  return 'usage: pnpm check:local-agent-full-chain-hardcut -- --scope <runtime-authority|consumer-authority|authority|runtime-materialization|runtime-consumer>\n';
+  return 'usage: pnpm check:local-agent-full-chain-hardcut -- --scope <runtime-authority|consumer-authority|authority|runtime-materialization|runtime-consumer|all>\n';
 }
 
 function parseScope(argv) {
@@ -688,30 +683,31 @@ async function resolveRealmCoreRuleInventory() {
 
 async function traceabilityMappingFindings() {
   const findings = [];
-  let text;
+  let text = null;
   try {
     text = await fs.readFile(path.join(repoRoot, ...ownerPaths.scenarioCatalog.split('/')), 'utf8');
   } catch (error) {
-    return [`[traceability] LAHC-T001 cannot read ${ownerPaths.scenarioCatalog}: ${error instanceof Error ? error.message : String(error)}`];
+    if (error?.code !== 'ENOENT') return [
+      `[traceability] LAHC-T001 cannot read ${ownerPaths.scenarioCatalog}: ${error instanceof Error ? error.message : String(error)}`,
+    ];
   }
 
-  if (text.includes('pending_i0')) {
-    findings.push(`[traceability] LAHC-T002 ${ownerPaths.scenarioCatalog} must contain zero pending_i0 placeholders`);
-  }
-  const rows = parseTraceabilityRows(text);
-  for (const [requirementId, expectedRuleIds] of expectedTraceabilityMappings) {
-    const authorityCells = rows.get(requirementId) || [];
-    if (authorityCells.length !== 1) {
-      findings.push(`[traceability] LAHC-T003 ${requirementId} must have exactly one requirement coverage row`);
-      continue;
-    }
-    const authorityCell = authorityCells[0];
-    const actualRuleIds = extractCompactRuleIds(authorityCell);
-    if (authorityCell.includes('pending_i0') || !sameOrderedValues(actualRuleIds, expectedRuleIds)) {
-      findings.push(
-        `[traceability] LAHC-T004 ${requirementId} mapping must be [${expectedRuleIds.join(', ')}], got [${actualRuleIds.join(', ')}]`,
-      );
-      continue;
+  if (text !== null) {
+    if (text.includes('pending_i0')) findings.push(
+      `[traceability] LAHC-T002 ${ownerPaths.scenarioCatalog} must contain zero pending_i0 placeholders`,
+    );
+    const rows = parseTraceabilityRows(text);
+    for (const [requirementId, expectedRuleIds] of expectedTraceabilityMappings) {
+      const authorityCells = rows.get(requirementId) || [];
+      if (authorityCells.length !== 1) {
+        findings.push(`[traceability] LAHC-T003 ${requirementId} must have exactly one requirement coverage row`);
+        continue;
+      }
+      const authorityCell = authorityCells[0];
+      const actualRuleIds = extractCompactRuleIds(authorityCell);
+      if (authorityCell.includes('pending_i0') || !sameOrderedValues(actualRuleIds, expectedRuleIds)) {
+        findings.push(`[traceability] LAHC-T004 ${requirementId} mapping must be [${expectedRuleIds.join(', ')}], got [${actualRuleIds.join(', ')}]`);
+      }
     }
   }
 
@@ -985,7 +981,7 @@ function runtimeAuthorityFindings(documents) {
 function consumerAuthorityFindings(documents) {
   const findings = [];
   evaluateRelationRequirements(findings, 'consumer-authority', documents, consumerRequirements);
-  evaluateRelationRequirements(findings, 'consumer-authority', documents, behaviorEvaluationRequirements);
+  evaluateRelationRequirements(findings, 'consumer-authority', documents, conversationReportRequirements);
 
   if (!findYamlRecord(documents, ownerPaths.desktopSourceActions, 'machine_id', 'desktop_realm_source_local_materialization_action_model')) {
     findings.push('[consumer-authority] LAHC-C018 .nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml must own record machine_id=desktop_realm_source_local_materialization_action_model');
@@ -1291,10 +1287,10 @@ function runAdversarialSelfTests() {
     'consumer relation census must exactly cover C001..C017',
   );
   assertSelfTest(
-    behaviorEvaluationRequirements.map((entry) => entry.id).join(',') === expectedBehaviorIds.join(','),
-    'behavior evaluation relation census must exactly cover B001..B017',
+    conversationReportRequirements.map((entry) => entry.id).join(',') === expectedBehaviorIds.join(','),
+    'conversation report relation census must exactly cover B001..B017',
   );
-  for (const requirementEntry of [...runtimeRequirements, ...consumerRequirements, ...behaviorEvaluationRequirements]) {
+  for (const requirementEntry of [...runtimeRequirements, ...consumerRequirements, ...conversationReportRequirements]) {
     const relation = requirementEntry.relation;
     assertSelfTest(
       [relation.subject, relation.action, relation.object, relation.value, relation.polarity, relation.passiveAction,
@@ -1304,7 +1300,7 @@ function runAdversarialSelfTests() {
   }
   runRelationFixtureSuite(runtimeRequirements, runtimeAuthorityFindings);
   runRelationFixtureSuite(
-    [...consumerRequirements, ...behaviorEvaluationRequirements],
+    [...consumerRequirements, ...conversationReportRequirements],
     consumerAuthorityFindings,
     [correctDesktopMachineDocument()],
   );
@@ -1367,7 +1363,7 @@ async function main() {
     process.stdout.write(`local-agent-full-chain-hardcut ${selectedScope}: OK\n`);
     return;
   }
-  const scopes = selectedScope === 'authority'
+  const scopes = selectedScope === 'authority' || selectedScope === 'all'
     ? ['runtime-authority', 'consumer-authority']
     : [selectedScope];
   const findings = [];
@@ -1380,7 +1376,12 @@ async function main() {
         ? runtimeAuthorityFindings(documents)
         : consumerAuthorityFindings(documents)));
     }
-    if (selectedScope === 'authority') findings.push(...await traceabilityMappingFindings());
+    if (selectedScope === 'authority' || selectedScope === 'all') findings.push(...await traceabilityMappingFindings());
+    if (selectedScope === 'all') {
+      findings.push(...await runtimeMaterializationCodeFindings(repoRoot));
+      findings.push(...await runtimeContextConsumerCodeFindings(repoRoot));
+      findings.push(...await fullScopeAppCodeFindings(repoRoot));
+    }
   } catch (error) {
     process.stderr.write(`local-agent-full-chain-hardcut checker error: ${error instanceof Error ? error.message : String(error)}\n`);
     process.exit(2);

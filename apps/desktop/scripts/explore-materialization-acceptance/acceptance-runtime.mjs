@@ -1,9 +1,10 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiRuntimeAgentClient,
+  createNimiHostRuntimeAgentInspectSurface,
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
   createRuntime,
@@ -31,12 +32,13 @@ import {
   formatError,
 } from './acceptance-files.mjs';
 
-export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, runtimeDir, baseEnv, runtimeConfigPath, stdoutPath, stderrPath }) {
-  const grpcPort = await allocatePort();
-  const httpPort = await allocatePort();
+export async function startRuntimeDaemon({ fixtureOrigin, realmIssuerOrigin = fixtureOrigin, providerOrigin = fixtureOrigin, homeDir, stateRoot, runtimeDir, baseEnv, runtimeConfigPath, stdoutPath, stderrPath, grpcPort: requestedGrpcPort = null, httpPort: requestedHttpPort = null, appendLogs = false }) {
+  const grpcPort = requestedGrpcPort || await allocatePort();
+  const httpPort = requestedHttpPort || await allocatePort();
   const endpoint = `127.0.0.1:${grpcPort}`;
   const httpEndpoint = `127.0.0.1:${httpPort}`;
   const repoRoot = path.resolve(runtimeDir, '..');
+  const goBuildEnvironment = resolveHostGoBuildEnvironment(baseEnv, repoRoot);
   const localStatePath = path.join(stateRoot, 'local-state.json');
   const modelRegistryPath = path.join(stateRoot, 'model-registry.json');
   const daemon = spawn('go', ['run', './cmd/nimi', 'serve'], {
@@ -46,9 +48,9 @@ export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, ru
       ...baseEnv,
       HOME: homeDir,
       USERPROFILE: homeDir,
-      GOCACHE: baseEnv?.GOCACHE || path.join(repoRoot, '.cache', 'go-build'),
-      GOMODCACHE: baseEnv?.GOMODCACHE || path.join(repoRoot, '.cache', 'go-mod'),
-      GOPATH: baseEnv?.GOPATH || path.join(repoRoot, '.cache', 'go-path'),
+      GOCACHE: goBuildEnvironment.GOCACHE,
+      GOMODCACHE: goBuildEnvironment.GOMODCACHE,
+      GOPATH: goBuildEnvironment.GOPATH,
       NIMI_REALM_URL: fixtureOrigin,
       NIMI_RUNTIME_GRPC_ADDR: endpoint,
       NIMI_RUNTIME_HTTP_ADDR: httpEndpoint,
@@ -56,11 +58,21 @@ export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, ru
       NIMI_RUNTIME_LOCK_PATH: path.join(stateRoot, 'runtime.lock'),
       NIMI_RUNTIME_CONFIG_PATH: runtimeConfigPath,
       NIMI_RUNTIME_MODEL_REGISTRY_PATH: modelRegistryPath,
+      NIMI_RUNTIME_MODEL_CATALOG_CUSTOM_DIR: path.join(stateRoot, 'model-catalog-custom'),
+      NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL: 'runtime-agent-live-e2e',
+      NIMI_RUNTIME_ENGINE_LLAMA_ENABLED: '0',
+      NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: `${providerOrigin}/v1`,
+      NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT: '1',
       NIMI_RUNTIME_LOCAL_STATE_PATH: localStatePath,
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: path.join(stateRoot, 'connector-store.json'),
       NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS: '1',
       NIMI_RUNTIME_ACCOUNT_TEST_CUSTODY_FILE_PATH: path.join(stateRoot, 'account-custody.json'),
       NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',
+      NIMI_RUNTIME_APP_REGISTRY_PATH: path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-app-registry.yaml'),
+      NIMI_RUNTIME_AUTH_JWT_ISSUER: realmIssuerOrigin,
+      NIMI_RUNTIME_AUTH_JWT_AUDIENCE: 'nimi-runtime',
+      NIMI_RUNTIME_AUTH_JWT_JWKS_URL: `${fixtureOrigin}/api/auth/jwks`,
+      NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL: `${fixtureOrigin}/api/auth/sessions/introspect`,
       NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL: fixtureOrigin,
       NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL: `${fixtureOrigin}/api/auth/oauth/authorize`,
       NIMI_RUNTIME_ACCOUNT_TOKEN_URL: `${fixtureOrigin}/api/auth/oauth/token`,
@@ -70,8 +82,8 @@ export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, ru
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  daemon.stdout.pipe(fs.createWriteStream(stdoutPath));
-  daemon.stderr.pipe(fs.createWriteStream(stderrPath));
+  daemon.stdout.pipe(fs.createWriteStream(stdoutPath, { flags: appendLogs ? 'a' : 'w' }));
+  daemon.stderr.pipe(fs.createWriteStream(stderrPath, { flags: appendLogs ? 'a' : 'w' }));
   await waitForRuntimeReady(endpoint, daemon);
   return {
     daemon,
@@ -79,7 +91,39 @@ export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, ru
     httpEndpoint,
     localStatePath,
     modelRegistryPath,
+    grpcPort,
+    httpPort,
   };
+}
+
+let cachedHostGoBuildEnvironment = null;
+
+function resolveHostGoBuildEnvironment(baseEnv, repoRoot) {
+  if (cachedHostGoBuildEnvironment) return cachedHostGoBuildEnvironment;
+  const explicit = {
+    GOCACHE: String(baseEnv?.GOCACHE || '').trim(),
+    GOMODCACHE: String(baseEnv?.GOMODCACHE || '').trim(),
+    GOPATH: String(baseEnv?.GOPATH || '').trim(),
+  };
+  if (Object.values(explicit).every(Boolean)) {
+    cachedHostGoBuildEnvironment = explicit;
+    return cachedHostGoBuildEnvironment;
+  }
+  const resolved = spawnSync('go', ['env', '-json', 'GOCACHE', 'GOMODCACHE', 'GOPATH'], {
+    cwd: repoRoot,
+    env: baseEnv,
+    encoding: 'utf8',
+  });
+  if (resolved.status !== 0) {
+    throw new Error(`failed to resolve host Go build caches: ${resolved.stderr || resolved.stdout || resolved.error || 'unknown error'}`);
+  }
+  const discovered = JSON.parse(resolved.stdout || '{}');
+  cachedHostGoBuildEnvironment = {
+    GOCACHE: explicit.GOCACHE || String(discovered.GOCACHE || path.join(repoRoot, '.cache', 'go-build')),
+    GOMODCACHE: explicit.GOMODCACHE || String(discovered.GOMODCACHE || path.join(repoRoot, '.cache', 'go-mod')),
+    GOPATH: explicit.GOPATH || String(discovered.GOPATH || path.join(repoRoot, '.cache', 'go-path')),
+  };
+  return cachedHostGoBuildEnvironment;
 }
 
 async function waitForRuntimeReady(endpoint, daemon) {
@@ -110,7 +154,7 @@ async function waitForRuntimeReady(endpoint, daemon) {
   throw new Error(`Runtime readiness timed out: ${formatError(lastError)}`);
 }
 
-export async function completeRuntimeAccountLogin(runtime, observationsLog) {
+export async function completeRuntimeAccountLogin(runtime, observationsLog, realRealmSession = null) {
   const caller = createNimiDesktopShellRuntimeAccountCaller({ appId: APP_ID });
   const attemptNonce = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   observationsLog.runtimeAccount = { stage: 'registering_app' };
@@ -152,11 +196,40 @@ export async function completeRuntimeAccountLogin(runtime, observationsLog) {
   if (!begin.accepted || !begin.loginAttemptId) {
     throw new Error(`Runtime beginLogin rejected: ${JSON.stringify(begin)}`);
   }
+  let authorizationCode = 'runtime-live-auth-code';
+  if (realRealmSession) {
+    const authorization = await fetch(begin.oauthAuthorizationUrl, {
+      headers: { cookie: realRealmSession.cookie },
+      redirect: 'manual',
+    });
+    const location = authorization.headers.get('location');
+    if (authorization.status !== 302 || !location) {
+      const reason = await (async () => {
+        try {
+          const text = await authorization.text();
+          try {
+            const body = JSON.parse(text);
+            return String(body?.reasonCode || body?.code || body?.message || 'unknown').slice(0, 160);
+          } catch {
+            return text.replace(/[A-Za-z0-9._~-]{24,}/gu, '<redacted>').replace(/\s+/gu, ' ').slice(0, 160) || 'unknown';
+          }
+        } catch {
+          return 'unreadable_error_body';
+        }
+      })();
+      throw new Error(`real Realm OAuth authorization did not return a callback (status=${authorization.status}, location=${location ? new URL(location, realRealmSession.realmBaseUrl).pathname : 'missing'}, reason=${reason})`);
+    }
+    const callback = new URL(location, realRealmSession.realmBaseUrl);
+    authorizationCode = callback.searchParams.get('code') || '';
+    if (!authorizationCode || callback.searchParams.get('state') !== begin.state) {
+      throw new Error('real Realm OAuth callback did not preserve the Runtime login attempt');
+    }
+  }
   observationsLog.runtimeAccount = { stage: 'complete_login', loginAttemptId: begin.loginAttemptId };
   const complete = await runtime.account.completeLogin({
     caller,
     loginAttemptId: begin.loginAttemptId,
-    code: 'runtime-live-auth-code',
+    code: authorizationCode,
     state: begin.state,
     nonce: begin.nonce,
     redirectUri: 'http://localhost:46373/oauth/callback',
@@ -171,8 +244,9 @@ export async function completeRuntimeAccountLogin(runtime, observationsLog) {
     { caller },
     accountOptions(`account-status:${caller.appInstanceId}:${attemptNonce}`),
   );
-  if (status.state !== AccountSessionState.AUTHENTICATED || status.accountProjection?.accountId !== OWNER_USER_ID) {
-    throw new Error(`Runtime account is not authenticated as ${OWNER_USER_ID}: ${JSON.stringify(status)}`);
+  const expectedAccountId = realRealmSession?.accountId || OWNER_USER_ID;
+  if (status.state !== AccountSessionState.AUTHENTICATED || status.accountProjection?.accountId !== expectedAccountId) {
+    throw new Error(`Runtime account is not authenticated as the product trial account: ${JSON.stringify(status)}`);
   }
   observationsLog.runtimeAccount = {
     stage: 'authenticated',
@@ -188,6 +262,9 @@ export async function prepareRuntimeProductControl(runtime, dataRoot) {
   const initial = await getNimiRuntimeProductControlRecord(runtime.generated, readOptions);
   if (initial.state === 'ready_for_use') {
     return initial;
+  }
+  if (process.env.NIMI_LOCAL_AGENT_PRODUCT_RUNTIME_DATA_ROOT) {
+    throw new Error(`isolated product-control seed failed Runtime owner verification: ${JSON.stringify(initial)}`);
   }
   const writeOptions = (key) => ({
     callOptions: withNimiRuntimeIdempotencyMetadata(baseCallOptions, `explore-materialization:${key}`),
@@ -210,7 +287,7 @@ export async function prepareRuntimeProductControl(runtime, dataRoot) {
   return getNimiRuntimeProductControlRecord(runtime.generated, readOptions);
 }
 
-export function createAcceptanceAgentClient(runtime) {
+export function createAcceptanceAgentClient(runtime, ownerUserId = OWNER_USER_ID) {
   let agentCallIndex = 0;
   const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
     appId: APP_ID,
@@ -228,25 +305,34 @@ export function createAcceptanceAgentClient(runtime) {
     agents: runtime.agents,
     appMessages: runtime.appMessages,
   };
-  return createNimiRuntimeAgentClient({
+  const withScopes = (scopes, operation) =>
+    withNimiRuntimeAgentScopes({
+      runtime: agentRuntime,
+      subjectUserId: ownerUserId,
+    }, scopes, async (options) => {
+      const metadata = await sessionMetadata();
+      agentCallIndex += 1;
+      return operation(idempotency(`agent:${scopes.join(',')}:${agentCallIndex}`, {
+        ...options,
+        metadata: {
+          ...metadata,
+          ...(options.metadata ?? {}),
+        },
+      }));
+    });
+  const client = createNimiRuntimeAgentClient({
     runtime: agentRuntime,
     appId: APP_ID,
-    getSubjectUserId: () => OWNER_USER_ID,
-    withScopes: (scopes, operation) =>
-      withNimiRuntimeAgentScopes({
-        runtime: agentRuntime,
-        subjectUserId: OWNER_USER_ID,
-      }, scopes, async (options) => {
-        const metadata = await sessionMetadata();
-        agentCallIndex += 1;
-        return operation(idempotency(`agent:${scopes.join(',')}:${agentCallIndex}`, {
-          ...options,
-          metadata: {
-            ...metadata,
-            ...(options.metadata ?? {}),
-          },
-        }));
-      }),
+    getSubjectUserId: () => ownerUserId,
+    withScopes,
+  });
+  const inspect = createNimiHostRuntimeAgentInspectSurface({
+    getRuntime: () => ({ ...agentRuntime, agent: runtime.agents }),
+    getSubjectUserId: () => ownerUserId,
+    withScopes,
+  });
+  return Object.assign(client, {
+    inspect,
   });
 }
 

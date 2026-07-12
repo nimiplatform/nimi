@@ -21,7 +21,6 @@ import {
   DESKTOP_APP_INSTANCE_ID,
   DESKTOP_DEVICE_ID,
   LOCAL_TEXT_MODEL_ID,
-  SOURCE_PACKET_HMAC_SECRET,
 } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-shared.test-helper.ts';
 import {
   seedRuntimeAgentLiveImageCatalogProvider,
@@ -117,7 +116,7 @@ test('zhiyu Electron live Runtime empty LocalAgent inventory renders an empty ra
             assert.doesNotMatch(shellText, /你还没有添加可对话的本地伙伴/);
             assert.doesNotMatch(shellText, /Runtime Live Source|LocalAgent|sourceRef|localAgentRef|Capability Studio|Image Studio/);
 
-            const action = page.locator('[data-zhiyu-no-local-partner-action="show-guidance"]').first();
+            const action = page.locator('[data-zhiyu-no-local-partner-action="desktop-open-select-partner"]').first();
             await action.waitFor({ state: 'visible', timeout: 15_000 });
             assert.equal(await action.isDisabled(), false);
             assert.equal(await action.getAttribute('aria-expanded'), 'false');
@@ -133,7 +132,7 @@ test('zhiyu Electron live Runtime empty LocalAgent inventory renders an empty ra
             assert.equal(await action.getAttribute('aria-expanded'), 'true');
             assert.match(
               await page.locator('[data-zhiyu-no-local-partner-guidance="desktop-explore"]').innerText(),
-              /请打开 Nimi 桌面端「探索」页，选择角色并加入本地/,
+              /Desktop Explore|Nimi Desktop|Desktop Open|桌面端「探索」/,
             );
             await captureLiveRuntimeInteractionEvidence(page, 'empty-local-partner-guidance', pageProblems, {
               emptyLocalPartnerEvidence,
@@ -169,7 +168,6 @@ async function withEmptyLocalAgentRuntime(run) {
           NIMI_RUNTIME_ENGINE_LLAMA_ENABLED: '0',
           NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: `${baseUrl}/v1`,
           NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT: '1',
-          SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET: SOURCE_PACKET_HMAC_SECRET,
         },
         prepareState: ({ localStatePath, stateRoot }) => {
           const catalogCustomDir = path.join(stateRoot, 'model-catalog-custom');

@@ -106,8 +106,8 @@ func TestAgentTurnContextCharacterAndPersonaTypedLaneGolden(t *testing.T) {
 		},
 	}
 	expectedHashes := map[string][2]string{
-		"worldCharacter": {"87ecb06e60ec7495e82a29b2b01f04eca261dc7fbed5988722f56272fdfb4d57", "645751dbd88b81e5743fc4a1b690045dc2537f52a5016bd31262a99b7188d3e4"},
-		"realmPersona":   {"b74643249464f1a5288a5158ecfabb791159dde269422f570e290866a6190f40", "08c6b642811d640e055a898bdf46f0e58b5ca9675e0f9f917a75a148eeedf98f"},
+		"worldCharacter": {"9d0ac3d9d7a9b1e19f131c2a7a9514cb2988da371490a48353fd3fd0b79862c9", "1671b914f15a2b9599c582166f03f1cca90cced78788d3faab43011643b2bc49"},
+		"realmPersona":   {"f1eaf6384bf9036314c174fe8badcde3ad4d1a25dad92dc7f7de238e01d2e2cc", "3e78f0a7d9c662a54f4af1cd44e0c9e01874d0bbe760140ac36e568e8a0e1082"},
 	}
 	for _, kind := range []string{"worldCharacter", "realmPersona"} {
 		kind := kind
@@ -189,6 +189,58 @@ func TestAgentTurnContextHashesAreStableAcyclicAndInstanceBound(t *testing.T) {
 	}
 	if _, err := hashAgentTurnContextManifest(retry.Manifest); err == nil {
 		t.Fatal("manifest hashing accepted a self-referential instance hash")
+	}
+}
+
+func TestAgentTurnRuntimeRelationshipBindsProvenanceWithoutSendingItToProvider(t *testing.T) {
+	t.Parallel()
+	input := agentTurnContextTestInput(t, "worldCharacter")
+	input.Relationships[0].ProvenanceRef = "runtime.agent.internal.chat_sidecar:agent_turn_01KXARP17MEG56VQDERM63SEZ0:01KXARQ7AQQB3K6YNYKWSTNSS2"
+	input.Relationships[0].Summary = "user-e2e-786db1f023c7028d preferred_name 墨契"
+	first, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerText := agentTurnContextTestProviderText(first.ProviderPrompt)
+	if strings.Contains(providerText, input.Relationships[0].ProvenanceRef) {
+		t.Fatal("provider-visible relationship content must not carry provenance transport metadata")
+	}
+	firstLane := agentTurnContextTestLane(t, first.PrivateLanes, agentTurnContextLaneRelationshipContext)
+	var firstRuntimeRelationship *agentTurnContextItem
+	for index := range firstLane.Items {
+		if firstLane.Items[index].StableID == "runtime.relationship.dyad-user-1" {
+			firstRuntimeRelationship = &firstLane.Items[index]
+			break
+		}
+	}
+	if firstRuntimeRelationship == nil {
+		t.Fatal("runtime relationship item is missing")
+	}
+	if firstRuntimeRelationship.TokenEstimate > 340 {
+		t.Fatalf("runtime relationship provider projection exceeds compact mandatory-lane budget: %d", firstRuntimeRelationship.TokenEstimate)
+	}
+
+	input.Relationships[0].ProvenanceRef += ":revision-2"
+	second, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondLane := agentTurnContextTestLane(t, second.PrivateLanes, agentTurnContextLaneRelationshipContext)
+	var secondRuntimeRelationship *agentTurnContextItem
+	for index := range secondLane.Items {
+		if secondLane.Items[index].StableID == "runtime.relationship.dyad-user-1" {
+			secondRuntimeRelationship = &secondLane.Items[index]
+			break
+		}
+	}
+	if secondRuntimeRelationship == nil {
+		t.Fatal("runtime relationship item is missing after provenance revision")
+	}
+	if firstRuntimeRelationship.SourceRef.ContentHash == secondRuntimeRelationship.SourceRef.ContentHash {
+		t.Fatal("relationship provenance must remain bound into the private source reference hash")
+	}
+	if first.Manifest.PromptHash != second.Manifest.PromptHash {
+		t.Fatal("provenance-only relationship revision must not alter provider-visible prompt truth")
 	}
 }
 

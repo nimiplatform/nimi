@@ -100,7 +100,7 @@ function projectWorldEntityCore(entity: {
   id: string;
   kind: string;
   contentHash: string;
-  core: Record<string, unknown>;
+  core: unknown;
 }): JsonObject {
   const core = asRecord(entity.core);
   const identity = asRecord(core.identity);
@@ -129,7 +129,7 @@ function projectWorldRelationshipCore(relationship: {
   sourceEntityId: string;
   targetEntityId: string;
   contentHash: string;
-  core: Record<string, unknown>;
+  core: unknown;
 }): JsonObject {
   return {
     id: relationship.id,

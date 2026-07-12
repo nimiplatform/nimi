@@ -82,6 +82,7 @@ function toInventoryAgent(agent: NimiRuntimeAgentDiscoveredLocalAgent): ZhiyuRun
     sourceWorldName: agent.sourceWorldName,
     sourceId: agent.sourceId,
     sourceContentHash: agent.sourceContentHash,
+    sourceContextStatus: agent.sourceContextStatus,
   };
 }
 

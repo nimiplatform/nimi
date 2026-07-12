@@ -315,7 +315,9 @@ function runtimeConfigToNimiAIConfig(state: AgentCenterState): NimiAIConfig {
 }
 
 function buildCurrentIntents(state: AgentCenterState): Record<string, AgentCenterRuntimeAIConfigBinding> {
-  const intents: Record<string, AgentCenterRuntimeAIConfigBinding> = {};
+  const intents: Record<string, AgentCenterRuntimeAIConfigBinding> = {
+    ...(state.runtimeAgentAIConfigIntents || {}),
+  };
   for (const capability of state.capabilities) {
     if (capability.binding) {
       intents[capability.capability] = capability.binding;
@@ -376,6 +378,7 @@ function modelStateWithSnapshot(
   return {
     ...base,
     configRevision: snapshot.revision,
+    runtimeAgentAIConfigIntents: snapshot.intents,
     capabilities: base.capabilities.map((capability) => ({
       ...capability,
       binding: snapshot.intents[capability.capability] || null,

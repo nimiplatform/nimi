@@ -160,7 +160,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-1",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -256,7 +256,7 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-1",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -315,7 +315,7 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-1",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello again"},
 			},

@@ -305,6 +305,26 @@ func TestSendAppMessageLoopDetected(t *testing.T) {
 	}
 }
 
+func TestSendAppMessageLoopDetectorAllowsHighCardinalityOneWayProjection(t *testing.T) {
+	now := time.Date(2026, 3, 13, 1, 2, 3, 0, time.UTC)
+	svc := newTestService(WithClock(func() time.Time { return now }))
+
+	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	}); err != nil {
+		t.Fatalf("request unexpectedly failed: %v", err)
+	}
+	for i := 0; i < loopLimitPerSecond+5; i++ {
+		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+			FromAppId: "app-b",
+			ToAppId:   "app-a",
+		}); err != nil {
+			t.Fatalf("streaming projection %d unexpectedly failed: %v", i, err)
+		}
+	}
+}
+
 func TestSendAppMessageRequiresRegisteredAppSession(t *testing.T) {
 	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc := newTestService(WithSessionValidator(authSvc))

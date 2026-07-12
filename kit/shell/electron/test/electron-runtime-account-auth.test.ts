@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 import {
   createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvider,
@@ -68,7 +67,5 @@ function appSession() {
 }
 
 function protectedCarrierRequiredReason(): string {
-  return RuntimeGeneratedReasonCode[
-    RuntimeGeneratedReasonCode.DESKTOP_CONTROL_TRANSPORT_REQUIRED
-  ];
+  return 'DESKTOP_CONTROL_TRANSPORT_REQUIRED';
 }

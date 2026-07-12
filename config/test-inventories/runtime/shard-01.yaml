@@ -247,6 +247,17 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: runtime/internal/aicatalog/text_context_metadata_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: runtime/internal/appinstallgateway/bundled_test.go
     owner: runtime
     classification: behavior_unit
@@ -589,17 +600,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: runtime/internal/engine/engine_download_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/engine/engine_managed_image_backend_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4

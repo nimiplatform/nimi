@@ -168,6 +168,9 @@ func TestAIBackedChatTrackSidecarExecutorUsesCommittedConfigBinding(t *testing.T
 	if head.GetRoutePolicy() != committedConfigTestBinding.RoutePolicy {
 		t.Fatalf("expected committed config route policy, got %v", head.GetRoutePolicy())
 	}
+	if head.GetTimeoutMs() != publicChatDefaultTurnTimeoutMs {
+		t.Fatalf("chat-track sidecar must share the provider-compatible public turn timeout budget, got %d", head.GetTimeoutMs())
+	}
 }
 
 func TestAIBackedChatTrackSidecarExecutorFailsClosedWithoutConfigBinding(t *testing.T) {

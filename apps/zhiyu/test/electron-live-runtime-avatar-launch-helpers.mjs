@@ -3,9 +3,6 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  AgentPresentationBackendKind,
-} from '../../../sdks/typescript/core-generated/runtime-typed-client.ts';
-import {
   buildRuntimeAgentRequestContext,
 } from '../../../sdks/typescript/runtime/agent-local-identity.ts';
 import {
@@ -13,6 +10,9 @@ import {
   createNimiRuntimeAppSessionMetadataProvider,
   withNimiRuntimeAgentScopes,
 } from '../../../sdks/typescript/runtime/index.ts';
+import {
+  createNimiHostRuntimeAgentPresentationProfileSurface,
+} from '../../../sdks/typescript/runtime/runtime-agent-presentation.ts';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '../../../kit/shell/capabilities/src/index.ts';
 import {
   captureLiveRuntimeEvidence,
@@ -41,30 +41,57 @@ export const avatarRuntimeProtectedScopes = [
 ];
 
 export async function seedLiveRuntimeAvatarPresentationProfile(fixture) {
-  await fixture.runtime.agents.setAgentPresentationProfile(
-    {
-      context: buildLiveRuntimeAgentRequestContext(fixture, desktopAppId),
-      agentId: fixture.localAgentRef,
-      mutation: {
-        oneofKind: 'profile',
-        profile: {
-          backendKind: AgentPresentationBackendKind.VRM,
-          avatarAssetRef: 'runtime-presentation-avatar:zhiyu-live-vrm-fixture',
-          expressionProfileRef: 'expression://runtime-live/calm',
-          idlePreset: 'idle-soft',
-          interactionPolicyRef: 'policy://runtime-live/ambient',
-          defaultVoiceReference: fixture.voiceAsset.defaultVoiceReference,
-          avatarAutoplay: true,
+  const identity = {
+    ownerUserId: fixture.ownerUserId,
+    runtimeSourceRef: fixture.runtimeSourceRef,
+    localAgentRef: fixture.localAgentRef,
+  };
+  const presentation = createNimiHostRuntimeAgentPresentationProfileSurface({
+    getRuntime: () => ({
+      appId: desktopAppId,
+      auth: fixture.runtime.auth,
+      appAuth: fixture.runtime.grants,
+      agent: fixture.runtime.agents,
+    }),
+    getSubjectUserId: () => fixture.ownerUserId,
+    withScopes: (scopes, operation) => withNimiRuntimeAgentScopes({
+      runtime: {
+        appId: desktopAppId,
+        auth: fixture.runtime.auth,
+        appAuth: fixture.runtime.grants,
+      },
+      subjectUserId: fixture.ownerUserId,
+    }, scopes, async (options) => {
+      const sessionMetadata = await createNimiRuntimeAppSessionMetadataProvider({
+        appId: desktopAppId,
+        appInstanceId: `${desktopAppId}.local-first-party`,
+        deviceId: 'desktop-shell',
+        capabilities: ['runtime.agent.write'],
+        developerRegistration: false,
+        auth: fixture.runtime.auth,
+      })();
+      const idempotencyKey = `zhiyu-live-runtime-avatar-presentation:${fixture.localAgentRef}`;
+      return operation({
+        ...options,
+        metadata: {
+          ...sessionMetadata,
+          ...(options.metadata ?? {}),
+          idempotencyKey,
+          'x-nimi-idempotency-key': idempotencyKey,
         },
-      },
-    },
-    {
-      metadata: {
-        idempotencyKey: `zhiyu-live-runtime-avatar-presentation:${fixture.localAgentRef}`,
-        'x-nimi-idempotency-key': `zhiyu-live-runtime-avatar-presentation:${fixture.localAgentRef}`,
-      },
-    },
-  );
+      });
+    }),
+  });
+  const current = await fixture.agentPresentation.getPresentationProfile(identity);
+  await presentation.setPresentationProfile(identity, {
+    backendKind: 'vrm',
+    avatarAssetRef: 'runtime-presentation-avatar:zhiyu-live-vrm-fixture',
+    expressionProfileRef: 'runtime-expression-profile:zhiyu-live-calm',
+    idlePreset: 'runtime-idle-preset:idle-soft',
+    interactionPolicyRef: 'runtime-interaction-policy:zhiyu-live-ambient',
+    defaultVoiceReference: 'preset_voice_id:runtime-live-voice',
+    avatarAutoplay: true,
+  }, current.committedRevision);
 }
 
 export async function importLiveRuntimeAvatarFixtureAsset(page, evidence) {

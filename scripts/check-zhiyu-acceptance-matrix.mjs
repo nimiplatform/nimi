@@ -81,6 +81,7 @@ const requiredDimensions = new Set([
   'owner_boundary_trace',
   'visual_review',
   'no_renderer_token_leak',
+  'bounded_localagent_source_context_projection',
 ]);
 expectEqualSet('global_acceptance_dimensions', idSet(matrix.global_acceptance_dimensions), requiredDimensions);
 

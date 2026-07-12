@@ -7,6 +7,10 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+import {
+  createNimiHostRuntimeAgentLifecycleSurface,
+  createNimiRuntimeAgentConsumeClient,
+} from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -17,6 +21,13 @@ import {
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ensureRuntimeAgentExists } from './chat-agent-shell-host-actions-helpers';
+import {
+  getDesktopAppId,
+  getDesktopHostRuntimeAgentClient,
+  getDesktopRuntime,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   createRuntimeAgentMemoryAdapter,
   type CanonicalMemoryBankStatus,
@@ -153,10 +164,41 @@ export function useAgentConversationRuntimeController(
     if (authStatus !== 'authenticated' || !activeTarget) {
       return null;
     }
+    const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
+      getRuntime: getDesktopHostRuntimeAgentClient,
+      getSubjectUserId: requireRuntimeSubjectUserId,
+      withScopes: withDesktopRuntimeProtectedScopes,
+    });
+    const consume = createNimiRuntimeAgentConsumeClient({
+      runtime: { agents: getDesktopRuntime().agents },
+      runtimeAppId: getDesktopAppId(),
+    });
     return createRuntimeAgentCenterAdapter({
       identity: toRuntimeIdentityInput(activeTarget),
       agentAIConfig: runtimeAgentAIConfigAdapter,
       inspect: runtimeAgentInspect,
+      async loadSourceContextStatus(identity) {
+        const discovered = await lifecycle.discoverLocalAgentsBySource({
+          ownerUserId: identity.ownerUserId,
+          runtimeSourceRef: identity.runtimeSourceRef,
+        });
+        const selected = discovered.find((agent) => agent.localAgentRef === identity.localAgentRef);
+        return selected?.sourceContextStatus ?? null;
+      },
+      async loadTurnContextSummary(identity) {
+        const localAgentRef = normalizeText(identity.localAgentRef);
+        if (!localAgentRef) return null;
+        const binding = getAgentConversationAnchorBinding(localAgentRef);
+        const conversationAnchorId = normalizeText(identity.conversationAnchorId) || binding?.conversationAnchorId;
+        if (!conversationAnchorId) return null;
+        const snapshot = await consume.anchors.getSnapshot({
+          ownerUserId: identity.ownerUserId,
+          runtimeSourceRef: identity.runtimeSourceRef,
+          localAgentRef,
+          conversationAnchorId,
+        });
+        return snapshot.turnContextSummary ?? null;
+      },
     });
   }, [activeTarget, authStatus, runtimeAgentAIConfigAdapter, runtimeAgentInspect]);
 

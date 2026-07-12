@@ -447,7 +447,7 @@ async function exercisePrimaryInteraction(config, page) {
       desktopOwnedAccountControlDisabled: await page.locator('[data-workbench-account-panel] button:disabled').count() > 0,
     };
   }
-  const guidance = page.locator('[data-zhiyu-no-local-partner-action="show-guidance"]');
+  const guidance = page.locator('[data-zhiyu-no-local-partner-action="desktop-open-select-partner"]');
   if (await guidance.count()) {
     await guidance.click();
   } else {

@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { rm } from 'node:fs/promises';
+import { copyFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,3 +37,8 @@ await build({
   external: ['electron'],
   logLevel: 'silent',
 });
+
+await copyFile(
+  path.join(appRoot, 'src', 'shell', 'assets', 'app-icon.png'),
+  path.join(electronDistRoot, 'app-icon.png'),
+);

@@ -224,6 +224,8 @@ test('world detail primary query adopts SDK public world DTO through a bounded a
 test('world atlas selected panel loads preview people from the primary display detail only', () => {
   assert.match(worldListSelectedPanelSource, /worldPrimaryDisplayDetailQueryKey\(world\.id\)/);
   assert.match(worldListSelectedPanelSource, /fetchWorldPrimaryDisplayDetail\(world\.id\)/);
+  assert.match(worldListSelectedPanelSource, /enabled: Boolean\(world\.id\)/);
+  assert.doesNotMatch(worldListSelectedPanelSource, /enabled: peopleCount > 0/);
   assert.doesNotMatch(worldListSelectedPanelSource, /worldDisplayDetailQueryKey\(world\.id\)/);
   assert.doesNotMatch(worldListSelectedPanelSource, /fetchWorldDisplayDetail\(world\.id\)/);
   assert.doesNotMatch(worldListSelectedPanelSource, /fetchWorldDetailWithCharacters/);

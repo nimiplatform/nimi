@@ -10,11 +10,19 @@ import (
 )
 
 func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, bool) {
+	reason, actionHint, _, ok := s.ValidateProtectedCapabilityIdentity(appID, tokenID, secret, capability)
+	return reason, actionHint, ok
+}
+
+// ValidateProtectedCapabilityIdentity returns the subject already bound to a
+// valid protected token. Callers must never substitute request metadata for
+// this Runtime-owned account-custody projection.
+func (s *Service) ValidateProtectedCapabilityIdentity(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, string, bool) {
 	appID = strings.TrimSpace(appID)
 	tokenID = strings.TrimSpace(tokenID)
 	capability = strings.TrimSpace(capability)
 	if appID == "" || tokenID == "" || secret == "" || capability == "" {
-		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "provide_access_token_credentials", false
+		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "provide_access_token_credentials", "", false
 	}
 
 	now := time.Now().UTC()
@@ -23,38 +31,38 @@ func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secr
 
 	token, exists := s.tokens[tokenID]
 	if !exists || token.AppID != appID {
-		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "issue_protected_token_for_target_app", false
+		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "issue_protected_token_for_target_app", "", false
 	}
 	if subtle.ConstantTimeCompare([]byte(token.Secret), []byte(secret)) != 1 {
-		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "use_valid_token_secret", false
+		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "use_valid_token_secret", "", false
 	}
 	if token.LifecycleState == grantlifecycle.GrantStateRevoked {
-		return runtimev1.ReasonCode_APP_TOKEN_REVOKED, "reauthorize_external_principal", false
+		return runtimev1.ReasonCode_APP_TOKEN_REVOKED, "reauthorize_external_principal", "", false
 	}
 	if token.LifecycleState == grantlifecycle.GrantStateSuperseded {
-		return runtimev1.ReasonCode_APP_GRANT_INVALID, "refresh_authorization_policy", false
+		return runtimev1.ReasonCode_APP_GRANT_INVALID, "refresh_authorization_policy", "", false
 	}
 	if token.Revoked {
-		return runtimev1.ReasonCode_APP_TOKEN_REVOKED, "reauthorize_external_principal", false
+		return runtimev1.ReasonCode_APP_TOKEN_REVOKED, "reauthorize_external_principal", "", false
 	}
 	if now.After(token.ExpiresAt) {
-		return runtimev1.ReasonCode_APP_TOKEN_EXPIRED, "refresh_authorization", false
+		return runtimev1.ReasonCode_APP_TOKEN_EXPIRED, "refresh_authorization", "", false
 	}
 	currentPolicyVersion := s.policyIndex[policyKey(token.AppID, token.SubjectUserID, token.ExternalPrincipalID)]
 	if currentPolicyVersion != "" && token.PolicyVersion != currentPolicyVersion {
-		return runtimev1.ReasonCode_APP_GRANT_INVALID, "refresh_authorization_policy", false
+		return runtimev1.ReasonCode_APP_GRANT_INVALID, "refresh_authorization_policy", "", false
 	}
 	if !s.catalog.IsPublished(token.IssuedScopeCatalog) {
-		return runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED, "use_published_scope_catalog_version", false
+		return runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED, "use_published_scope_catalog_version", "", false
 	}
 	activeScopes := activeScopesForCatalog(token.IssuedScopeCatalog, token.Scopes, s.catalog.HasRevokedScope)
 	if !scopesAllowed(activeScopes, []string{capability}) {
 		if scopesAllowed(token.Scopes, []string{capability}) {
-			return runtimev1.ReasonCode_APP_SCOPE_REVOKED, "reauthorize_with_active_scopes", false
+			return runtimev1.ReasonCode_APP_SCOPE_REVOKED, "reauthorize_with_active_scopes", "", false
 		}
-		return runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, "authorize_missing_protected_scope", false
+		return runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, "authorize_missing_protected_scope", "", false
 	}
-	return runtimev1.ReasonCode_ACTION_EXECUTED, "none", true
+	return runtimev1.ReasonCode_ACTION_EXECUTED, "none", strings.TrimSpace(token.SubjectUserID), true
 }
 
 func (s *Service) revokePolicyChainLocked(policyKeyValue string) {

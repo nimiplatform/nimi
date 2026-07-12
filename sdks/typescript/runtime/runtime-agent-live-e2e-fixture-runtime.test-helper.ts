@@ -142,12 +142,29 @@ export async function openFixtureConversation(input: {
   });
 }
 
-export function createFixtureRuntimeAgentClient(runtime: Runtime): ReturnType<typeof createNimiRuntimeAgentClient> {
-  const { agentRuntime, withScopes } = createFixtureRuntimeAgentContext(runtime);
+export function createFixtureRuntimeAgentClient(
+  runtime: Runtime,
+  input: {
+    readonly appId?: string;
+    readonly appInstanceId?: string;
+    readonly deviceId?: string;
+    readonly ownerUserId?: string;
+  } = {},
+): ReturnType<typeof createNimiRuntimeAgentClient> {
+  const appId = normalizeText(input.appId) || DESKTOP_APP_ID;
+  const appInstanceId = normalizeText(input.appInstanceId) || DESKTOP_APP_INSTANCE_ID;
+  const deviceId = normalizeText(input.deviceId) || DESKTOP_DEVICE_ID;
+  const ownerUserId = normalizeText(input.ownerUserId) || OWNER_USER_ID;
+  const { agentRuntime, withScopes } = createFixtureRuntimeAgentContext(runtime, {
+    appId,
+    appInstanceId,
+    deviceId,
+    ownerUserId,
+  });
   return createNimiRuntimeAgentClient({
     runtime: agentRuntime,
-    appId: DESKTOP_APP_ID,
-    getSubjectUserId: () => OWNER_USER_ID,
+    appId,
+    getSubjectUserId: () => ownerUserId,
     withScopes,
   });
 }
@@ -246,6 +263,7 @@ export async function admitDeveloperRegisteredRuntimeAccountCaller(
   runtime: Runtime,
   input: RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
 ): Promise<AccountCaller> {
+  const expectedAccountId = normalizeText(input.expectedAccountId) || OWNER_USER_ID;
   const appId = requireText(input.appId, 'appId');
   const appInstanceId = requireText(input.appInstanceId, 'appInstanceId');
   const deviceId = requireText(input.deviceId, 'deviceId');
@@ -276,7 +294,7 @@ export async function admitDeveloperRegisteredRuntimeAccountCaller(
   const status = await runtime.account.getAccountSessionStatus({ caller }, { metadata: await sessionMetadata() });
   if (
     status.state !== AccountSessionState.AUTHENTICATED
-    || normalizeText(status.accountProjection?.accountId) !== OWNER_USER_ID
+    || normalizeText(status.accountProjection?.accountId) !== expectedAccountId
   ) {
     throw new Error(`Runtime developer account caller was not admitted to the active account projection: ${JSON.stringify(status)}`);
   }
@@ -287,6 +305,7 @@ export async function admitLocalFirstPartyRuntimeAccountCaller(
   runtime: Runtime,
   input: RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
 ): Promise<AccountCaller> {
+  const expectedAccountId = normalizeText(input.expectedAccountId) || OWNER_USER_ID;
   const appId = requireText(input.appId, 'appId');
   const appInstanceId = requireText(input.appInstanceId, 'appInstanceId');
   const deviceId = requireText(input.deviceId, 'deviceId');
@@ -317,7 +336,7 @@ export async function admitLocalFirstPartyRuntimeAccountCaller(
   const status = await runtime.account.getAccountSessionStatus({ caller }, { metadata: await sessionMetadata() });
   if (
     status.state !== AccountSessionState.AUTHENTICATED
-    || normalizeText(status.accountProjection?.accountId) !== OWNER_USER_ID
+    || normalizeText(status.accountProjection?.accountId) !== expectedAccountId
   ) {
     throw new Error(`Runtime local first-party account caller was not admitted to the active account projection: ${JSON.stringify(status)}`);
   }
@@ -453,22 +472,31 @@ type FixtureRuntimeAgentRuntime =
   & NimiHostRuntimeAgentInspectClient
   & NimiHostRuntimeAgentPresentationProfileClient;
 
-function createFixtureRuntimeAgentContext(runtime: Runtime): {
+function createFixtureRuntimeAgentContext(runtime: Runtime, input: {
+  readonly appId?: string;
+  readonly appInstanceId?: string;
+  readonly deviceId?: string;
+  readonly ownerUserId?: string;
+} = {}): {
   readonly agentRuntime: FixtureRuntimeAgentRuntime;
   readonly withScopes: NimiRuntimeAgentScopeRunner;
 } {
-  const agentRuntime = runtimeAgentClientRuntime(runtime, DESKTOP_APP_ID);
+  const appId = normalizeText(input.appId) || DESKTOP_APP_ID;
+  const appInstanceId = normalizeText(input.appInstanceId) || DESKTOP_APP_INSTANCE_ID;
+  const deviceId = normalizeText(input.deviceId) || DESKTOP_DEVICE_ID;
+  const ownerUserId = normalizeText(input.ownerUserId) || OWNER_USER_ID;
+  const agentRuntime = runtimeAgentClientRuntime(runtime, appId);
   const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId: DESKTOP_APP_ID,
-    appInstanceId: DESKTOP_APP_INSTANCE_ID,
-    deviceId: DESKTOP_DEVICE_ID,
+    appId,
+    appInstanceId,
+    deviceId,
     appVersion: 'sdk-runtime-agent-live-e2e',
     developerRegistration: false,
     auth: runtime.auth,
   });
   return {
     agentRuntime,
-    withScopes: runtimeAgentLiveScopeRunner(agentRuntime, sessionMetadata),
+    withScopes: runtimeAgentLiveScopeRunner(agentRuntime, sessionMetadata, ownerUserId),
   };
 }
 

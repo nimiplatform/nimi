@@ -7,6 +7,7 @@ import {
   type GetAgentRequest,
   type InitializeAgentRequest,
   type ListAgentsRequest,
+  type ListAgentConversationSummariesRequest,
   type OpenConversationAnchorRequest,
   type QueryAgentMemoryRequest,
   type RuntimeTypedCallOptions,
@@ -138,6 +139,32 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
           },
         };
       },
+      async listAgentConversationSummaries(
+        request: ListAgentConversationSummariesRequest,
+        options?: RuntimeTypedCallOptions,
+      ) {
+        calls.push({ method: 'listAgentConversationSummaries', request, options });
+        return {
+          summaries: [{
+            anchor: {
+              conversationAnchorId: 'anchor-1',
+              agentId: 'local-agent:test-user-1-agent-1',
+              subjectUserId: 'user-1',
+              status: 1,
+              lastTurnId: '',
+              lastMessageId: '',
+              localAgentRef: 'local-agent:test-user-1-agent-1',
+              ownerUserId: 'user-1',
+              runtimeSourceRef: 'agent-1',
+            },
+            title: '',
+            lastMessageRole: 'assistant',
+            lastMessageText: 'hello',
+            lastMessageId: 'message-1',
+            transcriptMessageCount: 2,
+          }],
+        };
+      },
       async getPublicChatSessionSnapshot() {
         return { snapshot: {} };
       },
@@ -186,6 +213,12 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
 
   await client.ensureInitialized(identity);
   await client.openConversation(identity);
+  const summaries = await client.listConversationSummaries({
+    ...identity,
+    statusFilter: ['active'],
+    pageSize: 2,
+    pageToken: '',
+  });
   await client.sendTurn({
     ...identity,
     conversationAnchorId: 'anchor-1',
@@ -197,6 +230,7 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   assert.deepEqual(calls.map((call) => call.method), [
     'getAgent',
     'openConversationAnchor',
+    'listAgentConversationSummaries',
     'sendAppMessage',
     'queryAgentMemory',
     'getAgentCanonicalMemoryBankStatus',
@@ -205,17 +239,20 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   assert.equal((calls[1]?.request as OpenConversationAnchorRequest).agentId, '');
   assert.equal((calls[1]?.request as OpenConversationAnchorRequest).localAgentRef, identity.localAgentRef);
   assert.equal(calls[1]?.options?.metadata?.scopes, 'runtime.agent.write');
-  assert.equal((calls[2]?.request as SendAppMessageRequest).toAppId, 'runtime.agent');
-  assert.equal((calls[2]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
-  assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
+  assert.equal(summaries.summaries[0]?.anchor?.conversationAnchorId, 'anchor-1');
+  assert.equal((calls[2]?.request as ListAgentConversationSummariesRequest).agentId, identity.localAgentRef);
+  assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.read');
+  assert.equal((calls[3]?.request as SendAppMessageRequest).toAppId, 'runtime.agent');
+  assert.equal((calls[3]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
+  assert.equal(calls[3]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
   // Atomic hard cut: turn requests never carry execution_bindings; the
   // runtime resolves the committed Runtime Agent AI Config (K-AGCORE-147).
   assert.equal(
-    'execution_bindings' in fromNimiRuntimeProtoStruct((calls[2]?.request as SendAppMessageRequest).payload),
+    'execution_bindings' in fromNimiRuntimeProtoStruct((calls[3]?.request as SendAppMessageRequest).payload),
     false,
   );
-  assert.equal((calls[3]?.request as QueryAgentMemoryRequest).agentId, identity.localAgentRef);
-  assert.equal(calls[3]?.options?.metadata?.scopes, 'runtime.agent.read');
+  assert.equal((calls[4]?.request as QueryAgentMemoryRequest).agentId, identity.localAgentRef);
+  assert.equal(calls[4]?.options?.metadata?.scopes, 'runtime.agent.read');
 });
 
 test('runtime agent client discovers existing LocalAgents by Runtime inventory provenance', async () => {

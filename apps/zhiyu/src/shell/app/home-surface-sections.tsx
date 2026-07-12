@@ -40,7 +40,7 @@ export function formatProjectionValue(value: string | null | undefined): string 
   if (value === 'not_admitted') {
     return '尚未开放';
   }
-  if (value === 'runtime' || value === 'sdk-fixture') {
+  if (value === 'runtime' || value === 'sdk') {
     return '本地服务';
   }
   if (value === 'renderer') {
@@ -629,6 +629,16 @@ export function HiddenEvidenceStatus({ evidence }: { readonly evidence: ZhiyuEvi
         data-zhiyu-source-state={evidence.source.reasonCode}
         data-zhiyu-source-source={evidence.source.source}
         data-zhiyu-source-ready={String(evidence.source.ready)}
+        data-zhiyu-source-context-projection={evidence.source.projectionState}
+        data-zhiyu-source-kind={evidence.source.sourceRef?.kind ?? 'not_projected'}
+        data-zhiyu-source-snapshot-correlated={String(Boolean(
+          evidence.source.sourceContextStatus?.localAgentRef
+          && evidence.source.sourceContextStatus.localAgentRef === evidence.localAgent.localAgentRef
+        ))}
+        data-zhiyu-turn-anchor-correlated={String(Boolean(
+          evidence.source.turnContextSummary?.conversationAnchorId
+          && evidence.source.turnContextSummary.conversationAnchorId === evidence.conversation.conversationAnchorId
+        ))}
       />
       <p
         data-zhiyu-agent-inventory-state={evidence.inventory.reasonCode}

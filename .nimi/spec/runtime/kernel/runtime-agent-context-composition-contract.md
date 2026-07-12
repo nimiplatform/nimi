@@ -94,6 +94,17 @@ describes the character; it does not authorize a real Runtime tool.
 
 ## K-AGCORE-156 Transcript, Memory, Budget, And Deterministic Truncation
 
+Realm WorldCharacter and RealmPersona records remain source provenance only.
+Materialization freezes their typed source input into an opaque Runtime
+LocalAgent identity; it does not transfer conversation ownership to the source
+record or presentation app. `OpenConversationAnchor` allocates both the opaque
+Runtime-owned conversation anchor and its Runtime-owned thread identity before
+the first turn. Desktop and Zhiyu consume those identities from Runtime
+projections and cannot derive either identity from `sourceRef`,
+`localAgentRef`, source kind, or app-local thread state. Repeated
+materialization may create a different LocalAgent, while later Realm source
+changes never rebase an existing materialized LocalAgent automatically.
+
 Runtime's committed transcript is the only LocalAgent conversation history.
 Every ordinary second and later turn loads committed user/assistant turns from
 the selected Runtime `ConversationAnchor` even when the caller submits only the
@@ -111,6 +122,9 @@ cannot leak transcript; agent-scoped canonical memory may cross anchors only
 where the existing canonical-memory contract admits it. App id is not a
 partition key. Restart must reload the same committed inputs and reproduce the
 same composition under the same catalog/compiler versions.
+Realm offline operation continues from the frozen source snapshot and
+Runtime-local transcript, memory, relationship, and state without
+rematerialization or source rebase.
 
 Runtime reads context-window capacity from the actual resolved model catalog,
 then reserves provider/adapter overhead, output tokens, and safety margin. It
@@ -188,64 +202,48 @@ display or aggregate the projection but cannot backfill, reinterpret, or cache
 raw context as an offline success path. Production logs and evidence use the
 same allowlist plus correlation ids and hashes, never the private inputs.
 
-## K-AGCORE-159 Subject And Evaluator Runtime Route Binding And Independence
+## K-AGCORE-159 Conversation Report Runtime Route Identity
 
-Runtime is the only executor for both a live LocalAgent behavior subject turn
-and its semantic evaluator call. Each role resolves independently through
-Runtime Agent AI Config and the Runtime model catalog; an app or test runner may
-request an admitted evaluation but cannot call a provider/model directly,
-supply an execution binding, or embed a provider/model constant.
+Runtime is the only executor for a live LocalAgent conversation-report turn.
+The route resolves through Runtime Agent AI Config and the Runtime model
+catalog; an app or test runner cannot call a provider/model directly, supply an
+execution binding, or embed a provider/model constant. One baseline run selects
+one route and keeps it stable for both LocalAgents and every reported turn.
 
-Before either result is eligible for behavior admission, Runtime records a
-complete resolved route fingerprint for each role. The fingerprint binds
-`providerId`, `modelId`, and the resolved `modelRevision` or, when the catalog
-has no revision identifier, a stable resolved `modelFingerprint`; it also binds
-the catalog revision and Runtime route digest used for that call. The complete
-subject and evaluator fingerprints must differ. Missing fields, an unresolved
-route, an unverifiable revision/fingerprint, or equality blocks the batch as
-`blocked_live_provider_admission`; Runtime must not fall back to same-route
-self-evaluation.
+Each turn records a complete resolved route identity binding `providerId`,
+`modelId`, and the resolved `modelRevision` or a stable catalog-derived model
+fingerprint, plus the catalog revision and Runtime route digest available for
+that call. Missing identity fields, an unresolved route, or silent route drift
+is an objective execution failure. No evaluator or second route is required to
+produce the report, and model identity never implies semantic quality.
 
-Subject and evaluator request ids, execution statuses, provider errors, and
-correlation records remain distinct even when they belong to the same
-evaluation trial. Platform test governance owns behavior thresholds, controls,
-rubric, and admission semantics; Runtime owns only actual AI execution, route
-resolution/fingerprints, independence proof, and execution-state isolation.
+- AUTHORITY-RELATION subject=runtime action=execute object=live-conversation-report-turn value=runtime-ai-execution polarity=require
+- AUTHORITY-RELATION subject=conversation-report-turn action=bind object=runtime-model-fingerprint value=provider-model-revision-complete polarity=require
+- AUTHORITY-RELATION subject=conversation-report-run action=keep object=selected-runtime-route value=stable-within-run polarity=require
+- AUTHORITY-RELATION subject=app-or-test-runner action=call object=conversation-provider-or-model-directly value=denied polarity=forbid
+- AUTHORITY-RELATION subject=app-or-test-runner action=supply object=conversation-provider-model-constant-or-binding value=denied polarity=forbid
 
-- AUTHORITY-RELATION subject=runtime action=execute object=live-behavior-subject-ai value=runtime-ai-execution polarity=require
-- AUTHORITY-RELATION subject=runtime action=execute object=semantic-behavior-evaluator-ai value=runtime-ai-execution polarity=require
-- AUTHORITY-RELATION subject=subject-evaluator-route-fingerprints action=set-independence object=behavior-evaluation value=complete-and-distinct polarity=require
-- AUTHORITY-RELATION subject=app-or-test-runner action=call object=behavior-provider-or-model-directly value=denied polarity=forbid
-- AUTHORITY-RELATION subject=app-or-test-runner action=supply object=behavior-provider-model-constant-or-binding value=denied polarity=forbid
+## K-AGCORE-160 Conversation Report Capture Boundary And Non-Authoritative Review
 
-## K-AGCORE-160 Evaluator Execution Isolation And Strict Result Admission
+Runtime retains the product-owned LocalAgent identity, conversation anchor,
+transcript, memory, relationship, state, and hook lineage. The report pipeline
+may capture their bounded public projections and the committed user/assistant
+transcript with exact account, source snapshot, LocalAgent, anchor, turn,
+surface, and model correlation. It cannot read raw system prompts, private
+context lanes, credentials, proofs, or other Runtime-private inputs.
 
-Runtime creates a dedicated evaluator execution scope that is not a product
-LocalAgent turn and has no product conversation anchor, product memory scope,
-tool/media grant, or LocalAgent execution identity. The evaluator input
-allowlist is exactly the source-derived expectation manifest, fixed rubric, and
-subject transcript. It cannot read the provider-visible subject request, raw
-system prompt, raw context manifest lane content, private memory, private source
-lanes, credentials, tool arguments/results, or other product-private inputs.
+Report capture is observational: it cannot create or rewrite a product turn,
+message, transcript entry, memory item, relationship update, LocalAgent,
+snapshot, anchor, hook, action, or event. It performs no automatic provider
+retry. A captured reply, optional annotation, or derived review note never
+becomes source, snapshot, personality, memory, transcript, future context, or
+an authoritative semantic verdict. Realm-offline turns continue from the
+frozen LocalAgent source snapshot and Runtime-local state.
 
-Evaluator output is accepted only through the fixed strict JSON result schema.
-Unknown fields, malformed JSON, unknown score values, missing required reason
-codes, or schema mismatch produce a typed evaluator failure. Runtime performs
-no automatic evaluator retry and never converts a provider/transport/schema
-failure into a score. Raw attempt status and safe route/correlation evidence are
-preserved for Platform-owned batch accounting.
-
-The evaluator scope cannot create or commit a product turn, message,
-transcript entry, memory item, relationship update, LocalAgent mutation,
-snapshot mutation, anchor state, hook/action, or product event. Evaluator
-failure cannot roll back or rewrite the already-recorded subject trial, and an
-evaluator score is evidence only: it never becomes source, snapshot,
-personality, memory, transcript, or future context-composition truth.
-
-- AUTHORITY-RELATION subject=runtime-evaluator-execution action=set-isolation object=product-agent-state value=separate-evaluation-scope polarity=require
-- AUTHORITY-RELATION subject=runtime-evaluator-execution action=use object=product-anchor-or-memory-scope value=denied polarity=forbid
-- AUTHORITY-RELATION subject=runtime-evaluator-execution action=read object=raw-system-prompt-or-private-context-lanes value=denied polarity=forbid
-- AUTHORITY-RELATION subject=runtime-evaluator-result action=admit object=behavior-score value=strict-json-schema-only polarity=require
-- AUTHORITY-RELATION subject=runtime-evaluator-execution action=retry object=provider-attempt value=denied polarity=forbid
-- AUTHORITY-RELATION subject=runtime-evaluator-execution action=commit object=product-turn-message-transcript-memory-localagent-state value=denied polarity=forbid
-- AUTHORITY-RELATION subject=runtime-evaluator-score action=become object=personality-or-context-truth value=denied polarity=forbid
+- AUTHORITY-RELATION subject=conversation-report-capture action=retain object=runtime-bounded-context-and-state value=required polarity=require
+- AUTHORITY-RELATION subject=conversation-report-capture action=correlate object=localagent-anchor-turn-model-lineage value=complete polarity=require
+- AUTHORITY-RELATION subject=conversation-report-capture action=read object=raw-system-prompt-or-private-context-lanes value=denied polarity=forbid
+- AUTHORITY-RELATION subject=conversation-report-capture action=expose object=credential-proof-or-private-runtime-input value=denied polarity=forbid
+- AUTHORITY-RELATION subject=conversation-report-execution action=retry object=provider-attempt value=denied polarity=forbid
+- AUTHORITY-RELATION subject=conversation-report-capture action=commit object=product-turn-message-transcript-memory-localagent-state value=denied polarity=forbid
+- AUTHORITY-RELATION subject=captured-behavior-observation action=become object=semantic-or-personality-truth value=denied polarity=forbid

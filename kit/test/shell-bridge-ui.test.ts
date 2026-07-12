@@ -64,12 +64,12 @@ describe('shell renderer UI bridge primitives', () => {
     ]);
   });
 
-  test('Tauri adapter maps standard config commands to registered Tauri commands', () => {
+  test('Tauri adapter does not synthesize retired generic Runtime config commands', () => {
     expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS['config.get'])).toBe(
-      'runtime_bridge_config_get',
+      NIMI_STANDARD_SHELL_COMMANDS['config.get'],
     );
     expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS['config.set'])).toBe(
-      'runtime_bridge_config_set',
+      NIMI_STANDARD_SHELL_COMMANDS['config.set'],
     );
   });
 });

@@ -5,9 +5,26 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"strconv"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+type blockingFirstChatTrackSidecarExecutor struct {
+	entered chan struct{}
+	release <-chan struct{}
+	once    sync.Once
+}
+
+func (e *blockingFirstChatTrackSidecarExecutor) ExecuteChatTrackSidecar(context.Context, *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
+	e.once.Do(func() {
+		close(e.entered)
+		<-e.release
+	})
+	return &ChatTrackSidecarResult{}, nil
+}
 
 func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 	t.Parallel()
@@ -173,7 +190,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-session-snapshot",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -266,5 +283,121 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	secondMessage, ok := transcript[1].(map[string]any)
 	if !ok || secondMessage["role"] != "assistant" || secondMessage["content"] != "snapshot complete" {
 		t.Fatalf("expected second transcript message to preserve assistant completion, got=%v", transcript[1])
+	}
+}
+
+func TestPublicChatCommittedSnapshotRemainsActiveUntilTerminalDeliveryReleasesReservation(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	sidecarEntered := make(chan struct{})
+	sidecarRelease := make(chan struct{})
+	svc.SetChatTrackSidecarExecutor(&blockingFirstChatTrackSidecarExecutor{
+		entered: sidecarEntered,
+		release: sidecarRelease,
+	})
+
+	var executionIndex uint32
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			index := atomic.AddUint32(&executionIndex, 1)
+			envelope := publicChatStructuredEnvelopeAPML("message-terminal-boundary-"+strconv.FormatUint(uint64(index), 10), "terminal boundary reply")
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-terminal-boundary",
+				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+					ModelResolved: "qwen3-chat",
+					RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				}},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-terminal-boundary",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: envelope}},
+				}},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				TraceId:   "trace-terminal-boundary",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
+					FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+				}},
+			})
+		},
+	})
+
+	request := func(requestID string, content string) *runtimev1.AppMessageEvent {
+		return &runtimev1.AppMessageEvent{
+			ToAppId:       publicChatRuntimeAppID,
+			FromAppId:     "desktop.app",
+			SubjectUserId: "user-1",
+			MessageId:     requestID,
+			MessageType:   publicChatTurnRequestType,
+			Payload: publicChatStructPayload(t, map[string]any{
+				"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+				"owner_user_id":          "user-1",
+				"runtime_source_ref":     "agent-alpha",
+				"conversation_anchor_id": anchorID,
+				"request_id":             requestID,
+				"messages": []any{map[string]any{
+					"role": "user", "content": content,
+				}},
+			}),
+		}
+	}
+	immediateNextRequest := request("request-immediate-next", "start immediately after terminal")
+	immediateNextResult := make(chan error, 1)
+	var terminalCallbackOnce sync.Once
+	svc.SetPublicChatAppEmitter(func(ctx context.Context, emitted *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+		response, err := capture.emit(ctx, emitted)
+		if err == nil && emitted.GetMessageType() == publicChatTurnCompletedType {
+			terminalCallbackOnce.Do(func() {
+				immediateNextResult <- svc.ConsumePublicChatAppMessage(context.Background(), immediateNextRequest)
+			})
+		}
+		return response, err
+	})
+
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), request("request-first", "finish with a blocking sidecar")); err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(first): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	select {
+	case <-sidecarEntered:
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for post-turn sidecar")
+	}
+
+	committedSnapshot := publicChatSessionSnapshotDetail(t, requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-committed"))
+	if got := committedSnapshot["session_status"]; got != "turn_active" {
+		t.Fatalf("committed message must remain turn_active until terminal delivery, got=%v", committedSnapshot)
+	}
+	activeTurn, ok := committedSnapshot["active_turn"].(map[string]any)
+	if !ok || activeTurn["status"] != publicChatTurnStatusCommitted {
+		t.Fatalf("expected active committed turn while sidecar runs, got=%v", committedSnapshot)
+	}
+	if _, exists := committedSnapshot["last_turn"]; exists {
+		t.Fatalf("committed message must not fabricate terminal last_turn before post-turn completion: %v", committedSnapshot)
+	}
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), request("request-blocked", "must remain blocked before terminal")); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected pre-terminal request to remain blocked, got %v", err)
+	}
+
+	close(sidecarRelease)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+	select {
+	case err := <-immediateNextResult:
+		if err != nil {
+			t.Fatalf("terminal callback observed unreleased reservation: %v", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("timed out waiting for immediate post-terminal request")
 	}
 }

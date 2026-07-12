@@ -22,6 +22,21 @@ const (
 	publicChatCatalogRevisionHashDomain  = "nimi.runtime.agent-context-catalog-revision/v1\x00"
 )
 
+var publicChatRelationalSemanticPredicates = map[string]struct{}{
+	"has_nickname":              {},
+	"is_addressed_as":           {},
+	"nickname":                  {},
+	"preferred_address":         {},
+	"preferred_designation":     {},
+	"preferred_form_of_address": {},
+	"preferred_name":            {},
+	"relationship":              {},
+	"relationship_label":        {},
+	"relationship_name":         {},
+	"relationship_role":         {},
+	"relationship_status":       {},
+}
+
 type publicChatContextCompositionError struct {
 	cause   error
 	summary *runtimev1.AgentTurnContextSummary
@@ -265,7 +280,25 @@ func publicChatCanonicalMemoryIsRelational(record *runtimev1.MemoryRecord) bool 
 		}
 	}
 	semantic := record.GetSemantic()
-	return semantic != nil && strings.Contains(strings.ToLower(strings.TrimSpace(semantic.GetPredicate())), "relationship")
+	if semantic == nil {
+		return false
+	}
+	_, admitted := publicChatRelationalSemanticPredicates[normalizePublicChatSemanticPredicate(semantic.GetPredicate())]
+	return admitted
+}
+
+func normalizePublicChatSemanticPredicate(value string) string {
+	normalized := strings.Map(func(char rune) rune {
+		switch {
+		case char >= 'A' && char <= 'Z':
+			return char + ('a' - 'A')
+		case char >= 'a' && char <= 'z', char >= '0' && char <= '9':
+			return char
+		default:
+			return '_'
+		}
+	}, strings.TrimSpace(value))
+	return strings.Trim(normalized, "_")
 }
 
 func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentTurnTranscriptPairInput, error) {

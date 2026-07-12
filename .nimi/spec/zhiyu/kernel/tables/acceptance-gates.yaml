@@ -45,6 +45,11 @@ gates:
     tier: app_boundary
     target: zhiyu
     source_rule: Z-CHAT-001
+  - id: bounded_context_projection
+    command: check:local-agent-full-chain-hardcut
+    tier: app_boundary
+    target: zhiyu
+    source_rule: Z-CHAT-001
   - id: no_duplicate_turn_reducer
     command: check:zhiyu-no-duplicate-turn-reducer
     tier: app_boundary

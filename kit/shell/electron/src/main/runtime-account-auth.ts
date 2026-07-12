@@ -1,10 +1,10 @@
 import type { Runtime, NimiRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
-import { createNimiError } from '@nimiplatform/sdk/types';
 
 import type {
   ElectronRuntimeBridgeTrustedMetadataProvider,
 } from './types.js';
+import { NimiElectronShellHostError } from './types.js';
 
 /**
  * Legacy shape retained only until the protected native carrier replaces all
@@ -84,7 +84,8 @@ export function createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvi
 
 function protectedCarrierRequiredProvider(): ElectronRuntimeBridgeTrustedMetadataProvider {
   const provider: ElectronRuntimeBridgeTrustedMetadataProvider = async () => {
-    throw createNimiError({
+    throw new NimiElectronShellHostError({
+      code: 'capability-unavailable',
       message: 'Electron Runtime account authority requires a protected desktop control carrier',
       reasonCode: RuntimeGeneratedReasonCode[
         RuntimeGeneratedReasonCode.DESKTOP_CONTROL_TRANSPORT_REQUIRED

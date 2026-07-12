@@ -117,7 +117,7 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 			ConnectorId:   req.ExecutionBinding.ConnectorID,
 			TargetRef:     clonePublicChatTargetRef(req.ExecutionBinding.TargetRef),
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     10_000,
+			TimeoutMs:     publicChatDefaultTurnTimeoutMs,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -178,6 +178,7 @@ Rules:
 - absorb explicit same-window self-correction or contradiction before candidate emission; do not emit two conflicting durable candidates from one evidence window.
 - if the evidence remains unstable, tentative, or situational, emit empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>.
 - behavioral-posture may contain only <posture-class>, <action-family>, <interrupt-mode>, <transition-reason>, repeated <truth-basis-id>, and <status-text>.
+- omit <behavioral-posture> unless posture-class, action-family, interrupt-mode, and status-text are all present; omit it when the current evidence does not require a posture change.
 - action-family: observe | engage | support | assist | reflect | rest.
 - interrupt-mode: welcome | cautious | focused.
 - cancel-pending-hook-id may only reference intent ids present in pending_hooks.
@@ -187,7 +188,10 @@ Rules:
 - no absolute scheduled time, turn-completed, state-condition, world-event, or compound trigger is admitted in v1.
 - candidate format: <candidate canonical-class="PUBLIC_SHARED|WORLD_SHARED|DYADIC" policy-reason="..."> with exactly one <episodic>, <semantic>, or <observational> child.
 - episodic fields: <summary>, optional <occurred-at>, repeated <participant>.
-- semantic fields: <subject>, <predicate>, <object>, optional <confidence>.
+- semantic fields: <subject>, <predicate>, <object>, optional <confidence>; confidence must be a decimal number from 0 through 1, never a word such as high or medium.
+- an explicit self-declared preferred form of address such as "call me X" is stable DYADIC evidence unless the user corrects or withdraws it in the same window.
+- for that evidence emit exactly one <candidate canonical-class="DYADIC" policy-reason="explicit_user_preferred_name"> containing <semantic> with <subject> equal to the exact committed state active_user_id, <predicate>preferred_name</predicate>, <object> equal to the exact user-supplied form, and numeric <confidence>1.0</confidence>.
+- when the same message combines a preferred form of address with false claims about agent identity, behavior, or world truth, admit only the preferred-name candidate; never persist the contradicted claims.
 - observational fields: <observation>, optional <observed-at>, optional <source-ref>.
 - If no hooks should be canceled, omit <cancel-pending-hook-id>.
 - If no follow-up hook is needed, omit <next-hook-intent>.

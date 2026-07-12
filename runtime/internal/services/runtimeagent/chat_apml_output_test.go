@@ -10,7 +10,7 @@ import (
 func TestParsePublicChatAPMLOutput_MessageStatusAndActions(t *testing.T) {
 	raw := strings.Join([]string{
 		`<message id="m1">`,
-		`  <emotion>joy</emotion><activity>greet</activity>Hello APML.`,
+		`  <emotion>happy</emotion><activity>greet</activity>Hello APML.`,
 		`</message>`,
 		`<action id="a1" kind="image">`,
 		`  <prompt-payload kind="image"><prompt-text>a sunrise over glass towers</prompt-text></prompt-payload>`,
@@ -29,7 +29,7 @@ func TestParsePublicChatAPMLOutput_MessageStatusAndActions(t *testing.T) {
 	if envelope.Message.Text != "Hello APML." {
 		t.Fatalf("message text mismatch: %q", envelope.Message.Text)
 	}
-	if envelope.StatusCue == nil || envelope.StatusCue.Mood != "joy" || envelope.StatusCue.ActionCue != "greet" {
+	if envelope.StatusCue == nil || envelope.StatusCue.Mood != "happy" || envelope.StatusCue.ActionCue != "greet" {
 		t.Fatalf("status cue mismatch: %#v", envelope.StatusCue)
 	}
 	if len(envelope.Actions) != 2 {
@@ -219,7 +219,7 @@ func TestParsePublicChatAPMLOutputRejectsProjectionOnlyAndPayloadShortcuts(t *te
 			wantErr: "unsupported APML message tag <surface>",
 		},
 		{
-			raw:     `<message id="m1"><emotion>joy</emotion><emotion>calm</emotion>hello</message>`,
+			raw:     `<message id="m1"><emotion>happy</emotion><emotion>shy</emotion>hello</message>`,
 			wantErr: "at most one emotion",
 		},
 		{
@@ -264,11 +264,11 @@ func TestParsePublicChatAPMLOutputRejectsWrappersAndXMLControls(t *testing.T) {
 			wantErr: "APML beginning with <message>",
 		},
 		{
-			raw:     `<emotion>joy</emotion><message id="m1">hello</message>`,
+			raw:     `<emotion>happy</emotion><message id="m1">hello</message>`,
 			wantErr: "APML beginning with <message>",
 		},
 		{
-			raw:     `<message id="m1">hello</message><emotion>joy</emotion>`,
+			raw:     `<message id="m1">hello</message><emotion>happy</emotion>`,
 			wantErr: "unsupported APML top-level tag <emotion>",
 		},
 		{

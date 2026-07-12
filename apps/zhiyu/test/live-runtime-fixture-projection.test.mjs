@@ -25,17 +25,14 @@ const fixture = {
   },
 };
 
-test('live Runtime fixture adapter injects source evidence only through test init script', () => {
+test('live Runtime acceptance does not inject pre-materialized renderer source truth', () => {
   globalThis.window = {};
 
   const script = createZhiyuLiveRuntimeFixtureAcceptanceInitScript(fixture);
   Function(script)();
 
-  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.ready, true);
-  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.source, 'sdk-fixture');
-  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.ownerUserId, fixture.ownerUserId);
-  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.runtimeSourceRef, fixture.runtimeSourceRef);
-  assert.deepEqual(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.sourceRef, fixture.sourceRef);
+  assert.deepEqual(window, {});
+  assert.doesNotMatch(script, /ownerUserId|runtimeSourceRef|sourceRef|sourceContentHash/);
   assert.doesNotMatch(script, /executionBinding|resolvedBindingRef|selectedTargetRefKind|modelId/);
   assert.doesNotMatch(script, /SourceMaterializationPacket|apps\/desktop|runtime\/internal|apiKey|providerId/);
 });

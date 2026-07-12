@@ -90,10 +90,12 @@ test('Desktop consumes Kit shared UI, telemetry, and feature primitives for audi
   assert.match(profilePosts, /\bCompactAction\b/);
 
   const appRoutes = read('apps/desktop/src/shell/renderer/app-shell/routes/app-routes.tsx');
+  const runtimeLoadingScreen = read('apps/desktop/src/shell/renderer/app-shell/routes/runtime-loading-screen.tsx');
+  const appRouteSurfaces = `${appRoutes}\n${runtimeLoadingScreen}`;
   assert.match(appRoutes, /from '@nimiplatform\/kit\/ui'/);
   assert.match(appRoutes, /from '@nimiplatform\/kit\/telemetry'/);
   for (const primitive of ['AmbientBackground', 'ProgressIndicator', 'Surface', 'logRendererEvent']) {
-    assert.match(appRoutes, new RegExp(`\\b${primitive}\\b`));
+    assert.match(appRouteSurfaces, new RegExp(`\\b${primitive}\\b`));
   }
 
   const runtimeInspect = read('apps/desktop/src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');

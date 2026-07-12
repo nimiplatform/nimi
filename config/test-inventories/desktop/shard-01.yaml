@@ -1,9 +1,9 @@
 version: 1
 inventory_id: desktop_test_inventory
-shard_id: desktop_test_inventory_shard_01
 owner: desktop
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: desktop_test_inventory_shard_01
 tests:
   - path: apps/desktop/scripts/run-macos-smoke-helpers.mjs
     owner: desktop
@@ -147,6 +147,17 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_api
+  - path: apps/desktop/test/apps-bridge-projection-bridge.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: apps/desktop/test/apps-card-state-derivation.test.ts
     owner: desktop
     classification: behavior_unit
@@ -159,6 +170,17 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: apps/desktop/test/apps-lifecycle-bridge.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/apps-local-app-picker-bridge.test.ts
     owner: desktop
     classification: behavior_unit
     tier: T4
@@ -346,6 +368,18 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/chat-agent-ai-config-readiness.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
   - path: apps/desktop/test/chat-agent-anchor-binding-storage.test.ts
     owner: desktop
     classification: behavior_unit
@@ -483,6 +517,117 @@ tests:
       - P-TEST-001
     sentinel_purpose: forbidden_copy
   - path: apps/desktop/test/chat-agent-manual-voice-request.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-policy-action-validation.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-route-state-boundary.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/chat-agent-shell-bundle.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-shell-footer-state.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-shell-host-flow.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-shell-host-interaction.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-shell-host-snapshot.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-shell-host-view.test.tsx
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-shell-lifecycle.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/chat-agent-shell-projection-refresh.test.ts
     owner: desktop
     classification: behavior_unit
     tier: T4

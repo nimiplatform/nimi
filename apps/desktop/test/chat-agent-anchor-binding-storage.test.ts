@@ -62,6 +62,7 @@ test('agent conversation anchor binding keeps only explicit anchor pointers in m
     runtimeSourceRef: ' agent-alpha ',
     localAgentRef: ' local-agent:user-a:agent-alpha ',
     conversationAnchorId: ' anchor-1 ',
+    threadId: ' runtime-thread-1 ',
     updatedAtMs: 10.7,
   });
 
@@ -70,6 +71,7 @@ test('agent conversation anchor binding keeps only explicit anchor pointers in m
     runtimeSourceRef: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
     conversationAnchorId: 'anchor-1',
+    threadId: 'runtime-thread-1',
     updatedAtMs: 10,
   });
 
@@ -109,6 +111,7 @@ test('agent conversation anchor binding keeps same runtimeSourceRef separate acr
     runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-a:agent-shared',
     conversationAnchorId: 'anchor-owner-a',
+    threadId: 'runtime-thread-owner-a',
     updatedAtMs: 10,
   });
   persistAgentConversationAnchorBinding({
@@ -116,6 +119,7 @@ test('agent conversation anchor binding keeps same runtimeSourceRef separate acr
     runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-b:agent-shared',
     conversationAnchorId: 'anchor-owner-b',
+    threadId: 'runtime-thread-owner-b',
     updatedAtMs: 11,
   });
 
@@ -124,6 +128,7 @@ test('agent conversation anchor binding keeps same runtimeSourceRef separate acr
     runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-a:agent-shared',
     conversationAnchorId: 'anchor-owner-a',
+    threadId: 'runtime-thread-owner-a',
     updatedAtMs: 10,
   });
   assert.deepEqual(getAgentConversationAnchorBinding('local-agent:owner-b:agent-shared'), {
@@ -131,6 +136,7 @@ test('agent conversation anchor binding keeps same runtimeSourceRef separate acr
     runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-b:agent-shared',
     conversationAnchorId: 'anchor-owner-b',
+    threadId: 'runtime-thread-owner-b',
     updatedAtMs: 11,
   });
 });
@@ -143,6 +149,16 @@ test('agent conversation anchor binding rejects malformed explicit pointers and 
     runtimeSourceRef: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
     conversationAnchorId: '',
+    threadId: 'runtime-thread-invalid',
+    updatedAtMs: 4,
+  }), /agent conversation anchor binding is invalid/);
+
+  assert.throws(() => persistAgentConversationAnchorBinding({
+    ownerUserId: 'user-a',
+    runtimeSourceRef: 'agent-alpha',
+    localAgentRef: 'local-agent:user-a:agent-alpha',
+    conversationAnchorId: 'anchor-without-runtime-thread',
+    threadId: '',
     updatedAtMs: 4,
   }), /agent conversation anchor binding is invalid/);
 
@@ -151,6 +167,7 @@ test('agent conversation anchor binding rejects malformed explicit pointers and 
     runtimeSourceRef: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
     conversationAnchorId: 'anchor-valid',
+    threadId: 'runtime-thread-valid',
     updatedAtMs: 3,
   });
 
@@ -169,9 +186,10 @@ test('agent conversation anchor binding notifies same-window subscribers', () =>
   try {
     persistAgentConversationAnchorBinding({
       ownerUserId: 'user-a',
-    runtimeSourceRef: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+      runtimeSourceRef: 'agent-alpha',
+      localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-live',
+      threadId: 'runtime-thread-live',
       updatedAtMs: 5,
     });
     clearAgentConversationAnchorBinding('local-agent:user-a:agent-alpha');

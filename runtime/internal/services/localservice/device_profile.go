@@ -153,7 +153,11 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 }
 
 func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, args ...string) ([]byte, error) {
-	if localRuntimeCommand == nil {
+	// Snapshot the hook before starting the worker. A timed-out command may keep
+	// unwinding after this function returns; retaining the per-call runner keeps
+	// that goroutine independent from test cleanup (or any later hook change).
+	command := localRuntimeCommand
+	if command == nil {
 		return nil, fmt.Errorf("local runtime command runner unavailable")
 	}
 	if timeout <= 0 {
@@ -166,7 +170,7 @@ func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, ar
 		err    error
 	}, 1)
 	go func() {
-		cmd := localRuntimeCommand(ctx, name, args...)
+		cmd := command(ctx, name, args...)
 		if cmd == nil {
 			result <- struct {
 				output []byte

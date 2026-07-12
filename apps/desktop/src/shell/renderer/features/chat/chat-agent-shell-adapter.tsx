@@ -441,6 +441,7 @@ export function useAgentConversationModeHost(
         runtimeSourceRef: turnInput.target.runtimeSourceRef,
         localAgentRef: turnInput.target.localAgentRef,
         conversationAnchorId: turnInput.conversationAnchorId,
+        runtimeThreadId: turnInput.runtimeThreadId,
         reasoningPreference: behaviorSettings.thinkingPreference,
         textMaxOutputTokensRequested,
       },

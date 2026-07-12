@@ -13,7 +13,7 @@ const validRuntimePayload = {
   },
   status_cue: {
     source_message_id: 'runtime-message-1',
-    mood: 'focus',
+    mood: 'confused',
   },
   actions: [{
     action_id: 'image-0',

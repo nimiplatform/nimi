@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -975,14 +976,11 @@ func TestValidateFallbackUsesCachedHistoricalKeyOnRefreshFailure(t *testing.T) {
 // newRevocationServer wires a httptest.NewServer that runs `handler` on every
 // hit and exposes a hit counter. Wave 4 tests use this to assert HTTP request
 // shape and to assert pass-without-HTTP for the empty-revocationUrl case.
-func newRevocationServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, *int) {
+func newRevocationServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, *atomic.Int64) {
 	t.Helper()
-	hits := 0
-	var hitsMu sync.Mutex
+	var hits atomic.Int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hitsMu.Lock()
-		hits++
-		hitsMu.Unlock()
+		hits.Add(1)
 		handler(w, r)
 	}))
 	t.Cleanup(server.Close)
@@ -1026,8 +1024,8 @@ func TestValidateRejectsExpiredRowDecisionMatrixRow3(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
 		t.Fatalf("expected fail-close on row-3 expired response, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1043,8 +1041,8 @@ func TestValidateRejectsRowNotFoundDecisionMatrixRow4(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
 		t.Fatalf("expected fail-close on row-4 row-not-found response, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1065,8 +1063,8 @@ func TestValidateRejectsSubjectMismatchDecisionMatrixRow5(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
 		t.Fatalf("expected fail-close on row-5 subject mismatch, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1087,8 +1085,8 @@ func TestValidateRejectsIssuerMismatchDecisionMatrixRow6(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
 		t.Fatalf("expected fail-close on row-6 issuer mismatch, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1108,8 +1106,8 @@ func TestValidateRejectsAudienceMismatchDecisionMatrixRow7(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
 		t.Fatalf("expected fail-close on row-7 audience mismatch, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1129,8 +1127,8 @@ func TestValidateRejectsIssuedAtMismatchDecisionMatrixRow8(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
 		t.Fatalf("expected fail-close on row-8 issued_at mismatch, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1146,8 +1144,8 @@ func TestValidateRejectsIntrospectionHTTP500(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "status 500") {
 		t.Fatalf("expected fail-close on HTTP 500 introspection, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1166,8 +1164,8 @@ func TestValidateRejectsIntrospectionWrongContentType(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "non-json content type") {
 		t.Fatalf("expected fail-close on wrong-content-type introspection, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1185,8 +1183,8 @@ func TestValidateRejectsIntrospectionMissingActiveField(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "missing active or revoked") {
 		t.Fatalf("expected fail-close on missing-active-field introspection, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1199,8 +1197,8 @@ func TestValidateRejectsIntrospectionMissingRevokedField(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "missing active or revoked") {
 		t.Fatalf("expected fail-close on missing-revoked-field introspection, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1227,8 +1225,8 @@ func TestValidateRejectsIntrospectionTimeout(t *testing.T) {
 		!strings.Contains(err.Error(), "request revocation endpoint") {
 		t.Fatalf("expected fail-close on introspection timeout, got %v", err)
 	}
-	if *hits != 1 {
-		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	if hits.Load() != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", hits.Load())
 	}
 }
 
@@ -1255,7 +1253,7 @@ func TestValidateFailsClosedWhenRevocationURLEmpty(t *testing.T) {
 	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "revocation url not configured") {
 		t.Fatalf("expected fail-close when revocationURL is empty, got %v", err)
 	}
-	if *hits != 0 {
-		t.Fatalf("expected zero introspection hits when revocationURL is empty, got %d", *hits)
+	if hits.Load() != 0 {
+		t.Fatalf("expected zero introspection hits when revocationURL is empty, got %d", hits.Load())
 	}
 }

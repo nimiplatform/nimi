@@ -9,6 +9,7 @@ import {
   type NimiRuntimeAgentConsumeEvent,
   type NimiRuntimeAgentMessage,
   type NimiRuntimeAgentSessionSnapshotRequest,
+  type NimiRuntimeAgentTurnCancellationReason,
   type NimiRuntimeAgentTurnInterruptRequest,
   type NimiRuntimeAgentTurnRequest,
   type NimiRuntimeAgentTurnsModule,
@@ -119,6 +120,8 @@ function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentT
       };
     }).filter((message) => Boolean(message.role && message.content))
     : [];
+  assert.equal(messages.length, 1, 'Runtime LocalAgent turn requires exactly one current user message');
+  assert.equal(messages[0]?.role, 'user', 'Runtime LocalAgent turn message must be current user');
   return {
     ownerUserId: normalizeTestText(payload.owner_user_id),
     runtimeSourceRef: normalizeTestText(payload.runtime_source_ref),
@@ -126,10 +129,7 @@ function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentT
     conversationAnchorId: normalizeTestText(payload.conversation_anchor_id),
     requestId: normalizeTestText(payload.request_id) || undefined,
     threadId: normalizeTestText(payload.thread_id) || undefined,
-    messages,
-    ...(payload.execution_params && typeof payload.execution_params === 'object'
-      ? { executionParams: payload.execution_params as NimiRuntimeAgentTurnRequest['executionParams'] }
-      : {}),
+    messages: [{ role: 'user', content: messages[0]!.content }],
   };
 }
 
@@ -261,7 +261,7 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
           runtimeSourceRef: normalizeTestText(lastTurnRequest?.runtimeSourceRef),
           localAgentRef: normalizeTestText(lastTurnRequest?.localAgentRef),
           conversationAnchorId: normalizeTestText(interruptPayload.conversation_anchor_id),
-          reason: normalizeTestText(interruptPayload.reason) || undefined,
+          reason: normalizeTestTurnCancellationReason(interruptPayload.reason),
           ...(normalizeTestText(interruptPayload.turn_id) ? { turnId: normalizeTestText(interruptPayload.turn_id) } : {}),
         };
         const response = await input.turns.interrupt(interrupt);
@@ -273,6 +273,21 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
       },
     },
   };
+}
+
+function normalizeTestTurnCancellationReason(value: unknown): NimiRuntimeAgentTurnCancellationReason | undefined {
+  const reason = normalizeTestText(value);
+  if (!reason) return undefined;
+  if ([
+    'user_cancel',
+    'room_closed',
+    'superseded_turn',
+    'budget_exhausted',
+    'timeout',
+    'gateway_revoked',
+    'policy_refusal',
+  ].includes(reason)) return reason as NimiRuntimeAgentTurnCancellationReason;
+  throw new Error(`test Runtime turn interrupt received unadmitted cancellation reason ${reason}`);
 }
 
 function normalizeDesktopTestRuntime(appId: string, runtime: unknown) {

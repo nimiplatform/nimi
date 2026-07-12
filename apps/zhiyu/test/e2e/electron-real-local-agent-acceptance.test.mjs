@@ -1,53 +1,46 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
-import { createNimiRealmSourceMaterializationPacket } from '@nimiplatform/sdk/realm';
 import { withSdkDistLock } from '../../../../scripts/lib/sdk-dist-lock.mjs';
+import { resolveProductJourneyTimeBudgetMs } from '../../../../tests/local-agent-product/harness/time-budget.mjs';
 import {
-  createFixtureRuntimeAgentClient,
-  setFixtureRuntimeAgentPresentationProfile,
-} from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
+  installVoiceCaptureSuccessMock,
+  queueCoreProviderPlan,
+  runFullChainCoreContinuation,
+} from './electron-real-local-agent-core-journey.mjs';
+import { runConversationReportContinuation } from './electron-real-local-agent-conversation-report.mjs';
 import {
-  SOURCE_MATERIALIZATION_AUDIENCE,
-  withRuntimeAgentLiveE2EFixture,
-} from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
+  assertNoPageProblems,
+  captureRealLocalAgentEvidence,
+  captureRealLocalAgentPanelEvidence,
+  resetRealLocalAgentEvidenceRoot,
+  resolveEvidenceRoot,
+  trackPageProblems,
+} from './electron-real-local-agent-evidence.mjs';
+import {
+  seedStandardShellAppearanceAssets,
+  withFixtureRuntimeLocalAgent,
+} from './electron-real-local-agent-fixture.mjs';
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const zhiyuAppId = 'nimi.zhiyu';
-const zhiyuRuntimeProtectedScopes = [
-  'runtime.agent.read',
-  'runtime.agent.write',
-  'runtime.agent.autonomy.write',
-  'runtime.agent.turn.read',
-  'runtime.agent.turn.write',
-  'runtime.agent.delegation.read',
-  'runtime.agent.delegation.write',
-  'runtime.agent.ai_config.read',
-  'runtime.agent.ai_config.write',
-  'ai.spend.meter',
-];
-const zhiyuAcceptanceTargetDisplayName = '\u989c\u771f\u537f';
-const zhiyuAcceptanceTargetSourceRef = {
-  kind: 'worldCharacter',
-  worldId: 'world-runtime-live',
-  sourceId: 'source-runtime-live-yan-zhenqing',
-  sourceContentHash: 'hash-runtime-live-yan-zhenqing',
-};
-const zhiyuAcceptanceAvatarAssetRef = 'vrm_aaaaaaaaaaaa';
-const zhiyuAcceptanceBackgroundAssetRef = 'bg_bbbbbbbbbbbb';
+const zhiyuAcceptanceTargetDisplayName = process.env.NIMI_LOCAL_AGENT_PRODUCT_TARGET_DISPLAY_NAME?.trim() || 'Runtime Live Source';
+const zhiyuJourneyTimeoutMs = resolveProductJourneyTimeBudgetMs(process.env, 600_000);
 
-test('zhiyu Electron real local-agent flow lists, selects, configures, and chats through Runtime', { timeout: 600_000 }, async () => {
+test('zhiyu Electron real local-agent flow lists, selects, configures, and chats through Runtime', { timeout: zhiyuJourneyTimeoutMs }, async () => {
   await resetRealLocalAgentEvidenceRoot();
 
-  await withFixtureRuntimeLocalAgent(async ({ endpoint, targetAgent }) => {
+  await withFixtureRuntimeLocalAgent(async ({
+    endpoint, realmBaseUrl, targetAgent, standardDataRoot, handoff,
+    agentClient, inspect, setPresentationProfile,
+  }) => {
     await withTempDir('real-local-agent', async (tmpRoot) => {
       const runtimeEndpoint = endpoint;
-      const dataRoot = path.join(tmpRoot, 'standard-shell-data');
+      const dataRoot = standardDataRoot || path.join(tmpRoot, 'standard-shell-data');
       await mkdir(dataRoot, { recursive: true });
       await seedStandardShellAppearanceAssets({
         dataRoot,
@@ -56,15 +49,19 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       });
 
       await withSdkDistLock('zhiyu real local-agent electron app', async () => {
+        const conversationReport = handoff?.journeyId === 'conversation-report-baseline';
         const app = await electron.launch({
-          args: [mainEntry],
+          args: [mainEntry, `--user-data-dir=${process.env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || path.join(tmpRoot, 'chromium-user-data')}`],
           env: {
             ...process.env,
             NIMI_RUNTIME_GRPC_ADDR: runtimeEndpoint,
             NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: runtimeEndpoint,
             NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+            NIMI_REALM_URL: realmBaseUrl,
+            NIMI_REALTIME_URL: realmBaseUrl,
           },
         });
+        if (handoff?.journeyId === 'full-chain-core') await app.context().addInitScript(installVoiceCaptureSuccessMock);
 
         try {
       const page = await app.firstWindow();
@@ -87,13 +84,19 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(listedEvidence.inventory.count, listedEvidence.inventory.localAgents.length);
       assert.ok(listedEvidence.inventory.count > 0, 'Runtime listAgents returned no active LocalAgents');
       await assertRelationshipRail(page, listedEvidence.inventory.count);
-      await assertUnselectedLocalPartnerEmptyState(page);
+      if (!listedEvidence.localAgent.ready) {
+        await assertUnselectedLocalPartnerEmptyState(page);
+      }
 
       const targetAgentEvidence = chooseTargetAgent(listedEvidence.inventory.localAgents, targetAgent.localAgentRef);
       const targetIndex = listedEvidence.inventory.localAgents.findIndex((agent) => agent.localAgentRef === targetAgentEvidence.localAgentRef);
       assert.notEqual(targetIndex, -1, 'target LocalAgent must be part of the listed Runtime inventory');
       assert.doesNotMatch(targetAgentEvidence.displayName || '', /\uFFFD/u, 'target LocalAgent display name must not contain replacement characters');
-      assert.match(targetAgentEvidence.displayName || '', /\p{Script=Han}/u, 'target LocalAgent display name should remain human-readable Chinese for this acceptance scenario');
+      assert.equal(
+        targetAgentEvidence.displayName,
+        zhiyuAcceptanceTargetDisplayName,
+        'target LocalAgent display name must preserve the source-derived Runtime projection',
+      );
       await captureRealLocalAgentEvidence(page, 'listed', pageProblems, {
         runtimeEndpoint,
         targetAgent: targetAgentEvidence,
@@ -122,8 +125,10 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
           switchedEvidence,
         });
       }
-      await candidateButtons.nth(targetIndex).waitFor({ timeout: 15_000 });
-      await candidateButtons.nth(targetIndex).click();
+      if (listedEvidence.localAgent.localAgentRef !== targetAgentEvidence.localAgentRef) {
+        await candidateButtons.nth(targetIndex).waitFor({ timeout: 15_000 });
+        await candidateButtons.nth(targetIndex).click();
+      }
 
       await waitForEvidence(page, (targetLocalAgentRef) =>
         globalThis.window.__nimiZhiyuEvidence?.localAgent?.ready === true
@@ -137,13 +142,16 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(selectedEvidence.localAgent.reasonCode, 'runtime-local-agent-selected');
       assert.equal(selectedEvidence.localAgent.runtimeSourceRef, targetAgentEvidence.runtimeSourceRef);
       assert.equal(selectedEvidence.conversation.localAgentRef, targetAgentEvidence.localAgentRef);
+      assert.equal(selectedEvidence.source.sourceContextStatus.localAgentRef, targetAgentEvidence.localAgentRef);
+      assert.equal(selectedEvidence.source.sourceRef.kind === 'worldCharacter' || selectedEvidence.source.sourceRef.kind === 'realmPersona', true);
+      assert.equal(await page.locator('[data-zhiyu-source-snapshot-correlated]').getAttribute('data-zhiyu-source-snapshot-correlated'), 'true');
       assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
       assert.equal(selectedEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
       assert.ok(
         new Set(['runtime', 'nimi.desktop', zhiyuAppId]).has(selectedEvidence.route.updatedByAppId),
         `real Runtime AI Config must be written by Runtime or an admitted first-party config writer, got ${selectedEvidence.route.updatedByAppId}`,
       );
-      assert.equal(selectedEvidence.route.executionBinding?.route, 'local');
+      assert.equal(selectedEvidence.route.executionBinding?.route, conversationReport ? 'cloud' : 'local');
       assert.ok(selectedEvidence.route.executionBinding?.modelId, 'real Runtime route must expose the selected local model id');
       assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
       await assertConversationTopStripRemoved(page);
@@ -175,7 +183,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         selectedEvidence,
       });
 
-      await assertComposerModeTools(page);
+      await assertComposerModeTools(page, { voiceCaptureReady: handoff?.journeyId === 'full-chain-core' });
       await page.locator('[data-zhiyu-composer-tool="model"]').click();
       const modelPanel = page.locator('[data-zhiyu-agent-panel-tab="model"]');
       await modelPanel.waitFor({ timeout: 15_000 });
@@ -190,12 +198,23 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         selectedEvidence,
       });
 
-      const modelSelection = await selectTextGenerateModel(page, modelConfig);
-      await waitForEvidence(page, () =>
-        globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
-        && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding),
-        'real Runtime model route ready',
-      );
+      const modelSelection = conversationReport
+        ? { source: 'cloud', preconfigured: true }
+        : await selectTextGenerateModel(page, modelConfig);
+      if (!conversationReport) {
+        await waitForEvidence(page, ({ previousRevision, selectedSource }) => {
+          const route = globalThis.window.__nimiZhiyuEvidence?.route;
+          return route?.reasonCode === 'runtime-agent-ai-config-ready'
+            && route.configRevision > previousRevision
+            && route.executionBinding?.route === selectedSource;
+        },
+          'real Runtime model route ready',
+          {
+            previousRevision: selectedEvidence.route.configRevision,
+            selectedSource: modelSelection.source,
+          },
+        );
+      }
 
       const modelReadyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
       assert.equal(modelReadyEvidence.route.executionBinding.route === 'local' || modelReadyEvidence.route.executionBinding.route === 'cloud', true);
@@ -208,24 +227,72 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         modelReadyEvidence,
       });
 
+      if (conversationReport) {
+        await runConversationReportContinuation({
+          page,
+          pageProblems,
+          handoff,
+          targetAgent: targetAgentEvidence,
+          readyEvidence: modelReadyEvidence,
+          agentClient,
+          inspect,
+          setPresentationProfile,
+          waitForEvidence,
+        });
+      } else {
+
       await waitForEvidence(page, () => globalThis.window.__nimiZhiyuEvidence?.turn?.ready === true, 'real Runtime turn readiness');
       assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
-      await assertComposerModeTools(page);
+      await assertComposerModeTools(page, { voiceCaptureReady: handoff?.journeyId === 'full-chain-core' });
 
       const prompt = process.env.NIMI_ZHIYU_ACCEPTANCE_CHAT_PROMPT?.trim()
         || '请用一句中文确认你是当前本地伙伴，并说明你已经准备好继续对话。';
-      await page.locator('[data-chat-composer-textarea="true"]').fill(prompt);
+      if (handoff?.journeyId === 'full-chain-core') {
+        await queueCoreProviderPlan(handoff, {
+          checkpointId: 'core-zhiyu-initial',
+          apml: '<message id="core-zhiyu-initial"><emotion>shy</emotion>Zhiyu received the Desktop-materialized Character.</message>',
+        });
+      }
+      const nativeMacosJourney = handoff?.journeyId === 'native-macos-input';
+      if (nativeMacosJourney) {
+        assert.equal(process.platform, 'darwin', 'native-macos-input requires macOS');
+      }
+      const composer = page.locator('[data-chat-composer-textarea="true"]').first();
+      let submittedPrompt = prompt;
+      await composer.fill(prompt);
+      let nativeEditCheckpoint = null;
+      if (nativeMacosJourney) {
+        await composer.press('Meta+A');
+        await composer.press('Meta+C');
+        await composer.press('Meta+X');
+        assert.equal(await composer.inputValue(), '', 'native Cut must clear the selected draft');
+        await composer.press('Meta+V');
+        assert.equal(await composer.inputValue(), prompt, 'native Paste must restore the copied draft');
+      }
       assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
       await page.locator('[data-chat-composer-send="true"]').click();
 
-      await waitForEvidence(page, (targetLocalAgentRef) =>
-        globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'completed'
-        && globalThis.window.__nimiZhiyuEvidence?.chat?.ready === true
-        && Boolean(globalThis.window.__nimiZhiyuEvidence?.chat?.outputText)
-        && globalThis.window.__nimiZhiyuEvidence?.chat?.localAgentRef === targetLocalAgentRef,
-        'real Runtime Agent chat completed',
+      await waitForEvidence(page, (targetLocalAgentRef) => {
+        const chat = globalThis.window.__nimiZhiyuEvidence?.chat;
+        return (chat?.state === 'completed' || chat?.state === 'failed' || chat?.state === 'canceled')
+          && chat?.localAgentRef === targetLocalAgentRef;
+      },
+        'real Runtime Agent chat reached terminal state',
         targetAgentEvidence.localAgentRef,
       );
+      const terminalChatEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+      assert.equal(
+        terminalChatEvidence.chat.state,
+        'completed',
+        `real Runtime Agent chat failed: ${JSON.stringify(terminalChatEvidence.chat)}`,
+      );
+      assert.equal(terminalChatEvidence.chat.ready, true);
+      assert.ok(terminalChatEvidence.chat.outputText, 'real Runtime Agent chat outputText must be projected');
+      await waitForEvidence(page, (expectedAnchorId) => {
+        const source = globalThis.window.__nimiZhiyuEvidence?.source;
+        return (source?.projectionState === 'ready' || source?.projectionState === 'truncated')
+          && source?.turnContextSummary?.conversationAnchorId === expectedAnchorId;
+      }, 'bounded Runtime turn context projected', modelReadyEvidence.conversation.conversationAnchorId);
 
       const chatCompletedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
       assert.equal(chatCompletedEvidence.chat.source, 'runtime');
@@ -239,11 +306,14 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(chatCompletedEvidence.turn.requestId, chatCompletedEvidence.chat.requestId);
       assert.ok(chatCompletedEvidence.turn.messageId, 'completed turn must expose the sealed assistant message id');
       assert.equal(chatCompletedEvidence.composer.submitState, 'accepted');
-      assert.equal(chatCompletedEvidence.composer.draftLength, prompt.trim().length);
+      assert.equal(chatCompletedEvidence.composer.draftLength, submittedPrompt.trim().length);
+      assert.equal(chatCompletedEvidence.source.turnContextSummary.localAgentRef, targetAgentEvidence.localAgentRef);
+      assert.equal(chatCompletedEvidence.source.turnContextSummary.conversationAnchorId, chatCompletedEvidence.chat.conversationAnchorId);
+      assert.equal(await page.locator('[data-zhiyu-turn-anchor-correlated]').getAttribute('data-zhiyu-turn-anchor-correlated'), 'true');
       assert.ok(chatCompletedEvidence.chat.messageCount >= 2, 'chat transcript must contain user and partner messages');
       assert.ok(chatCompletedEvidence.chat.outputText.trim().length > 0, 'chat outputText must not be empty');
       assert.doesNotMatch(chatCompletedEvidence.chat.outputText, /\uFFFD/u, 'chat outputText must not contain replacement characters');
-      await assertChatCompletionReleased(page, prompt);
+      await assertChatCompletionReleased(page, submittedPrompt);
       await assertConversationTopStripRemoved(page);
       await assertProductDesignLayout(page, 'chat completed');
       assertNoPageProblems(pageProblems);
@@ -252,9 +322,29 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         modelSelection,
         chatCompletedEvidence,
       });
+      if (nativeMacosJourney) {
+        nativeEditCheckpoint = await captureNativeJourneyCheckpoint(page, pageProblems, 'native-edit-shortcuts', {
+          requestId: chatCompletedEvidence.chat.requestId,
+          runtimeTurnId: chatCompletedEvidence.turn.runtimeTurnId,
+          conversationAnchorId: chatCompletedEvidence.chat.conversationAnchorId,
+          submittedPrompt,
+          shortcuts: ['Meta+A', 'Meta+C', 'Meta+X', 'Meta+V'],
+        });
+      }
 
       const followUpPrompt = process.env.NIMI_ZHIYU_ACCEPTANCE_FOLLOW_UP_PROMPT?.trim() || '继续用一句中文回应。';
-      await page.locator('[data-chat-composer-textarea="true"]').fill(followUpPrompt);
+      if (handoff?.journeyId === 'full-chain-core') {
+        await queueCoreProviderPlan(handoff, {
+          checkpointId: 'core-zhiyu-follow-up',
+          apml: '<message id="core-zhiyu-follow-up">Zhiyu multi-turn continuity confirmed.</message>',
+        });
+      }
+      let compositionEvents = [];
+      if (nativeMacosJourney) {
+        compositionEvents = await applyNativeImeComposition(page, composer, followUpPrompt);
+      } else {
+        await composer.fill(followUpPrompt);
+      }
       await page.waitForFunction(() =>
         document.querySelector('[data-zhiyu-composer-state]')?.getAttribute('data-zhiyu-composer-state') === 'ready'
         && document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
@@ -270,6 +360,68 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         followUpPromptLength: followUpPrompt.length,
         followUpReadyEvidence,
       });
+      if (nativeMacosJourney) await composer.press('Enter');
+      else await page.locator('[data-chat-composer-send="true"]').click();
+      await page.waitForFunction((previousRequestId) => {
+        const evidence = globalThis.window.__nimiZhiyuEvidence;
+        return evidence?.composer?.submitState === 'failed'
+          || Boolean(evidence?.chat?.requestId && evidence.chat.requestId !== previousRequestId);
+      }, followUpReadyEvidence.chat.requestId, { timeout: 10_000 });
+      const followUpSubmittedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+      assert.notEqual(followUpSubmittedEvidence.composer.submitState, 'failed',
+        `follow-up submit failed before Runtime acceptance: ${JSON.stringify(followUpSubmittedEvidence.composer)}`);
+      assert.notEqual(followUpSubmittedEvidence.chat.requestId, followUpReadyEvidence.chat.requestId,
+        'follow-up submit must allocate a new Runtime request id');
+      await page.waitForFunction((previousMessageCount) => {
+        const evidence = globalThis.window.__nimiZhiyuEvidence;
+        return evidence?.chat?.state === 'completed'
+          && Number(evidence?.chat?.messageCount || 0) >= Number(previousMessageCount || 0) + 2;
+      }, followUpReadyEvidence.chat.messageCount, { timeout: 60_000 });
+      const followUpCompletedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+      assert.equal(followUpCompletedEvidence.chat.state, 'completed');
+      assert.ok(followUpCompletedEvidence.chat.messageCount >= followUpReadyEvidence.chat.messageCount + 2);
+      assertNoPageProblems(pageProblems);
+      await captureRealLocalAgentEvidence(page, 'follow-up-completed', pageProblems, {
+        targetAgent: targetAgentEvidence,
+        modelSelection,
+        followUpPromptLength: followUpPrompt.length,
+        followUpCompletedEvidence,
+      });
+      if (nativeMacosJourney) {
+        const nativeImeCheckpoint = await captureNativeJourneyCheckpoint(page, pageProblems, 'native-ime-composition', {
+          requestId: followUpCompletedEvidence.chat.requestId,
+          runtimeTurnId: followUpCompletedEvidence.turn.runtimeTurnId,
+          conversationAnchorId: followUpCompletedEvidence.chat.conversationAnchorId,
+          compositionEvents,
+          submittedPrompt: followUpPrompt,
+        });
+        const summaryPath = process.env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_SUMMARY_PATH?.trim();
+        if (!summaryPath) throw new Error('native-macos-input requires NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_SUMMARY_PATH');
+        await writeFile(summaryPath, `${JSON.stringify({
+          schemaVersion: 'nimi.local-agent-product-zhiyu-native-macos-summary/v2',
+          journeyId: 'native-macos-input',
+          processStarts: { provider: 1, realm: 1, runtime: 1, desktop: 1, zhiyu: 1 },
+          checkpoints: {
+            'native-edit-shortcuts': nativeEditCheckpoint,
+            'native-ime-composition': nativeImeCheckpoint,
+          },
+          pageProblems,
+          outcome: 'passed',
+        }, null, 2)}\n`);
+      }
+      if (handoff?.journeyId === 'full-chain-core') {
+        await runFullChainCoreContinuation({
+          page,
+          pageProblems,
+          handoff,
+          targetAgent: targetAgentEvidence,
+          readyEvidence: followUpCompletedEvidence,
+          setPresentationProfile,
+          assertProductDesignLayout,
+          waitForEvidence,
+        });
+      }
+      }
         } finally {
           await app.close();
         }
@@ -277,6 +429,64 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
     });
   });
 });
+
+async function applyNativeImeComposition(page, composer, text) {
+  await composer.focus();
+  await composer.evaluate((element) => {
+    globalThis.__nimiLocalAgentCompositionEvents = [];
+    for (const type of ['compositionstart', 'compositionupdate', 'compositionend']) {
+      element.addEventListener(type, (event) => {
+        globalThis.__nimiLocalAgentCompositionEvents.push({ type, data: event.data });
+      });
+    }
+  });
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', {
+    text,
+    selectionStart: text.length,
+    selectionEnd: text.length,
+    replacementStart: 0,
+    replacementEnd: 0,
+  });
+  await cdp.send('Input.insertText', { text });
+  const events = await page.evaluate(() => globalThis.__nimiLocalAgentCompositionEvents || []);
+  const types = events.map((event) => event.type);
+  assert.equal(types[0], 'compositionstart');
+  assert.equal(types.at(-1), 'compositionend');
+  assert.ok(types.slice(1, -1).every((type) => type === 'compositionupdate'));
+  assert.ok(types.filter((type) => type === 'compositionupdate').length >= 1);
+  assert.equal(await composer.inputValue(), text);
+  return events;
+}
+
+async function captureNativeJourneyCheckpoint(page, pageProblems, checkpointId, details) {
+  const artifactsRoot = process.env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_ARTIFACTS_ROOT?.trim();
+  if (!artifactsRoot) throw new Error('native-macos-input requires NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_ARTIFACTS_ROOT');
+  await mkdir(artifactsRoot, { recursive: true });
+  const screenshot = path.join(artifactsRoot, `${checkpointId}.png`);
+  const evidencePath = path.join(artifactsRoot, `${checkpointId}.json`);
+  await page.screenshot({ path: screenshot, fullPage: true });
+  const dom = await page.evaluate(() => ({
+    url: globalThis.location.href,
+    title: globalThis.document.title,
+    bodyText: globalThis.document.body?.innerText?.slice(0, 4_000) || '',
+    evidence: globalThis.window.__nimiZhiyuEvidence,
+  }));
+  await writeFile(evidencePath, `${JSON.stringify({
+    schemaVersion: 'nimi.local-agent-product-checkpoint-evidence/v2',
+    checkpointId,
+    screenshot: path.basename(screenshot),
+    pageProblems: [...pageProblems],
+    dom,
+    details,
+  }, null, 2)}\n`);
+  assertNoPageProblems(pageProblems);
+  return {
+    passed: true,
+    evidencePath: path.basename(evidencePath),
+    screenshot: path.basename(screenshot),
+  };
+}
 
 async function assertProductDesignRegions(page) {
   for (const region of ['presence', 'conversation']) {
@@ -595,18 +805,24 @@ async function assertAppearanceNarrowLayout(page, panel) {
   await page.setViewportSize({ width: 1280, height: 900 });
 }
 
-async function assertComposerModeTools(page) {
+async function assertComposerModeTools(page, { voiceCaptureReady = false } = {}) {
   for (const tool of ['voice-capture', 'agent', 'hands-free', 'proactive', 'model']) {
     await page.locator(`[data-zhiyu-composer-tool="${tool}"]`).waitFor({ state: 'visible', timeout: 15_000 });
   }
   const captureTool = page.locator('[data-zhiyu-composer-tool="voice-capture"]').first();
-  assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-state'), 'failed');
-  assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-ready'), 'false');
-  assert.equal(
-    await captureTool.getAttribute('data-zhiyu-chat-voice-capture-reason'),
-    'runtime-voice-capture-route-not-ready',
-  );
-  assert.equal(await captureTool.isDisabled(), true);
+  if (voiceCaptureReady) {
+    assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-state'), 'idle');
+    assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-ready'), 'true');
+    assert.equal(await captureTool.isDisabled(), false);
+  } else {
+    assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-state'), 'failed');
+    assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-ready'), 'false');
+    assert.equal(
+      await captureTool.getAttribute('data-zhiyu-chat-voice-capture-reason'),
+      'runtime-voice-capture-route-not-ready',
+    );
+    assert.equal(await captureTool.isDisabled(), true);
+  }
 
   const voiceTool = page.locator('[data-zhiyu-composer-tool="hands-free"]').first();
   assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-state'), 'idle');
@@ -919,211 +1135,6 @@ async function withTempDir(prefix, run) {
   }
 }
 
-async function withFixtureRuntimeLocalAgent(run) {
-  await withRuntimeAgentLiveE2EFixture({
-    run: async (context) => {
-      await context.admitLocalFirstPartyRuntimeAccountCaller({
-        appId: zhiyuAppId,
-        appInstanceId: `${zhiyuAppId}.local-first-party`,
-        deviceId: 'nimi-zhiyu-local-first-party-device',
-        capabilities: zhiyuRuntimeProtectedScopes,
-      });
-      const agentClient = createFixtureRuntimeAgentClient(context.runtime);
-      const sourceMaterializationPacket = await createNimiRealmSourceMaterializationPacket(
-        context.realm,
-        () => {},
-        zhiyuAcceptanceTargetSourceRef,
-        SOURCE_MATERIALIZATION_AUDIENCE,
-      );
-      const targetAgent = await agentClient.initialize({
-        ownerUserId: context.ownerUserId,
-        runtimeSourceRef: runtimeSourceRefForSource(zhiyuAcceptanceTargetSourceRef),
-        displayName: zhiyuAcceptanceTargetDisplayName,
-        sourceMaterializationPacket,
-      });
-      await setFixtureRuntimeAgentPresentationProfile({
-        presentation: context.agentPresentation,
-        identity: {
-          ownerUserId: context.ownerUserId,
-          runtimeSourceRef: targetAgent.runtimeSourceRef,
-          localAgentRef: targetAgent.localAgentRef,
-        },
-        profile: {
-          backendKind: 'vrm',
-          avatarAssetRef: zhiyuAcceptanceAvatarAssetRef,
-          expressionProfileRef: 'runtime-expression-profile:zhiyu-real-local-agent-calm',
-          idlePreset: 'runtime-idle-preset:idle-soft',
-          interactionPolicyRef: 'runtime-interaction-policy:zhiyu-real-local-agent-ambient',
-          defaultVoiceReference: 'preset_voice_id:zhiyu-real-local-agent',
-          avatarAutoplay: true,
-          backgroundAssetRef: zhiyuAcceptanceBackgroundAssetRef,
-        },
-      });
-      await agentClient.openConversation({
-        ownerUserId: context.ownerUserId,
-        runtimeSourceRef: targetAgent.runtimeSourceRef,
-        localAgentRef: targetAgent.localAgentRef,
-        metadata: {
-          appId: zhiyuAppId,
-          surface: 'zhiyu.real-local-agent.acceptance',
-        },
-      });
-      await run({
-        endpoint: context.endpoint,
-        targetAgent,
-      });
-    },
-  });
-}
-
-async function seedStandardShellAppearanceAssets(input) {
-  const agentCenterRoot = path.join(
-    input.dataRoot,
-    'agent-center',
-    'accounts',
-    segment(input.ownerUserId),
-    'agents',
-    segment(input.localAgentRef),
-    'agent-center',
-  );
-  const avatarDir = path.join(
-    agentCenterRoot,
-    'modules',
-    'avatar_asset',
-    'packages',
-    'vrm',
-    zhiyuAcceptanceAvatarAssetRef,
-  );
-  const avatarFilesDir = path.join(avatarDir, 'files');
-  const avatarBytes = validVrmGlb();
-  const avatarFileDigest = sha256(avatarBytes);
-  const avatarFiles = [{
-    path: 'files/fixture.vrm',
-    sha256: avatarFileDigest,
-    bytes: avatarBytes.byteLength,
-    mime: 'model/vrm',
-  }];
-  const avatarPackageDigest = avatarContentDigest(avatarFiles);
-  await mkdir(avatarFilesDir, { recursive: true });
-  await writeFile(path.join(avatarFilesDir, 'fixture.vrm'), avatarBytes);
-  await writeFile(path.join(avatarDir, 'manifest.json'), `${JSON.stringify({
-    manifest_version: 1,
-    asset_version: '1.0.0',
-    local_asset_id: zhiyuAcceptanceAvatarAssetRef,
-    kind: 'vrm',
-    loader_min_version: '1.0.0',
-    display_name: 'Zhiyu real local agent fixture',
-    display_name_i18n: {},
-    entry_file: 'files/fixture.vrm',
-    required_files: ['files/fixture.vrm'],
-    content_digest: `sha256:${avatarPackageDigest}`,
-    files: avatarFiles,
-    limits: {
-      max_manifest_bytes: 262_144,
-      max_asset_bytes: 524_288_000,
-      max_file_bytes: 104_857_600,
-      max_file_count: 2_048,
-    },
-    capabilities: {
-      backend_kind: 'vrm',
-      profile_ref: `avatar.backend_profile:vrm:${zhiyuAcceptanceAvatarAssetRef}:import_validated`,
-      materialization_ref: `agent-center-avatar-asset:${segment(input.ownerUserId)}:${segment(input.localAgentRef)}:vrm:${zhiyuAcceptanceAvatarAssetRef}`,
-    },
-    import: {
-      imported_at: '1970-01-01T00:00:00.000Z',
-      source_label: 'zhiyu-real-local-agent-fixture.vrm',
-      source_fingerprint: `sha256:${avatarPackageDigest}`,
-    },
-  }, null, 2)}\n`);
-
-  const backgroundDir = path.join(
-    agentCenterRoot,
-    'modules',
-    'appearance',
-    'backgrounds',
-    zhiyuAcceptanceBackgroundAssetRef,
-  );
-  const backgroundBytes = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l0G3WQAAAABJRU5ErkJggg==',
-    'base64',
-  );
-  await mkdir(backgroundDir, { recursive: true });
-  await writeFile(path.join(backgroundDir, 'image.png'), backgroundBytes);
-  await writeFile(path.join(backgroundDir, 'manifest.json'), `${JSON.stringify({
-    manifest_version: 1,
-    background_asset_id: zhiyuAcceptanceBackgroundAssetRef,
-    display_name: 'Zhiyu real local agent fixture',
-    image_file: 'image.png',
-    mime: 'image/png',
-    bytes: backgroundBytes.byteLength,
-    pixel_width: 1,
-    pixel_height: 1,
-    limits: {
-      max_bytes: 20_971_520,
-      max_pixel_width: 8_192,
-      max_pixel_height: 8_192,
-    },
-    sha256: sha256(backgroundBytes),
-    imported_at: '1970-01-01T00:00:00.000Z',
-    source_label: 'zhiyu-real-local-agent-fixture.png',
-  }, null, 2)}\n`);
-}
-
-function sha256(value) {
-  return createHash('sha256').update(value).digest('hex');
-}
-
-function avatarContentDigest(files) {
-  const hash = createHash('sha256');
-  for (const file of [...files].sort((left, right) => left.path.localeCompare(right.path))) {
-    hash.update(file.path);
-    hash.update('\0');
-    hash.update(String(file.bytes));
-    hash.update('\0');
-    hash.update(file.sha256);
-    hash.update('\n');
-  }
-  return hash.digest('hex');
-}
-
-function validVrmGlb() {
-  const root = {
-    asset: { version: '2.0' },
-    extensionsUsed: ['VRMC_vrm'],
-    extensions: { VRMC_vrm: { specVersion: '1.0' } },
-  };
-  const json = Buffer.from(JSON.stringify(root), 'utf8');
-  const padding = (4 - (json.byteLength % 4)) % 4;
-  const jsonChunk = padding === 0 ? json : Buffer.concat([json, Buffer.alloc(padding, 0x20)]);
-  const glb = Buffer.alloc(20 + jsonChunk.byteLength);
-  glb.write('glTF', 0, 'ascii');
-  glb.writeUInt32LE(2, 4);
-  glb.writeUInt32LE(glb.byteLength, 8);
-  glb.writeUInt32LE(jsonChunk.byteLength, 12);
-  glb.writeUInt32LE(0x4e4f534a, 16);
-  jsonChunk.copy(glb, 20);
-  return glb;
-}
-
-function segment(value) {
-  const text = String(value || '');
-  const body = text.startsWith('~') ? text.slice(1) : text;
-  if (/^[a-z0-9][a-z0-9_-]{0,127}$/u.test(body)) {
-    return text;
-  }
-  return `id_${sha256(text).slice(0, 24)}`;
-}
-
-function runtimeSourceRefForSource(sourceRef) {
-  return [
-    'runtime-source',
-    sourceRef.kind,
-    sourceRef.worldId,
-    sourceRef.sourceId,
-    sourceRef.sourceContentHash,
-  ].map((value) => String(value || '').trim()).join(':');
-}
-
 async function assertUnselectedLocalPartnerEmptyState(page) {
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
   assert.match(shellText, /选择一位本地伙伴，开始对话/);
@@ -1175,7 +1186,7 @@ async function selectTextGenerateModel(page, drawer) {
 
   const modelPattern = regexFromEnv(
     'NIMI_ZHIYU_ACCEPTANCE_TEXT_MODEL_PATTERN',
-    /gemma-?4|gemma|gpt|claude|qwen|deepseek|doubao|seed|kimi|moonshot/i,
+    /runtime-agent-live|gemma-?4|gemma|gpt|claude|qwen|deepseek|doubao|seed|kimi|moonshot/i,
   );
   const requestedSource = process.env.NIMI_ZHIYU_ACCEPTANCE_MODEL_SOURCE?.trim().toLowerCase() || 'auto';
   const sources = requestedSource === 'cloud'
@@ -1242,13 +1253,21 @@ async function waitForEvidence(page, predicate, label, argument) {
   try {
     await page.waitForFunction(predicate, argument, { timeout: 60_000 });
   } catch (error) {
-    const evidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence).catch((evalError) => ({
+    const diagnostics = await page.evaluate(() => ({
+      url: globalThis.location.href,
+      title: globalThis.document.title,
+      readyState: globalThis.document.readyState,
+      bridgePresent: Boolean(globalThis.window.__NIMI_ELECTRON_RUNTIME__),
+      evidence: globalThis.window.__nimiZhiyuEvidence ?? null,
+      bodyText: (globalThis.document.body?.innerText ?? '').slice(0, 4_000),
+      rootHtml: (globalThis.document.getElementById('root')?.innerHTML ?? '').slice(0, 4_000),
+    })).catch((evalError) => ({
       evaluationError: evalError instanceof Error ? evalError.message : String(evalError),
     }));
     await page.evaluate((reason) => {
       globalThis.window.__nimiZhiyuAbortActiveTurn?.(reason);
     }, `acceptance_timeout:${label}`).catch(() => undefined);
-    throw new Error(`${label} timed out: ${JSON.stringify({ evidence })}`, { cause: error });
+    throw new Error(`${label} timed out: ${JSON.stringify({ pageClosed: page.isClosed(), diagnostics })}`, { cause: error });
   }
 }
 
@@ -1262,92 +1281,4 @@ function regexFromEnv(name, fallback) {
     return new RegExp(match[1], match[2]);
   }
   return new RegExp(raw, 'i');
-}
-
-function resolveEvidenceRoot() {
-  const checkpoint = process.env.NIMI_ZHIYU_EVIDENCE_CHECKPOINT?.trim() || 'real-local-agent';
-  return {
-    checkpoint,
-    evidenceRoot: path.resolve(root, '..', '..', '.nimi', 'local', 'evidence', 'zhiyu', checkpoint),
-  };
-}
-
-async function resetRealLocalAgentEvidenceRoot() {
-  const { evidenceRoot } = resolveEvidenceRoot();
-  await mkdir(evidenceRoot, { recursive: true });
-  for (const entry of await readdir(evidenceRoot, { withFileTypes: true })) {
-    if (!entry.isFile() || !/^real-local-agent-.*\.(?:png|json)$/u.test(entry.name)) {
-      continue;
-    }
-    await rm(path.join(evidenceRoot, entry.name), { force: true });
-  }
-}
-
-async function captureRealLocalAgentEvidence(page, stage, pageProblems, evidence) {
-  const { checkpoint, evidenceRoot } = resolveEvidenceRoot();
-  await mkdir(evidenceRoot, { recursive: true });
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.screenshot({
-    path: path.join(evidenceRoot, `real-local-agent-${stage}-desktop.png`),
-    fullPage: true,
-  });
-  await page.setViewportSize({ width: 390, height: 900 });
-  await page.screenshot({
-    path: path.join(evidenceRoot, `real-local-agent-${stage}-narrow.png`),
-    fullPage: true,
-  });
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const domEvidence = await page.evaluate(() => ({
-    url: globalThis.location.href,
-    title: globalThis.document.title,
-    bodyText: globalThis.document.body?.innerText ?? '',
-    zhiyuEvidence: globalThis.window.__nimiZhiyuEvidence ?? null,
-  })).catch((error) => ({
-    evaluationError: error instanceof Error ? error.message : String(error),
-  }));
-  await writeFile(
-    path.join(evidenceRoot, `real-local-agent-${stage}-evidence.json`),
-    `${JSON.stringify({
-      checkpoint,
-      scenario: 'real-local-agent',
-      stage,
-      pageProblems: [...pageProblems],
-      ...evidence,
-      domEvidence,
-    }, null, 2)}\n`,
-    'utf8',
-  );
-}
-
-async function captureRealLocalAgentPanelEvidence(page, stage) {
-  const { evidenceRoot } = resolveEvidenceRoot();
-  const panel = page.locator('[data-zhiyu-region="agent-panel"]');
-  const panelScroll = page.locator('[data-zhiyu-agent-panel-tab="appearance"]');
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await panel.screenshot({
-    path: path.join(evidenceRoot, `real-local-agent-${stage}-panel.png`),
-  });
-  await panelScroll.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
-  await panel.screenshot({
-    path: path.join(evidenceRoot, `real-local-agent-${stage}-panel-bottom.png`),
-  });
-}
-
-function trackPageProblems(page) {
-  const problems = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') {
-      problems.push(`console error: ${message.text()}`);
-    }
-  });
-  page.on('pageerror', (error) => {
-    problems.push(`pageerror: ${error instanceof Error ? error.message : String(error)}`);
-  });
-  return problems;
-}
-
-function assertNoPageProblems(problems) {
-  assert.deepEqual(problems, []);
 }

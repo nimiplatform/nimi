@@ -182,15 +182,15 @@ test('B-07 image artifact renders and attachment input remains fail-closed', { t
   });
 });
 
-test('B-08 mid-stream failure stays failed and recoverable without pseudo completion', { timeout: scenarioTestTimeoutMs() }, async () => {
+test('B-08 committed message preserves typed action failure without pseudo artifact success', { timeout: scenarioTestTimeoutMs() }, async () => {
   await runRepeatedScenario({
     group: 'B',
     id: 'B-08',
     runOnce: async ({ scenarioId, iteration }) => withZhiyuScenarioApp({ scenarioId }, async (context) => {
       await assertMidStreamFailureFlow(context.page, context.pageProblems, context.readyEvidence);
       const evidence = await context.page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-      assert.equal(evidence.chat.state, 'failed');
-      assert.notEqual(evidence.chat.reasonCode, 'runtime-agent-turn-completed');
+      assert.equal(evidence.chat.state, 'completed');
+      assert.equal(evidence.chat.reasonCode, 'runtime-agent-turn-completed');
       return captureScenarioEvidence(context, { scenarioId, iteration, extra: { evidence } });
     }),
   });

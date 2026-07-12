@@ -20,9 +20,6 @@ import {
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, '..');
 const repoRoot = path.resolve(desktopRoot, '..', '..');
-const SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET = String(
-  process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET || 'desktop-e2e-source-materialization-secret',
-);
 
 function parseArgs(argv) {
   const options = {
@@ -561,7 +558,6 @@ async function runScenario(scenarioId, runIndex) {
       NIMI_E2E_PROFILE: scenarioId,
       NIMI_E2E_FIXTURE_PATH: scenarioManifestPath,
       NIMI_E2E_BACKEND_LOG_PATH: backendLogPath,
-      SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -622,7 +618,6 @@ async function runScenario(scenarioId, runIndex) {
           NIMI_E2E_FIXTURE_PATH: scenarioManifestPath,
           NIMI_E2E_ARTIFACT_MANIFEST: artifactManifestPath,
           NIMI_E2E_HOME_DIR: e2eHomeDir,
-          SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET,
         },
       },
     );
@@ -683,7 +678,6 @@ async function runElectronHostScenario(scenarioId, runIndex) {
     scenarioManifest,
     scenarioManifestPath,
     artifactManifestPath,
-    sourceMaterializationPacketHmacSecret: SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET,
   });
 }
 

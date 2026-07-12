@@ -112,6 +112,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
           && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
     statusTone: tone,
     baseTextReady,
+    runtimeAgentAIConfigIntents: input.agentAIConfig?.intents || {},
     baseTextDisabledReason: baseTextReady ? null : (text?.summary || 'Text readiness unavailable'),
     configRevision: input.readiness?.configRevision ?? input.agentAIConfig?.revision ?? null,
     capabilities,

@@ -58,6 +58,7 @@ export type RuntimeAgentLiveE2EFixtureContext = {
   readonly sourceMaterialization: NimiRuntimeAgentMaterializedRealmSource;
   readonly materializeSource: () => Promise<NimiRuntimeAgentMaterializedRealmSource>;
   readonly sendTurn: (text: string) => Promise<SendAppMessageResponse>;
+  readonly setTranscriptionFailure: (enabled: boolean) => void;
   readonly admitDeveloperRegisteredRuntimeAccountCaller: (
     input: RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
   ) => Promise<AccountCaller>;
@@ -91,6 +92,7 @@ export type RuntimeAgentLiveE2EDeveloperRegisteredAccountInput = {
   readonly appVersion?: string;
   readonly capabilities?: readonly string[];
   readonly scopes?: readonly string[];
+  readonly expectedAccountId?: string;
 };
 
 export const DESKTOP_APP_ID = 'nimi.desktop';

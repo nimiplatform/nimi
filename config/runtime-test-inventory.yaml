@@ -11,3 +11,4 @@ shards:
   - config/test-inventories/runtime/shard-05.yaml
   - config/test-inventories/runtime/shard-06.yaml
   - config/test-inventories/runtime/shard-07.yaml
+  - config/test-inventories/runtime/shard-08.yaml

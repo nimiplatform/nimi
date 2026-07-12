@@ -455,6 +455,17 @@ func TestChatTrackSidecarPromptsFrameTranscriptAsEvidence(t *testing.T) {
 	if !strings.Contains(systemPrompt, "empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>") {
 		t.Fatalf("expected prompt to prefer observational/no candidate when unstable, got %q", systemPrompt)
 	}
+	for _, required := range []string{
+		"explicit self-declared preferred form of address",
+		"canonical-class=\"DYADIC\"",
+		"<predicate>preferred_name</predicate>",
+		"confidence must be a decimal number from 0 through 1",
+		"omit <behavioral-posture> unless posture-class, action-family, interrupt-mode, and status-text are all present",
+	} {
+		if !strings.Contains(systemPrompt, required) {
+			t.Fatalf("expected prompt to constrain durable relationship APML with %q, got %q", required, systemPrompt)
+		}
+	}
 }
 
 func TestLifeTurnPromptsFrameEvidenceAsStabilizedCandidateInput(t *testing.T) {
