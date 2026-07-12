@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { validateInteractivePeerResult } from './check-windows-protected-e2e-peer.mjs';
 
@@ -8,9 +13,14 @@ function read(relative) {
   return readFileSync(new URL(relative, import.meta.url), 'utf8');
 }
 
+function powershellEncodedCommand(source) {
+  return Buffer.from(source, 'utf16le').toString('base64');
+}
+
 test('Windows protected E2E Runtime is a separately tagged and signed service fixture', () => {
   const build = read('./build-windows-protected-e2e.mjs');
   const installer = read('./install-windows-protected-e2e.ps1');
+  const fileLockDiagnostics = read('./lib/windows-file-lock-diagnostics.ps1');
   const serviceGate = read('./check-windows-protected-e2e-service.mjs');
   const signing = read('./lib/windows-dev-signing.mjs');
   const pipe = read('../runtime/internal/protectedlocal/windows_pipe_windows.go');
@@ -88,7 +98,10 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /stateAclRuntimeReadbackVerified/);
   assert.match(installer, /Recover-StaleFixtureStop[\s\S]*Status -ne 'StopPending'[\s\S]*PathName -ne \$expectedBinaryPath[\s\S]*Stop-Process -Id \$processId -Force/);
   assert.match(installer, /Wait-FixtureProcessExit[\s\S]*Get-Process -Id \$ProcessId[\s\S]*remained alive after SCM reported Stopped/);
-  assert.match(installer, /Wait-FixtureBinaryReplaceable[\s\S]*FileShare\]::None[\s\S]*did not become exclusively replaceable/);
+  assert.match(fileLockDiagnostics, /rstrtmgr\.dll[\s\S]*RmStartSession[\s\S]*RmRegisterResources[\s\S]*RmGetList[\s\S]*RmEndSession/);
+  assert.match(installer, /Assert-NoExternalFixtureBinaryLock[\s\S]*Get-WindowsFileLockOwners[\s\S]*Refusing to stop/);
+  assert.match(installer, /Stop-FixtureForUpdate[\s\S]*Assert-NoExternalFixtureBinaryLock -ServiceProcessId \$processId[\s\S]*Invoke-ServiceControl -Arguments @\('stop'/);
+  assert.match(installer, /Wait-FixtureBinaryReplaceable[\s\S]*FileShare\]::None[\s\S]*Get-FixtureBinaryLockOwnerDetail[\s\S]*did not become exclusively replaceable/);
   assert.ok(installer.indexOf('Stop-FixtureForUpdate') < installer.indexOf('Copy-Item -LiteralPath $source -Destination $InstalledBinary -Force'));
   assert.match(installer, /forcedStaleStopRecovery/);
   assert.match(installer, /42480 = 'shutdown-timeout'/);
@@ -148,6 +161,55 @@ test('Windows E2E carriers use a feature-gated fixed service, pipes, and signer'
   assert.match(service, /nimi-runtime-e2e-protected-v1/);
   assert.match(installed, /nimi-runtime-e2e-installed-v1/);
   assert.match(peer, /NIMI_WINDOWS_E2E_SIGNER_CERT_SHA256/);
+});
+
+test('Windows fixture lock diagnostics identify the exact external owner', {
+  skip: process.platform !== 'win32',
+  timeout: 15_000,
+}, async () => {
+  const tempRoot = mkdtempSync(path.join(tmpdir(), 'nimi-file-lock-probe-'));
+  const lockedPath = path.join(tempRoot, 'locked.bin');
+  writeFileSync(lockedPath, 'nimi-lock-probe', 'utf8');
+  const escapedLockedPath = lockedPath.replaceAll("'", "''");
+  const holderSource = [
+    `$stream = [IO.File]::Open('${escapedLockedPath}', [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)`,
+    "[Console]::Out.WriteLine('ready')",
+    'Start-Sleep -Seconds 12',
+  ].join('; ');
+  const holder = spawn(
+    'powershell.exe',
+    ['-NoProfile', '-EncodedCommand', powershellEncodedCommand(holderSource)],
+    { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true },
+  );
+
+  try {
+    const [ready] = await once(holder.stdout, 'data');
+    assert.equal(String(ready).trim(), 'ready');
+    const helperPath = fileURLToPath(
+      new URL('./lib/windows-file-lock-diagnostics.ps1', import.meta.url),
+    ).replaceAll("'", "''");
+    const probeSource = [
+      `. '${helperPath}'`,
+      `$owners = @(Get-WindowsFileLockOwners -Path '${escapedLockedPath}')`,
+      "[pscustomobject]@{ owners = $owners } | ConvertTo-Json -Depth 5 -Compress",
+    ].join('; ');
+    const probe = spawnSync(
+      'powershell.exe',
+      ['-NoProfile', '-EncodedCommand', powershellEncodedCommand(probeSource)],
+      { encoding: 'utf8', windowsHide: true },
+    );
+    assert.equal(probe.status, 0, probe.stderr);
+    const result = JSON.parse(probe.stdout.trim());
+    assert.equal(result.owners.length, 1);
+    assert.equal(result.owners[0].ProcessId, holder.pid);
+    assert.equal(result.owners[0].ProcessName, 'powershell');
+  } finally {
+    if (holder.exitCode === null) {
+      holder.kill();
+      await once(holder, 'exit');
+    }
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
 });
 
 test('interactive peer evidence rejects elevated probes and admits only the unelevated signed transport result', () => {

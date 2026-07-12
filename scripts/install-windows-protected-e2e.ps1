@@ -16,6 +16,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+. (Join-Path $PSScriptRoot 'lib/windows-file-lock-diagnostics.ps1')
+
 $VirtualAccount = $PrincipalProfile -eq 'VirtualAccount'
 $ServiceName = if ($VirtualAccount) { 'NimiRuntimeE2EVirtual' } else { 'NimiRuntimeE2E' }
 $ServiceAccount = "NT SERVICE\$ServiceName"
@@ -409,6 +411,35 @@ function Wait-FixtureProcessExit {
   throw "$ServiceName process $ProcessId remained alive after SCM reported Stopped."
 }
 
+function Format-FixtureBinaryLockOwners {
+  param([object[]] $Owners)
+  if ($null -eq $Owners -or $Owners.Count -eq 0) { return 'none' }
+  return (($Owners | ForEach-Object {
+    $processName = ([string] $_.ProcessName).Replace("`r", '').Replace("`n", '')
+    $applicationName = ([string] $_.ApplicationName).Replace("`r", '').Replace("`n", '')
+    $serviceName = ([string] $_.ServiceName).Replace("`r", '').Replace("`n", '')
+    "pid=$($_.ProcessId),process=$processName,app=$applicationName,service=$serviceName,session=$($_.TerminalSessionId)"
+  }) -join '; ')
+}
+
+function Get-FixtureBinaryLockOwnerDetail {
+  if (-not (Test-Path -LiteralPath $InstalledBinary -PathType Leaf)) { return 'none' }
+  $owners = @(Get-WindowsFileLockOwners -Path $InstalledBinary)
+  return Format-FixtureBinaryLockOwners -Owners $owners
+}
+
+function Assert-NoExternalFixtureBinaryLock {
+  param([uint32] $ServiceProcessId)
+  if (-not (Test-Path -LiteralPath $InstalledBinary -PathType Leaf)) { return }
+  $owners = @(Get-WindowsFileLockOwners -Path $InstalledBinary)
+  $externalOwners = @($owners | Where-Object {
+    $ServiceProcessId -eq 0 -or [uint32] $_.ProcessId -ne $ServiceProcessId
+  })
+  if ($externalOwners.Count -eq 0) { return }
+  $detail = Format-FixtureBinaryLockOwners -Owners $externalOwners
+  throw "Refusing to stop $ServiceName because protected clients still lock its verified executable. Close the listed fixture clients and rerun Install; the installer will not terminate them automatically. lockOwners=$detail"
+}
+
 function Wait-FixtureBinaryReplaceable {
   if (-not (Test-Path -LiteralPath $InstalledBinary -PathType Leaf)) { return }
   $deadline = (Get-Date).AddSeconds(15)
@@ -430,12 +461,14 @@ function Wait-FixtureBinaryReplaceable {
       if ($null -ne $stream) { $stream.Dispose() }
     }
   }
-  throw "$ServiceName executable did not become exclusively replaceable after process exit: $lastError"
+  $lockOwners = Get-FixtureBinaryLockOwnerDetail
+  throw "$ServiceName executable did not become exclusively replaceable after process exit: $lastError`nlockOwners=$lockOwners"
 }
 
 function Stop-FixtureForUpdate {
 	$record = Get-ServiceRecord
 	$processId = if ($null -eq $record) { [uint32] 0 } else { [uint32] $record.ProcessId }
+  Assert-NoExternalFixtureBinaryLock -ServiceProcessId $processId
   $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
   if ($null -ne $service -and [string] $service.Status -ne 'Stopped') {
     if ([string] $service.Status -eq 'StopPending') {
