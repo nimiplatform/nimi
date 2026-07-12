@@ -231,4 +231,19 @@ mod tests {
             "\"folder with space\\\\\""
         );
     }
+
+    #[test]
+    fn runtime_authorized_external_host_is_created_suspended() {
+        let executable = std::env::current_exe().expect("current test executable");
+        let working_directory = std::env::temp_dir();
+        assert!(!executable.starts_with(&working_directory));
+        let process = SupervisedDevelopmentProcess::create_runtime_authorized(
+            &executable,
+            &[],
+            &working_directory,
+        )
+        .expect("create exact Runtime-authorized external host");
+        assert!(process.id() > 0);
+        assert!(process.running());
+    }
 }
