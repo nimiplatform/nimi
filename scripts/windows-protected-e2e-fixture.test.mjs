@@ -34,6 +34,12 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /43265 = 'custody-secret-name'/);
   assert.match(installer, /43281 = 'custody-protect'/);
   assert.match(installer, /43298 = 'custody-delete'/);
+  assert.match(installer, /43521 = 'pipe-context'/);
+  assert.match(installer, /43539 = 'pipe-create'/);
+  assert.match(installer, /43545 = 'pipe-acl-principals'/);
+  assert.match(installer, /43546 = 'pipe-active-token-privilege'/);
+  assert.match(installer, /43548 = 'pipe-create-access'/);
+  assert.match(installer, /43551 = 'pipe-acl-read-access'/);
   assert.match(installer, /ContainsKey\(\$stageKey\)/);
   assert.doesNotMatch(installer, /Invoke-ServiceControl -Arguments @\('(?:create|config)'/);
   assert.doesNotMatch(installer, /sc(?:\.exe)?\s+(?:delete|stop)\s+NimiRuntime(?:\s|$)/i);
