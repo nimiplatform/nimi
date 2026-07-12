@@ -159,7 +159,7 @@ func (store *localDevelopmentStore) BindLaunch(ctx context.Context, launchID pro
 	if row.Status != "pending" || row.RuntimeBootEpoch != store.bootEpoch || !now.Before(row.ExpiresAt) {
 		return time.Time{}, errLocalDevelopmentLaunchExpired
 	}
-	if !localDevelopmentExecutablePathsEqual(row.HostExecutable, process.CanonicalExecutablePath) {
+	if !sameLocalDevelopmentFile(row.HostExecutable, process.CanonicalExecutablePath) {
 		return time.Time{}, errLocalDevelopmentLaunchMismatch
 	}
 	deadline := now.Add(localDevelopmentProcessBindTTL)
@@ -455,13 +455,6 @@ func validLocalDevelopmentHostPath(projectRoot string, hostExecutable string, sh
 	default:
 		return false
 	}
-}
-
-func localDevelopmentExecutablePathsEqual(expected string, actual string) bool {
-	if strings.TrimSpace(expected) == "" || strings.TrimSpace(actual) == "" {
-		return false
-	}
-	return strings.EqualFold(filepath.Clean(expected), filepath.Clean(actual))
 }
 
 func validLocalDevelopmentRendererOrigin(value string) bool {

@@ -133,6 +133,10 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 	if err := os.WriteFile(hostPath, []byte("test-electron-host"), 0o700); err != nil {
 		t.Fatal(err)
 	}
+	observedHostPath := filepath.Join(t.TempDir(), "observed-electron.exe")
+	if err := os.Link(hostPath, observedHostPath); err != nil {
+		t.Fatalf("create alternate observed host path: %v", err)
+	}
 	launch, err := store.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
 		AuthorizationID: authorization.ID,
 		SupervisorRunID: runID,
@@ -151,7 +155,7 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 		OSLoginSession:              "windows-logon-1",
 		SecurityPrincipal:           "S-1-5-21-test",
 		CanonicalExecutableIdentity: "windows-volume-1-file-1",
-		CanonicalExecutablePath:     filepath.Clean(hostPath),
+		CanonicalExecutablePath:     filepath.Clean(observedHostPath),
 		ExecutableDigest:            localDevelopmentTestIdentifier(0x31),
 		ExecutableTrustSetID:        protectedlocal.WindowsLocalDevelopmentTrustSetID,
 	}
