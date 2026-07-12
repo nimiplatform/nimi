@@ -13,6 +13,48 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+func TestWindowsSecurityStateStartupExitCodesAreStableAndUnique(t *testing.T) {
+	stages := []WindowsSecurityStateFailureStage{
+		WindowsSecurityStateStageContext,
+		WindowsSecurityStateStagePrincipalCapability,
+		WindowsSecurityStateStageProcessCapability,
+		WindowsSecurityStateStageProcessBinding,
+		WindowsSecurityStateStageRootCapability,
+		WindowsSecurityStateStageSecretRoot,
+		WindowsSecurityStateStageDPAPIProtector,
+		WindowsSecurityStateStageServiceSID,
+		WindowsSecurityStateStageLedgerPath,
+		WindowsSecurityStateStageSecretStore,
+		WindowsSecurityStateStagePipeOpener,
+		WindowsSecurityStateStageAnchorStore,
+		WindowsSecurityStateStageRecordMACKey,
+		WindowsSecurityStateStageLedgerOpen,
+		WindowsSecurityStateStageBootEpoch,
+		WindowsSecurityStateStageDesktopSessions,
+		WindowsSecurityStateStageLifecycleIntents,
+		WindowsSecurityStateStageInstalledLaunches,
+		WindowsSecurityStateStageDesktopPipeOpen,
+		WindowsSecurityStateStageDesktopPipeMissing,
+		WindowsSecurityStateStageDesktopIdentity,
+	}
+	seen := make(map[uint32]struct{}, len(stages))
+	for _, stage := range stages {
+		err := windowsSecurityStateStageFailure(stage, errors.New("private security-state detail"))
+		projected, ok := WindowsSecurityStateStageFromError(err)
+		if !ok || projected != stage {
+			t.Fatalf("security-state stage = (%v, %v), want %v", projected, ok, stage)
+		}
+		code, ok := WindowsSecurityStateStartupExitCode(err)
+		if !ok || code != WindowsSecurityStateStartupExitCodeBase+uint32(stage) {
+			t.Fatalf("security-state exit code = (%x, %v), want %x", code, ok, WindowsSecurityStateStartupExitCodeBase+uint32(stage))
+		}
+		if _, exists := seen[code]; exists {
+			t.Fatalf("duplicate security-state exit code %x", code)
+		}
+		seen[code] = struct{}{}
+	}
+}
+
 func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t *testing.T) {
 	ctx := context.Background()
 	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID

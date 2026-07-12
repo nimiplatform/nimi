@@ -32,6 +32,65 @@ type WindowsRuntimeSecurityState struct {
 	closeErr  error
 }
 
+type WindowsSecurityStateFailureStage uint32
+
+const WindowsSecurityStateStartupExitCodeBase uint32 = 0xA800
+
+const (
+	WindowsSecurityStateStageContext WindowsSecurityStateFailureStage = iota + 1
+	WindowsSecurityStateStagePrincipalCapability
+	WindowsSecurityStateStageProcessCapability
+	WindowsSecurityStateStageProcessBinding
+	WindowsSecurityStateStageRootCapability
+	WindowsSecurityStateStageSecretRoot
+	WindowsSecurityStateStageDPAPIProtector
+	WindowsSecurityStateStageServiceSID
+	WindowsSecurityStateStageLedgerPath
+	WindowsSecurityStateStageSecretStore
+	WindowsSecurityStateStagePipeOpener
+	WindowsSecurityStateStageAnchorStore
+	WindowsSecurityStateStageRecordMACKey
+	WindowsSecurityStateStageLedgerOpen
+	WindowsSecurityStateStageBootEpoch
+	WindowsSecurityStateStageDesktopSessions
+	WindowsSecurityStateStageLifecycleIntents
+	WindowsSecurityStateStageInstalledLaunches
+	WindowsSecurityStateStageDesktopPipeOpen
+	WindowsSecurityStateStageDesktopPipeMissing
+	WindowsSecurityStateStageDesktopIdentity
+)
+
+type windowsSecurityStateStageError struct {
+	stage WindowsSecurityStateFailureStage
+	cause error
+}
+
+func (failure *windowsSecurityStateStageError) Error() string { return failure.cause.Error() }
+func (failure *windowsSecurityStateStageError) Unwrap() error { return failure.cause }
+
+func windowsSecurityStateStageFailure(stage WindowsSecurityStateFailureStage, cause error) error {
+	if cause == nil {
+		cause = errors.New("Windows security state initialization failed")
+	}
+	return &windowsSecurityStateStageError{stage: stage, cause: cause}
+}
+
+func WindowsSecurityStateStageFromError(err error) (WindowsSecurityStateFailureStage, bool) {
+	var failure *windowsSecurityStateStageError
+	if !errors.As(err, &failure) || failure.stage < WindowsSecurityStateStageContext || failure.stage > WindowsSecurityStateStageDesktopIdentity {
+		return 0, false
+	}
+	return failure.stage, true
+}
+
+func WindowsSecurityStateStartupExitCode(err error) (uint32, bool) {
+	stage, ok := WindowsSecurityStateStageFromError(err)
+	if !ok {
+		return 0, false
+	}
+	return WindowsSecurityStateStartupExitCodeBase + uint32(stage), true
+}
+
 func (state *WindowsRuntimeSecurityState) ServiceStateRoot() WindowsProtectedStateRoot {
 	if state == nil {
 		return WindowsProtectedStateRoot{}
@@ -155,26 +214,26 @@ func assembleWindowsRuntimeSecurityState(
 	openPipe windowsDesktopPipeOpener,
 ) (*WindowsRuntimeSecurityState, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("assemble Windows Runtime security state: %w", err)
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageContext, fmt.Errorf("assemble Windows Runtime security state: %w", err))
 	}
 	ledgerPath, err := WindowsProtectedLedgerPath(root)
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageLedgerPath, err)
 	}
 	if secrets == nil {
-		return nil, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("assemble Windows Runtime security state: protected secret custody is required"))
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageSecretStore, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("assemble Windows Runtime security state: protected secret custody is required")))
 	}
 	if openPipe == nil {
-		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("assemble Windows Runtime security state: protected Desktop pipe opener is required"))
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStagePipeOpener, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("assemble Windows Runtime security state: protected Desktop pipe opener is required")))
 	}
 
 	anchorStore, err := NewWindowsServiceAnchorStore(secrets)
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageAnchorStore, err)
 	}
 	recordMACKey, err := LoadOrCreateWindowsLedgerRecordMACKey(ctx, secrets)
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageRecordMACKey, err)
 	}
 	defer zeroBytes(recordMACKey)
 
@@ -184,7 +243,7 @@ func assembleWindowsRuntimeSecurityState(
 		RecordMACKey: recordMACKey,
 	})
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageLedgerOpen, err)
 	}
 	cleanupLedger := true
 	defer func() {
@@ -197,21 +256,21 @@ func assembleWindowsRuntimeSecurityState(
 	// Mint them from OS randomness without advancing the durable anchor.
 	bootEpoch, err := NewBootEpoch(nil)
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageBootEpoch, err)
 	}
 	desktopSessions, err := NewDesktopSessionManager(bootEpoch, nil)
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageDesktopSessions, err)
 	}
 	lifecycleIntents, err := NewLifecycleIntentManager(LifecycleIntentManagerOptions{
 		Sessions: desktopSessions,
 	})
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageLifecycleIntents, err)
 	}
 	installedLaunches, err := NewInstalledLaunchRegistry(bootEpoch)
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageInstalledLaunches, err)
 	}
 
 	// The listener is created last: no Desktop client can arrive before the
@@ -221,14 +280,14 @@ func assembleWindowsRuntimeSecurityState(
 		if desktopPipe != nil {
 			_ = desktopPipe.Close()
 		}
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageDesktopPipeOpen, err)
 	}
 	if desktopPipe == nil {
-		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("assemble Windows Runtime security state: pipe opener returned no listener"))
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageDesktopPipeMissing, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("assemble Windows Runtime security state: pipe opener returned no listener")))
 	}
 	if err := desktopIdentity.validate(); err != nil {
 		_ = desktopPipe.Close()
-		return nil, fail(ReasonDesktopProcessVerificationUnavailable, true, "reconnect_desktop", fmt.Errorf("assemble Windows Runtime security state: %w", err))
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageDesktopIdentity, fail(ReasonDesktopProcessVerificationUnavailable, true, "reconnect_desktop", fmt.Errorf("assemble Windows Runtime security state: %w", err)))
 	}
 
 	cleanupLedger = false

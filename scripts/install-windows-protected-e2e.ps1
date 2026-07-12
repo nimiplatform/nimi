@@ -87,6 +87,27 @@ $RuntimeStartupStages = @{
   42776 = 'process-liveness-query'
   42777 = 'process-liveness-state'
   42778 = 'process-tuple'
+  43009 = 'security-context'
+  43010 = 'security-principal-capability'
+  43011 = 'security-process-capability'
+  43012 = 'security-process-binding'
+  43013 = 'security-root-capability'
+  43014 = 'security-secret-root'
+  43015 = 'security-dpapi-protector'
+  43016 = 'security-service-sid'
+  43017 = 'security-ledger-path'
+  43018 = 'security-secret-store'
+  43019 = 'security-pipe-opener'
+  43020 = 'security-anchor-store'
+  43021 = 'security-record-mac-key'
+  43022 = 'security-ledger-open'
+  43023 = 'security-boot-epoch'
+  43024 = 'security-desktop-sessions'
+  43025 = 'security-lifecycle-intents'
+  43026 = 'security-installed-launches'
+  43027 = 'security-desktop-pipe-open'
+  43028 = 'security-desktop-pipe-missing'
+  43029 = 'security-desktop-identity'
 }
 
 function Write-Result {
@@ -365,9 +386,12 @@ function Get-FixtureStatus {
   $sidType = if ($null -ne $record) { (& sc.exe qsidtype $ServiceName | Out-String).Trim() } else { '' }
   $resolvedSid = if ($null -ne $record) { Resolve-ServiceSid } else { $null }
   $expectedBinaryPath = "`"$InstalledBinary`" serve"
+  $pipeNames = @(Get-ChildItem -LiteralPath '\\.\pipe\' -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
   return [ordered]@{
     serviceName = $ServiceName
     state = if ($null -eq $service) { 'absent' } else { ([string] $service.Status).ToLowerInvariant() }
+    processId = if ($null -eq $record) { 0 } else { [uint32] $record.ProcessId }
+    serviceExitCode = if ($null -eq $record) { 0 } else { [uint32] $record.ExitCode }
     startMode = if ($null -eq $record) { $null } else { $record.StartMode }
     binaryPath = if ($null -eq $record) { $null } else { $record.PathName }
     binaryPathMatches = $null -ne $record -and $record.PathName -eq $expectedBinaryPath
@@ -377,6 +401,8 @@ function Get-FixtureStatus {
     expectedServiceSid = $ExpectedServiceSid
     serviceSidMatches = $null -ne $resolvedSid -and $resolvedSid -eq $ExpectedServiceSid
     restrictedSid = $sidType -match 'RESTRICTED'
+    desktopPipePresent = $pipeNames -contains 'nimi-runtime-e2e-protected-v1'
+    installedPipePresent = $pipeNames -contains 'nimi-runtime-e2e-installed-v1'
     stateRoot = $StateRoot
     stateRootExists = Test-Path -LiteralPath $StateRoot -PathType Container
     signatureStatus = if ($null -eq $signature) { 'Missing' } else { [string] $signature.Status }

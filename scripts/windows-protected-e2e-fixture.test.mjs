@@ -9,6 +9,7 @@ function read(relative) {
 test('Windows protected E2E Runtime is a separately tagged and signed service fixture', () => {
   const build = read('./build-windows-protected-e2e.mjs');
   const installer = read('./install-windows-protected-e2e.ps1');
+  const serviceGate = read('./check-windows-protected-e2e-service.mjs');
   const signing = read('./lib/windows-dev-signing.mjs');
   assert.match(build, /nimi_runtime_e2e/);
   assert.match(build, /WindowsRuntimeSignerCertSHA256/);
@@ -18,6 +19,9 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /sidtype[\s\S]*restricted/i);
   assert.match(installer, /NT SERVICE\\NimiRuntimeE2E/);
   assert.match(installer, /ProgramData[\s\S]*Nimi[\s\S]*Runtime[\s\S]*E2E/);
+  assert.match(serviceGate, /desktopPipePresent/);
+  assert.match(serviceGate, /installedPipePresent/);
+  assert.match(serviceGate, /restrictedSid/);
   assert.match(installer, /sc\.exe @Arguments 2>&1/);
   assert.match(installer, /sc\.exe exit \$exitCode/);
   assert.match(installer, /New-Service[\s\S]*-BinaryPathName \$BinaryPathName/);
@@ -25,6 +29,7 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.ok(installer.includes('SERVICE_EXIT_CODE') && installer.includes('runtimeStartupStage'));
   assert.match(installer, /42522 = 'principal-token-user'/);
   assert.match(installer, /42778 = 'process-tuple'/);
+  assert.match(installer, /43029 = 'security-desktop-identity'/);
   assert.match(installer, /ContainsKey\(\$stageKey\)/);
   assert.doesNotMatch(installer, /Invoke-ServiceControl -Arguments @\('(?:create|config)'/);
   assert.doesNotMatch(installer, /sc(?:\.exe)?\s+(?:delete|stop)\s+NimiRuntime(?:\s|$)/i);
@@ -70,5 +75,6 @@ test('Desktop and Node fixture launchers build the E2E carrier without changing 
   assert.match(nodeBuilder, /windows-e2e-fixture/);
   assert.equal(typeof packageJson.scripts['build:windows-protected-e2e'], 'string');
   assert.equal(typeof packageJson.scripts['install:windows-protected-e2e'], 'string');
+  assert.equal(typeof packageJson.scripts['check:windows-protected-e2e-service'], 'string');
   assert.equal(typeof packageJson.scripts['dev:desktop:protected-e2e'], 'string');
 });

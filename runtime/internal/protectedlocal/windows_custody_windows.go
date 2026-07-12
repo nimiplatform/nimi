@@ -69,18 +69,18 @@ func ValidateWindowsProtectedStateRoot(ctx context.Context, path string, princip
 
 func OpenWindowsProductionSecretStore(ctx context.Context, principal WindowsServicePrincipal, root WindowsProtectedStateRoot) (*WindowsServiceSecretStore, error) {
 	if principal.serviceSID != mustActiveWindowsRuntimeProfile().serviceSID || root.serviceSID != principal.serviceSID || root.path == "" {
-		return nil, custodyFailure("open Windows protected secret store", fmt.Errorf("invalid principal or state-root capability"))
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageRootCapability, custodyFailure("open Windows protected secret store", fmt.Errorf("invalid principal or state-root capability")))
 	}
 	if _, err := inspectWindowsStateRoot(root.path, principal.serviceSID, &root.identity); err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageSecretRoot, err)
 	}
 	protector, err := newWindowsDPAPINGProtector(principal.serviceSID)
 	if err != nil {
-		return nil, err
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageDPAPIProtector, err)
 	}
 	serviceSID, err := windows.StringToSid(principal.serviceSID)
 	if err != nil {
-		return nil, custodyFailure("parse fixed Windows service SID", err)
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageServiceSID, custodyFailure("parse fixed Windows service SID", err))
 	}
 	store := &WindowsServiceSecretStore{
 		root:      root,
