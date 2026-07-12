@@ -6,13 +6,12 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/metadata"
 )
 
 const (
 	installedAppCapabilitySetRef = "installed-nimi-app-standard-shell-v1"
-	desktopTauriAccountHostID    = "desktop-tauri-account-host"
-	desktopElectronAccountHostID = "desktop-electron-account-host"
 	tauriStandardShellHostID     = "tauri-standard-shell"
 )
 
@@ -101,41 +100,26 @@ func (s *Service) validateInstalledCallerEnvelope(ctx context.Context, caller *r
 }
 
 func (s *Service) validateDesktopAccountHost(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
-	if s.nonProductionHarnessMode {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-	}
-	envelope, ok := parseHostCallerEnvelope(ctx)
-	if !ok || (envelope.sourceHost != desktopTauriAccountHostID && envelope.sourceHost != desktopElectronAccountHostID) ||
-		envelope.appID != strings.TrimSpace(caller.GetAppId()) ||
-		envelope.appInstanceID != strings.TrimSpace(caller.GetAppInstanceId()) ||
-		envelope.deviceID != strings.TrimSpace(caller.GetDeviceId()) ||
-		envelope.sessionID == "" || envelope.sessionToken == "" {
-		if s.logger != nil {
-			s.logger.Warn("desktop account caller envelope rejected",
-				"has_envelope", ok,
-				"source_host", envelope.sourceHost,
-				"source_host_admitted", envelope.sourceHost == desktopTauriAccountHostID || envelope.sourceHost == desktopElectronAccountHostID,
-				"app_id_match", envelope.appID == strings.TrimSpace(caller.GetAppId()),
-				"app_instance_id_match", envelope.appInstanceID == strings.TrimSpace(caller.GetAppInstanceId()),
-				"device_id_match", envelope.deviceID == strings.TrimSpace(caller.GetDeviceId()),
-				"session_proof_present", envelope.sessionID != "" && envelope.sessionToken != "",
-			)
+	connection, protected := protectedlocal.DesktopConnectionFromContext(ctx)
+	if protected && connection != nil {
+		origin := connection.Origin()
+		if origin.TransportClass == protectedlocal.TransportDesktopControl &&
+			origin.HasRole(protectedlocal.RoleVerifiedDesktopProcess) &&
+			origin.HasRole(protectedlocal.RoleDesktopAccountHost) {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 		}
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
 	}
-	if s.appSessionValidator == nil {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
+	if s.nonProductionHarnessMode {
+		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 	}
-	if _, valid := s.appSessionValidator.ValidateAppSessionBinding(
-		envelope.appID,
-		envelope.appInstanceID,
-		envelope.deviceID,
-		envelope.sessionID,
-		envelope.sessionToken,
-	); !valid {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
+	if s.logger != nil {
+		s.logger.Warn("desktop account protected origin rejected",
+			"protected_connection", protected,
+			"caller_present", caller != nil,
+		)
 	}
-	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
+	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
 }
 
 func (s *Service) validateLocalCallerAppSession(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {

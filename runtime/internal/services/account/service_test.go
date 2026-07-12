@@ -14,7 +14,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -161,16 +160,9 @@ func (testAccountAppSessionValidator) ValidateAppSessionBinding(appID string, ap
 	return runtimev1.ReasonCode_ACTION_EXECUTED, true
 }
 
-func desktopAccountControlContext() context.Context {
-	caller := desktopAccountControlCaller()
-	return metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-source-host", desktopTauriAccountHostID,
-		"x-nimi-app-id", caller.GetAppId(),
-		"x-nimi-app-instance-id", caller.GetAppInstanceId(),
-		"x-nimi-device-id", caller.GetDeviceId(),
-		"x-nimi-session-id", "desktop-runtime-session",
-		"x-nimi-session-token", "desktop-runtime-session-token",
-	))
+func desktopAccountControlContext(t *testing.T) context.Context {
+	t.Helper()
+	return protectedDesktopAccountContext(t)
 }
 
 func testerCaller() *runtimev1.AccountCaller {

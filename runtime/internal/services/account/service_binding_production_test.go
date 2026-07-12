@@ -331,7 +331,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 		HTTPClient:       authServer.Client(),
 	}))
 	svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+	begin, err := svc.BeginLogin(desktopAccountControlContext(t), &runtimev1.BeginLoginRequest{
 		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
@@ -373,7 +373,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 	if strings.Contains(authorizeURL, "desktop_callback=") || strings.Contains(authorizeURL, "desktop_state=") {
 		t.Fatalf("authorize URL must not embed legacy web-relay params, got %q", authorizeURL)
 	}
-	complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+	complete, err := svc.CompleteLogin(desktopAccountControlContext(t), &runtimev1.CompleteLoginRequest{
 		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
@@ -444,7 +444,7 @@ func TestProductionCompleteLoginRejectsNonCanonicalOAuthTokenResponses(t *testin
 				HTTPClient:       authServer.Client(),
 			}))
 			svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
-			begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+			begin, err := svc.BeginLogin(desktopAccountControlContext(t), &runtimev1.BeginLoginRequest{
 				Caller:      desktopAccountControlCaller(),
 				RedirectUri: "http://localhost:46373/oauth/callback",
 			})
@@ -454,7 +454,7 @@ func TestProductionCompleteLoginRejectsNonCanonicalOAuthTokenResponses(t *testin
 			if !begin.GetAccepted() {
 				t.Fatalf("BeginLogin not accepted: %+v", begin)
 			}
-			complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+			complete, err := svc.CompleteLogin(desktopAccountControlContext(t), &runtimev1.CompleteLoginRequest{
 				Caller:         desktopAccountControlCaller(),
 				LoginAttemptId: begin.GetLoginAttemptId(),
 				Code:           "auth-code",
@@ -488,7 +488,7 @@ func TestProductionBeginLoginMissingOAuthAuthorityFailsClosed(t *testing.T) {
 		HTTPClient:  http.DefaultClient,
 	}))
 	svc := newProductionHarnessService(t, &memoryCustody{}, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+	begin, err := svc.BeginLogin(desktopAccountControlContext(t), &runtimev1.BeginLoginRequest{
 		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
@@ -521,7 +521,7 @@ func TestProductionBeginLoginSentinelOAuthAuthorityFailsClosed(t *testing.T) {
 		HTTPClient:       http.DefaultClient,
 	}))
 	svc := newProductionHarnessService(t, &memoryCustody{}, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+	begin, err := svc.BeginLogin(desktopAccountControlContext(t), &runtimev1.BeginLoginRequest{
 		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
@@ -551,7 +551,7 @@ func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 		HTTPClient:       http.DefaultClient,
 	}))
 	svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+	begin, err := svc.BeginLogin(desktopAccountControlContext(t), &runtimev1.BeginLoginRequest{
 		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
@@ -559,7 +559,7 @@ func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 		t.Fatalf("BeginLogin: %v", err)
 	}
 	accessToken := unsignedTestJWT("acct-web-callback")
-	complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+	complete, err := svc.CompleteLogin(desktopAccountControlContext(t), &runtimev1.CompleteLoginRequest{
 		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           accessToken,
@@ -583,11 +583,11 @@ func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 
 func TestProductionSecureCustodyUnavailableFailsClosed(t *testing.T) {
 	svc := newProductionHarnessService(t, &memoryCustody{err: ErrCustodyUnavailable})
-	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
+	begin, err := svc.BeginLogin(desktopAccountControlContext(t), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
-	complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+	complete, err := svc.CompleteLogin(desktopAccountControlContext(t), &runtimev1.CompleteLoginRequest{
 		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",

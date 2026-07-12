@@ -263,7 +263,15 @@ func TestProductionLocalCallerRequiresRuntimeAppSessionProof(t *testing.T) {
 		t.Fatalf("production local caller without app-session proof must fail closed: %+v", withoutProof)
 	}
 
-	withProof, err := svc.GetAccountSessionStatus(desktopAccountControlContext(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
+	caller := firstPartyCaller()
+	appSessionContext := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-app-id", caller.GetAppId(),
+		"x-nimi-app-instance-id", caller.GetAppInstanceId(),
+		"x-nimi-device-id", caller.GetDeviceId(),
+		"x-nimi-session-id", "desktop-runtime-session",
+		"x-nimi-session-token", "desktop-runtime-session-token",
+	))
+	withProof, err := svc.GetAccountSessionStatus(appSessionContext, &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus with proof: %v", err)
 	}
