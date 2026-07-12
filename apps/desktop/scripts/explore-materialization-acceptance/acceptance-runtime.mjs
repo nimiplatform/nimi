@@ -84,6 +84,9 @@ export async function startRuntimeDaemon({ fixtureOrigin, realmIssuerOrigin = fi
   });
   daemon.stdout.pipe(fs.createWriteStream(stdoutPath, { flags: appendLogs ? 'a' : 'w' }));
   daemon.stderr.pipe(fs.createWriteStream(stderrPath, { flags: appendLogs ? 'a' : 'w' }));
+  // Recorded so a later gate run can locate and terminate a daemon orphaned by a
+  // hard harness crash (see tests/local-agent-product/harness/sandbox-hygiene.mjs).
+  fs.appendFileSync(path.join(stateRoot, 'runtime-daemon.pid'), `${daemon.pid}\n`);
   await waitForRuntimeReady(endpoint, daemon);
   return {
     daemon,

@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { buildProductPrerequisites } from '../harness/journey-runner.mjs';
 import { readLocalAgentTestArchitecture, repoRoot } from '../harness/registry.mjs';
+import { pruneRetainedTrialRootPayload, sweepStaleIsolatedTrialRoots } from '../harness/sandbox-hygiene.mjs';
 import { assertSourceState, captureSourceState } from '../harness/source-state.mjs';
 import { createIsolatedJourneyRoot, removeIsolatedTrialRoot } from '../harness/trial-root.mjs';
 import { validateArchitecture } from '../harness/validation.mjs';
@@ -41,6 +42,17 @@ const scenario = registry.scenarios.find((candidate) => candidate.scenario_id ==
 const journey = architecture.journeys.journeys.find((candidate) => candidate.journey_id === scenario.scenario_id);
 if (!journey) throw new Error('conversation-report-baseline Journey is missing');
 
+// Route interruption through process.exit so 'exit' teardown hooks (subprocess-tree
+// kill in cross-app-driver) run instead of the signal default, which skips them.
+for (const abortSignal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(abortSignal, () => {
+    process.exitCode = 1;
+    process.exit();
+  });
+}
+const staleSweep = sweepStaleIsolatedTrialRoots();
+if (staleSweep.swept.length > 0) process.stdout.write(`conversation report: removed ${staleSweep.swept.length} stale trial sandbox(es)\n`);
+for (const failure of staleSweep.failed) process.stderr.write(`conversation report: failed to remove stale trial sandbox ${failure.root} (${failure.code}): ${failure.message}\n`);
 const sourceState = captureSourceState(repoRoot);
 const runId = `conversation-report-${timestampId()}-${sourceState.sourceDigest.slice(0, 12)}`;
 const reportsRoot = path.join(repoRoot, '.nimi', 'local', 'reports', 'local-agent-conversation');
@@ -83,5 +95,8 @@ try {
   process.stdout.write(`report.json: ${path.join(bundleRoot, 'report.json')}\n`);
 } finally {
   if (completed) removeIsolatedTrialRoot(trial);
-  else process.stderr.write(`Conversation report diagnostic trial retained: ${trial.paths.root}\n`);
+  else {
+    const pruned = pruneRetainedTrialRootPayload(trial);
+    process.stderr.write(`Conversation report diagnostic trial retained (runtime-data payload pruned: ${pruned.pruned.join(', ') || 'none'}): ${trial.paths.root}\n`);
+  }
 }

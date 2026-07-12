@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -177,6 +178,29 @@ writeJsonFile(manifestPath, createRealmFixtureManifest(desktopFixtureOrigin, fix
 let runtimeDaemon = null;
 let electronApp = null;
 let conversationReportContext = null;
+function killRuntimeDaemonTreeSync() {
+  if (!runtimeDaemon?.pid || runtimeDaemon.exitCode !== null || runtimeDaemon.signalCode !== null) return;
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/PID', String(runtimeDaemon.pid), '/T', '/F'], { stdio: 'ignore' });
+    return;
+  }
+  try {
+    process.kill(-runtimeDaemon.pid, 'SIGKILL');
+  } catch {
+    try {
+      runtimeDaemon.kill('SIGKILL');
+    } catch {
+      // The daemon exited between the liveness check and the kill.
+    }
+  }
+}
+process.on('exit', killRuntimeDaemonTreeSync);
+for (const abortSignal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(abortSignal, () => {
+    process.exitCode = 1;
+    process.exit();
+  });
+}
 const consoleErrors = [];
 const consoleErrorDetails = [];
 const pageErrors = [];

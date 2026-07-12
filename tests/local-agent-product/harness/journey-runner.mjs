@@ -8,6 +8,7 @@ import {
 } from './extended-driver.mjs';
 import { repoRoot } from './registry.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
+import { pruneRetainedTrialRootPayload } from './sandbox-hygiene.mjs';
 import { assertSourceState } from './source-state.mjs';
 import { createIsolatedJourneyRoot, removeIsolatedTrialRoot } from './trial-root.mjs';
 
@@ -98,7 +99,11 @@ export async function runJourneyGate({ architecture, evidenceRoot, gate, sourceS
         completed = true;
       } finally {
         if (completed) removeIsolatedTrialRoot(trial);
-        else process.stderr.write(`LocalAgent Journey diagnostic root retained: ${trial.paths.root}\n`);
+        else {
+          const pruned = pruneRetainedTrialRootPayload(trial);
+          process.stderr.write(`LocalAgent Journey diagnostic root retained (runtime-data payload pruned: ${pruned.pruned.join(', ') || 'none'}): ${trial.paths.root}\n`);
+          for (const failure of pruned.failed) process.stderr.write(`LocalAgent Journey retained-root prune failed for ${failure.target} (${failure.code})\n`);
+        }
       }
       assertSourceState(sourceState, repoRoot);
     }

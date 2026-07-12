@@ -26,6 +26,31 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+const activeProcessHandles = new Set();
+
+function killProcessTreeSync(child) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return;
+  if (process.platform === 'win32') {
+    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore' });
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGKILL');
+  } catch {
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      // The process exited between the liveness check and the kill.
+    }
+  }
+}
+
+// Last-resort teardown so product subprocess trees (desktop/zhiyu, and the runtime
+// daemon inside them) do not outlive a crashed or interrupted harness process.
+process.on('exit', () => {
+  for (const handle of activeProcessHandles) killProcessTreeSync(handle.child);
+});
+
 export function startProcess(command, args, options) {
   const child = spawn(command, args, {
     ...options,
@@ -40,7 +65,10 @@ export function startProcess(command, args, options) {
     child.once('error', reject);
     child.once('exit', (code, signal) => resolve({ code, signal, stdout, stderr }));
   });
-  return { child, completed };
+  const handle = { child, completed };
+  activeProcessHandles.add(handle);
+  completed.then(() => activeProcessHandles.delete(handle), () => activeProcessHandles.delete(handle));
+  return handle;
 }
 
 export async function terminateProcessTree(handle) {

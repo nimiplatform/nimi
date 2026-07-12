@@ -52,15 +52,11 @@ export function retargetAdmittedProductControlSeed({ seed, targetDataRoot }) {
     },
     sourceRoot,
   });
+  const materialization = createDependencyMaterializationStats();
   for (const source of dependencyRoots) {
     const target = path.join(targetDataRoot, path.relative(sourceRoot, source));
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.cpSync(source, target, {
-      recursive: true,
-      force: true,
-      errorOnExist: false,
-      mode: fs.constants.COPYFILE_FICLONE,
-    });
+    cloneDataRootDependency(source, target, materialization);
   }
   const productControl = replaceRoot(readJsonFile(seed.targetProductControlPath));
   const localState = replaceRoot(originalLocalState);
@@ -69,7 +65,52 @@ export function retargetAdmittedProductControlSeed({ seed, targetDataRoot }) {
   localState.savedAt = new Date().toISOString();
   writeJsonFile(seed.targetProductControlPath, productControl);
   writeJsonFile(seed.targetLocalStatePath, localState);
-  return { ...seed, targetDataRoot, retargeted: true };
+  return { ...seed, targetDataRoot, retargeted: true, dependencyMaterialization: materialization };
+}
+
+// Immutable model/dependency artifacts at or above this size are hardlinked into the
+// trial data root instead of byte-copied. Small files (manifests, registry JSON) stay
+// real copies because the runtime may rewrite them in place, and an in-place write
+// through a hardlink would corrupt the admitted source data root.
+export const DEPENDENCY_LINK_THRESHOLD_BYTES = 4 * 1024 * 1024;
+
+function createDependencyMaterializationStats() {
+  return { linkedFiles: 0, linkedBytes: 0, copiedFiles: 0, copiedBytes: 0, linkFallbackCode: null };
+}
+
+export function cloneDataRootDependency(source, target, stats, linkThresholdBytes = DEPENDENCY_LINK_THRESHOLD_BYTES) {
+  const info = fs.lstatSync(source);
+  if (info.isDirectory()) {
+    fs.mkdirSync(target, { recursive: true });
+    for (const entry of fs.readdirSync(source)) {
+      cloneDataRootDependency(path.join(source, entry), path.join(target, entry), stats, linkThresholdBytes);
+    }
+    return stats;
+  }
+  if (info.isSymbolicLink()) {
+    fs.rmSync(target, { recursive: true, force: true });
+    fs.cpSync(source, target, { force: true, verbatimSymlinks: true });
+    return stats;
+  }
+  if (!info.isFile()) {
+    throw new Error(`data-root dependency ${source} is neither a regular file, directory, nor symlink`);
+  }
+  fs.rmSync(target, { force: true });
+  if (info.size >= linkThresholdBytes) {
+    try {
+      fs.linkSync(source, target);
+      stats.linkedFiles += 1;
+      stats.linkedBytes += info.size;
+      return stats;
+    } catch (error) {
+      if (!['EXDEV', 'EPERM', 'EACCES', 'ENOTSUP', 'EMLINK'].includes(error?.code)) throw error;
+      if (!stats.linkFallbackCode) stats.linkFallbackCode = error.code;
+    }
+  }
+  fs.copyFileSync(source, target, fs.constants.COPYFILE_FICLONE);
+  stats.copiedFiles += 1;
+  stats.copiedBytes += info.size;
+  return stats;
 }
 
 export function seedDeterministicAttachedLocalRoutes({ seed, stateRoot, providerBaseUrl }) {

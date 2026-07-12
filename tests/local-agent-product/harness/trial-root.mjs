@@ -2,13 +2,15 @@ import fs from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
+import { TRIAL_ROOT_PREFIX, writeHarnessOwnerMarker } from './sandbox-hygiene.mjs';
 
 function safeId(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '') || 'trial';
 }
 
 function createRoot(prefix, identity) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `nimi-local-agent-${safeId(prefix)}-`));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `${TRIAL_ROOT_PREFIX}${safeId(prefix)}-`));
+  writeHarnessOwnerMarker(root);
   const paths = {
     root,
     realm: path.join(root, 'realm'),

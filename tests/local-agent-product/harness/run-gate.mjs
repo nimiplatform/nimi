@@ -5,6 +5,7 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { runContractSuite } from '../contract/runner.mjs';
 import { readLocalAgentTestArchitecture, repoRoot } from './registry.mjs';
+import { sweepStaleIsolatedTrialRoots } from './sandbox-hygiene.mjs';
 import { captureSourceState } from './source-state.mjs';
 import { validateArchitecture } from './validation.mjs';
 
@@ -15,6 +16,17 @@ function option(name, fallback = '') {
 
 const gate = option('--gate');
 if (!['contract', 'core', 'core-stability', 'extended', 'exhaustive'].includes(gate)) throw new Error(`unsupported LocalAgent product gate ${gate || '<missing>'}`);
+// Route interruption through process.exit so 'exit' teardown hooks (subprocess-tree
+// kill in cross-app-driver) run instead of the signal default, which skips them.
+for (const abortSignal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(abortSignal, () => {
+    process.exitCode = 1;
+    process.exit();
+  });
+}
+const sweep = sweepStaleIsolatedTrialRoots();
+if (sweep.swept.length > 0) process.stdout.write(`local-agent-product ${gate}: removed ${sweep.swept.length} stale trial sandbox(es): ${sweep.swept.join(', ')}\n`);
+for (const failure of sweep.failed) process.stderr.write(`local-agent-product ${gate}: failed to remove stale trial sandbox ${failure.root} (${failure.code}): ${failure.message}\n`);
 const architecture = readLocalAgentTestArchitecture();
 const architectureFailures = validateArchitecture(architecture);
 if (architectureFailures.length > 0) throw new Error(`invalid LocalAgent test architecture: ${architectureFailures.join('; ')}`);
