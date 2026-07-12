@@ -43,6 +43,7 @@ windows_service_host:
   cryptographic_scope: local_system_token_user_sid_S-1-5-18
   state_acl_scope: exact_restricted_service_sid_only
   process_dacl_scope: service_sid_full_authority_interactive_read_only_sync_query_limited_read_control
+  process_mandatory_label_scope: system_integrity_no_write_up_only_read_control_remains_available_for_mutual_verification
   active_logon_query_authority: local_system_required_for_cross_session_WTSSessionInfo_and_exact_LSA_logon_record
   local_machine_descriptor_allowed: false
   system_or_administrator_compromise: outside_current_threat_boundary
@@ -50,7 +51,7 @@ windows_principal_selection:
   authority_status: admitted
   selected_profile: local_system_host_with_restricted_service_sid
   selected_fixture: NimiRuntimeE2E
-  selected_fixture_result: mutual_peer_custody_restart_state_acl_workgroup_green
+  selected_fixture_result: elevated_installer_fixture_green_unelevated_mutual_peer_blocked_process_read_control
   product_closeout_implication: none_authority_selection_only
   a5_closeout_status: blocked
   rejected_candidate: NT_SERVICE_NimiRuntimeE2EVirtual_virtual_account

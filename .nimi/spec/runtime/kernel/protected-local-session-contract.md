@@ -228,7 +228,11 @@ token, closed process DACL and the same opened Runtime executable object. The
 process DACL grants interactive callers only `SYNCHRONIZE`,
 `PROCESS_QUERY_LIMITED_INFORMATION` and `READ_CONTROL` for this verification;
 it explicitly denies sensitive VM, handle-duplication and thread-creation
-rights. Both peers bind SID, OS logon session, PID, creation marker, and
+rights. The process object's mandatory label remains System integrity and
+uses only `SYSTEM_MANDATORY_LABEL_NO_WRITE_UP`; `NO_READ_UP` is forbidden
+because it would override the exact DACL and prevent an ordinary interactive
+Desktop from obtaining `READ_CONTROL` for mutual verification. Both peers
+bind SID, OS logon session, PID, creation marker, and
 executable trust to the handshake. An account-SID pipe connection alone never
 authorizes a protected operation.
 
@@ -301,7 +305,9 @@ material to the LocalSystem token user (`S-1-5-18`). State ACLs name only the
 exact restricted service SID. The process DACL gives that service SID full
 authority, gives interactive callers only the read-only mutual-verification
 mask, and denies interactive VM read/write/operation, handle duplication and
-remote thread creation. A
+remote thread creation. Its System-integrity mandatory label carries only
+`NO_WRITE_UP`, so the read-only DACL can be verified by the unelevated Desktop
+without granting any process mutation right. A
 DPAPI-NG `SID=` descriptor is not Windows local-service authority because its
 key distribution requires an Active Directory principal and fails on
 workgroup machines; `LOCAL=machine` is also forbidden because it widens
@@ -318,6 +324,10 @@ query or administrator authority to bypass those boundaries is forbidden;
 the selected LocalSystem host supplies those read authorities while the
 restricted service SID remains the state and sensitive-process authorization
 principal. This fixture comparison admits only the Windows principal choice;
+the elevated installer probe does not complete mutual-peer acceptance because
+its administrator token bypasses the Runtime process DACL. Until the separately
+unelevated signed probe can open the Runtime with the exact read-only mask, the
+LocalSystem fixture and A.5 remain blocked.
 it does not complete A.5 product implementation or closeout. Compromise of
 SYSTEM or an administrator is outside the current
 threat boundary and does not authorize weakening protection against renderer,
