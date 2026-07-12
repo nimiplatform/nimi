@@ -119,37 +119,40 @@ func ResolveWindowsActiveDesktopIdentity(ctx context.Context, principal WindowsS
 	return resolveWindowsActiveSessionIdentity(sessionID)
 }
 
-func inspectWindowsDesktopToken(token windows.Token, expectedSessionID *uint32) (WindowsDesktopIdentity, error) {
+func inspectWindowsDesktopToken(token windows.Token, active WindowsDesktopIdentity) (windowsConnectedLogonIdentity, error) {
 	profile := mustActiveWindowsRuntimeProfile()
+	if err := active.validate(); err != nil {
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopIdentity, "validate active Windows session before token inspection", err)
+	}
 	user, err := token.GetTokenUser()
 	if err != nil || user == nil || user.User.Sid == nil {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopUser, "read active desktop user SID", err)
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopUser, "read active desktop user SID", err)
 	}
 	userSID := user.User.Sid.String()
 	switch userSID {
 	case "", "S-1-5-18", "S-1-5-19", "S-1-5-20":
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopUser, "validate active desktop user SID", fmt.Errorf("service identities are forbidden"))
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopUser, "validate active desktop user SID", fmt.Errorf("service identities are forbidden"))
 	}
 	if userSID == profile.serviceSID {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopUser, "validate active desktop user SID", fmt.Errorf("service identities are forbidden"))
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopUser, "validate active desktop user SID", fmt.Errorf("service identities are forbidden"))
 	}
 	sessionID, err := readWindowsTokenUint32(token, windows.TokenSessionId)
 	if err != nil {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopSession, "read active desktop session", err)
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopSession, "read active desktop session", err)
 	}
-	if sessionID == 0 || (expectedSessionID != nil && sessionID != *expectedSessionID) {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopSession, "validate active desktop session", fmt.Errorf("token session mismatch"))
+	if sessionID == 0 || sessionID != active.sessionID || userSID != active.userSID {
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopSession, "validate active desktop session", fmt.Errorf("token account or terminal session mismatch"))
 	}
 	tokenType, err := readWindowsTokenUint32(token, windows.TokenType)
 	if err != nil || tokenType != windowsTokenPrimary {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopTokenType, "validate active desktop token type", err)
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopTokenType, "validate active desktop token type", err)
 	}
 	groups, err := readWindowsTokenGroups(token, windows.TokenGroups)
 	if err != nil {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopGroups, "read active desktop token groups", err)
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopGroups, "read active desktop token groups", err)
 	}
 	if !containsEnabledSID(groups, windowsInteractiveLogonSID) && !containsEnabledSID(groups, windowsRemoteInteractiveLogonSID) {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopInteractiveGroup, "validate active desktop logon class", fmt.Errorf("interactive logon SID required"))
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopInteractiveGroup, "validate active desktop logon class", fmt.Errorf("interactive logon SID required"))
 	}
 	logonSID := ""
 	for _, group := range groups {
@@ -157,26 +160,59 @@ func inspectWindowsDesktopToken(token windows.Token, expectedSessionID *uint32) 
 			continue
 		}
 		if logonSID != "" || !strings.HasPrefix(group.SID, "S-1-5-5-") {
-			return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopLogonSID, "validate active desktop logon SID", fmt.Errorf("exact single logon SID required"))
+			return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopLogonSID, "validate active desktop logon SID", fmt.Errorf("exact single logon SID required"))
 		}
 		logonSID = group.SID
 	}
 	if logonSID == "" {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopLogonSID, "validate active desktop logon SID", fmt.Errorf("logon SID is absent"))
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopLogonSID, "validate active desktop logon SID", fmt.Errorf("logon SID is absent"))
 	}
-	logonLUID, err := windowsTokenLogonLUID(token)
+	authenticationID, err := windowsTokenAuthenticationID(token)
 	if err != nil {
-		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopLogonLUID, "read active desktop logon LUID", err)
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageDesktopLogonLUID, "read active desktop AuthenticationId", err)
 	}
-	accountScope := fmt.Sprintf("windows:%s:%s", strings.ToLower(userSID), logonLUID)
-	return WindowsDesktopIdentity{
+	lsaIdentity, err := readWindowsLogonSessionIdentity(authenticationID)
+	if err != nil {
+		stage := WindowsPipeStageActiveLogonData
+		if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+			stage = WindowsPipeStageActiveLogonDataAccess
+		}
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(stage, "read connected process LSA logon session", err)
+	}
+	observed, err := correlateWindowsConnectedLogon(active, userSID, sessionID, logonSID, authenticationID, lsaIdentity)
+	if err != nil {
+		return windowsConnectedLogonIdentity{}, windowsPipeOperationFailure(WindowsPipeStageActiveLogonCorrelation, "correlate connected process to active Windows session", err)
+	}
+	return observed, nil
+}
+
+func correlateWindowsConnectedLogon(active WindowsDesktopIdentity, userSID string, sessionID uint32, logonSID string, authenticationID windows.LUID, lsaIdentity windowsLogonSessionIdentity) (windowsConnectedLogonIdentity, error) {
+	if err := active.validate(); err != nil {
+		return windowsConnectedLogonIdentity{}, err
+	}
+	if !strings.HasPrefix(logonSID, "S-1-5-5-") || authenticationID == (windows.LUID{}) ||
+		lsaIdentity.logonID != authenticationID || userSID != active.userSID || lsaIdentity.userSID != userSID ||
+		sessionID != active.sessionID || lsaIdentity.sessionID != sessionID || !windowsInteractiveLogonType(lsaIdentity.logonType) ||
+		lsaIdentity.logonTime <= 0 || lsaIdentity.logonTime > active.wtsLogonTime {
+		return windowsConnectedLogonIdentity{}, fmt.Errorf("token AuthenticationId must resolve to the active account, terminal session, pre-session interactive logon, and exact LSA record")
+	}
+	observed := windowsConnectedLogonIdentity{
 		userSID:      userSID,
 		logonSID:     logonSID,
-		logonLUID:    logonLUID,
+		logonLUID:    windowsLogonLUIDString(authenticationID),
 		sessionID:    sessionID,
-		accountScope: accountScope,
-		tokenBound:   true,
-	}, nil
+		wtsLogonTime: active.wtsLogonTime,
+		lsaLogonTime: lsaIdentity.logonTime,
+		logonType:    lsaIdentity.logonType,
+		accountScope: active.accountScope,
+	}
+	if err := observed.validate(); err != nil {
+		return windowsConnectedLogonIdentity{}, err
+	}
+	if !observed.matchesActiveSession(active) {
+		return windowsConnectedLogonIdentity{}, fmt.Errorf("connected process does not match the active WTS session")
+	}
+	return observed, nil
 }
 
 func OpenWindowsProductionDesktopPipe(ctx context.Context, principal WindowsServicePrincipal, process WindowsRuntimeProcess) (*WindowsDesktopPipeInstance, WindowsDesktopIdentity, error) {
@@ -280,7 +316,7 @@ func (instance *WindowsDesktopPipeInstance) Accept(ctx context.Context) (*Window
 	var clientPID uint32
 	if err := windows.GetNamedPipeClientProcessId(instance.handle, &clientPID); err != nil || clientPID == 0 {
 		_ = instance.Close()
-		return nil, windowsPipeFailure("bind Windows pipe client process", err)
+		return nil, windowsPipeOperationFailure(WindowsPipeStageClientPID, "bind Windows pipe client process", err)
 	}
 	return &WindowsDesktopPipeConnection{instance: instance, clientPID: clientPID}, nil
 }
@@ -417,7 +453,7 @@ func (instance *WindowsDesktopPipeInstance) Close() error {
 var _ net.Conn = (*windowsDesktopPipeNetConn)(nil)
 
 func windowsDesktopPipeSecurityDescriptor(userSID string) (*windows.SECURITY_DESCRIPTOR, error) {
-	if _, err := windows.StringToSid(userSID); err != nil || !strings.HasPrefix(userSID, "S-1-") {
+	if _, err := windows.StringToSid(userSID); err != nil || !strings.HasPrefix(userSID, "S-1-") || strings.HasPrefix(userSID, "S-1-5-5-") {
 		return nil, windowsPipeOperationFailure(WindowsPipeStageDescriptorSID, "parse active desktop account SID", err)
 	}
 	sddl := fmt.Sprintf("D:P(A;;GA;;;%s)(A;;0x%08x;;;%s)", mustActiveWindowsRuntimeProfile().serviceSID, uint32(windowsPipeClientAccess), userSID)

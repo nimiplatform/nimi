@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -71,6 +72,66 @@ func TestWindowsVerifiedDesktopListenerBindsAuthenticatedPipeAndReopens(t *testi
 	if err := secondClient.Close(); err != nil {
 		t.Fatalf("close reconnected verified client connection: %v", err)
 	}
+}
+
+func TestWindowsVerifiedDesktopListenerRepeatedRejectionsCannotStarveLaterValidDesktop(t *testing.T) {
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
+	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-rejection-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
+	initialPipe, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
+	if err != nil {
+		t.Fatalf("create rejection test pipe: %v", err)
+	}
+	verifier := &rejectingThenAcceptingWindowsVerifier{rejectCount: 3, expectedTrustSetID: windowsDesktopE2ETrustSetID}
+	var reopens atomic.Uint32
+	listener, err := newWindowsVerifiedDesktopListener(context.Background(), windowsVerifiedDesktopListenerOptions{
+		initialPipe:               initialPipe,
+		runtimeProcess:            windowsVerifiedListenerTestRuntimeProcess(),
+		bootEpoch:                 windowsVerifiedListenerTestIdentifier(0x73),
+		verifier:                  verifier,
+		expectedDesktopTrustSetID: windowsDesktopE2ETrustSetID,
+		random:                    cryptorand.Reader,
+		reopen: func(ctx context.Context) (*WindowsDesktopPipeInstance, error) {
+			reopens.Add(1)
+			return createWindowsDesktopPipeInstance(ctx, pipeName, principal, identity, false)
+		},
+	})
+	if err != nil {
+		t.Fatalf("create rejection test listener: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	accepted := acceptWindowsVerifiedListener(t, listener)
+	for attempt := uint32(0); attempt < verifier.rejectCount; attempt++ {
+		client := dialWindowsVerifiedListenerPipe(t, pipeName)
+		if err := client.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+			t.Fatal(err)
+		}
+		buffer := make([]byte, 1)
+		if _, err := client.Read(buffer); err == nil {
+			t.Fatal("rejected same-user peer remained connected")
+		}
+		_ = client.Close()
+	}
+	validClient := dialWindowsVerifiedListenerPipe(t, pipeName)
+	validConnection := awaitWindowsVerifiedListenerConnection(t, accepted)
+	assertWindowsVerifiedListenerConnection(t, validConnection)
+	if verifier.calls.Load() != verifier.rejectCount+1 || reopens.Load() < verifier.rejectCount {
+		t.Fatalf("listener calls=%d reopens=%d", verifier.calls.Load(), reopens.Load())
+	}
+	_ = validConnection.Close()
+	_ = validClient.Close()
+}
+
+type rejectingThenAcceptingWindowsVerifier struct {
+	rejectCount        uint32
+	expectedTrustSetID string
+	calls              atomic.Uint32
+}
+
+func (verifier *rejectingThenAcceptingWindowsVerifier) VerifyWindowsExecutable(context.Context, WindowsExecutableRole, WindowsLockedExecutable) (string, error) {
+	if verifier.calls.Add(1) <= verifier.rejectCount {
+		return "rejected-same-user-trust-set", nil
+	}
+	return verifier.expectedTrustSetID, nil
 }
 
 func windowsVerifiedListenerTestRuntimeProcess() WindowsRuntimeProcess {

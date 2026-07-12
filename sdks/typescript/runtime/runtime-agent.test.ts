@@ -324,47 +324,11 @@ test('Runtime Agent presentation profile rejects provider voice handles', () => 
 test('Runtime Agent protected presentation surface requests scoped Runtime access', async () => {
   const issuedScopes: string[][] = [];
   const issuedOptions: RuntimeTypedCallOptions[] = [];
-  const registerOptions: RuntimeTypedCallOptions[] = [];
-  const authorizeOptions: RuntimeTypedCallOptions[] = [];
-  const authorizeRequests: Array<{ readonly externalPrincipalId?: string; readonly policyVersion?: string; readonly scopes: string[] }> = [];
   const requests: unknown[] = [];
   const runtime = {
     appId: 'sdk.test',
-    auth: {
-      async registerApp(_request: unknown, options?: RuntimeTypedCallOptions) {
-        if (options) {
-          registerOptions.push(options);
-        }
-        return {
-          appInstanceId: 'sdk.test.runtime-agent',
-          accepted: true,
-          reasonCode: 0,
-        };
-      },
-    },
-    appAuth: {
-      async authorizeExternalPrincipal(
-        request: { readonly externalPrincipalId?: string; readonly policyVersion?: string; readonly scopes: string[] },
-        options?: RuntimeTypedCallOptions,
-      ) {
-        authorizeRequests.push(request);
-        issuedScopes.push(request.scopes);
-        if (options) {
-          authorizeOptions.push(options);
-        }
-        return {
-          tokenId: 'token-1',
-          secret: 'secret-1',
-          appId: 'sdk.test',
-          subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test.runtime-agent',
-          effectiveScopes: request.scopes,
-          policyVersion: 'runtime-agent-v1',
-          issuedScopeCatalogVersion: 'sdk-v2',
-          canDelegate: false,
-        };
-      },
-    },
+    auth: {},
+    appAuth: {},
     agent: {
       async setAgentPresentationProfile(request: unknown, options?: RuntimeTypedCallOptions) {
         requests.push(request);
@@ -392,6 +356,10 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => {
+      issuedScopes.push([...scopes]);
+      return operation({ metadata: { 'x-nimi-test-protected-carrier': 'presentation' } });
+    },
   });
 
   await surface.setPresentationProfile({
@@ -405,18 +373,7 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   }, '0');
 
   assert.deepEqual(issuedScopes, [['runtime.agent.write']]);
-  assert.equal(authorizeRequests[0]?.externalPrincipalId, 'sdk.test.runtime-agent');
-  assert.equal(authorizeRequests[0]?.policyVersion, 'runtime-agent-v1');
-  assert.match(
-    String(registerOptions[0]?.metadata?.['x-nimi-idempotency-key'] ?? ''),
-    /^runtime-agent-protected-register-/u,
-  );
-  assert.match(
-    String(authorizeOptions[0]?.metadata?.['x-nimi-idempotency-key'] ?? ''),
-    /^runtime-agent-protected-authorize-/u,
-  );
-  assert.equal(authorizeOptions[0]?.metadata?.domain, 'app-auth');
-  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-1');
+  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-test-protected-carrier'], 'presentation');
   assert.equal(requests.length, 1);
 });
 
@@ -654,6 +611,10 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   const surface = createNimiHostRuntimeAgentInspectSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => {
+      issuedScopes.push([...scopes]);
+      return operation({ metadata: { 'x-nimi-test-protected-carrier': 'inspect' } });
+    },
     maxRecentTerminalHooks: 2,
   });
 
@@ -706,7 +667,7 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   assert.ok(issuedScopes.some((scopes) => scopes.join(',') === 'runtime.agent.autonomy.write'));
   assert.ok(issuedScopes.some((scopes) => scopes.join(',') === 'runtime.agent.write'));
   assert.ok(issuedScopes.some((scopes) => scopes.join(',') === 'runtime.agent.read'));
-  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-1');
+  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-test-protected-carrier'], 'inspect');
   assert.equal((issuedOptions[0] as Record<string, unknown> | undefined)?.protectedAccessToken, undefined);
 });
 
@@ -843,6 +804,10 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
   const surface = createNimiRuntimeAgentSmokeVerificationSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => {
+      issuedScopes.push([...scopes]);
+      return operation({ metadata: { 'x-nimi-test-protected-carrier': 'smoke' } });
+    },
   });
 
   const evidence = await surface.readProductPathEvidence({
@@ -851,7 +816,7 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
   });
 
   assert.deepEqual(issuedScopes, [['runtime.agent.read']]);
-  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-1');
+  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-test-protected-carrier'], 'smoke');
   assert.equal(healthOptions.length, 1);
   assert.deepEqual(anchorRequests[0], {
     context: {

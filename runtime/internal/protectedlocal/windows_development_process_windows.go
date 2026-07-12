@@ -51,7 +51,7 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 	}
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows local-development process", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientProcessOpen, "retain Windows local-development process", err)
 	}
 	accepted := false
 	defer func() {
@@ -61,15 +61,12 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 	}()
 	var token windows.Token
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("open Windows local-development process token", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientTokenOpen, "open Windows local-development process token", err)
 	}
-	observed, err := inspectWindowsDesktopToken(token, &identity.sessionID)
+	observed, err := inspectWindowsDesktopToken(token, identity)
 	_ = token.Close()
 	if err != nil {
 		return ProcessTuple{}, nil, err
-	}
-	if !identity.matchesObservedToken(observed) {
-		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows local-development process logon identity", fmt.Errorf("active account, terminal session, or token logon identity mismatch"))
 	}
 	creationMarker, err := windowsProcessCreationMarker(process)
 	if err != nil {
@@ -80,9 +77,9 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	liveness, err := newWindowsProcessLiveness(process)
+	liveness, err := newWindowsProcessLiveness(process, identity, observed)
 	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows local-development process liveness", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientLiveness, "retain Windows local-development process liveness", err)
 	}
 	accepted = true
 	tuple := ProcessTuple{

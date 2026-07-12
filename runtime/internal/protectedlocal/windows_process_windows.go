@@ -22,7 +22,9 @@ const windowsRuntimeProcessVerificationAccess = windows.SYNCHRONIZE |
 	windows.READ_CONTROL
 
 type windowsProcessLiveness struct {
-	handle windows.Handle
+	handle         windows.Handle
+	activeSession  WindowsDesktopIdentity
+	connectedLogon windowsConnectedLogonIdentity
 
 	revoked chan struct{}
 	stop    chan struct{}
@@ -309,7 +311,7 @@ func verifyWindowsPipeClientProcessForRole(ctx context.Context, connection *Wind
 	}
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, connection.clientPID)
 	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows pipe client process", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientProcessOpen, "retain Windows pipe client process", err)
 	}
 	acceptedHandle := false
 	defer func() {
@@ -320,15 +322,12 @@ func verifyWindowsPipeClientProcessForRole(ctx context.Context, connection *Wind
 
 	var token windows.Token
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("open Windows pipe client token", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientTokenOpen, "open Windows pipe client token", err)
 	}
-	observedIdentity, err := inspectWindowsDesktopToken(token, &identity.sessionID)
+	observedIdentity, err := inspectWindowsDesktopToken(token, identity)
 	_ = token.Close()
 	if err != nil {
 		return ProcessTuple{}, nil, err
-	}
-	if !identity.matchesObservedToken(observedIdentity) {
-		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows pipe client logon identity", fmt.Errorf("active account, terminal session, or token logon identity mismatch"))
 	}
 
 	creationMarker, err := windowsProcessCreationMarker(process)
@@ -339,9 +338,9 @@ func verifyWindowsPipeClientProcessForRole(ctx context.Context, connection *Wind
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	liveness, err := newWindowsProcessLiveness(process)
+	liveness, err := newWindowsProcessLiveness(process, identity, observedIdentity)
 	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows pipe client liveness", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientLiveness, "retain Windows pipe client liveness", err)
 	}
 	acceptedHandle = true
 	tuple := ProcessTuple{
@@ -373,7 +372,7 @@ func verifyWindowsInstalledProcess(ctx context.Context, pid uint32, identity Win
 	}
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows installed process", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientProcessOpen, "retain Windows installed process", err)
 	}
 	accepted := false
 	defer func() {
@@ -383,15 +382,12 @@ func verifyWindowsInstalledProcess(ctx context.Context, pid uint32, identity Win
 	}()
 	var token windows.Token
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("open Windows installed process token", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientTokenOpen, "open Windows installed process token", err)
 	}
-	observed, err := inspectWindowsDesktopToken(token, &identity.sessionID)
+	observed, err := inspectWindowsDesktopToken(token, identity)
 	_ = token.Close()
 	if err != nil {
 		return ProcessTuple{}, nil, err
-	}
-	if !identity.matchesObservedToken(observed) {
-		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows installed process logon identity", fmt.Errorf("active account, terminal session, or token logon identity mismatch"))
 	}
 	creationMarker, err := windowsProcessCreationMarker(process)
 	if err != nil {
@@ -401,9 +397,9 @@ func verifyWindowsInstalledProcess(ctx context.Context, pid uint32, identity Win
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	liveness, err := newWindowsProcessLiveness(process)
+	liveness, err := newWindowsProcessLiveness(process, identity, observed)
 	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows installed process liveness", err)
+		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientLiveness, "retain Windows installed process liveness", err)
 	}
 	accepted = true
 	tuple := ProcessTuple{OS: OSWindows, PID: pid, CreationMarker: creationMarker, OSLoginSession: observed.logonLUID, SecurityPrincipal: observed.userSID, CanonicalExecutableIdentity: evidence.CanonicalFileIdentity, ExecutableDigest: evidence.Digest, ExecutableTrustSetID: trustSetID}
@@ -507,23 +503,40 @@ func windowsProcessCreationMarker(process windows.Handle) (string, error) {
 }
 
 func windowsTokenLogonLUID(token windows.Token) (string, error) {
+	authenticationID, err := windowsTokenAuthenticationID(token)
+	if err != nil {
+		return "", err
+	}
+	return windowsLogonLUIDString(authenticationID), nil
+}
+
+func windowsTokenAuthenticationID(token windows.Token) (windows.LUID, error) {
 	statisticsBuffer, err := readWindowsTokenInformation(token, windows.TokenStatistics)
 	if err != nil || len(statisticsBuffer) < int(unsafe.Sizeof(windowsTokenStatistics{})) {
 		if err == nil {
 			err = fmt.Errorf("short token statistics")
 		}
-		return "", err
+		return windows.LUID{}, err
 	}
 	statistics := (*windowsTokenStatistics)(unsafe.Pointer(&statisticsBuffer[0]))
 	if statistics.AuthenticationID == (windows.LUID{}) {
-		return "", fmt.Errorf("empty authentication identifier")
+		return windows.LUID{}, fmt.Errorf("empty authentication identifier")
 	}
-	return fmt.Sprintf("%08x:%08x", uint32(statistics.AuthenticationID.HighPart), statistics.AuthenticationID.LowPart), nil
+	return statistics.AuthenticationID, nil
 }
 
-func newWindowsProcessLiveness(handle windows.Handle) (*windowsProcessLiveness, error) {
+func newWindowsProcessLiveness(handle windows.Handle, activeSession WindowsDesktopIdentity, connectedLogon windowsConnectedLogonIdentity) (*windowsProcessLiveness, error) {
 	if handle == 0 || handle == windows.InvalidHandle {
 		return nil, fmt.Errorf("invalid process handle")
+	}
+	if err := activeSession.validate(); err != nil {
+		return nil, fmt.Errorf("active Windows session identity required: %w", err)
+	}
+	if err := connectedLogon.validate(); err != nil {
+		return nil, fmt.Errorf("exact connected Windows logon identity required: %w", err)
+	}
+	if !connectedLogon.matchesActiveSession(activeSession) {
+		return nil, fmt.Errorf("connected Windows logon must match the active WTS session")
 	}
 	result, err := windows.WaitForSingleObject(handle, 0)
 	if err != nil {
@@ -533,10 +546,12 @@ func newWindowsProcessLiveness(handle windows.Handle) (*windowsProcessLiveness, 
 		return nil, fmt.Errorf("process already exited")
 	}
 	liveness := &windowsProcessLiveness{
-		handle:  handle,
-		revoked: make(chan struct{}),
-		stop:    make(chan struct{}),
-		done:    make(chan struct{}),
+		handle:         handle,
+		activeSession:  activeSession,
+		connectedLogon: connectedLogon,
+		revoked:        make(chan struct{}),
+		stop:           make(chan struct{}),
+		done:           make(chan struct{}),
 	}
 	go liveness.watch()
 	return liveness, nil
@@ -545,12 +560,27 @@ func newWindowsProcessLiveness(handle windows.Handle) (*windowsProcessLiveness, 
 func (liveness *windowsProcessLiveness) watch() {
 	defer close(liveness.done)
 	for {
-		result, err := windows.WaitForSingleObject(liveness.handle, 100)
+		result, err := windows.WaitForSingleObject(liveness.handle, 250)
 		if err != nil || result == windows.WAIT_OBJECT_0 {
 			liveness.revoke()
 			return
 		}
 		if result != uint32(windows.WAIT_TIMEOUT) {
+			liveness.revoke()
+			return
+		}
+		if err := revalidateWindowsActiveSessionIdentity(context.Background(), liveness.activeSession); err != nil {
+			liveness.revoke()
+			return
+		}
+		var token windows.Token
+		if err := windows.OpenProcessToken(liveness.handle, windows.TOKEN_QUERY, &token); err != nil {
+			liveness.revoke()
+			return
+		}
+		observed, err := inspectWindowsDesktopToken(token, liveness.activeSession)
+		_ = token.Close()
+		if err != nil || !liveness.connectedLogon.sameLogon(observed) {
 			liveness.revoke()
 			return
 		}

@@ -138,11 +138,12 @@ func TestWindowsLogicalSecretNamesAreNotPaths(t *testing.T) {
 }
 
 func validWindowsPrincipalSnapshot() windowsPrincipalSnapshot {
-	serviceSID := mustActiveWindowsRuntimeProfile().serviceSID
+	profile := mustActiveWindowsRuntimeProfile()
+	serviceSID := profile.serviceSID
 	return windowsPrincipalSnapshot{
 		ResolvedServiceSID: serviceSID,
-		ServiceStartName:   WindowsServiceHostAccount,
-		TokenUserSID:       WindowsServiceHostSID,
+		ServiceStartName:   profile.serviceHostAccount,
+		TokenUserSID:       profile.serviceHostSID,
 		TokenSessionID:     0,
 		TokenType:          windowsTokenPrimary,
 		TokenRestricted:    true,

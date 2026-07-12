@@ -11,8 +11,16 @@ import {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runtimeRoot = path.join(repoRoot, 'runtime');
-const outputRoot = path.join(repoRoot, 'dist', 'windows-e2e', 'runtime');
-const outputPath = path.join(outputRoot, 'nimi-runtime-e2e.exe');
+const virtualAccount = process.argv.slice(2).includes('--virtual-account');
+const unknownArguments = process.argv.slice(2).filter((value) => value !== '--virtual-account');
+if (unknownArguments.length > 0) {
+  throw new Error(`unknown Windows protected E2E build argument: ${unknownArguments[0]}`);
+}
+const variant = virtualAccount ? 'virtual-account' : 'local-system';
+const outputRoot = path.join(repoRoot, 'dist', 'windows-e2e', variant);
+const outputPath = path.join(outputRoot, virtualAccount ? 'nimi-runtime-e2e-virtual.exe' : 'nimi-runtime-e2e.exe');
+const peerProbeRoot = path.join(outputRoot, 'peer-probe');
+const peerProbePath = path.join(peerProbeRoot, 'nimiplatform-desktop-dev-run.exe');
 const signerVariable = 'github.com/nimiplatform/nimi/runtime/internal/protectedlocal.WindowsRuntimeSignerCertSHA256';
 
 if (process.platform !== 'win32' || process.arch !== 'x64') {
@@ -21,6 +29,7 @@ if (process.platform !== 'win32' || process.arch !== 'x64') {
 
 const identity = requireWindowsDevSigningIdentity({ cwd: repoRoot });
 mkdirSync(outputRoot, { recursive: true });
+mkdirSync(peerProbeRoot, { recursive: true });
 const ldflags = [
   `-X=${signerVariable}=${identity.certificateSha256}`,
   '-X=main.Version=0.1.0-windows-e2e',
@@ -31,7 +40,7 @@ const build = spawnSync(
     'build',
     '-trimpath',
     '-tags',
-    'nimi_runtime_e2e',
+    virtualAccount ? 'nimi_runtime_e2e,nimi_runtime_e2e_virtual' : 'nimi_runtime_e2e',
     '-ldflags',
     ldflags,
     '-o',
@@ -52,8 +61,35 @@ if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
 
-const signed = signWindowsDevFiles([outputPath], { cwd: repoRoot });
-if (signed.certificateSha256 !== identity.certificateSha256) {
+const peerBuild = spawnSync(
+  'go',
+  [
+    'build',
+    '-trimpath',
+    '-o',
+    peerProbePath,
+    './cmd/windows-protected-peer-probe',
+  ],
+  {
+    cwd: runtimeRoot,
+    env: process.env,
+    encoding: 'utf8',
+    stdio: 'inherit',
+  },
+);
+if (peerBuild.error) {
+  throw new Error(`failed to start Windows protected peer probe build: ${peerBuild.error.message}`);
+}
+if (peerBuild.status !== 0) {
+  process.exit(peerBuild.status ?? 1);
+}
+
+const signedRuntime = signWindowsDevFiles([outputPath], { cwd: repoRoot });
+const signedPeerProbe = signWindowsDevFiles([peerProbePath], { cwd: repoRoot });
+if (
+  signedRuntime.certificateSha256 !== identity.certificateSha256
+  || signedPeerProbe.certificateSha256 !== identity.certificateSha256
+) {
   throw new Error('Windows E2E Runtime signer changed between build and signing');
 }
-process.stdout.write(`${outputPath}\n`);
+process.stdout.write(`${JSON.stringify({ variant, runtime: outputPath, peerProbe: peerProbePath })}\n`);

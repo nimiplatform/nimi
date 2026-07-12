@@ -36,10 +36,39 @@ type windowsWTSSessionInfo struct {
 	CurrentTime             int64
 }
 
+type windowsLSAUnicodeString struct {
+	Length        uint16
+	MaximumLength uint16
+	Buffer        *uint16
+}
+
+type windowsSecurityLogonSessionData struct {
+	Size                  uint32
+	LogonID               windows.LUID
+	UserName              windowsLSAUnicodeString
+	LogonDomain           windowsLSAUnicodeString
+	AuthenticationPackage windowsLSAUnicodeString
+	LogonType             uint32
+	Session               uint32
+	SID                   *windows.SID
+	LogonTime             int64
+}
+
+type windowsLogonSessionIdentity struct {
+	logonID   windows.LUID
+	userSID   string
+	logonType uint32
+	sessionID uint32
+	logonTime int64
+}
+
 var (
 	windowsWTSAPI                     = windows.NewLazySystemDLL("wtsapi32.dll")
 	windowsWTSQuerySessionInformation = windowsWTSAPI.NewProc("WTSQuerySessionInformationW")
 	windowsWTSFreeMemory              = windowsWTSAPI.NewProc("WTSFreeMemory")
+	windowsLSA                        = windows.NewLazySystemDLL("secur32.dll")
+	windowsLSAGetLogonSessionData     = windowsLSA.NewProc("LsaGetLogonSessionData")
+	windowsLSAFreeReturnBuffer        = windowsLSA.NewProc("LsaFreeReturnBuffer")
 )
 
 func resolveWindowsActiveSessionIdentity(sessionID uint32) (WindowsDesktopIdentity, error) {
@@ -98,14 +127,51 @@ func resolveWindowsActiveSessionIdentity(sessionID uint32) (WindowsDesktopIdenti
 	if info.LogonTime <= 0 {
 		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageActiveSessionMarker, "validate Windows active-session logon marker", fmt.Errorf("positive WTS logon time required"))
 	}
-	logonMarker := fmt.Sprintf("wts:%08x:%016x", sessionID, uint64(info.LogonTime))
-	accountScope := fmt.Sprintf("windows:%s:%s", strings.ToLower(userSIDValue), logonMarker)
+	accountScope := windowsActiveSessionAccountScope(userSIDValue, sessionID, info.LogonTime)
 	return WindowsDesktopIdentity{
 		userSID:      userSIDValue,
-		logonLUID:    logonMarker,
 		sessionID:    sessionID,
+		wtsLogonTime: info.LogonTime,
 		accountScope: accountScope,
-		tokenBound:   false,
+	}, nil
+}
+
+func windowsLogonLUIDString(logonID windows.LUID) string {
+	return fmt.Sprintf("%08x:%08x", uint32(logonID.HighPart), logonID.LowPart)
+}
+
+func readWindowsLogonSessionIdentity(logonID windows.LUID) (windowsLogonSessionIdentity, error) {
+	if logonID == (windows.LUID{}) {
+		return windowsLogonSessionIdentity{}, fmt.Errorf("non-empty logon identifier required")
+	}
+	for _, primitive := range []*windows.LazyProc{windowsLSAGetLogonSessionData, windowsLSAFreeReturnBuffer} {
+		if err := primitive.Find(); err != nil {
+			return windowsLogonSessionIdentity{}, err
+		}
+	}
+	var dataPointer unsafe.Pointer
+	status, _, _ := windowsLSAGetLogonSessionData.Call(
+		uintptr(unsafe.Pointer(&logonID)),
+		uintptr(unsafe.Pointer(&dataPointer)),
+	)
+	if status != uintptr(windows.STATUS_SUCCESS) {
+		return windowsLogonSessionIdentity{}, windows.NTStatus(uint32(status)).Errno()
+	}
+	if dataPointer == nil {
+		return windowsLogonSessionIdentity{}, fmt.Errorf("LSA returned no logon-session data")
+	}
+	defer windowsLSAFreeReturnBuffer.Call(uintptr(dataPointer))
+	data := (*windowsSecurityLogonSessionData)(dataPointer)
+	minimumDataSize := uint32(unsafe.Offsetof(windowsSecurityLogonSessionData{}.LogonTime) + unsafe.Sizeof(windowsSecurityLogonSessionData{}.LogonTime))
+	if data.Size < minimumDataSize || data.SID == nil {
+		return windowsLogonSessionIdentity{}, fmt.Errorf("LSA returned incomplete logon-session data")
+	}
+	return windowsLogonSessionIdentity{
+		logonID:   data.LogonID,
+		userSID:   data.SID.String(),
+		logonType: data.LogonType,
+		sessionID: data.Session,
+		logonTime: data.LogonTime,
 	}, nil
 }
 
@@ -113,8 +179,8 @@ func revalidateWindowsActiveSessionIdentity(ctx context.Context, expected Window
 	if err := ctx.Err(); err != nil {
 		return windowsPipeOperationFailure(WindowsPipeStageContext, "revalidate Windows active session", err)
 	}
-	if err := expected.validate(); err != nil || expected.tokenBound {
-		return windowsPipeOperationFailure(WindowsPipeStageActiveSessionMarker, "revalidate Windows active session", fmt.Errorf("WTS bootstrap identity required: %w", err))
+	if err := expected.validate(); err != nil {
+		return windowsPipeOperationFailure(WindowsPipeStageActiveSessionMarker, "revalidate Windows active session", err)
 	}
 	activeSessionID := windows.WTSGetActiveConsoleSessionId()
 	if activeSessionID == windowsNoActiveConsoleSession || activeSessionID != expected.sessionID {
@@ -124,11 +190,10 @@ func revalidateWindowsActiveSessionIdentity(ctx context.Context, expected Window
 	if err != nil {
 		return err
 	}
-	if observed.userSID != expected.userSID ||
-		observed.sessionID != expected.sessionID ||
-		observed.logonLUID != expected.logonLUID ||
+	if observed.userSID != expected.userSID || observed.sessionID != expected.sessionID ||
+		observed.wtsLogonTime != expected.wtsLogonTime ||
 		observed.accountScope != expected.accountScope {
-		return windowsPipeOperationFailure(WindowsPipeStageActiveSessionMarker, "revalidate Windows active session", fmt.Errorf("active account or WTS logon marker changed"))
+		return windowsPipeOperationFailure(WindowsPipeStageActiveSessionMarker, "revalidate Windows active session", fmt.Errorf("active account, terminal session, or WTS logon time changed"))
 	}
 	return nil
 }

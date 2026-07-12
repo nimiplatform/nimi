@@ -1,0 +1,94 @@
+//go:build windows
+
+package main
+
+import (
+	"context"
+	"encoding/binary"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
+)
+
+const (
+	http2FrameSettings      = 0x4
+	http2ConnectionStreamID = 0
+	maxHTTP2FramePayload    = 16 * 1024
+)
+
+var http2ClientPrefaceAndSettings = []byte(
+	"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" +
+		"\x00\x00\x00" + // zero-length payload
+		"\x04" + // SETTINGS
+		"\x00" + // no flags
+		"\x00\x00\x00\x00", // connection stream
+)
+
+type probeResult struct {
+	Status         string `json:"status"`
+	Pipe           string `json:"pipe"`
+	ServerSettings bool   `json:"serverSettings"`
+}
+
+func main() {
+	pipeName := flag.String("pipe", "", "fixed local Windows protected pipe")
+	timeout := flag.Duration("timeout", 10*time.Second, "bounded probe timeout")
+	flag.Parse()
+	if !strings.HasPrefix(*pipeName, `\\.\pipe\`) || *timeout <= 0 {
+		fail(fmt.Errorf("a fixed local pipe and positive timeout are required"))
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+	access := uint32((windows.FILE_GENERIC_READ | windows.FILE_GENERIC_WRITE) &^ windows.FILE_APPEND_DATA)
+	connection, err := winio.DialPipeAccess(ctx, *pipeName, access)
+	if err != nil {
+		fail(fmt.Errorf("connect protected pipe: %w", err))
+	}
+	defer connection.Close()
+	if err := connection.SetDeadline(time.Now().Add(*timeout)); err != nil {
+		fail(fmt.Errorf("set protected pipe deadline: %w", err))
+	}
+	if _, err := connection.Write(http2ClientPrefaceAndSettings); err != nil {
+		fail(fmt.Errorf("write HTTP/2 client preface: %w", err))
+	}
+	serverSettings := false
+	for frames := 0; frames < 8; frames++ {
+		header := make([]byte, 9)
+		if _, err := io.ReadFull(connection, header); err != nil {
+			fail(fmt.Errorf("read verified Runtime HTTP/2 frame: %w", err))
+		}
+		length := int(header[0])<<16 | int(header[1])<<8 | int(header[2])
+		streamID := binary.BigEndian.Uint32(header[5:9]) & 0x7fffffff
+		if length < 0 || length > maxHTTP2FramePayload {
+			fail(fmt.Errorf("Runtime returned an invalid HTTP/2 frame length"))
+		}
+		if length > 0 {
+			payload := make([]byte, length)
+			if _, err := io.ReadFull(connection, payload); err != nil {
+				fail(fmt.Errorf("read verified Runtime HTTP/2 payload: %w", err))
+			}
+		}
+		if header[3] == http2FrameSettings && streamID == http2ConnectionStreamID {
+			serverSettings = true
+			break
+		}
+	}
+	if !serverSettings {
+		fail(fmt.Errorf("verified Runtime did not return HTTP/2 SETTINGS"))
+	}
+	if err := json.NewEncoder(os.Stdout).Encode(probeResult{Status: "connected", Pipe: *pipeName, ServerSettings: true}); err != nil {
+		fail(fmt.Errorf("encode probe result: %w", err))
+	}
+}
+
+func fail(err error) {
+	_, _ = fmt.Fprintf(os.Stderr, "windows protected peer probe failed: %v\n", err)
+	os.Exit(1)
+}

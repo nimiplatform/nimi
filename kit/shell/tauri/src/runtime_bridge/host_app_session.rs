@@ -173,11 +173,17 @@ mod tests {
         .expect("provider");
 
         assert_eq!(
-            provider.resolve().await.expect_err("protected carrier required"),
+            provider
+                .resolve()
+                .await
+                .expect_err("protected carrier required"),
             ReasonCode::DesktopControlTransportRequired.as_str_name(),
         );
         assert_eq!(
-            provider.resolve().await.expect_err("protected carrier required"),
+            provider
+                .resolve()
+                .await
+                .expect_err("protected carrier required"),
             ReasonCode::DesktopControlTransportRequired.as_str_name(),
         );
     }

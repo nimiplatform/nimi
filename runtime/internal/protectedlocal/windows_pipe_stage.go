@@ -45,6 +45,13 @@ const (
 	WindowsPipeStageActiveAccountSID
 	WindowsPipeStageActiveSessionMarker
 	WindowsPipeStageActiveSessionInfoAccess
+	WindowsPipeStageActiveLogonData
+	WindowsPipeStageActiveLogonDataAccess
+	WindowsPipeStageActiveLogonCorrelation
+	WindowsPipeStageClientPID
+	WindowsPipeStageClientProcessOpen
+	WindowsPipeStageClientTokenOpen
+	WindowsPipeStageClientLiveness
 )
 
 type windowsPipeStageError struct {
@@ -64,7 +71,7 @@ func windowsPipeStageFailure(stage WindowsPipeFailureStage, cause error) error {
 
 func WindowsPipeStageFromError(err error) (WindowsPipeFailureStage, bool) {
 	var failure *windowsPipeStageError
-	if !errors.As(err, &failure) || failure.stage < WindowsPipeStageContext || failure.stage > WindowsPipeStageActiveSessionInfoAccess {
+	if !errors.As(err, &failure) || failure.stage < WindowsPipeStageContext || failure.stage > WindowsPipeStageClientLiveness {
 		return 0, false
 	}
 	return failure.stage, true

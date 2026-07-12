@@ -87,11 +87,13 @@ func (listener *windowsVerifiedInstalledListener) Accept() (net.Conn, error) {
 			peer, pipeLiveness, err = native.verifyAndBindClientProcessForRole(listener.ctx, listener.verifier, WindowsExecutableRoleInstalled, WindowsInstalledReleaseTrustSetID)
 		}
 		if err != nil {
+			reportWindowsE2EPeerRejection(err)
 			_ = native.Close()
 			continue
 		}
 		raw, err := native.NetConn()
 		if err != nil {
+			reportWindowsE2EPeerRejection(err)
 			_ = pipeLiveness.Close()
 			_ = native.Close()
 			continue

@@ -6,6 +6,20 @@ import (
 	"strings"
 )
 
+const (
+	windowsLogonTypeInteractive             uint32 = 2
+	windowsLogonTypeRemoteInteractive       uint32 = 10
+	windowsLogonTypeCachedInteractive       uint32 = 11
+	windowsLogonTypeCachedRemoteInteractive uint32 = 12
+)
+
+func windowsInteractiveLogonType(logonType uint32) bool {
+	return logonType == windowsLogonTypeInteractive ||
+		logonType == windowsLogonTypeRemoteInteractive ||
+		logonType == windowsLogonTypeCachedInteractive ||
+		logonType == windowsLogonTypeCachedRemoteInteractive
+}
+
 const WindowsProductionDesktopPipeName = `\\.\pipe\nimi-runtime-protected-v1`
 const WindowsProductionInstalledPipeName = `\\.\pipe\nimi-runtime-installed-v1`
 
@@ -70,56 +84,78 @@ func (process WindowsRuntimeProcess) validate() error {
 	return process.tuple.validate()
 }
 
-// WindowsDesktopIdentity is an opaque capability for the active interactive
-// account and Windows terminal logon instance. Restricted-service bootstrap
-// uses WTS session metadata; tokenBound identities are minted only after a
-// connected native process token is opened by PID.
+// WindowsDesktopIdentity is the service bootstrap capability for the active
+// Windows terminal session. It deliberately contains no user token, logon SID,
+// or AuthenticationId: those are bound from the real connected process before
+// its pipe handle can become a NetConn.
 type WindowsDesktopIdentity struct {
 	userSID      string
-	logonSID     string
-	logonLUID    string
 	sessionID    uint32
+	wtsLogonTime int64
 	accountScope string
-	tokenBound   bool
 }
 
-func (identity WindowsDesktopIdentity) UserSID() string      { return identity.userSID }
-func (identity WindowsDesktopIdentity) LogonSID() string     { return identity.logonSID }
-func (identity WindowsDesktopIdentity) LogonSession() string { return identity.logonLUID }
-func (identity WindowsDesktopIdentity) SessionID() uint32    { return identity.sessionID }
+func (identity WindowsDesktopIdentity) UserSID() string   { return identity.userSID }
+func (identity WindowsDesktopIdentity) SessionID() uint32 { return identity.sessionID }
 func (identity WindowsDesktopIdentity) AccountPartition() string {
 	return identity.accountScope
 }
 
 func (identity WindowsDesktopIdentity) validate() error {
-	if !strings.HasPrefix(identity.userSID, "S-1-") || identity.logonLUID == "" || identity.sessionID == 0 || identity.accountScope == "" {
+	if !strings.HasPrefix(identity.userSID, "S-1-") || identity.sessionID == 0 || identity.wtsLogonTime <= 0 || identity.accountScope == "" {
 		return fmt.Errorf("active Windows desktop identity is incomplete")
 	}
-	expectedScope := fmt.Sprintf("windows:%s:%s", strings.ToLower(identity.userSID), identity.logonLUID)
+	expectedScope := windowsActiveSessionAccountScope(identity.userSID, identity.sessionID, identity.wtsLogonTime)
 	if identity.accountScope != expectedScope {
 		return fmt.Errorf("active Windows desktop account partition is inconsistent")
-	}
-	if identity.tokenBound {
-		if !strings.HasPrefix(identity.logonSID, "S-1-5-5-") || strings.HasPrefix(identity.logonLUID, "wts:") {
-			return fmt.Errorf("token-bound Windows desktop identity is incomplete")
-		}
-	} else if identity.logonSID != "" || !strings.HasPrefix(identity.logonLUID, "wts:") {
-		return fmt.Errorf("WTS-bound Windows desktop identity is incomplete")
 	}
 	return nil
 }
 
-func (identity WindowsDesktopIdentity) matchesObservedToken(observed WindowsDesktopIdentity) bool {
-	if identity.validate() != nil || observed.validate() != nil || !observed.tokenBound {
+type windowsConnectedLogonIdentity struct {
+	userSID      string
+	logonSID     string
+	logonLUID    string
+	sessionID    uint32
+	wtsLogonTime int64
+	lsaLogonTime int64
+	logonType    uint32
+	accountScope string
+}
+
+func (identity windowsConnectedLogonIdentity) validate() error {
+	if !strings.HasPrefix(identity.userSID, "S-1-") ||
+		!strings.HasPrefix(identity.logonSID, "S-1-5-5-") ||
+		identity.logonLUID == "" ||
+		identity.sessionID == 0 || identity.wtsLogonTime <= 0 || identity.lsaLogonTime <= 0 ||
+		identity.lsaLogonTime > identity.wtsLogonTime || !windowsInteractiveLogonType(identity.logonType) {
+		return fmt.Errorf("exact connected Windows logon identity is incomplete")
+	}
+	if identity.accountScope != windowsActiveSessionAccountScope(identity.userSID, identity.sessionID, identity.wtsLogonTime) {
+		return fmt.Errorf("connected Windows account partition is inconsistent")
+	}
+	return nil
+}
+
+func (identity windowsConnectedLogonIdentity) matchesActiveSession(active WindowsDesktopIdentity) bool {
+	if identity.validate() != nil || active.validate() != nil {
 		return false
 	}
-	if identity.userSID != observed.userSID || identity.sessionID != observed.sessionID {
-		return false
-	}
-	if !identity.tokenBound {
-		return true
-	}
-	return identity.logonSID == observed.logonSID &&
+	return identity.userSID == active.userSID &&
+		identity.sessionID == active.sessionID &&
+		identity.wtsLogonTime == active.wtsLogonTime &&
+		identity.accountScope == active.accountScope
+}
+
+func (identity windowsConnectedLogonIdentity) sameLogon(observed windowsConnectedLogonIdentity) bool {
+	return identity.validate() == nil && observed.validate() == nil &&
+		identity.userSID == observed.userSID && identity.logonSID == observed.logonSID &&
 		identity.logonLUID == observed.logonLUID &&
+		identity.sessionID == observed.sessionID && identity.wtsLogonTime == observed.wtsLogonTime &&
+		identity.lsaLogonTime == observed.lsaLogonTime && identity.logonType == observed.logonType &&
 		identity.accountScope == observed.accountScope
+}
+
+func windowsActiveSessionAccountScope(userSID string, sessionID uint32, wtsLogonTime int64) string {
+	return fmt.Sprintf("windows:%s:wts:%08x:%016x", strings.ToLower(userSID), sessionID, uint64(wtsLogonTime))
 }

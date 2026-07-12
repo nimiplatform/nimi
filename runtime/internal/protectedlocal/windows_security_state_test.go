@@ -9,8 +9,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	"golang.org/x/sys/windows"
 )
 
 func TestWindowsSecurityStateStartupExitCodesAreStableAndUnique(t *testing.T) {
@@ -117,11 +115,11 @@ func TestWindowsRuntimeSecurityStateClosesLedgerWhenPipeInitializationFails(t *t
 	root := WindowsProtectedStateRoot{path: t.TempDir(), serviceSID: serviceSID}
 	secrets := &memoryBinarySecrets{values: map[string][]byte{}}
 	pipeFailure := fmt.Errorf("synthetic pipe failure")
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
+	principal := WindowsServicePrincipal{serviceSID: serviceSID, tokenUserSID: mustActiveWindowsRuntimeProfile().serviceHostSID}
+	identity, err := ResolveWindowsActiveDesktopIdentity(ctx, principal)
 	if err != nil {
 		t.Fatal(err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: serviceSID}
 	var failedPipe *WindowsDesktopPipeInstance
 	if _, err := assembleWindowsRuntimeSecurityState(ctx, root, secrets, func(ctx context.Context) (*WindowsDesktopPipeInstance, WindowsDesktopIdentity, error) {
 		name := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-state-failure-%d-%d`, os.Getpid(), time.Now().UnixNano())

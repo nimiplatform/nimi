@@ -1,4 +1,4 @@
-//go:build nimi_runtime_e2e
+//go:build nimi_runtime_e2e && !nimi_runtime_e2e_virtual
 
 package protectedlocal
 

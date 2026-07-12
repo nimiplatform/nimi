@@ -99,7 +99,7 @@ test('Windows custody binds local-user encryption to the fixed service host and 
   assert.equal(windows.custody_store, 'dpapi_ng_local_user_fixed_local_system_host_plus_exact_service_sid_acl_state');
 });
 
-test('Windows restricted service bootstraps an account-scoped pipe without opening the user token', () => {
+test('Windows restricted service binds the connected process AuthenticationId before exposing NetConn', () => {
   const profiles = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml');
   const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
   const windows = profiles.profiles.find((row) => row.os === 'windows');
@@ -109,14 +109,21 @@ test('Windows restricted service bootstraps an account-scoped pipe without openi
     user_token_preopen: 'forbidden',
     endpoint_acl_subject: 'active_account_sid_connect_only',
     account_partition: 'user_sid_terminal_session_id_wts_logon_time',
-    active_session_revalidation: 'before_each_native_process_admission',
-    post_connect_identity: 'GetNamedPipeClientProcessId_then_process_token_user_sid_session_id_logon_luid',
+    active_session_revalidation: 'connection_liveness_revoked_on_wts_account_session_or_logon_time_change',
+    post_connect_identity: 'GetNamedPipeClientProcessId_then_process_token_logon_sid_AuthenticationId_LsaGetLogonSessionData_before_NetConn',
     post_connect_executable: 'same_open_hfile_native_trust',
     mismatch_disposition: 'reject_close_and_reopen',
+    exact_logon_correlation: {
+      fields: ['account_sid', 'terminal_session_id', 'wts_logon_time', 'token_logon_sid', 'token_authentication_id', 'lsa_logon_time', 'interactive_logon_type', 'active_console'],
+      allowed_logon_types: ['interactive', 'remote_interactive', 'cached_interactive', 'cached_remote_interactive'],
+      lsa_lookup_key: 'token_statistics_authentication_id_exact',
+      time_rule: 'lsa_logon_time_positive_and_not_after_wts_session_logon_time',
+      enumeration_or_first_candidate_selection: 'forbidden',
+    },
   });
   assert.equal(windows.endpoint_ownership, 'first_pipe_instance_service_owned_dacl_connect_only_active_account_sid_remote_clients_rejected');
-  assert.equal(windows.client_peer_verification, 'GetNamedPipeClientProcessId_active_user_sid_terminal_session_token_logon_luid_and_same_file_executable_trust');
-  assert.equal(windowsPrincipal.endpoint_connect_boundary, 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_verifies_client_token_logon_luid');
+  assert.equal(windows.client_peer_verification, 'GetNamedPipeClientProcessId_token_logon_sid_AuthenticationId_exact_LSA_record_active_WTS_session_and_same_file_executable_trust_before_NetConn');
+  assert.equal(windowsPrincipal.endpoint_connect_boundary, 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_exact_process_token_LSA_and_active_WTS_verification_before_NetConn');
 });
 
 test('local development shares the native installed_host carrier without parallel transport or origin truth', () => {

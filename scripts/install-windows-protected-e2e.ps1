@@ -4,6 +4,9 @@ param(
 
   [string] $BinaryPath = '',
 
+  [ValidateSet('LocalSystem', 'VirtualAccount')]
+  [string] $PrincipalProfile = 'LocalSystem',
+
   [switch] $RemoveState,
 
   [switch] $Json
@@ -13,15 +16,20 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$ServiceName = 'NimiRuntimeE2E'
-$ServiceAccount = 'NT SERVICE\NimiRuntimeE2E'
-$ServiceHostAccount = 'LocalSystem'
-$ServiceDisplayName = 'Nimi Runtime E2E (Non-Product)'
-$ExpectedServiceSid = 'S-1-5-80-2508001767-432113807-2225235661-2974466524-556849280'
+$VirtualAccount = $PrincipalProfile -eq 'VirtualAccount'
+$ServiceName = if ($VirtualAccount) { 'NimiRuntimeE2EVirtual' } else { 'NimiRuntimeE2E' }
+$ServiceAccount = "NT SERVICE\$ServiceName"
+$ServiceHostAccount = if ($VirtualAccount) { $ServiceAccount } else { 'LocalSystem' }
+$ServiceDisplayName = if ($VirtualAccount) { 'Nimi Runtime E2E Virtual Account (Non-Product)' } else { 'Nimi Runtime E2E LocalSystem (Non-Product)' }
+$ExpectedServiceSid = if ($VirtualAccount) { 'S-1-5-80-614952668-3885649176-109076348-3419474809-3167076013' } else { 'S-1-5-80-2508001767-432113807-2225235661-2974466524-556849280' }
 $ExpectedSignerSubject = 'CN=Nimi Local Development Code Signing'
-$InstallRoot = Join-Path $env:ProgramFiles 'Nimi E2E\Runtime'
-$InstalledBinary = Join-Path $InstallRoot 'nimi-runtime-e2e.exe'
-$StateRoot = Join-Path $env:ProgramData 'Nimi\Runtime\E2E'
+$InstallRoot = Join-Path $env:ProgramFiles $(if ($VirtualAccount) { 'Nimi E2E\Runtime Virtual' } else { 'Nimi E2E\Runtime' })
+$InstalledBinary = Join-Path $InstallRoot $(if ($VirtualAccount) { 'nimi-runtime-e2e-virtual.exe' } else { 'nimi-runtime-e2e.exe' })
+$StateRoot = Join-Path $env:ProgramData $(if ($VirtualAccount) { 'Nimi\Runtime\E2E-Virtual' } else { 'Nimi\Runtime\E2E' })
+$DiagnosticsRoot = Join-Path $env:ProgramData $(if ($VirtualAccount) { 'Nimi\Runtime\E2E-Virtual-Diagnostics' } else { 'Nimi\Runtime\E2E-Diagnostics' })
+$PeerRejectionPath = Join-Path $DiagnosticsRoot 'last-peer-rejection.json'
+$DesktopPipeName = if ($VirtualAccount) { 'nimi-runtime-e2e-virtual-protected-v1' } else { 'nimi-runtime-e2e-protected-v1' }
+$InstalledPipeName = if ($VirtualAccount) { 'nimi-runtime-e2e-virtual-installed-v1' } else { 'nimi-runtime-e2e-installed-v1' }
 $RuntimeStartupStages = @{
   42240 = 'unclassified'
   42241 = 'principal'
@@ -178,6 +186,13 @@ $RuntimeStartupStages = @{
   43553 = 'pipe-active-account-sid'
   43554 = 'pipe-active-session-marker'
   43555 = 'pipe-active-session-info-access'
+  43556 = 'pipe-active-logon-data'
+  43557 = 'pipe-active-logon-data-access'
+  43558 = 'pipe-active-logon-correlation'
+  43559 = 'pipe-client-pid'
+  43560 = 'pipe-client-process-open'
+  43561 = 'pipe-client-token-open'
+  43562 = 'pipe-client-liveness'
 }
 
 function Write-Result {
@@ -241,14 +256,32 @@ function Resolve-ServiceSid {
 function New-FixtureService {
   param([Parameter(Mandatory = $true)] [string] $BinaryPathName)
   try {
-    $service = New-Service `
-      -Name $ServiceName `
-      -BinaryPathName $BinaryPathName `
-      -DisplayName $ServiceDisplayName `
-      -StartupType Manual `
-      -Description 'Isolated non-product Nimi protected Runtime fixture.'
-    if ($null -eq $service) {
-      throw 'New-Service returned no service record.'
+    if ($VirtualAccount) {
+      $result = Invoke-CimMethod -ClassName Win32_Service -MethodName Create -Arguments @{
+        DesktopInteract = $false
+        DisplayName = $ServiceDisplayName
+        ErrorControl = [byte] 1
+        Name = $ServiceName
+        PathName = $BinaryPathName
+        ServiceType = [byte] 16
+        StartMode = 'Manual'
+        StartName = $ServiceHostAccount
+        StartPassword = $null
+      }
+      if ($null -eq $result -or [uint32] $result.ReturnValue -ne 0) {
+        $returnValue = if ($null -eq $result) { 'missing' } else { [string] $result.ReturnValue }
+        throw "Win32_Service.Create return $returnValue"
+      }
+    } else {
+      $service = New-Service `
+        -Name $ServiceName `
+        -BinaryPathName $BinaryPathName `
+        -DisplayName $ServiceDisplayName `
+        -StartupType Manual `
+        -Description 'Isolated non-product Nimi protected Runtime fixture.'
+      if ($null -eq $service) {
+        throw 'New-Service returned no service record.'
+      }
     }
   } catch {
     throw "SCM creation failed for $ServiceName`: $($_.Exception.Message)"
@@ -261,7 +294,7 @@ function Update-FixtureService {
     [Parameter(Mandatory = $true)] [string] $BinaryPathName
   )
   try {
-    $result = Invoke-CimMethod -InputObject $ServiceRecord -MethodName Change -Arguments @{
+    $arguments = @{
       DesktopInteract = $false
       DisplayName = $ServiceDisplayName
       ErrorControl = [byte] 1
@@ -270,6 +303,10 @@ function Update-FixtureService {
       StartMode = 'Manual'
       StartName = $ServiceHostAccount
     }
+    if ($VirtualAccount) {
+      $arguments.StartPassword = $null
+    }
+    $result = Invoke-CimMethod -InputObject $ServiceRecord -MethodName Change -Arguments $arguments
   } catch {
     throw "SCM configuration failed for $ServiceName`: $($_.Exception.Message)"
   }
@@ -300,6 +337,20 @@ function Wait-ServiceState {
     Start-Sleep -Milliseconds 250
   }
   throw "$ServiceName did not reach $Expected within the timeout.`n$(Get-ServiceFailureDetail)"
+}
+
+function Wait-ProtectedPipes {
+  $deadline = (Get-Date).AddSeconds(15)
+  while ((Get-Date) -lt $deadline) {
+    $pipeNames = @(Get-ChildItem -LiteralPath '\\.\pipe\' -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+    if ($pipeNames -contains $DesktopPipeName -and $pipeNames -contains $InstalledPipeName) { return }
+    $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($null -eq $service -or [string] $service.Status -eq 'Stopped') {
+      throw "$ServiceName stopped before its protected pipes became available.`n$(Get-ServiceFailureDetail)"
+    }
+    Start-Sleep -Milliseconds 100
+  }
+  throw "$ServiceName protected pipes were unavailable after startup."
 }
 
 function Get-ServiceFailureDetail {
@@ -346,15 +397,80 @@ function Set-StateRootAcl {
   Set-Acl -LiteralPath $StateRoot -AclObject $security
 }
 
+function Set-DiagnosticsRootAcl {
+  New-Item -ItemType Directory -Path $DiagnosticsRoot -Force | Out-Null
+  $serviceAccount = [Security.Principal.NTAccount]::new($ServiceAccount)
+  $administrators = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+  $security = [Security.AccessControl.DirectorySecurity]::new()
+  $security.SetAccessRuleProtection($true, $false)
+  $security.SetOwner($administrators)
+  foreach ($identity in @($serviceAccount, $administrators)) {
+    $rule = [Security.AccessControl.FileSystemAccessRule]::new(
+      $identity,
+      [Security.AccessControl.FileSystemRights]::FullControl,
+      [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit',
+      [Security.AccessControl.PropagationFlags]::None,
+      [Security.AccessControl.AccessControlType]::Allow
+    )
+    [void] $security.AddAccessRule($rule)
+  }
+  Set-Acl -LiteralPath $DiagnosticsRoot -AclObject $security
+  Remove-Item -LiteralPath $PeerRejectionPath -Force -ErrorAction SilentlyContinue
+}
+
 function Resolve-SourceBinary {
   $candidate = $BinaryPath
   if ([string]::IsNullOrWhiteSpace($candidate)) {
-    $candidate = Join-Path (Split-Path $PSScriptRoot -Parent) 'dist\windows-e2e\runtime\nimi-runtime-e2e.exe'
+    $relative = if ($VirtualAccount) { 'dist\windows-e2e\virtual-account\nimi-runtime-e2e-virtual.exe' } else { 'dist\windows-e2e\local-system\nimi-runtime-e2e.exe' }
+    $candidate = Join-Path (Split-Path $PSScriptRoot -Parent) $relative
   }
   if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
     throw "Windows E2E Runtime binary is missing: $candidate. Run pnpm build:windows-protected-e2e."
   }
   return (Resolve-Path -LiteralPath $candidate).Path
+}
+
+function Resolve-PeerProbe {
+  $relative = if ($VirtualAccount) { 'dist\windows-e2e\virtual-account\peer-probe\nimiplatform-desktop-dev-run.exe' } else { 'dist\windows-e2e\local-system\peer-probe\nimiplatform-desktop-dev-run.exe' }
+  $candidate = Join-Path (Split-Path $PSScriptRoot -Parent) $relative
+  if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+    throw "Windows E2E protected peer probe is missing: $candidate. Run the matching build command."
+  }
+  return (Resolve-Path -LiteralPath $candidate).Path
+}
+
+function Invoke-ProtectedPeerProbe {
+  $probe = Resolve-PeerProbe
+  [void] (Assert-FixtureSignature -Path $probe)
+  Remove-Item -LiteralPath $PeerRejectionPath -Force -ErrorAction SilentlyContinue
+  $output = (& $probe --pipe "\\.\pipe\$DesktopPipeName" --timeout 10s 2>&1 | Out-String).Trim()
+  $exitCode = $LASTEXITCODE
+  if ($exitCode -ne 0) {
+    $deadline = (Get-Date).AddSeconds(2)
+    while (-not (Test-Path -LiteralPath $PeerRejectionPath -PathType Leaf) -and (Get-Date) -lt $deadline) {
+      Start-Sleep -Milliseconds 50
+    }
+    $admission = ''
+    if (Test-Path -LiteralPath $PeerRejectionPath -PathType Leaf) {
+      try {
+        $rejection = Get-Content -Raw -LiteralPath $PeerRejectionPath | ConvertFrom-Json
+        $admission = "`nruntimePeerAdmission=$($rejection.domain):$($rejection.code):$($rejection.reason)"
+      } catch {
+        $admission = "`nruntimePeerAdmission=invalid-diagnostic"
+      }
+    }
+    $detail = if ([string]::IsNullOrWhiteSpace($output)) { '' } else { "`n$output" }
+    throw "Protected native peer admission failed for $ServiceName (probe exit $exitCode).$detail$admission"
+  }
+  try {
+    $result = $output | ConvertFrom-Json
+  } catch {
+    throw "Protected native peer probe returned invalid JSON: $output"
+  }
+  if ($result.status -ne 'connected' -or -not [bool] $result.serverSettings) {
+    throw "Protected native peer probe did not reach verified gRPC transport for $ServiceName."
+  }
+  return $result
 }
 
 function Assert-FixtureSignature {
@@ -401,14 +517,29 @@ function Install-Fixture {
     throw "SCM resolved unexpected service SID for $ServiceName`: $resolvedSid"
   }
   Set-StateRootAcl
+  Set-DiagnosticsRootAcl
   Invoke-ServiceControl -Arguments @('start', $ServiceName) -FailureMessage "SCM failed to start $ServiceName."
   Wait-ServiceState -Expected 'Running'
+  Wait-ProtectedPipes
+  [void] (Invoke-ProtectedPeerProbe)
+  Invoke-ServiceControl -Arguments @('stop', $ServiceName) -FailureMessage "SCM failed to stop $ServiceName for custody restart verification."
+  Wait-ServiceState -Expected 'Stopped'
+  Invoke-ServiceControl -Arguments @('start', $ServiceName) -FailureMessage "SCM failed to restart $ServiceName for custody verification."
+  Wait-ServiceState -Expected 'Running'
+  Wait-ProtectedPipes
+  [void] (Invoke-ProtectedPeerProbe)
   Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/2000/restart/5000/none/0') -FailureMessage "SCM recovery configuration failed for $ServiceName."
   $status = Get-FixtureStatus
+  $status['peerProbeVerified'] = $true
+  $status['custodyRestartVerified'] = $true
+  $status['stateAclConfiguredByInstaller'] = $true
+  $status['stateAclRuntimeReadbackVerified'] = $true
   if ($status.serviceSid -ne $ExpectedServiceSid -or
       -not $status.restrictedSid -or
       -not $status.binaryPathMatches -or
       -not $status.serviceAccountMatches -or
+      -not $status.desktopPipePresent -or
+      -not $status.installedPipePresent -or
       $status.signatureStatus -ne 'Valid' -or
       $status.state -ne 'running') {
     throw "$ServiceName failed protected fixture post-install validation."
@@ -421,9 +552,11 @@ function Uninstall-Fixture {
   $resolvedInstallRoot = [IO.Path]::GetFullPath($InstallRoot)
   $resolvedProgramFiles = [IO.Path]::GetFullPath($env:ProgramFiles).TrimEnd('\') + '\'
   $resolvedStateRoot = [IO.Path]::GetFullPath($StateRoot)
+  $resolvedDiagnosticsRoot = [IO.Path]::GetFullPath($DiagnosticsRoot)
   $resolvedProgramData = [IO.Path]::GetFullPath($env:ProgramData).TrimEnd('\') + '\'
   if (-not $resolvedInstallRoot.StartsWith($resolvedProgramFiles, [StringComparison]::OrdinalIgnoreCase) -or
-      -not $resolvedStateRoot.StartsWith($resolvedProgramData, [StringComparison]::OrdinalIgnoreCase)) {
+      -not $resolvedStateRoot.StartsWith($resolvedProgramData, [StringComparison]::OrdinalIgnoreCase) -or
+      -not $resolvedDiagnosticsRoot.StartsWith($resolvedProgramData, [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Refusing to remove Windows E2E paths outside Program Files or ProgramData.'
   }
   $existing = Get-ServiceRecord
@@ -444,6 +577,9 @@ function Uninstall-Fixture {
     & icacls.exe $StateRoot /grant '*S-1-5-32-544:(OI)(CI)F' /t /c | Out-Null
     Remove-Item -LiteralPath $StateRoot -Recurse -Force
   }
+  if (Test-Path -LiteralPath $DiagnosticsRoot) {
+    Remove-Item -LiteralPath $DiagnosticsRoot -Recurse -Force
+  }
   return [ordered]@{ serviceName = $ServiceName; state = 'absent'; stateRemoved = [bool] $RemoveState }
 }
 
@@ -457,7 +593,9 @@ function Get-FixtureStatus {
   $resolvedSid = if ($null -ne $record) { Resolve-ServiceSid } else { $null }
   $expectedBinaryPath = "`"$InstalledBinary`" serve"
   $pipeNames = @(Get-ChildItem -LiteralPath '\\.\pipe\' -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
+  $computerSystem = Get-CimInstance Win32_ComputerSystem
   return [ordered]@{
+    principalProfile = $PrincipalProfile
     serviceName = $ServiceName
     state = if ($null -eq $service) { 'absent' } else { ([string] $service.Status).ToLowerInvariant() }
     processId = if ($null -eq $record) { 0 } else { [uint32] $record.ProcessId }
@@ -471,10 +609,12 @@ function Get-FixtureStatus {
     expectedServiceSid = $ExpectedServiceSid
     serviceSidMatches = $null -ne $resolvedSid -and $resolvedSid -eq $ExpectedServiceSid
     restrictedSid = $sidType -match 'RESTRICTED'
-    desktopPipePresent = $pipeNames -contains 'nimi-runtime-e2e-protected-v1'
-    installedPipePresent = $pipeNames -contains 'nimi-runtime-e2e-installed-v1'
+    desktopPipePresent = $pipeNames -contains $DesktopPipeName
+    installedPipePresent = $pipeNames -contains $InstalledPipeName
     stateRoot = $StateRoot
     stateRootExists = Test-Path -LiteralPath $StateRoot -PathType Container
+    partOfDomain = [bool] $computerSystem.PartOfDomain
+    workgroupOrStandalone = -not [bool] $computerSystem.PartOfDomain
     signatureStatus = if ($null -eq $signature) { 'Missing' } else { [string] $signature.Status }
     signerCertificateSha256 = if ($null -eq $signature -or $null -eq $signature.SignerCertificate) { $null } else { Get-CertificateSha256 -Certificate $signature.SignerCertificate }
     nonProduct = $true

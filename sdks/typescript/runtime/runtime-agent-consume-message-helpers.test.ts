@@ -208,8 +208,13 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
   );
 
   const requests: unknown[] = [];
+  const issuedScopes: string[][] = [];
   const surface = createNimiHostRuntimeAgentMemorySurface({
     getSubjectUserId: () => 'owner-1',
+    withScopes: async (scopes, operation) => {
+      issuedScopes.push([...scopes]);
+      return operation({ metadata: { 'x-nimi-test-protected-carrier': 'memory' } });
+    },
     getRuntime: () => ({
       appId: 'nimi.avatar',
       auth: {
@@ -248,6 +253,8 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
   assert.equal((await surface.getCanonicalBankStatus(consumeContext)).bankId, 'bank-baseline');
   assert.equal((await surface.bindCanonicalBankStandard(consumeContext)).mode, 'standard');
   assert.deepEqual(requests.map((entry) => (entry as { method: string }).method), ['get', 'bind']);
+  assert.deepEqual(issuedScopes, [['runtime.agent.read'], ['runtime.agent.write']]);
+  assert.equal((requests[0] as { options?: { metadata?: Record<string, string> } }).options?.metadata?.['x-nimi-test-protected-carrier'], 'memory');
   assert.equal((requests[0] as { request: { context?: { appId?: string; subjectUserId?: string } } }).request.context?.appId, 'nimi.avatar');
   assert.equal((requests[0] as { request: { context?: { appId?: string; subjectUserId?: string } } }).request.context?.subjectUserId, 'owner-1');
 

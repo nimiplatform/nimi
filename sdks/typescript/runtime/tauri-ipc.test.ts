@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { AccountEventType, RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
+import { AgentEventType, RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
 import {
-  AccountSessionEvent,
-  SubscribeAccountSessionEventsRequest,
-} from '../core-generated/runtime-protobuf/runtime/v1/account';
+  AgentEvent,
+  SubscribeAgentEventsRequest,
+} from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
 import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
@@ -133,10 +133,10 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
           payload: {
             streamId,
             eventType: 'next',
-            payloadBytesBase64: toBase64(AccountSessionEvent.toBinary(AccountSessionEvent.create({
-              eventId: 'event-tauri',
+            payloadBytesBase64: toBase64(AgentEvent.toBinary(AgentEvent.create({
+              agentId: 'agent-tauri',
               sequence: '42',
-              eventType: AccountEventType.LOGIN_COMPLETED,
+              eventType: AgentEventType.LIFECYCLE,
             }))),
           },
         });
@@ -168,18 +168,24 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
     });
     const events = [];
 
-    for await (const event of runtime.account.subscribeAccountSessionEvents({ afterSequence: '41' })) {
+    for await (const event of runtime.agents.subscribeAgentEvents({
+      agentId: 'agent-tauri',
+      cursor: '41',
+      eventFilters: [],
+    })) {
       events.push(event);
     }
 
-    assert.equal(capturedPayload.methodId, '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents');
-    assert.deepEqual(SubscribeAccountSessionEventsRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {
-      afterSequence: '41',
+    assert.equal(capturedPayload.methodId, '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents');
+    assert.deepEqual(SubscribeAgentEventsRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {
+      agentId: 'agent-tauri',
+      cursor: '41',
+      eventFilters: [],
     });
     assert.equal((capturedPayload.metadata as { appId?: string } | undefined)?.appId, undefined);
     assert.equal(events.length, 1);
-    assert.equal(events[0]?.eventId, 'event-tauri');
-    assert.equal(events[0]?.eventType, AccountEventType.LOGIN_COMPLETED);
+    assert.equal(events[0]?.agentId, 'agent-tauri');
+    assert.equal(events[0]?.eventType, AgentEventType.LIFECYCLE);
   } finally {
     restore();
   }
@@ -196,10 +202,10 @@ test('tauri-ipc Runtime transport drains queued stream chunks before surfacing r
             payload: {
               streamId,
               eventType: 'next',
-              payloadBytesBase64: toBase64(AccountSessionEvent.toBinary(AccountSessionEvent.create({
-                eventId: 'event-before-error',
+              payloadBytesBase64: toBase64(AgentEvent.toBinary(AgentEvent.create({
+                agentId: 'agent-before-error',
                 sequence: '43',
-                eventType: AccountEventType.LOGIN_COMPLETED,
+                eventType: AgentEventType.LIFECYCLE,
               }))),
             },
           });
@@ -235,11 +241,15 @@ test('tauri-ipc Runtime transport drains queued stream chunks before surfacing r
       appId: 'nimi.tauri.test',
       transport: { type: 'tauri-ipc' },
     });
-    const iterator = runtime.account.subscribeAccountSessionEvents({ afterSequence: '42' })[Symbol.asyncIterator]();
+    const iterator = runtime.agents.subscribeAgentEvents({
+      agentId: 'agent-before-error',
+      cursor: '42',
+      eventFilters: [],
+    })[Symbol.asyncIterator]();
 
     const first = await iterator.next();
     assert.equal(first.done, false);
-    assert.equal(first.value.eventId, 'event-before-error');
+    assert.equal(first.value.agentId, 'agent-before-error');
     await assert.rejects(
       () => iterator.next(),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.AI_STREAM_BROKEN,

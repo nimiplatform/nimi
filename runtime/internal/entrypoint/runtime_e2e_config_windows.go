@@ -24,12 +24,12 @@ const (
 func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) {
 	runtimeRoot := filepath.Join(stateRoot, "runtime")
 	cfg := config.Config{
-		GRPCAddr:        "127.0.0.1:46381",
-		HTTPAddr:        "127.0.0.1:46382",
+		GRPCAddr:        windowsE2EGRPCAddress,
+		HTTPAddr:        windowsE2EHTTPAddress,
 		ShutdownTimeout: 10 * time.Second,
 		LocalStatePath:  filepath.Join(runtimeRoot, "local-state.json"),
 		LocalModelsPath: filepath.Join(runtimeRoot, "models"),
-		RuntimeID:       "nimi-runtime-windows-e2e-v1",
+		RuntimeID:       windowsE2ERuntimeID,
 		DataRootRef:     filepath.Join(runtimeRoot, "data"),
 		ManagedRoots: config.ManagedRootsConfig{
 			Models:       filepath.Join(runtimeRoot, "managed", "models"),

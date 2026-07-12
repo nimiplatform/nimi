@@ -22,7 +22,7 @@ func TestWindowsE2EConfigIgnoresPortableProductionAuthority(t *testing.T) {
 		cfg.AppRegistryPath != "" || len(cfg.Providers) != 0 {
 		t.Fatalf("E2E config consumed portable or production authority: %+v", cfg)
 	}
-	if cfg.RuntimeID != "nimi-runtime-windows-e2e-v1" ||
+	if cfg.RuntimeID != windowsE2ERuntimeID ||
 		cfg.DataRootRef != filepath.Join(root, "runtime", "data") ||
 		cfg.LocalStatePath != filepath.Join(root, "runtime", "local-state.json") {
 		t.Fatalf("E2E state paths escaped the protected root: %+v", cfg)

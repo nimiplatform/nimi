@@ -149,6 +149,7 @@ func TestWindowsExecutableTrustSetMismatchFailsClosed(t *testing.T) {
 }
 
 func TestWindowsRetainedProcessHandleRevokesOnExit(t *testing.T) {
+	identity, _ := resolveWindowsDesktopTestBootstrap(t)
 	command := exec.Command("cmd.exe", "/c", "ping -n 2 127.0.0.1 >NUL")
 	if err := command.Start(); err != nil {
 		t.Fatal(err)
@@ -159,7 +160,22 @@ func TestWindowsRetainedProcessHandleRevokesOnExit(t *testing.T) {
 		_ = command.Wait()
 		t.Fatal(err)
 	}
-	liveness, err := newWindowsProcessLiveness(handle)
+	var token windows.Token
+	if err := windows.OpenProcessToken(handle, windows.TOKEN_QUERY, &token); err != nil {
+		_ = windows.CloseHandle(handle)
+		_ = command.Process.Kill()
+		_ = command.Wait()
+		t.Fatal(err)
+	}
+	connectedLogon, err := inspectWindowsDesktopToken(token, identity)
+	_ = token.Close()
+	if err != nil {
+		_ = windows.CloseHandle(handle)
+		_ = command.Process.Kill()
+		_ = command.Wait()
+		t.Fatal(err)
+	}
+	liveness, err := newWindowsProcessLiveness(handle, identity, connectedLogon)
 	if err != nil {
 		_ = windows.CloseHandle(handle)
 		_ = command.Process.Kill()

@@ -42,6 +42,13 @@ func TestWindowsPipeStartupExitCodesAreStableUniqueAndPreserveReasons(t *testing
 		WindowsPipeStageActiveAccountSID,
 		WindowsPipeStageActiveSessionMarker,
 		WindowsPipeStageActiveSessionInfoAccess,
+		WindowsPipeStageActiveLogonData,
+		WindowsPipeStageActiveLogonDataAccess,
+		WindowsPipeStageActiveLogonCorrelation,
+		WindowsPipeStageClientPID,
+		WindowsPipeStageClientProcessOpen,
+		WindowsPipeStageClientTokenOpen,
+		WindowsPipeStageClientLiveness,
 	}
 	seen := make(map[uint32]struct{}, len(stages))
 	for _, stage := range stages {

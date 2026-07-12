@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -17,51 +16,111 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func TestWindowsRestrictedServiceBootstrapResolvesActiveSessionWithoutUserToken(t *testing.T) {
+func TestWindowsRestrictedServiceBootstrapDefersExactLogonBindingToConnectedProcess(t *testing.T) {
 	profile := mustActiveWindowsRuntimeProfile()
 	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
-	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
+	active, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
 	if err != nil {
-		t.Fatalf("resolve active WTS identity: %v", err)
+		stage, _ := WindowsPipeStageFromError(err)
+		t.Fatalf("resolve active WTS identity: %v (stage=%d cause=%v)", err, stage, errors.Unwrap(err))
 	}
-	if err := identity.validate(); err != nil {
+	if err := active.validate(); err != nil {
 		t.Fatalf("validate active WTS identity: %v", err)
 	}
-	if identity.tokenBound || identity.logonSID != "" || !strings.HasPrefix(identity.logonLUID, "wts:") {
-		t.Fatalf("active WTS identity unexpectedly retained token material: %#v", identity)
+	if active.wtsLogonTime <= 0 || active.accountScope != windowsActiveSessionAccountScope(active.userSID, active.sessionID, active.wtsLogonTime) {
+		t.Fatalf("active WTS identity is incomplete: %#v", active)
 	}
-	observed, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), &identity.sessionID)
+	observed, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), active)
 	if err != nil {
-		t.Fatalf("inspect current process token: %v", err)
+		t.Fatalf("bind current process token through exact LSA lookup: %v", err)
 	}
-	if !identity.matchesObservedToken(observed) {
-		t.Fatalf("WTS bootstrap identity did not match the real active process token: bootstrap=%#v observed=%#v", identity, observed)
+	if !observed.matchesActiveSession(active) || observed.validate() != nil {
+		t.Fatalf("connected token did not bind to active WTS session: active=%#v observed=%#v", active, observed)
 	}
-	if err := revalidateWindowsActiveSessionIdentity(context.Background(), identity); err != nil {
+	if err := revalidateWindowsActiveSessionIdentity(context.Background(), active); err != nil {
 		t.Fatalf("revalidate active WTS identity: %v", err)
 	}
-	staleIdentity := identity
-	staleIdentity.logonLUID += "-stale"
-	staleIdentity.accountScope = fmt.Sprintf("windows:%s:%s", strings.ToLower(staleIdentity.userSID), staleIdentity.logonLUID)
+	staleIdentity := active
+	staleIdentity.wtsLogonTime++
 	if err := revalidateWindowsActiveSessionIdentity(context.Background(), staleIdentity); err == nil {
-		t.Fatal("stale WTS logon marker remained valid")
+		t.Fatal("stale WTS logon time remained valid")
 	}
 	wrongSession := observed
 	wrongSession.sessionID++
-	if identity.matchesObservedToken(wrongSession) {
-		t.Fatal("WTS bootstrap identity admitted a token from another terminal session")
+	if wrongSession.matchesActiveSession(active) {
+		t.Fatal("exact active identity admitted a token from another terminal session")
+	}
+	wrongLogon := observed
+	wrongLogon.logonLUID = "ffffffff:ffffffff"
+	wrongLogon.logonSID = "S-1-5-5-4294967295-4294967295"
+	if observed.sameLogon(wrongLogon) {
+		t.Fatal("exact active identity admitted another logon LUID for the same account and terminal session")
+	}
+}
+
+func TestWindowsConnectedLogonCorrelationRejectsEveryWrongTupleField(t *testing.T) {
+	active := WindowsDesktopIdentity{
+		userSID:      "S-1-5-21-1-2-3-1001",
+		sessionID:    7,
+		wtsLogonTime: 1_000,
+	}
+	active.accountScope = windowsActiveSessionAccountScope(active.userSID, active.sessionID, active.wtsLogonTime)
+	authenticationID := windows.LUID{LowPart: 77}
+	lsa := windowsLogonSessionIdentity{
+		logonID:   authenticationID,
+		userSID:   active.userSID,
+		logonType: windowsLogonTypeInteractive,
+		sessionID: active.sessionID,
+		logonTime: 900,
+	}
+	// A token logon SID is an independent exact token-group value. It must not
+	// be guessed by formatting TokenStatistics.AuthenticationId.
+	logonSID := "S-1-5-5-42-99"
+	valid, err := correlateWindowsConnectedLogon(active, active.userSID, active.sessionID, logonSID, authenticationID, lsa)
+	if err != nil || valid.validate() != nil {
+		t.Fatalf("valid exact connected logon rejected: identity=%#v error=%v", valid, err)
+	}
+
+	tests := []struct {
+		name             string
+		userSID          string
+		sessionID        uint32
+		logonSID         string
+		authenticationID windows.LUID
+		lsa              windowsLogonSessionIdentity
+	}{
+		{name: "token account", userSID: "S-1-5-21-1-2-3-1002", sessionID: active.sessionID, logonSID: logonSID, authenticationID: authenticationID, lsa: lsa},
+		{name: "token session", userSID: active.userSID, sessionID: active.sessionID + 1, logonSID: logonSID, authenticationID: authenticationID, lsa: lsa},
+		{name: "token logon sid", userSID: active.userSID, sessionID: active.sessionID, logonSID: "S-1-5-21-1-2-3-1001", authenticationID: authenticationID, lsa: lsa},
+		{name: "empty authentication id", userSID: active.userSID, sessionID: active.sessionID, logonSID: logonSID, authenticationID: windows.LUID{}, lsa: lsa},
+		{name: "LSA logon id", userSID: active.userSID, sessionID: active.sessionID, logonSID: logonSID, authenticationID: authenticationID, lsa: func() windowsLogonSessionIdentity { value := lsa; value.logonID.LowPart++; return value }()},
+		{name: "LSA account", userSID: active.userSID, sessionID: active.sessionID, logonSID: logonSID, authenticationID: authenticationID, lsa: func() windowsLogonSessionIdentity { value := lsa; value.userSID = "S-1-5-21-1-2-3-1002"; return value }()},
+		{name: "LSA session", userSID: active.userSID, sessionID: active.sessionID, logonSID: logonSID, authenticationID: authenticationID, lsa: func() windowsLogonSessionIdentity { value := lsa; value.sessionID++; return value }()},
+		{name: "LSA noninteractive", userSID: active.userSID, sessionID: active.sessionID, logonSID: logonSID, authenticationID: authenticationID, lsa: func() windowsLogonSessionIdentity { value := lsa; value.logonType = 3; return value }()},
+		{name: "LSA empty logon time", userSID: active.userSID, sessionID: active.sessionID, logonSID: logonSID, authenticationID: authenticationID, lsa: func() windowsLogonSessionIdentity { value := lsa; value.logonTime = 0; return value }()},
+		{name: "LSA secondary logon after WTS session", userSID: active.userSID, sessionID: active.sessionID, logonSID: logonSID, authenticationID: authenticationID, lsa: func() windowsLogonSessionIdentity {
+			value := lsa
+			value.logonTime = active.wtsLogonTime + 1
+			return value
+		}()},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := correlateWindowsConnectedLogon(active, test.userSID, test.sessionID, test.logonSID, test.authenticationID, test.lsa); err == nil {
+				t.Fatal("wrong connected logon tuple was admitted")
+			}
+		})
+	}
+
+	differentLogon := valid
+	differentLogon.logonLUID = "00000000:0000004e"
+	if valid.sameLogon(differentLogon) {
+		t.Fatal("same account and terminal session converted a different AuthenticationId into the bound logon")
 	}
 }
 
 func TestWindowsNamedPipeBindsExactACLAndPeerProcessIDs(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
-	if err != nil {
-		t.Fatalf("inspect current interactive token: %v", err)
-	}
-	principal := WindowsServicePrincipal{
-		serviceSID:   mustActiveWindowsRuntimeProfile().serviceSID,
-		tokenUserSID: "S-1-5-18",
-	}
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	instance, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
@@ -134,7 +193,7 @@ func TestWindowsNamedPipeBindsExactACLAndPeerProcessIDs(t *testing.T) {
 		t.Fatalf("interactive test server verification error = %v", err)
 	}
 	if err := validateWindowsDesktopPipeACL(instance.handle, identity.userSID); err != nil {
-		t.Fatalf("validate exact pipe ACL: %v", err)
+		t.Fatalf("validate connect-only account pipe ACL: %v", err)
 	}
 }
 
@@ -143,10 +202,7 @@ func TestWindowsNamedPipeACLRejectsAdditionalPrincipal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	identity, _ := resolveWindowsDesktopTestBootstrap(t)
 	userSID, err := windows.StringToSid(identity.userSID)
 	if err != nil {
 		t.Fatal(err)
@@ -169,14 +225,7 @@ func TestWindowsNamedPipeACLRejectsAdditionalPrincipal(t *testing.T) {
 }
 
 func TestWindowsNamedPipeHandshakeDeadlineCancelsOverlappedConnect(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
-	if err != nil {
-		t.Fatalf("inspect current interactive token: %v", err)
-	}
-	principal := WindowsServicePrincipal{
-		serviceSID:   mustActiveWindowsRuntimeProfile().serviceSID,
-		tokenUserSID: "S-1-5-18",
-	}
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-timeout-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	instance, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
@@ -296,7 +345,8 @@ func resolveWindowsDesktopTestBootstrap(t testing.TB) (WindowsDesktopIdentity, W
 	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
 	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
 	if err != nil {
-		t.Fatalf("resolve active Windows Desktop bootstrap identity: %v", err)
+		stage, _ := WindowsPipeStageFromError(err)
+		t.Fatalf("resolve active Windows Desktop bootstrap identity: %v (stage=%d cause=%v)", err, stage, errors.Unwrap(err))
 	}
 	return identity, principal
 }
