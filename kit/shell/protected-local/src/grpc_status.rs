@@ -27,13 +27,17 @@ struct GoogleRpcErrorInfo {
 }
 
 pub(crate) fn runtime_reason(status: &Status) -> Option<String> {
+    runtime_error_info(status).map(|info| info.reason)
+}
+
+fn runtime_error_info(status: &Status) -> Option<GoogleRpcErrorInfo> {
     let details = GoogleRpcStatus::decode(status.details()).ok()?;
     details.details.iter().find_map(|detail| {
         if detail.type_url != ERROR_INFO_TYPE_URL {
             return None;
         }
         let info = GoogleRpcErrorInfo::decode(detail.value.as_slice()).ok()?;
-        (info.domain == ERROR_INFO_DOMAIN && !info.reason.is_empty()).then_some(info.reason)
+        (info.domain == ERROR_INFO_DOMAIN && !info.reason.is_empty()).then_some(info)
     })
 }
 
@@ -46,11 +50,21 @@ pub(crate) fn production_open_not_applicable(status: &Status) -> bool {
 
 #[cfg(feature = "windows-e2e-fixture")]
 fn report_windows_e2e_status(status: &Status) {
-    let reason = runtime_reason(status).unwrap_or_else(|| "ABSENT".to_string());
+    let info = runtime_error_info(status);
+    let reason = info
+        .as_ref()
+        .map(|value| value.reason.as_str())
+        .unwrap_or("ABSENT");
+    let stage = info
+        .as_ref()
+        .and_then(|value| value.metadata.get("diagnostic_stage"))
+        .map(String::as_str)
+        .unwrap_or("ABSENT");
     eprintln!(
-        "[protected-local windows-e2e-fixture] grpc_code={:?} runtime_reason={}",
+		"[protected-local windows-e2e-fixture] grpc_code={:?} runtime_reason={} diagnostic_stage={}",
         status.code(),
-        reason
+		reason,
+		stage
     );
 }
 
@@ -123,6 +137,7 @@ fn status_is_retryable(code: Code) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use prost_types::Any;
 
     #[test]
     fn unknown_status_text_never_becomes_a_public_reason() {
@@ -132,5 +147,33 @@ mod tests {
             NimiHostErrorReasonCode::RuntimeServiceUntrusted
         );
         assert!(!error.to_string().contains("secret"));
+    }
+
+    #[test]
+    fn structured_runtime_error_keeps_bounded_diagnostic_stage() {
+        let info = GoogleRpcErrorInfo {
+            reason: "LOCAL_DEVELOPMENT_PROJECT_CHANGED".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::from([("diagnostic_stage".to_string(), "launch-store".to_string())]),
+        };
+        let envelope = GoogleRpcStatus {
+            code: Code::FailedPrecondition as i32,
+            message: "LOCAL_DEVELOPMENT_PROJECT_CHANGED".to_string(),
+            details: vec![Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let status = Status::with_details(
+            Code::FailedPrecondition,
+            "LOCAL_DEVELOPMENT_PROJECT_CHANGED",
+            envelope.encode_to_vec().into(),
+        );
+        let parsed = runtime_error_info(&status).expect("structured Runtime error");
+        assert_eq!(parsed.reason, "LOCAL_DEVELOPMENT_PROJECT_CHANGED");
+        assert_eq!(
+            parsed.metadata.get("diagnostic_stage").map(String::as_str),
+            Some("launch-store")
+        );
     }
 }
