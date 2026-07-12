@@ -12,6 +12,7 @@ path = "src/lib.rs"
 
 [features]
 default = []
+windows-e2e-fixture = []
 
 [dependencies]
 hyper-util = { version = "0.1", features = ["tokio"] }

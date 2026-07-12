@@ -11,6 +11,10 @@ readme = "README.md"
 crate-type = ["cdylib"]
 path = "src/lib.rs"
 
+[features]
+default = []
+windows-e2e-fixture = ["nimi-shell-protected-local/windows-e2e-fixture"]
+
 [dependencies]
 napi = { version = "3", features = ["napi8", "tokio_rt"] }
 napi-derive = "3"

@@ -3,20 +3,32 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { requireWindowsDevSigningIdentity } from '../../../../scripts/lib/windows-dev-signing.mjs';
+
 const crateRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 if (process.platform !== 'win32' || process.arch !== 'x64') {
   throw new Error(`protected-local Node binding is not admitted for ${process.platform}/${process.arch}`);
 }
 
-const cargo = spawnSync('cargo', [
+const e2eFixture = process.argv.slice(2).includes('--e2e-fixture');
+const childEnv = { ...process.env };
+const cargoArgs = [
   'build',
   '--release',
   '--locked',
   '--manifest-path',
   path.join(crateRoot, 'Cargo.toml'),
-], {
+];
+if (e2eFixture) {
+  const identity = requireWindowsDevSigningIdentity({ cwd: crateRoot });
+  childEnv.NIMI_WINDOWS_E2E_SIGNER_CERT_SHA256 = identity.certificateSha256;
+  cargoArgs.push('--features', 'windows-e2e-fixture');
+}
+
+const cargo = spawnSync('cargo', cargoArgs, {
   cwd: crateRoot,
+  env: childEnv,
   encoding: 'utf8',
   stdio: 'inherit',
 });

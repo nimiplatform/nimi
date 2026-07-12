@@ -273,6 +273,8 @@ async fn build_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
         .kill_on_drop(true)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    #[cfg(feature = "protected-local-e2e-fixture")]
+    command.args(["--features", "nimi-shell-tauri/windows-e2e-fixture"]);
     let mut child = command
         .spawn()
         .map_err(|_| "local-development-build-failed".to_string())?;

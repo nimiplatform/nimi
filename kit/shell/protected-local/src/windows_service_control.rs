@@ -28,8 +28,14 @@ use crate::{
     RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
 };
 
+#[cfg(not(feature = "windows-e2e-fixture"))]
 const RUNTIME_SERVICE_NAME: &str = "NimiRuntime";
+#[cfg(feature = "windows-e2e-fixture")]
+const RUNTIME_SERVICE_NAME: &str = "NimiRuntimeE2E";
+#[cfg(not(feature = "windows-e2e-fixture"))]
 const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-protected-v1";
+#[cfg(feature = "windows-e2e-fixture")]
+const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-e2e-protected-v1";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WindowsNamedPipeCarrier;

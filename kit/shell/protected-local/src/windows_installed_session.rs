@@ -22,7 +22,10 @@ use crate::{
     NimiAppHostSession, NimiHostError, NimiHostErrorReasonCode,
 };
 
+#[cfg(not(feature = "windows-e2e-fixture"))]
 const RUNTIME_APP_HOST_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-installed-v1";
+#[cfg(feature = "windows-e2e-fixture")]
+const RUNTIME_APP_HOST_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-e2e-installed-v1";
 const MAX_INLINE_ARTIFACT_BYTES: usize = 32 * 1024 * 1024;
 const DEVELOPMENT_RENEWAL_WINDOW_MS: i64 = 30_000;
 const ACTION_EXECUTED: i32 = 1;
