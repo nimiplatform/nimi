@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -126,6 +127,12 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 		t.Fatal(err)
 	}
 	hostPath := filepath.Join(project.ProjectRoot, "node_modules", "electron", "dist", "electron.exe")
+	if err := os.MkdirAll(filepath.Dir(hostPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hostPath, []byte("test-electron-host"), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	launch, err := store.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
 		AuthorizationID: authorization.ID,
 		SupervisorRunID: runID,

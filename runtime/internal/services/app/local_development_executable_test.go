@@ -109,3 +109,45 @@ func TestCanonicalLocalDevelopmentHostExecutableAllowsProjectElectronAliasIntoPa
 		t.Fatalf("selected = %q, want exact package-store target %q", selected, want)
 	}
 }
+
+func TestLocalDevelopmentLaunchStoreRevalidatesExactElectronAliasTarget(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "project")
+	aliasParent := filepath.Join(root, "node_modules")
+	storePackage := filepath.Join(t.TempDir(), "pnpm-store", "electron")
+	storeExecutable := filepath.Join(storePackage, "dist", "electron.exe")
+	rogueExecutable := filepath.Join(t.TempDir(), "rogue", "electron.exe")
+	for _, directory := range []string{aliasParent, filepath.Dir(storeExecutable), filepath.Dir(rogueExecutable)} {
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, executable := range []string{storeExecutable, rogueExecutable} {
+		if err := os.WriteFile(executable, []byte("electron fixture"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	createLocalDevelopmentDirectoryLink(t, storePackage, filepath.Join(aliasParent, "electron"))
+	canonicalStoreExecutable, err := canonicalLocalDevelopmentFilePath(storeExecutable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalRogueExecutable, err := canonicalLocalDevelopmentFilePath(rogueExecutable)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !validLocalDevelopmentHostPath(
+		root,
+		canonicalStoreExecutable,
+		runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+	) {
+		t.Fatal("launch store must admit the exact canonical target of the project Electron alias")
+	}
+	if validLocalDevelopmentHostPath(
+		root,
+		canonicalRogueExecutable,
+		runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+	) {
+		t.Fatal("launch store must reject an unrelated external Electron executable")
+	}
+}

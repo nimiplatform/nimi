@@ -92,7 +92,7 @@ func (store *localDevelopmentStore) PendingLaunchPolicy(ctx context.Context, lau
 func (store *localDevelopmentStore) PrepareLaunch(ctx context.Context, request localDevelopmentLaunchRequest) (localDevelopmentLaunchTicket, error) {
 	if store == nil || store.db == nil || request.AuthorizationID == (protectedlocal.Identifier{}) || request.SupervisorRunID == (protectedlocal.Identifier{}) ||
 		request.ShellKind != request.Project.ShellKind || validateLocalDevelopmentProject(request.Project) != nil ||
-		!validLocalDevelopmentHostPath(request.Project.ProjectRoot, request.HostExecutable) || !validLocalDevelopmentRendererOrigin(request.RendererOrigin) {
+		!validLocalDevelopmentHostPath(request.Project.ProjectRoot, request.HostExecutable, request.ShellKind) || !validLocalDevelopmentRendererOrigin(request.RendererOrigin) {
 		return localDevelopmentLaunchTicket{}, errLocalDevelopmentInvalid
 	}
 	store.mu.Lock()
@@ -431,9 +431,26 @@ func (store *localDevelopmentStore) RevokeLaunch(ctx context.Context, launchID p
 	return err
 }
 
-func validLocalDevelopmentHostPath(projectRoot string, hostExecutable string) bool {
+func validLocalDevelopmentHostPath(projectRoot string, hostExecutable string, shellKind runtimev1.LocalDevelopmentShellKind) bool {
+	root := filepath.Clean(strings.TrimSpace(projectRoot))
 	host := filepath.Clean(strings.TrimSpace(hostExecutable))
-	return filepath.IsAbs(host) && host == strings.TrimSpace(hostExecutable) && pathWithinLocalDevelopmentRoot(projectRoot, host)
+	if !filepath.IsAbs(root) || !filepath.IsAbs(host) || root != strings.TrimSpace(projectRoot) || host != strings.TrimSpace(hostExecutable) {
+		return false
+	}
+	switch shellKind {
+	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON:
+		alias := filepath.Join(root, "node_modules", "electron", "dist", "electron.exe")
+		canonicalAlias, err := canonicalLocalDevelopmentFilePath(alias)
+		if err != nil {
+			return false
+		}
+		_, err = validateCanonicalLocalDevelopmentHostExecutable(root, host, canonicalAlias, shellKind)
+		return err == nil
+	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI:
+		return pathWithinLocalDevelopmentRoot(root, host)
+	default:
+		return false
+	}
 }
 
 func localDevelopmentExecutablePathsEqual(expected string, actual string) bool {
