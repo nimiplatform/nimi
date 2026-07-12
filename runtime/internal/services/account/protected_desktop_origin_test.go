@@ -86,3 +86,40 @@ func TestDesktopAccountHostRequiresProtectedDesktopOrigin(t *testing.T) {
 		t.Fatalf("metadata/session envelope must not establish Desktop account origin: ok=%v reason=%v", ok, reason)
 	}
 }
+
+func TestProtectedDesktopAccountStatusDoesNotDependOnGenericAppRegistry(t *testing.T) {
+	custody := &memoryCustody{
+		material: testMaterial("acct-protected-desktop", "access-protected-desktop", "refresh-protected-desktop"),
+		has:      true,
+	}
+	svc := newProductionHarnessService(t, custody)
+	svc.registry = nil
+	caller := desktopAccountControlCaller()
+	caller.AppInstanceId = "nimi.desktop.local-first-party"
+	caller.DeviceId = "desktop-shell"
+
+	status, err := svc.GetAccountSessionStatus(
+		protectedDesktopAccountContext(t),
+		&runtimev1.GetAccountSessionStatusRequest{Caller: caller},
+	)
+	if err != nil {
+		t.Fatalf("GetAccountSessionStatus: %v", err)
+	}
+	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
+		status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED ||
+		status.GetAccountProjection().GetAccountId() != "acct-protected-desktop" {
+		t.Fatalf("protected Desktop account status rejected without generic registry: %+v", status)
+	}
+
+	rejected, err := svc.GetAccountSessionStatus(
+		context.Background(),
+		&runtimev1.GetAccountSessionStatusRequest{Caller: caller},
+	)
+	if err != nil {
+		t.Fatalf("GetAccountSessionStatus without protected origin: %v", err)
+	}
+	if rejected.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
+		rejected.GetAccountProjection() != nil {
+		t.Fatalf("unprotected Desktop account status must remain rejected: %+v", rejected)
+	}
+}

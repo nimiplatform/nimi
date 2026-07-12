@@ -20,7 +20,7 @@ func (s *Service) GetAccountSessionStatus(ctx context.Context, req *runtimev1.Ge
 			ProductionInert:   true,
 		}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false); !ok {
+	if reason, ok := s.validateProtectedDesktopAccountStatusCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.GetAccountSessionStatusResponse{
 			State:             s.currentState(),
 			ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,

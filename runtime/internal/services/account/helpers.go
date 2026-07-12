@@ -71,6 +71,17 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 }
 
+func (s *Service) validateProtectedDesktopAccountStatusCaller(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
+	if caller.GetMode() != runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL {
+		return s.validateRuntimeAdmittedCaller(ctx, caller, false)
+	}
+	reason, ok := validateProductionCaller(caller, false)
+	if !ok {
+		return reason, false
+	}
+	return s.validateDesktopAccountHost(ctx, caller)
+}
+
 func (s *Service) validateRuntimeAccountControlCaller(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
 	reason, ok := validateProductionCaller(caller, false)
 	if !ok {
