@@ -60,9 +60,11 @@ function Invoke-ServiceControl {
     [Parameter(Mandatory = $true)]
     [string] $FailureMessage
   )
-  & sc.exe @Arguments | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    throw $FailureMessage
+  $output = (& sc.exe @Arguments 2>&1 | Out-String).Trim()
+  $exitCode = $LASTEXITCODE
+  if ($exitCode -ne 0) {
+    $detail = if ([string]::IsNullOrWhiteSpace($output)) { '' } else { "`n$output" }
+    throw "$FailureMessage (sc.exe exit $exitCode)$detail"
   }
 }
 

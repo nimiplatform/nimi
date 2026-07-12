@@ -18,6 +18,8 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /sidtype[\s\S]*restricted/i);
   assert.match(installer, /NT SERVICE\\NimiRuntimeE2E/);
   assert.match(installer, /ProgramData[\s\S]*Nimi[\s\S]*Runtime[\s\S]*E2E/);
+  assert.match(installer, /sc\.exe @Arguments 2>&1/);
+  assert.match(installer, /sc\.exe exit \$exitCode/);
   assert.doesNotMatch(installer, /sc(?:\.exe)?\s+(?:delete|stop)\s+NimiRuntime(?:\s|$)/i);
 });
 
