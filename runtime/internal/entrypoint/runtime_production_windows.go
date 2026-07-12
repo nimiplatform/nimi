@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/daemon"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -34,6 +35,20 @@ func runProductionDaemon(version string) error {
 type windowsRuntimeService struct {
 	version string
 }
+
+type windowsRuntimeEmergencyStopper interface {
+	EmergencyStopSupervisedEngines()
+}
+
+type windowsRuntimeServiceCloser interface {
+	Close() error
+}
+
+const (
+	windowsRuntimeServiceStopTimeout        = 25 * time.Second
+	windowsRuntimeServiceStopCheckpointTick = 2 * time.Second
+	windowsRuntimeServiceStopTimeoutCode    = 0xA5F0
+)
 
 type windowsRuntimeStartupStage uint32
 
@@ -99,8 +114,6 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 	if err != nil {
 		return true, windowsStartupExitCode(err)
 	}
-	defer desktopListener.Close()
-	defer installedListener.Close()
 
 	done := make(chan error, 1)
 	go func() { done <- runtimeDaemon.RunProtectedWithInstalled(ctx, desktopListener, installedListener) }()
@@ -113,12 +126,9 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			case svc.Interrogate:
 				statuses <- request.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				statuses <- svc.Status{State: svc.StopPending}
-				cancel()
-				if err := <-done; err != nil {
-					return false, 1
-				}
-				return false, 0
+				statuses <- windowsRuntimeStopPendingStatus(1, windowsRuntimeServiceStopTimeout)
+				initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, installedListener, desktopListener)
+				return waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
 			}
 		case err := <-done:
 			if err != nil {
@@ -127,6 +137,53 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			return false, 0
 		}
 	}
+}
+
+func initiateWindowsRuntimeServiceStop(cancel context.CancelFunc, runtime windowsRuntimeEmergencyStopper, closers ...windowsRuntimeServiceCloser) {
+	if cancel != nil {
+		cancel()
+	}
+	if runtime != nil {
+		runtime.EmergencyStopSupervisedEngines()
+	}
+	for _, closer := range closers {
+		if closer != nil {
+			_ = closer.Close()
+		}
+	}
+}
+
+func waitForWindowsRuntimeServiceStop(done <-chan error, statuses chan<- svc.Status, timeout, checkpointTick time.Duration) (bool, uint32) {
+	if timeout <= 0 || checkpointTick <= 0 || checkpointTick >= timeout {
+		return true, windowsRuntimeServiceStopTimeoutCode
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	ticker := time.NewTicker(checkpointTick)
+	defer ticker.Stop()
+	checkpoint := uint32(1)
+	for {
+		select {
+		case err := <-done:
+			if err != nil {
+				return false, 1
+			}
+			return false, 0
+		case <-ticker.C:
+			checkpoint++
+			statuses <- windowsRuntimeStopPendingStatus(checkpoint, timeout)
+		case <-timer.C:
+			return true, windowsRuntimeServiceStopTimeoutCode
+		}
+	}
+}
+
+func windowsRuntimeStopPendingStatus(checkpoint uint32, timeout time.Duration) svc.Status {
+	waitHint := timeout.Milliseconds()
+	if waitHint <= 0 || waitHint > int64(^uint32(0)) {
+		waitHint = int64(^uint32(0))
+	}
+	return svc.Status{State: svc.StopPending, CheckPoint: checkpoint, WaitHint: uint32(waitHint)}
 }
 
 func (service *windowsRuntimeService) open(ctx context.Context) (*daemon.Daemon, net.Listener, net.Listener, error) {

@@ -30,6 +30,7 @@ $DiagnosticsRoot = Join-Path $env:ProgramData $(if ($VirtualAccount) { 'Nimi\Run
 $PeerRejectionPath = Join-Path $DiagnosticsRoot 'last-peer-rejection.json'
 $DesktopPipeName = if ($VirtualAccount) { 'nimi-runtime-e2e-virtual-protected-v1' } else { 'nimi-runtime-e2e-protected-v1' }
 $InstalledPipeName = if ($VirtualAccount) { 'nimi-runtime-e2e-virtual-installed-v1' } else { 'nimi-runtime-e2e-installed-v1' }
+$script:ForcedStaleStopRecovery = $false
 $RuntimeStartupStages = @{
   42240 = 'unclassified'
   42241 = 'principal'
@@ -43,6 +44,7 @@ $RuntimeStartupStages = @{
   42249 = 'fixture-custody'
   42250 = 'configuration'
   42251 = 'daemon'
+  42480 = 'shutdown-timeout'
   42497 = 'principal-input'
   42498 = 'principal-scm-open'
   42499 = 'principal-service-name'
@@ -64,7 +66,7 @@ $RuntimeStartupStages = @{
   42515 = 'principal-primary-token'
   42516 = 'principal-session-zero'
   42517 = 'principal-restricted-token'
-  42518 = 'principal-service-sid-group'
+  42518 = 'principal-service-sid-token-authority'
   42519 = 'principal-restricted-sid-list'
   42520 = 'principal-service-logon-group'
   42521 = 'principal-interactive-group'
@@ -96,6 +98,7 @@ $RuntimeStartupStages = @{
   42776 = 'process-liveness-query'
   42777 = 'process-liveness-state'
   42778 = 'process-tuple'
+  42779 = 'process-open-access-denied'
   43009 = 'security-context'
   43010 = 'security-principal-capability'
   43011 = 'security-process-capability'
@@ -362,6 +365,98 @@ function Get-ServiceFailureDetail {
   return "runtimeStartupStage=$stage ($stageCode)`n$query"
 }
 
+function Assert-GracefulFixtureStop {
+  $query = (& sc.exe queryex $ServiceName 2>&1 | Out-String).Trim()
+  $win32Match = [regex]::Match($query, 'WIN32_EXIT_CODE\s*:\s*(\d+)')
+  $serviceMatch = [regex]::Match($query, 'SERVICE_EXIT_CODE\s*:\s*(\d+)')
+  $win32Code = if ($win32Match.Success) { [uint32] $win32Match.Groups[1].Value } else { [uint32] 1 }
+  $serviceCode = if ($serviceMatch.Success) { [uint32] $serviceMatch.Groups[1].Value } else { [uint32] 1 }
+  if ($win32Code -ne 0 -or $serviceCode -ne 0) {
+    $stageKey = [int] $serviceCode
+    $stage = if ($RuntimeStartupStages.ContainsKey($stageKey)) { $RuntimeStartupStages[$stageKey] } else { 'unknown' }
+    throw "$ServiceName did not stop gracefully (win32=$win32Code service=$serviceCode stage=$stage).`n$query"
+  }
+}
+
+function Recover-StaleFixtureStop {
+  $record = Get-ServiceRecord
+  $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  $expectedBinaryPath = "`"$InstalledBinary`" serve"
+  if ($null -eq $record -or $null -eq $service -or [string] $service.Status -ne 'StopPending' -or
+      [uint32] $record.ProcessId -eq 0 -or $record.PathName -ne $expectedBinaryPath) {
+    throw "Refusing forced recovery because $ServiceName is not the exact stale E2E fixture process.`n$(Get-ServiceFailureDetail)"
+  }
+  $processId = [uint32] $record.ProcessId
+  try {
+    Stop-Process -Id $processId -Force -ErrorAction Stop
+  } catch {
+    throw "Forced recovery failed for stale $ServiceName process $processId`: $($_.Exception.Message)"
+  }
+  Wait-ServiceState -Expected 'Stopped'
+  $script:ForcedStaleStopRecovery = $true
+}
+
+function Wait-FixtureProcessExit {
+  param([uint32] $ProcessId)
+  if ($ProcessId -eq 0) { return }
+  $deadline = (Get-Date).AddSeconds(15)
+  while ((Get-Date) -lt $deadline) {
+    if ($null -eq (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) { return }
+    Start-Sleep -Milliseconds 100
+  }
+  throw "$ServiceName process $ProcessId remained alive after SCM reported Stopped."
+}
+
+function Wait-FixtureBinaryReplaceable {
+  if (-not (Test-Path -LiteralPath $InstalledBinary -PathType Leaf)) { return }
+  $deadline = (Get-Date).AddSeconds(15)
+  $lastError = $null
+  while ((Get-Date) -lt $deadline) {
+    $stream = $null
+    try {
+      $stream = [IO.File]::Open(
+        $InstalledBinary,
+        [IO.FileMode]::Open,
+        [IO.FileAccess]::ReadWrite,
+        [IO.FileShare]::None
+      )
+      return
+    } catch [IO.IOException] {
+      $lastError = $_.Exception.Message
+      Start-Sleep -Milliseconds 100
+    } finally {
+      if ($null -ne $stream) { $stream.Dispose() }
+    }
+  }
+  throw "$ServiceName executable did not become exclusively replaceable after process exit: $lastError"
+}
+
+function Stop-FixtureForUpdate {
+	$record = Get-ServiceRecord
+	$processId = if ($null -eq $record) { [uint32] 0 } else { [uint32] $record.ProcessId }
+  $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  if ($null -ne $service -and [string] $service.Status -ne 'Stopped') {
+    if ([string] $service.Status -eq 'StopPending') {
+      Start-Sleep -Seconds 2
+      $observed = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+      if ($null -ne $observed -and [string] $observed.Status -eq 'StopPending') {
+        Recover-StaleFixtureStop
+      }
+    } else {
+      Invoke-ServiceControl -Arguments @('stop', $ServiceName) -FailureMessage "SCM failed to stop $ServiceName."
+      try {
+        Wait-ServiceState -Expected 'Stopped'
+      } catch {
+        $observed = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+        if ($null -eq $observed -or [string] $observed.Status -ne 'StopPending') { throw }
+        Recover-StaleFixtureStop
+      }
+    }
+  }
+	Wait-FixtureProcessExit -ProcessId $processId
+	Wait-FixtureBinaryReplaceable
+}
+
 function Import-FixtureSignerForService {
   param([Parameter(Mandatory = $true)] $Certificate)
   $temp = Join-Path ([IO.Path]::GetTempPath()) "nimi-e2e-signer-$($Certificate.Thumbprint).cer"
@@ -467,8 +562,10 @@ function Invoke-ProtectedPeerProbe {
   } catch {
     throw "Protected native peer probe returned invalid JSON: $output"
   }
-  if ($result.status -ne 'connected' -or -not [bool] $result.serverSettings) {
-    throw "Protected native peer probe did not reach verified gRPC transport for $ServiceName."
+  if ($result.status -ne 'connected' -or -not [bool] $result.serverVerified -or
+      [uint32] $result.serverProcessId -eq 0 -or [string]::IsNullOrWhiteSpace([string] $result.serverTrustSetId) -or
+      -not [bool] $result.serverSettings) {
+    throw "Protected native peer probe did not complete mutual Runtime/process verification and gRPC transport for $ServiceName."
   }
   return $result
 }
@@ -494,11 +591,7 @@ function Install-Fixture {
 
   $existing = Get-ServiceRecord
   if ($null -ne $existing) {
-    $service = Get-Service -Name $ServiceName
-    if ($service.Status -ne 'Stopped') {
-      Invoke-ServiceControl -Arguments @('stop', $ServiceName) -FailureMessage "SCM failed to stop $ServiceName."
-      Wait-ServiceState -Expected 'Stopped'
-    }
+    Stop-FixtureForUpdate
   }
   Copy-Item -LiteralPath $source -Destination $InstalledBinary -Force
   [void] (Assert-FixtureSignature -Path $InstalledBinary)
@@ -522,8 +615,12 @@ function Install-Fixture {
   Wait-ServiceState -Expected 'Running'
   Wait-ProtectedPipes
   [void] (Invoke-ProtectedPeerProbe)
+	$restartRecord = Get-ServiceRecord
+	$restartProcessId = if ($null -eq $restartRecord) { [uint32] 0 } else { [uint32] $restartRecord.ProcessId }
   Invoke-ServiceControl -Arguments @('stop', $ServiceName) -FailureMessage "SCM failed to stop $ServiceName for custody restart verification."
   Wait-ServiceState -Expected 'Stopped'
+  Assert-GracefulFixtureStop
+	Wait-FixtureProcessExit -ProcessId $restartProcessId
   Invoke-ServiceControl -Arguments @('start', $ServiceName) -FailureMessage "SCM failed to restart $ServiceName for custody verification."
   Wait-ServiceState -Expected 'Running'
   Wait-ProtectedPipes
@@ -534,6 +631,7 @@ function Install-Fixture {
   $status['custodyRestartVerified'] = $true
   $status['stateAclConfiguredByInstaller'] = $true
   $status['stateAclRuntimeReadbackVerified'] = $true
+  $status['forcedStaleStopRecovery'] = [bool] $script:ForcedStaleStopRecovery
   if ($status.serviceSid -ne $ExpectedServiceSid -or
       -not $status.restrictedSid -or
       -not $status.binaryPathMatches -or
@@ -561,11 +659,7 @@ function Uninstall-Fixture {
   }
   $existing = Get-ServiceRecord
   if ($null -ne $existing) {
-    $service = Get-Service -Name $ServiceName
-    if ($service.Status -ne 'Stopped') {
-      Invoke-ServiceControl -Arguments @('stop', $ServiceName) -FailureMessage "SCM failed to stop $ServiceName."
-      Wait-ServiceState -Expected 'Stopped'
-    }
+    Stop-FixtureForUpdate
     Invoke-ServiceControl -Arguments @('delete', $ServiceName) -FailureMessage "SCM failed to delete $ServiceName."
     Wait-ServiceAbsent
   }

@@ -46,16 +46,32 @@ func TestWindowsPrincipalSnapshotRequiresExactRestrictedNonInteractiveService(t 
 			snapshot.TokenRestricted = false
 		}},
 		"service SID missing from groups": {stage: WindowsPrincipalStageServiceSIDGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
-			snapshot.Groups = snapshot.Groups[1:]
+			filtered := snapshot.Groups[:0]
+			for _, group := range snapshot.Groups {
+				if group.SID != mustActiveWindowsRuntimeProfile().serviceSID {
+					filtered = append(filtered, group)
+				}
+			}
+			snapshot.Groups = filtered
 		}},
 		"service SID deny only": {stage: WindowsPrincipalStageServiceSIDGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
-			snapshot.Groups[0].Attributes = windowsGroupUseForDenyOnly
+			for index := range snapshot.Groups {
+				if snapshot.Groups[index].SID == mustActiveWindowsRuntimeProfile().serviceSID {
+					snapshot.Groups[index].Attributes = windowsGroupUseForDenyOnly
+				}
+			}
 		}},
 		"service SID missing from restrictions": {stage: WindowsPrincipalStageRestrictedSIDList, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.RestrictedSIDs = nil
 		}},
 		"service logon SID missing": {stage: WindowsPrincipalStageServiceLogonGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
-			snapshot.Groups = snapshot.Groups[:1]
+			filtered := snapshot.Groups[:0]
+			for _, group := range snapshot.Groups {
+				if group.SID != windowsServiceLogonSID {
+					filtered = append(filtered, group)
+				}
+			}
+			snapshot.Groups = filtered
 		}},
 		"interactive group present": {stage: WindowsPrincipalStageInteractiveGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.Groups = append(snapshot.Groups, windowsSIDAttributes{SID: windowsInteractiveLogonSID, Attributes: windowsGroupEnabled})
@@ -63,6 +79,10 @@ func TestWindowsPrincipalSnapshotRequiresExactRestrictedNonInteractiveService(t 
 		"remote interactive group present": {stage: WindowsPrincipalStageInteractiveGroup, mutate: func(snapshot *windowsPrincipalSnapshot) {
 			snapshot.Groups = append(snapshot.Groups, windowsSIDAttributes{SID: windowsRemoteInteractiveLogonSID, Attributes: windowsGroupEnabled})
 		}},
+	}
+	if profile := mustActiveWindowsRuntimeProfile(); profile.serviceHostSID == profile.serviceSID {
+		delete(tests, "service SID missing from groups")
+		delete(tests, "service SID deny only")
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -140,6 +160,10 @@ func TestWindowsLogicalSecretNamesAreNotPaths(t *testing.T) {
 func validWindowsPrincipalSnapshot() windowsPrincipalSnapshot {
 	profile := mustActiveWindowsRuntimeProfile()
 	serviceSID := profile.serviceSID
+	groups := []windowsSIDAttributes{{SID: windowsServiceLogonSID, Attributes: windowsGroupEnabled}}
+	if profile.serviceHostSID != serviceSID {
+		groups = append([]windowsSIDAttributes{{SID: serviceSID, Attributes: windowsGroupEnabled}}, groups...)
+	}
 	return windowsPrincipalSnapshot{
 		ResolvedServiceSID: serviceSID,
 		ServiceStartName:   profile.serviceHostAccount,
@@ -148,10 +172,7 @@ func validWindowsPrincipalSnapshot() windowsPrincipalSnapshot {
 		TokenType:          windowsTokenPrimary,
 		TokenRestricted:    true,
 		ServiceSIDType:     windowsServiceSIDTypeRestricted,
-		Groups: []windowsSIDAttributes{
-			{SID: serviceSID, Attributes: windowsGroupEnabled},
-			{SID: windowsServiceLogonSID, Attributes: windowsGroupEnabled},
-		},
+		Groups:             groups,
 		RestrictedSIDs: []windowsSIDAttributes{
 			{SID: serviceSID},
 		},

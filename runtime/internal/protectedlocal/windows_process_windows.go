@@ -76,6 +76,7 @@ const (
 	WindowsProcessTrustStageLivenessQuery
 	WindowsProcessTrustStageLivenessState
 	WindowsProcessTrustStageTuple
+	WindowsProcessTrustStageProcessOpenAccessDenied
 )
 
 type windowsProcessTrustStageError struct {
@@ -95,7 +96,7 @@ func windowsProcessTrustStageFailure(stage WindowsProcessTrustFailureStage, caus
 
 func WindowsProcessTrustStageFromError(err error) (WindowsProcessTrustFailureStage, bool) {
 	var failure *windowsProcessTrustStageError
-	if !errors.As(err, &failure) || failure.stage < WindowsProcessTrustStagePrincipalRevalidation || failure.stage > WindowsProcessTrustStageTuple {
+	if !errors.As(err, &failure) || failure.stage < WindowsProcessTrustStagePrincipalRevalidation || failure.stage > WindowsProcessTrustStageProcessOpenAccessDenied {
 		return 0, false
 	}
 	return failure.stage, true
@@ -153,12 +154,13 @@ func VerifyWindowsProductionRuntimeProcess(ctx context.Context, principal Window
 		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageIsolationHarden, err)
 	}
 	pid := uint32(os.Getpid())
-	process, err := windows.OpenProcess(windowsRuntimeProcessVerificationAccess, false, pid)
-	if err != nil {
-		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageProcessOpen, principalFailure("open Runtime service process", err))
-	}
-	defer windows.CloseHandle(process)
-	return verifyWindowsRuntimeProcessHandle(ctx, pid, process, principal, verifier)
+	// The service validates its own already-open kernel object through the
+	// documented current-process pseudo handle. Reopening the same process by
+	// PID would subject the restricted virtual-account token to a new DACL
+	// access check even though no external peer authority is being established.
+	// External Desktop peers still must OpenProcess the pipe server below, so
+	// the read-only mutual-verification DACL is exercised by the real caller.
+	return verifyWindowsRuntimeProcessHandle(ctx, pid, windows.CurrentProcess(), principal, verifier)
 }
 
 // VerifyWindowsProductionPipeServer is the Desktop/client-side half of mutual
@@ -179,7 +181,7 @@ func VerifyWindowsProductionPipeServer(ctx context.Context, clientPipeHandle uin
 	}
 	process, err := windows.OpenProcess(windowsRuntimeProcessVerificationAccess, false, serverPID)
 	if err != nil {
-		return WindowsRuntimeProcess{}, principalFailure("open Windows pipe server process", err)
+		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(windowsProcessOpenFailureStage(err), principalFailure("open Windows pipe server process", err))
 	}
 	defer windows.CloseHandle(process)
 	principal, err := validateWindowsProductionServiceProcess(ctx, serverPID, process, false)
@@ -187,6 +189,13 @@ func VerifyWindowsProductionPipeServer(ctx context.Context, clientPipeHandle uin
 		return WindowsRuntimeProcess{}, err
 	}
 	return verifyWindowsRuntimeProcessHandle(ctx, serverPID, process, principal, verifier)
+}
+
+func windowsProcessOpenFailureStage(err error) WindowsProcessTrustFailureStage {
+	if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+		return WindowsProcessTrustStageProcessOpenAccessDenied
+	}
+	return WindowsProcessTrustStageProcessOpen
 }
 
 func verifyWindowsRuntimeProcessHandle(ctx context.Context, pid uint32, process windows.Handle, principal WindowsServicePrincipal, verifier WindowsExecutableTrustVerifier) (WindowsRuntimeProcess, error) {

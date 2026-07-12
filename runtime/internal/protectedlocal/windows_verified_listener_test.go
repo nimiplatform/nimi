@@ -5,6 +5,7 @@ package protectedlocal
 import (
 	"context"
 	cryptorand "crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
 )
 
 func TestWindowsVerifiedDesktopListenerBindsAuthenticatedPipeAndReopens(t *testing.T) {
@@ -162,12 +164,21 @@ func windowsVerifiedListenerTestIdentifier(value byte) Identifier {
 func dialWindowsVerifiedListenerPipe(t *testing.T, pipeName string) net.Conn {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	t.Cleanup(cancel)
-	connection, err := winio.DialPipeAccess(ctx, pipeName, uint32(windowsPipeClientAccess))
-	if err != nil {
-		t.Fatalf("dial verified listener pipe: %v", err)
+	defer cancel()
+	for {
+		connection, err := winio.DialPipeAccess(ctx, pipeName, uint32(windowsPipeClientAccess))
+		if err == nil {
+			return connection
+		}
+		if !errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
+			t.Fatalf("dial verified listener pipe: %v", err)
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("dial verified listener pipe: %v", err)
+		case <-time.After(10 * time.Millisecond):
+		}
 	}
-	return connection
 }
 
 func acceptWindowsVerifiedListener(t *testing.T, listener net.Listener) <-chan struct {

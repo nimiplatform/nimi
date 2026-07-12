@@ -30,6 +30,7 @@ if (process.platform !== 'win32' || process.arch !== 'x64') {
 const identity = requireWindowsDevSigningIdentity({ cwd: repoRoot });
 mkdirSync(outputRoot, { recursive: true });
 mkdirSync(peerProbeRoot, { recursive: true });
+const buildTags = virtualAccount ? 'nimi_runtime_e2e,nimi_runtime_e2e_virtual' : 'nimi_runtime_e2e';
 const ldflags = [
   `-X=${signerVariable}=${identity.certificateSha256}`,
   '-X=main.Version=0.1.0-windows-e2e',
@@ -40,7 +41,7 @@ const build = spawnSync(
     'build',
     '-trimpath',
     '-tags',
-    virtualAccount ? 'nimi_runtime_e2e,nimi_runtime_e2e_virtual' : 'nimi_runtime_e2e',
+    buildTags,
     '-ldflags',
     ldflags,
     '-o',
@@ -66,6 +67,10 @@ const peerBuild = spawnSync(
   [
     'build',
     '-trimpath',
+    '-tags',
+    buildTags,
+    '-ldflags',
+    `-X=${signerVariable}=${identity.certificateSha256}`,
     '-o',
     peerProbePath,
     './cmd/windows-protected-peer-probe',

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"golang.org/x/sys/windows"
 )
 
@@ -32,9 +33,12 @@ var http2ClientPrefaceAndSettings = []byte(
 )
 
 type probeResult struct {
-	Status         string `json:"status"`
-	Pipe           string `json:"pipe"`
-	ServerSettings bool   `json:"serverSettings"`
+	Status           string `json:"status"`
+	Pipe             string `json:"pipe"`
+	ServerVerified   bool   `json:"serverVerified"`
+	ServerProcessID  uint32 `json:"serverProcessId"`
+	ServerTrustSetID string `json:"serverTrustSetId"`
+	ServerSettings   bool   `json:"serverSettings"`
 }
 
 func main() {
@@ -52,6 +56,22 @@ func main() {
 		fail(fmt.Errorf("connect protected pipe: %w", err))
 	}
 	defer connection.Close()
+	handleProvider, ok := connection.(interface{ Fd() uintptr })
+	if !ok || handleProvider.Fd() == 0 {
+		fail(fmt.Errorf("connected pipe does not expose its exact native handle"))
+	}
+	verifier, err := protectedlocal.NewWindowsNativeExecutableTrustVerifier()
+	if err != nil {
+		fail(fmt.Errorf("create Runtime native verifier: %w", err))
+	}
+	server, err := protectedlocal.VerifyWindowsProductionPipeServer(ctx, handleProvider.Fd(), verifier)
+	if err != nil {
+		if code, present := protectedlocal.WindowsProcessTrustStartupExitCode(err); present {
+			fail(fmt.Errorf("verify Runtime native server: windows_process_trust:%d", code))
+		}
+		fail(fmt.Errorf("verify Runtime native server: %w", err))
+	}
+	serverTuple := server.ProcessTuple()
 	if err := connection.SetDeadline(time.Now().Add(*timeout)); err != nil {
 		fail(fmt.Errorf("set protected pipe deadline: %w", err))
 	}
@@ -83,7 +103,14 @@ func main() {
 	if !serverSettings {
 		fail(fmt.Errorf("verified Runtime did not return HTTP/2 SETTINGS"))
 	}
-	if err := json.NewEncoder(os.Stdout).Encode(probeResult{Status: "connected", Pipe: *pipeName, ServerSettings: true}); err != nil {
+	if err := json.NewEncoder(os.Stdout).Encode(probeResult{
+		Status:           "connected",
+		Pipe:             *pipeName,
+		ServerVerified:   true,
+		ServerProcessID:  serverTuple.PID,
+		ServerTrustSetID: serverTuple.ExecutableTrustSetID,
+		ServerSettings:   true,
+	}); err != nil {
 		fail(fmt.Errorf("encode probe result: %w", err))
 	}
 }

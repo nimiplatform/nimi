@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
@@ -110,7 +111,7 @@ func TestWindowsServiceOnlyFileACLValidationRejectsAdditionalPrincipal(t *testin
 	}
 }
 
-func TestWindowsRuntimeProcessDACLNamesExactServiceAndDeniesInteractiveAccess(t *testing.T) {
+func TestWindowsRuntimeProcessDACLNamesExactServiceAndLimitsInteractiveAccessToVerification(t *testing.T) {
 	serviceSID, err := windows.StringToSid(mustActiveWindowsRuntimeProfile().serviceSID)
 	if err != nil {
 		t.Fatal(err)
@@ -147,6 +148,29 @@ func TestWindowsRuntimeProcessDACLNamesExactServiceAndDeniesInteractiveAccess(t 
 		t.Fatalf("incomplete process DACL error = %v", err)
 	}
 
+	widenedInteractive, err := buildWindowsRuntimeProcessACL(serviceSID, interactiveSID, remoteInteractiveSID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var interactiveACE *windows.ACCESS_ALLOWED_ACE
+	for index := uint32(0); index < uint32(widenedInteractive.AceCount); index++ {
+		var ace *windows.ACCESS_ALLOWED_ACE
+		if err := windows.GetAce(widenedInteractive, index, &ace); err != nil {
+			t.Fatal(err)
+		}
+		if ace.Header.AceType == windows.ACCESS_ALLOWED_ACE_TYPE && (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String() == windowsInteractiveLogonSID {
+			interactiveACE = ace
+			break
+		}
+	}
+	if interactiveACE == nil {
+		t.Fatal("built process DACL omitted interactive verification ACE")
+	}
+	interactiveACE.Mask |= windows.PROCESS_VM_READ
+	if err := validateWindowsProcessDACL(widenedInteractive); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
+		t.Fatalf("widened interactive verification error = %v", err)
+	}
+
 	everyoneSID, err := windows.StringToSid("S-1-1-0")
 	if err != nil {
 		t.Fatal(err)
@@ -177,6 +201,15 @@ func TestWindowsRuntimeProcessDACLNamesExactServiceAndDeniesInteractiveAccess(t 
 				TrusteeForm:  windows.TRUSTEE_IS_SID,
 				TrusteeType:  windows.TRUSTEE_IS_USER,
 				TrusteeValue: windows.TrusteeValueFromSID(serviceSID),
+			},
+		},
+		{
+			AccessPermissions: windowsRuntimeProcessVerificationAccess,
+			AccessMode:        windows.SET_ACCESS,
+			Trustee: windows.TRUSTEE{
+				TrusteeForm:  windows.TRUSTEE_IS_SID,
+				TrusteeType:  windows.TRUSTEE_IS_WELL_KNOWN_GROUP,
+				TrusteeValue: windows.TrusteeValueFromSID(interactiveSID),
 			},
 		},
 		{

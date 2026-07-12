@@ -42,6 +42,7 @@ func TestWindowsProcessTrustStartupExitCodesAreStableAndUnique(t *testing.T) {
 		WindowsProcessTrustStageLivenessQuery,
 		WindowsProcessTrustStageLivenessState,
 		WindowsProcessTrustStageTuple,
+		WindowsProcessTrustStageProcessOpenAccessDenied,
 	}
 	seen := make(map[uint32]struct{}, len(stages))
 	for _, stage := range stages {
@@ -58,6 +59,15 @@ func TestWindowsProcessTrustStartupExitCodesAreStableAndUnique(t *testing.T) {
 			t.Fatalf("duplicate process trust exit code %x", code)
 		}
 		seen[code] = struct{}{}
+	}
+}
+
+func TestWindowsRuntimeProcessOpenProjectsNativeAccessDenied(t *testing.T) {
+	if stage := windowsProcessOpenFailureStage(windows.ERROR_ACCESS_DENIED); stage != WindowsProcessTrustStageProcessOpenAccessDenied {
+		t.Fatalf("access-denied process-open stage = %v", stage)
+	}
+	if stage := windowsProcessOpenFailureStage(windows.ERROR_INVALID_PARAMETER); stage != WindowsProcessTrustStageProcessOpen {
+		t.Fatalf("generic process-open stage = %v", stage)
 	}
 }
 

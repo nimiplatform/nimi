@@ -198,8 +198,15 @@ func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (Window
 	if !snapshot.TokenRestricted {
 		return windowsPrincipalStageFailure(WindowsPrincipalStageRestrictedToken, "validate Windows Runtime principal: restricted process token required")
 	}
-	if !containsEnabledSID(snapshot.Groups, profile.serviceSID) {
-		return windowsPrincipalStageFailure(WindowsPrincipalStageServiceSIDGroup, "validate Windows Runtime principal: exact NimiRuntime service SID is not enabled")
+	if snapshot.TokenUserSID != profile.serviceHostSID {
+		return windowsPrincipalStageFailure(WindowsPrincipalStageTokenUser, "validate Windows Runtime principal: fixed service host token user mismatch")
+	}
+	serviceSIDCarriesTokenAuthority := containsEnabledSID(snapshot.Groups, profile.serviceSID)
+	if profile.serviceHostSID == profile.serviceSID {
+		serviceSIDCarriesTokenAuthority = snapshot.TokenUserSID == profile.serviceSID
+	}
+	if !serviceSIDCarriesTokenAuthority {
+		return windowsPrincipalStageFailure(WindowsPrincipalStageServiceSIDGroup, "validate Windows Runtime principal: exact NimiRuntime service SID is neither the virtual token user nor an enabled service group")
 	}
 	if !containsSID(snapshot.RestrictedSIDs, profile.serviceSID) {
 		return windowsPrincipalStageFailure(WindowsPrincipalStageRestrictedSIDList, "validate Windows Runtime principal: exact NimiRuntime service SID is absent from restricted SIDs")
@@ -209,9 +216,6 @@ func validateWindowsPrincipalSnapshot(snapshot windowsPrincipalSnapshot) (Window
 	}
 	if containsSID(snapshot.Groups, windowsInteractiveLogonSID) || containsSID(snapshot.Groups, windowsRemoteInteractiveLogonSID) {
 		return windowsPrincipalStageFailure(WindowsPrincipalStageInteractiveGroup, "validate Windows Runtime principal: interactive logon membership is forbidden")
-	}
-	if snapshot.TokenUserSID != profile.serviceHostSID {
-		return windowsPrincipalStageFailure(WindowsPrincipalStageTokenUser, "validate Windows Runtime principal: fixed service host token user mismatch")
 	}
 	return WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: snapshot.TokenUserSID}, nil
 }

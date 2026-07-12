@@ -159,12 +159,13 @@ func validateWindowsProcessDACL(dacl *windows.ACL) error {
 	if dacl == nil {
 		return principalFailure("validate Runtime process DACL entries", fmt.Errorf("DACL is absent"))
 	}
-	if dacl.AceCount != 3 {
-		return principalFailure("validate Runtime process DACL entries", fmt.Errorf("exact closed three-entry DACL required"))
+	if dacl.AceCount != 4 {
+		return principalFailure("validate Runtime process DACL entries", fmt.Errorf("exact closed four-entry DACL required"))
 	}
 	deniedInteractive := false
 	deniedRemoteInteractive := false
 	serviceAllowed := false
+	interactiveVerificationAllowed := false
 	for index := uint32(0); index < uint32(dacl.AceCount); index++ {
 		var ace *windows.ACCESS_ALLOWED_ACE
 		if err := windows.GetAce(dacl, index, &ace); err != nil {
@@ -191,16 +192,26 @@ func validateWindowsProcessDACL(dacl *windows.ACL) error {
 		case windows.ACCESS_ALLOWED_ACE_TYPE:
 			sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String()
 			mask := uint32(ace.Mask)
-			if sid != profile.serviceSID || (mask != windows.GENERIC_ALL && mask&windows.PROCESS_ALL_ACCESS != windows.PROCESS_ALL_ACCESS) {
-				return principalFailure("validate Runtime process DACL entry", fmt.Errorf("unexpected allowed principal or access mask"))
+			switch sid {
+			case profile.serviceSID:
+				if mask != windows.GENERIC_ALL && mask&windows.PROCESS_ALL_ACCESS != windows.PROCESS_ALL_ACCESS {
+					return principalFailure("validate Runtime process DACL entry", fmt.Errorf("service SID lacks full process authority"))
+				}
+				serviceAllowed = true
+			case windowsInteractiveLogonSID:
+				if mask != windowsRuntimeProcessVerificationAccess || mask&windowsSensitiveProcessAccess != 0 {
+					return principalFailure("validate Runtime process DACL entry", fmt.Errorf("interactive principal must receive only the fixed read-only verification mask"))
+				}
+				interactiveVerificationAllowed = true
+			default:
+				return principalFailure("validate Runtime process DACL entry", fmt.Errorf("unexpected allowed principal"))
 			}
-			serviceAllowed = true
 		default:
 			return principalFailure("validate Runtime process DACL entry", fmt.Errorf("unsupported ACE type"))
 		}
 	}
-	if !deniedInteractive || !deniedRemoteInteractive || !serviceAllowed {
-		return principalFailure("validate Runtime process DACL entries", fmt.Errorf("required service allow and interactive deny entries are absent"))
+	if !deniedInteractive || !deniedRemoteInteractive || !serviceAllowed || !interactiveVerificationAllowed {
+		return principalFailure("validate Runtime process DACL entries", fmt.Errorf("required service authority, interactive verification, and interactive deny entries are absent"))
 	}
 	return nil
 }
@@ -272,6 +283,15 @@ func buildWindowsRuntimeProcessACL(serviceSID, interactiveSID, remoteInteractive
 				TrusteeForm:  windows.TRUSTEE_IS_SID,
 				TrusteeType:  windows.TRUSTEE_IS_USER,
 				TrusteeValue: windows.TrusteeValueFromSID(serviceSID),
+			},
+		},
+		{
+			AccessPermissions: windowsRuntimeProcessVerificationAccess,
+			AccessMode:        windows.SET_ACCESS,
+			Trustee: windows.TRUSTEE{
+				TrusteeForm:  windows.TRUSTEE_IS_SID,
+				TrusteeType:  windows.TRUSTEE_IS_WELL_KNOWN_GROUP,
+				TrusteeValue: windows.TrusteeValueFromSID(interactiveSID),
 			},
 		},
 	}
