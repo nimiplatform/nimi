@@ -5,6 +5,8 @@ use nimi_shell_tauri::capabilities::runtime::{
     self as runtime_bridge, LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchRequest,
 };
 use notify::{RecursiveMode, Watcher};
+#[cfg(target_os = "windows")]
+use std::{ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf};
 use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 use tokio::{
     io::{AsyncBufReadExt, AsyncRead, BufReader},
@@ -598,8 +600,46 @@ async fn wait_or_cancel(
 }
 
 async fn terminate_child(child: &mut Child) {
+    #[cfg(target_os = "windows")]
+    if let Some(process_id) = child.id() {
+        if let Ok(taskkill) = system_taskkill_path() {
+            let tree_kill = Command::new(taskkill)
+                .args(["/pid", &process_id.to_string(), "/t", "/f"])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+            if tokio::time::timeout(Duration::from_secs(10), tree_kill)
+                .await
+                .is_ok_and(|result| result.is_ok_and(|status| status.success()))
+            {
+                let _ = child.wait().await;
+                return;
+            }
+        }
+    }
     let _ = child.kill().await;
     let _ = child.wait().await;
+}
+
+#[cfg(target_os = "windows")]
+fn system_taskkill_path() -> Result<PathBuf, String> {
+    let mut buffer = vec![0u16; 32_768];
+    // SAFETY: the writable buffer is valid for the supplied element count.
+    let length = unsafe {
+        windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW(
+            buffer.as_mut_ptr(),
+            buffer.len() as u32,
+        )
+    } as usize;
+    if length == 0 || length >= buffer.len() {
+        return Err("local-development-supervisor-required".to_string());
+    }
+    let path = PathBuf::from(OsString::from_wide(&buffer[..length])).join("taskkill.exe");
+    if !path.is_absolute() || !path.is_file() {
+        return Err("local-development-supervisor-required".to_string());
+    }
+    Ok(path)
 }
 
 #[cfg(test)]

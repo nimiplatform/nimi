@@ -58,4 +58,4 @@ objc2-app-kit = "0.3.2"
 keyring = { version = "3", features = ["apple-native"] }
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
