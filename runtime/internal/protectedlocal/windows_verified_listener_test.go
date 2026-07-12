@@ -13,15 +13,10 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
-	"golang.org/x/sys/windows"
 )
 
 func TestWindowsVerifiedDesktopListenerBindsAuthenticatedPipeAndReopens(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
-	if err != nil {
-		t.Fatalf("inspect current Desktop token: %v", err)
-	}
-	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-verified-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	initialPipe, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {

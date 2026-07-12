@@ -9,12 +9,49 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Microsoft/go-winio"
 	"golang.org/x/sys/windows"
 )
+
+func TestWindowsRestrictedServiceBootstrapResolvesActiveSessionWithoutUserToken(t *testing.T) {
+	profile := mustActiveWindowsRuntimeProfile()
+	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
+	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
+	if err != nil {
+		t.Fatalf("resolve active WTS identity: %v", err)
+	}
+	if err := identity.validate(); err != nil {
+		t.Fatalf("validate active WTS identity: %v", err)
+	}
+	if identity.tokenBound || identity.logonSID != "" || !strings.HasPrefix(identity.logonLUID, "wts:") {
+		t.Fatalf("active WTS identity unexpectedly retained token material: %#v", identity)
+	}
+	observed, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), &identity.sessionID)
+	if err != nil {
+		t.Fatalf("inspect current process token: %v", err)
+	}
+	if !identity.matchesObservedToken(observed) {
+		t.Fatalf("WTS bootstrap identity did not match the real active process token: bootstrap=%#v observed=%#v", identity, observed)
+	}
+	if err := revalidateWindowsActiveSessionIdentity(context.Background(), identity); err != nil {
+		t.Fatalf("revalidate active WTS identity: %v", err)
+	}
+	staleIdentity := identity
+	staleIdentity.logonLUID += "-stale"
+	staleIdentity.accountScope = fmt.Sprintf("windows:%s:%s", strings.ToLower(staleIdentity.userSID), staleIdentity.logonLUID)
+	if err := revalidateWindowsActiveSessionIdentity(context.Background(), staleIdentity); err == nil {
+		t.Fatal("stale WTS logon marker remained valid")
+	}
+	wrongSession := observed
+	wrongSession.sessionID++
+	if identity.matchesObservedToken(wrongSession) {
+		t.Fatal("WTS bootstrap identity admitted a token from another terminal session")
+	}
+}
 
 func TestWindowsNamedPipeBindsExactACLAndPeerProcessIDs(t *testing.T) {
 	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
@@ -96,7 +133,7 @@ func TestWindowsNamedPipeBindsExactACLAndPeerProcessIDs(t *testing.T) {
 	if _, err := VerifyWindowsProductionPipeServer(context.Background(), uintptr(client.handle), &capturingWindowsExecutableVerifier{trustSetID: mustActiveWindowsRuntimeProfile().runtimeTrustSetID}); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
 		t.Fatalf("interactive test server verification error = %v", err)
 	}
-	if err := validateWindowsDesktopPipeACL(instance.handle, identity.logonSID); err != nil {
+	if err := validateWindowsDesktopPipeACL(instance.handle, identity.userSID); err != nil {
 		t.Fatalf("validate exact pipe ACL: %v", err)
 	}
 }
@@ -110,7 +147,7 @@ func TestWindowsNamedPipeACLRejectsAdditionalPrincipal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logonSID, err := windows.StringToSid(identity.logonSID)
+	userSID, err := windows.StringToSid(identity.userSID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,13 +157,13 @@ func TestWindowsNamedPipeACLRejectsAdditionalPrincipal(t *testing.T) {
 	}
 	acl, err := windows.ACLFromEntries([]windows.EXPLICIT_ACCESS{
 		windowsPipeAccessEntry(serviceSID, windows.GENERIC_ALL),
-		windowsPipeAccessEntry(logonSID, windowsPipeClientAccess),
+		windowsPipeAccessEntry(userSID, windowsPipeClientAccess),
 		windowsPipeAccessEntry(everyoneSID, windows.GENERIC_ALL),
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := validateWindowsDesktopPipeDACL(acl, logonSID.String()); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
+	if err := validateWindowsDesktopPipeDACL(acl, userSID.String()); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
 		t.Fatalf("widened pipe DACL error = %v", err)
 	}
 }
@@ -160,11 +197,7 @@ func TestWindowsNamedPipeHandshakeDeadlineCancelsOverlappedConnect(t *testing.T)
 }
 
 func TestWindowsNamedPipeConnectedHandleTransfersOnceToDeadlineNetConn(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
-	if err != nil {
-		t.Fatalf("inspect current interactive token: %v", err)
-	}
-	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-stream-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	instance, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
@@ -255,6 +288,17 @@ func TestWindowsNamedPipeConnectedHandleTransfersOnceToDeadlineNetConn(t *testin
 	if err := stream.Close(); err != nil {
 		t.Fatalf("close server stream: %v", err)
 	}
+}
+
+func resolveWindowsDesktopTestBootstrap(t testing.TB) (WindowsDesktopIdentity, WindowsServicePrincipal) {
+	t.Helper()
+	profile := mustActiveWindowsRuntimeProfile()
+	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
+	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
+	if err != nil {
+		t.Fatalf("resolve active Windows Desktop bootstrap identity: %v", err)
+	}
+	return identity, principal
 }
 
 func TestWindowsNamedPipeNetConnRejectsReleasedVerifiedProcessWitness(t *testing.T) {

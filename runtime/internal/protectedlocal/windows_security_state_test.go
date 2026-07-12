@@ -61,7 +61,7 @@ func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t 
 	root := WindowsProtectedStateRoot{path: t.TempDir(), serviceSID: serviceSID}
 	principal := WindowsServicePrincipal{serviceSID: serviceSID, tokenUserSID: "S-1-5-18"}
 	secrets := &memoryBinarySecrets{values: map[string][]byte{}}
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
+	identity, err := ResolveWindowsActiveDesktopIdentity(ctx, principal)
 	if err != nil {
 		t.Fatal(err)
 	}

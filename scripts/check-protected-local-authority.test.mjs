@@ -25,6 +25,7 @@ const expectedCodes = [
   'RUNTIME_OS_PRINCIPAL_ISOLATION_REQUIRED',
   'USER_SCOPED_CUSTODY_FORBIDDEN',
   'WINDOWS_CUSTODY_PRINCIPAL_BINDING_REQUIRED',
+  'WINDOWS_RESTRICTED_PIPE_BOOTSTRAP_REQUIRED',
   'MUTUAL_ENDPOINT_AUTH_REQUIRED',
   'RUNTIME_EXECUTABLE_TRUST_REQUIRED',
   'TRANSPORT_ROLE_MATRIX_REQUIRED',
@@ -79,6 +80,26 @@ test('Windows custody binds local-user encryption to the fixed service host and 
     local_machine_descriptor_allowed: false,
   });
   assert.equal(windows.custody_store, 'dpapi_ng_local_user_fixed_local_system_host_plus_exact_service_sid_acl_state');
+});
+
+test('Windows restricted service bootstraps an account-scoped pipe without opening the user token', () => {
+  const profiles = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml');
+  const principals = parseAuthority('.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml');
+  const windows = profiles.profiles.find((row) => row.os === 'windows');
+  const windowsPrincipal = principals.profiles.find((row) => row.os === 'windows');
+  assert.deepEqual(profiles.windows_restricted_service_bootstrap, {
+    active_identity_source: 'WTSGetActiveConsoleSessionId_and_WTSSessionInfo',
+    user_token_preopen: 'forbidden',
+    endpoint_acl_subject: 'active_account_sid_connect_only',
+    account_partition: 'user_sid_terminal_session_id_wts_logon_time',
+    active_session_revalidation: 'before_each_native_process_admission',
+    post_connect_identity: 'GetNamedPipeClientProcessId_then_process_token_user_sid_session_id_logon_luid',
+    post_connect_executable: 'same_open_hfile_native_trust',
+    mismatch_disposition: 'reject_close_and_reopen',
+  });
+  assert.equal(windows.endpoint_ownership, 'first_pipe_instance_service_owned_dacl_connect_only_active_account_sid_remote_clients_rejected');
+  assert.equal(windows.client_peer_verification, 'GetNamedPipeClientProcessId_active_user_sid_terminal_session_token_logon_luid_and_same_file_executable_trust');
+  assert.equal(windowsPrincipal.endpoint_connect_boundary, 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_verifies_client_token_logon_luid');
 });
 
 test('production config and Desktop service lifecycle have one closed authority', () => {

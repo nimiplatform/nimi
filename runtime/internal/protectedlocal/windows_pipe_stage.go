@@ -41,6 +41,10 @@ const (
 	WindowsPipeStageCreateConflict
 	WindowsPipeStageCreateInvalidParameter
 	WindowsPipeStageACLReadAccess
+	WindowsPipeStageActiveSessionInfo
+	WindowsPipeStageActiveAccountSID
+	WindowsPipeStageActiveSessionMarker
+	WindowsPipeStageActiveSessionInfoAccess
 )
 
 type windowsPipeStageError struct {
@@ -60,7 +64,7 @@ func windowsPipeStageFailure(stage WindowsPipeFailureStage, cause error) error {
 
 func WindowsPipeStageFromError(err error) (WindowsPipeFailureStage, bool) {
 	var failure *windowsPipeStageError
-	if !errors.As(err, &failure) || failure.stage < WindowsPipeStageContext || failure.stage > WindowsPipeStageACLReadAccess {
+	if !errors.As(err, &failure) || failure.stage < WindowsPipeStageContext || failure.stage > WindowsPipeStageActiveSessionInfoAccess {
 		return 0, false
 	}
 	return failure.stage, true

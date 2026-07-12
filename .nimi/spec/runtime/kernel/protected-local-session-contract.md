@@ -187,13 +187,26 @@ service-owned state. Environment, argv, renderer URL, app manifest, and
 user-writable config cannot select a Runtime binary, Realm endpoint, trust set,
 custody location, or protected listener.
 
-On Windows, Runtime creates the named pipe with
-`FILE_FLAG_FIRST_PIPE_INSTANCE`, a service-owned connect-only DACL for the
-active interactive SID/logon session, and `PIPE_REJECT_REMOTE_CLIENTS`.
-Runtime obtains the client PID with
-`GetNamedPipeClientProcessId`; the client obtains and verifies the Runtime PID
-with `GetNamedPipeServerProcessId`. Both peers bind SID, OS logon session, PID,
-creation marker, and executable trust to the handshake.
+On Windows, the restricted Runtime service must not pre-open or retain an
+interactive user's token. It resolves the active console session through
+`WTSGetActiveConsoleSessionId`, consumes `WTSSessionInfo` for the account name
+and logon-time marker, resolves the account SID through the OS, and creates the
+named pipe with `FILE_FLAG_FIRST_PIPE_INSTANCE`, a service-owned connect-only
+DACL for that active account SID, and `PIPE_REJECT_REMOTE_CLIENTS`. The account
+partition binds user SID, terminal-session id, and WTS logon time so an OS
+logout/login cannot reuse prior account truth merely by receiving the same
+terminal-session id.
+
+Runtime then obtains the connected client PID with
+`GetNamedPipeClientProcessId`, opens that exact process and token, and derives
+the user SID, terminal-session id and token logon LUID before verifying the
+same opened executable object. Before every native process admission Runtime
+also re-queries the active session and requires the original account SID,
+terminal-session id, and WTS logon-time marker. A mismatch closes the
+connection and reopens a fresh pipe instance. The client obtains and verifies the Runtime PID with
+`GetNamedPipeServerProcessId`. Both peers bind SID, OS logon session, PID,
+creation marker, and executable trust to the handshake. An account-SID pipe
+connection alone never authorizes a protected operation.
 
 On Linux, the endpoint is a filesystem UDS in a Runtime-service-owned
 directory/socket with an explicit connect ACL for the active interactive UID.

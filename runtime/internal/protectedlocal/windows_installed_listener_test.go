@@ -12,15 +12,10 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
-	"golang.org/x/sys/windows"
 )
 
 func TestWindowsVerifiedInstalledListenerMatchesRealPipePeerToPreboundProcess(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-installed-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	initial, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
@@ -60,11 +55,7 @@ func TestWindowsVerifiedInstalledListenerMatchesRealPipePeerToPreboundProcess(t 
 }
 
 func TestWindowsVerifiedInstalledListenerKeepsLocalDevelopmentPeerInSeparateTrustClass(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
+	identity, principal := resolveWindowsDesktopTestBootstrap(t)
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-development-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	initial, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {

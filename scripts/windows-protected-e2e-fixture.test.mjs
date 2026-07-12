@@ -11,6 +11,8 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   const installer = read('./install-windows-protected-e2e.ps1');
   const serviceGate = read('./check-windows-protected-e2e-service.mjs');
   const signing = read('./lib/windows-dev-signing.mjs');
+  const pipe = read('../runtime/internal/protectedlocal/windows_pipe_windows.go');
+  const activeSession = read('../runtime/internal/protectedlocal/windows_active_session_windows.go');
   assert.match(build, /nimi_runtime_e2e/);
   assert.match(build, /WindowsRuntimeSignerCertSHA256/);
   assert.match(build, /signWindowsDevFiles/);
@@ -40,6 +42,11 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /43546 = 'pipe-active-token-privilege'/);
   assert.match(installer, /43548 = 'pipe-create-access'/);
   assert.match(installer, /43551 = 'pipe-acl-read-access'/);
+  assert.match(installer, /43552 = 'pipe-active-session-info'/);
+  assert.match(installer, /43555 = 'pipe-active-session-info-access'/);
+  assert.doesNotMatch(pipe, /WTSQueryUserToken/);
+  assert.match(activeSession, /WTSSessionInfo[\s\S]*LookupSID/);
+  assert.match(pipe, /GetNamedPipeClientProcessId/);
   assert.match(installer, /ContainsKey\(\$stageKey\)/);
   assert.doesNotMatch(installer, /Invoke-ServiceControl -Arguments @\('(?:create|config)'/);
   assert.doesNotMatch(installer, /sc(?:\.exe)?\s+(?:delete|stop)\s+NimiRuntime(?:\s|$)/i);

@@ -174,6 +174,10 @@ $RuntimeStartupStages = @{
   43549 = 'pipe-create-conflict'
   43550 = 'pipe-create-invalid-parameter'
   43551 = 'pipe-acl-read-access'
+  43552 = 'pipe-active-session-info'
+  43553 = 'pipe-active-account-sid'
+  43554 = 'pipe-active-session-marker'
+  43555 = 'pipe-active-session-info-access'
 }
 
 function Write-Result {

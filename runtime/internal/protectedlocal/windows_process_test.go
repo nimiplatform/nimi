@@ -87,7 +87,7 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 		t.Fatalf("verify named-pipe client process: %v", err)
 	}
 	defer liveness.Close()
-	if tuple.PID != uint32(os.Getpid()) || tuple.SecurityPrincipal != identity.UserSID() || tuple.OSLoginSession != identity.LogonSession() {
+	if tuple.PID != uint32(os.Getpid()) || tuple.SecurityPrincipal != identity.UserSID() || tuple.OSLoginSession == "" || strings.HasPrefix(tuple.OSLoginSession, "wts:") {
 		t.Fatalf("verified tuple mismatch: %#v", tuple)
 	}
 	if tuple.ExecutableTrustSetID != windowsDesktopE2ETrustSetID || tuple.ExecutableDigest == (Identifier{}) {
@@ -104,18 +104,19 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 	}
 
 	wrongIdentity := identity
-	wrongIdentity.logonLUID = "ffffffff:ffffffff"
-	wrongIdentity.accountScope = "windows:" + strings.ToLower(wrongIdentity.userSID) + ":" + wrongIdentity.logonLUID
+	wrongIdentity.sessionID++
 	if _, badLiveness, err := verifyWindowsPipeClientProcess(context.Background(), connection, wrongIdentity, verifier, windowsDesktopE2ETrustSetID); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
 		if badLiveness != nil {
 			_ = badLiveness.Close()
 		}
-		t.Fatalf("wrong logon LUID error = %v", err)
+		t.Fatalf("wrong terminal session error = %v", err)
 	}
 }
 
 func TestWindowsInstalledProcessVerifierRetainsExactProcessAndNativeTrustEvidence(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
+	profile := mustActiveWindowsRuntimeProfile()
+	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
+	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +126,7 @@ func TestWindowsInstalledProcessVerifierRetainsExactProcessAndNativeTrustEvidenc
 		t.Fatalf("verify installed process: %v", err)
 	}
 	defer liveness.Close()
-	if process.PID != uint32(os.Getpid()) || process.SecurityPrincipal != identity.UserSID() || process.OSLoginSession != identity.LogonSession() || process.ExecutableDigest == (Identifier{}) || process.CanonicalExecutableIdentity == "" || process.ExecutableTrustSetID != WindowsInstalledReleaseTrustSetID {
+	if process.PID != uint32(os.Getpid()) || process.SecurityPrincipal != identity.UserSID() || process.OSLoginSession == "" || strings.HasPrefix(process.OSLoginSession, "wts:") || process.ExecutableDigest == (Identifier{}) || process.CanonicalExecutableIdentity == "" || process.ExecutableTrustSetID != WindowsInstalledReleaseTrustSetID {
 		t.Fatalf("installed process tuple is incomplete: %#v", process)
 	}
 	if verifier.role != WindowsExecutableRoleInstalled || verifier.evidence.PID != uint32(os.Getpid()) || verifier.evidence.Digest != process.ExecutableDigest || verifier.nativeHandle == 0 {
@@ -213,11 +214,12 @@ func (verifier *capturingWindowsExecutableVerifier) VerifyWindowsExecutable(_ co
 
 func openCurrentProcessWindowsTestPipe(t *testing.T) (WindowsDesktopIdentity, *WindowsDesktopPipeConnection, func()) {
 	t.Helper()
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
+	profile := mustActiveWindowsRuntimeProfile()
+	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
+	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
 	if err != nil {
 		t.Fatal(err)
 	}
-	principal := WindowsServicePrincipal{serviceSID: mustActiveWindowsRuntimeProfile().serviceSID, tokenUserSID: "S-1-5-18"}
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-e2e-process-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	instance, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {

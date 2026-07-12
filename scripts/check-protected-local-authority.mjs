@@ -362,6 +362,22 @@ function validateCore(bundle, issues) {
     }
   }
   const windowsProfile = profiles.find((row) => row.os === 'windows');
+  const windowsRestrictedBootstrap = osProfiles?.windows_restricted_service_bootstrap;
+  if (
+    windowsRestrictedBootstrap?.active_identity_source !== 'WTSGetActiveConsoleSessionId_and_WTSSessionInfo'
+    || windowsRestrictedBootstrap?.user_token_preopen !== 'forbidden'
+    || windowsRestrictedBootstrap?.endpoint_acl_subject !== 'active_account_sid_connect_only'
+    || windowsRestrictedBootstrap?.account_partition !== 'user_sid_terminal_session_id_wts_logon_time'
+    || windowsRestrictedBootstrap?.active_session_revalidation !== 'before_each_native_process_admission'
+    || windowsRestrictedBootstrap?.post_connect_identity !== 'GetNamedPipeClientProcessId_then_process_token_user_sid_session_id_logon_luid'
+    || windowsRestrictedBootstrap?.post_connect_executable !== 'same_open_hfile_native_trust'
+    || windowsRestrictedBootstrap?.mismatch_disposition !== 'reject_close_and_reopen'
+    || windowsProfile?.endpoint_ownership !== 'first_pipe_instance_service_owned_dacl_connect_only_active_account_sid_remote_clients_rejected'
+    || windowsProfile?.client_peer_verification !== 'GetNamedPipeClientProcessId_active_user_sid_terminal_session_token_logon_luid_and_same_file_executable_trust'
+    || windowsPrincipal?.endpoint_connect_boundary !== 'named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_verifies_client_token_logon_luid'
+  ) {
+    issues.push(issue('WINDOWS_RESTRICTED_PIPE_BOOTSTRAP_REQUIRED', paths.osProfiles, 'The restricted Windows service must bootstrap only the active account/session marker, then derive token logon identity and executable trust from the connected native client process.'));
+  }
   if (!String(windowsProfile?.server_peer_verification ?? '').includes('service_sid_and_same_file_runtime_trust')) {
     issues.push(issue('MUTUAL_ENDPOINT_AUTH_REQUIRED', paths.osProfiles, 'The protected client must verify Runtime service identity and live executable trust, not only its PID.'));
   }

@@ -30,6 +30,16 @@
     }
   },
   {
+    "fixture_id": "windows-restricted-service-preopens-user-token",
+    "code": "WINDOWS_RESTRICTED_PIPE_BOOTSTRAP_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  user_token_preopen: forbidden",
+      "to": "  user_token_preopen: required"
+    }
+  },
+  {
     "fixture_id": "client-only-endpoint-auth",
     "code": "MUTUAL_ENDPOINT_AUTH_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",

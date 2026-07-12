@@ -46,6 +46,9 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 	if err := identity.validate(); err != nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows local-development identity", err)
 	}
+	if err := revalidateWindowsActiveSessionIdentity(ctx, identity); err != nil {
+		return ProcessTuple{}, nil, err
+	}
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows local-development process", err)
@@ -65,8 +68,8 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	if observed.userSID != identity.userSID || observed.logonSID != identity.logonSID || observed.logonLUID != identity.logonLUID || observed.accountScope != identity.accountScope {
-		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows local-development process logon identity", fmt.Errorf("user SID, logon SID, or logon LUID mismatch"))
+	if !identity.matchesObservedToken(observed) {
+		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows local-development process logon identity", fmt.Errorf("active account, terminal session, or token logon identity mismatch"))
 	}
 	creationMarker, err := windowsProcessCreationMarker(process)
 	if err != nil {

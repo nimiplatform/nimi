@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"golang.org/x/sys/windows"
 )
 
 func TestWindowsLocalDevelopmentProcessVerifierBindsCurrentHostPathWithoutProductionSigning(t *testing.T) {
-	identity, err := inspectWindowsDesktopToken(windows.GetCurrentProcessToken(), nil)
+	profile := mustActiveWindowsRuntimeProfile()
+	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
+	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
 	if err != nil {
 		t.Fatal(err)
 	}

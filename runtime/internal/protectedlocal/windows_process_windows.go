@@ -304,8 +304,8 @@ func verifyWindowsPipeClientProcessForRole(ctx context.Context, connection *Wind
 	if err := identity.validate(); err != nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows pipe client identity", err)
 	}
-	if activeSessionID := windows.WTSGetActiveConsoleSessionId(); activeSessionID == windowsNoActiveConsoleSession || activeSessionID != identity.sessionID {
-		return ProcessTuple{}, nil, windowsPipeFailure("revalidate active Windows desktop session", fmt.Errorf("active console session changed"))
+	if err := revalidateWindowsActiveSessionIdentity(ctx, identity); err != nil {
+		return ProcessTuple{}, nil, err
 	}
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, connection.clientPID)
 	if err != nil {
@@ -327,8 +327,8 @@ func verifyWindowsPipeClientProcessForRole(ctx context.Context, connection *Wind
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	if observedIdentity.userSID != identity.userSID || observedIdentity.logonSID != identity.logonSID || observedIdentity.logonLUID != identity.logonLUID || observedIdentity.accountScope != identity.accountScope {
-		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows pipe client logon identity", fmt.Errorf("user SID, logon SID, or logon LUID mismatch"))
+	if !identity.matchesObservedToken(observedIdentity) {
+		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows pipe client logon identity", fmt.Errorf("active account, terminal session, or token logon identity mismatch"))
 	}
 
 	creationMarker, err := windowsProcessCreationMarker(process)
@@ -368,6 +368,9 @@ func verifyWindowsInstalledProcess(ctx context.Context, pid uint32, identity Win
 	if err := identity.validate(); err != nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows installed identity", err)
 	}
+	if err := revalidateWindowsActiveSessionIdentity(ctx, identity); err != nil {
+		return ProcessTuple{}, nil, err
+	}
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("retain Windows installed process", err)
@@ -387,8 +390,8 @@ func verifyWindowsInstalledProcess(ctx context.Context, pid uint32, identity Win
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	if observed.userSID != identity.userSID || observed.logonSID != identity.logonSID || observed.logonLUID != identity.logonLUID || observed.accountScope != identity.accountScope {
-		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows installed process logon identity", fmt.Errorf("user SID, logon SID, or logon LUID mismatch"))
+	if !identity.matchesObservedToken(observed) {
+		return ProcessTuple{}, nil, windowsPipeFailure("bind Windows installed process logon identity", fmt.Errorf("active account, terminal session, or token logon identity mismatch"))
 	}
 	creationMarker, err := windowsProcessCreationMarker(process)
 	if err != nil {

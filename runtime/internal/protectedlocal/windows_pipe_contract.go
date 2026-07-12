@@ -71,14 +71,16 @@ func (process WindowsRuntimeProcess) validate() error {
 }
 
 // WindowsDesktopIdentity is an opaque capability for the active interactive
-// user's exact SID and Windows logon session. Production values come only from
-// the service-side WTS/token inspection path.
+// account and Windows terminal logon instance. Restricted-service bootstrap
+// uses WTS session metadata; tokenBound identities are minted only after a
+// connected native process token is opened by PID.
 type WindowsDesktopIdentity struct {
 	userSID      string
 	logonSID     string
 	logonLUID    string
 	sessionID    uint32
 	accountScope string
+	tokenBound   bool
 }
 
 func (identity WindowsDesktopIdentity) UserSID() string      { return identity.userSID }
@@ -90,8 +92,34 @@ func (identity WindowsDesktopIdentity) AccountPartition() string {
 }
 
 func (identity WindowsDesktopIdentity) validate() error {
-	if !strings.HasPrefix(identity.userSID, "S-1-") || !strings.HasPrefix(identity.logonSID, "S-1-5-5-") || identity.logonLUID == "" || identity.sessionID == 0 || identity.accountScope == "" {
+	if !strings.HasPrefix(identity.userSID, "S-1-") || identity.logonLUID == "" || identity.sessionID == 0 || identity.accountScope == "" {
 		return fmt.Errorf("active Windows desktop identity is incomplete")
 	}
+	expectedScope := fmt.Sprintf("windows:%s:%s", strings.ToLower(identity.userSID), identity.logonLUID)
+	if identity.accountScope != expectedScope {
+		return fmt.Errorf("active Windows desktop account partition is inconsistent")
+	}
+	if identity.tokenBound {
+		if !strings.HasPrefix(identity.logonSID, "S-1-5-5-") || strings.HasPrefix(identity.logonLUID, "wts:") {
+			return fmt.Errorf("token-bound Windows desktop identity is incomplete")
+		}
+	} else if identity.logonSID != "" || !strings.HasPrefix(identity.logonLUID, "wts:") {
+		return fmt.Errorf("WTS-bound Windows desktop identity is incomplete")
+	}
 	return nil
+}
+
+func (identity WindowsDesktopIdentity) matchesObservedToken(observed WindowsDesktopIdentity) bool {
+	if identity.validate() != nil || observed.validate() != nil || !observed.tokenBound {
+		return false
+	}
+	if identity.userSID != observed.userSID || identity.sessionID != observed.sessionID {
+		return false
+	}
+	if !identity.tokenBound {
+		return true
+	}
+	return identity.logonSID == observed.logonSID &&
+		identity.logonLUID == observed.logonLUID &&
+		identity.accountScope == observed.accountScope
 }
