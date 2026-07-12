@@ -17,6 +17,10 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+const windowsRuntimeProcessVerificationAccess = windows.SYNCHRONIZE |
+	windows.PROCESS_QUERY_LIMITED_INFORMATION |
+	windows.READ_CONTROL
+
 type windowsProcessLiveness struct {
 	handle windows.Handle
 
@@ -147,7 +151,7 @@ func VerifyWindowsProductionRuntimeProcess(ctx context.Context, principal Window
 		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageIsolationHarden, err)
 	}
 	pid := uint32(os.Getpid())
-	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	process, err := windows.OpenProcess(windowsRuntimeProcessVerificationAccess, false, pid)
 	if err != nil {
 		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(WindowsProcessTrustStageProcessOpen, principalFailure("open Runtime service process", err))
 	}
@@ -171,7 +175,7 @@ func VerifyWindowsProductionPipeServer(ctx context.Context, clientPipeHandle uin
 	if serverPID == 0 {
 		return WindowsRuntimeProcess{}, principalFailure("bind Windows pipe server process id", fmt.Errorf("empty server process id"))
 	}
-	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.READ_CONTROL, false, serverPID)
+	process, err := windows.OpenProcess(windowsRuntimeProcessVerificationAccess, false, serverPID)
 	if err != nil {
 		return WindowsRuntimeProcess{}, principalFailure("open Windows pipe server process", err)
 	}

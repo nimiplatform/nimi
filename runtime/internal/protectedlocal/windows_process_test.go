@@ -61,6 +61,16 @@ func TestWindowsProcessTrustStartupExitCodesAreStableAndUnique(t *testing.T) {
 	}
 }
 
+func TestWindowsRuntimeProcessVerificationHandleIsReadOnlyAndCanReadItsDACL(t *testing.T) {
+	required := uint32(windows.SYNCHRONIZE | windows.PROCESS_QUERY_LIMITED_INFORMATION | windows.READ_CONTROL)
+	if windowsRuntimeProcessVerificationAccess&required != required {
+		t.Fatalf("Runtime process verification access = 0x%x, want required 0x%x", windowsRuntimeProcessVerificationAccess, required)
+	}
+	if windowsRuntimeProcessVerificationAccess&windowsSensitiveProcessAccess != 0 {
+		t.Fatalf("Runtime process verification requested sensitive process access: 0x%x", windowsRuntimeProcessVerificationAccess)
+	}
+}
+
 func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(t *testing.T) {
 	identity, connection, closePipe := openCurrentProcessWindowsTestPipe(t)
 	defer closePipe()
