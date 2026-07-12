@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -44,5 +45,40 @@ func TestWindowsLocalDevelopmentProcessVerifierBindsCurrentHostPathWithoutProduc
 		ProjectRoot: t.TempDir(), HostExecutablePath: executable,
 	}); err == nil {
 		t.Fatal("host executable outside the approved project root must fail closed")
+	}
+}
+
+func TestCanonicalWindowsLocalDevelopmentPolicyAcceptsExactExternalProjectAlias(t *testing.T) {
+	projectRoot := t.TempDir()
+	externalRoot := t.TempDir()
+	host := filepath.Join(externalRoot, "electron.exe")
+	alias := filepath.Join(projectRoot, "node_modules", "electron", "dist", "electron.exe")
+	if err := os.MkdirAll(filepath.Dir(alias), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(host, []byte("electron fixture"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(host, alias); err != nil {
+		t.Fatalf("create exact project host alias: %v", err)
+	}
+
+	policy, err := canonicalWindowsLocalDevelopmentPolicy(LocalDevelopmentProcessPolicy{
+		ProjectRoot: projectRoot, HostExecutablePath: host, ProjectHostAliasPath: alias,
+	})
+	if err != nil {
+		t.Fatalf("exact external project alias must be admitted: %v", err)
+	}
+	if !strings.EqualFold(policy.HostExecutablePath, host) {
+		t.Fatalf("host path = %q, want %q", policy.HostExecutablePath, host)
+	}
+	rogue := filepath.Join(externalRoot, "rogue.exe")
+	if err := os.WriteFile(rogue, []byte("rogue"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := canonicalWindowsLocalDevelopmentPolicy(LocalDevelopmentProcessPolicy{
+		ProjectRoot: projectRoot, HostExecutablePath: rogue, ProjectHostAliasPath: alias,
+	}); err == nil {
+		t.Fatal("unrelated external host must remain rejected")
 	}
 }

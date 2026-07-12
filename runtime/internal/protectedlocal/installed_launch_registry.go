@@ -12,8 +12,9 @@ type InstalledProcessVerifier interface {
 }
 
 type LocalDevelopmentProcessPolicy struct {
-	ProjectRoot        string
-	HostExecutablePath string
+	ProjectRoot          string
+	HostExecutablePath   string
+	ProjectHostAliasPath string
 }
 
 type LocalDevelopmentProcessVerifier interface {

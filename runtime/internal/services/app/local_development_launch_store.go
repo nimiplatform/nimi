@@ -86,7 +86,11 @@ func (store *localDevelopmentStore) PendingLaunchPolicy(ctx context.Context, lau
 	if err != nil || row.Status != "pending" || row.RuntimeBootEpoch != store.bootEpoch || !store.now().UTC().Before(row.ExpiresAt) {
 		return protectedlocal.LocalDevelopmentProcessPolicy{}, errLocalDevelopmentLaunchExpired
 	}
-	return protectedlocal.LocalDevelopmentProcessPolicy{ProjectRoot: row.ProjectRoot, HostExecutablePath: row.HostExecutable}, nil
+	policy := protectedlocal.LocalDevelopmentProcessPolicy{ProjectRoot: row.ProjectRoot, HostExecutablePath: row.HostExecutable}
+	if row.ShellKind == runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
+		policy.ProjectHostAliasPath = filepath.Join(row.ProjectRoot, "node_modules", "electron", "dist", "electron.exe")
+	}
+	return policy, nil
 }
 
 func (store *localDevelopmentStore) PrepareLaunch(ctx context.Context, request localDevelopmentLaunchRequest) (localDevelopmentLaunchTicket, error) {

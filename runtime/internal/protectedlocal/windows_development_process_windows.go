@@ -110,7 +110,7 @@ func (verifier windowsLocalDevelopmentExecutableVerifier) VerifyWindowsExecutabl
 		return "", fmt.Errorf("canonicalize local-development process executable: %w", err)
 	}
 	observed = filepath.Clean(observed)
-	if !strings.EqualFold(observed, verifier.hostPath) || !windowsPathWithinRoot(verifier.projectRoot, observed) {
+	if !strings.EqualFold(observed, verifier.hostPath) {
 		return "", fmt.Errorf("local-development executable escaped the approved project or expected host path")
 	}
 	return WindowsLocalDevelopmentTrustSetID, nil
@@ -132,14 +132,26 @@ func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy
 	}
 	canonicalRoot = filepath.Clean(canonicalRoot)
 	canonicalHost = filepath.Clean(canonicalHost)
-	if !windowsPathWithinRoot(canonicalRoot, canonicalHost) {
-		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("host executable must remain inside the approved project root")
-	}
 	info, err := os.Stat(canonicalHost)
 	if err != nil || !info.Mode().IsRegular() {
 		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("host executable must be a readable regular file")
 	}
-	return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost}, nil
+	if windowsPathWithinRoot(canonicalRoot, canonicalHost) {
+		return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost}, nil
+	}
+	alias := filepath.Clean(strings.TrimSpace(policy.ProjectHostAliasPath))
+	if !filepath.IsAbs(alias) || !windowsPathWithinRoot(canonicalRoot, alias) {
+		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("external host executable requires an exact project alias")
+	}
+	canonicalAlias, err := filepath.EvalSymlinks(alias)
+	if err != nil {
+		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("canonicalize project host alias: %w", err)
+	}
+	aliasInfo, err := os.Stat(canonicalAlias)
+	if err != nil || !aliasInfo.Mode().IsRegular() || !os.SameFile(info, aliasInfo) {
+		return LocalDevelopmentProcessPolicy{}, fmt.Errorf("project host alias does not identify the approved host executable")
+	}
+	return LocalDevelopmentProcessPolicy{ProjectRoot: canonicalRoot, HostExecutablePath: canonicalHost, ProjectHostAliasPath: filepath.Clean(canonicalAlias)}, nil
 }
 
 func windowsPathWithinRoot(root string, candidate string) bool {
