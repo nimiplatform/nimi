@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -18,6 +19,14 @@ const windowsSensitiveProcessAccess = windows.PROCESS_VM_READ |
 	windows.PROCESS_VM_OPERATION |
 	windows.PROCESS_DUP_HANDLE |
 	windows.PROCESS_CREATE_THREAD
+
+const (
+	windowsRuntimeProcessMandatoryLabelSDDL   = "S:(ML;;NW;;;SI)"
+	windowsRuntimeProcessMandatoryLabelPolicy = "system_integrity_no_write_up_only"
+	windowsMandatoryLabelACEType              = 0x11
+	windowsMandatoryLabelNoWriteUp            = 0x1
+	windowsSystemMandatoryLevelSID            = "S-1-16-16384"
+)
 
 func ValidateWindowsProductionPrincipal(ctx context.Context) (WindowsServicePrincipal, error) {
 	return validateWindowsProductionServiceProcess(ctx, uint32(os.Getpid()), windows.CurrentProcess(), true)
@@ -151,7 +160,46 @@ func validateWindowsProcessIsolationHandle(ctx context.Context, process windows.
 	if err != nil || control&windows.SE_DACL_PROTECTED == 0 {
 		return principalFailure("validate protected Runtime process DACL", err)
 	}
-	return validateWindowsProcessDACL(dacl)
+	if err := validateWindowsProcessDACL(dacl); err != nil {
+		return err
+	}
+	labelDescriptor, err := windows.GetSecurityInfo(
+		process,
+		windows.SE_KERNEL_OBJECT,
+		windows.LABEL_SECURITY_INFORMATION,
+	)
+	if err != nil {
+		return principalFailure("read Runtime process mandatory label", err)
+	}
+	label, _, err := labelDescriptor.SACL()
+	if err != nil {
+		return principalFailure("read Runtime process mandatory label", err)
+	}
+	if label == nil {
+		return principalFailure("read Runtime process mandatory label", fmt.Errorf("mandatory label is absent"))
+	}
+	return validateWindowsRuntimeProcessMandatoryLabel(label)
+}
+
+func validateWindowsRuntimeProcessMandatoryLabel(label *windows.ACL) error {
+	if label == nil || label.AceCount != 1 {
+		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("exact one-entry mandatory label required"))
+	}
+	var ace *windows.ACCESS_ALLOWED_ACE
+	if err := windows.GetAce(label, 0, &ace); err != nil {
+		return principalFailure("read Runtime process mandatory label", err)
+	}
+	if ace.Header.AceType != windowsMandatoryLabelACEType || ace.Header.AceFlags != 0 {
+		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("exact mandatory label ACE required"))
+	}
+	if uint32(ace.Mask) != windowsMandatoryLabelNoWriteUp {
+		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("mandatory label must be %s", windowsRuntimeProcessMandatoryLabelPolicy))
+	}
+	sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
+	if sid == nil || sid.String() != windowsSystemMandatoryLevelSID {
+		return principalFailure("validate Runtime process mandatory label", fmt.Errorf("System integrity label required"))
+	}
+	return nil
 }
 
 func validateWindowsProcessDACL(dacl *windows.ACL) error {
@@ -253,7 +301,41 @@ func HardenWindowsCurrentProcessIsolation(ctx context.Context, principal Windows
 	); err != nil {
 		return principalFailure("apply Runtime process DACL", err)
 	}
+	labelDescriptor, label, err := buildWindowsRuntimeProcessMandatoryLabel()
+	if err != nil {
+		return err
+	}
+	if err := windows.SetSecurityInfo(
+		windows.CurrentProcess(),
+		windows.SE_KERNEL_OBJECT,
+		windows.LABEL_SECURITY_INFORMATION,
+		nil,
+		nil,
+		nil,
+		label,
+	); err != nil {
+		return principalFailure("apply Runtime process mandatory label", err)
+	}
+	runtime.KeepAlive(labelDescriptor)
 	return ValidateWindowsCurrentProcessIsolation(ctx, principal)
+}
+
+func buildWindowsRuntimeProcessMandatoryLabel() (*windows.SECURITY_DESCRIPTOR, *windows.ACL, error) {
+	descriptor, err := windows.SecurityDescriptorFromString(windowsRuntimeProcessMandatoryLabelSDDL)
+	if err != nil {
+		return nil, nil, principalFailure("build Runtime process mandatory label", err)
+	}
+	label, _, err := descriptor.SACL()
+	if err != nil {
+		return nil, nil, principalFailure("build Runtime process mandatory label", err)
+	}
+	if label == nil {
+		return nil, nil, principalFailure("build Runtime process mandatory label", fmt.Errorf("mandatory label is absent"))
+	}
+	if err := validateWindowsRuntimeProcessMandatoryLabel(label); err != nil {
+		return nil, nil, err
+	}
+	return descriptor, label, nil
 }
 
 func buildWindowsRuntimeProcessACL(serviceSID, interactiveSID, remoteInteractiveSID *windows.SID) (*windows.ACL, error) {

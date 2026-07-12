@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"unsafe"
 
@@ -228,6 +229,30 @@ func TestWindowsRuntimeProcessDACLNamesExactServiceAndLimitsInteractiveAccessToV
 	if err := validateWindowsProcessDACL(widened); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
 		t.Fatalf("widened process DACL error = %v", err)
 	}
+}
+
+func TestWindowsRuntimeProcessMandatoryLabelAllowsReadOnlyMutualVerification(t *testing.T) {
+	descriptor, label, err := buildWindowsRuntimeProcessMandatoryLabel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateWindowsRuntimeProcessMandatoryLabel(label); err != nil {
+		t.Fatalf("built mandatory label rejected: %v", err)
+	}
+	runtime.KeepAlive(descriptor)
+
+	noReadDescriptor, err := windows.SecurityDescriptorFromString("S:(ML;;NWNR;;;SI)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	noReadLabel, _, err := noReadDescriptor.SACL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateWindowsRuntimeProcessMandatoryLabel(noReadLabel); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
+		t.Fatalf("no-read-up mandatory label error = %v", err)
+	}
+	runtime.KeepAlive(noReadDescriptor)
 }
 
 func TestWindowsDPAPINGLocalUserDescriptorRoundTripsOnlyUnderTheCurrentFixedHostUser(t *testing.T) {

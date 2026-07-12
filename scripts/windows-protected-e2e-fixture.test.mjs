@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+import { validateInteractivePeerResult } from './check-windows-protected-e2e-peer.mjs';
+
 function read(relative) {
   return readFileSync(new URL(relative, import.meta.url), 'utf8');
 }
@@ -14,9 +16,11 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   const pipe = read('../runtime/internal/protectedlocal/windows_pipe_windows.go');
   const activeSession = read('../runtime/internal/protectedlocal/windows_active_session_windows.go');
   const process = read('../runtime/internal/protectedlocal/windows_process_windows.go');
+  const processPrincipal = read('../runtime/internal/protectedlocal/windows_principal_windows.go');
   const listener = read('../runtime/internal/protectedlocal/windows_verified_listener_windows.go');
   const windowsService = read('../runtime/internal/entrypoint/runtime_production_windows.go');
   const peerProbe = read('../runtime/cmd/windows-protected-peer-probe/main_windows.go');
+  const interactivePeerGate = read('./check-windows-protected-e2e-peer.mjs');
   assert.match(build, /nimi_runtime_e2e/);
   assert.match(build, /nimi_runtime_e2e_virtual/);
   assert.match(build, /windows-protected-peer-probe/);
@@ -85,6 +89,16 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(windowsService, /windowsRuntimeServiceStopTimeoutCode/);
   assert.match(windowsService, /initiateWindowsRuntimeServiceStop\(cancel, runtimeDaemon, installedListener, desktopListener\)/);
   assert.match(process, /verifyWindowsRuntimeProcessHandle\(ctx, pid, windows\.CurrentProcess\(\), principal, verifier\)/);
+  assert.match(processPrincipal, /LABEL_SECURITY_INFORMATION/);
+  assert.match(processPrincipal, /system_integrity_no_write_up_only/);
+  assert.match(peerProbe, /ClientElevated/);
+  assert.match(interactivePeerGate, /clientElevated[\s\S]*false/);
+  assert.match(interactivePeerGate, /interactivePeerProbeVerified/);
+  assert.match(installer, /elevatedPeerProbeVerified/);
+  assert.match(installer, /interactivePeerProbeRequired/);
+  assert.match(installer, /run-from-non-elevated-active-desktop-session/);
+  assert.match(installer, /interactivePeerProbeCommand/);
+  assert.doesNotMatch(installer, /\$status\['peerProbeVerified'\]/);
   assert.match(installer, /ContainsKey\(\$stageKey\)/);
   assert.doesNotMatch(installer, /Invoke-ServiceControl -Arguments @\('(?:create|config)'/);
   assert.doesNotMatch(installer, /sc(?:\.exe)?\s+(?:delete|stop)\s+NimiRuntime(?:\s|$)/i);
@@ -114,6 +128,23 @@ test('Windows E2E carriers use a feature-gated fixed service, pipes, and signer'
   assert.match(peer, /NIMI_WINDOWS_E2E_SIGNER_CERT_SHA256/);
 });
 
+test('interactive peer evidence rejects elevated probes and admits only the unelevated signed transport result', () => {
+  const base = {
+    status: 'connected',
+    serverVerified: true,
+    serverProcessId: 42,
+    serverTrustSetId: 'nimi-runtime-e2e-fixture-v1',
+    serverSettings: true,
+  };
+  assert.throws(
+    () => validateInteractivePeerResult({ ...base, clientElevated: true }),
+    /unelevated interactive caller/,
+  );
+  const accepted = validateInteractivePeerResult({ ...base, clientElevated: false });
+  assert.equal(accepted.interactivePeerProbeVerified, true);
+  assert.equal(accepted.principalProfile, 'LocalSystem');
+});
+
 test('Desktop and Node fixture launchers build the E2E carrier without changing app-owned commands', () => {
   const protectedDesktopRunner = read('../apps/desktop/scripts/run-protected-e2e-desktop.mjs');
   const desktopRunner = read('../apps/desktop/scripts/tauri-dev-runner.mjs');
@@ -133,5 +164,6 @@ test('Desktop and Node fixture launchers build the E2E carrier without changing 
   assert.equal(typeof packageJson.scripts['install:windows-protected-e2e'], 'string');
   assert.equal(typeof packageJson.scripts['install:windows-protected-e2e-virtual'], 'string');
   assert.equal(typeof packageJson.scripts['check:windows-protected-e2e-service'], 'string');
+  assert.equal(typeof packageJson.scripts['check:windows-protected-e2e-peer'], 'string');
   assert.equal(typeof packageJson.scripts['dev:desktop:protected-e2e'], 'string');
 });

@@ -39,6 +39,7 @@ type probeResult struct {
 	ServerProcessID  uint32 `json:"serverProcessId"`
 	ServerTrustSetID string `json:"serverTrustSetId"`
 	ServerSettings   bool   `json:"serverSettings"`
+	ClientElevated   bool   `json:"clientElevated"`
 }
 
 func main() {
@@ -110,6 +111,7 @@ func main() {
 		ServerProcessID:  serverTuple.PID,
 		ServerTrustSetID: serverTuple.ExecutableTrustSetID,
 		ServerSettings:   true,
+		ClientElevated:   windows.GetCurrentProcessToken().IsElevated(),
 	}); err != nil {
 		fail(fmt.Errorf("encode probe result: %w", err))
 	}

@@ -22,6 +22,8 @@
     "install:windows-protected-e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-protected-e2e.ps1 -Mode Install -Json",
     "status:windows-protected-e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-protected-e2e.ps1 -Mode Status -Json",
     "check:windows-protected-e2e-service": "node scripts/check-windows-protected-e2e-service.mjs",
+    "check:windows-protected-e2e-peer": "node scripts/check-windows-protected-e2e-peer.mjs",
+    "check:windows-protected-e2e-peer-virtual": "node scripts/check-windows-protected-e2e-peer.mjs --virtual-account",
     "uninstall:windows-protected-e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-protected-e2e.ps1 -Mode Uninstall -Json",
     "install:windows-protected-e2e-virtual": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-protected-e2e.ps1 -Mode Install -PrincipalProfile VirtualAccount -Json",
     "status:windows-protected-e2e-virtual": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-protected-e2e.ps1 -Mode Status -PrincipalProfile VirtualAccount -Json",

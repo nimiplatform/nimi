@@ -564,8 +564,8 @@ function Invoke-ProtectedPeerProbe {
   }
   if ($result.status -ne 'connected' -or -not [bool] $result.serverVerified -or
       [uint32] $result.serverProcessId -eq 0 -or [string]::IsNullOrWhiteSpace([string] $result.serverTrustSetId) -or
-      -not [bool] $result.serverSettings) {
-    throw "Protected native peer probe did not complete mutual Runtime/process verification and gRPC transport for $ServiceName."
+      -not [bool] $result.serverSettings -or -not [bool] $result.clientElevated) {
+    throw "Elevated protected peer baseline did not complete Runtime/process verification and gRPC transport for $ServiceName."
   }
   return $result
 }
@@ -627,7 +627,10 @@ function Install-Fixture {
   [void] (Invoke-ProtectedPeerProbe)
   Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/2000/restart/5000/none/0') -FailureMessage "SCM recovery configuration failed for $ServiceName."
   $status = Get-FixtureStatus
-  $status['peerProbeVerified'] = $true
+  $status['elevatedPeerProbeVerified'] = $true
+  $status['interactivePeerProbeRequired'] = $true
+  $status['interactivePeerProbeRequirement'] = 'run-from-non-elevated-active-desktop-session'
+  $status['interactivePeerProbeCommand'] = if ($VirtualAccount) { 'corepack pnpm check:windows-protected-e2e-peer-virtual' } else { 'corepack pnpm check:windows-protected-e2e-peer' }
   $status['custodyRestartVerified'] = $true
   $status['stateAclConfiguredByInstaller'] = $true
   $status['stateAclRuntimeReadbackVerified'] = $true
