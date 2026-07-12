@@ -435,54 +435,58 @@ test('agent runtime provider projects Runtime image action artifact events as im
       },
     },
   };
+  const runtimeThreadIds: string[] = [];
   const provider = createRuntimeAgentChatConversationProvider({
     runtimeAdapter: {
-      streamAgentTurn: async () => ({
-        stream: (async function* stream() {
-          yield {
-            type: 'message-sealed' as const,
-            envelope: {
-              schemaId: 'nimi.agent.chat.message-action.v1',
-              message: {
-                messageId: 'assistant-image',
-                text: 'I can make that image.',
+      streamAgentTurn: async (input) => {
+        runtimeThreadIds.push(input.threadId);
+        return {
+          stream: (async function* stream() {
+            yield {
+              type: 'message-sealed' as const,
+              envelope: {
+                schemaId: 'nimi.agent.chat.message-action.v1',
+                message: {
+                  messageId: 'assistant-image',
+                  text: 'I can make that image.',
+                },
+                actions: [],
               },
-              actions: [],
-            },
-          };
-          yield {
-            type: 'beat-planned' as const,
-            turnId: 'runtime-turn-image',
-            beatId: 'action-0',
-            projectionMessageId: 'runtime-turn-image:message:1',
-          };
-          yield {
-            type: 'beat-delivery-started' as const,
-            turnId: 'runtime-turn-image',
-            beatId: 'action-0',
-            projectionMessageId: 'runtime-turn-image:message:1',
-          };
-          yield {
-            type: 'artifact-ready' as const,
-            turnId: 'runtime-turn-image',
-            beatId: 'action-0',
-            artifactId: 'artifact-image-1',
-            mimeType: 'image/png',
-            projectionMessageId: 'runtime-turn-image:message:1',
-          };
-          yield {
-            type: 'beat-delivered' as const,
-            turnId: 'runtime-turn-image',
-            beatId: 'action-0',
-            projectionMessageId: 'runtime-turn-image:message:1',
-          };
-          yield {
-            type: 'turn-completed' as const,
-            outputText: 'I can make that image.',
-            finishReason: 'stop',
-          };
-        })(),
-      }),
+            };
+            yield {
+              type: 'beat-planned' as const,
+              turnId: 'runtime-turn-image',
+              beatId: 'action-0',
+              projectionMessageId: 'runtime-turn-image:message:1',
+            };
+            yield {
+              type: 'beat-delivery-started' as const,
+              turnId: 'runtime-turn-image',
+              beatId: 'action-0',
+              projectionMessageId: 'runtime-turn-image:message:1',
+            };
+            yield {
+              type: 'artifact-ready' as const,
+              turnId: 'runtime-turn-image',
+              beatId: 'action-0',
+              artifactId: 'artifact-image-1',
+              mimeType: 'image/png',
+              projectionMessageId: 'runtime-turn-image:message:1',
+            };
+            yield {
+              type: 'beat-delivered' as const,
+              turnId: 'runtime-turn-image',
+              beatId: 'action-0',
+              projectionMessageId: 'runtime-turn-image:message:1',
+            };
+            yield {
+              type: 'turn-completed' as const,
+              outputText: 'I can make that image.',
+              finishReason: 'stop',
+            };
+          })(),
+        };
+      },
     },
   });
 
@@ -502,6 +506,7 @@ test('agent runtime provider projects Runtime image action artifact events as im
         runtimeSourceRef: 'agent-1',
         localAgentRef: 'local-agent:user-1:agent-1',
         conversationAnchorId: 'anchor-image',
+        runtimeThreadId: 'runtime-thread-image',
         reasoningPreference: 'off',
         textMaxOutputTokensRequested: null,
       },
@@ -531,4 +536,5 @@ test('agent runtime provider projects Runtime image action artifact events as im
   const artifact = events.find((event) => event.type === 'artifact-ready');
   assert.equal(artifact?.artifactId, 'artifact-image-1');
   assert.equal(artifact?.uri, 'data:image/png;base64,aW1hZ2U=');
+  assert.deepEqual(runtimeThreadIds, ['runtime-thread-image']);
 });

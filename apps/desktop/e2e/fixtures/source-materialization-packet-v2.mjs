@@ -250,6 +250,14 @@ export const FIXTURE_PERSONA_SOURCE_REF = {
     sourceId: personaSource.id,
     sourceContentHash: personaSource.contentHash,
 };
+export function createFixtureSourceMaterializationTruthProjection() {
+    return structuredClone({
+        schemaVersion: 'nimi.local-agent-source-materialization-truth-projection/v1',
+        world: { id: world.id, core: world.core },
+        worldCharacter: { id: source.id, worldId: source.worldId, core: source.core },
+        realmPersona: { id: personaSource.id, homeWorldId: personaSource.homeWorldId, core: personaSource.core },
+    });
+}
 export function createFixtureRealmCoreSeed(identitySuffix) {
     const suffix = String(identitySuffix || '').trim().replace(/[^a-zA-Z0-9-]/gu, '-').slice(-40);
     if (!suffix) {

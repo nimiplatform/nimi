@@ -5,6 +5,7 @@ export type AgentConversationAnchorBinding = {
   runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
+  threadId: string;
   updatedAtMs: number;
 };
 
@@ -34,7 +35,8 @@ function normalizeBinding(
   const runtimeSourceRef = normalizeText(record.runtimeSourceRef);
   const localAgentRef = normalizeText(record.localAgentRef);
   const conversationAnchorId = normalizeText(record.conversationAnchorId);
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) {
+  const threadId = normalizeText(record.threadId);
+  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId || !threadId) {
     return null;
   }
   try {
@@ -47,6 +49,7 @@ function normalizeBinding(
     runtimeSourceRef,
     localAgentRef,
     conversationAnchorId,
+    threadId,
     updatedAtMs: normalizeUpdatedAtMs(record.updatedAtMs),
   };
 }

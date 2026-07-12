@@ -69,11 +69,39 @@ export async function probeZhiyuRuntimeConversationHome(
         binding: existingBinding,
       });
       if (upstreamBinding) {
-        return conversationReady(identity, upstreamBinding.conversationAnchorId);
+        return conversationReady(identity, upstreamBinding.conversationAnchorId, upstreamBinding.threadId);
       }
     } else if (existingBinding) {
       clearZhiyuAgentConversationAnchorBinding(identity.localAgentRef);
       await persistZhiyuAgentConversationAnchorBindingsToStorage();
+    }
+
+    const upstream = await client.listConversationSummaries({
+      ...identity,
+      statusFilter: ['active'],
+      pageSize: 2,
+      pageToken: '',
+    });
+    if (upstream.summaries.length > 1 || upstream.nextPageToken) {
+      return conversationUnavailable({
+        reasonCode: 'zhiyu-conversation-anchor-ambiguous',
+        actionHint: 'select_runtime_conversation_anchor',
+        source: 'runtime',
+        message: 'Multiple active Runtime conversation anchors require an explicit selection.',
+        ...identity,
+      });
+    }
+    const upstreamAnchorId = stringOr(upstream.summaries[0]?.anchor?.conversationAnchorId, '');
+    if (upstreamAnchorId) {
+      const threadId = await readRuntimeConversationThreadId(client, identity, upstreamAnchorId);
+      const upstreamBinding = persistZhiyuAgentConversationAnchorBinding({
+        ...identity,
+        conversationAnchorId: upstreamAnchorId,
+        threadId,
+        updatedAtMs: Date.now(),
+      });
+      await persistZhiyuAgentConversationAnchorBindingsToStorage();
+      return conversationReady(identity, upstreamBinding.conversationAnchorId, upstreamBinding.threadId);
     }
 
     const snapshot = await client.openConversation(openConversationRequest(identity));
@@ -87,13 +115,15 @@ export async function probeZhiyuRuntimeConversationHome(
         ...identity,
       });
     }
+    const threadId = await readRuntimeConversationThreadId(client, identity, conversationAnchorId);
     const binding = persistZhiyuAgentConversationAnchorBinding({
       ...identity,
       conversationAnchorId,
+      threadId,
       updatedAtMs: Date.now(),
     });
     await persistZhiyuAgentConversationAnchorBindingsToStorage();
-    return conversationReady(identity, binding.conversationAnchorId);
+    return conversationReady(identity, binding.conversationAnchorId, binding.threadId);
   } catch (error) {
     return normalizeConversationError(error, identity);
   }
@@ -121,17 +151,27 @@ async function ensureConversationAnchorBindingUpstream(input: {
   readonly client: {
     readonly getSessionSnapshot: (request: LocalAgentIdentity & {
       readonly conversationAnchorId: string;
-    }) => Promise<unknown>;
+    }) => Promise<{ readonly threadId?: string }>;
   };
   readonly identity: LocalAgentIdentity;
   readonly binding: ZhiyuAgentConversationAnchorBinding;
 }): Promise<ZhiyuAgentConversationAnchorBinding | null> {
   try {
-    await input.client.getSessionSnapshot({
+    const snapshot = await input.client.getSessionSnapshot({
       ...input.identity,
       conversationAnchorId: input.binding.conversationAnchorId,
     });
-    return input.binding;
+    const threadId = requireRuntimeThreadId(snapshot);
+    if (threadId === input.binding.threadId) {
+      return input.binding;
+    }
+    const refreshed = persistZhiyuAgentConversationAnchorBinding({
+      ...input.binding,
+      threadId,
+      updatedAtMs: Date.now(),
+    });
+    await persistZhiyuAgentConversationAnchorBindingsToStorage();
+    return refreshed;
   } catch (error) {
     if (!isRecoverableRuntimeAnchorError(error)) {
       throw error;
@@ -157,6 +197,7 @@ function bindingMatchesIdentity(
 function conversationReady(
   identity: LocalAgentIdentity,
   conversationAnchorId: string,
+  threadId: string,
 ): ZhiyuConversationHomeStatus {
   return {
     transport: 'electron-ipc',
@@ -167,7 +208,33 @@ function conversationReady(
     message: 'Runtime-owned conversation anchor is open.',
     ...identity,
     conversationAnchorId,
+    threadId,
   };
+}
+
+async function readRuntimeConversationThreadId(
+  client: {
+    readonly getSessionSnapshot: (request: LocalAgentIdentity & {
+      readonly conversationAnchorId: string;
+    }) => Promise<{ readonly threadId?: string }>;
+  },
+  identity: LocalAgentIdentity,
+  conversationAnchorId: string,
+): Promise<string> {
+  const snapshot = await client.getSessionSnapshot({ ...identity, conversationAnchorId });
+  return requireRuntimeThreadId(snapshot);
+}
+
+function requireRuntimeThreadId(snapshot: { readonly threadId?: string }): string {
+  const threadId = stringOr(snapshot?.threadId, '');
+  if (!threadId) {
+    throw Object.assign(new Error('Runtime conversation session snapshot returned no thread id.'), {
+      reasonCode: 'zhiyu-conversation-thread-id-missing',
+      actionHint: 'check_runtime_agent_session_snapshot',
+      source: 'runtime',
+    });
+  }
+  return threadId;
 }
 
 function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): LocalAgentIdentity | null {
@@ -236,6 +303,7 @@ function conversationUnavailable(input: {
     runtimeSourceRef: input.runtimeSourceRef ?? null,
     localAgentRef: input.localAgentRef ?? null,
     conversationAnchorId: null,
+    threadId: null,
   };
 }
 

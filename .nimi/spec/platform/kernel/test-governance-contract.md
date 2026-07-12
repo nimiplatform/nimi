@@ -32,168 +32,174 @@ The census (globs, excludes, helper globs) is authoritative in the policy table;
 
 Per-domain inventories are non-authoritative support inputs owned by the domain; a single platform vocabulary governs all (no parallel vocabulary).
 
-## P-TEST-009 — LocalAgent behavior expectations are derived only from typed source, world, relationship, and knowledge truth.
+## P-TEST-009 — LocalAgent semantic behavior is reported for human review, never automatically admitted.
 
-LocalAgent behavior admission derives its fixed expectation manifest from the
-admitted typed source snapshot and its canonical world, relationship, and
-knowledge inputs. Deterministic facts, identifiers, hashes, boundaries, and
-cross-agent leakage markers remain deterministic assertions; semantic style
-and pacing are rubric-scored. A test, evaluator, app, score, or transcript may
-not author or revise personality truth.
+I8 executes real LocalAgent conversations and preserves source, world,
+relationship, knowledge, transcript, and model context so a human can review
+identity consistency, world understanding, continuity, unknown handling,
+privacy boundaries, contradiction resistance, tone, style, and relationship
+effects. Those dimensions are observation headings, not automatic assertions.
+A test, matcher, score, evaluator, app, transcript, or report may not author
+personality truth or produce an authoritative semantic PASS/FAIL.
 
-- AUTHORITY-RELATION subject=platform-test-governance action=derive object=localagent-behavior-expectations value=typed-source-world-relationship-knowledge polarity=require
-- AUTHORITY-RELATION subject=test-or-evaluator action=author object=localagent-personality-truth value=denied polarity=forbid
+- AUTHORITY-RELATION subject=localagent-i8 action=produce object=semantic-behavior-observations value=human-review-report polarity=require
+- AUTHORITY-RELATION subject=automatic-test-or-evaluator action=admit object=localagent-semantic-quality value=denied polarity=forbid
+- AUTHORITY-RELATION subject=test-or-report action=author object=localagent-personality-truth value=denied polarity=forbid
 
-## P-TEST-010 — Deterministic context admission and real Electron acceptance keep their existing classifications.
+## P-TEST-010 — Objective context and real Electron facts remain automatically checkable.
 
-The deterministic context gate uses the existing `behavior_unit` T4 class and
-must prove from the provider-visible Runtime request that the admitted source,
-world, relationship, knowledge, transcript, and memory inputs reached their
-typed lanes with the expected hashes, budget, exclusions, and exact provider
-call count. Real mouse, keyboard, input, click, DOM, and screenshot acceptance
-uses the existing `product_acceptance` T6 class. Neither gate creates a new
-LocalAgent-specific classification or substitutes for live-provider behavior
-proof.
+The deterministic context gate uses `behavior_unit` T4 and proves typed lanes,
+hashes, budgets, exclusions, call counts, and exact leakage canaries from
+provider-visible Runtime projections. Real mouse, keyboard, input, click, DOM,
+cross-app continuation, screenshot, restart, and offline execution use
+`product_acceptance` T6. These mechanical checks may fail closed; unusual
+wording, tone, role effect, or naturalness may only be retained as observation.
 
-- AUTHORITY-RELATION subject=localagent-deterministic-context-admission action=classify object=test-governance value=behavior-unit-t4 polarity=require
-- AUTHORITY-RELATION subject=localagent-electron-product-acceptance action=classify object=test-governance value=product-acceptance-t6 polarity=require
-- AUTHORITY-RELATION subject=provider-visible-request-capture action=prove object=localagent-context-admission value=required polarity=require
+- AUTHORITY-RELATION subject=localagent-deterministic-context action=classify object=test-governance value=behavior-unit-t4 polarity=require
+- AUTHORITY-RELATION subject=localagent-electron-product-facts action=classify object=test-governance value=product-acceptance-t6 polarity=require
+- AUTHORITY-RELATION subject=semantic-wording-style-or-naturalness action=produce object=automatic-failure value=denied polarity=forbid
 
-## P-TEST-011 — Real subject behavior and semantic evaluator execution use live_provider_proof T7 after environment evidence.
+## P-TEST-011 — The I8 live surface is one reviewable real-provider conversation report.
 
-Real provider behavior admission runs the subject through the ordinary Runtime
-Agent turn surface and the product's real application path. Subject and
-semantic evaluator provider calls both use the existing `live_provider_proof`
-T7 classification with release eligibility only after `after_env_evidence`;
-the Electron interaction portion remains `product_acceptance`. A fixture,
-canned reply, missing credential, missing route, or unavailable evaluator
-cannot be renamed or counted as live behavior admission.
+I8 runs the ordinary Runtime Agent turn surface through the real Desktop and
+Zhiyu product path. Electron interaction remains `product_acceptance` T6 and
+real provider execution remains `live_provider_proof` T7 after environment
+evidence. A fixture reply, canned transcript, missing credential, missing
+route, or fabricated artifact cannot substitute for execution. L5 proves that
+the report is real, complete, and traceable; it does not admit semantic quality.
 
-- AUTHORITY-RELATION subject=localagent-live-subject-and-semantic-evaluator action=classify object=test-governance value=live-provider-proof-t7-after-env-evidence polarity=require
-- AUTHORITY-RELATION subject=fixture-or-canned-reply action=substitute object=live-provider-behavior-admission value=denied polarity=forbid
+- AUTHORITY-RELATION subject=localagent-conversation-report action=classify object=real-provider-execution value=live-provider-proof-t7-after-env-evidence polarity=require
+- AUTHORITY-RELATION subject=fixture-or-canned-reply action=substitute object=live-conversation-report value=denied polarity=forbid
+- AUTHORITY-RELATION subject=l5-conversation-report action=admit object=semantic-quality value=denied polarity=forbid
 
-## P-TEST-012 — Subject and evaluator independence requires distinct complete Runtime route fingerprints.
+## P-TEST-012 — Model identity is Runtime-selected, complete, and configurable.
 
-Admission requires Runtime-produced subject and evaluator fingerprints that
-each bind `providerId`, `modelId`, and a resolved model revision or model
-fingerprint. The complete fingerprints must differ; any missing component,
-unproven resolution, or collision blocks the batch. Provider/model selection
-comes from Runtime AI Config and catalog resolution. Apps and test runners may
-not call a provider or model directly, and may not embed provider/model
-constants.
+Every reported turn binds the actual `providerId`, `modelId`, and resolved
+model revision or fingerprint selected through Runtime catalog and Runtime AI
+Config. Apps and test runners may expose declarative model/repeat comparison
+axes, but may not directly call a provider, embed provider/model constants, or
+silently change the selected route within one run. The baseline defaults to one
+model, one run, no repeat, and no retry. No independent evaluator route is
+required.
 
-- AUTHORITY-RELATION subject=localagent-behavior-admission action=require object=subject-evaluator-route-fingerprints value=complete-and-distinct polarity=require
-- AUTHORITY-RELATION subject=app-or-test-runner action=call object=provider-or-model-directly value=denied polarity=forbid
+- AUTHORITY-RELATION subject=conversation-report-turn action=bind object=model-fingerprint value=provider-model-revision-complete polarity=require
 - AUTHORITY-RELATION subject=app-or-test-runner action=hardcode object=provider-or-model-selection value=denied polarity=forbid
+- AUTHORITY-RELATION subject=baseline-conversation-report action=execute object=model-run-repeat-retry value=one-one-one-none polarity=require
 
-## P-TEST-013 — Evaluator results are strict, calibrated, fixed-batch, and fail closed.
+## P-TEST-013 — Human review state is explicit and defaults to unreviewed.
 
-The evaluator input allowlist is exactly the source-derived expectation
-manifest, the fixed rubric, and the subject transcript. Semantic evaluator
-output must satisfy the fixed strict JSON schema; unknown fields, malformed
-output, unknown scores, or reason-code mismatch fail closed. Before any subject
-score is admitted, every dimension has one fixed known-pass control and one
-fixed deliberate-fail control. Any control misclassification, constant scoring,
-schema failure, or route collision rejects the whole batch. Thresholds,
-controls, rubric, and schema are immutable within a batch, and evaluator trials
-have no automatic retry.
+Report review status uses the closed set `unreviewed`, `accepted`, and
+`needs_adjustment`. Generated reports and every review dimension default to
+`unreviewed` with empty notes. Automation may record objective execution
+findings and exact privacy canary leakage, but may not use semantic keyword
+Optional future AI annotations are non-authoritative and cannot change review
+status, product truth, model-visible context, or release/admission disposition.
 
-- AUTHORITY-RELATION subject=semantic-evaluator-result action=admit object=behavior-score value=strict-json-schema-only polarity=require
-- AUTHORITY-RELATION subject=behavior-evaluator-calibration action=require object=known-pass-and-deliberate-fail-controls value=every-dimension polarity=require
-- AUTHORITY-RELATION subject=behavior-batch action=change object=threshold-controls-rubric-schema-after-start value=denied polarity=forbid
-- AUTHORITY-RELATION subject=behavior-evaluator action=retry object=trial value=denied polarity=forbid
+- AUTHORITY-RELATION subject=generated-conversation-report action=initialize object=human-review-status value=unreviewed polarity=require
+- AUTHORITY-RELATION subject=automatic-semantic-evaluator action=set object=review-status-or-admission value=denied polarity=forbid
+- AUTHORITY-RELATION subject=optional-ai-annotation action=become object=authoritative-verdict value=denied polarity=forbid
 
-## P-TEST-014 — Every raw trial is retained; evaluator evidence cannot mutate product or personality truth.
+## P-TEST-014 — One baseline run retains one complete report bundle.
 
-Every subject, deterministic-evaluator, semantic-evaluator, calibration,
-provider, transport, and schema outcome remains in the raw trial ledger and in
-the original denominator. Evaluator execution and results are evidence only:
-they cannot mutate Realm source, Runtime source snapshot, LocalAgent,
-conversation turn/message/transcript, memory, anchor, or other product state.
-An evaluator score never becomes personality truth and cannot change later
-context composition or model-visible inputs.
+The baseline creates one clean root, starts provider, Realm, Runtime, Desktop,
+and Zhiyu once, materializes each declared Realm source exactly once, and then
+executes two Runtime-owned LocalAgent conversation streams plus one lifecycle
+timeline in that environment. Each stream binds one opaque Runtime-resolved
+`localAgentRef` and one Runtime-owned `conversationAnchorId`; WorldCharacter and
+RealmPersona remain source provenance and frozen typed snapshot input only.
+Runtime starts a second time only for the declared restart. The run retains
+complete transcripts, per-turn provider
+captures, Runtime/context/memory/relationship state, Voice/Emotion/Activity/
+APML/hook projections, screenshots, process/page findings, privacy findings,
+restart/offline events, model identity, and artifact hashes. It generates one
+`report.html`, one `report.json`, one run manifest, and one run bundle. It never
+replays the product Journey merely to generate the report.
 
-- AUTHORITY-RELATION subject=behavior-batch-ledger action=retain object=all-raw-trials value=required polarity=require
-- AUTHORITY-RELATION subject=behavior-evaluator action=mutate object=source-snapshot-localagent-transcript-memory-state value=denied polarity=forbid
-- AUTHORITY-RELATION subject=evaluator-score action=become object=personality-truth value=denied polarity=forbid
+- AUTHORITY-RELATION subject=baseline-conversation-report action=retain object=complete-turn-and-state-bundle value=required polarity=require
+- AUTHORITY-RELATION subject=report-generation action=start object=duplicate-product-trial value=denied polarity=forbid
+- AUTHORITY-RELATION subject=baseline-environment action=restart object=runtime value=declared-once-only polarity=require
+- AUTHORITY-RELATION subject=realm-source action=own object=materialized-localagent-conversation value=denied polarity=forbid
+- AUTHORITY-RELATION subject=materialized-localagent action=continue object=realm-offline-frozen-snapshot-and-runtime-state value=required polarity=require
+- AUTHORITY-RELATION subject=realm-source-change action=rebase object=materialized-localagent value=automatic-denied polarity=forbid
 
-## P-TEST-015 — LocalAgent acceptance uses the closed L0–L5 execution layers and their hard budgets.
+## P-TEST-015 — LocalAgent testing uses the closed L0–L5 layers and bounded report execution.
 
-LocalAgent tests use the execution-layer contract in
-`tables/test-governance-policy.yaml`: L0 static/unit, L1 module
-integration/contract, L2 core product journey, L3 extended/risk journey, L4
-exhaustive deterministic, and L5 live behavior. The minimum sufficient layer
-is selected by the product fact being proved. Enumeration, property,
-schema-mutation, and high-repeat negative coverage stays in L0/L1/L4 and may
-not create an Electron Cartesian product. An L2 or L3 budget breach is a test
-architecture failure; increasing a timeout is not an admission remedy.
+LocalAgent tests use L0 static/unit, L1 module integration/contract, L2 core
+product Journey, L3 extended/risk Journey, L4 exhaustive deterministic, and
+L5 live conversation report. Enumeration, property, schema mutation, and
+high-repeat negative coverage remain in L0/L1/L4 and may not create an Electron
+Cartesian product. L5 is on demand, human reviewed, forbidden from ordinary
+regression, and has no release or semantic admission threshold.
 
-- AUTHORITY-RELATION subject=localagent-acceptance action=classify object=execution-layer value=l0-through-l5-closed-set polarity=require
+- AUTHORITY-RELATION subject=localagent-testing action=classify object=execution-layer value=l0-through-l5-closed-set polarity=require
+- AUTHORITY-RELATION subject=l5-live-conversation-report action=enter object=ordinary-regression-or-release-threshold value=denied polarity=forbid
 - AUTHORITY-RELATION subject=enum-property-schema-mutation action=execute object=electron-cartesian-product value=denied polarity=forbid
-- AUTHORITY-RELATION subject=journey-budget-breach action=resolve object=timeout-increase-only value=denied polarity=forbid
 
-## P-TEST-016 — Acceptance points are product facts; checkpoints collect them inside pollution-bounded Journey Trials.
+## P-TEST-016 — Acceptance points and behavior observation points have different outcome semantics.
 
-An acceptance point identifies one independently traceable product fact. A
-checkpoint is the position inside a product Journey where one or more facts
-are observed. A Journey Trial starts from one clean environment and may emit
-many checkpoint and leaf results. Environment isolation follows account,
-source, agent, transcript, memory, destructive-state, and platform pollution
-boundaries; it never follows leaf count. Ordinary new assertions extend an
-existing checkpoint unless they require a distinct user path, state machine,
-initial subject, destructive boundary, recovery boundary, or native platform.
-Every Journey repeat allocates fresh logical account, world, source, Runtime
-source, and LocalAgent identities wherever those entities exist, and records
-the observed identities in `environmentIdentity`. A fresh filesystem root does
-not admit a repeat that reuses logical product identity.
+An `acceptance_point` is an independently traceable objective product fact and
+may produce automatic pass/fail. A `behavior_observation_point` identifies a
+human-review location and may only map to a LocalAgent conversation stream,
+turn, lifecycle event, or report section. It must never emit a semantic pass, skip, blocked, or
+completed-as-passed record. Environment isolation follows state pollution, not
+point, scene, turn, or report-section count. Ordinary new conversation coverage
+extends the declarative scenario registry unless a genuinely different product
+environment or destructive boundary is required.
 
-- AUTHORITY-RELATION subject=acceptance-point action=identify object=product-fact value=independently-traceable polarity=require
-- AUTHORITY-RELATION subject=journey-trial action=emit object=leaf-results value=many-per-clean-environment polarity=require
-- AUTHORITY-RELATION subject=leaf-count action=determine object=environment-process-starts value=denied polarity=forbid
-- AUTHORITY-RELATION subject=journey-repeat action=allocate object=logical-product-identities value=fresh-and-observed polarity=require
+- AUTHORITY-RELATION subject=acceptance-point action=produce object=automatic-outcome value=objective-facts-only polarity=require
+- AUTHORITY-RELATION subject=behavior-observation-point action=map object=report-location value=required polarity=require
+- AUTHORITY-RELATION subject=behavior-observation-point action=produce object=semantic-pass-or-fail value=denied polarity=forbid
+- AUTHORITY-RELATION subject=scene-turn-or-point-count action=determine object=environment-process-starts value=denied polarity=forbid
 
-## P-TEST-017 — Acceptance catalog, Journey registry, and execution policy are separate non-authoritative support inputs.
+## P-TEST-017 — Point catalog, scenario registry, Journey registry, and execution policy remain separate projections.
 
-The acceptance-point catalog owns leaf identity, iteration owner, group,
-requirement, assertion identity, minimum sufficient layer, and evidence class.
-The Journey registry owns environments, prerequisites, checkpoints, leaf
-coverage, isolation, repeats, and budgets. The execution policy owns local,
-PR, stability, extended, exhaustive, and live gate selection. No file may mix
-these ownership roles. All 169 LocalAgent leaves remain catalogued; I7 owns
-145 deterministic leaves, while the 24 P leaves remain I8-owned L5 structure
-and produce no I7 result, pass, skip, or blocked record.
+The point catalog owns point identity, kind, iteration owner, group,
+requirement, review/assertion dimensions, minimum layer, and evidence class.
+The conversation scenario registry owns LocalAgent stream aliases, source
+provenance requirements, ordered turns, surfaces, continuation, capture
+requests, lifecycle checkpoints, review headings, model axes, and time budget.
+Aliases are declarative handles only: the registry and apps may not derive or
+predeclare `localAgentRef` or `conversationAnchorId`.
+The Journey registry owns environment, prerequisites, checkpoints, observation
+coverage, isolation, and process-start limits. The execution policy owns gate
+selection and repeats. All 169 point identities remain catalogued: I7 owns 145
+`acceptance_point` rows and I8 owns 24 `behavior_observation_point` rows. No
+support input may create parallel semantic truth.
 
-- AUTHORITY-RELATION subject=localagent-test-support-inputs action=separate object=catalog-journey-policy value=required polarity=require
-- AUTHORITY-RELATION subject=i7-execution action=emit object=i8-p-leaf-result value=denied polarity=forbid
-- AUTHORITY-RELATION subject=localagent-leaf-catalog action=retain object=leaf-identities value=169 polarity=require
+- AUTHORITY-RELATION subject=localagent-test-support-inputs action=separate object=point-scenario-journey-policy value=required polarity=require
+- AUTHORITY-RELATION subject=i8-behavior-observation action=masquerade object=acceptance-pass value=denied polarity=forbid
+- AUTHORITY-RELATION subject=localagent-point-catalog action=retain object=point-identities value=169 polarity=require
 
-## P-TEST-018 — Journey results, checkpoints, leaf results, artifacts, and prerequisite outcomes fail closed.
+## P-TEST-018 — Conversation report completeness and objective findings fail closed.
 
-Every Journey result binds source state, environment identity, duration,
-checkpoints, leaf results, artifacts, process problems, privacy, and outcome.
-Each checkpoint binds prerequisites, timestamps, Runtime/source/agent/turn
-correlations, assertions, artifact references, and outcome. Each leaf result
-binds its Journey Trial, checkpoint IDs, assertion IDs, evidence references,
-outcome, and failure class. A failed prerequisite makes every dependent leaf
-`failed` or `blocked_by_failed_prerequisite`; neither blocked, skipped,
-missing, nor unexecuted can count as pass. Artifact hashes, source digests,
-privacy, process errors, and provider-visible lane evidence are admission
-inputs, not optional diagnostics.
+The report checker validates exactly two declared Runtime-owned LocalAgent
+conversation streams and one non-conversation lifecycle/correlation timeline,
+user/assistant or transport-failure pairs, chronological order,
+account/source-snapshot/localAgent/conversation/turn/model correlation, Desktop
+and Zhiyu participation, context and state
+captures, screenshots and hashes, restart/offline execution, process/page
+findings, privacy findings, process-start limits, local links, transcript/report
+agreement, and all 24 observation mappings. Missing or contradictory objective
+evidence fails the checker. Reported/completed never means passed, and a
+semantically odd but mechanically complete reply remains reviewable data.
 
-- AUTHORITY-RELATION subject=failed-checkpoint-prerequisite action=permit object=dependent-leaf-pass value=denied polarity=forbid
-- AUTHORITY-RELATION subject=blocked-skipped-missing-unexecuted action=count object=acceptance-pass value=denied polarity=forbid
-- AUTHORITY-RELATION subject=journey-evidence action=bind object=source-artifact-privacy-process-provider-integrity value=required polarity=require
+- AUTHORITY-RELATION subject=conversation-report-checker action=validate object=objective-completeness-and-integrity value=fail-closed polarity=require
+- AUTHORITY-RELATION subject=reported-or-completed action=count object=semantic-pass value=denied polarity=forbid
+- AUTHORITY-RELATION subject=semantic-response-quality action=affect object=mechanical-execution-status value=denied polarity=forbid
+- AUTHORITY-RELATION subject=conversation-stream action=bind object=opaque-localagent-and-runtime-anchor value=one-distinct-pair polarity=require
+- AUTHORITY-RELATION subject=desktop-or-zhiyu action=own object=conversation-or-localagent-identity value=denied polarity=forbid
 
-## P-TEST-019 — Required regression gates are Journey-based and budget-enforced; leaf-per-process is forbidden.
+## P-TEST-019 — The L5 baseline is one on-demand environment, never a matrix gate.
 
-The required local/PR path runs L0+L1+one L2 core Journey within the policy
-budget. Core stability runs three independent L2 Journey Trials; extended
-and exhaustive gates run only their policy-selected work. L5 live behavior is
-separate and never blocks ordinary deterministic feedback. A required runner,
-package script, checker, or fallback that starts a complete
-Runtime/Desktop/Zhiyu environment once per leaf is forbidden. Process-start
-counts must match the Journey environment declaration, not `leaf × repeat`.
+The required local/PR path remains L0+L1+one L2 core Journey. L5 is a separate
+on-demand report command with one clean environment, one provider, one Realm,
+one Desktop, one Zhiyu, and one Runtime plus its one declared restart. It has no
+calibration Journey, two-by-ten scheduler, evaluator requirement, retry,
+semantic aggregate, release threshold, or ordinary regression binding. A
+script, checker, fallback, scene, turn, observation point, or model comparison
+axis that starts a complete environment independently is forbidden.
 
 - AUTHORITY-RELATION subject=required-local-pr-gate action=run object=l0-l1-l2-core value=budget-enforced polarity=require
-- AUTHORITY-RELATION subject=required-runner action=start object=full-environment-per-leaf value=denied polarity=forbid
+- AUTHORITY-RELATION subject=l5-baseline action=start object=full-product-environment value=one-per-run polarity=require
+- AUTHORITY-RELATION subject=l5-baseline action=require object=calibration-2x10-evaluator-semantic-threshold value=denied polarity=forbid
 - AUTHORITY-RELATION subject=process-start-count action=derive object=journey-environment-declaration value=required polarity=require

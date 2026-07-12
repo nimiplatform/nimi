@@ -50,7 +50,11 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
       setBoundedContext(null);
       return () => { cancelled = true; };
     }
-    void runtimeAdapter.loadSnapshot().then((snapshot) => {
+    void runtimeAdapter.loadSnapshot({
+      ...(input.activeConversationAnchorId
+        ? { conversationAnchorId: input.activeConversationAnchorId }
+        : {}),
+    }).then((snapshot) => {
       if (!cancelled) {
         setBoundedContext({
           sourceContextStatus: snapshot.sourceContextStatus,
@@ -61,7 +65,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
       if (!cancelled) setBoundedContext(null);
     });
     return () => { cancelled = true; };
-  }, [runtimeAdapter]);
+  }, [input.activeConversationAnchorId, input.messages.length, runtimeAdapter]);
   const state = useMemo<AgentCenterStateInput>(() => ({
     agentAIConfig: input.runtimeAgentAIConfig,
     readiness: input.runtimeAgentAIConfigReadiness,

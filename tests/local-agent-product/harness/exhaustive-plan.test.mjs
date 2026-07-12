@@ -5,19 +5,19 @@ import { readLocalAgentTestArchitecture } from './registry.mjs';
 
 test('exhaustive policy preserves 3239 low-level logical trials without Electron scheduling', () => {
   const architecture = readLocalAgentTestArchitecture();
-  const points = architecture.catalog.acceptance_points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer));
+  const points = architecture.points.points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer));
   assert.equal(points.length, 71);
   assert.equal(exhaustiveRepeatByLeaf.size, 32);
-  assert.equal(points.reduce((count, point) => count + (exhaustiveRepeatByLeaf.get(point.leaf_id) || 1), 0), 3239);
+  assert.equal(points.reduce((count, point) => count + (exhaustiveRepeatByLeaf.get(point.point_id) || 1), 0), 3239);
 
   const grouped = new Map();
   for (const point of points) {
-    const repeatCount = exhaustiveRepeatByLeaf.get(point.leaf_id) || 1;
-    const steps = contractPlanByLeaf.get(point.leaf_id);
-    assert.ok(Array.isArray(steps) && steps.length > 0, `${point.leaf_id} must have a low-level contract plan`);
+    const repeatCount = exhaustiveRepeatByLeaf.get(point.point_id) || 1;
+    const steps = contractPlanByLeaf.get(point.point_id);
+    assert.ok(Array.isArray(steps) && steps.length > 0, `${point.point_id} must have a low-level contract plan`);
     for (const step of steps) {
       const command = JSON.stringify([step.command, step.args, step.cwd]);
-      assert.doesNotMatch(command, /electron|dist-electron|playwright/iu, `${point.leaf_id} exhaustive plan must not start Electron`);
+      assert.doesNotMatch(command, /electron|dist-electron|playwright/iu, `${point.point_id} exhaustive plan must not start Electron`);
       grouped.set(command, Math.max(grouped.get(command) || 0, repeatCount));
     }
   }

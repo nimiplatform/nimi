@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+
+import { resolveProductJourneyTimeBudgetMs } from '../../../../tests/local-agent-product/harness/time-budget.mjs';
 import { Runtime } from '@nimiplatform/sdk/runtime';
 import { APP_ID, VALID_PERSONA_SOURCE_REF } from './acceptance-constants.mjs';
 import {
@@ -20,6 +22,11 @@ import {
 } from './acceptance-page.mjs';
 import { createAcceptanceAgentClient, startRuntimeDaemon } from './acceptance-runtime.mjs';
 import { applyDeterministicMediaRoutes } from './acceptance-media-routes.mjs';
+import {
+  admittedAgentCenterSourceContextStatuses,
+  assertAgentCenterSourceContextProjection,
+} from './acceptance-context-status.mjs';
+import { runDesktopConversationReportTurns } from './acceptance-conversation-report.mjs';
 
 export function createProductJourneySettings({ appRoot }) {
   const artifactsDir = process.env.NIMI_LOCAL_AGENT_PRODUCT_DESKTOP_ARTIFACTS_ROOT
@@ -35,6 +42,7 @@ export function createProductJourneySettings({ appRoot }) {
     crossAppControlRoot: optionalPath('NIMI_LOCAL_AGENT_PRODUCT_CONTROL_ROOT'),
     productJourneyId,
     fullChainCore: productJourneyId === 'full-chain-core',
+    conversationReport: productJourneyId === 'conversation-report-baseline',
     preMaterializationOffline: productJourneyId === 'pre-materialization-offline',
     disabledActionOnly: process.env.NIMI_LOCAL_AGENT_PRODUCT_DISABLED_ACTION_ONLY === '1',
     productSourceKind: process.env.NIMI_LOCAL_AGENT_PRODUCT_SOURCE_KIND?.trim() === 'realmPersona'
@@ -50,6 +58,7 @@ export function createProductJourneySettings({ appRoot }) {
 }
 
 export function createProviderCheckpointController(fixtureOrigin) {
+  const journeyTimeBudgetMs = resolveProductJourneyTimeBudgetMs(process.env, 180_000);
   async function queue(checkpointId, apml, extra = {}) {
     const response = await fetch(`${fixtureOrigin}/__fixture/control/provider-plan`, {
       method: 'POST',
@@ -73,7 +82,7 @@ export function createProviderCheckpointController(fixtureOrigin) {
     throw new Error(`provider checkpoint ${checkpointId} did not receive ${expectedCount} request(s)`);
   }
 
-  async function waitForFile(file, timeoutMs = 180_000) {
+  async function waitForFile(file, timeoutMs = journeyTimeBudgetMs) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       if (fs.existsSync(file)) return;
@@ -270,8 +279,9 @@ export async function runDesktopAgentChatJourney(input) {
   const {
     page, localAgentRef, productSourceKind, realRealmSession, chatScreenshotPath,
     observations, agentClient, agentIdentity, readRuntimeAgentAIConfig,
-    waitForRuntimeTextGenerateTargetRef, paths, fullChainCore, mediaRoutes,
+    waitForRuntimeTextGenerateTargetRef, paths, fullChainCore, conversationReport, conversationScenario, mediaRoutes,
     artifactsDir, queueProviderPlan, waitForProviderCheckpoint, providerCheckpointCount,
+    consoleErrors, pageErrors,
   } = input;
   const agentRailTarget = page.getByTestId(`chat-target:${localAgentRef}`);
   await agentRailTarget.waitFor({ state: 'visible', timeout: 30_000 });
@@ -318,7 +328,18 @@ export async function runDesktopAgentChatJourney(input) {
   assert.equal(observations.agentModelSettingsEnglishCopyVisible, 0, 'Agent model settings must not leak English model/profile status copy in zh shell.');
   assert.equal(observations.agentModelSettingsEnglishStatusTransitionCopyVisible, 0, 'Agent model settings must not leak English Runtime AIConfig transition status copy in zh shell.');
   assert.equal(observations.agentModeUnavailableVisible, 0, 'Agent model settings must not fall back to unavailable mode.');
-  await selectDesktopAgentTextModel({ page, observations, agentClient, agentIdentity, waitForRuntimeTextGenerateTargetRef, paths });
+  if (conversationReport) {
+    const configured = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
+    const textBinding = configured.intents?.['text.generate'];
+    assert.equal(textBinding?.route, 'cloud', 'conversation report Desktop must consume the precommitted cloud Runtime Agent AI Config route');
+    assert.equal(textBinding?.targetRef?.kind, 'cloud-connector', 'conversation report Desktop must consume a durable cloud connector targetRef');
+    observations.agentModelSelectedAIConfigTargetRef = textBinding.targetRef;
+    observations.agentModelSelectedRuntimeAIConfig = configured;
+    observations.agentModelSelectedRouteUnavailableVisible = 0;
+    await captureScreenshot(page, paths.modelSelected);
+  } else {
+    await selectDesktopAgentTextModel({ page, observations, agentClient, agentIdentity, waitForRuntimeTextGenerateTargetRef, paths });
+  }
 
   let sharedAgentIntents = null;
   if (fullChainCore) {
@@ -328,6 +349,8 @@ export async function runDesktopAgentChatJourney(input) {
       ['text.generate', 'text.embed', 'image.generate', 'audio.synthesize', 'audio.transcribe']
         .map((capability) => [capability, configured.readiness?.capabilities?.[capability]?.state || configured.intents?.[capability]?.route || null]),
     );
+  } else if (conversationReport) {
+    sharedAgentIntents = (await readRuntimeAgentAIConfig(agentClient, agentIdentity)).intents;
   }
 
   await settingsToggle.click();
@@ -347,6 +370,11 @@ export async function runDesktopAgentChatJourney(input) {
     const longChineseMessage = '共享账户授权由运行时统一托管；这个长文本用于验证桌面与窄屏布局、中文可读性以及输入框在真实 Desktop Electron 外壳中的可用性。';
     if (fullChainCore) {
       await runDesktopCoreTurns({ page, composerTextarea, sendButton, observations, artifactsDir, queueProviderPlan, waitForProviderCheckpoint, providerCheckpointCount });
+    } else if (conversationReport) {
+      await runDesktopConversationReportTurns({
+        page, composerTextarea, sendButton, observations, agentClient, agentIdentity,
+        conversationScenario, artifactsDir, consoleErrors, pageErrors,
+      });
     } else {
       await composerTextarea.fill(longChineseMessage);
       observations.agentComposerLongChineseText = await composerTextarea.inputValue();
@@ -367,15 +395,22 @@ export async function runDesktopAgentChatJourney(input) {
     assert.equal(observations.agentChatTranscriptEnglishThinkingVisible, 0, 'Agent Chat transcript must not leak English Thinking pending label in zh shell.');
   }
 
-  if (fullChainCore) {
+  if (fullChainCore || conversationReport) {
     await settingsToggle.click();
     await page.getByTestId('chat-agent-center-section:overview').click();
-    await page.waitForFunction(() => globalThis.document.querySelector('[data-agent-center-source-context-status]')
-      ?.getAttribute('data-agent-center-source-context-status') === 'ready', null, { timeout: 30_000 });
-    const readyStatus = page.locator('[data-agent-center-source-context-status]').first();
-    observations.agentCenterSourceContextStatus = await readyStatus.getAttribute('data-agent-center-source-context-status');
-    observations.agentCenterSourceContextText = normalizeWhitespace(await readyStatus.innerText()).slice(0, 500);
-    assert.equal(observations.agentCenterSourceContextStatus, 'ready', 'Desktop Agent Center must project bounded source/context ready after real turns');
+    const admittedStatuses = admittedAgentCenterSourceContextStatuses(conversationReport);
+    await page.waitForFunction((statuses) => statuses.includes(
+      globalThis.document.querySelector('[data-agent-center-source-context-status]')
+        ?.getAttribute('data-agent-center-source-context-status'),
+    ), admittedStatuses, { timeout: 30_000 });
+    const safeStatus = page.locator('[data-agent-center-source-context-status]').first();
+    observations.agentCenterSourceContextStatus = await safeStatus.getAttribute('data-agent-center-source-context-status');
+    observations.agentCenterSourceContextText = normalizeWhitespace(await safeStatus.innerText()).slice(0, 500);
+    assertAgentCenterSourceContextProjection({
+      status: observations.agentCenterSourceContextStatus,
+      conversationReport,
+      turnContextSummary: observations.desktopConversationReportLastTurnContextSummary,
+    });
     await settingsToggle.click();
   }
   return { sharedAuthSessionCommands, sharedAgentIntents };
@@ -527,7 +562,7 @@ export async function runDesktopCoreTurns(input) {
 export async function materializeJourneyPersona(input) {
   const {
     page, realRealmSession, agentClient, mediaRoutes, sharedAgentIntents,
-    journeyAgents, observations, personaMaterializedScreenshotPath,
+    journeyAgents, observations, personaMaterializedScreenshotPath, conversationReportRoute, commitConversationReportRoute,
     waitForDiscoveredLocalAgent, runtimeAgentIdentity,
   } = input;
   const personaSourceRef = realRealmSession?.sourceRefs.realmPersona || VALID_PERSONA_SOURCE_REF;
@@ -544,15 +579,24 @@ export async function materializeJourneyPersona(input) {
   const discovered = await waitForDiscoveredLocalAgent(agentClient, personaSourceRef);
   assert.equal(discovered.length, 1, `core Journey expected one RealmPersona LocalAgent, got ${discovered.length}`);
   const persona = discovered[0];
-  await applyDeterministicMediaRoutes({
-    agentClient,
-    identity: runtimeAgentIdentity(persona.localAgentRef, persona.runtimeSourceRef),
-    routes: mediaRoutes,
-    baseIntents: sharedAgentIntents,
-  });
+  if (conversationReportRoute) {
+    await commitConversationReportRoute({
+      agentClient,
+      identity: runtimeAgentIdentity(persona.localAgentRef, persona.runtimeSourceRef),
+      route: conversationReportRoute,
+    });
+  } else {
+    await applyDeterministicMediaRoutes({
+      agentClient,
+      identity: runtimeAgentIdentity(persona.localAgentRef, persona.runtimeSourceRef),
+      routes: mediaRoutes,
+      baseIntents: sharedAgentIntents,
+    });
+  }
   const record = {
     sourceKind: 'realmPersona', sourceRef: personaSourceRef, localAgentRef: persona.localAgentRef,
     runtimeSourceRef: persona.runtimeSourceRef, snapshotHash: persona.snapshotHash || null, displayName,
+    materializedAt: new Date().toISOString(),
   };
   journeyAgents.push(record);
   observations.personaMaterialization = record;
@@ -564,14 +608,14 @@ export async function holdCrossAppJourney(input) {
   let { runtimeContext, runtimeDaemon } = input;
   const {
     crossAppHandoffPath, crossAppReleasePath, crossAppProviderRawPath, crossAppControlRoot,
-    fullChainCore, productJourneyId, fixtureManifest, fixtureOrigin, realtimeFixtureOrigin,
+    fullChainCore, conversationReport, productJourneyId, fixtureManifest, fixtureOrigin, realtimeFixtureOrigin,
     desktopFixtureOrigin, standardDataRoot, acceptedRuntimeDataRoot, productOwnerUserId,
     agentIdentity, localAgentRef, displayName, activeSourceRef, packetRequest,
-    mediaRoutes, journeyAgents, observations, screenshots, materializePersona, waitForControlFile,
+    mediaRoutes, journeyAgents, observations, conversationScenario, conversationReportRouteSummary, screenshots, materializePersona, waitForControlFile,
     consoleErrors, pageErrors, restart,
   } = input;
   if (!crossAppReleasePath) throw new Error('cross-app Desktop hold requires NIMI_LOCAL_AGENT_PRODUCT_RELEASE_PATH');
-  if (fullChainCore && !crossAppControlRoot) throw new Error('full-chain-core requires NIMI_LOCAL_AGENT_PRODUCT_CONTROL_ROOT');
+  if ((fullChainCore || conversationReport) && !crossAppControlRoot) throw new Error(`${productJourneyId} requires NIMI_LOCAL_AGENT_PRODUCT_CONTROL_ROOT`);
   if (crossAppProviderRawPath) writeJsonFile(crossAppProviderRawPath, fixtureManifest);
   const handoffPayload = () => ({
     schemaVersion: 'nimi.local-agent-product-desktop-handoff/v2',
@@ -592,15 +636,20 @@ export async function holdCrossAppJourney(input) {
     providerRawPath: crossAppProviderRawPath,
     controlRoot: crossAppControlRoot,
     mediaRoutes,
+    conversationScenario,
+    conversationReportRouteSummary,
     agents: journeyAgents,
     desktopCoreTurns: observations.desktopCoreTurns || [],
+    desktopConversationReportTurns: observations.desktopConversationReportTurns || [],
+    desktopConversationReportLastTurnContextSummary: observations.desktopConversationReportLastTurnContextSummary || null,
+    agentCenterSourceContextStatus: observations.agentCenterSourceContextStatus || null,
     processStarts: observations.processStarts,
     screenshots,
   });
   writeJsonFile(crossAppHandoffPath, handoffPayload());
   let runtime = input.runtime;
   let agentClient = input.agentClient;
-  if (fullChainCore) {
+  if (fullChainCore || conversationReport) {
     await waitForControlFile(path.join(crossAppControlRoot, 'persona-materialize-request.json'));
     const persona = await materializePersona();
     writeJsonFile(crossAppHandoffPath, handoffPayload());
@@ -618,6 +667,8 @@ export async function holdCrossAppJourney(input) {
     writeJsonFile(crossAppHandoffPath, handoffPayload());
     writeJsonFile(path.join(crossAppControlRoot, 'runtime-restart-complete.json'), { ok: true, localAgentCount: recoveredAgents.length, runtimeEndpoint: runtimeContext.endpoint });
 
+  }
+  if (fullChainCore || conversationReport) {
     await waitForControlFile(path.join(crossAppControlRoot, 'realm-offline-request.json'));
     const offlineResponse = await fetch(`${fixtureOrigin}/__fixture/control/rest-online`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ online: false }),
@@ -633,6 +684,6 @@ export async function holdCrossAppJourney(input) {
     writeJsonFile(path.join(crossAppControlRoot, 'realm-online-complete.json'), { ok: true, restOnline: true });
   }
   await waitForControlFile(crossAppReleasePath, 600_000);
-  if (consoleErrors.length || pageErrors.length) throw new Error(`renderer console/page errors observed after cross-app control: ${JSON.stringify({ consoleErrors, pageErrors }, null, 2)}`);
+  if (!conversationReport && (consoleErrors.length || pageErrors.length)) throw new Error(`renderer console/page errors observed after cross-app control: ${JSON.stringify({ consoleErrors, pageErrors }, null, 2)}`);
   return { runtimeContext, runtimeDaemon, runtime, agentClient };
 }

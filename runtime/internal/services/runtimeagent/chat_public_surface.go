@@ -187,6 +187,11 @@ type publicChatTurnState struct {
 	ConfigRevision   uint64
 	AvailableActions publicChatAvailableActions
 	Projection       *publicChatTurnProjectionState
+	// TerminalProjection is staged separately from the app-facing active turn.
+	// A committed message may still be running independent post-turn work, so a
+	// terminal snapshot must not become observable until the reservation is
+	// released at the completed/failed/interrupted delivery boundary.
+	TerminalProjection *publicChatTurnProjectionState
 }
 type publicChatMessagePayload struct {
 	Role    string `json:"role"`

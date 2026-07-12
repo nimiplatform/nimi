@@ -202,8 +202,6 @@ func agentTurnContextSystemEnvelope(item agentTurnContextItem, content string) s
 		"lane=" + string(item.LaneID),
 		"authority=" + string(item.AuthorityOwner),
 		"trust=" + string(item.TrustClass),
-		"stable_id_json_string=" + strconv.Quote(item.StableID),
-		"source_path_json_string=" + strconv.Quote(item.SourcePath),
 		"content_json_string=" + strconv.Quote(content),
 		"[/NIMI_TYPED_CONTEXT_ITEM]",
 	}, "\n")

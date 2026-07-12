@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "1.4.2"
+registry_version: "1.5.0"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -800,22 +800,23 @@ gates:
     parent_p_gov_anchors: [P-GOV-011]
     experimental: false
 
-  - id: gate.live.zhiyu-scenario-matrix
-    description: Zhiyu live Runtime Electron scenario matrix nightly candidate with ten-repeat evidence.
-    command: NIMI_ZHIYU_SCENARIO_REPEAT=10 xvfb-run -a pnpm --filter @nimiplatform/zhiyu test:e2e:electron:live-runtime
-    runner: shell
-    tiers: [nightly]
+  - id: gate.live.local-agent-conversation-report
+    description: On-demand LocalAgent conversation report with two Runtime-owned streams and one cross-surface lifecycle timeline for human review.
+    command: pnpm test:e2e:local-agent-conversation-report
+    runner: pnpm
+    tiers: [live]
     targets: [runtime, desktop]
-    timeout_seconds: 7200
-    requires_binaries: [pnpm, node, go, xvfb-run]
+    timeout_seconds: 3000
+    requires_binaries: [pnpm, node, go]
+    requires_secrets: []
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
       shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
+    p_relg_anchors: [P-RELG-001, P-RELG-006]
+    parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
     experimental: false
-    notes: Candidate-only nightly registration; release-tier promotion requires CI nightly proof after the local zero-flake batches.
+    notes: L5 on-demand only; live credential discovery is Runtime-catalog/provider dynamic rather than a fixed gate secret; no release/admission threshold, semantic verdict, evaluator requirement, retry, or ordinary regression binding; provider/model selection remains Runtime catalog and AI Config authority.
 
   # =====================================================================
   # owner: nimicoding (nimi-coding methodology package)

@@ -38,7 +38,25 @@ func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID s
 		out["detail"] = detail
 	}
 	callerAppID, subjectUserID := r.turnEventDestination(trimmedTurnID, session.CallerAppID, session.SubjectUserID)
+	if publicChatTerminalTurnEvent(messageType) {
+		// A terminal event is a readiness boundary. Release the Runtime turn
+		// reservation before synchronous delivery so a consumer cannot observe
+		// completed/failed/interrupted and still be rejected as active.
+		// Execution-state settling remains owned by runTurn's finalizer so a
+		// delivery failure can first revise the durable terminal diagnostic and
+		// a next turn started inside this callback cannot be overwritten to IDLE.
+		r.releaseTurnReservation(session.ConversationAnchorID, trimmedTurnID, true)
+	}
 	return r.emitEvent(callerAppID, subjectUserID, messageType, out)
+}
+
+func publicChatTerminalTurnEvent(messageType string) bool {
+	switch strings.TrimSpace(messageType) {
+	case publicChatTurnCompletedType, publicChatTurnFailedType, publicChatTurnInterruptedType:
+		return true
+	default:
+		return false
+	}
 }
 
 // emitTurnMessageCommitted emits runtime.agent.turn.message_committed with

@@ -183,7 +183,10 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
 
 async function openConversationAnchorForTarget(
   target: AgentLocalTargetSnapshot,
-): Promise<string> {
+): Promise<{
+  conversationAnchorId: string;
+  threadId: string;
+}> {
   const client = createNimiRuntimeAgentConsumeClient({
     runtime: getDesktopRuntime(),
     runtimeAppId: getDesktopAppId(),
@@ -215,7 +218,30 @@ async function openConversationAnchorForTarget(
   if (!conversationAnchorId) {
     throw new Error('runtime.agent anchor open did not return conversationAnchorId');
   }
-  return conversationAnchorId;
+  const threadId = await readConversationThreadId({
+    client,
+    target,
+    conversationAnchorId,
+  });
+  return { conversationAnchorId, threadId };
+}
+
+async function readConversationThreadId(input: {
+  client: ReturnType<typeof createNimiRuntimeAgentConsumeClient>;
+  target: AgentLocalTargetSnapshot;
+  conversationAnchorId: string;
+}): Promise<string> {
+  const snapshot = await input.client.turns.getSessionSnapshot({
+    localAgentRef: input.target.localAgentRef,
+    ownerUserId: input.target.ownerUserId,
+    runtimeSourceRef: input.target.runtimeSourceRef,
+    conversationAnchorId: input.conversationAnchorId,
+  });
+  const threadId = normalizeText(snapshot.threadId);
+  if (!threadId) {
+    throw new Error('Runtime conversation session snapshot returned no threadId.');
+  }
+  return threadId;
 }
 
 async function ensureConversationAnchorBindingUpstream(input: {
@@ -234,7 +260,19 @@ async function ensureConversationAnchorBindingUpstream(input: {
       runtimeSourceRef: input.target.runtimeSourceRef,
       conversationAnchorId: input.binding.conversationAnchorId,
     });
-    return input.binding;
+    const threadId = await readConversationThreadId({
+      client,
+      target: input.target,
+      conversationAnchorId: input.binding.conversationAnchorId,
+    });
+    if (threadId === input.binding.threadId) {
+      return input.binding;
+    }
+    return persistAgentConversationAnchorBinding({
+      ...input.binding,
+      threadId,
+      updatedAtMs: Date.now(),
+    });
   } catch (error) {
     if (!isRecoverableRuntimeAnchorError(error)) {
       const normalized = normalizeRuntimeError(error, 'get_runtime_agent_anchor_snapshot');
@@ -294,12 +332,13 @@ export async function ensureThreadAnchorBindingForTarget(input: {
     }
   }
   if (!anchorBinding) {
-    const conversationAnchorId = await openConversationAnchorForTarget(input.target);
+    const { conversationAnchorId, threadId } = await openConversationAnchorForTarget(input.target);
     anchorBinding = persistAgentConversationAnchorBinding({
       ownerUserId: input.target.ownerUserId,
       runtimeSourceRef: input.target.runtimeSourceRef,
       localAgentRef: input.target.localAgentRef,
       conversationAnchorId,
+      threadId,
       updatedAtMs: Date.now(),
     });
   }

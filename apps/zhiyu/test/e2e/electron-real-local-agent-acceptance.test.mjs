@@ -5,11 +5,13 @@ import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
 import { withSdkDistLock } from '../../../../scripts/lib/sdk-dist-lock.mjs';
+import { resolveProductJourneyTimeBudgetMs } from '../../../../tests/local-agent-product/harness/time-budget.mjs';
 import {
   installVoiceCaptureSuccessMock,
   queueCoreProviderPlan,
   runFullChainCoreContinuation,
 } from './electron-real-local-agent-core-journey.mjs';
+import { runConversationReportContinuation } from './electron-real-local-agent-conversation-report.mjs';
 import {
   assertNoPageProblems,
   captureRealLocalAgentEvidence,
@@ -27,11 +29,15 @@ const root = path.resolve(import.meta.dirname, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const zhiyuAppId = 'nimi.zhiyu';
 const zhiyuAcceptanceTargetDisplayName = process.env.NIMI_LOCAL_AGENT_PRODUCT_TARGET_DISPLAY_NAME?.trim() || 'Runtime Live Source';
+const zhiyuJourneyTimeoutMs = resolveProductJourneyTimeBudgetMs(process.env, 600_000);
 
-test('zhiyu Electron real local-agent flow lists, selects, configures, and chats through Runtime', { timeout: 600_000 }, async () => {
+test('zhiyu Electron real local-agent flow lists, selects, configures, and chats through Runtime', { timeout: zhiyuJourneyTimeoutMs }, async () => {
   await resetRealLocalAgentEvidenceRoot();
 
-  await withFixtureRuntimeLocalAgent(async ({ endpoint, realmBaseUrl, targetAgent, standardDataRoot, handoff, setPresentationProfile }) => {
+  await withFixtureRuntimeLocalAgent(async ({
+    endpoint, realmBaseUrl, targetAgent, standardDataRoot, handoff,
+    agentClient, inspect, setPresentationProfile,
+  }) => {
     await withTempDir('real-local-agent', async (tmpRoot) => {
       const runtimeEndpoint = endpoint;
       const dataRoot = standardDataRoot || path.join(tmpRoot, 'standard-shell-data');
@@ -43,6 +49,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       });
 
       await withSdkDistLock('zhiyu real local-agent electron app', async () => {
+        const conversationReport = handoff?.journeyId === 'conversation-report-baseline';
         const app = await electron.launch({
           args: [mainEntry, `--user-data-dir=${process.env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || path.join(tmpRoot, 'chromium-user-data')}`],
           env: {
@@ -144,7 +151,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         new Set(['runtime', 'nimi.desktop', zhiyuAppId]).has(selectedEvidence.route.updatedByAppId),
         `real Runtime AI Config must be written by Runtime or an admitted first-party config writer, got ${selectedEvidence.route.updatedByAppId}`,
       );
-      assert.equal(selectedEvidence.route.executionBinding?.route, 'local');
+      assert.equal(selectedEvidence.route.executionBinding?.route, conversationReport ? 'cloud' : 'local');
       assert.ok(selectedEvidence.route.executionBinding?.modelId, 'real Runtime route must expose the selected local model id');
       assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
       await assertConversationTopStripRemoved(page);
@@ -191,19 +198,23 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         selectedEvidence,
       });
 
-      const modelSelection = await selectTextGenerateModel(page, modelConfig);
-      await waitForEvidence(page, ({ previousRevision, selectedSource }) => {
-        const route = globalThis.window.__nimiZhiyuEvidence?.route;
-        return route?.reasonCode === 'runtime-agent-ai-config-ready'
-          && route.configRevision > previousRevision
-          && route.executionBinding?.route === selectedSource;
-      },
-        'real Runtime model route ready',
-        {
-          previousRevision: selectedEvidence.route.configRevision,
-          selectedSource: modelSelection.source,
+      const modelSelection = conversationReport
+        ? { source: 'cloud', preconfigured: true }
+        : await selectTextGenerateModel(page, modelConfig);
+      if (!conversationReport) {
+        await waitForEvidence(page, ({ previousRevision, selectedSource }) => {
+          const route = globalThis.window.__nimiZhiyuEvidence?.route;
+          return route?.reasonCode === 'runtime-agent-ai-config-ready'
+            && route.configRevision > previousRevision
+            && route.executionBinding?.route === selectedSource;
         },
-      );
+          'real Runtime model route ready',
+          {
+            previousRevision: selectedEvidence.route.configRevision,
+            selectedSource: modelSelection.source,
+          },
+        );
+      }
 
       const modelReadyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
       assert.equal(modelReadyEvidence.route.executionBinding.route === 'local' || modelReadyEvidence.route.executionBinding.route === 'cloud', true);
@@ -215,6 +226,20 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         modelSelection,
         modelReadyEvidence,
       });
+
+      if (conversationReport) {
+        await runConversationReportContinuation({
+          page,
+          pageProblems,
+          handoff,
+          targetAgent: targetAgentEvidence,
+          readyEvidence: modelReadyEvidence,
+          agentClient,
+          inspect,
+          setPresentationProfile,
+          waitForEvidence,
+        });
+      } else {
 
       await waitForEvidence(page, () => globalThis.window.__nimiZhiyuEvidence?.turn?.ready === true, 'real Runtime turn readiness');
       assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
@@ -337,6 +362,16 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       });
       if (nativeMacosJourney) await composer.press('Enter');
       else await page.locator('[data-chat-composer-send="true"]').click();
+      await page.waitForFunction((previousRequestId) => {
+        const evidence = globalThis.window.__nimiZhiyuEvidence;
+        return evidence?.composer?.submitState === 'failed'
+          || Boolean(evidence?.chat?.requestId && evidence.chat.requestId !== previousRequestId);
+      }, followUpReadyEvidence.chat.requestId, { timeout: 10_000 });
+      const followUpSubmittedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+      assert.notEqual(followUpSubmittedEvidence.composer.submitState, 'failed',
+        `follow-up submit failed before Runtime acceptance: ${JSON.stringify(followUpSubmittedEvidence.composer)}`);
+      assert.notEqual(followUpSubmittedEvidence.chat.requestId, followUpReadyEvidence.chat.requestId,
+        'follow-up submit must allocate a new Runtime request id');
       await page.waitForFunction((previousMessageCount) => {
         const evidence = globalThis.window.__nimiZhiyuEvidence;
         return evidence?.chat?.state === 'completed'
@@ -385,6 +420,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
           assertProductDesignLayout,
           waitForEvidence,
         });
+      }
       }
         } finally {
           await app.close();

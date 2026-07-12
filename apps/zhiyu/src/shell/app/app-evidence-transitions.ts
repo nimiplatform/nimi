@@ -253,7 +253,8 @@ function createSubmittedUserMessage(input: {
 }): RuntimeAgentConversationProjectionState['messages'][number] {
   const conversationAnchorId = input.conversation.conversationAnchorId;
   const localAgentRef = input.conversation.localAgentRef;
-  if (!conversationAnchorId || !localAgentRef) {
+  const threadId = input.conversation.threadId;
+  if (!conversationAnchorId || !localAgentRef || !threadId) {
     throw new Error('Zhiyu submitted user message requires Runtime conversation identity.');
   }
   return {
@@ -271,7 +272,7 @@ function createSubmittedUserMessage(input: {
     senderKind: 'human',
     metadata: {
       modeId: 'runtime-agent-chat-v1',
-      threadId: conversationAnchorId,
+      threadId,
       turnId: input.requestId,
       sessionId: conversationAnchorId,
       targetId: localAgentRef,

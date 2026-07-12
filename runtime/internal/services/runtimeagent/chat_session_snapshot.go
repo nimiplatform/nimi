@@ -18,6 +18,7 @@ const (
 	publicChatTurnStatusAccepted    = "accepted"
 	publicChatTurnStatusStarted     = "started"
 	publicChatTurnStatusStreaming   = "streaming"
+	publicChatTurnStatusCommitted   = "committed"
 	publicChatTurnStatusCompleted   = "completed"
 	publicChatTurnStatusFailed      = "failed"
 	publicChatTurnStatusInterrupted = "interrupted"
@@ -159,7 +160,9 @@ func (s *Service) commitPublicChatFollowUpTranscriptWithProjection(
 
 // commitPublicChatTranscriptTurn is the irreversible Runtime turn boundary.
 // It appends the canonical transcript record and, for live turns, installs the
-// completed projection in one chatSurfaceMu-serialized durable transaction.
+// committed-message projection in one chatSurfaceMu-serialized durable
+// transaction. The turn remains active while independent post-turn work runs;
+// terminal projection is installed only when the reservation is released.
 // Any capture or SQLite failure restores the exact pre-commit in-memory state;
 // callers may then classify the still-uncommitted turn as failed.
 func (s *Service) commitPublicChatTranscriptTurn(
@@ -272,20 +275,15 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		}
 		finalizeProjection(turn.Projection)
 		turn.Projection.UpdatedAt = time.Now().UTC()
-		if turn.Projection.Status != publicChatTurnStatusCompleted ||
+		if turn.Projection.Status != publicChatTurnStatusCommitted ||
 			strings.TrimSpace(turn.Projection.MessageID) == "" ||
 			strings.TrimSpace(turn.Projection.AssistantText) == "" {
 			rollback()
-			return status.Error(codes.FailedPrecondition, "durable transcript commit requires completed message projection")
+			return status.Error(codes.FailedPrecondition, "durable transcript commit requires committed message projection")
 		}
-		session.ActiveTurnSnapshot = nil
-		session.LastTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
+		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
 		session.LastTurnID = trimmedTurnID
 		session.LastMessageID = strings.TrimSpace(turn.Projection.MessageID)
-		if session.CompletedTurnSnapshots == nil {
-			session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
-		}
-		session.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(turn.Projection)
 	}
 	if replayed && finalizeProjection == nil {
 		return nil
@@ -586,35 +584,55 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 	s.chatSurfaceMu.Lock()
 	turn := s.chatTurns[trimmedTurnID]
 	if turn == nil {
+		var terminalSession *publicChatAnchorState
+		for _, session := range s.chatAnchors {
+			if session == nil || strings.TrimSpace(session.LastTurnID) != trimmedTurnID ||
+				session.LastTurnSnapshot == nil || strings.TrimSpace(session.LastTurnSnapshot.TurnID) != trimmedTurnID {
+				continue
+			}
+			if terminalSession != nil {
+				s.chatSurfaceMu.Unlock()
+				return nil
+			}
+			terminalSession = session
+		}
+		if terminalSession == nil {
+			s.chatSurfaceMu.Unlock()
+			return nil
+		}
+		projection := clonePublicChatTurnProjectionState(terminalSession.LastTurnSnapshot)
+		if mutate != nil {
+			mutate(projection)
+		}
+		projection.UpdatedAt = time.Now().UTC()
+		terminalSession.LastTurnSnapshot = clonePublicChatTurnProjectionState(projection)
+		if messageID := strings.TrimSpace(projection.MessageID); messageID != "" {
+			terminalSession.LastMessageID = messageID
+		}
+		if projection.Status == publicChatTurnStatusCompleted && strings.TrimSpace(projection.MessageID) != "" {
+			if terminalSession.CompletedTurnSnapshots == nil {
+				terminalSession.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+			}
+			terminalSession.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(projection)
+		}
+		terminalSession.UpdatedAt = time.Now().UTC()
+		out := clonePublicChatTurnProjectionState(projection)
 		s.chatSurfaceMu.Unlock()
-		return nil
+		if persist {
+			s.persistCurrentPublicChatSurfaceState()
+		}
+		return out
 	}
-	if turn.Projection == nil {
-		turn.Projection = newPublicChatTurnProjection(turn)
+	projection := clonePublicChatTurnProjectionState(turn.Projection)
+	if projection == nil {
+		projection = newPublicChatTurnProjection(turn)
 	}
-	projection := turn.Projection
 	if mutate != nil {
 		mutate(projection)
 	}
 	projection.UpdatedAt = time.Now().UTC()
+	turn.TerminalProjection = projection
 	out := clonePublicChatTurnProjectionState(projection)
-	if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil {
-		session.ActiveTurnSnapshot = nil
-		session.LastTurnSnapshot = clonePublicChatTurnProjectionState(projection)
-		if strings.TrimSpace(projection.MessageID) != "" {
-			session.LastMessageID = strings.TrimSpace(projection.MessageID)
-		}
-		if projection.Status == publicChatTurnStatusCompleted &&
-			strings.TrimSpace(projection.TurnID) != "" &&
-			strings.TrimSpace(projection.MessageID) != "" {
-			if session.CompletedTurnSnapshots == nil {
-				session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
-			}
-			session.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(projection)
-		}
-		session.LastTurnID = trimmedTurnID
-		session.UpdatedAt = time.Now().UTC()
-	}
 	s.chatSurfaceMu.Unlock()
 	if persist {
 		s.persistCurrentPublicChatSurfaceState()
@@ -684,7 +702,7 @@ func (s *Service) snapshotPublicChatAnchor(anchorID string, callerAppID string, 
 	snapshot.LastTurnSnapshot = clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
 	snapshot.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
 	var activeTurn *publicChatTurnProjectionState
-	if trimmedActiveTurnID := strings.TrimSpace(session.ActiveTurnID); trimmedActiveTurnID != "" && session.ActiveTurnSnapshot != nil {
+	if trimmedActiveTurnID := strings.TrimSpace(session.ActiveTurnID); trimmedActiveTurnID != "" {
 		if turn := s.chatTurns[trimmedActiveTurnID]; turn != nil {
 			activeTurn = clonePublicChatTurnProjectionState(turn.Projection)
 		}

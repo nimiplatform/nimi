@@ -173,7 +173,7 @@ func publicChatScenarioSystemPromptForImageConfig(t *testing.T, imageBinding *ru
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-image-prompt",
-			"thread_id":              "thread-image-prompt",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "Can you generate a photo?"},
 			},
@@ -429,6 +429,21 @@ func openPublicChatTestAnchor(t *testing.T, svc *Service, agentID string, caller
 		t.Fatalf("OpenConversationAnchor returned empty anchor id")
 	}
 	return anchorID
+}
+
+func publicChatTestAnchorThreadID(t *testing.T, svc *Service, anchorID string) string {
+	t.Helper()
+	svc.chatSurfaceMu.Lock()
+	anchor := svc.chatAnchors[strings.TrimSpace(anchorID)]
+	var threadID string
+	if anchor != nil {
+		threadID = strings.TrimSpace(anchor.ThreadID)
+	}
+	svc.chatSurfaceMu.Unlock()
+	if threadID == "" {
+		t.Fatalf("conversation anchor %q has no Runtime-owned thread id", anchorID)
+	}
+	return threadID
 }
 func publicChatStructPayload(t *testing.T, payload map[string]any) *structpb.Struct {
 	t.Helper()
@@ -832,7 +847,7 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-memory-context",
-			"thread_id":              "thread-memory-context",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "Can you help with cartography?"},
 			},
@@ -894,7 +909,7 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 		RuntimeSourceRef:     "agent-alpha",
 		ConversationAnchorID: anchorID,
 		RequestID:            "desktop-turn-memory-read-fails",
-		ThreadID:             "thread-memory-read-fails",
+		ThreadID:             publicChatTestAnchorThreadID(t, svc, anchorID),
 		Messages: []publicChatMessagePayload{
 			{Role: "user", Content: "hello"},
 		},
@@ -1006,7 +1021,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-request-1",
-			"thread_id":              "thread-1",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -1406,7 +1421,7 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-detached-context",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},

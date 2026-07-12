@@ -132,11 +132,13 @@ export async function submitAgentConversationTurn(input: {
     effectiveThreadRecord = threadContext.thread;
     effectiveThreadId = threadContext.thread.id;
     const conversationAnchorId = threadContext.anchorBinding.conversationAnchorId;
+    const runtimeThreadId = threadContext.anchorBinding.threadId;
     safeLogAgentSubmit({
       message: 'action:submit:thread-anchor-ready',
       details: {
         selectedLocalAgentRef: activeTarget.localAgentRef,
         threadId: effectiveThreadId,
+        runtimeThreadId,
         conversationAnchorId,
       },
     });
@@ -283,6 +285,7 @@ export async function submitAgentConversationTurn(input: {
       activeSubmit,
       input: input.hostInput,
       threadId: effectiveThreadId,
+      runtimeThreadId,
       conversationAnchorId,
       turnId: assistantTurnId,
       userMessage: {

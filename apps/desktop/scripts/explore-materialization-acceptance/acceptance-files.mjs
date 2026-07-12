@@ -259,9 +259,11 @@ export async function terminateDaemon(daemon) {
     await delay(1000);
     return;
   }
+  let signaledProcessGroup = false;
   if (daemon.pid !== undefined) {
     try {
       process.kill(-daemon.pid, 'SIGTERM');
+      signaledProcessGroup = true;
     } catch {
       try {
         process.kill(daemon.pid, 'SIGTERM');
@@ -270,7 +272,68 @@ export async function terminateDaemon(daemon) {
       }
     }
   }
-  await delay(1000);
+  const [daemonExitedAfterTerm, processGroupExitedAfterTerm] = await Promise.all([
+    waitForDaemonExit(daemon, 5_000),
+    signaledProcessGroup && daemon.pid !== undefined
+      ? waitForProcessGroupExit(daemon.pid, 5_000)
+      : Promise.resolve(true),
+  ]);
+  if (daemonExitedAfterTerm && processGroupExitedAfterTerm) return;
+  if (daemon.pid !== undefined) {
+    try {
+      process.kill(signaledProcessGroup ? -daemon.pid : daemon.pid, 'SIGKILL');
+    } catch {
+      try {
+        process.kill(daemon.pid, 'SIGKILL');
+      } catch {
+        // The process may have exited between the timeout and escalation.
+      }
+    }
+  }
+  const [daemonExitedAfterKill, processGroupExitedAfterKill] = await Promise.all([
+    waitForDaemonExit(daemon, 2_000),
+    signaledProcessGroup && daemon.pid !== undefined
+      ? waitForProcessGroupExit(daemon.pid, 2_000)
+      : Promise.resolve(true),
+  ]);
+  if (!daemonExitedAfterKill || !processGroupExitedAfterKill) {
+    throw new Error(`Runtime daemon process group ${String(daemon.pid || '')} did not terminate`);
+  }
+}
+
+async function waitForProcessGroupExit(processGroupId, timeoutMs) {
+  const startedAt = Date.now();
+  while (processGroupAlive(processGroupId)) {
+    if (Date.now() - startedAt >= timeoutMs) return false;
+    await delay(25);
+  }
+  return true;
+}
+
+function processGroupAlive(processGroupId) {
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch (error) {
+    return error?.code !== 'ESRCH';
+  }
+}
+
+function waitForDaemonExit(daemon, timeoutMs) {
+  if (daemon.exitCode !== null || daemon.signalCode !== null) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (exited) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      daemon.off('exit', onExit);
+      resolve(exited);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    daemon.once('exit', onExit);
+  });
 }
 
 export async function fetchJson(url) {

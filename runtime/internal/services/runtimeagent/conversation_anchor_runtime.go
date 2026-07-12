@@ -54,6 +54,7 @@ func (s *Service) OpenConversationAnchor(_ context.Context, req *runtimev1.OpenC
 	metadata := cloneConversationAnchorMetadata(req.GetMetadata())
 	now := time.Now().UTC()
 	anchorID := "agent_anchor_" + ulid.Make().String()
+	threadID := "agent_thread_" + ulid.Make().String()
 
 	anchor := &publicChatAnchorState{
 		ConversationAnchorID: anchorID,
@@ -63,6 +64,7 @@ func (s *Service) OpenConversationAnchor(_ context.Context, req *runtimev1.OpenC
 		LocalAgentRef:        localAgentRef,
 		CallerAppID:          callerAppID,
 		SubjectUserID:        subjectUserID,
+		ThreadID:             threadID,
 		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
 		CreatedAt:            now,
 		UpdatedAt:            now,

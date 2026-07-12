@@ -8,7 +8,7 @@
     "schemaVersion": {"const": "nimi.local-agent-product-journey-result/v2"},
     "journeyTrialId": {"type": "string", "minLength": 1},
     "journeyId": {"type": "string", "minLength": 1},
-    "tier": {"enum": ["L2", "L3"]},
+    "tier": {"enum": ["L2", "L3", "L5"]},
     "batch": {"type": "string", "minLength": 1},
     "repeatIndex": {"type": "integer", "minimum": 1},
     "sourceState": {"type": "object"},

@@ -277,8 +277,8 @@ export async function queueCoreProviderPlan(handoff, plan) {
   assert.equal(response.ok, true, `provider plan ${plan.checkpointId} must be accepted`);
 }
 
-async function sendCorePlannedTurn(page, handoff, plan, waitForEvidence) {
-  await queueCoreProviderPlan(handoff, plan);
+export async function sendCorePlannedTurn(page, handoff, plan, waitForEvidence, options = {}) {
+  if (plan.apml) await queueCoreProviderPlan(handoff, plan);
   const before = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence?.chat?.messageCount || 0);
   const composer = page.locator('[data-chat-composer-textarea="true"]').first();
   await composer.fill(plan.prompt);
@@ -290,13 +290,19 @@ async function sendCorePlannedTurn(page, handoff, plan, waitForEvidence) {
       && (globalThis.window.__nimiZhiyuEvidence?.chat?.reasoningText || '').length > 0,
     `${plan.checkpointId} streaming checkpoint`);
   }
-  await waitForEvidence(page, ({ previousCount }) => globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'completed'
-    && Number(globalThis.window.__nimiZhiyuEvidence?.chat?.messageCount || 0) >= Number(previousCount) + 2,
-  `${plan.checkpointId} completion`, { previousCount: before });
+  await waitForEvidence(page, ({ previousCount, allowTransportFailure }) => {
+    const chat = globalThis.window.__nimiZhiyuEvidence?.chat;
+    const completed = chat?.state === 'completed'
+      && Number(chat?.messageCount || 0) >= Number(previousCount) + 2;
+    return completed || (allowTransportFailure === true && chat?.state === 'failed');
+  }, `${plan.checkpointId} terminal outcome`, {
+    previousCount: before,
+    allowTransportFailure: options.allowTransportFailure === true,
+  });
   return page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
 }
 
-async function selectLocalAgent(page, localAgentRef, waitForEvidence) {
+export async function selectLocalAgent(page, localAgentRef, waitForEvidence) {
   const inventory = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence?.inventory?.localAgents || []);
   const index = inventory.findIndex((agent) => agent.localAgentRef === localAgentRef);
   assert.notEqual(index, -1, `LocalAgent ${localAgentRef} must exist in Runtime inventory`);
@@ -308,11 +314,11 @@ async function selectLocalAgent(page, localAgentRef, waitForEvidence) {
   `select ${localAgentRef}`, localAgentRef);
 }
 
-async function writeControlRequest(handoff, fileName, payload) {
+export async function writeControlRequest(handoff, fileName, payload) {
   await writeFile(path.join(handoff.controlRoot, fileName), `${JSON.stringify(payload, null, 2)}\n`);
 }
 
-async function waitForControlJson(handoff, fileName, timeoutMs = 180_000) {
+export async function waitForControlJson(handoff, fileName, timeoutMs = 180_000) {
   const file = path.join(handoff.controlRoot, fileName);
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {

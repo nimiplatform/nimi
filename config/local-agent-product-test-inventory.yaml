@@ -4,6 +4,96 @@ owner: platform
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 tests:
+  - path: tests/local-agent-product/conversation-report/checker.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-009, P-TEST-013, P-TEST-014, P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
+  - path: tests/local-agent-product/conversation-report/memory-capture.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-010, P-TEST-014, K-AGCORE-160]
+  - path: tests/local-agent-product/conversation-report/process-teardown.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-016, P-TEST-019]
+  - path: tests/local-agent-product/conversation-report/product-context-status.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-010, P-TEST-018]
+  - path: tests/local-agent-product/conversation-report/product-time-budget.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-015, P-TEST-019]
+  - path: tests/local-agent-product/conversation-report/registry.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-009, P-TEST-011, P-TEST-012, P-TEST-014, P-TEST-017, P-TEST-018]
+  - path: tests/local-agent-product/conversation-report/report-generator.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-009, P-TEST-013, P-TEST-014, P-TEST-018]
+  - path: tests/local-agent-product/conversation-report/route.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-011, P-TEST-012, P-TEST-015, P-TEST-019]
+  - path: tests/local-agent-product/conversation-report/turn-result.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-009, P-TEST-013, P-TEST-014, P-TEST-018]
   - path: tests/local-agent-product/harness/harness.test.mjs
     owner: platform
     classification: behavior_unit

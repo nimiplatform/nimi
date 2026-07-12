@@ -1,3 +1,5 @@
+import { checkLocalAgentConversationReport } from './platform-spec-local-agent-conversation-report-checks.mjs';
+
 export function checkTestGovernanceTables({
   cwd,
   definedRuleIds,
@@ -43,7 +45,7 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     'hard_blocks',
     'census',
     'module_owner_map',
-    'local_agent_behavior_evaluation',
+    'local_agent_conversation_report',
     'local_agent_journey_acceptance',
   ], 'entries');
 
@@ -112,21 +114,21 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     'unreviewed_in_release_gate',
     'owner_mismatch',
     'tier_classification_mismatch',
-    'behavior_expectation_not_source_derived',
+    'automatic_semantic_verdict_or_acceptance',
     'deterministic_context_admission_wrong_classification',
     'electron_behavior_acceptance_wrong_classification',
-    'live_behavior_or_evaluator_without_t7_env_evidence',
-    'subject_evaluator_route_fingerprint_missing_or_equal',
+    'live_conversation_without_t7_env_evidence',
+    'reported_model_fingerprint_incomplete',
     'direct_provider_or_provider_model_constant',
-    'evaluator_schema_or_calibration_invalid',
-    'behavior_batch_retry_or_mutable_inputs',
-    'behavior_trial_not_retained',
-    'evaluator_product_state_or_personality_mutation',
+    'generated_review_status_not_unreviewed',
+    'incomplete_conversation_report_bundle',
+    'source_or_app_owned_conversation_identity',
+    'materialized_local_agent_automatic_source_rebase',
     'local_agent_execution_layer_outside_closed_set',
     'electron_cartesian_product',
-    'mixed_acceptance_journey_policy_truth',
-    'i8_leaf_executed_by_i7',
-    'missing_checkpoint_or_leaf_evidence',
+    'mixed_point_scenario_journey_policy_truth',
+    'i8_observation_masquerades_as_acceptance',
+    'missing_acceptance_or_observation_mapping',
     'prerequisite_failure_downstream_pass',
     'non_pass_counted_as_pass',
     'source_artifact_privacy_or_process_integrity_failure',
@@ -142,8 +144,8 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     checkAuthorityRefs(fail, rel, `hard_blocks.${id}.authority_refs`, row?.authority_refs, definedRuleIds);
   }
 
-  checkLocalAgentBehaviorEvaluation({
-    contract: testGovernancePolicyTable.local_agent_behavior_evaluation,
+  checkLocalAgentConversationReport({
+    contract: testGovernancePolicyTable.local_agent_conversation_report,
     definedRuleIds,
     fail,
     rel,
@@ -217,11 +219,11 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
       scope: ['property_repetition', 'enum_schema_mutation', 'high_repeat_negative', 'platform_variants', 'stability_three'],
     }],
     ['L5', {
-      name: 'live_behavior',
-      frequency: 'i8_only',
+      name: 'live_conversation_report',
+      frequency: 'on_demand',
       budgetField: null,
       budget: null,
-      scope: ['real_provider_subject', 'independent_evaluator', 'calibration', 'two_batches_of_ten', 'raw_trial_ledger'],
+      scope: ['two_runtime_local_agent_streams', 'cross_surface_lifecycle_timeline', 'complete_human_review_bundle'],
     }],
   ]);
   for (const [layerId, expected] of expectedLayers) {
@@ -238,6 +240,8 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
   expectScalar(fail, rel, `${base}.execution_layers.L2.target_budget_ms`, layers?.L2?.target_budget_ms, 900000);
   expectScalar(fail, rel, `${base}.execution_layers.L4.full_electron_per_leaf`, layers?.L4?.full_electron_per_leaf, 'forbidden');
   expectScalar(fail, rel, `${base}.execution_layers.L5.ordinary_core_regression`, layers?.L5?.ordinary_core_regression, 'forbidden');
+  expectScalar(fail, rel, `${base}.execution_layers.L5.release_admission_threshold`, layers?.L5?.release_admission_threshold, 'none');
+  expectScalar(fail, rel, `${base}.execution_layers.L5.human_review`, layers?.L5?.human_review, 'required');
 
   const budgets = contract.required_gate_budgets;
   expectObject(fail, rel, `${base}.required_gate_budgets`, budgets);
@@ -255,12 +259,14 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
   expectObject(fail, rel, `${base}.execution_identity`, identity);
   for (const [field, expected] of Object.entries({
     acceptance_point_role: 'independently_traceable_product_fact',
+    behavior_observation_point_role: 'human_review_report_location',
     checkpoint_role: 'fact_collection_position_within_journey',
     journey_trial_role: 'one_clean_environment_complete_product_path',
-    leaf_results_per_journey: 'many',
+    acceptance_results_per_journey: 'many',
+    observation_results: 'forbidden',
     isolation_boundary: 'state_pollution',
-    leaf_count_drives_process_starts: false,
-    ordinary_assertion_change: 'extend_existing_checkpoint',
+    point_scene_turn_count_drives_process_starts: false,
+    ordinary_conversation_change: 'extend_existing_stream_registry',
     fresh_logical_identity_per_repeat: true,
     observed_identity_record: 'environmentIdentity',
   })) expectScalar(fail, rel, `${base}.execution_identity.${field}`, identity?.[field], expected);
@@ -284,11 +290,14 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
 
   const ownership = contract.registry_ownership;
   expectObject(fail, rel, `${base}.registry_ownership`, ownership);
-  expectExactSet(fail, rel, ownership?.acceptance_point_catalog, [
-    'leaf_id', 'owner_iteration', 'group', 'product_requirement', 'assertion_ids', 'minimum_sufficient_layer', 'evidence_class',
-  ], `${base}.registry_ownership.acceptance_point_catalog`);
+  expectExactSet(fail, rel, ownership?.point_catalog, [
+    'point_id', 'point_kind', 'owner_iteration', 'group', 'product_requirement', 'assertion_ids', 'review_dimensions', 'minimum_sufficient_layer', 'evidence_class',
+  ], `${base}.registry_ownership.point_catalog`);
+  expectExactSet(fail, rel, ownership?.conversation_scenario_registry, [
+    'scenario_id', 'stream_alias', 'source_provenance', 'ordered_turns', 'surfaces', 'continuation', 'capture_requirements', 'lifecycle_checkpoints', 'model_matrix', 'time_budget',
+  ], `${base}.registry_ownership.conversation_scenario_registry`);
   expectExactSet(fail, rel, ownership?.journey_registry, [
-    'journey_id', 'applicable_layer', 'environment', 'real_realm', 'desktop', 'zhiyu', 'native_macos', 'checkpoints', 'covered_leaf_ids', 'prerequisites', 'isolation_level', 'repeat_policy', 'time_budget',
+    'journey_id', 'applicable_layer', 'environment', 'real_realm', 'desktop', 'zhiyu', 'native_macos', 'checkpoints', 'covered_point_ids', 'prerequisites', 'isolation_level', 'repeat_policy', 'time_budget',
   ], `${base}.registry_ownership.journey_registry`);
   expectExactSet(fail, rel, ownership?.execution_policy, [
     'gate_journey_selection', 'gate_suite_selection', 'repeat_counts', 'exhaustive_frequency', 'time_budgets', 'platform_requirements',
@@ -298,10 +307,10 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
 
   const boundary = contract.iteration_boundary;
   expectObject(fail, rel, `${base}.iteration_boundary`, boundary);
-  expectScalar(fail, rel, `${base}.iteration_boundary.total_leaf_count`, boundary?.total_leaf_count, 169);
-  expectScalar(fail, rel, `${base}.iteration_boundary.i7_leaf_count`, boundary?.i7_leaf_count, 145);
-  expectScalar(fail, rel, `${base}.iteration_boundary.i8_p_leaf_count`, boundary?.i8_p_leaf_count, 24);
-  expectScalar(fail, rel, `${base}.iteration_boundary.i7_result_for_i8_leaf`, boundary?.i7_result_for_i8_leaf, 'forbidden');
+  expectScalar(fail, rel, `${base}.iteration_boundary.total_point_count`, boundary?.total_point_count, 169);
+  expectScalar(fail, rel, `${base}.iteration_boundary.i7_acceptance_point_count`, boundary?.i7_acceptance_point_count, 145);
+  expectScalar(fail, rel, `${base}.iteration_boundary.i8_behavior_observation_point_count`, boundary?.i8_behavior_observation_point_count, 24);
+  expectScalar(fail, rel, `${base}.iteration_boundary.i7_result_for_i8_observation`, boundary?.i7_result_for_i8_observation, 'forbidden');
   expectScalar(fail, rel, `${base}.iteration_boundary.i8_layer`, boundary?.i8_layer, 'L5');
   checkAuthorityRefs(fail, rel, `${base}.iteration_boundary.authority_refs`, boundary?.authority_refs, definedRuleIds);
 
@@ -314,6 +323,8 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
   expectExactSet(fail, rel, integrity?.required_checkpoint_fields, ['checkpointId', 'prerequisiteIds', 'startedAt', 'completedAt', 'correlations', 'assertions', 'artifactRefs', 'outcome'], `${base}.result_integrity.required_checkpoint_fields`);
   expectExactSet(fail, rel, integrity?.required_leaf_result_fields, ['leafId', 'journeyTrialId', 'checkpointIds', 'assertionIds', 'evidenceRefs', 'outcome', 'failureClass'], `${base}.result_integrity.required_leaf_result_fields`);
   expectExactSet(fail, rel, integrity?.required_integrity, ['source_digest', 'nimi_head', 'realm_head', 'artifact_sha256', 'privacy_zero', 'process_problems_zero', 'provider_capture_complete', 'environment_start_count', 'logical_identity_unique_per_repeat', 'duration_budget'], `${base}.result_integrity.required_integrity`);
+  expectExactSet(fail, rel, integrity?.conversation_report_required_integrity, ['two_distinct_local_agent_streams', 'one_lifecycle_timeline', 'source_snapshot_provenance', 'runtime_resolved_identity', 'exact_transcript_agreement', 'provider_model_revision', 'context_memory_relationship_capture', 'presentation_capture', 'runtime_restart_once', 'realm_offline_once', 'local_link_resolution', 'observation_mapping_complete', 'generated_review_unreviewed'], `${base}.result_integrity.conversation_report_required_integrity`);
+  expectScalar(fail, rel, `${base}.result_integrity.conversation_report_semantic_outcome`, integrity?.conversation_report_semantic_outcome, 'forbidden');
   checkAuthorityRefs(fail, rel, `${base}.result_integrity.authority_refs`, integrity?.authority_refs, definedRuleIds);
 
   const runner = contract.active_runner;
@@ -321,230 +332,11 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
   expectScalar(fail, rel, `${base}.active_runner.scheduling_unit`, runner?.scheduling_unit, 'journey');
   expectScalar(fail, rel, `${base}.active_runner.repeat_unit`, runner?.repeat_unit, 'independent_journey_environment');
   expectScalar(fail, rel, `${base}.active_runner.full_environment_per_leaf`, runner?.full_environment_per_leaf, 'forbidden');
+  expectScalar(fail, rel, `${base}.active_runner.l5_scheduling_unit`, runner?.l5_scheduling_unit, 'one_baseline_report_environment');
+  expectScalar(fail, rel, `${base}.active_runner.full_environment_per_scene_turn_or_observation`, runner?.full_environment_per_scene_turn_or_observation, 'forbidden');
   expectScalar(fail, rel, `${base}.active_runner.process_start_formula`, runner?.process_start_formula, 'declared_journey_environment');
-  expectScalar(fail, rel, `${base}.active_runner.legacy_fallback`, runner?.legacy_fallback, 'forbidden');
+  expectScalar(fail, rel, `${base}.active_runner.alternate_runner_fallback`, runner?.alternate_runner_fallback, 'forbidden');
   checkAuthorityRefs(fail, rel, `${base}.active_runner.authority_refs`, runner?.authority_refs, definedRuleIds);
-}
-
-function checkLocalAgentBehaviorEvaluation({ contract, definedRuleIds, fail, rel }) {
-  const base = 'local_agent_behavior_evaluation';
-  if (!contract || typeof contract !== 'object' || Array.isArray(contract)) {
-    fail(`${rel} must declare ${base}`);
-    return;
-  }
-  expectScalar(fail, rel, `${base}.contract_version`, contract.contract_version, 1);
-
-  const expectation = contract.expectation_manifest;
-  expectObject(fail, rel, `${base}.expectation_manifest`, expectation);
-  expectScalar(fail, rel, `${base}.expectation_manifest.source`, expectation?.source, 'typed_source_snapshot');
-  expectExactSet(fail, rel, expectation?.required_domains, [
-    'identity',
-    'behavior',
-    'world',
-    'relationship',
-    'knowledge',
-  ], `${base}.expectation_manifest.required_domains`);
-  expectExactSet(fail, rel, expectation?.prohibited_sources, [
-    'app_metadata',
-    'evaluator_score',
-    'raw_system_prompt',
-  ], `${base}.expectation_manifest.prohibited_sources`);
-  checkAuthorityRefs(fail, rel, `${base}.expectation_manifest.authority_refs`, expectation?.authority_refs, definedRuleIds);
-
-  const bindings = contract.classification_bindings;
-  expectObject(fail, rel, `${base}.classification_bindings`, bindings);
-  const expectedBindings = new Map([
-    ['deterministic_context_admission', ['behavior_unit', 'T4', null, ['P-TEST-010']]],
-    ['electron_product_acceptance', ['product_acceptance', 'T6', 'after_real_shell_evidence', ['P-TEST-010']]],
-    ['live_subject_behavior', ['live_provider_proof', 'T7', 'after_env_evidence', ['P-TEST-006', 'P-TEST-011']]],
-    ['semantic_evaluator', ['live_provider_proof', 'T7', 'after_env_evidence', ['P-TEST-006', 'P-TEST-011']]],
-  ]);
-  expectExactSet(fail, rel, Object.keys(bindings || {}), [...expectedBindings.keys()], `${base}.classification_bindings keys`);
-  for (const [id, [classification, tier, releaseEligibility, authorityRefs]] of expectedBindings) {
-    const binding = bindings?.[id];
-    expectObject(fail, rel, `${base}.classification_bindings.${id}`, binding);
-    expectScalar(fail, rel, `${base}.classification_bindings.${id}.classification`, binding?.classification, classification);
-    expectScalar(fail, rel, `${base}.classification_bindings.${id}.tier`, binding?.tier, tier);
-    if (releaseEligibility === null) {
-      if (Object.hasOwn(binding || {}, 'release_eligibility')) {
-        fail(`${rel} ${base}.classification_bindings.${id}.release_eligibility must be absent`);
-      }
-    } else {
-      expectScalar(
-        fail,
-        rel,
-        `${base}.classification_bindings.${id}.release_eligibility`,
-        binding?.release_eligibility,
-        releaseEligibility,
-      );
-    }
-    expectExactSet(
-      fail,
-      rel,
-      binding?.authority_refs,
-      authorityRefs,
-      `${base}.classification_bindings.${id}.authority_refs`,
-    );
-    checkAuthorityRefs(
-      fail,
-      rel,
-      `${base}.classification_bindings.${id}.authority_refs`,
-      binding?.authority_refs,
-      definedRuleIds,
-    );
-  }
-
-  const contextAdmission = contract.deterministic_context_admission;
-  expectObject(fail, rel, `${base}.deterministic_context_admission`, contextAdmission);
-  expectScalar(
-    fail,
-    rel,
-    `${base}.deterministic_context_admission.evidence_source`,
-    contextAdmission?.evidence_source,
-    'provider_visible_runtime_request_capture',
-  );
-  expectExactSet(fail, rel, contextAdmission?.required_domains, [
-    'identity',
-    'behavior',
-    'boundary',
-    'world',
-    'relationship',
-    'knowledge',
-    'transcript',
-    'memory',
-  ], `${base}.deterministic_context_admission.required_domains`);
-  expectExactSet(fail, rel, contextAdmission?.required_assertions, [
-    'typed_lane',
-    'lane_order',
-    'content_hash',
-    'token_budget',
-    'forbidden_canary_absence',
-    'exact_provider_call_count',
-  ], `${base}.deterministic_context_admission.required_assertions`);
-  expectScalar(
-    fail,
-    rel,
-    `${base}.deterministic_context_admission.fixture_substitutes_live_behavior`,
-    contextAdmission?.fixture_substitutes_live_behavior,
-    false,
-  );
-  checkAuthorityRefs(
-    fail,
-    rel,
-    `${base}.deterministic_context_admission.authority_refs`,
-    contextAdmission?.authority_refs,
-    definedRuleIds,
-  );
-
-  const route = contract.route_independence;
-  expectObject(fail, rel, `${base}.route_independence`, route);
-  expectScalar(fail, rel, `${base}.route_independence.executor`, route?.executor, 'runtime_ai_execution');
-  expectExactSet(fail, rel, route?.fingerprint_fields, [
-    'providerId',
-    'modelId',
-    'modelRevisionOrFingerprint',
-  ], `${base}.route_independence.fingerprint_fields`);
-  expectScalar(
-    fail,
-    rel,
-    `${base}.route_independence.comparison`,
-    route?.comparison,
-    'complete_fingerprint_must_differ',
-  );
-  expectScalar(
-    fail,
-    rel,
-    `${base}.route_independence.unresolved_or_equal_outcome`,
-    route?.unresolved_or_equal_outcome,
-    'blocked_live_provider_admission',
-  );
-  expectScalar(fail, rel, `${base}.route_independence.app_or_test_direct_provider`, route?.app_or_test_direct_provider, 'forbidden');
-  expectScalar(fail, rel, `${base}.route_independence.provider_model_constants`, route?.provider_model_constants, 'forbidden');
-  checkAuthorityRefs(fail, rel, `${base}.route_independence.authority_refs`, route?.authority_refs, definedRuleIds);
-
-  const evaluator = contract.evaluator_contract;
-  expectObject(fail, rel, `${base}.evaluator_contract`, evaluator);
-  expectExactSet(fail, rel, evaluator?.input_allowlist, [
-    'expectation_manifest',
-    'rubric',
-    'transcript',
-  ], `${base}.evaluator_contract.input_allowlist`);
-  expectExactSet(fail, rel, evaluator?.input_forbidden, [
-    'raw_system_prompt',
-    'private_context_lanes',
-    'product_anchor',
-    'product_memory_scope',
-  ], `${base}.evaluator_contract.input_forbidden`);
-  expectScalar(fail, rel, `${base}.evaluator_contract.result_format`, evaluator?.result_format, 'strict_json_schema');
-  expectScalar(
-    fail,
-    rel,
-    `${base}.evaluator_contract.unknown_or_malformed_outcome`,
-    evaluator?.unknown_or_malformed_outcome,
-    'fail_closed',
-  );
-  expectExactSet(fail, rel, evaluator?.deterministic_dimensions, [
-    'facts',
-    'boundaries',
-    'ids',
-    'hashes',
-    'leakage',
-  ], `${base}.evaluator_contract.deterministic_dimensions`);
-  expectExactSet(fail, rel, evaluator?.semantic_dimensions, [
-    'style',
-    'cadence',
-    'voice',
-    'pacing',
-  ], `${base}.evaluator_contract.semantic_dimensions`);
-  checkAuthorityRefs(fail, rel, `${base}.evaluator_contract.authority_refs`, evaluator?.authority_refs, definedRuleIds);
-
-  const calibration = contract.calibration;
-  expectObject(fail, rel, `${base}.calibration`, calibration);
-  expectExactSet(fail, rel, calibration?.controls_per_dimension, [
-    'known_pass',
-    'deliberate_fail',
-  ], `${base}.calibration.controls_per_dimension`);
-  expectScalar(fail, rel, `${base}.calibration.timing`, calibration?.timing, 'before_subject_trials');
-  expectExactSet(fail, rel, calibration?.block_on, [
-    'control_misclassification',
-    'constant_scoring',
-    'schema_mismatch',
-    'reason_code_mismatch',
-    'route_collision',
-  ], `${base}.calibration.block_on`);
-  expectExactSet(fail, rel, calibration?.fixed_within_batch, [
-    'thresholds',
-    'controls',
-    'rubric',
-    'result_schema',
-  ], `${base}.calibration.fixed_within_batch`);
-  expectScalar(fail, rel, `${base}.calibration.retry_policy`, calibration?.retry_policy, 'none');
-  checkAuthorityRefs(fail, rel, `${base}.calibration.authority_refs`, calibration?.authority_refs, definedRuleIds);
-
-  const evidence = contract.evidence_and_state;
-  expectObject(fail, rel, `${base}.evidence_and_state`, evidence);
-  expectScalar(fail, rel, `${base}.evidence_and_state.raw_trial_retention`, evidence?.raw_trial_retention, 'all');
-  expectScalar(fail, rel, `${base}.evidence_and_state.denominator`, evidence?.denominator, 'all_original_trials');
-  expectScalar(fail, rel, `${base}.evidence_and_state.product_state_mutation`, evidence?.product_state_mutation, 'forbidden');
-  expectExactSet(fail, rel, evidence?.mutation_targets, [
-    'realm_source',
-    'runtime_source_snapshot',
-    'local_agent',
-    'turn',
-    'message',
-    'transcript',
-    'memory',
-    'anchor',
-  ], `${base}.evidence_and_state.mutation_targets`);
-  expectScalar(
-    fail,
-    rel,
-    `${base}.evidence_and_state.score_truth_role`,
-    evidence?.score_truth_role,
-    'non_authoritative_evaluation_evidence',
-  );
-  expectScalar(fail, rel, `${base}.evidence_and_state.score_context_influence`, evidence?.score_context_influence, 'forbidden');
-  checkAuthorityRefs(fail, rel, `${base}.evidence_and_state.authority_refs`, evidence?.authority_refs, definedRuleIds);
 }
 
 function checkCensus({ definedRuleIds, fail, rel, census }) {

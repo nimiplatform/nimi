@@ -9,7 +9,7 @@ entries:
   - hard_blocks
   - census
   - module_owner_map
-  - local_agent_behavior_evaluation
+  - local_agent_conversation_report
   - local_agent_journey_acceptance
 classification_vocabulary:
   - classification: authority_boundary_guard
@@ -141,50 +141,50 @@ hard_blocks:
   - id: tier_classification_mismatch
     condition: "`tier` does not equal classification's canonical tier"
     authority_refs: [P-TEST-002]
-  - id: behavior_expectation_not_source_derived
-    condition: LocalAgent behavior expectation is not derived from typed source/world/relationship/knowledge truth
-    authority_refs: [P-TEST-009]
+  - id: automatic_semantic_verdict_or_acceptance
+    condition: matcher, score, evaluator, threshold, or generated report automatically passes/fails/accepts LocalAgent semantic quality
+    authority_refs: [P-TEST-009, P-TEST-013]
   - id: deterministic_context_admission_wrong_classification
     condition: deterministic LocalAgent context admission does not use behavior_unit T4
     authority_refs: [P-TEST-010]
   - id: electron_behavior_acceptance_wrong_classification
     condition: real Electron LocalAgent product interaction does not use product_acceptance T6
     authority_refs: [P-TEST-010]
-  - id: live_behavior_or_evaluator_without_t7_env_evidence
-    condition: real subject behavior or semantic evaluator execution is counted outside live_provider_proof T7 after_env_evidence
+  - id: live_conversation_without_t7_env_evidence
+    condition: real provider conversation execution is counted outside live_provider_proof T7 after_env_evidence
     authority_refs: [P-TEST-006, P-TEST-011]
-  - id: subject_evaluator_route_fingerprint_missing_or_equal
-    condition: subject/evaluator providerId, modelId, or resolved revision/fingerprint is missing, unproven, or the complete fingerprints are equal
+  - id: reported_model_fingerprint_incomplete
+    condition: a reported turn omits providerId, modelId, or resolved model revision/fingerprint
     authority_refs: [P-TEST-012]
   - id: direct_provider_or_provider_model_constant
     condition: app/test runner directly calls provider/model or embeds provider/model selection
     authority_refs: [P-TEST-012]
-  - id: evaluator_schema_or_calibration_invalid
-    condition: strict JSON result, known-pass/deliberate-fail calibration, reason codes, or non-constant scoring is invalid
+  - id: generated_review_status_not_unreviewed
+    condition: generated report or review dimension defaults to accepted/needs_adjustment or has non-empty generated review notes
     authority_refs: [P-TEST-013]
-  - id: behavior_batch_retry_or_mutable_inputs
-    condition: evaluator trial retries automatically or threshold/control/rubric/schema changes within the batch
-    authority_refs: [P-TEST-013]
-  - id: behavior_trial_not_retained
-    condition: any raw subject/evaluator/calibration/provider trial is removed from the original denominator
+  - id: incomplete_conversation_report_bundle
+    condition: declared transcript, provider capture, Runtime state, context/memory/relationship snapshot, presentation output, lifecycle event, screenshot, or artifact hash is missing
     authority_refs: [P-TEST-014]
-  - id: evaluator_product_state_or_personality_mutation
-    condition: evaluator mutates product state or its score becomes personality truth/context input
-    authority_refs: [P-TEST-009, P-TEST-014]
+  - id: source_or_app_owned_conversation_identity
+    condition: Character, Persona, sourceRef, Desktop, or Zhiyu owns/derives localAgentRef or conversationAnchorId
+    authority_refs: [P-TEST-014, P-TEST-018]
+  - id: materialized_local_agent_automatic_source_rebase
+    condition: a Realm source change automatically rebases a materialized LocalAgent instead of continuing from its frozen snapshot
+    authority_refs: [P-TEST-014]
   - id: local_agent_execution_layer_outside_closed_set
     condition: LocalAgent acceptance uses an execution layer outside L0 through L5
     authority_refs: [P-TEST-015]
   - id: electron_cartesian_product
     condition: enum, property, schema mutation, or high-repeat negative coverage starts a full Electron environment per case
     authority_refs: [P-TEST-015, P-TEST-019]
-  - id: mixed_acceptance_journey_policy_truth
-    condition: leaf identity, Journey topology, and gate scheduling are owned by one mixed registry
+  - id: mixed_point_scenario_journey_policy_truth
+    condition: point identity, conversation scenario, Journey topology, and gate scheduling are owned by one mixed registry
     authority_refs: [P-TEST-017]
-  - id: i8_leaf_executed_by_i7
-    condition: an I8 P leaf receives an I7 result, pass, skip, or blocked record
+  - id: i8_observation_masquerades_as_acceptance
+    condition: an I8 behavior observation point receives a semantic pass, fail, skip, blocked, or completed-as-passed record
     authority_refs: [P-TEST-017]
-  - id: missing_checkpoint_or_leaf_evidence
-    condition: an applicable leaf lacks its admitted layer checkpoint, result, assertion, or evidence reference
+  - id: missing_acceptance_or_observation_mapping
+    condition: an acceptance point lacks objective result evidence or an observation point lacks a report stream/turn/lifecycle/section mapping
     authority_refs: [P-TEST-016, P-TEST-018]
   - id: prerequisite_failure_downstream_pass
     condition: a failed prerequisite checkpoint produces a dependent passing leaf
@@ -210,70 +210,87 @@ hard_blocks:
   - id: leaf_per_process_required_path
     condition: an active required script, runner, checker, or fallback derives full environment starts from leaf count
     authority_refs: [P-TEST-016, P-TEST-019]
-local_agent_behavior_evaluation:
+local_agent_conversation_report:
   contract_version: 1
-  expectation_manifest:
-    source: typed_source_snapshot
-    required_domains: [identity, behavior, world, relationship, knowledge]
-    prohibited_sources: [app_metadata, evaluator_score, raw_system_prompt]
-    authority_refs: [P-TEST-009]
+  identity_model:
+    source_owner: realm
+    source_kinds: [worldCharacter, realmPersona]
+    source_role_after_materialization: provenance_and_frozen_typed_snapshot
+    local_agent_owner: runtime
+    conversation_owner: runtime
+    resolved_identity_fields: [localAgentRef, conversationAnchorId]
+    registry_or_app_derived_identity: forbidden
+    automatic_source_rebase: forbidden
+    materializations_per_declared_source: 1
+    authority_refs: [P-TEST-014, P-TEST-018]
   classification_bindings:
-    deterministic_context_admission:
+    deterministic_context_integrity:
       classification: behavior_unit
       tier: T4
       authority_refs: [P-TEST-010]
-    electron_product_acceptance:
+    electron_product_execution:
       classification: product_acceptance
       tier: T6
       release_eligibility: after_real_shell_evidence
-      authority_refs: [P-TEST-010]
-    live_subject_behavior:
+      authority_refs: [P-TEST-010, P-TEST-011]
+    live_provider_execution:
       classification: live_provider_proof
       tier: T7
       release_eligibility: after_env_evidence
       authority_refs: [P-TEST-006, P-TEST-011]
-    semantic_evaluator:
-      classification: live_provider_proof
-      tier: T7
-      release_eligibility: after_env_evidence
-      authority_refs: [P-TEST-006, P-TEST-011]
-  deterministic_context_admission:
-    evidence_source: provider_visible_runtime_request_capture
-    required_domains: [identity, behavior, boundary, world, relationship, knowledge, transcript, memory]
-    required_assertions: [typed_lane, lane_order, content_hash, token_budget, forbidden_canary_absence, exact_provider_call_count]
-    fixture_substitutes_live_behavior: false
-    authority_refs: [P-TEST-010, P-TEST-011]
-  route_independence:
-    executor: runtime_ai_execution
-    fingerprint_fields: [providerId, modelId, modelRevisionOrFingerprint]
-    comparison: complete_fingerprint_must_differ
-    unresolved_or_equal_outcome: blocked_live_provider_admission
+  baseline_shape:
+    clean_environment_count: 1
+    local_agent_stream_count: 2
+    lifecycle_timeline_count: 1
+    source_materialization_count: {worldCharacter: 1, realmPersona: 1}
+    environment_starts: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1}
+    runtime_restart_count: 1
+    realm_offline_transition_count: 1
+    model_count: 1
+    run_count: 1
+    repeat_count: 1
+    retry_policy: none
+    full_environment_per_scene_or_turn: forbidden
+    authority_refs: [P-TEST-014, P-TEST-019]
+  stream_contract:
+    required_source_kinds: [worldCharacter, realmPersona]
+    required_distinct_fields: [localAgentRef, conversationAnchorId, sourceSnapshotHash, memoryScope]
+    shared_fields: [ownerAccountId, runtimeEnvironment, providerEnvironment]
+    cross_surface_continuity: same_localAgentRef_and_conversationAnchorId
+    restart_continuity: same_localAgentRef_and_conversationAnchorId
+    realm_offline_input: frozen_local_agent_source_snapshot
+    app_materialization_after_handoff: forbidden
+    authority_refs: [P-TEST-014, P-TEST-018]
+  model_identity:
+    selection_owner: runtime_catalog_and_ai_config
+    required_fields: [providerId, modelId, modelRevisionOrFingerprint]
+    route_change_within_run: forbidden
     app_or_test_direct_provider: forbidden
     provider_model_constants: forbidden
+    configurable_axes: [models, repeats]
     authority_refs: [P-TEST-012]
-  evaluator_contract:
-    input_allowlist: [expectation_manifest, rubric, transcript]
-    input_forbidden: [raw_system_prompt, private_context_lanes, product_anchor, product_memory_scope]
-    result_format: strict_json_schema
-    unknown_or_malformed_outcome: fail_closed
-    deterministic_dimensions: [facts, boundaries, ids, hashes, leakage]
-    semantic_dimensions: [style, cadence, voice, pacing]
+  report_bundle:
+    required_files: [report.html, report.json, run-manifest.json, transcripts, screenshots, provider-captures, runtime-state]
+    turn_correlation_chain: [accountId, sourceRef, sourceSnapshotRef, localAgentRef, conversationAnchorId, turnId, surface, providerId, modelId, modelRevisionOrFingerprint]
+    required_turn_captures: [contextSummary, memorySnapshot, relationshipSnapshot, presentationOutput]
+    required_presentation_fields: [voice, emotion, activity, apml, hooks]
+    required_lifecycle_events: [materialization, desktop_to_zhiyu_continuation, agent_switch, runtime_restart, realm_offline, post_restart_turn, post_offline_turn]
+    transcript_report_agreement: exact
+    local_links_resolve: required
+    authority_refs: [P-TEST-014, P-TEST-018]
+  objective_findings:
+    automatic_outcomes: [journey_execution, process_health, transport_completion, correlation_integrity, artifact_integrity, page_console_errors, privacy_findings, exact_cross_agent_canary_leakage, lifecycle_execution, time_budget, environment_start_counts]
+    semantic_outcomes: forbidden
+    authority_refs: [P-TEST-009, P-TEST-010, P-TEST-018]
+  human_review:
+    dimensions_role: report_headings_only
+    status_values: [unreviewed, accepted, needs_adjustment]
+    generated_default_status: unreviewed
+    generated_default_notes: ""
+    forbidden_automation: [semantic_matcher, style_score, semantic_threshold, evaluator_calibration, automatic_accepted]
+    optional_ai_annotation_authority: none
+    admission_threshold: none
     authority_refs: [P-TEST-009, P-TEST-013]
-  calibration:
-    controls_per_dimension: [known_pass, deliberate_fail]
-    timing: before_subject_trials
-    block_on: [control_misclassification, constant_scoring, schema_mismatch, reason_code_mismatch, route_collision]
-    fixed_within_batch: [thresholds, controls, rubric, result_schema]
-    retry_policy: none
-    authority_refs: [P-TEST-013]
-  evidence_and_state:
-    raw_trial_retention: all
-    denominator: all_original_trials
-    product_state_mutation: forbidden
-    mutation_targets: [realm_source, runtime_source_snapshot, local_agent, turn, message, transcript, memory, anchor]
-    score_truth_role: non_authoritative_evaluation_evidence
-    score_context_influence: forbidden
-    authority_refs: [P-TEST-009, P-TEST-014]
 local_agent_journey_acceptance:
   contract_version: 1
   execution_layers:
@@ -310,11 +327,13 @@ local_agent_journey_acceptance:
       full_electron_per_leaf: forbidden
       authority_refs: [P-TEST-015, P-TEST-019]
     L5:
-      name: live_behavior
-      scope: [real_provider_subject, independent_evaluator, calibration, two_batches_of_ten, raw_trial_ledger]
-      frequency: i8_only
+      name: live_conversation_report
+      scope: [two_runtime_local_agent_streams, cross_surface_lifecycle_timeline, complete_human_review_bundle]
+      frequency: on_demand
       ordinary_core_regression: forbidden
-      authority_refs: [P-TEST-011, P-TEST-013, P-TEST-014, P-TEST-015]
+      release_admission_threshold: none
+      human_review: required
+      authority_refs: [P-TEST-011, P-TEST-013, P-TEST-014, P-TEST-015, P-TEST-019]
   required_gate_budgets:
     local_pr_l0_l1_l2_target_ms: 1500000
     required_pr_job_hard_max_ms: 1800000
@@ -325,28 +344,31 @@ local_agent_journey_acceptance:
     authority_refs: [P-TEST-015, P-TEST-019]
   execution_identity:
     acceptance_point_role: independently_traceable_product_fact
+    behavior_observation_point_role: human_review_report_location
     checkpoint_role: fact_collection_position_within_journey
     journey_trial_role: one_clean_environment_complete_product_path
-    leaf_results_per_journey: many
+    acceptance_results_per_journey: many
+    observation_results: forbidden
     isolation_boundary: state_pollution
-    leaf_count_drives_process_starts: false
-    ordinary_assertion_change: extend_existing_checkpoint
+    point_scene_turn_count_drives_process_starts: false
+    ordinary_conversation_change: extend_existing_stream_registry
     repeat_identity_scope: [account, world, source, runtime_source, local_agent]
     fresh_logical_identity_per_repeat: true
     observed_identity_record: environmentIdentity
     new_journey_reasons: [different_initial_subject, different_user_path, different_state_machine, destructive_boundary, recovery_boundary, native_platform, unsafe_state_reset]
     authority_refs: [P-TEST-016]
   registry_ownership:
-    acceptance_point_catalog: [leaf_id, owner_iteration, group, product_requirement, assertion_ids, minimum_sufficient_layer, evidence_class]
-    journey_registry: [journey_id, applicable_layer, environment, real_realm, desktop, zhiyu, native_macos, checkpoints, covered_leaf_ids, prerequisites, isolation_level, repeat_policy, time_budget]
+    point_catalog: [point_id, point_kind, owner_iteration, group, product_requirement, assertion_ids, review_dimensions, minimum_sufficient_layer, evidence_class]
+    conversation_scenario_registry: [scenario_id, stream_alias, source_provenance, ordered_turns, surfaces, continuation, capture_requirements, lifecycle_checkpoints, model_matrix, time_budget]
+    journey_registry: [journey_id, applicable_layer, environment, real_realm, desktop, zhiyu, native_macos, checkpoints, covered_point_ids, prerequisites, isolation_level, repeat_policy, time_budget]
     execution_policy: [gate_journey_selection, gate_suite_selection, repeat_counts, exhaustive_frequency, time_budgets, platform_requirements]
     mixed_truth: forbidden
     authority_refs: [P-TEST-017]
   iteration_boundary:
-    total_leaf_count: 169
-    i7_leaf_count: 145
-    i8_p_leaf_count: 24
-    i7_result_for_i8_leaf: forbidden
+    total_point_count: 169
+    i7_acceptance_point_count: 145
+    i8_behavior_observation_point_count: 24
+    i7_result_for_i8_observation: forbidden
     i8_layer: L5
     authority_refs: [P-TEST-017]
   result_integrity:
@@ -357,13 +379,17 @@ local_agent_journey_acceptance:
     required_checkpoint_fields: [checkpointId, prerequisiteIds, startedAt, completedAt, correlations, assertions, artifactRefs, outcome]
     required_leaf_result_fields: [leafId, journeyTrialId, checkpointIds, assertionIds, evidenceRefs, outcome, failureClass]
     required_integrity: [source_digest, nimi_head, realm_head, artifact_sha256, privacy_zero, process_problems_zero, provider_capture_complete, environment_start_count, logical_identity_unique_per_repeat, duration_budget]
+    conversation_report_required_integrity: [two_distinct_local_agent_streams, one_lifecycle_timeline, source_snapshot_provenance, runtime_resolved_identity, exact_transcript_agreement, provider_model_revision, context_memory_relationship_capture, presentation_capture, runtime_restart_once, realm_offline_once, local_link_resolution, observation_mapping_complete, generated_review_unreviewed]
+    conversation_report_semantic_outcome: forbidden
     authority_refs: [P-TEST-018]
   active_runner:
     scheduling_unit: journey
     repeat_unit: independent_journey_environment
     full_environment_per_leaf: forbidden
+    l5_scheduling_unit: one_baseline_report_environment
+    full_environment_per_scene_turn_or_observation: forbidden
     process_start_formula: declared_journey_environment
-    legacy_fallback: forbidden
+    alternate_runner_fallback: forbidden
     authority_refs: [P-TEST-019]
 census:
   include_globs:

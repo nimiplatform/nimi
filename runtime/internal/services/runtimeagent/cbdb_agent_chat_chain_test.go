@@ -18,7 +18,6 @@ const (
 	cbdbChainSuZheRuntimeSourceRef = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
 	cbdbChainSuZheLocalAgentRef    = "local-agent:runtime-8af2c5ca8af2c5ca8af2c5ca8af2c5ca"
 	cbdbChainDesktopCallerAppID    = "nimi.desktop.test.cbdb-agent-chat-runtime-chain"
-	cbdbChainValidationThreadID    = "cbdb-chain-validation-thread"
 	cbdbChainValidationRequestID   = "cbdb-chain-validation-request"
 )
 
@@ -101,6 +100,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	if strings.TrimSpace(anchorID) == "" {
 		t.Fatalf("OpenConversationAnchor(CBDB profile context) returned empty anchor id")
 	}
+	runtimeThreadID := publicChatTestAnchorThreadID(t, svc, anchorID)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -207,7 +207,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 			"runtime_source_ref":     cbdbChainSuZheRuntimeSourceRef,
 			"conversation_anchor_id": anchorID,
 			"request_id":             cbdbChainValidationRequestID,
-			"thread_id":              cbdbChainValidationThreadID,
+			"thread_id":              runtimeThreadID,
 			"max_output_tokens":      777,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "validate cbdb agent chat"},
@@ -303,8 +303,8 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 		t.Fatalf("expected anchor runtime_source_ref %q, got %q", cbdbChainSuZheRuntimeSourceRef, got)
 	}
 	detail := publicChatSessionSnapshotDetail(t, snapshot)
-	if got := detail["thread_id"]; got != cbdbChainValidationThreadID {
-		t.Fatalf("expected snapshot thread_id %q, got=%v", cbdbChainValidationThreadID, detail)
+	if got := detail["thread_id"]; got != runtimeThreadID {
+		t.Fatalf("expected snapshot Runtime-owned thread_id %q, got=%v", runtimeThreadID, detail)
 	}
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
 	if got := lastTurn["text"]; got != "CBDB runtime validation turn complete." {

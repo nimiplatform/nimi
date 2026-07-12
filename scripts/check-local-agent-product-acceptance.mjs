@@ -87,11 +87,12 @@ function validateEvidenceRoot({ architecture, evidenceRoot, gate }) {
   failures.push(...validateJourneyRepeatIsolation(journeyResults));
 
   const expected = (() => {
-    if (gate === 'contract') return { suite: 1, journeys: new Map(), leaves: architecture.catalog.acceptance_points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer)), repeats: 1 };
-    if (gate === 'core') return { suite: 0, journeys: new Map([['full-chain-core', 1]]), leaves: architecture.catalog.acceptance_points.filter((point) => point.minimum_sufficient_layer === 'L2'), repeats: 1 };
-    if (gate === 'core-stability') return { suite: 0, journeys: new Map([['full-chain-core', 3]]), leaves: architecture.catalog.acceptance_points.filter((point) => point.minimum_sufficient_layer === 'L2'), repeats: 3 };
-    if (gate === 'extended') return { suite: 0, journeys: new Map(architecture.journeys.journeys.filter((journey) => journey.applicable_layer === 'L3').map((journey) => [journey.journey_id, 1])), leaves: architecture.catalog.acceptance_points.filter((point) => point.minimum_sufficient_layer === 'L3'), repeats: 1 };
-    if (gate === 'exhaustive') return { suite: 1, journeys: new Map(), leaves: architecture.catalog.acceptance_points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer)), repeats: 1 };
+    const acceptancePoints = architecture.points.points.filter((point) => point.point_kind === 'acceptance_point');
+    if (gate === 'contract') return { suite: 1, journeys: new Map(), leaves: acceptancePoints.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer)), repeats: 1 };
+    if (gate === 'core') return { suite: 0, journeys: new Map([['full-chain-core', 1]]), leaves: acceptancePoints.filter((point) => point.minimum_sufficient_layer === 'L2'), repeats: 1 };
+    if (gate === 'core-stability') return { suite: 0, journeys: new Map([['full-chain-core', 3]]), leaves: acceptancePoints.filter((point) => point.minimum_sufficient_layer === 'L2'), repeats: 3 };
+    if (gate === 'extended') return { suite: 0, journeys: new Map(architecture.journeys.journeys.filter((journey) => journey.applicable_layer === 'L3').map((journey) => [journey.journey_id, 1])), leaves: acceptancePoints.filter((point) => point.minimum_sufficient_layer === 'L3'), repeats: 1 };
+    if (gate === 'exhaustive') return { suite: 1, journeys: new Map(), leaves: acceptancePoints.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer)), repeats: 1 };
     return null;
   })();
   if (!expected) failures.push(`unsupported evidence gate ${gate}`);
@@ -106,7 +107,7 @@ function validateEvidenceRoot({ architecture, evidenceRoot, gate }) {
     if ((ledger.records || []).length !== expectedRecordCount) failures.push(`${gate} expected ${expectedRecordCount} records, got ${(ledger.records || []).length}`);
     for (const point of expected.leaves) {
       const expectedRepeats = gate === 'core-stability' ? 3 : 1;
-      if ((leafPassCounts.get(point.leaf_id) || 0) !== expectedRepeats) failures.push(`${gate} leaf ${point.leaf_id} expected ${expectedRepeats} passing outcomes, got ${leafPassCounts.get(point.leaf_id) || 0}`);
+      if ((leafPassCounts.get(point.point_id) || 0) !== expectedRepeats) failures.push(`${gate} leaf ${point.point_id} expected ${expectedRepeats} passing outcomes, got ${leafPassCounts.get(point.point_id) || 0}`);
     }
   }
   const budget = {
@@ -157,4 +158,4 @@ if (failures.length > 0) {
 }
 process.stdout.write(requestedGate
   ? `local-agent-product-acceptance: OK (${requestedGate})\n`
-  : 'local-agent-product-acceptance: OK (I7 contract + core stability + extended)\n');
+  : 'local-agent-product-acceptance: OK (I7 acceptance facts only; I8 human-review report is on demand)\n');

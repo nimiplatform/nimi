@@ -15,12 +15,21 @@ gate_budgets_ms:
   core_stability_hard: 3600000
   extended_hard: 2700000
   exhaustive_hard: 5400000
+  conversation_report_journey_hard: 2700000
+  conversation_report_closeout_hard: 3000000
 repeat_policies:
   contract: {local: 1, pr: 1, nightly: 1, process_repeat: false}
   core: {local: 1, pr: 1, stability: 3, nightly: 3, clean_root_per_repeat: true, fresh_logical_identity_per_repeat: true}
   extended: {local: 1, related_change: 1, nightly: 1, clean_root_per_repeat: true}
   exhaustive: {nightly: 1, release: 1, property_repetition_inside_suite: true, full_environment_per_leaf: false}
-  live: {owner_iteration: I8, batches: 2, trials_per_batch: 10, retry: none}
+  conversation_report:
+    owner_iteration: I8
+    runs: 1
+    models_per_run: 1
+    repeats_per_model: 1
+    clean_root_per_run: true
+    retry: none
+    full_environment_per_scene_or_turn: false
 suites:
   - suite_id: contract-smoke
     layers: [L0, L1]
@@ -33,11 +42,13 @@ suites:
     max_duration_ms: 5400000
     repeat_policy_ref: exhaustive
     repetition_boundary: property_generator_or_schema_mutator_inside_suite
-  - suite_id: live-behavior-i8
+  - suite_id: conversation-report-i8
     layers: [L5]
-    command: null
+    command: pnpm test:e2e:local-agent-conversation-report
     owner_iteration: I8
     ordinary_regression: forbidden
+    human_review: required
+    admission_threshold: none
 gates:
   coverage:
     command: pnpm check:local-agent-product-coverage
@@ -71,6 +82,16 @@ gates:
     command: pnpm test:local-agent-product:exhaustive
     suites: [deterministic-exhaustive]
     journeys: []
+  conversation_report:
+    command: pnpm test:e2e:local-agent-conversation-report
+    suites: [conversation-report-i8]
+    journeys: [{journey_id: conversation-report-baseline, repeats: 1}]
+    models: 1
+    repeats: 1
+    retry: none
+    ordinary_regression: forbidden
+    human_review: required
+    admission_threshold: none
   acceptance:
     command: pnpm check:local-agent-product-acceptance
     suites: [contract-smoke]
@@ -82,4 +103,8 @@ forbidden_active_paths:
   - tests/local-agent-product/harness/orchestrator.mjs
   - leaf_per_process
   - full_environment_starts_equals_leaf_count_times_repeat
+  - tests/local-agent-product/behavior/run-live-behavior.mjs
+  - scripts/check-local-agent-live-behavior.mjs
+  - calibration_per_batch
+  - semantic_admission_threshold
 i8_execution_in_i7: forbidden

@@ -26,7 +26,7 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
-function startProcess(command, args, options) {
+export function startProcess(command, args, options) {
   const child = spawn(command, args, {
     ...options,
     detached: process.platform !== 'win32',
@@ -43,7 +43,7 @@ function startProcess(command, args, options) {
   return { child, completed };
 }
 
-async function terminateProcessTree(handle) {
+export async function terminateProcessTree(handle) {
   if (!handle?.child?.pid) return;
   const { child, completed } = handle;
   if (process.platform === 'win32') {
@@ -69,6 +69,15 @@ async function terminateProcessTree(handle) {
   }
 }
 
+export async function terminateProcessTreeAfterGrace(handle, graceMs = 10_000) {
+  if (!handle?.child?.pid) return;
+  const exited = await Promise.race([
+    handle.completed.then(() => true, () => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), graceMs)),
+  ]);
+  if (!exited) await terminateProcessTree(handle);
+}
+
 export async function waitForJsonFile(file, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   let lastParseError = null;
@@ -86,7 +95,7 @@ export async function waitForJsonFile(file, timeoutMs) {
   throw new Error(`timed out waiting for complete JSON at ${file}`, { cause: lastParseError });
 }
 
-function allFiles(root) {
+export function allFiles(root) {
   if (!fs.existsSync(root)) return [];
   const files = [];
   for (const entry of fs.readdirSync(root, { recursive: true, withFileTypes: true })) {
@@ -134,13 +143,13 @@ function deepString(input, keys, seen = new Set()) {
   return '';
 }
 
-function artifactIdFor(prefix, root, file, index) {
+export function artifactIdFor(prefix, root, file, index) {
   const relative = path.relative(root, file).replace(/[^a-zA-Z0-9]+/gu, '-').replace(/^-|-$/gu, '').toLowerCase();
   return `${prefix}-${String(index + 1).padStart(2, '0')}-${relative || 'artifact'}`;
 }
 
 export function pointRowsForJourney(architecture, journeyId) {
-  return architecture.catalog.acceptance_points.filter((point) => point.execution_binding?.journey_id === journeyId);
+  return architecture.points.points.filter((point) => point.execution_binding?.journey_id === journeyId);
 }
 
 export function buildCheckpointResults({ journey, points, facts, correlations, artifactRefs, startedAt, completedAt }) {
@@ -182,7 +191,7 @@ export function buildLeafResults({ points, checkpointById, journeyTrialId, artif
       ? 'failed'
       : outcomes.includes('blocked_by_failed_prerequisite') ? 'blocked_by_failed_prerequisite' : 'passed';
     return {
-      leafId: point.leaf_id,
+      leafId: point.point_id,
       journeyTrialId,
       checkpointIds: point.execution_binding.checkpoint_ids,
       assertionIds: point.assertion_ids,
@@ -277,6 +286,7 @@ export async function runFullChainCoreTrial({ architecture, journey, trial, sour
     NO_COLOR: '1',
     FORCE_COLOR: '0',
     NIMI_LOCAL_AGENT_PRODUCT_JOURNEY_ID: 'full-chain-core',
+    NIMI_LOCAL_AGENT_PRODUCT_JOURNEY_TIME_BUDGET_MS: String(journey.time_budget_ms),
     NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID: trial.identity.journeyTrialId,
     NIMI_LOCAL_AGENT_PRODUCT_SOURCE_KIND: 'worldCharacter',
     NIMI_LOCAL_AGENT_PRODUCT_HANDOFF_PATH: handoffPath,

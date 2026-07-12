@@ -273,6 +273,7 @@ export type ZhiyuEvidence = {
     readonly runtimeSourceRef: string | null;
     readonly localAgentRef: string | null;
     readonly conversationAnchorId: string | null;
+    readonly threadId: string | null;
   };
   readonly memory: {
     readonly transport: 'electron-ipc';
@@ -529,6 +530,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       runtimeSourceRef: null,
       localAgentRef: null,
       conversationAnchorId: null,
+      threadId: null,
     },
     memory: {
       transport: 'electron-ipc',

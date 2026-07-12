@@ -64,13 +64,13 @@ export async function runContractSuite({ outputDir, mode = 'contract' }) {
   const architecture = readLocalAgentTestArchitecture();
   const architectureFailures = validateArchitecture(architecture);
   if (architectureFailures.length > 0) throw new Error(`invalid LocalAgent test architecture: ${architectureFailures.join('; ')}`);
-  const points = architecture.catalog.acceptance_points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer));
-  const missingPlans = points.filter((point) => !contractPlanByLeaf.has(point.leaf_id)).map((point) => point.leaf_id);
-  const orphanPlans = [...contractPlanByLeaf.keys()].filter((leafId) => !points.some((point) => point.leaf_id === leafId));
+  const points = architecture.points.points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer));
+  const missingPlans = points.filter((point) => !contractPlanByLeaf.has(point.point_id)).map((point) => point.point_id);
+  const orphanPlans = [...contractPlanByLeaf.keys()].filter((leafId) => !points.some((point) => point.point_id === leafId));
   if (missingPlans.length > 0 || orphanPlans.length > 0) throw new Error(`contract plan mismatch missing=${missingPlans.join(',')} orphan=${orphanPlans.join(',')}`);
-  const orphanExhaustiveRepeats = [...exhaustiveRepeatByLeaf.keys()].filter((leafId) => !points.some((point) => point.leaf_id === leafId));
+  const orphanExhaustiveRepeats = [...exhaustiveRepeatByLeaf.keys()].filter((leafId) => !points.some((point) => point.point_id === leafId));
   if (orphanExhaustiveRepeats.length > 0) throw new Error(`exhaustive repeat plan has orphan leaves ${orphanExhaustiveRepeats.join(',')}`);
-  const exhaustiveLogicalLeafTrialCount = points.reduce((count, point) => count + (exhaustiveRepeatByLeaf.get(point.leaf_id) || 1), 0);
+  const exhaustiveLogicalLeafTrialCount = points.reduce((count, point) => count + (exhaustiveRepeatByLeaf.get(point.point_id) || 1), 0);
   const logicalLeafTrialCount = exhaustive ? exhaustiveLogicalLeafTrialCount : points.length;
   if (exhaustive && (exhaustiveRepeatByLeaf.size !== 32 || exhaustiveLogicalLeafTrialCount !== 3239)) {
     throw new Error(`exhaustive logical coverage must preserve 32x100 + 39x1 = 3239, got repeated=${exhaustiveRepeatByLeaf.size} logical=${logicalLeafTrialCount}`);
@@ -83,14 +83,14 @@ export async function runContractSuite({ outputDir, mode = 'contract' }) {
   const keysByLeaf = new Map();
   for (const point of points) {
     const keys = [];
-    const leafRepeatCount = exhaustive ? (exhaustiveRepeatByLeaf.get(point.leaf_id) || 1) : 1;
-    for (const step of contractPlanByLeaf.get(point.leaf_id)) {
+    const leafRepeatCount = exhaustive ? (exhaustiveRepeatByLeaf.get(point.point_id) || 1) : 1;
+    for (const step of contractPlanByLeaf.get(point.point_id)) {
       const key = stepKey(step);
       keys.push(key);
       if (!stepByKey.has(key)) stepByKey.set(key, step);
       repeatCountByKey.set(key, Math.max(repeatCountByKey.get(key) || 0, leafRepeatCount));
     }
-    keysByLeaf.set(point.leaf_id, keys);
+    keysByLeaf.set(point.point_id, keys);
   }
 
   const startedAt = new Date();
@@ -154,12 +154,12 @@ export async function runContractSuite({ outputDir, mode = 'contract' }) {
       executions: executed.map(({ logPath: _logPath, ...row }) => row),
     }, null, 2)}\n`);
     const checkpoints = points.map((point) => {
-      const executions = keysByLeaf.get(point.leaf_id).map((key) => executionByKey.get(key));
-      const requiredRepeatCount = exhaustive ? (exhaustiveRepeatByLeaf.get(point.leaf_id) || 1) : 1;
+      const executions = keysByLeaf.get(point.point_id).map((key) => executionByKey.get(key));
+      const requiredRepeatCount = exhaustive ? (exhaustiveRepeatByLeaf.get(point.point_id) || 1) : 1;
       const passed = executions.every((row) => row.passed && row.observedRepeatCount >= requiredRepeatCount);
       return {
         checkpointId: point.execution_binding.checkpoint_ids[0],
-        leafIds: [point.leaf_id],
+        leafIds: [point.point_id],
         startedAt: startedAt.toISOString(),
         completedAt: new Date().toISOString(),
         correlations: {
@@ -176,9 +176,9 @@ export async function runContractSuite({ outputDir, mode = 'contract' }) {
     });
     const checkpointByLeaf = new Map(checkpoints.map((checkpoint) => [checkpoint.leafIds[0], checkpoint]));
     const leafResults = points.map((point) => {
-      const checkpoint = checkpointByLeaf.get(point.leaf_id);
+      const checkpoint = checkpointByLeaf.get(point.point_id);
       return {
-        leafId: point.leaf_id,
+        leafId: point.point_id,
         suiteTrialId: trial.identity.suiteTrialId,
         checkpointIds: [checkpoint.checkpointId],
         assertionIds: point.assertion_ids,

@@ -129,6 +129,53 @@ func TestAgentTurnContextBudgetTruncatesWholeItemsInFixedOrder(t *testing.T) {
 	}
 }
 
+func TestAgentTurnContextRelationalContinuitySurvivesOptionalTruncation(t *testing.T) {
+	t.Parallel()
+	input := agentTurnContextTestInput(t, "worldCharacter")
+	input.Relationships = []agentTurnRelationshipInput{{
+		RelationshipID: "memory-preferred-name",
+		Scope:          "dyadic",
+		ProvenanceRef:  "runtime.agent.internal.chat_sidecar:turn-relationship:memory-preferred-name",
+		Summary:        "user preferred_name 墨契",
+		Rank:           2,
+	}}
+	input.Memory = []agentTurnMemoryInput{{
+		MemoryID:      "memory-preferred-name",
+		Scope:         "dyadic",
+		ProvenanceRef: "runtime.agent.internal.chat_sidecar:turn-relationship:memory-preferred-name",
+		Text:          "user preferred_name 墨契",
+		RelevanceRank: 2,
+	}}
+	full, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
+	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.RequiredTokens
+	trimmed, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	relationships := agentTurnContextTestLane(t, trimmed.PrivateLanes, agentTurnContextLaneRelationshipContext)
+	memory := agentTurnContextTestLane(t, trimmed.PrivateLanes, agentTurnContextLaneCanonicalMemory)
+	var continuity *agentTurnContextItem
+	for index := range relationships.Items {
+		if relationships.Items[index].StableID == "runtime.relationship.memory-preferred-name" {
+			continuity = &relationships.Items[index]
+			break
+		}
+	}
+	if continuity == nil || !continuity.Included || continuity.Truncated {
+		t.Fatalf("relational continuity was not retained as mandatory context: %+v", relationships.Items)
+	}
+	if len(memory.Items) != 1 || !memory.Items[0].Truncated {
+		t.Fatalf("canonical memory copy should remain optional under the admitted budget order: %+v", memory.Items)
+	}
+	if providerText := agentTurnContextTestProviderText(trimmed.ProviderPrompt); !strings.Contains(providerText, "墨契") {
+		t.Fatal("provider-visible relationship context lost the preferred-name continuity fact")
+	}
+}
+
 func TestAgentTurnContextMandatoryOverflowFailsClosedWithTypedSummary(t *testing.T) {
 	t.Parallel()
 	input := agentTurnContextTestInput(t, "realmPersona")
@@ -240,6 +287,42 @@ func TestAgentTurnContextTokenUpperBoundUsesFinalProviderVisibleUTF8Bytes(t *tes
 				t.Fatalf("multibyte provider text was not conservatively bounded: got=%d legacy=%d", got, legacyRuneQuarter)
 			}
 		})
+	}
+}
+
+func TestAgentTurnContextProviderEnvelopeDoesNotDuplicateManifestProvenance(t *testing.T) {
+	t.Parallel()
+	item := agentTurnContextItem{
+		StableID:       strings.Repeat("stable-id-segment.", 64),
+		LaneID:         agentTurnContextLaneWorldContext,
+		SourcePath:     strings.Repeat("world.core.deeply.nested.path.", 64),
+		AuthorityOwner: agentTurnContextAuthorityRealmSnapshot,
+		TrustClass:     agentTurnContextTrustValidatedSource,
+		Segments: []agentTurnContextSegment{{
+			Role:    "system",
+			Content: "canonical world baseline",
+		}},
+		Included: true,
+	}
+	messages := agentTurnContextProviderMessagesForItem(item)
+	if len(messages) != 1 {
+		t.Fatalf("provider envelope message count=%d, want 1", len(messages))
+	}
+	content := messages[0].Content
+	for _, required := range []string{
+		"[NIMI_TYPED_CONTEXT_ITEM]",
+		"lane=world_context",
+		"authority=realm_source_snapshot",
+		"trust=validated_source_data",
+		`content_json_string="canonical world baseline"`,
+		"[/NIMI_TYPED_CONTEXT_ITEM]",
+	} {
+		if !strings.Contains(content, required) {
+			t.Fatalf("provider envelope omitted %q: %q", required, content)
+		}
+	}
+	if strings.Contains(content, item.StableID) || strings.Contains(content, item.SourcePath) || strings.Contains(content, "stable_id_json_string=") || strings.Contains(content, "source_path_json_string=") {
+		t.Fatalf("provider envelope duplicated manifest-only provenance: %q", content)
 	}
 }
 

@@ -168,6 +168,12 @@ func TestAIBackedPublicChatTurnExecutorPreservesRuntimeComposedAPMLOutputContrac
 	if !strings.Contains(prompt, "<emotion>angry|confused|embarrassed|excited|ext:apologetic|ext:grateful|ext:lonely|ext:proud|happy|neutral|sad|shy|surprised|worried</emotion>") {
 		t.Fatalf("expected APML emotion choices to be projected from admitted runtime emotions, got %q", prompt)
 	}
+	if !strings.Contains(prompt, "Optional cues (omit if unsure)") || !strings.Contains(prompt, `"focused" is activity, never emotion`) {
+		t.Fatalf("expected APML contract to prevent activity/emotion category drift, got %q", prompt)
+	}
+	if !strings.Contains(prompt, "inside <message>") || !strings.Contains(prompt, "never top-level") {
+		t.Fatalf("expected APML cue placement to remain explicit, got %q", prompt)
+	}
 	if !strings.Contains(prompt, "ext:grateful") || !strings.Contains(prompt, "thinking") {
 		t.Fatalf("expected APML activity choices to be projected from admitted runtime activities, got %q", prompt)
 	}
@@ -212,5 +218,8 @@ func TestPublicChatAPMLOutputContractDisablesUnavailableImageAction(t *testing.T
 	}
 	if !strings.Contains(prompt, `Do not output <action kind="image">`) {
 		t.Fatalf("default APML contract must explicitly prohibit image action output, got %q", prompt)
+	}
+	if got := len([]byte(prompt)); got > 1400 {
+		t.Fatalf("default APML contract exceeds the mandatory context budget: bytes=%d", got)
 	}
 }

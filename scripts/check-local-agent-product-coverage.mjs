@@ -10,11 +10,11 @@ import { validateArchitecture } from '../tests/local-agent-product/harness/valid
 
 const architecture = readLocalAgentTestArchitecture();
 const failures = validateArchitecture(architecture);
-const lowerLayerPoints = architecture.catalog.acceptance_points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer));
-const lowerLayerIds = new Set(lowerLayerPoints.map((point) => point.leaf_id));
-const missingContractPlans = lowerLayerPoints.filter((point) => !contractPlanByLeaf.has(point.leaf_id)).map((point) => point.leaf_id);
+const lowerLayerPoints = architecture.points.points.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer));
+const lowerLayerIds = new Set(lowerLayerPoints.map((point) => point.point_id));
+const missingContractPlans = lowerLayerPoints.filter((point) => !contractPlanByLeaf.has(point.point_id)).map((point) => point.point_id);
 const orphanContractPlans = [...contractPlanByLeaf.keys()].filter((leafId) => !lowerLayerIds.has(leafId));
-const exhaustiveLogicalTrials = lowerLayerPoints.reduce((count, point) => count + (exhaustiveRepeatByLeaf.get(point.leaf_id) || 1), 0);
+const exhaustiveLogicalTrials = lowerLayerPoints.reduce((count, point) => count + (exhaustiveRepeatByLeaf.get(point.point_id) || 1), 0);
 if (missingContractPlans.length > 0 || orphanContractPlans.length > 0) {
   failures.push(`contract plan coverage mismatch missing=${missingContractPlans.join(',')} orphan=${orphanContractPlans.join(',')}`);
 }
@@ -27,6 +27,11 @@ const forbiddenFiles = [
   'tests/local-agent-product/harness/orchestrator.mjs',
   'tests/local-agent-product/harness/registrations.mjs',
   'tests/local-agent-product/harness/product-semantic-runner.mjs',
+  'config/local-agent-product-behavior.yaml',
+  'tests/local-agent-product/behavior/run-live-behavior.mjs',
+  'scripts/check-local-agent-live-behavior.mjs',
+  'tests/local-agent-product/schemas/live-behavior-batch.schema.json',
+  'tests/local-agent-product/schemas/live-behavior-evaluator.schema.json',
 ];
 for (const relative of forbiddenFiles) {
   if (fs.existsSync(path.join(repoRoot, relative))) failures.push(`old leaf-per-process or mixed-truth path still exists: ${relative}`);
@@ -38,6 +43,12 @@ for (const relative of [
   'config/local-agent-product-acceptance-points.yaml',
   'config/local-agent-product-journeys.yaml',
   'config/local-agent-product-execution-policy.yaml',
+  'config/local-agent-product-conversation-scenarios.yaml',
+  'tests/local-agent-product/conversation-report/run-conversation-report.mjs',
+  'tests/local-agent-product/conversation-report/checker.mjs',
+  'tests/local-agent-product/conversation-report/report-generator.mjs',
+  'tests/local-agent-product/schemas/conversation-report.schema.json',
+  'scripts/check-local-agent-conversation-report.mjs',
 ]) {
   if (!fs.existsSync(path.join(repoRoot, relative))) failures.push(`required Journey architecture path is missing: ${relative}`);
 }
@@ -51,6 +62,9 @@ const expectedScripts = {
   'test:e2e:local-agent-product:extended': 'node tests/local-agent-product/harness/run-gate.mjs --gate extended',
   'test:local-agent-product:exhaustive': 'node tests/local-agent-product/harness/run-gate.mjs --gate exhaustive',
   'check:local-agent-product-acceptance': 'node scripts/check-local-agent-product-acceptance.mjs',
+  'check:local-agent-conversation-report': 'node scripts/check-local-agent-conversation-report.mjs',
+  'test:local-agent-conversation-report-contract': 'node --test tests/local-agent-product/conversation-report/*.test.mjs',
+  'test:e2e:local-agent-conversation-report': 'node tests/local-agent-product/conversation-report/run-conversation-report.mjs',
   'test:e2e:local-agent-product': 'pnpm test:e2e:local-agent-product:core',
 };
 for (const [name, command] of Object.entries(expectedScripts)) {
@@ -66,9 +80,9 @@ if (failures.length > 0) {
   for (const failure of failures) process.stderr.write(`local-agent-product-coverage: ${failure}\n`);
   process.exit(1);
 }
-const counts = architecture.catalog.minimum_layer_counts;
+const counts = architecture.points.minimum_layer_counts;
 const journeyCounts = Object.fromEntries(architecture.journeys.journeys.map((journey) => [
   journey.journey_id,
-  new Set(journey.checkpoints.flatMap((checkpoint) => checkpoint.covered_leaf_ids)).size,
+  new Set(journey.checkpoints.flatMap((checkpoint) => checkpoint.covered_leaf_ids || checkpoint.covered_point_ids || [])).size,
 ]));
-process.stdout.write(`local-agent-product-coverage: OK (169 leaves; layers=${JSON.stringify(counts)}; journeys=${JSON.stringify(journeyCounts)})\n`);
+process.stdout.write(`local-agent-product-coverage: OK (145 acceptance points + 24 behavior observation points; layers=${JSON.stringify(counts)}; journeys=${JSON.stringify(journeyCounts)})\n`);

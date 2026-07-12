@@ -25,14 +25,15 @@ function validArchitecture() {
 
 function sourceState() {
   return {
-    schemaVersion: 'nimi.local-agent-product-source-state/v2',
+    schemaVersion: 'nimi.local-agent-product-source-state/v3',
     nimiCommit: 'a'.repeat(40),
     realmCommit: 'b'.repeat(40),
     nimiSourceTreeSha256: 'c'.repeat(64),
     realmSourceTreeSha256: 'd'.repeat(64),
-    acceptanceCatalogSha256: 'e'.repeat(64),
+    testPointCatalogSha256: 'e'.repeat(64),
     journeyRegistrySha256: 'f'.repeat(64),
     executionPolicySha256: '1'.repeat(64),
+    conversationScenarioRegistrySha256: '3'.repeat(64),
     sourceDigest: '2'.repeat(64),
   };
 }
@@ -40,7 +41,7 @@ function sourceState() {
 function createValidJourneyFixture() {
   const architecture = validArchitecture();
   const journey = architecture.journeys.journeys.find((row) => row.journey_id === 'full-chain-core');
-  const points = architecture.catalog.acceptance_points.filter((point) => point.execution_binding?.journey_id === journey.journey_id);
+  const points = architecture.points.points.filter((point) => point.execution_binding?.journey_id === journey.journey_id);
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-journey-validation-'));
   const safePath = path.join(root, 'safe-evidence.json');
   const providerPath = path.join(root, 'provider-capture-summary.json');
@@ -91,7 +92,7 @@ function createValidJourneyFixture() {
     durationMs: 1000,
     checkpoints,
     leafResults: points.map((point) => ({
-      leafId: point.leaf_id,
+      leafId: point.point_id,
       journeyTrialId: trialId,
       checkpointIds: point.execution_binding.checkpoint_ids,
       assertionIds: point.assertion_ids,
@@ -112,21 +113,21 @@ test('architecture rejects a deleted leaf mapping', () => {
   const architecture = validArchitecture();
   const mutated = clone(architecture);
   const journey = mutated.journeys.journeys.find((row) => row.journey_id === 'full-chain-core');
-  const point = mutated.catalog.acceptance_points.find((row) => row.execution_binding?.journey_id === journey.journey_id);
-  for (const checkpoint of journey.checkpoints) checkpoint.covered_leaf_ids = checkpoint.covered_leaf_ids.filter((id) => id !== point.leaf_id);
+  const point = mutated.points.points.find((row) => row.execution_binding?.journey_id === journey.journey_id);
+  for (const checkpoint of journey.checkpoints) checkpoint.covered_leaf_ids = checkpoint.covered_leaf_ids.filter((id) => id !== point.point_id);
   expectFailure(validateArchitecture(mutated), /mapping|covered/i);
 });
 
 test('architecture rejects a nonexistent checkpoint', () => {
   const mutated = clone(validArchitecture());
-  const point = mutated.catalog.acceptance_points.find((row) => row.minimum_sufficient_layer === 'L2');
+  const point = mutated.points.points.find((row) => row.minimum_sufficient_layer === 'L2');
   point.execution_binding.checkpoint_ids = ['checkpoint-does-not-exist'];
   expectFailure(validateArchitecture(mutated), /checkpoint-does-not-exist/);
 });
 
 test('architecture rejects duplicate or conflicting leaf owners', () => {
   const mutated = clone(validArchitecture());
-  mutated.catalog.acceptance_points.push({ ...mutated.catalog.acceptance_points[0], owner_iteration: 'I8' });
+  mutated.points.points.push({ ...mutated.points.points[0], owner_iteration: 'I8' });
   expectFailure(validateArchitecture(mutated), /duplicate|owner/i);
 });
 

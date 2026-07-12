@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiRuntimeAgentClient,
+  createNimiHostRuntimeAgentInspectSurface,
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
   createRuntime,
@@ -273,25 +274,34 @@ export function createAcceptanceAgentClient(runtime, ownerUserId = OWNER_USER_ID
     agents: runtime.agents,
     appMessages: runtime.appMessages,
   };
-  return createNimiRuntimeAgentClient({
+  const withScopes = (scopes, operation) =>
+    withNimiRuntimeAgentScopes({
+      runtime: agentRuntime,
+      subjectUserId: ownerUserId,
+    }, scopes, async (options) => {
+      const metadata = await sessionMetadata();
+      agentCallIndex += 1;
+      return operation(idempotency(`agent:${scopes.join(',')}:${agentCallIndex}`, {
+        ...options,
+        metadata: {
+          ...metadata,
+          ...(options.metadata ?? {}),
+        },
+      }));
+    });
+  const client = createNimiRuntimeAgentClient({
     runtime: agentRuntime,
     appId: APP_ID,
     getSubjectUserId: () => ownerUserId,
-    withScopes: (scopes, operation) =>
-      withNimiRuntimeAgentScopes({
-        runtime: agentRuntime,
-        subjectUserId: ownerUserId,
-      }, scopes, async (options) => {
-        const metadata = await sessionMetadata();
-        agentCallIndex += 1;
-        return operation(idempotency(`agent:${scopes.join(',')}:${agentCallIndex}`, {
-          ...options,
-          metadata: {
-            ...metadata,
-            ...(options.metadata ?? {}),
-          },
-        }));
-      }),
+    withScopes,
+  });
+  const inspect = createNimiHostRuntimeAgentInspectSurface({
+    getRuntime: () => ({ ...agentRuntime, agent: runtime.agents }),
+    getSubjectUserId: () => ownerUserId,
+    withScopes,
+  });
+  return Object.assign(client, {
+    inspect,
   });
 }
 

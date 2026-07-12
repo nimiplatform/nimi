@@ -95,8 +95,10 @@ func (r publicChatRuntime) reserveTurn(
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor subject_user_id mismatch")
 		}
+		// thread_id is a caller-carried correlation assertion only. Runtime
+		// allocates and owns the thread identity when the anchor opens; a turn
+		// can neither create nor overwrite it.
 		if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" &&
-			strings.TrimSpace(session.ThreadID) != "" &&
 			strings.TrimSpace(session.ThreadID) != trimmed {
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor thread_id mismatch")
@@ -109,9 +111,6 @@ func (r publicChatRuntime) reserveTurn(
 		session.ConfigRevision = configRevision
 		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
 			session.SubjectUserID = trimmed
-		}
-		if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" {
-			session.ThreadID = trimmed
 		}
 		// app_id identifies the caller for this turn and its event delivery. It
 		// is not an anchor, transcript, snapshot, list, or interrupt partition.
@@ -170,19 +169,78 @@ func (r publicChatRuntime) reserveTurn(
 }
 
 func (r publicChatRuntime) releaseTurn(anchorID string, turnID string) {
+	r.releaseTurnReservation(anchorID, turnID, false)
+}
+
+func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string, publishTerminal bool) {
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	trimmedTurnID := strings.TrimSpace(turnID)
 	r.svc.chatSurfaceMu.Lock()
-	turn := r.svc.chatTurns[strings.TrimSpace(turnID)]
-	delete(r.svc.chatTurns, strings.TrimSpace(turnID))
-	if session := r.svc.chatAnchors[strings.TrimSpace(anchorID)]; session != nil && session.ActiveTurnID == strings.TrimSpace(turnID) {
+	turn := r.svc.chatTurns[trimmedTurnID]
+	delete(r.svc.chatTurns, trimmedTurnID)
+	if session := r.svc.chatAnchors[trimmedAnchorID]; session != nil && session.ActiveTurnID == trimmedTurnID {
+		if publishTerminal && turn != nil && turn.TerminalProjection != nil {
+			terminal := clonePublicChatTurnProjectionState(turn.TerminalProjection)
+			terminal.StreamSequence = turn.StreamSequence
+			terminal.UpdatedAt = time.Now().UTC()
+			session.LastTurnSnapshot = terminal
+			session.LastTurnID = trimmedTurnID
+			if messageID := strings.TrimSpace(terminal.MessageID); messageID != "" {
+				session.LastMessageID = messageID
+			}
+			if terminal.Status == publicChatTurnStatusCompleted &&
+				strings.TrimSpace(terminal.TurnID) != "" &&
+				strings.TrimSpace(terminal.MessageID) != "" {
+				if session.CompletedTurnSnapshots == nil {
+					session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+				}
+				session.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(terminal)
+			}
+		}
 		session.ActiveTurnID = ""
 		session.ActiveTurnSnapshot = nil
 		session.UpdatedAt = time.Now().UTC()
 	}
-	if turn != nil && strings.TrimSpace(r.svc.chatActiveByAgent[turn.AgentID]) == strings.TrimSpace(turnID) {
+	if turn != nil && strings.TrimSpace(r.svc.chatActiveByAgent[turn.AgentID]) == trimmedTurnID {
 		delete(r.svc.chatActiveByAgent, turn.AgentID)
 	}
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.persistCurrentPublicChatSurfaceState()
+}
+
+func (r publicChatRuntime) finishTurnReservation(session publicChatAnchorState, turnID string) {
+	if r.svc == nil {
+		return
+	}
+	trimmedTurnID := strings.TrimSpace(turnID)
+	if trimmedTurnID == "" {
+		return
+	}
+	r.svc.chatSurfaceMu.Lock()
+	anchor := r.svc.chatAnchors[strings.TrimSpace(session.ConversationAnchorID)]
+	reservationOwned := anchor != nil && strings.TrimSpace(anchor.ActiveTurnID) == trimmedTurnID
+	if !reservationOwned {
+		reservationOwned = strings.TrimSpace(r.svc.chatActiveByAgent[strings.TrimSpace(session.AgentID)]) == trimmedTurnID
+	}
+	r.svc.chatSurfaceMu.Unlock()
+	if reservationOwned {
+		r.releaseTurnReservation(session.ConversationAnchorID, trimmedTurnID, true)
+	}
+	// Serialize the old turn's final execution-state transition against a new
+	// reserveTurn. A terminal callback may synchronously start the next turn;
+	// in that case the newer reservation owns CHAT_ACTIVE and must not be
+	// overwritten by this finalizer.
+	r.svc.chatSurfaceMu.Lock()
+	activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[strings.TrimSpace(session.AgentID)])
+	if activeTurnID != "" && activeTurnID != trimmedTurnID {
+		r.svc.chatSurfaceMu.Unlock()
+		return
+	}
+	err := r.setExecutionState(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE)
+	r.svc.chatSurfaceMu.Unlock()
+	if err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("set public chat agent idle state failed", "agent_id", session.AgentID, "turn_id", trimmedTurnID, "error", err)
+	}
 }
 
 func (r publicChatRuntime) lookupTurnForInterrupt(

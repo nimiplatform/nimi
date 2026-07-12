@@ -58,6 +58,9 @@ import {
   localhostOrigin,
   startAcceptanceRendererServer,
 } from './explore-materialization-acceptance/acceptance-server.mjs';
+import { resolveConversationScenarioRegistry, readConversationScenarioRegistry } from '../../../tests/local-agent-product/conversation-report/registry.mjs';
+import { resolveAndProvisionConversationRoute, safeConversationRouteSummary } from '../../../tests/local-agent-product/conversation-report/route.mjs';
+import { commitConversationReportRoute } from '../../../tests/local-agent-product/conversation-report/runtime-config.mjs';
 
 const appRoot = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(appRoot, '..', '..');
@@ -74,6 +77,7 @@ const {
   crossAppControlRoot,
   productJourneyId,
   fullChainCore,
+  conversationReport,
   preMaterializationOffline,
   disabledActionOnly,
   productSourceKind,
@@ -172,6 +176,7 @@ writeJsonFile(manifestPath, createRealmFixtureManifest(desktopFixtureOrigin, fix
 
 let runtimeDaemon = null;
 let electronApp = null;
+let conversationReportContext = null;
 const consoleErrors = [];
 const consoleErrorDetails = [];
 const pageErrors = [];
@@ -262,6 +267,18 @@ try {
     },
   });
   await completeRuntimeAccountLogin(runtime, observations, realRealmSession);
+  if (conversationReport) {
+    const registry = await resolveConversationScenarioRegistry(readConversationScenarioRegistry());
+    const scenario = registry.scenarios.find((candidate) => candidate.scenario_id === 'conversation-report-baseline');
+    assert.ok(scenario, 'conversation report baseline scenario is missing');
+    const route = await resolveAndProvisionConversationRoute({
+      runtime,
+      env: acceptanceBaseEnv,
+      runId: process.env.NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID || `conversation-report-${Date.now()}`,
+    });
+    conversationReportContext = { scenario, route };
+    observations.conversationReportRoute = safeConversationRouteSummary(route);
+  }
   observations.productControl = await prepareRuntimeProductControl(runtime, runtimeDataRoot).catch((error) => ({
     state: 'setup_failed',
     error: formatError(error),
@@ -498,12 +515,25 @@ try {
   assert.equal(discovered[0].sourceContextStatus?.ready, true, 'Character Runtime source snapshot must be ready');
   assert.match(discovered[0].snapshotHash || '', /^[a-f0-9]{64}$/u, 'Character Runtime source snapshot hash must be bounded');
   agentIdentity = runtimeAgentIdentity(localAgentRef, discovered[0].runtimeSourceRef);
+  if (conversationReportContext) {
+    const configured = await commitConversationReportRoute({
+      agentClient,
+      identity: agentIdentity,
+      route: conversationReportContext.route,
+    });
+    observations.conversationReportAIConfig = {
+      revision: configured.committed.revision,
+      route: configured.committed.intents['text.generate']?.route,
+      routeFingerprint: conversationReportContext.route.fingerprint,
+    };
+  }
   journeyAgents.push({
     sourceKind: 'worldCharacter',
     sourceRef: activeSourceRef,
     localAgentRef,
     runtimeSourceRef: discovered[0].runtimeSourceRef,
     snapshotHash: discovered[0].snapshotHash || null,
+    materializedAt: new Date().toISOString(),
     displayName: observations.sourceDetailDisplayName || observations.agentDisplayName || 'Runtime Live Source',
   });
 
@@ -551,11 +581,16 @@ try {
       chatSendAttempt: chatSendAttemptScreenshotPath,
     },
     fullChainCore,
+    conversationReport,
+    conversationScenario: conversationReportContext?.scenario || null,
+    conversationReportRoute: conversationReportContext?.route || null,
     mediaRoutes,
     artifactsDir,
     queueProviderPlan,
     waitForProviderCheckpoint,
     providerCheckpointCount,
+    consoleErrors,
+    pageErrors,
   });
 
   const fixtureManifest = await fetchJson(`${fixtureServer.origin}/__fixture/control/manifest`);
@@ -582,6 +617,8 @@ try {
     personaMaterializedScreenshotPath,
     waitForDiscoveredLocalAgent,
     runtimeAgentIdentity,
+    conversationReportRoute: conversationReportContext?.route || null,
+    commitConversationReportRoute,
   });
 
   if (!crossAppHandoffPath) {
@@ -614,7 +651,7 @@ try {
     observations.desktopAccountLogoutReachedLoginRequired = true;
   }
 
-  if (consoleErrors.length || pageErrors.length) {
+  if (!conversationReport && (consoleErrors.length || pageErrors.length)) {
     throw new Error(`renderer console/page errors observed: ${JSON.stringify({ consoleErrors, pageErrors }, null, 2)}`);
   }
 
@@ -629,6 +666,7 @@ try {
       crossAppProviderRawPath,
       crossAppControlRoot,
       fullChainCore,
+      conversationReport,
       productJourneyId,
       fixtureManifest,
       fixtureOrigin: fixtureServer.origin,
@@ -645,6 +683,8 @@ try {
       mediaRoutes,
       journeyAgents,
       observations,
+      conversationScenario: conversationReportContext?.scenario || null,
+      conversationReportRouteSummary: conversationReportContext ? safeConversationRouteSummary(conversationReportContext.route) : null,
       screenshots: [desktopScreenshotPath, narrowScreenshotPath, chatScreenshotPath],
       materializePersona: materializePersonaForJourney,
       waitForControlFile,

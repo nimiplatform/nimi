@@ -57,3 +57,40 @@ func TestPublicChatMessageEnvelopePayloadsOwnReplayIdentityAndParentBinding(t *t
 		t.Fatalf("expected Runtime-owned replay timestamp, got=%v", got)
 	}
 }
+
+func TestPublicChatSessionSnapshotKeepsTurnActiveUntilReservationRelease(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	turnID := "turn-post-commit-reserved"
+
+	svc.chatSurfaceMu.Lock()
+	anchor := svc.chatAnchors[anchorID]
+	projection := &publicChatTurnProjectionState{
+		TurnID:    turnID,
+		StreamID:  "stream-post-commit-reserved",
+		Status:    publicChatTurnStatusCompleted,
+		UpdatedAt: time.Now().UTC(),
+	}
+	anchor.ActiveTurnID = turnID
+	anchor.ActiveTurnSnapshot = nil
+	svc.chatTurns[turnID] = &publicChatTurnState{
+		TurnID:               turnID,
+		AgentID:              anchor.AgentID,
+		ConversationAnchorID: anchorID,
+		Projection:           projection,
+	}
+	svc.chatActiveByAgent[anchor.AgentID] = turnID
+	svc.chatSurfaceMu.Unlock()
+
+	_, activeTurn, _, _, err := svc.snapshotPublicChatAnchorForCaller("desktop.app", anchorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if activeTurn == nil || activeTurn.TurnID != turnID {
+		t.Fatalf("snapshot hid an unreleased active turn: %+v", activeTurn)
+	}
+	if got := publicChatSessionStatus(activeTurn, nil); got != "turn_active" {
+		t.Fatalf("session status=%q, want turn_active until releaseTurn", got)
+	}
+}

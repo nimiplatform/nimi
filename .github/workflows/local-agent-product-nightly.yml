@@ -1,0 +1,117 @@
+name: local-agent-product-nightly
+
+on:
+  schedule:
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-agent-product-nightly-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - name: Checkout Nimi
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Checkout locked Realm source
+        run: |
+          REALM_COMMIT="$(awk '/^  commit:/ { print $2; exit }' config/realm-contract-lock.yaml)"
+          test "${#REALM_COMMIT}" -eq 40
+          git clone --filter=blob:none https://github.com/nimiplatform/nimi-realm.git "$RUNNER_TEMP/nimi-realm"
+          git -C "$RUNNER_TEMP/nimi-realm" checkout --detach "$REALM_COMMIT"
+          echo "REALM_ROOT=$RUNNER_TEMP/nimi-realm" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Verify Realm contract lock
+        run: pnpm check:realm-contract-lock -- --realm-root "$REALM_ROOT"
+
+      - name: Run deterministic architecture and exhaustive gates
+        run: |
+          pnpm check:local-agent-product-coverage
+          pnpm test:local-agent-conversation-report-contract
+          pnpm test:local-agent-product-contract
+          pnpm test:local-agent-product:exhaustive
+
+  product-journeys:
+    runs-on: macos-14
+    timeout-minutes: 100
+    steps:
+      - name: Checkout Nimi
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Checkout locked Realm source
+        run: |
+          REALM_COMMIT="$(awk '/^  commit:/ { print $2; exit }' config/realm-contract-lock.yaml)"
+          test "${#REALM_COMMIT}" -eq 40
+          git clone --filter=blob:none https://github.com/nimiplatform/nimi-realm.git "$RUNNER_TEMP/nimi-realm"
+          git -C "$RUNNER_TEMP/nimi-realm" checkout --detach "$REALM_COMMIT"
+          echo "REALM_ROOT=$RUNNER_TEMP/nimi-realm" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Verify Realm contract lock
+        run: pnpm check:realm-contract-lock -- --realm-root "$REALM_ROOT"
+
+      - name: Run deterministic product Journeys serially
+        run: |
+          pnpm test:e2e:local-agent-product:core-stability
+          pnpm test:e2e:local-agent-product:extended
+
+      - name: Upload deterministic product evidence
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: local-agent-product-deterministic-${{ github.run_id }}
+          path: .nimi/local/evidence/local-agent-full-chain
+          include-hidden-files: true
+          if-no-files-found: error

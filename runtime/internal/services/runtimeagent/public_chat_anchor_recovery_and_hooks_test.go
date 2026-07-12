@@ -47,6 +47,11 @@ func TestConversationAnchorMetadataCommittedAndRecovered(t *testing.T) {
 	if anchorID == "" {
 		t.Fatal("expected committed conversation_anchor_id")
 	}
+	openedAnchor, ok := svc.publicChatAnchorSnapshot(anchorID)
+	if !ok || strings.TrimSpace(openedAnchor.ThreadID) == "" {
+		t.Fatal("OpenConversationAnchor must allocate a Runtime-owned thread id before the first turn")
+	}
+	openedThreadID := strings.TrimSpace(openedAnchor.ThreadID)
 	if !proto.Equal(openResp.GetSnapshot().GetAnchor().GetMetadata(), metadata) {
 		t.Fatalf("open snapshot metadata mismatch: got=%v want=%v", openResp.GetSnapshot().GetAnchor().GetMetadata(), metadata)
 	}
@@ -78,6 +83,10 @@ func TestConversationAnchorMetadataCommittedAndRecovered(t *testing.T) {
 	}
 	if !proto.Equal(recoveredResp.GetSnapshot().GetAnchor().GetMetadata(), metadata) {
 		t.Fatalf("recovered snapshot metadata mismatch: got=%v want=%v", recoveredResp.GetSnapshot().GetAnchor().GetMetadata(), metadata)
+	}
+	recoveredAnchor, ok := recoveredSvc.publicChatAnchorSnapshot(anchorID)
+	if !ok || strings.TrimSpace(recoveredAnchor.ThreadID) != openedThreadID {
+		t.Fatalf("Runtime-owned thread id did not recover with anchor: got=%q want=%q", recoveredAnchor.ThreadID, openedThreadID)
 	}
 }
 
@@ -168,7 +177,7 @@ func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorA1,
-			"thread_id":              "thread-exec-pack-4-anchor-a1",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorA1),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "anchor A1"},
 			},
@@ -218,7 +227,7 @@ func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-beta",
 			"conversation_anchor_id": anchorB1,
-			"thread_id":              "thread-exec-pack-4-anchor-b1",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorB1),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "anchor B1"},
 			},

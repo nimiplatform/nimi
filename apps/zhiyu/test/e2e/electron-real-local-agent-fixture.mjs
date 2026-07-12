@@ -8,6 +8,7 @@ import {
   createRuntimeForEndpoint,
   setFixtureRuntimeAgentPresentationProfile,
 } from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
+import { createNimiHostRuntimeAgentInspectSurface } from '../../../../sdks/typescript/runtime/runtime-agent-inspect.ts';
 import { createNimiLocalFirstPartyAgentPresentationClient } from '../../../../sdks/typescript/runtime/local-first-party-agent-presentation.ts';
 import { withRuntimeAgentLiveE2EFixture } from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
 
@@ -49,6 +50,15 @@ export async function withFixtureRuntimeLocalAgent(run) {
       deviceId: 'nimi-zhiyu-local-first-party-device',
       ownerUserId: handoff.ownerUserId,
     });
+    const inspect = createNimiHostRuntimeAgentInspectSurface({
+      getRuntime: () => ({
+        appId: zhiyuAppId,
+        auth: runtime.auth,
+        appAuth: runtime.grants,
+        agent: runtime.agents,
+      }),
+      getSubjectUserId: () => handoff.ownerUserId,
+    });
     const targetAgent = (await agentClient.listLocalAgents({ ownerUserId: handoff.ownerUserId }))
       .find((candidate) => candidate.localAgentRef === handoff.localAgentRef);
     assert.ok(targetAgent, 'Desktop-materialized LocalAgent must appear in the shared Runtime inventory');
@@ -83,6 +93,9 @@ export async function withFixtureRuntimeLocalAgent(run) {
       targetAgent,
       standardDataRoot: handoff.standardDataRoot,
       handoff,
+      runtime,
+      agentClient,
+      inspect,
       setPresentationProfile,
     });
     return;
@@ -97,6 +110,15 @@ export async function withFixtureRuntimeLocalAgent(run) {
         capabilities: protectedScopes,
       });
       const agentClient = createFixtureRuntimeAgentClient(context.runtime);
+      const inspect = createNimiHostRuntimeAgentInspectSurface({
+        getRuntime: () => ({
+          appId: zhiyuAppId,
+          auth: context.runtime.auth,
+          appAuth: context.runtime.grants,
+          agent: context.runtime.agents,
+        }),
+        getSubjectUserId: () => context.ownerUserId,
+      });
       const targetAgent = (await agentClient.listLocalAgents({ ownerUserId: context.ownerUserId }))
         .find((candidate) => candidate.localAgentRef === context.localAgent.localAgentRef);
       assert.ok(targetAgent, 'materialized Character must appear in bounded Runtime inventory');
@@ -122,6 +144,9 @@ export async function withFixtureRuntimeLocalAgent(run) {
         targetAgent,
         standardDataRoot: null,
         handoff: null,
+        runtime: context.runtime,
+        agentClient,
+        inspect,
         setPresentationProfile,
       });
     },

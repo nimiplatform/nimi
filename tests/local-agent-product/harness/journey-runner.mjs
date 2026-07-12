@@ -26,7 +26,7 @@ function runProcess(command, args) {
   });
 }
 
-async function buildProductPrerequisites(journeys, evidenceRoot) {
+export async function buildProductPrerequisites(journeys, evidenceRoot) {
   const needsDesktop = journeys.some((journey) => journey.environment.requires_desktop);
   const needsZhiyu = journeys.some((journey) => journey.environment.requires_zhiyu);
   const commands = [

@@ -10,7 +10,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const publicChatPreTurnMemoryLimit = 8
+const (
+	publicChatPreTurnMemoryLimit           = 8
+	publicChatPreTurnDyadicContinuityLimit = 2
+)
 
 // publicChatPreTurnMemoryInput is a typed, scope-bound compiler input. Memory
 // remains a separate lane; it is never rendered into a caller/system prompt by
@@ -36,16 +39,18 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 	if strings.TrimSpace(session.SubjectUserID) == "" {
 		return publicChatPreTurnMemoryInputs{}, status.Error(codes.FailedPrecondition, "public chat pre-turn memory requires subject_user_id")
 	}
+	requestContext := &runtimev1.AgentRequestContext{
+		AppId:            strings.TrimSpace(session.CallerAppID),
+		SubjectUserId:    strings.TrimSpace(session.SubjectUserID),
+		OwnerUserId:      strings.TrimSpace(session.OwnerUserID),
+		RuntimeSourceRef: strings.TrimSpace(session.RuntimeSourceRef),
+		LocalAgentRef:    strings.TrimSpace(session.LocalAgentRef),
+	}
+	query := publicChatPreTurnMemoryQuery(req.Messages)
 	resp, err := r.svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: &runtimev1.AgentRequestContext{
-			AppId:            strings.TrimSpace(session.CallerAppID),
-			SubjectUserId:    strings.TrimSpace(session.SubjectUserID),
-			OwnerUserId:      strings.TrimSpace(session.OwnerUserID),
-			RuntimeSourceRef: strings.TrimSpace(session.RuntimeSourceRef),
-			LocalAgentRef:    strings.TrimSpace(session.LocalAgentRef),
-		},
+		Context: requestContext,
 		AgentId: strings.TrimSpace(session.AgentID),
-		Query:   publicChatPreTurnMemoryQuery(req.Messages),
+		Query:   query,
 		Limit:   publicChatPreTurnMemoryLimit,
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{
 			runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
@@ -55,8 +60,70 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 	if err != nil {
 		return publicChatPreTurnMemoryInputs{}, err
 	}
+	primary, err := publicChatPreTurnMemoryInputsFromResponse(session, resp)
+	if err != nil || strings.TrimSpace(query) == "" {
+		return primary, err
+	}
+	recentDyadicResp, err := r.svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context:          requestContext,
+		AgentId:          strings.TrimSpace(session.AgentID),
+		Limit:            publicChatPreTurnDyadicContinuityLimit,
+		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
+	})
+	if err != nil {
+		return publicChatPreTurnMemoryInputs{}, err
+	}
+	recentDyadic, err := publicChatPreTurnMemoryInputsFromResponse(session, recentDyadicResp)
+	if err != nil {
+		return publicChatPreTurnMemoryInputs{}, err
+	}
+	return mergePublicChatPreTurnMemoryInputs(primary, recentDyadic)
+}
 
-	return publicChatPreTurnMemoryInputsFromResponse(session, resp)
+func mergePublicChatPreTurnMemoryInputs(
+	primary publicChatPreTurnMemoryInputs,
+	recentDyadic publicChatPreTurnMemoryInputs,
+) (publicChatPreTurnMemoryInputs, error) {
+	merged := publicChatPreTurnMemoryInputs{Items: make([]publicChatPreTurnMemoryInput, 0, publicChatPreTurnMemoryLimit)}
+	seen := make(map[string]*runtimev1.CanonicalMemoryView)
+	appendInput := func(input publicChatPreTurnMemoryInput) error {
+		memoryID := strings.TrimSpace(input.View.GetRecord().GetMemoryId())
+		if memoryID == "" {
+			return status.Error(codes.DataLoss, "canonical memory continuity input has no memory id")
+		}
+		if existing, ok := seen[memoryID]; ok {
+			if existing.GetCanonicalClass() != input.View.GetCanonicalClass() ||
+				!proto.Equal(existing.GetSourceBank(), input.View.GetSourceBank()) ||
+				!proto.Equal(existing.GetRecord(), input.View.GetRecord()) {
+				return status.Error(codes.DataLoss, "canonical memory continuity input conflicts with query recall")
+			}
+			return nil
+		}
+		if len(merged.Items) >= publicChatPreTurnMemoryLimit {
+			return nil
+		}
+		seen[memoryID] = input.View
+		merged.Items = append(merged.Items, input)
+		return nil
+	}
+	for index, input := range recentDyadic.Items {
+		if index >= publicChatPreTurnDyadicContinuityLimit {
+			break
+		}
+		if input.CanonicalClass != runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC ||
+			input.BankScope != runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC {
+			return publicChatPreTurnMemoryInputs{}, status.Error(codes.DataLoss, "canonical memory continuity input is not dyadic")
+		}
+		if err := appendInput(input); err != nil {
+			return publicChatPreTurnMemoryInputs{}, err
+		}
+	}
+	for _, input := range primary.Items {
+		if err := appendInput(input); err != nil {
+			return publicChatPreTurnMemoryInputs{}, err
+		}
+	}
+	return merged, nil
 }
 
 func publicChatPreTurnMemoryInputsFromResponse(session publicChatAnchorState, resp *runtimev1.QueryAgentMemoryResponse) (publicChatPreTurnMemoryInputs, error) {

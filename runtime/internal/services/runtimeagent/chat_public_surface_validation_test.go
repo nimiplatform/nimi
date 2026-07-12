@@ -38,7 +38,7 @@ func TestPublicChatTurnRequestRejectsRequestCarriedExecutionBindings(t *testing.
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-request-bindings-rejected",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -70,7 +70,7 @@ func TestPublicChatTurnRequestRejectsCallerSystemPrompt(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-reject-system-prompt",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"system_prompt":          "caller supplied raw prompt",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -647,7 +647,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 			"owner_user_id":          "user-1",
 			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-follow-up",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},

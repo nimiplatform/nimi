@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nimi.local-agent-conversation-report/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "runId", "scenarioRegistry", "sourceState", "modelIdentity",
+    "environmentIdentity", "execution", "conversationStreams", "turns", "lifecycleTimeline",
+    "artifacts", "executionFindings", "privacy", "observationMappings", "reviewDimensions", "reviewStatus"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "nimi.local-agent-conversation-report/v1"},
+    "runId": {"type": "string", "minLength": 1},
+    "scenarioRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenarioId", "version", "digest"],
+      "properties": {
+        "scenarioId": {"const": "conversation-report-baseline"},
+        "version": {"type": "integer", "minimum": 1},
+        "digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "sourceState": {
+      "type": "object",
+      "required": ["nimiHead", "nimiSourceDigest", "realmHead", "realmSourceDigest"],
+      "properties": {
+        "nimiHead": {"$ref": "#/$defs/gitSha"},
+        "nimiSourceDigest": {"$ref": "#/$defs/sha256"},
+        "realmHead": {"$ref": "#/$defs/gitSha"},
+        "realmSourceDigest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "modelIdentity": {
+      "type": "object",
+      "required": ["providerId", "modelId", "modelRevisionOrFingerprint", "parameters"],
+      "properties": {
+        "providerId": {"type": "string", "minLength": 1},
+        "modelId": {"type": "string", "minLength": 1},
+        "modelRevisionOrFingerprint": {"type": "string", "minLength": 1},
+        "catalogVersion": {"type": ["string", "number", "null"]},
+        "providerVersion": {"type": ["string", "number", "null"]},
+        "parameters": {"type": "object"}
+      }
+    },
+    "environmentIdentity": {
+      "type": "object",
+      "required": ["rootId", "ownerAccountId", "runtimeVersion", "desktopVersion", "zhiyuVersion", "processStarts", "materializations"],
+      "properties": {
+        "rootId": {"type": "string", "minLength": 1},
+        "ownerAccountId": {"type": "string", "minLength": 1},
+        "runtimeVersion": {"type": "string", "minLength": 1},
+        "desktopVersion": {"type": "string", "minLength": 1},
+        "zhiyuVersion": {"type": "string", "minLength": 1},
+        "processStarts": {"$ref": "#/$defs/processStarts"},
+        "materializations": {"$ref": "#/$defs/materializations"},
+        "fixtureProviderRequestCount": {"const": 0}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["status", "startedAt", "completedAt", "durationMs", "timeBudgetMs"],
+      "properties": {
+        "status": {"enum": ["completed", "completed_with_transport_failure"]},
+        "startedAt": {"$ref": "#/$defs/timestamp"},
+        "completedAt": {"$ref": "#/$defs/timestamp"},
+        "durationMs": {"type": "integer", "minimum": 0},
+        "timeBudgetMs": {"type": "integer", "minimum": 1}
+      }
+    },
+    "conversationStreams": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"$ref": "#/$defs/stream"}
+    },
+    "turns": {
+      "type": "array",
+      "minItems": 18,
+      "items": {"$ref": "#/$defs/turn"}
+    },
+    "lifecycleTimeline": {
+      "type": "object",
+      "required": ["timelineId", "kind", "streamIds", "events"],
+      "properties": {
+        "timelineId": {"type": "string", "minLength": 1},
+        "kind": {"const": "cross_surface_cross_agent_lifecycle_timeline"},
+        "streamIds": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"}},
+        "events": {"type": "array", "minItems": 13, "items": {"$ref": "#/$defs/event"}}
+      }
+    },
+    "artifacts": {"type": "array", "items": {"$ref": "#/$defs/relativePath"}, "uniqueItems": true},
+    "executionFindings": {
+      "type": "object",
+      "required": ["processErrors", "pageErrors", "consoleErrors", "transportFailures", "timeBudgetExceeded"],
+      "properties": {
+        "processErrors": {"type": "array"},
+        "pageErrors": {"type": "array"},
+        "consoleErrors": {"type": "array"},
+        "transportFailures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["turnId", "surface", "stage", "reasonCode", "message"],
+            "properties": {
+              "turnId": {"type": "string", "minLength": 1},
+              "surface": {"enum": ["desktop", "zhiyu"]},
+              "stage": {"enum": ["before_runtime_turn", "runtime_turn"]},
+              "reasonCode": {"type": "string", "minLength": 1},
+              "message": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "timeBudgetExceeded": {"type": "boolean"}
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "required": ["ok", "findings", "canaryChecks"],
+      "properties": {
+        "ok": {"type": "boolean"},
+        "findings": {"type": "array", "items": {"type": "string"}},
+        "canaryChecks": {"type": "array", "minItems": 2},
+        "ocr": {"type": "array"}
+      }
+    },
+    "observationMappings": {"type": "array", "minItems": 24, "maxItems": 24, "items": {"$ref": "#/$defs/observationMapping"}},
+    "reviewDimensions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/reviewDimension"}},
+    "reviewStatus": {"const": "unreviewed"}
+  },
+  "$defs": {
+    "gitSha": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "relativePath": {"type": "string", "minLength": 1, "not": {"pattern": "^(?:/|[A-Za-z]:|\\.\\./)"}},
+    "processStarts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "realm", "runtime", "desktop", "zhiyu"],
+      "properties": {
+        "provider": {"const": 1}, "realm": {"const": 1}, "runtime": {"const": 2},
+        "desktop": {"const": 1}, "zhiyu": {"const": 1}
+      }
+    },
+    "materializations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["worldCharacter", "realmPersona"],
+      "properties": {"worldCharacter": {"const": 1}, "realmPersona": {"const": 1}}
+    },
+    "sourceRef": {
+      "type": "object",
+      "required": ["kind", "worldId", "sourceId", "sourceContentHash"],
+      "properties": {
+        "kind": {"enum": ["worldCharacter", "realmPersona"]},
+        "worldId": {"type": "string", "minLength": 1},
+        "sourceId": {"type": "string", "minLength": 1},
+        "sourceContentHash": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "stream": {
+      "type": "object",
+      "required": ["streamId", "title", "purpose", "sourceProvenance", "localAgentIdentity", "conversationIdentity", "memoryScope", "turnIds"],
+      "properties": {
+        "streamId": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "purpose": {"type": "string", "minLength": 1},
+        "sourceProvenance": {
+          "type": "object",
+          "required": ["sourceKind", "sourceRef", "sourceRevision", "sourceContentHash", "snapshotRef", "snapshotHash", "frozenAt"],
+          "properties": {
+            "sourceKind": {"enum": ["worldCharacter", "realmPersona"]},
+            "sourceRef": {"$ref": "#/$defs/sourceRef"},
+            "sourceRevision": {"type": ["string", "integer"]},
+            "sourceContentHash": {"$ref": "#/$defs/sha256"},
+            "snapshotRef": {"type": "string", "minLength": 1},
+            "snapshotHash": {"$ref": "#/$defs/sha256"},
+            "frozenAt": {"$ref": "#/$defs/timestamp"}
+          }
+        },
+        "localAgentIdentity": {
+          "type": "object",
+          "required": ["localAgentRef", "ownerAccountId"],
+          "properties": {"localAgentRef": {"type": "string", "minLength": 1}, "ownerAccountId": {"type": "string", "minLength": 1}}
+        },
+        "conversationIdentity": {
+          "type": "object",
+          "required": ["conversationAnchorId", "threadId", "localAgentRef"],
+          "properties": {
+            "conversationAnchorId": {"type": "string", "minLength": 1},
+            "threadId": {"type": "string", "minLength": 1},
+            "localAgentRef": {"type": "string", "minLength": 1}
+          }
+        },
+        "memoryScope": {"type": "string", "minLength": 1},
+        "turnIds": {"type": "array", "minItems": 9, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "turn": {
+      "type": "object",
+      "required": [
+        "turnId", "streamId", "order", "surface", "continuationRequired", "sourceProvenanceRef",
+        "user", "assistant", "latencyMs", "correlation", "contextSummary", "memorySnapshot",
+        "relationshipSnapshot", "presentationOutput", "providerCaptureRef", "runtimeStateRef",
+        "screenshotCheckpoint", "screenshotRefs", "observationPointIds"
+      ],
+      "properties": {
+        "turnId": {"type": "string", "minLength": 1},
+        "streamId": {"type": "string", "minLength": 1},
+        "order": {"type": "integer", "minimum": 1},
+        "surface": {"enum": ["desktop", "zhiyu"]},
+        "continuationRequired": {"const": true},
+        "sourceProvenanceRef": {"type": "string", "minLength": 1},
+        "user": {"type": "object", "required": ["content", "submittedAt"]},
+        "assistant": {
+          "type": "object",
+          "required": ["status", "content", "receivedAt", "transportFailure"],
+          "properties": {
+            "status": {"enum": ["completed", "transport_failure"]},
+            "content": {"type": "string"},
+            "receivedAt": {"$ref": "#/$defs/timestamp"},
+            "transportFailure": {
+              "anyOf": [
+                {"type": "null"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["stage", "reasonCode", "message"],
+                  "properties": {
+                    "stage": {"enum": ["before_runtime_turn", "runtime_turn"]},
+                    "reasonCode": {"type": "string", "minLength": 1},
+                    "message": {"type": "string", "minLength": 1}
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "latencyMs": {"type": "integer", "minimum": 0},
+        "correlation": {"type": "object"},
+        "contextSummary": {"type": "object"},
+        "memorySnapshot": {"type": "object"},
+        "relationshipSnapshot": {"type": "object"},
+        "presentationOutput": {"type": "object"},
+        "providerCaptureRef": {"$ref": "#/$defs/relativePath"},
+        "runtimeStateRef": {"$ref": "#/$defs/relativePath"},
+        "screenshotCheckpoint": {"type": "boolean"},
+        "screenshotRefs": {"type": "array", "items": {"$ref": "#/$defs/relativePath"}},
+        "observationPointIds": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["eventId", "kind", "streamId", "occurredAt", "correlation", "artifactRefs"],
+      "properties": {
+        "eventId": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "streamId": {"type": ["string", "null"]},
+        "occurredAt": {"$ref": "#/$defs/timestamp"},
+        "correlation": {"type": "object"},
+        "artifactRefs": {"type": "array", "items": {"$ref": "#/$defs/relativePath"}}
+      }
+    },
+    "observationMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pointId", "locations"],
+      "properties": {
+        "pointId": {"type": "string", "pattern": "^P-"},
+        "locations": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["kind", "ref"],
+            "properties": {"kind": {"enum": ["turn", "lifecycle_event", "report_section"]}, "ref": {"type": "string", "minLength": 1}}
+          }
+        }
+      }
+    },
+    "reviewDimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "turnRefs", "observationPointIds", "reviewStatus", "notes"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "turnRefs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "observationPointIds": {"type": "array", "items": {"type": "string"}},
+        "reviewStatus": {"const": "unreviewed"},
+        "notes": {"const": ""}
+      }
+    }
+  }
+}

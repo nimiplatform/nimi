@@ -204,3 +204,32 @@ journeys:
     checkpoints:
       - {checkpoint_id: native-edit-shortcuts, prerequisite_ids: [], covered_leaf_ids: [O-03-04]}
       - {checkpoint_id: native-ime-composition, prerequisite_ids: [native-edit-shortcuts], covered_leaf_ids: [O-03-05]}
+
+  - journey_id: conversation-report-baseline
+    applicable_layer: L5
+    environment:
+      type: single_environment_cross_app_live_provider_report
+      requires_real_realm: false
+      supports_real_realm: true
+      requires_desktop: true
+      requires_zhiyu: true
+      requires_native_macos: false
+      requires_live_provider: true
+      start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1}
+      materialization_limits: {worldCharacter: 1, realmPersona: 1}
+      runtime_restart_count: 1
+      realm_offline_transition_count: 1
+    prerequisites: [runtime_catalog_text_route_with_env_credential, desktop_renderer_build, desktop_electron_build, zhiyu_renderer_build, zhiyu_electron_build]
+    isolation_level: one_clean_account_runtime_provider_desktop_zhiyu_root_per_report
+    repeat_policy_ref: conversation_report
+    time_budget_ms: 2700000
+    checkpoints:
+      - {checkpoint_id: report.sources-materialized-once, prerequisite_ids: [], covered_point_ids: []}
+      - {checkpoint_id: report.local-agent-a-stream, prerequisite_ids: [report.sources-materialized-once], covered_point_ids: [P-01-C, P-02-C, P-03-C, P-04-C, P-05-CU, P-05-CC, P-06-CR]}
+      - {checkpoint_id: report.desktop-to-zhiyu-continuation, prerequisite_ids: [report.local-agent-a-stream], covered_point_ids: []}
+      - {checkpoint_id: report.local-agent-b-stream, prerequisite_ids: [report.desktop-to-zhiyu-continuation], covered_point_ids: [P-01-P, P-02-P, P-03-P, P-04-P, P-05-PU, P-05-PC, P-06-PR]}
+      - {checkpoint_id: report.cross-agent-isolation, prerequisite_ids: [report.local-agent-b-stream], covered_point_ids: [P-06-X]}
+      - {checkpoint_id: report.runtime-restart, prerequisite_ids: [report.cross-agent-isolation], covered_point_ids: [P-06-CRS, P-06-PRS]}
+      - {checkpoint_id: report.realm-offline, prerequisite_ids: [report.runtime-restart], covered_point_ids: []}
+      - {checkpoint_id: report.human-review-sections, prerequisite_ids: [report.realm-offline], covered_point_ids: [P-07-I, P-07-W, P-07-S, P-07-B, P-07-U, P-07-R, P-07-X]}
+      - {checkpoint_id: report.bundle-complete, prerequisite_ids: [report.human-review-sections], covered_point_ids: []}

@@ -26,12 +26,7 @@ func (r publicChatRuntime) runTurn(
 		"thread_id", session.ThreadID,
 		"request_id", strings.TrimSpace(turn.RequestID),
 	)
-	defer r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
-	defer func() {
-		if err := r.setExecutionState(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE); err != nil && r.svc.logger != nil {
-			r.svc.logger.Warn("set public chat agent idle state failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
-		}
-	}()
+	defer r.finishTurnReservation(session, turn.TurnID)
 	accumulatedText := &strings.Builder{}
 	var usage *runtimev1.UsageStats
 	var finish *runtimev1.ScenarioStreamCompleted
@@ -323,7 +318,7 @@ func (r publicChatRuntime) runTurn(
 	// post-commit projection and can never redefine this durable result.
 	messageCommitStartedAt := time.Now()
 	finalizeCommittedProjection := func(projection *publicChatTurnProjectionState) {
-		applyCommittedPublicChatTurnProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, nil)
+		applyCommittedPublicChatMessageProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, nil)
 	}
 	var commitErr error
 	if len(req.Messages) == 1 && strings.TrimSpace(req.Messages[0].Role) == "user" {
@@ -407,7 +402,7 @@ func (r publicChatRuntime) runTurn(
 	postTurnOutcome := r.applyPostTurn(ctx, session, turn, req, structured)
 	postTurnEventStartedAt := time.Now()
 	r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
-		applyCommittedPublicChatTurnProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, &postTurnOutcome)
+		applyCompletedPublicChatTurnProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, &postTurnOutcome)
 		projection.ReasonCode = postCommitReasonCode
 		projection.Message = boundedPublicChatPostCommitDiagnostic(postCommitDiagnostic)
 	})
@@ -515,7 +510,7 @@ func (r publicChatRuntime) completeCommittedPublicChatTurnWithDiagnostic(
 ) {
 	boundedMessage := boundedPublicChatPostCommitDiagnostic(message)
 	r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
-		applyCommittedPublicChatTurnProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, postTurnOutcome)
+		applyCompletedPublicChatTurnProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, postTurnOutcome)
 		projection.ReasonCode = reasonCode
 		projection.ActionHint = ""
 		projection.Message = boundedMessage
@@ -525,7 +520,7 @@ func (r publicChatRuntime) completeCommittedPublicChatTurnWithDiagnostic(
 	}
 }
 
-func applyCommittedPublicChatTurnProjection(
+func applyCommittedPublicChatMessageProjection(
 	projection *publicChatTurnProjectionState,
 	traceID string,
 	modelResolved string,
@@ -538,7 +533,7 @@ func applyCommittedPublicChatTurnProjection(
 	if projection == nil {
 		return
 	}
-	projection.Status = publicChatTurnStatusCompleted
+	projection.Status = publicChatTurnStatusCommitted
 	projection.TraceID = strings.TrimSpace(traceID)
 	projection.ModelResolved = strings.TrimSpace(modelResolved)
 	projection.RouteDecision = routeDecision
@@ -562,6 +557,22 @@ func applyCommittedPublicChatTurnProjection(
 	}
 	if usage != nil {
 		projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+	}
+}
+
+func applyCompletedPublicChatTurnProjection(
+	projection *publicChatTurnProjectionState,
+	traceID string,
+	modelResolved string,
+	routeDecision runtimev1.RoutePolicy,
+	structured *publicChatStructuredEnvelope,
+	usage *runtimev1.UsageStats,
+	finish *runtimev1.ScenarioStreamCompleted,
+	postTurnOutcome *publicChatPostTurnOutcome,
+) {
+	applyCommittedPublicChatMessageProjection(projection, traceID, modelResolved, routeDecision, structured, usage, finish, postTurnOutcome)
+	if projection != nil {
+		projection.Status = publicChatTurnStatusCompleted
 	}
 }
 
