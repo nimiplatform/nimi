@@ -178,7 +178,7 @@ func (s *Service) PrepareLocalDevelopmentLaunch(ctx context.Context, req *runtim
 	if err != nil || !localDevelopmentProjectsMatch(authorization.Project, project) {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
 	}
-	hostExecutable, err := canonicalLocalDevelopmentHostExecutable(project.ProjectRoot, req.GetHostExecutablePath())
+	hostExecutable, err := canonicalLocalDevelopmentHostExecutable(project.ProjectRoot, req.GetHostExecutablePath(), req.GetShellKind())
 	if err != nil {
 		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED)
 	}
@@ -427,9 +427,9 @@ func localDevelopmentAuthorizationToProto(authorization localDevelopmentAuthoriz
 	}
 }
 
-func canonicalLocalDevelopmentHostExecutable(projectRoot string, raw string) (string, error) {
+func canonicalLocalDevelopmentHostExecutable(projectRoot string, raw string, shellKind runtimev1.LocalDevelopmentShellKind) (string, error) {
 	path := filepath.Clean(strings.TrimSpace(raw))
-	if !filepath.IsAbs(path) || !pathWithinLocalDevelopmentRoot(projectRoot, path) {
+	if !filepath.IsAbs(path) {
 		return "", errLocalDevelopmentProjectChanged
 	}
 	canonical, err := filepath.EvalSymlinks(path)
@@ -444,7 +444,59 @@ func canonicalLocalDevelopmentHostExecutable(projectRoot string, raw string) (st
 	if err != nil || !info.Mode().IsRegular() {
 		return "", errLocalDevelopmentProjectChanged
 	}
-	return canonical, nil
+	electronAliasCanonical := ""
+	if shellKind == runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
+		electronAlias := filepath.Join(projectRoot, "node_modules", "electron", "dist", "electron.exe")
+		if !pathWithinLocalDevelopmentRoot(projectRoot, electronAlias) {
+			return "", errLocalDevelopmentProjectChanged
+		}
+		electronAliasCanonical, err = filepath.EvalSymlinks(electronAlias)
+		if err != nil {
+			return "", errLocalDevelopmentProjectChanged
+		}
+		aliasInfo, err := os.Stat(electronAliasCanonical)
+		if err != nil || !aliasInfo.Mode().IsRegular() {
+			return "", errLocalDevelopmentProjectChanged
+		}
+	}
+	return validateCanonicalLocalDevelopmentHostExecutable(
+		projectRoot,
+		canonical,
+		electronAliasCanonical,
+		shellKind,
+	)
+}
+
+func validateCanonicalLocalDevelopmentHostExecutable(
+	projectRoot string,
+	candidate string,
+	electronAliasCanonical string,
+	shellKind runtimev1.LocalDevelopmentShellKind,
+) (string, error) {
+	candidate = filepath.Clean(candidate)
+	switch shellKind {
+	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON:
+		alias := filepath.Clean(electronAliasCanonical)
+		if alias == "." || !sameLocalDevelopmentPath(candidate, alias) {
+			return "", errLocalDevelopmentProjectChanged
+		}
+	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI:
+		if !pathWithinLocalDevelopmentRoot(projectRoot, candidate) {
+			return "", errLocalDevelopmentProjectChanged
+		}
+	default:
+		return "", errLocalDevelopmentProjectChanged
+	}
+	return candidate, nil
+}
+
+func sameLocalDevelopmentPath(left string, right string) bool {
+	left = filepath.Clean(left)
+	right = filepath.Clean(right)
+	if filepath.Separator == '\\' {
+		return strings.EqualFold(left, right)
+	}
+	return left == right
 }
 
 func (s *Service) writeLocalDevelopmentBootstrapArtifact(session localDevelopmentSessionProjection) (string, error) {
