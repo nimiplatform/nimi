@@ -8,9 +8,9 @@ use crate::generated::runtime_development_service_client::RuntimeDevelopmentServ
 use crate::generated::{
     BindLocalDevelopmentHostProcessRequest, DecideLocalDevelopmentProjectRequest,
     EndLocalDevelopmentRunRequest, EvaluateLocalDevelopmentProjectRequest,
-    ListLocalDevelopmentAuthorizationsRequest, LocalDevelopmentAuthorizationProjection,
-    LocalDevelopmentProjectProjection, PrepareLocalDevelopmentLaunchRequest,
-    RevokeLocalDevelopmentAuthorizationRequest,
+    EvaluateLocalDevelopmentProjectResponse, ListLocalDevelopmentAuthorizationsRequest,
+    LocalDevelopmentAuthorizationProjection, LocalDevelopmentProjectProjection,
+    PrepareLocalDevelopmentLaunchRequest, RevokeLocalDevelopmentAuthorizationRequest,
 };
 use crate::grpc_status::host_error_from_status;
 use crate::windows_supervised_process::SupervisedDevelopmentProcess;
@@ -24,6 +24,48 @@ use crate::{
 };
 
 const ACTION_EXECUTED: i32 = 1;
+
+#[cfg(feature = "windows-e2e-fixture")]
+fn report_windows_e2e_evaluation_response(response: &EvaluateLocalDevelopmentProjectResponse) {
+    let project = response.project.as_ref();
+    eprintln!(
+        "[protected-local local-development windows-e2e-fixture] stage=evaluation-response reason_code={} state={} confirmation_required={} evaluation_id_len={} project_present={} project_app_id_present={} project_display_name_present={} project_root_present={} project_manifest_present={} project_account_present={} capability_count={} capability_fingerprint_len={} trust_class_matches={} authorization_present={} expires_present={}",
+        response.reason_code,
+        response.state,
+        response.confirmation_required,
+        response.evaluation_id.len(),
+        project.is_some(),
+        project.is_some_and(|value| !value.app_id.is_empty()),
+        project.is_some_and(|value| !value.display_name.is_empty()),
+        project.is_some_and(|value| !value.canonical_project_root.is_empty()),
+        project.is_some_and(|value| !value.canonical_manifest_path.is_empty()),
+        project.is_some_and(|value| !value.account_id.is_empty()),
+        project.map_or(0, |value| value.requested_capabilities.len()),
+        project.map_or(0, |value| value.capability_fingerprint.len()),
+        project.is_some_and(|value| value.trust_class == LOCAL_DEVELOPMENT_TRUST_CLASS),
+        response.authorization.is_some(),
+        response.evaluation_expires_at.is_some(),
+    );
+}
+
+#[cfg(not(feature = "windows-e2e-fixture"))]
+fn report_windows_e2e_evaluation_response(_: &EvaluateLocalDevelopmentProjectResponse) {}
+
+#[cfg(feature = "windows-e2e-fixture")]
+fn report_windows_e2e_projection_stage(stage: &str) {
+    eprintln!(
+        "[protected-local local-development windows-e2e-fixture] stage={}",
+        stage
+    );
+}
+
+#[cfg(not(feature = "windows-e2e-fixture"))]
+fn report_windows_e2e_projection_stage(_: &str) {}
+
+fn projection_error(stage: &str, error: NimiHostError) -> NimiHostError {
+    report_windows_e2e_projection_stage(stage);
+    error
+}
 
 pub(crate) async fn evaluate_project(
     channel: Channel,
@@ -42,24 +84,33 @@ pub(crate) async fn evaluate_project(
         .await
         .map_err(host_error_from_status)?
         .into_inner();
-    require_success_reason(response.reason_code)?;
-    let state = authorization_state(response.state)?;
+    report_windows_e2e_evaluation_response(&response);
+    require_success_reason(response.reason_code)
+        .map_err(|error| projection_error("evaluation-reason-code", error))?;
+    let state = authorization_state(response.state)
+        .map_err(|error| projection_error("evaluation-authorization-state", error))?;
     let project = project_projection(response.project, Some(request.shell_kind))?;
-    let evaluation_id = optional_identifier(response.evaluation_id)?;
-    let evaluation_expires_at_unix_ms = optional_timestamp_ms(response.evaluation_expires_at)?;
+    let evaluation_id = optional_identifier(response.evaluation_id)
+        .map_err(|error| projection_error("evaluation-identifier", error))?;
+    let evaluation_expires_at_unix_ms = optional_timestamp_ms(response.evaluation_expires_at)
+        .map_err(|error| projection_error("evaluation-expiry", error))?;
     let authorization = response
         .authorization
         .map(authorization_projection)
-        .transpose()?;
+        .transpose()
+        .map_err(|error| projection_error("evaluation-authorization", error))?;
     if response.confirmation_required {
         if evaluation_id.is_none() || evaluation_expires_at_unix_ms.is_none() {
-            return Err(untrusted());
+            return Err(projection_error(
+                "evaluation-confirmation-shape",
+                untrusted(),
+            ));
         }
     } else if state != LocalDevelopmentAuthorizationState::Active
         || evaluation_id.is_some()
         || authorization.is_none()
     {
-        return Err(untrusted());
+        return Err(projection_error("evaluation-active-shape", untrusted()));
     }
     Ok(LocalDevelopmentEvaluation {
         evaluation_id,
@@ -209,40 +260,47 @@ fn project_projection(
     project: Option<LocalDevelopmentProjectProjection>,
     expected_shell: Option<LocalDevelopmentShellKind>,
 ) -> Result<LocalDevelopmentProject, NimiHostError> {
-    let project = project.ok_or_else(untrusted)?;
+    let project = project.ok_or_else(|| projection_error("project-missing", untrusted()))?;
     if project.trust_class != LOCAL_DEVELOPMENT_TRUST_CLASS {
-        return Err(untrusted());
+        return Err(projection_error("project-trust-class", untrusted()));
     }
-    let shell_kind = shell_kind(project.shell_kind)?;
+    let shell_kind = shell_kind(project.shell_kind)
+        .map_err(|error| projection_error("project-shell-kind", error))?;
     if expected_shell.is_some_and(|expected| expected != shell_kind) {
-        return Err(untrusted());
+        return Err(projection_error("project-shell-mismatch", untrusted()));
     }
-    let canonical_project_root = canonical_directory(Path::new(&project.canonical_project_root))?;
-    let canonical_manifest_path = canonical_file(Path::new(&project.canonical_manifest_path))?;
+    let canonical_project_root = canonical_directory(Path::new(&project.canonical_project_root))
+        .map_err(|error| projection_error("project-root", error))?;
+    let canonical_manifest_path = canonical_file(Path::new(&project.canonical_manifest_path))
+        .map_err(|error| projection_error("project-manifest", error))?;
     if !canonical_manifest_path.starts_with(&canonical_project_root) {
-        return Err(untrusted());
+        return Err(projection_error("project-manifest-boundary", untrusted()));
     }
-    let capability_fingerprint = required_identifier(project.capability_fingerprint)?;
+    let capability_fingerprint = required_identifier(project.capability_fingerprint)
+        .map_err(|error| projection_error("project-capability-fingerprint", error))?;
     let mut previous: Option<&str> = None;
     for capability in &project.requested_capabilities {
         if capability.is_empty()
             || capability.trim() != capability
             || previous.is_some_and(|value| value >= capability.as_str())
         {
-            return Err(untrusted());
+            return Err(projection_error("project-capability-order", untrusted()));
         }
         previous = Some(capability);
     }
     if project.requested_capabilities.is_empty() {
-        return Err(untrusted());
+        return Err(projection_error("project-capabilities-empty", untrusted()));
     }
     Ok(LocalDevelopmentProject {
-        app_id: required_text(project.app_id)?,
-        display_name: required_text(project.display_name)?,
+        app_id: required_text(project.app_id)
+            .map_err(|error| projection_error("project-app-id", error))?,
+        display_name: required_text(project.display_name)
+            .map_err(|error| projection_error("project-display-name", error))?,
         canonical_project_root,
         canonical_manifest_path,
         shell_kind,
-        account_id: required_text(project.account_id)?,
+        account_id: required_text(project.account_id)
+            .map_err(|error| projection_error("project-account-id", error))?,
         requested_capabilities: project.requested_capabilities,
         capability_fingerprint,
     })

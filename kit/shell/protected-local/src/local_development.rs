@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
-pub const LOCAL_DEVELOPMENT_TRUST_CLASS: &str = "local-development";
+pub const LOCAL_DEVELOPMENT_TRUST_CLASS: &str = "local-development-installed-admission";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalDevelopmentShellKind {

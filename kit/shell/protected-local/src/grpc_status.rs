@@ -44,7 +44,21 @@ pub(crate) fn production_open_not_applicable(status: &Status) -> bool {
     )
 }
 
+#[cfg(feature = "windows-e2e-fixture")]
+fn report_windows_e2e_status(status: &Status) {
+    let reason = runtime_reason(status).unwrap_or_else(|| "ABSENT".to_string());
+    eprintln!(
+        "[protected-local windows-e2e-fixture] grpc_code={:?} runtime_reason={}",
+        status.code(),
+        reason
+    );
+}
+
+#[cfg(not(feature = "windows-e2e-fixture"))]
+fn report_windows_e2e_status(_: &Status) {}
+
 pub(crate) fn host_error_from_status(status: Status) -> NimiHostError {
+    report_windows_e2e_status(&status);
     let reason = runtime_reason(&status)
         .as_deref()
         .and_then(host_reason_from_runtime_reason);

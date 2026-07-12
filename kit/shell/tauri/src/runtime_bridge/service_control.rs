@@ -20,6 +20,18 @@ const PROTECTED_LOCAL_TRANSPORT_LABEL: &str = "protected-local";
 const PROTECTED_LOCAL_LAUNCH_MODE: &str = "PROTECTED_LOCAL";
 const UNAVAILABLE_LAUNCH_MODE: &str = "INVALID";
 
+#[cfg(feature = "windows-e2e-fixture")]
+fn report_windows_e2e_service_control(stage: &str, reason_code: Option<&str>) {
+    eprintln!(
+        "[tauri runtime-bridge windows-e2e-fixture] stage={} reason_code={}",
+        stage,
+        reason_code.unwrap_or("none")
+    );
+}
+
+#[cfg(not(feature = "windows-e2e-fixture"))]
+fn report_windows_e2e_service_control(_: &str, _: Option<&str>) {}
+
 #[cfg(target_os = "windows")]
 type PlatformCarrier = WindowsNamedPipeCarrier;
 #[cfg(target_os = "macos")]
@@ -163,20 +175,59 @@ pub(super) async fn launch_installed_app(
 pub(super) async fn evaluate_local_development_project(
     request: LocalDevelopmentEvaluationRequest,
 ) -> Result<LocalDevelopmentEvaluation, NimiHostError> {
-    let control = control_for_call().await?;
-    match control
-        .evaluate_local_development_project(request.clone())
-        .await
-    {
-        Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
-            clear_desktop_control_if_same(&control);
-            control_for_call()
-                .await?
-                .evaluate_local_development_project(request)
-                .await
+    let control = match control_for_call().await {
+        Ok(control) => control,
+        Err(error) => {
+            report_windows_e2e_service_control(
+                "evaluation-initial-control-error",
+                Some(error.reason_code().as_str()),
+            );
+            return Err(error);
         }
-        Err(error) => Err(error),
+    };
+    let first_attempt = control
+        .evaluate_local_development_project(request.clone())
+        .await;
+    match first_attempt {
+        Ok(value) => {
+            report_windows_e2e_service_control("evaluation-initial-succeeded", None);
+            Ok(value)
+        }
+        Err(error) if !should_reconnect(error) => {
+            report_windows_e2e_service_control(
+                "evaluation-initial-terminal-error",
+                Some(error.reason_code().as_str()),
+            );
+            Err(error)
+        }
+        Err(error) => {
+            report_windows_e2e_service_control(
+                "evaluation-initial-reconnect",
+                Some(error.reason_code().as_str()),
+            );
+            clear_desktop_control_if_same(&control);
+            let reconnected = match control_for_call().await {
+                Ok(control) => control,
+                Err(error) => {
+                    report_windows_e2e_service_control(
+                        "evaluation-reconnect-control-error",
+                        Some(error.reason_code().as_str()),
+                    );
+                    return Err(error);
+                }
+            };
+            let result = reconnected
+                .evaluate_local_development_project(request)
+                .await;
+            match &result {
+                Ok(_) => report_windows_e2e_service_control("evaluation-retry-succeeded", None),
+                Err(error) => report_windows_e2e_service_control(
+                    "evaluation-retry-error",
+                    Some(error.reason_code().as_str()),
+                ),
+            }
+            result
+        }
     }
 }
 
