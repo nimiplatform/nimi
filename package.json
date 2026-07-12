@@ -18,6 +18,7 @@
     "build:runtime": "node scripts/build-runtime.mjs",
     "build:windows-protected-e2e": "node scripts/build-windows-protected-e2e.mjs",
     "build:windows-protected-e2e-virtual": "node scripts/build-windows-protected-e2e.mjs --virtual-account",
+    "check:windows-protected-e2e-candidate": "node scripts/check-windows-protected-e2e-candidate.mjs",
     "build:kit-protected-e2e-node": "node kit/shell/protected-local-node/scripts/build-windows-x64-package.mjs --e2e-fixture",
     "install:windows-protected-e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-protected-e2e.ps1 -Mode Install -Json",
     "status:windows-protected-e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-protected-e2e.ps1 -Mode Status -Json",

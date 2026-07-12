@@ -8,6 +8,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { validateInteractivePeerResult } from './check-windows-protected-e2e-peer.mjs';
+import { candidateCommands } from './check-windows-protected-e2e-candidate.mjs';
 
 function read(relative) {
   return readFileSync(new URL(relative, import.meta.url), 'utf8');
@@ -118,7 +119,7 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(peerProbe, /ClientElevated/);
   assert.match(peerProbe, /WindowsPrincipalStartupExitCode/);
   assert.ok(peerProbe.indexOf('WindowsPrincipalStartupExitCode') < peerProbe.indexOf('WindowsProcessTrustStartupExitCode'));
-  assert.match(grpcStatus, /windows-e2e-fixture[\s\S]*runtime_reason\(status\)[\s\S]*status\.code\(\)/);
+  assert.match(grpcStatus, /windows-e2e-fixture[\s\S]*runtime_error_info\(status\)[\s\S]*diagnostic_stage[\s\S]*status\.code\(\)/);
   assert.doesNotMatch(grpcStatus, /e2e[^\n]*status\.message\(\)/i);
   assert.match(localDevelopmentProjection, /windows-e2e-fixture[\s\S]*stage[\s\S]*confirmation_required/);
   assert.doesNotMatch(localDevelopmentProjection, /e2e[^\n]*(?:error|status|response)\.to_string\(\)/i);
@@ -244,10 +245,21 @@ test('Desktop and Node fixture launchers build the E2E carrier without changing 
   assert.match(nodeBuilder, /--e2e-fixture/);
   assert.match(nodeBuilder, /windows-e2e-fixture/);
   assert.equal(typeof packageJson.scripts['build:windows-protected-e2e'], 'string');
+  assert.equal(packageJson.scripts['check:windows-protected-e2e-candidate'], 'node scripts/check-windows-protected-e2e-candidate.mjs');
   assert.equal(typeof packageJson.scripts['build:windows-protected-e2e-virtual'], 'string');
   assert.equal(typeof packageJson.scripts['install:windows-protected-e2e'], 'string');
   assert.equal(typeof packageJson.scripts['install:windows-protected-e2e-virtual'], 'string');
   assert.equal(typeof packageJson.scripts['check:windows-protected-e2e-service'], 'string');
   assert.equal(typeof packageJson.scripts['check:windows-protected-e2e-peer'], 'string');
   assert.equal(typeof packageJson.scripts['dev:desktop:protected-e2e'], 'string');
+});
+
+test('Windows protected candidate gate batches every non-admin preinstall boundary', () => {
+  const commandText = candidateCommands.map((step) => `${step.command} ${step.args.join(' ')}`).join('\n');
+  assert.match(commandText, /windows-protected-e2e-fixture\.test\.mjs/);
+  assert.match(commandText, /go test \.\/internal\/protectedlocal \.\/internal\/services\/app -count=1/);
+  assert.match(commandText, /go build \.\/\.\.\./);
+  assert.match(commandText, /cargo test --manifest-path kit\/shell\/protected-local\/Cargo\.toml --features windows-e2e-fixture/);
+  assert.match(commandText, /build-windows-protected-e2e\.mjs/);
+  assert.match(commandText, /git diff --check/);
 });
