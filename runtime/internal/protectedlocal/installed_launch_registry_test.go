@@ -2,6 +2,7 @@ package protectedlocal
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -10,10 +11,42 @@ import (
 type installedRegistryVerifier struct {
 	process  ProcessTuple
 	liveness DesktopProcessLiveness
+	err      error
 }
 
 func (verifier installedRegistryVerifier) VerifyInstalledProcess(context.Context, uint32) (ProcessTuple, DesktopProcessLiveness, error) {
-	return verifier.process, verifier.liveness, nil
+	return verifier.process, verifier.liveness, verifier.err
+}
+
+func TestInstalledLaunchRegistryProjectsBoundedFailureStages(t *testing.T) {
+	process := installedRegistryProcess(6601, 0x61)
+	cases := []struct {
+		name     string
+		verifier installedRegistryVerifier
+		commit   func(ProcessTuple) (time.Time, error)
+		want     LocalDevelopmentBindFailureStage
+	}{
+		{name: "verify", verifier: installedRegistryVerifier{err: errors.New("private verifier detail")}, want: LocalDevelopmentBindStageVerify},
+		{name: "witness", verifier: installedRegistryVerifier{process: process}, want: LocalDevelopmentBindStageWitness},
+		{name: "commit", verifier: installedRegistryVerifier{process: process, liveness: newManualDesktopLiveness()}, commit: func(ProcessTuple) (time.Time, error) { return time.Time{}, errors.New("private commit detail") }, want: LocalDevelopmentBindStageCommit},
+	}
+	for index, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			registry, err := NewInstalledLaunchRegistry(identifierFilled(byte(0x62 + index)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			commit := testCase.commit
+			if commit == nil {
+				commit = func(ProcessTuple) (time.Time, error) { return time.Now().Add(time.Second), nil }
+			}
+			_, err = registry.Bind(context.Background(), identifierFilled(byte(0x72+index)), process.PID, testCase.verifier, commit, func() {})
+			stage, ok := LocalDevelopmentBindStageFromError(err)
+			if !ok || stage != testCase.want {
+				t.Fatalf("bind failure stage = (%q, %v), want %q", stage, ok, testCase.want)
+			}
+		})
+	}
 }
 
 func TestInstalledLaunchRegistryRequiresExactIndependentPipePeer(t *testing.T) {

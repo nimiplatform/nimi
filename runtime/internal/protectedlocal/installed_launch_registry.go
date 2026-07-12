@@ -2,6 +2,7 @@ package protectedlocal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -19,6 +20,40 @@ type LocalDevelopmentProcessPolicy struct {
 
 type LocalDevelopmentProcessVerifier interface {
 	VerifyLocalDevelopmentProcess(context.Context, uint32, LocalDevelopmentProcessPolicy) (ProcessTuple, DesktopProcessLiveness, error)
+}
+
+type LocalDevelopmentBindFailureStage string
+
+const (
+	LocalDevelopmentBindStageInput     LocalDevelopmentBindFailureStage = "input"
+	LocalDevelopmentBindStageVerify    LocalDevelopmentBindFailureStage = "verify"
+	LocalDevelopmentBindStageWitness   LocalDevelopmentBindFailureStage = "witness"
+	LocalDevelopmentBindStageLiveness  LocalDevelopmentBindFailureStage = "liveness"
+	LocalDevelopmentBindStageDuplicate LocalDevelopmentBindFailureStage = "duplicate"
+	LocalDevelopmentBindStageCommit    LocalDevelopmentBindFailureStage = "commit"
+)
+
+type localDevelopmentBindStageError struct {
+	stage LocalDevelopmentBindFailureStage
+	cause error
+}
+
+func (failure *localDevelopmentBindStageError) Error() string { return failure.cause.Error() }
+func (failure *localDevelopmentBindStageError) Unwrap() error { return failure.cause }
+
+func localDevelopmentBindStageFailure(stage LocalDevelopmentBindFailureStage, cause error) error {
+	if cause == nil {
+		cause = fmt.Errorf("local-development process binding failed")
+	}
+	return &localDevelopmentBindStageError{stage: stage, cause: cause}
+}
+
+func LocalDevelopmentBindStageFromError(err error) (LocalDevelopmentBindFailureStage, bool) {
+	var failure *localDevelopmentBindStageError
+	if !errors.As(err, &failure) || failure.stage == "" {
+		return "", false
+	}
+	return failure.stage, true
 }
 
 type localDevelopmentProcessVerifierAdapter struct {
@@ -71,11 +106,11 @@ func (registry *InstalledLaunchRegistry) Bind(ctx context.Context, launchID Iden
 
 func (registry *InstalledLaunchRegistry) bind(ctx context.Context, launchID Identifier, pid uint32, verifier InstalledProcessVerifier, commit func(ProcessTuple) (time.Time, error), revoke func(), developmentPolicy *LocalDevelopmentProcessPolicy) (time.Time, error) {
 	if registry == nil || launchID == (Identifier{}) || pid == 0 || verifier == nil || commit == nil || revoke == nil {
-		return time.Time{}, fmt.Errorf("complete installed process binding authority is required")
+		return time.Time{}, localDevelopmentBindStageFailure(LocalDevelopmentBindStageInput, fmt.Errorf("complete installed process binding authority is required"))
 	}
 	process, liveness, err := verifier.VerifyInstalledProcess(ctx, pid)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, localDevelopmentBindStageFailure(LocalDevelopmentBindStageVerify, err)
 	}
 	accepted := false
 	defer func() {
@@ -84,25 +119,25 @@ func (registry *InstalledLaunchRegistry) bind(ctx context.Context, launchID Iden
 		}
 	}()
 	if liveness == nil || liveness.Revoked() == nil || process.PID != pid {
-		return time.Time{}, fmt.Errorf("verified installed process witness is incomplete")
+		return time.Time{}, localDevelopmentBindStageFailure(LocalDevelopmentBindStageWitness, fmt.Errorf("verified installed process witness is incomplete"))
 	}
 	if err := process.validate(); err != nil {
-		return time.Time{}, fmt.Errorf("validate installed process: %w", err)
+		return time.Time{}, localDevelopmentBindStageFailure(LocalDevelopmentBindStageWitness, fmt.Errorf("validate installed process: %w", err))
 	}
 	select {
 	case <-liveness.Revoked():
-		return time.Time{}, fmt.Errorf("installed process exited before binding")
+		return time.Time{}, localDevelopmentBindStageFailure(LocalDevelopmentBindStageLiveness, fmt.Errorf("installed process exited before binding"))
 	default:
 	}
 
 	registry.mu.Lock()
 	defer registry.mu.Unlock()
 	if registry.byLaunch[launchID] != nil || registry.byPID[pid] != nil {
-		return time.Time{}, fmt.Errorf("installed launch or process is already bound")
+		return time.Time{}, localDevelopmentBindStageFailure(LocalDevelopmentBindStageDuplicate, fmt.Errorf("installed launch or process is already bound"))
 	}
 	deadline, err := commit(process)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, localDevelopmentBindStageFailure(LocalDevelopmentBindStageCommit, err)
 	}
 	binding := &installedLaunchBinding{launchID: launchID, process: process, liveness: liveness, done: make(chan struct{}), revoke: revoke}
 	if developmentPolicy != nil {
