@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use prost_types::Timestamp;
 use tonic::transport::Channel;
@@ -237,15 +238,28 @@ pub(crate) async fn launch_host(
         .await
         .map_err(host_error_from_status)?
         .into_inner();
+    report_windows_e2e_projection_stage("launch-bind-response");
     require_success_reason(bound.reason_code)?;
     if required_identifier(bound.launch_id)? != launch_id {
         return Err(untrusted());
     }
     let bind_deadline_unix_ms = required_timestamp_ms(bound.bind_deadline)?;
-    if bind_deadline_unix_ms != prepare_deadline {
+    let now_unix_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| untrusted())?
+        .as_millis()
+        .try_into()
+        .map_err(|_| untrusted())?;
+    if !valid_local_development_bind_deadline(now_unix_ms, bind_deadline_unix_ms, prepare_deadline)
+    {
         return Err(untrusted());
     }
-    process.resume()?;
+    report_windows_e2e_projection_stage("launch-bind-deadline-validated");
+    process.resume().map_err(|error| {
+        report_windows_e2e_projection_stage("launch-process-resume-rejected");
+        error
+    })?;
+    report_windows_e2e_projection_stage("launch-process-resumed");
     Ok((
         LocalDevelopmentLaunchOutcome {
             process_id: process.id(),
@@ -253,6 +267,16 @@ pub(crate) async fn launch_host(
         },
         process,
     ))
+}
+
+fn valid_local_development_bind_deadline(
+    now_unix_ms: i64,
+    bind_deadline_unix_ms: i64,
+    prepare_deadline_unix_ms: i64,
+) -> bool {
+    now_unix_ms > 0
+        && bind_deadline_unix_ms > now_unix_ms
+        && bind_deadline_unix_ms <= prepare_deadline_unix_ms
 }
 
 pub(crate) async fn end_run(
@@ -523,5 +547,14 @@ mod tests {
             nanos: 1_000_000_000,
         }))
         .is_err());
+    }
+
+    #[test]
+    fn bind_deadline_is_a_fresh_narrowing_of_prepare_deadline() {
+        assert!(valid_local_development_bind_deadline(1_000, 2_000, 3_000));
+        assert!(valid_local_development_bind_deadline(1_000, 3_000, 3_000));
+        assert!(!valid_local_development_bind_deadline(1_000, 1_000, 3_000));
+        assert!(!valid_local_development_bind_deadline(1_000, 3_001, 3_000));
+        assert!(!valid_local_development_bind_deadline(0, 2_000, 3_000));
     }
 }
