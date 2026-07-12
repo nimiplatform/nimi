@@ -22,8 +22,14 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /sc\.exe exit \$exitCode/);
   assert.match(installer, /New-Service[\s\S]*-BinaryPathName \$BinaryPathName/);
   assert.match(installer, /Invoke-CimMethod[\s\S]*-MethodName Change/);
+  assert.ok(installer.includes('SERVICE_EXIT_CODE') && installer.includes('runtimeStartupStage'));
   assert.doesNotMatch(installer, /Invoke-ServiceControl -Arguments @\('(?:create|config)'/);
   assert.doesNotMatch(installer, /sc(?:\.exe)?\s+(?:delete|stop)\s+NimiRuntime(?:\s|$)/i);
+  const validationRecovery = installer.indexOf("'actions=', 'none/0'");
+  const start = installer.indexOf("@('start', $ServiceName)");
+  const durableRecovery = installer.indexOf("'actions=', 'restart/2000/restart/5000/none/0'");
+  assert.ok(validationRecovery > 0 && validationRecovery < start);
+  assert.ok(start < durableRecovery);
 });
 
 test('Windows E2E carriers use a feature-gated fixed service, pipes, and signer', () => {

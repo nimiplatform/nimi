@@ -22,6 +22,20 @@ $ExpectedSignerSubject = 'CN=Nimi Local Development Code Signing'
 $InstallRoot = Join-Path $env:ProgramFiles 'Nimi E2E\Runtime'
 $InstalledBinary = Join-Path $InstallRoot 'nimi-runtime-e2e.exe'
 $StateRoot = Join-Path $env:ProgramData 'Nimi\Runtime\E2E'
+$RuntimeStartupStages = @{
+  42240 = 'unclassified'
+  42241 = 'principal'
+  42242 = 'signer-policy'
+  42243 = 'runtime-process-trust'
+  42244 = 'program-data'
+  42245 = 'state-root'
+  42246 = 'security-state'
+  42247 = 'desktop-listener'
+  42248 = 'installed-listener'
+  42249 = 'fixture-custody'
+  42250 = 'configuration'
+  42251 = 'daemon'
+}
 
 function Write-Result {
   param([Parameter(Mandatory = $true)] [object] $Value)
@@ -137,9 +151,20 @@ function Wait-ServiceState {
   while ((Get-Date) -lt $deadline) {
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($null -ne $service -and [string] $service.Status -eq $Expected) { return }
+    if ($Expected -eq 'Running' -and $null -ne $service -and [string] $service.Status -eq 'Stopped') {
+      throw "$ServiceName stopped before reaching Running.`n$(Get-ServiceFailureDetail)"
+    }
     Start-Sleep -Milliseconds 250
   }
-  throw "$ServiceName did not reach $Expected within the timeout."
+  throw "$ServiceName did not reach $Expected within the timeout.`n$(Get-ServiceFailureDetail)"
+}
+
+function Get-ServiceFailureDetail {
+  $query = (& sc.exe queryex $ServiceName 2>&1 | Out-String).Trim()
+  $stageMatch = [regex]::Match($query, 'SERVICE_EXIT_CODE\s*:\s*(\d+)')
+  $stageCode = if ($stageMatch.Success) { [uint32] $stageMatch.Groups[1].Value } else { [uint32] 0 }
+  $stage = if ($RuntimeStartupStages.ContainsKey($stageCode)) { $RuntimeStartupStages[$stageCode] } else { 'unknown' }
+  return "runtimeStartupStage=$stage ($stageCode)`n$query"
 }
 
 function Import-FixtureSignerForService {
@@ -225,7 +250,7 @@ function Install-Fixture {
     Update-FixtureService -ServiceRecord $existing -BinaryPathName $binPath
   }
   Invoke-ServiceControl -Arguments @('sidtype', $ServiceName, 'restricted') -FailureMessage "SCM restricted SID configuration failed for $ServiceName."
-  Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/2000/restart/5000/none/0') -FailureMessage "SCM recovery configuration failed for $ServiceName."
+  Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '0', 'actions=', 'none/0') -FailureMessage "SCM failed to disable recovery during validation for $ServiceName."
 
   $resolvedSid = Resolve-ServiceSid
   if ($resolvedSid -ne $ExpectedServiceSid) {
@@ -234,6 +259,7 @@ function Install-Fixture {
   Set-StateRootAcl
   Invoke-ServiceControl -Arguments @('start', $ServiceName) -FailureMessage "SCM failed to start $ServiceName."
   Wait-ServiceState -Expected 'Running'
+  Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '86400', 'actions=', 'restart/2000/restart/5000/none/0') -FailureMessage "SCM recovery configuration failed for $ServiceName."
   $status = Get-FixtureStatus
   if ($status.serviceSid -ne $ExpectedServiceSid -or
       -not $status.restrictedSid -or
