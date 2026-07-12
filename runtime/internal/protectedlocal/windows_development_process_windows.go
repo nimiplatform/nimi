@@ -110,10 +110,19 @@ func (verifier windowsLocalDevelopmentExecutableVerifier) VerifyWindowsExecutabl
 		return "", fmt.Errorf("canonicalize local-development process executable: %w", err)
 	}
 	observed = filepath.Clean(observed)
-	if !strings.EqualFold(observed, verifier.hostPath) {
+	if !sameWindowsLocalDevelopmentHostFile(observed, verifier.hostPath) {
 		return "", fmt.Errorf("local-development executable escaped the approved project or expected host path")
 	}
 	return WindowsLocalDevelopmentTrustSetID, nil
+}
+
+func sameWindowsLocalDevelopmentHostFile(observed string, expected string) bool {
+	if strings.EqualFold(filepath.Clean(observed), filepath.Clean(expected)) {
+		return true
+	}
+	observedInfo, observedErr := os.Stat(observed)
+	expectedInfo, expectedErr := os.Stat(expected)
+	return observedErr == nil && expectedErr == nil && observedInfo.Mode().IsRegular() && expectedInfo.Mode().IsRegular() && os.SameFile(observedInfo, expectedInfo)
 }
 
 func canonicalWindowsLocalDevelopmentPolicy(policy LocalDevelopmentProcessPolicy) (LocalDevelopmentProcessPolicy, error) {

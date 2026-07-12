@@ -82,3 +82,25 @@ func TestCanonicalWindowsLocalDevelopmentPolicyAcceptsExactExternalProjectAlias(
 		t.Fatal("unrelated external host must remain rejected")
 	}
 }
+
+func TestWindowsLocalDevelopmentHostComparisonUsesFileIdentity(t *testing.T) {
+	root := t.TempDir()
+	left := filepath.Join(root, "left.exe")
+	right := filepath.Join(root, "right.exe")
+	rogue := filepath.Join(root, "rogue.exe")
+	if err := os.WriteFile(left, []byte("host"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(left, right); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(rogue, []byte("rogue"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if !sameWindowsLocalDevelopmentHostFile(left, right) {
+		t.Fatal("alternate names for the exact host file identity must match")
+	}
+	if sameWindowsLocalDevelopmentHostFile(left, rogue) {
+		t.Fatal("unrelated host file identity must remain rejected")
+	}
+}
