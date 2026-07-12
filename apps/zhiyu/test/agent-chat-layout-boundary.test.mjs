@@ -222,11 +222,7 @@ test('unselected-partner transcript empty state guides existing selection and ad
   assert.match(surface, /'选择一位本地伙伴，开始对话'/);
   assert.doesNotMatch(surface, /请先在左侧选择一位已有的本地伙伴开始对话/);
   assert.match(surface, /'如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色。'/);
-  assert.match(
-    surface,
-    /const shouldRenderDesktopOpenCallout = !hasCurrentPartner && !hasLocalPartners;/,
-    'the lower Explore callout must only remain for an empty local-partner inventory',
-  );
+  assert.doesNotMatch(surface, /zhiyu-home__desktop-open-callout/);
   assert.match(
     surface,
     /const chatRuntimeHint = chatDisabled && \(hasCurrentPartner \|\| evidence\.chat\.state === 'streaming'\)/,
@@ -263,7 +259,9 @@ test('no-partner transcript empty state keeps the relationship rail empty and sh
     'empty local partner inventory must not render a duplicate composer warning strip',
   );
   assert.match(surface, /data-zhiyu-no-local-partner-empty="true"/);
-  assert.match(surface, /data-zhiyu-no-local-partner-action="show-guidance"/);
+  assert.match(surface, /data-zhiyu-no-local-partner-action="desktop-open-select-partner"/);
+  assert.match(surface, /data-zhiyu-desktop-open-action="desktop_open_select_partner"/);
+  assert.match(surface, /void handleDesktopOpenSelectPartner\(\)/);
   assert.match(surface, /去探索伙伴/);
   assert.match(surface, /从世界中选择一位角色加入本地后，就可以和他开始对话。/);
   assert.match(surface, /本地伙伴会保留角色来源与身份设定。/);

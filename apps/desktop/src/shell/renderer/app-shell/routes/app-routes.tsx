@@ -1,8 +1,8 @@
-import { Suspense, lazy, useRef, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
+import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { AmbientBackground, ProgressIndicator, Surface } from '@nimiplatform/kit/ui';
+import { AmbientBackground, Surface } from '@nimiplatform/kit/ui';
 import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -10,6 +10,7 @@ import { desktopBridge } from '@renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import bootstrapLogoImage from '../../assets/logo.png';
+import { RuntimeLoadingScreen } from './runtime-loading-screen';
 
 const LoginPage = lazy(async () => {
   const mod = await import('@renderer/features/auth/login-page');
@@ -33,7 +34,6 @@ function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
 }
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
-const BOOT_PROGRESS_FLOOR_PERCENT = 8;
 
 function SharedStatusShell(props: {
   eyebrow: string;
@@ -91,60 +91,6 @@ function SharedStatusShell(props: {
         </Surface>
       </div>
     </AmbientBackground>
-  );
-}
-
-function LoadingScreen() {
-  const { t } = useTranslation();
-  const [progress, setProgress] = useState(BOOT_PROGRESS_FLOOR_PERCENT);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const start = performance.now();
-    const target = 90;
-    const range = target - BOOT_PROGRESS_FLOOR_PERCENT;
-    const duration = 6500;
-
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      const t = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setProgress(BOOT_PROGRESS_FLOOR_PERCENT + range * eased);
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      }
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  const clamped = Math.min(100, progress);
-
-  return (
-    <SharedStatusShell
-      eyebrow="Nimi Runtime"
-      title={t('Bootstrap.initializingRuntime')}
-      description={t('Bootstrap.initializingRuntimeDescription')}
-    >
-      <div data-testid={E2E_IDS.appLoadingScreen} className="mt-8 w-full max-w-[18rem]">
-        <ProgressIndicator value={clamped} />
-        <div className="mt-3 flex items-center justify-between text-xs text-[var(--nimi-text-muted)]">
-          <span>{t('Bootstrap.bootSequenceLabel')}</span>
-          <span>{Math.round(clamped)}%</span>
-        </div>
-        <div className="mt-5 flex items-center justify-center gap-2">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)] opacity-70"
-            />
-          ))}
-        </div>
-      </div>
-    </SharedStatusShell>
   );
 }
 
@@ -287,7 +233,7 @@ function DesktopFirstRunGate(props: { readonly onReadyForUse: () => void }) {
       className="min-h-screen overflow-hidden bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]"
     >
       <div data-testid="desktop-first-run-gate" className="flex min-h-screen min-w-0">
-        <Suspense fallback={<LoadingScreen />}>
+        <Suspense fallback={<RuntimeLoadingScreen />}>
           <FirstRunGatePanel onReadyForUse={props.onReadyForUse} />
         </Suspense>
       </div>
@@ -332,10 +278,10 @@ function DesktopOrdinaryShellGate() {
   const admission: DesktopOrdinaryShellAdmission = firstRunReady ? 'ready' : observedAdmission;
 
   if (authStatus === 'bootstrapping' || authStatus === 'anonymous') {
-    return <LoadingScreen />;
+    return <RuntimeLoadingScreen />;
   }
   if (admission === 'checking' || admission === 'requesting-admission') {
-    return <LoadingScreen />;
+    return <RuntimeLoadingScreen />;
   }
   if (admission === 'admission-failed') {
     return (
@@ -357,7 +303,7 @@ function DesktopOrdinaryShellGate() {
     return <DesktopFirstRunGate onReadyForUse={() => setFirstRunReady(true)} />;
   }
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={<RuntimeLoadingScreen />}>
       <ReadyDesktopShell />
     </Suspense>
   );
@@ -424,7 +370,7 @@ export function AppRoutes() {
   }, [authStatus, location.pathname, navigate]);
 
   if (flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
-    return <LoadingScreen />;
+    return <RuntimeLoadingScreen />;
   }
 
   if (bootstrapError) {
@@ -439,7 +385,7 @@ export function AppRoutes() {
           <Route
             path="/login"
             element={(
-              <Suspense fallback={<LoadingScreen />}>
+              <Suspense fallback={<RuntimeLoadingScreen />}>
                 <LoginPage />
               </Suspense>
             )}
@@ -449,7 +395,7 @@ export function AppRoutes() {
       ) : authStatus === 'authenticated' ? (
         <>
           <Route path="/" element={(
-            <Suspense fallback={<LoadingScreen />}>
+            <Suspense fallback={<RuntimeLoadingScreen />}>
               <MainLayout />
             </Suspense>
           )}
@@ -458,7 +404,7 @@ export function AppRoutes() {
             <Route
               path="/login"
               element={(
-                <Suspense fallback={<LoadingScreen />}>
+                <Suspense fallback={<RuntimeLoadingScreen />}>
                   <LoginPage />
                 </Suspense>
               )}
@@ -471,7 +417,7 @@ export function AppRoutes() {
           <Route
             path="/login"
             element={(
-              <Suspense fallback={<LoadingScreen />}>
+              <Suspense fallback={<RuntimeLoadingScreen />}>
                 <LoginPage />
               </Suspense>
             )}

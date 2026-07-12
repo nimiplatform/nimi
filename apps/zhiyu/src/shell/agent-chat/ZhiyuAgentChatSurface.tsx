@@ -11,7 +11,6 @@ import {
 } from '@nimiplatform/kit/features/chat/ui';
 import {
   ChevronRight,
-  Compass,
   ShieldCheck,
   X,
 } from 'lucide-react';
@@ -87,10 +86,11 @@ export function ZhiyuAgentChatSurface({
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
-  const shouldRenderDesktopOpenCallout = !hasCurrentPartner && !hasLocalPartners;
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
+  const [desktopOpenPending, setDesktopOpenPending] = useState(false);
+  const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const emptyTitle = hasCurrentPartner
     ? '开始一段对话'
     : hasLocalPartners
@@ -116,13 +116,18 @@ export function ZhiyuAgentChatSurface({
         <button
           type="button"
           className="zhiyu-no-local-partner-empty__action"
-          data-zhiyu-no-local-partner-action="show-guidance"
-          data-zhiyu-no-local-partner-action-state={showNoPartnerGuidance ? 'expanded' : 'idle'}
+          data-zhiyu-no-local-partner-action="desktop-open-select-partner"
+          data-zhiyu-desktop-open-action="desktop_open_select_partner"
+          data-zhiyu-no-local-partner-action-state={desktopOpenPending ? 'pending' : desktopOpenResult?.state ?? (showNoPartnerGuidance ? 'expanded' : 'idle')}
           aria-expanded={showNoPartnerGuidance}
           aria-controls="zhiyu-no-local-partner-guidance"
-          onClick={() => setShowNoPartnerGuidance(true)}
+          onClick={() => {
+            setShowNoPartnerGuidance(true);
+            void handleDesktopOpenSelectPartner();
+          }}
+          disabled={desktopOpenPending}
         >
-          <span>去探索伙伴</span>
+          <span>{desktopOpenPending ? '打开中' : '去探索伙伴'}</span>
           <ChevronRight size={16} aria-hidden="true" />
         </button>
         <p className="zhiyu-no-local-partner-empty__assurance">
@@ -135,7 +140,7 @@ export function ZhiyuAgentChatSurface({
             className="zhiyu-no-local-partner-empty__handoff"
             data-zhiyu-no-local-partner-guidance="desktop-explore"
           >
-            请打开 Nimi 桌面端「探索」页，选择角色并加入本地；织羽会在本地伙伴出现后显示在左侧。
+            {desktopOpenResult?.message ?? '请打开 Nimi 桌面端「探索」页，选择角色并加入本地；织羽会在本地伙伴出现后显示在左侧。'}
           </p>
         ) : null}
       </div>
@@ -182,8 +187,6 @@ export function ZhiyuAgentChatSurface({
   ) : null;
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
-  const [desktopOpenPending, setDesktopOpenPending] = useState(false);
-  const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
   const composerRootRef = useRef<HTMLDivElement>(null);
   const getChatTranscriptRoot = useCallback(() => (
@@ -357,31 +360,6 @@ export function ZhiyuAgentChatSurface({
             ) : null}
             {evidence.chat.state === 'failed' ? (
               <RuntimeChatFailureNotice chat={evidence.chat} />
-            ) : null}
-            {shouldRenderDesktopOpenCallout ? (
-              <section
-                className="zhiyu-home__desktop-open-callout"
-                data-zhiyu-desktop-open-action="desktop_open_select_partner"
-                data-zhiyu-desktop-open-state={desktopOpenPending ? 'pending' : desktopOpenResult?.state ?? 'idle'}
-                data-zhiyu-desktop-open-reason={desktopOpenResult?.reasonCode ?? evidence.localAgent.reasonCode}
-              >
-                <div className="zhiyu-home__desktop-open-copy">
-                  <span>{product.primaryTitle}</span>
-                  <p>{product.primaryDescription}</p>
-                  <small>{desktopOpenResult?.message ?? product.primaryActionHint}</small>
-                </div>
-                <button
-                  type="button"
-                  data-zhiyu-desktop-open-select-partner="true"
-                  onClick={() => {
-                    void handleDesktopOpenSelectPartner();
-                  }}
-                  disabled={desktopOpenPending}
-                >
-                  <Compass size={15} aria-hidden="true" />
-                  <span>{desktopOpenPending ? '打开中' : '打开 Explore'}</span>
-                </button>
-              </section>
             ) : null}
             <div
               ref={composerRootRef}

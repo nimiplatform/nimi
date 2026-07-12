@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, type PropsWithChildren } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/kit/ui';
+import { AmbientBackground, NimiThemeProvider, ProgressIndicator } from '@nimiplatform/kit/ui';
 import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { motion } from 'motion/react';
 import {
@@ -195,67 +195,49 @@ function EntryRuntimeBootSurface(props: {
     sequenceLabel: string;
 }) {
     const prefersReducedMotion = usePrefersReducedMotion();
+    const title = props.title.replace(/(?:\.{3}|…)+$/u, '');
+
     return (
-      <div className="nimi-entry-runtime-boot relative flex min-h-screen items-center justify-center overflow-hidden px-6 text-[var(--nimi-text-primary,#111827)]">
-        <style>{`
-          .nimi-entry-runtime-boot {
-            background:
-              radial-gradient(circle at 22% 18%, rgba(186, 222, 255, 0.56), transparent 35%),
-              radial-gradient(circle at 72% 20%, rgba(236, 232, 255, 0.64), transparent 36%),
-              radial-gradient(circle at 42% 78%, rgba(217, 252, 239, 0.58), transparent 38%),
-              var(--nimi-surface-canvas,#f8fafc);
-          }
-          .nimi-entry-card {
-            border: 1px solid rgba(255,255,255,0.76);
-            background: color-mix(in srgb, var(--nimi-surface-card,#ffffff) 82%, transparent);
-            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
-            backdrop-filter: blur(22px);
-          }
-        `}</style>
+      <AmbientBackground
+        variant="mesh"
+        className="flex min-h-screen items-center justify-center overflow-hidden bg-[var(--nimi-surface-canvas,#f8fafc)] px-6 py-8 text-[var(--nimi-text-primary,#111827)]"
+      >
+        <div
+          aria-hidden="true"
+          className="nimi-material-glass-regular absolute inset-0 z-[1] bg-[color-mix(in_srgb,var(--nimi-material-glass-regular-bg)_58%,transparent)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+        />
         <motion.section
-          initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 10, scale: prefersReducedMotion ? 1 : 0.985 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.32, ease: [0.05, 0.7, 0.1, 1] }}
-          className="nimi-entry-card w-full max-w-[420px] rounded-2xl px-6 py-7 sm:px-7 sm:py-8"
+          className="relative z-10 flex w-full max-w-[420px] flex-col items-center text-center"
         >
-          <div className="flex flex-col items-center text-center">
-            <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--nimi-border-subtle,#e5e7eb)] bg-[var(--nimi-surface-card,#ffffff)] shadow-[0_10px_24px_rgba(15,23,42,0.10)]">
-                <EntryNimiLogoMark />
-            </div>
-            <div className="mb-3 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_18%,var(--nimi-surface-card,#ffffff))] bg-[var(--nimi-surface-active,#e9fbf5)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--nimi-action-primary-bg-hover,#2f9f8d)]">
-              Nimi Runtime
-            </div>
-            <h1 className="text-2xl font-semibold text-[var(--nimi-text-primary,#111827)]">
-              {props.title}
-            </h1>
-            <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--nimi-text-secondary,#475569)]">
-              {props.detail}
-            </p>
-            <div className="mt-7 w-full max-w-[18rem]">
-              <div className="h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_13%,white)]">
-                <motion.div
-                  className="h-full rounded-full bg-[var(--nimi-action-primary-bg,#5fcbb2)]"
-                  initial={{ width: prefersReducedMotion ? `${ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}%` : '2%' }}
-                  animate={{ width: `${ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}%` }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.6, ease: [0.2, 0, 0, 1] }}
-                />
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-[var(--nimi-text-muted,#64748b)]">
-                <span>{props.sequenceLabel}</span>
-                <span>{ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}%</span>
-              </div>
-              <div className="mt-5 flex items-center justify-center gap-2">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg,#5fcbb2)] opacity-70"
-                  />
-                ))}
-              </div>
-            </div>
+          <div
+            data-testid="runtime-loading-logo"
+            className="flex h-24 w-24 items-center justify-center"
+          >
+            <EntryNimiLogoMark className="h-24 w-24 drop-shadow-[0_10px_18px_rgba(33,183,181,0.14)]" />
+          </div>
+          <div className="mt-6 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_42%,white)] bg-white/55 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg,#5fcbb2)] backdrop-blur-sm">
+            Nimi Runtime
+          </div>
+          <h1 className="mt-4 text-[22px] font-semibold leading-7 tracking-[-0.02em] text-[var(--nimi-text-primary,#111827)]">
+            {title}
+          </h1>
+          <p className="mt-2 max-w-[28rem] text-sm leading-6 text-[var(--nimi-text-secondary,#475569)]">
+            {props.detail}
+          </p>
+          <div className="mt-7 w-full max-w-[18rem]">
+            <ProgressIndicator
+              value={ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}
+              showValue
+              aria-label={title}
+              className="[&_.nimi-progress__track]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_10%,white)]"
+            />
+            <p className="mt-3 text-xs text-[var(--nimi-text-muted,#64748b)]">{props.sequenceLabel}</p>
           </div>
         </motion.section>
-      </div>
+      </AmbientBackground>
     );
 }
 if (!import.meta.env.DEV) {
