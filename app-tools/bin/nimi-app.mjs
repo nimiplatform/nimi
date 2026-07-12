@@ -14,6 +14,9 @@ function parseArgs(argv) {
   let shell = '';
   let json = false;
   for (let index = 0; index < rest.length; index += 1) {
+    if (rest[index] === '--') {
+      continue;
+    }
     if (rest[index] === '--dir') {
       dir = String(rest[index + 1] || '').trim();
       index += 1;

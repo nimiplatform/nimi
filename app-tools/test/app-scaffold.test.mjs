@@ -780,6 +780,23 @@ test('retired create flag is rejected instead of acting as a profile alias', () 
   }
 });
 
+test('dev accepts the package-manager argument separator used by dev:shell', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-separator-'));
+  try {
+    const result = runNimiApp(['dev', '--', '--shell', 'electron'], tempRoot);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(result.stderr, /Unknown option: --/);
+    assert.match(
+      result.stderr,
+      process.platform === 'win32'
+        ? /nimi\.app\.yaml is required/
+        : /currently admitted on Windows only/,
+    );
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test('create may target an otherwise empty git root but refuses other non-empty roots', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-git-root-'));
   try {
