@@ -177,13 +177,13 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041C
-    notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Non-authoritative execution dossiers, acceptance matrices, and gate descriptions consume or validate that table only. Installed app standard shell capability-set policy is admitted by P-KIT-044 and remains an allowlist over this module's standard capability vocabulary.
+    notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Non-authoritative execution dossiers, acceptance matrices, and gate descriptions consume or validate that table only. The local-app standard shell capability set is admitted by P-KIT-044 and remains an exact allowlist over this module's vocabulary.
   - id: kit.shell.protected-local
     subpath: /shell/protected-local
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalHostCarrier
-    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession/bootstrap, typed fixed-service status/start/restart, the exact Desktop account-session-status projection, and the host-only installed read_artifact_bytes method, including its fixed Windows x64 Node-API ABI projection for Electron main. Kit carries typed calls only; Runtime and the OS remain security, account, grant, artifact, and lifecycle authorities.
+    description: Shared native protected-local carrier for mutual service/process/executable verification, empty OpenDesktopSession, typed fixed-service status/start/restart, PrepareLocalAppLaunch process binding, request-empty OpenLocalAppSession, zero-grant posture, and exact owner-admitted local-app operations. Kit carries typed calls only; Runtime and the OS remain principal, provenance, account, grant, launch/session, artifact, Agent, and lifecycle authorities.
     dependencies: []
     peer_dependencies: []
     exports: []
@@ -193,13 +193,13 @@ modules:
     admission_status: authority_admitted_implementation_pending
     owner: platform
     source_rule: P-KIT-041
-    notes: Non-npm Rust crate/native transport and trust owner with no renderer import or generic npm API. The fixed @nimiplatform/kit-protected-local-win32-x64 optional package is only its Node-API ABI projection for Electron main and exports exactly installed session open plus typed artifact read. A.0 admits the shared carrier boundary per OS platform; implementation consumes Runtime K-PLOCAL process/session semantics and the platform-native code-signing policy without copying installer release authority. Unadmitted OS/architecture adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer-based privilege, method-id/bytes proxy, and portable app-child session material are absent.
+    notes: Non-npm Rust crate/native transport with no renderer import or generic npm API. The fixed @nimiplatform/kit-protected-local-win32-x64 optional package is only its Node-API ABI projection for Electron main and exposes the exact local-app session/status/artifact/selected-Agent operations. Fixed production AppHost and native development consume distinct execution profiles through the same client contract. Unadmitted OS/architecture adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer privilege, method-id/bytes proxy, and portable local-app session material are absent.
   - id: kit.shell.protected-local-node
     subpath: /shell/protected-local-node
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalNodeAbiProjection
-    description: Host-only Node-API ABI projection of kit.shell.protected-local for Electron main; the Windows x64 package exports only installed session open and typed artifact read while all transport, peer, executable, launch, session, account, grant, and artifact authority remains in the shared Rust carrier and Runtime.
+    description: Host-only Node-API ABI projection of kit.shell.protected-local for Electron main; the Windows x64 package exposes only exact common local-app session/status/artifact/selected-Agent operations while all transport, peer, executable, launch, session, account, grant, artifact, and Agent authority remains in the shared Rust carrier and Runtime.
     dependencies:
       - kit.shell.protected-local
     peer_dependencies: []
@@ -216,7 +216,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Tauri host glue consuming the native protected-local carrier for typed fixed-service status/start/restart, one no-input Desktop account-session-status projection, and one catalogued renderer-safe artifact read over a single cached opaque installed session; owns no executable selection, service stop, config document, credential, Realm endpoint, account/grant truth, or Runtime lifecycle truth.
+    description: Shared Tauri host glue consuming the native protected-local carrier for typed fixed-service status/start/restart and the exact local-app session/status/artifact/selected-Agent allowlist; owns no executable selection, service stop, config document, credential, Realm endpoint, principal, account/grant, session, or Runtime/Agent truth.
     dependencies:
       - kit.shell.protected-local
     peer_dependencies: []
@@ -230,13 +230,13 @@ modules:
     public_crate_name: nimi-shell-tauri
     standalone_dependency: published_crate_after_api_publication_admission
     workspace_dependency: cargo_path_dependency
-    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. The installed-app invoke surface is exactly artifacts_read_runtime_bytes plus app-owned commands; generic Runtime unary, stream, storage, config, account, lifecycle, Realm, AI, realtime, and media forwarding is forbidden. Standard capability truth comes from kit.shell.capabilities and standard-shell-capabilities.yaml. Protected service/origin truth comes only from kit.shell.protected-local and Runtime K-PLOCAL authority. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
+    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. The local-app invoke surface is exactly session/permission posture, artifacts_read_runtime_bytes, and selected RuntimeAgent conversation operations plus app-owned commands; generic Runtime unary, stream, storage, config, account, lifecycle, Realm, AI, realtime, media, or generic RuntimeAgent forwarding is forbidden. Standard capability truth comes from kit.shell.capabilities and standard-shell-capabilities.yaml. Protected service/origin truth comes only from kit.shell.protected-local and Runtime K-PLOCAL authority. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
   - id: kit.shell.renderer
     subpath: /shell/renderer
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellRendererBridge
-    description: Shared renderer shell glue for Tauri and Electron hosts - host-neutral command wrappers, bridge primitives, bootstrap skeleton, the exact no-input Desktop account-session-status projection, and the exact installed artifacts.readRuntimeBytes projection; neither protected projection can carry session, token, credential, endpoint, or authorization material. Delivered as subpath exports of the single nimi-kit npm package.
+    description: Shared renderer shell glue for Tauri and Electron hosts - host-neutral command wrappers, bridge primitives, bootstrap skeleton, the exact no-input Desktop account-session-status projection, and the exact local-app session/permission/artifact/RuntimeAgent projections; no protected projection can carry principal, grant, session, token, credential, endpoint, or authorization material. Delivered as subpath exports of the single nimi-kit npm package.
     dependencies:
       - kit.shell.capabilities
       - kit.core
@@ -264,7 +264,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Electron main/preload host glue that consumes the native protected-local carrier for typed Runtime access while keeping renderer IPC narrowed; its Windows x64 main-process adapter reuses one opaque installed session for typed artifact reads and owns no external daemon mode, executable/service selection, stop/config authority, bearer custody, or protected origin truth.
+    description: Shared Electron main/preload host glue consuming the native protected-local carrier and exact local-app operation allowlist while keeping renderer IPC narrowed; its Windows x64 adapter owns no external-daemon mode, executable/service selection, stop/config authority, bearer custody, principal/session truth, or protected origin truth.
     dependencies:
       - kit.shell.capabilities
       - kit.shell.protected-local
@@ -289,7 +289,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. The admitted installed-app registration entrypoint accepts only app id, exact renderer URLs, and Electron IPC registration; endpoint, ordinary gRPC, native carrier, capability-set, command handlers, and installed-session authority remain Kit-owned. Runtime restart invalidates public/binding-only host metadata and native protected sessions. Exact typed invalidation may rebuild public/binding-only metadata and retry once; protected callers reopen only through the native carrier. Generic endpoint, business, other permission, and unclassified failures remain fail-closed without retry. The Windows x64 installed adapter loads only the fixed protected-local Node-API package and exposes exactly artifacts.readRuntimeBytes through narrowed standard-shell IPC; session/proof/account/release/grant fields, arbitrary method forwarding, and further installed operations remain absent. Windows arm64, macOS, and Linux remain fail-closed pending independent native admission.
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. Local-app registration accepts only renderer origins and Electron IPC registration; Runtime derives principal/provenance/session from the native carrier. Runtime restart invalidates protected sessions; callers reopen only through the native carrier. The Windows x64 adapter loads only the fixed protected-local Node-API package and exposes the exact P-KIT-044 allowlist. Session/proof/account/principal/record/grant fields and arbitrary method forwarding remain absent. Windows arm64, macOS, and Linux remain fail-closed pending independent native admission.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic

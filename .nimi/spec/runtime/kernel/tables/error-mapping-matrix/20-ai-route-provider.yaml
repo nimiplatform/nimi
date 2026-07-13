@@ -68,7 +68,7 @@ mappings:
     grpc_code: PERMISSION_DENIED
     surface: consume_credential_scope_gate
     exit_shape: grpc_status
-    source_rule: K-GRANT-005
+    source_rule: K-KEYSRC-007
   - reason_code: SESSION_EXPIRED
     grpc_code: UNAUTHENTICATED
     surface: authn_session_check

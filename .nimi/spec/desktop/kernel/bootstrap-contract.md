@@ -101,7 +101,7 @@ proof and fails closed to typed unavailable/repair-required UI when protected
 verification cannot be established.
 
 > **Authority Disposition**：
-> 本规则已 superseded。Replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents` 与 Runtime-mediated Realm broker。`K-ACCSVC-013` 要求 Desktop bootstrap query Runtime account state，并删除 `bootstrapAuthSession` token 交换、匿名回退、共享 auth session 与任何 Desktop/SDK bearer provider。Public `GetAccessToken` is a deny-all tombstone pending A.3d removal。
+> 本规则已 superseded。Replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents` 与 Runtime-mediated Realm broker。`K-ACCSVC-013` 要求 Desktop bootstrap query Runtime account state，并删除 `bootstrapAuthSession` token 交换、匿名回退、共享 auth session 与任何 Desktop/SDK bearer provider。Public token accessor has been removed and reserved。
 
 Desktop bootstrap MUST NOT call `bootstrapAuthSession`, perform token exchange,
 read shared auth session files, clear shared auth session files, or create a

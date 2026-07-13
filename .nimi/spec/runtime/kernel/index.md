@@ -36,11 +36,11 @@
 | `authz-ownership.md` | `K-AUTH-*` | JWT、owner、信息隐藏、访问门禁 |
 | `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
-| `account-session-contract.md` | `K-ACCSVC-*` | RuntimeAccountService 契约：local account session、login lifecycle、secure custody、private refresh、Runtime-mediated Realm broker、logout、user switch、daemon restart recovery、scoped binding issuance；public token RPC 仅保留待删除 deny-all tombstone |
-| `protected-local-session-contract.md` | `K-PLOCAL-*` | Isolated Runtime service principal、per-platform protected-local mutual process/executable identity、Desktop control origin、transactional lifecycle operation、boot epoch 与 limited durable-anchor authority |
+| `account-session-contract.md` | `K-ACCSVC-*` | Runtime account/token custody, Desktop account control, local-app grant owner methods, provenance-agnostic per-operation coordinator and presence; removed public token/credential-grant identities stay reserved |
+| `protected-local-session-contract.md` | `K-PLOCAL-*` | Fixed isolated Runtime service, Desktop `local_app_control`, `local_app_bootstrap`/`local_app_host`, `PrepareLocalAppLaunch`, exact process bind, request-empty common local-app session and restart invalidation |
 | `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Desktop binding 规则 |
 | `workspace-binding-contract.md` | `K-BIND-*` | Runtime-issued workspace knowledge binding：Realm membership projection consumption、workspace-specific relation/attachment、issue/revoke lifecycle、internal resolver、decision/audit/fail-close matrix |
-| `grant-service.md` | `K-GRANT-*` | public RuntimeGrantService deny-all tombstones、Runtime-private evaluation boundary 与 A.3d removal tracking |
+| `grant-service.md` | `K-GRANT-*` | Physically removed public credential family, Runtime-private evaluation boundary, and separate account+principal exact local-app grant lifecycle |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
 | `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |
 | `local-category-capability.md` | `K-LOCAL-*` | 本地模型基础 category、capability、install/catalog intake |
@@ -59,7 +59,7 @@
 | `error-model.md` | `K-ERR-*` | ReasonCode 分层、映射原则 |
 | `pagination-filtering.md` | `K-PAGE-*` | 分页、排序、过滤、token 语义 |
 | `audit-contract.md` | `K-AUDIT-*` | 审计字段、写入义务、统计与健康快照 |
-| `daemon-lifecycle.md` | `K-DAEMON-*` | 健康状态机、启动序列、优雅停机 |
+| `daemon-lifecycle.md` | `K-DAEMON-*` | Fixed-service health/start/stop, bounded shutdown, service-owned configuration, and durable local-app state vs boot-epoch lease/session invalidation |
 | `provider-health-contract.md` | `K-PROV-*` | Provider 探测、状态机、名称归一化 |
 | `workflow-contract.md` | `K-WF-*` | Workflow DAG、节点类型、状态机、事件流 |
 | `voice-contract.md` | `K-VOICE-*` | Voice 工作流、VoiceAsset 生命周期与引用契约 |
@@ -94,9 +94,9 @@
 | `delegated-mcp-adapter-contract.md` | `K-DELEG-*` | Runtime-owned MCP adapter lifecycle、tool discovery/allowlist、token hygiene、quarantined gateway evidence、and no pre-firewall consumption |
 | `delegated-a2a-future-seam-contract.md` | `K-DELEG-*` | Future A2A adapter seam only、no production A2A support、no protocol authority promotion、and no app/Desktop/Avatar bypass |
 | `app-messaging-contract.md` | `K-APP-*` | RuntimeAppService messaging、event stream、reserved runtime.agent target、companion multi-app interaction、and Avatar runtime boundary |
-| `app-lifecycle-contract.md` | `K-APP-*` | Runtime-owned Nimi App install、uninstall、update、health repair、open、and file-API non-admission authority |
-| `app-lifecycle-contract.md#K-APP-027` | `K-APP-027` | Runtime-owned local-development authorization and technical launch lifecycle, distinct from local adoption and production `OpenApp` |
-| `app-projection-contract.md` | `K-APP-*` | Runtime-owned app health、response-state、support next-action、storage、package readiness、account inventory、and local adoption projection |
+| `app-lifecycle-contract.md` | `K-APP-*` | Opaque immutable package seams with typed unavailable positive posture, local record lifecycle, protected local-app launch and Developer Mode |
+| `local-app-principal-record-contract.md` | `K-APP-028..031` | SID-derived local OS-user anchor, random non-reused principal, opaque lineage/provenance slots, separate lifecycle record/store, tombstone/no inheritance and resolver boundary |
+| `app-projection-contract.md` | `K-APP-*` | Principal-keyed app storage/audience, opaque package readiness, account/local-record inventory, and no workspace-adoption authority |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | service-principal-owned closed configuration, signed boot authority, typed protected mutation, secret custody, hardcut/no-import, and selected `nimi_data` dataRootRef projection |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
@@ -140,6 +140,9 @@
 - `tables/protected-local-lifecycle-intent-protocol.yaml`
 - `tables/protected-local-rpc-transport-matrix.yaml`
 - `tables/protected-local-security-limits.yaml`
+- `tables/local-app-principal-record-schema.yaml`
+- `tables/local-app-grant-binding-schema.yaml`
+- `tables/local-app-presence-protocol.yaml`
 - `tables/ai-timeout-defaults.yaml`
 - `tables/provider-probe-targets.yaml`
 - `tables/workflow-node-types.yaml`

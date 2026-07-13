@@ -4,10 +4,11 @@
 
 ## K-AUTHSVC-001 服务职责
 
-`RuntimeAuthService` owns binding-only app/external-principal session lifecycle.
-The public `RuntimeGrantService` family is deny-all pending A.3d removal and
-cannot provide authorization. Protected operation decisions are Runtime-private
-and require the exact verified origin plus operation policy.
+`RuntimeAuthService` owns binding-only app/external-principal session lifecycle
+and the common process-bound local-app identity session. The former public
+credential-grant family has been physically removed. Protected operation
+decisions are Runtime-private and require the exact verified origin, current
+separate grant and operation-owner policy.
 
 `RuntimeAuthService` **不负责** local machine account session、login lifecycle、custody、refresh、logout、user switch、daemon restart recovery、或首方 scoped app binding；这些权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `account-session-contract.md`）拥有。Protected-local origin、Desktop process verification 与 control-session authority 由 `K-PLOCAL-*` 拥有，Auth service 只消费其 immutable origin context。
 
@@ -22,21 +23,24 @@ and require the exact verified origin plus operation policy.
 5. `RegisterExternalPrincipal`
 6. `OpenExternalPrincipalSession`
 7. `RevokeExternalPrincipalSession`
-8. `OpenDesktopSession`（A.0 authority admitted；仅 `desktop_control`，proto/Runtime implementation pending）
+8. `OpenDesktopSession`（仅 `desktop_control`）
+9. `OpenLocalAppSession`（request-empty；仅已绑定 launch lease/process/record 的 `local_app_bootstrap`）
 
-除 `OpenDesktopSession` 的 A.0 authority addition 外，不得扩展方法集合。该
-方法不接收 app id、caller class、source host 或 portable proof override，且
-不返回可迁移到其他连接的授权 bearer。
+两种 protected session-open request 均为空。`OpenDesktopSession` keeps
+Desktop account-control semantics; `OpenLocalAppSession` is the single
+third-party app session path. Neither accepts app id, caller class, source host,
+principal, trust, lease, process, account, grant, or portable proof override,
+and neither returns a portable authorization bearer.
 
 ## K-AUTHSVC-003 RegisterApp 最小约束
 
 - `app_id` 必填且不可为空。
 - `app_instance_id` 在客户端缺省时可由服务端分配。
 - `mode_manifest` 必须按 proto 枚举值校验，不允许未知值透传。
-- 无论 registry 或 developer-registration gate 是否通过，`RegisterApp` 和
+- 无论 registry 或 manifest gate 是否通过，`RegisterApp` 和
   随后的 `OpenSession` 只建立 `BINDING_ONLY`。其 app id、manifest、session
   id/token 或 source-host metadata 不得产生 account、broker、AI、artifact、
-  realtime、media、lifecycle 或 `OpenApp` 权限；完整矩阵由
+  realtime、media、lifecycle 或 local-app launch 权限；完整矩阵由
   `K-PLOCAL-001` 与 `tables/protected-local-rpc-transport-matrix.yaml` 拥有。
 
 ## K-AUTHSVC-004 OpenSession / RefreshSession TTL 约束
@@ -70,15 +74,16 @@ and require the exact verified origin plus operation policy.
 `AppMode` 不是授权源；它仅是未来 separately admitted non-binding session
 的 static upper bound。所有 `BINDING_ONLY` registration/session 的 effective
 domains 与 effective scopes 均为 empty，不受 `LITE`、`CORE_ONLY`、`FULL`、
-manifest、developer-registration flag 或 grant row 影响。Mode/manifest
+manifest、project-local flag 或 grant row 影响。Mode/manifest
 validation never upgrades protected origin、caller role、transport class、
 account posture 或 token custody。
 For `BINDING_ONLY`, effective domains and effective scopes are empty.
 
 Ordinary `OpenSession` has no broker, AI, artifact, realtime, media, lifecycle,
-or `OpenApp` authority. A.1 installed sessions are created only by
-`OpenDesktopLaunchedAppSession` on a verified launch-bootstrap connection; the
-following table remains a ceiling, not blanket effective rights：
+or local-app launch authority. Local-app sessions are created only by
+request-empty `OpenLocalAppSession` on a verified `local_app_host` connection
+already bound to current lease/process/principal/record; the following table
+remains a ceiling, not blanket effective rights：
 
 | AppMode | runtime.* ceiling | realm.* ceiling | 静态上限说明 |
 |---|---|---|---|
@@ -93,7 +98,7 @@ canonical owner 独立准入后，域 ceiling 违规才返回
 
 **评估顺序**：先判定 `BINDING_ONLY`（effective set 直接为空），再验证
 protected origin 与 independently admitted session，之后才应用 AppMode ceiling，
-最后应用 Scope prefix/grant gate（`K-GRANT-009`）。任一前置不成立均 fail
+最后应用 exact current grant and operation-owner policy。任一前置不成立均 fail
 closed，且不得借由后续 ceiling/grant 反向升级。
 
 ## K-AUTHSVC-010 Manifest 与 WorldRelation 组合规则
@@ -121,7 +126,7 @@ closed，且不得借由后续 ceiling/grant 反向升级。
 
 **App session / external-principal session（`RuntimeAuthService` 拥有）：**
 
-In A.0, an app session created by `OpenSession` is `BINDING_ONLY`; reconnect or
+An app session created by `OpenSession` is `BINDING_ONLY`; reconnect or
 refresh recreates only that empty-effective-rights binding and cannot restore
 broker/AI/artifact/realtime/media/lifecycle privilege. External-principal
 sessions remain their separately proven external path and never become local
@@ -175,38 +180,17 @@ Proto 枚举冻结约束：
 - `iss` 不匹配统一映射到 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
 - 不支持的 `proof_type` 返回 `INVALID_ARGUMENT` + `AUTH_UNSUPPORTED_PROOF_TYPE`。
 
-## K-AUTHSVC-014 Developer Registration 准入（dev-mode 双门控）
+## K-AUTHSVC-014 Retired Developer Registration Boundary
 
-本规则定义 `RegisterApp` 的本地开发者注册准入路径，用于本地开发者在自有机器上测试尚未经
-平台准入（Nimi App registry / `P-NAPP-*` admission）的本地 app。**不新增 `RuntimeAuthService`
-方法，`K-AUTHSVC-002` 方法集合仍冻结。**
+The predecessor `RegisterAppRequest.developer_registration` gate is retired and
+must be removed in the public wire epoch. It cannot create a local principal,
+project authorization, account caller, grant, launch lease, or local-app
+session. Until deletion, any retained field is ignored for authority and the
+binding-only path remains deny/no-upgrade.
 
-**默认准入语义（不变）**：对 platform-governed（`nimi.*` / 归一化后 `nimi.*`）的 `app_id`，
-`RegisterApp` 默认要求 Nimi App registry 准入（caller eligibility）。未准入时 fail-close，
-返回 `accepted=false` + `APP_NOT_REGISTERED`。本规则不削弱该生产默认。
-
-**双门控放行**：当且仅当以下两条同时成立，`RegisterApp` 才以 developer registration 准入一个
-未入目录 / governed 的 `app_id`：
-
-1. Runtime 配置 `auth.developerRegistration.enabled == true`（默认 `false`，见
-   `config-schema.yaml`，由用户经 Desktop「本地 app 测试」开关授权开启）；**且**
-2. `RegisterAppRequest.developer_registration == true`（调用方显式声明开发者注册意图）。
-
-任一条件不成立 → 维持默认拒绝（`APP_NOT_REGISTERED`），**不得 pseudo-success**、不得静默放行。
-
-**放行后权限（A.0 hard cut）**：developer registration 只允许创建
-`BINDING_ONLY` registration/session，不授予 account、Realm broker、AI、
-artifact、realtime、media、lifecycle 或 `OpenApp` 权限。开关与 request
-intent 不是 process-origin proof。需要 Runtime/auth/Realm/AI E2E 的本地开发
-必须等待 A.1 developer-installed adoption 与 protected child channel 独立
-admit/implement；不得用现有 app session、metadata、nonce 或临时 bearer
-恢复权限。纯 renderer UI dev 可以显示 Runtime unavailable，但不计 E2E。
-
-**审计（K-AUTHSVC-007）**：developer registration 的成功与失败都必须写审计，且最小字段之外
-必须标记 developer registration（如 `developer_registration=true` 与 registry app id），
-以便事后可见“哪些本地 app 经开发者门被放行”。
-
-**fail-close 与可撤销**：`auth.developerRegistration.enabled` 默认关闭即 fail-close；关闭后
-后续 `RegisterApp` 立即恢复默认拒绝（既有 session 由 daemon 重启/`RevokeSession` 失效）。
-developer registration 仅放宽准入门，绝不使本地 app 成为已准入 first-party 产品行（不写
-Nimi App registry、不改 `P-NAPP-*` admission 真值）。
+Local development enters only through Runtime-owned Developer Mode project
+authorization, K-APP principal/record creation, K-PLOCAL protected launch, and
+the common request-empty local-app session. `auth.developerRegistration`,
+request intent, `RegisterApp`, app id, manifest, ordinary app session, metadata,
+or a temporary bearer is never a compatibility path. Rejected predecessor
+attempts remain auditable without preserving positive behavior.

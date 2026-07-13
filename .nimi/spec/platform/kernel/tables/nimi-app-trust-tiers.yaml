@@ -5,7 +5,8 @@ catalog_id: platform_nimi_app_trust_tiers
 entries:
   - tiers_1
   - tier_id values are closed: nimi-first-party, nimi-verified-partner, nimi-community
-  - ecosystem expansion authority governs signature_policy_ref, permission_ceiling_ref, review_posture_ref, and kill_switch_ref behavior
+  - ecosystem expansion authority governs signature_policy_ref, review_posture_ref, and kill_switch_ref behavior
+  - publisher review tier has no Nimi API permission or local principal effect
   - tier_id values must remain stable; no consumer may rename or rotate them silently
 
 # Canonical Nimi App trust tier enum.
@@ -17,7 +18,7 @@ tier_schema:
     - tier_id
     - tier_label
     - signature_policy_ref
-    - permission_ceiling_ref
+    - nimi_api_permission_effect
     - review_posture_ref
     - kill_switch_ref
     - identity_assurance_required
@@ -41,7 +42,7 @@ tiers:
   - tier_id: nimi-first-party
     tier_label: Nimi First-Party
     signature_policy_ref: nimi-first-party-signature-policy
-    permission_ceiling_ref: permission-ceiling-first-party-full
+    nimi_api_permission_effect: none_provenance_and_review_only
     review_posture_ref: review-internal
     kill_switch_ref: kill-switch-coordinated
     identity_assurance_required: unconstrained
@@ -51,7 +52,7 @@ tiers:
   - tier_id: nimi-verified-partner
     tier_label: Nimi Verified Partner
     signature_policy_ref: nimi-verified-partner-signature-policy
-    permission_ceiling_ref: permission-ceiling-verified-partner-curated
+    nimi_api_permission_effect: none_provenance_and_review_only
     review_posture_ref: review-manual-full
     kill_switch_ref: kill-switch-coordinated
     identity_assurance_required: domain-verified
@@ -61,7 +62,7 @@ tiers:
   - tier_id: nimi-community
     tier_label: Nimi Community
     signature_policy_ref: nimi-community-signature-policy
-    permission_ceiling_ref: permission-ceiling-community-narrow
+    nimi_api_permission_effect: none_provenance_and_review_only
     review_posture_ref: review-automated-with-manual-kill-switch
     kill_switch_ref: kill-switch-immediate
     identity_assurance_required: pseudonymous

@@ -8,18 +8,18 @@ owner: runtime
 protocol_id: runtime_rpc_design_proto_mapping
 surfaces:
   - RuntimeAuthService
-  - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
+  - RuntimeDevelopmentService
   - method_mappings
 services:
   - RuntimeAuthService
-  - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
-method_count: 51
+  - RuntimeDevelopmentService
+method_count: 53
 method_mappings:
   - design_service: RuntimeAuthService
     design_method: RegisterApp
@@ -62,35 +62,10 @@ method_mappings:
     proto_method: OpenDesktopSession
     mapping_posture: aligned
   - design_service: RuntimeAuthService
-    design_method: OpenDesktopLaunchedAppSession
-    proto_service: RuntimeAuthService
-    proto_method: OpenDesktopLaunchedAppSession
-    mapping_posture: aligned
-  - design_service: RuntimeGrantService
-    design_method: AuthorizeExternalPrincipal
-    proto_service: RuntimeGrantService
-    proto_method: AuthorizeExternalPrincipal
-    mapping_posture: tombstone_pending_a3d_removal
-  - design_service: RuntimeGrantService
-    design_method: ValidateAppAccessToken
-    proto_service: RuntimeGrantService
-    proto_method: ValidateAppAccessToken
-    mapping_posture: tombstone_pending_a3d_removal
-  - design_service: RuntimeGrantService
-    design_method: RevokeAppAccessToken
-    proto_service: RuntimeGrantService
-    proto_method: RevokeAppAccessToken
-    mapping_posture: tombstone_pending_a3d_removal
-  - design_service: RuntimeGrantService
-    design_method: IssueDelegatedAccessToken
-    proto_service: RuntimeGrantService
-    proto_method: IssueDelegatedAccessToken
-    mapping_posture: tombstone_pending_a3d_removal
-  - design_service: RuntimeGrantService
-    design_method: ListTokenChain
-    proto_service: RuntimeGrantService
-    proto_method: ListTokenChain
-    mapping_posture: tombstone_pending_a3d_removal
+    design_method: OpenLocalAppSession
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
   - design_service: RuntimeExternalAgentService
     design_method: GetExternalAgentGatewayStatus
     proto_service: RuntimeExternalAgentService
@@ -171,6 +146,26 @@ method_mappings:
     proto_service: RuntimeAccountService
     proto_method: RevokeWorkspaceBinding
     mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: GetLocalAppGrantStatus
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
+  - design_service: RuntimeAccountService
+    design_method: RequestLocalAppGrant
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
+  - design_service: RuntimeAccountService
+    design_method: DecideLocalAppGrant
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
+  - design_service: RuntimeAccountService
+    design_method: RevokeLocalAppGrant
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
   - design_service: RuntimeAppService
     design_method: SendAppMessage
     proto_service: RuntimeAppService
@@ -212,21 +207,6 @@ method_mappings:
     proto_method: GetAccountAppInventory
     mapping_posture: aligned
   - design_service: RuntimeAppService
-    design_method: AdoptLocalApp
-    proto_service: RuntimeAppService
-    proto_method: AdoptLocalApp
-    mapping_posture: aligned
-  - design_service: RuntimeAppService
-    design_method: ListLocalAppAdoptions
-    proto_service: RuntimeAppService
-    proto_method: ListLocalAppAdoptions
-    mapping_posture: aligned
-  - design_service: RuntimeAppService
-    design_method: RemoveLocalAppAdoption
-    proto_service: RuntimeAppService
-    proto_method: RemoveLocalAppAdoption
-    mapping_posture: aligned
-  - design_service: RuntimeAppService
     design_method: GetAppPackageReadiness
     proto_service: RuntimeAppService
     proto_method: GetAppPackageReadiness
@@ -257,15 +237,25 @@ method_mappings:
     proto_method: HealthRepairApp
     mapping_posture: aligned
   - design_service: RuntimeAppService
-    design_method: OpenApp
-    proto_service: RuntimeAppService
-    proto_method: OpenApp
-    mapping_posture: aligned
+    design_method: PrepareLocalAppLaunch
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
   - design_service: RuntimeAppService
-    design_method: BindInstalledLaunchProcess
-    proto_service: RuntimeAppService
-    proto_method: BindInstalledLaunchProcess
-    mapping_posture: aligned
+    design_method: BindLocalAppProcess
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
+  - design_service: RuntimeDevelopmentService
+    design_method: GetDeveloperModeStatus
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
+  - design_service: RuntimeDevelopmentService
+    design_method: SetDeveloperMode
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
   - design_service: RuntimeDevelopmentService
     design_method: EvaluateLocalDevelopmentProject
     proto_service: RuntimeDevelopmentService
@@ -282,29 +272,14 @@ method_mappings:
     proto_method: ListLocalDevelopmentAuthorizations
     mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
+    design_method: ReactivateLocalDevelopmentProject
+    proto_service: ""
+    proto_method: ""
+    mapping_posture: proto_target_unassigned
+  - design_service: RuntimeDevelopmentService
     design_method: RevokeLocalDevelopmentAuthorization
     proto_service: RuntimeDevelopmentService
     proto_method: RevokeLocalDevelopmentAuthorization
-    mapping_posture: aligned
-  - design_service: RuntimeDevelopmentService
-    design_method: PrepareLocalDevelopmentLaunch
-    proto_service: RuntimeDevelopmentService
-    proto_method: PrepareLocalDevelopmentLaunch
-    mapping_posture: aligned
-  - design_service: RuntimeDevelopmentService
-    design_method: BindLocalDevelopmentHostProcess
-    proto_service: RuntimeDevelopmentService
-    proto_method: BindLocalDevelopmentHostProcess
-    mapping_posture: aligned
-  - design_service: RuntimeDevelopmentService
-    design_method: OpenLocalDevelopmentAppSession
-    proto_service: RuntimeDevelopmentService
-    proto_method: OpenLocalDevelopmentAppSession
-    mapping_posture: aligned
-  - design_service: RuntimeDevelopmentService
-    design_method: GetLocalDevelopmentSessionStatus
-    proto_service: RuntimeDevelopmentService
-    proto_method: GetLocalDevelopmentSessionStatus
     mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: EndLocalDevelopmentRun

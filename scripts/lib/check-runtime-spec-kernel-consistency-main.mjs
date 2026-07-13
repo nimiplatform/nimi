@@ -141,9 +141,91 @@ checkRuntimeDeliveryGateCoverage(kernelRuleDefinitions);
 checkCapabilityVocabularyMapping(kernelRuleDefinitions);
 checkOrphanRules(kernelRuleDefinitions);
 checkRuleEvidence(kernelRuleDefinitions);
+checkLocalAppKernelTables();
 
 if (failed) process.exit(1);
 console.log('runtime-spec-kernel-consistency: OK');
+
+function checkLocalAppKernelTables() {
+  const principalRel = '.nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml';
+  const grantRel = '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml';
+  const presenceRel = '.nimi/spec/runtime/kernel/tables/local-app-presence-protocol.yaml';
+  const principalDoc = readYaml(principalRel) || {};
+  const grantDoc = readYaml(grantRel) || {};
+  const presenceDoc = readYaml(presenceRel) || {};
+
+  if (String(principalDoc?.local_os_user_anchor?.windows_source || '').trim() !== 'verified_interactive_user_sid') {
+    fail(`${principalRel}: Windows local_os_user_anchor must derive from verified_interactive_user_sid`);
+  }
+  if (String(principalDoc?.principal?.store_identity || '').trim() !== 'local_app_principals') {
+    fail(`${principalRel}: principal.store_identity must be local_app_principals`);
+  }
+  if (String(principalDoc?.record?.store_identity || '').trim() !== 'local_app_records') {
+    fail(`${principalRel}: record.store_identity must be local_app_records`);
+  }
+  const principalFields = new Set((Array.isArray(principalDoc?.principal?.fields) ? principalDoc.principal.fields : []).map(String));
+  const recordFields = new Set((Array.isArray(principalDoc?.record?.fields) ? principalDoc.record.fields : []).map(String));
+  for (const field of ['local_os_user_anchor', 'local_app_principal_id', 'immutable_lineage_id']) {
+    if (!principalFields.has(field)) fail(`${principalRel}: principal fields missing ${field}`);
+  }
+  for (const field of [
+    'local_app_principal_id',
+    'provenance_attestation_refs',
+    'provenance_revision',
+    'execution_profile_ref',
+    'host_executable_digest',
+    'payload_root_digest',
+  ]) {
+    if (!recordFields.has(field)) fail(`${principalRel}: record fields missing ${field}`);
+  }
+  const immutableLineage = Array.isArray(principalDoc?.principal_lineage_binding?.immutable)
+    ? principalDoc.principal_lineage_binding.immutable.map(String)
+    : [];
+  const developmentLineage = Array.isArray(principalDoc?.principal_lineage_binding?.development)
+    ? principalDoc.principal_lineage_binding.development.map(String)
+    : [];
+  if (!immutableLineage.includes('immutable_lineage_id')
+    || !developmentLineage.includes('development_authorization_id')
+    || !developmentLineage.includes('canonical_project_file_id')
+    || principalDoc?.principal_lineage_binding?.exactly_one_branch_required !== true) {
+    fail(`${principalRel}: principal lineage must be an exact immutable-or-development union`);
+  }
+  if (principalDoc?.store_separation?.shared_serialized_record !== 'forbidden'
+    || principalDoc?.store_separation?.app_id_positive_key !== 'forbidden') {
+    fail(`${principalRel}: principal/record stores must be separate and forbid app-id positive keys`);
+  }
+  if (principalDoc?.package_seam?.immutable_positive_operations_before_0p !== 'typed_unavailable'
+    || principalDoc?.package_seam?.['0p_may_reshape_schema'] !== false) {
+    fail(`${principalRel}: immutable package seam must be typed unavailable and non-reshapeable in 0K`);
+  }
+
+  if (String(grantDoc?.grant?.store_identity || '').trim() !== 'local_app_grants') {
+    fail(`${grantRel}: grant.store_identity must be local_app_grants`);
+  }
+  const grantKey = Array.isArray(grantDoc?.grant?.key) ? grantDoc.grant.key.map(String) : [];
+  const expectedGrantKey = ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'capability_resource_fingerprint'];
+  if (grantKey.length !== expectedGrantKey.length || expectedGrantKey.some((field) => !grantKey.includes(field))) {
+    fail(`${grantRel}: grant key must bind OS-user anchor, account, principal, and capability/resource fingerprint`);
+  }
+  const grantInvariants = new Set((Array.isArray(grantDoc?.grant?.invariants) ? grantDoc.grant.invariants : []).map(String));
+  for (const invariant of [
+    'install_project_authorization_or_promotion_creates_zero_grant',
+    'grant_mutation_does_not_rotate_identity_session',
+    'no_app_id_only_positive_lookup',
+  ]) {
+    if (!grantInvariants.has(invariant)) fail(`${grantRel}: missing invariant ${invariant}`);
+  }
+
+  const outcomeEnum = new Set((Array.isArray(presenceDoc?.outcome_enum) ? presenceDoc.outcome_enum : []).map(String));
+  const expectedOutcomes = ['none', 'grant_presence', 'operation_presence', 'bounded_lease'];
+  if (outcomeEnum.size !== expectedOutcomes.length || expectedOutcomes.some((value) => !outcomeEnum.has(value))) {
+    fail(`${presenceRel}: outcome_enum must be the four-mode presence protocol`);
+  }
+  if (presenceDoc?.assignments?.ordinary_operation_with_exact_grant !== 'none'
+    || presenceDoc?.assignments?.remembered_project_reactivation !== 'grant_presence') {
+    fail(`${presenceRel}: ordinary exact grants require no repeated presence and remembered reactivation requires grant_presence`);
+  }
+}
 
 function checkLegacyDesignReferenceDrift() {
   const legacyRefs = [

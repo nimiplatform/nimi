@@ -51,6 +51,9 @@ entries:
   - mappings_47
   - mappings_48
   - mappings_49
+  - mappings_50
+  - mappings_51
+  - mappings_52
 # Platform ↔ Runtime Error Code Mapping
 # Resolves semantic overlap between protocol-error-codes.yaml (P-PROTO-*)
 # and reason-codes.yaml (K-ERR-*) by defining the formal correspondence.
@@ -88,20 +91,6 @@ mappings:
     runtime_source: K-AUTHSVC-010
     category: mapped
 
-  - platform_error: APP_SCOPE_FORBIDDEN
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_SCOPE_FORBIDDEN
-    runtime_code_number: 503
-    runtime_source: K-GRANT-009
-    category: mapped
-
-  - platform_error: APP_SCOPE_REVOKED
-    platform_source: P-PROTO-040
-    runtime_reason_code: APP_SCOPE_REVOKED
-    runtime_code_number: 504
-    runtime_source: K-GRANT-010
-    category: mapped
-
   # ── mapped: Auth errors → runtime AUTH family ──
   - platform_error: PRINCIPAL_UNAUTHORIZED
     platform_source: P-PROTO-020
@@ -118,14 +107,6 @@ mappings:
     runtime_source: K-AUTHSVC-006
     category: mapped
     note: Exact Runtime reason code exists; unsupported proof type remains a different auth-service error
-
-  - platform_error: APP_TOKEN_EXPIRED
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_TOKEN_EXPIRED
-    runtime_code_number: 102
-    runtime_source: K-AUTHSVC-004
-    category: mapped
-    note: Exact Runtime reason code exists; external proof JWT expiry remains AUTH_TOKEN_EXPIRED
 
   # ── realm_only: Version negotiation (protocol-layer only) ──
   - platform_error: PROTOCOL_MAJOR_MISMATCH
@@ -288,47 +269,6 @@ mappings:
     category: realm_only
     note: World-App binding is Realm product model
 
-  # ── mapped: App auth/grant/delegation/resource/consent errors with exact Runtime equivalents ──
-  - platform_error: APP_AUTHORIZATION_DENIED
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_AUTHORIZATION_DENIED
-    runtime_code_number: 100
-    runtime_source: K-GRANT-003
-    category: mapped
-    note: Exact Runtime reason code exists for app authorization denial
-
-  - platform_error: APP_GRANT_INVALID
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_GRANT_INVALID
-    runtime_code_number: 101
-    runtime_source: K-GRANT-004
-    category: mapped
-    note: Exact Runtime reason code exists for app grant invalidity
-
-  - platform_error: APP_TOKEN_REVOKED
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_TOKEN_REVOKED
-    runtime_code_number: 103
-    runtime_source: K-AUTHSVC-005
-    category: mapped
-    note: Exact Runtime reason code exists for app token revocation
-
-  - platform_error: APP_DELEGATION_FORBIDDEN
-    platform_source: P-PROTO-035
-    runtime_reason_code: APP_DELEGATION_FORBIDDEN
-    runtime_code_number: 107
-    runtime_source: K-GRANT-005
-    category: mapped
-    note: Exact Runtime reason code exists for delegation policy denial
-
-  - platform_error: APP_DELEGATION_DEPTH_EXCEEDED
-    platform_source: P-PROTO-035
-    runtime_reason_code: APP_DELEGATION_DEPTH_EXCEEDED
-    runtime_code_number: 108
-    runtime_source: K-GRANT-005
-    category: mapped
-    note: Exact Runtime reason code exists for delegation depth failure
-
   - platform_error: EXTERNAL_PRINCIPAL_PROOF_MISSING
     platform_source: P-PROTO-020
     runtime_reason_code: EXTERNAL_PRINCIPAL_PROOF_MISSING
@@ -345,65 +285,26 @@ mappings:
     category: mapped
     note: Exact Runtime reason code exists for world-relation mode denial
 
-  # ── unmapped_v1: Scope extension errors ──
-  - platform_error: APP_SCOPE_MANIFEST_INVALID
-    platform_source: P-PROTO-021
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Scope manifest validation at SDK/protocol layer
-
-  - platform_error: APP_SCOPE_NAMESPACE_FORBIDDEN
-    platform_source: P-PROTO-021
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Namespace enforcement at SDK/protocol layer
-
-  - platform_error: APP_SCOPE_CONFLICT
-    platform_source: P-PROTO-021
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Scope conflict detection at SDK/protocol layer
-
-  - platform_error: APP_SCOPE_CATALOG_UNPUBLISHED
-    platform_source: P-PROTO-040
-    runtime_reason_code: APP_SCOPE_CATALOG_UNPUBLISHED
-    runtime_code_number: 105
-    runtime_source: K-GRANT-008
-    category: mapped
-    note: Exact Runtime reason code exists for unpublished app scope catalog
-
-  # ── unmapped_v1: App resource/consent errors ──
-  - platform_error: APP_RESOURCE_SELECTOR_INVALID
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_RESOURCE_SELECTOR_INVALID
-    runtime_code_number: 109
-    runtime_source: K-GRANT-003
-    category: mapped
-    note: Exact Runtime reason code exists for invalid app resource selector
-
-  - platform_error: APP_RESOURCE_OUT_OF_SCOPE
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_RESOURCE_OUT_OF_SCOPE
-    runtime_code_number: 110
-    runtime_source: K-GRANT-005
-    category: mapped
-    note: Exact Runtime reason code exists for out-of-scope app resource
-
-  - platform_error: APP_CONSENT_MISSING
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_CONSENT_MISSING
-    runtime_code_number: 111
-    runtime_source: K-GRANT-003
-    category: mapped
-    note: Exact Runtime reason code exists for missing app consent
-
-  - platform_error: APP_CONSENT_INVALID
-    platform_source: P-PROTO-030
-    runtime_reason_code: APP_CONSENT_INVALID
-    runtime_code_number: 112
-    runtime_source: K-GRANT-003
-    category: mapped
-    note: Exact Runtime reason code exists for invalid app consent
+  # ── mapped: Local app kernel errors ──
+  - { platform_error: LOCAL_APP_PRINCIPAL_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PRINCIPAL_REQUIRED, runtime_code_number: 642, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_RECORD_NOT_FOUND, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_RECORD_NOT_FOUND, runtime_code_number: 643, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_RECORD_TOMBSTONED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_RECORD_TOMBSTONED, runtime_code_number: 644, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_PROVENANCE_UNAVAILABLE, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PROVENANCE_UNAVAILABLE, runtime_code_number: 645, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_LAUNCH_LEASE_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_LAUNCH_LEASE_REQUIRED, runtime_code_number: 646, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_LAUNCH_LEASE_MISMATCH, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_LAUNCH_LEASE_MISMATCH, runtime_code_number: 647, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_LAUNCH_LEASE_REPLAY, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_LAUNCH_LEASE_REPLAY, runtime_code_number: 648, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_PROCESS_MISMATCH, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PROCESS_MISMATCH, runtime_code_number: 649, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_SESSION_REVOKED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_SESSION_REVOKED, runtime_code_number: 650, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_GRANT_REQUIRED, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_GRANT_REQUIRED, runtime_code_number: 651, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_GRANT_REVOKED, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_GRANT_REVOKED, runtime_code_number: 652, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_GRANT_SUPERSEDED, platform_source: P-PROTO-040, runtime_reason_code: LOCAL_APP_GRANT_SUPERSEDED, runtime_code_number: 653, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_ACCOUNT_CHANGED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_ACCOUNT_CHANGED, runtime_code_number: 654, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_OPERATION_UNAVAILABLE, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_OPERATION_UNAVAILABLE, runtime_code_number: 655, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_PRESENCE_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PRESENCE_REQUIRED, runtime_code_number: 656, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_PRESENCE_EXPIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PRESENCE_EXPIRED, runtime_code_number: 657, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_DEVELOPER_MODE_DISABLED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_DEVELOPER_MODE_DISABLED, runtime_code_number: 658, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, runtime_code_number: 659, runtime_source: K-ERR-012, category: mapped }
+  - { platform_error: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, runtime_code_number: 660, runtime_source: K-ERR-012, category: mapped }
 
   # ── unmapped_v1: Permission errors ──
   - platform_error: ACTION_FORBIDDEN

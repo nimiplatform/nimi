@@ -74,6 +74,7 @@ entries:
 - D-SEC-012
 - D-SEC-013
 - D-SEC-014
+- D-SEC-015
 - D-STATE-001
 - D-STATE-002
 - D-STATE-004
@@ -101,7 +102,7 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
-  evidence_scope_note: Existing Desktop tests are compatibility evidence only; A.0 protected Desktop session authority is structurally covered by scripts/check-protected-local-authority.mjs and has no implementation/live claim yet.
+  evidence_scope_note: Desktop auth must consume the verified protected session and final local-app carrier; static checks do not replace fixed-service live evidence.
   test_files:
   - scripts/check-protected-local-authority.mjs
 - rule_id: D-AUTH-002
@@ -178,7 +179,7 @@ rules:
 - rule_id: D-BOOT-004
   evidence_refs: *1
   evidence_requirement: required
-  evidence_scope_note: Existing bootstrap tests are compatibility evidence only; RegisterApp/OpenSession are now binding-only and protected Desktop origin implementation remains pending.
+  evidence_scope_note: RegisterApp/OpenSession are binding-only; protected Desktop and local-app origins require exact carrier and live fixed-service evidence.
   test_files:
   - scripts/check-protected-local-authority.mjs
 - rule_id: D-BOOT-006
@@ -292,7 +293,7 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
-  evidence_scope_note: Existing loopback behavior does not prove protected origin; A.0 mutual endpoint/process authority is structural only pending Runtime/Desktop implementation.
+  evidence_scope_note: Loopback behavior cannot prove protected origin; mutual endpoint/process verification requires Runtime/Desktop live evidence.
   test_files:
   - scripts/check-protected-local-authority.mjs
 - rule_id: D-SEC-002
@@ -314,7 +315,7 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
-  evidence_scope_note: Existing IPC tests remain compatibility evidence; process-bound protected origin and production/test trust isolation are structural A.0 authority only.
+  evidence_scope_note: Process-bound protected origin, production/test trust isolation, and the final local-app roles require structural static evidence plus real protected-carrier behavior evidence.
   test_files:
   - scripts/check-protected-local-authority.mjs
 - rule_id: D-SEC-006
@@ -371,6 +372,14 @@ rules:
   - desktop_kernel_consistency
   - desktop_test_gate
   note: External Agent execution context verification belongs to Runtime gateway
+  evidence_requirement: required
+- rule_id: D-SEC-015
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_journey_gate
+  note: Local-app child renderers receive exact typed operations and stable posture only; bearer, endpoint, principal, grant, lease, session, process proof, Runtime epoch, and generic forwarding are forbidden.
   evidence_requirement: required
 - rule_id: D-STATE-001
   evidence_refs:

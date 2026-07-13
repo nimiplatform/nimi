@@ -42,7 +42,7 @@ phases:
 
   - phase: auth-session
     order: 5
-    description: Bootstrap authentication session (token exchange or anonymous fallback)
+    description: Consume the Runtime-owned account-session projection through the verified Desktop control origin; no renderer token exchange or anonymous authority fallback
     source_rule: D-BOOT-007
     async: true
 

@@ -13,6 +13,12 @@ on the candidate artifact's source reference, and the PR-based
 admission obligations placed on the developer side that consume the
 already-admitted `P-NAPP-013` admission-path mechanism.
 
+It also owns the single production-shipped Developer Mode product workflow for
+mutable `local_development` projects. That workflow is independent of package
+format/import implementation: it consumes the final 0K principal, protected
+launch/session, grant, and owner-operation seams and cannot create a dev-only
+authorization model.
+
 This contract does not own and MUST NOT redefine:
 
 - the `P-NAPP-013` PR-admission path mechanism (the registry-row,
@@ -374,6 +380,49 @@ clause; any alternative substrate (hosted developer portal,
 developer dashboard, email submission, RPC submission) is out of
 scope for this rule.
 
+## P-DEV-006 — One Production Developer Mode
+
+Nimi exposes one Developer Mode and one Dev Trust Set for platform integration
+and third-party app development. The global toggle is discoverable in
+production Desktop, defaults off, and grants nothing. Each project approval
+uses Runtime-owned fresh presence and chooses exactly `run_once` or
+`remember_project`.
+
+The authorization binds Runtime-derived OS-user anchor, isolated local
+principal, canonical project-root file identity, declared app id, exact
+capability fingerprint, current account, and fixed shell/entry policy. Native
+host/process/build identity is short-lived launch/session proof and rotates on
+every controlled replacement. HMR, rebuild, host restart, and Runtime restart
+do not repeat consent only while the durable authorization and live supervisor
+run remain exact.
+
+Mode off revokes sessions and run-once authority; remembered projects become
+dormant and require fresh presence to reactivate. Account switch/logout,
+revoke, supervisor termination, copied/changed project, capability expansion,
+or shell/origin mismatch invalidates or reapproves as specified by
+`tables/nimi-app-local-development-admission.yaml`.
+
+An approved project may use a controlled production account solely through
+Runtime-mediated operations and the same account-and-principal grant/owner
+policy as every local app. It never receives account/provider credentials,
+portable session proof, a generic protected proxy, or persistent Nimi-managed
+logon/boot autostart. Product UX continuously identifies project/account/risk
+and states that Nimi grants constrain Nimi APIs, not all ordinary Windows
+rights of native development code.
+
+## P-DEV-007 — External AI Host Workflow Boundary
+
+The external AI host exclusively owns planning, decomposition, task lifecycle,
+subagent coordination, continuation, waiting, resumption and completion. Nimi,
+Nimicoding, Runtime, SDK, Kit, Desktop, app-tools and local apps may validate,
+generate, build, run or project bounded product operations, but must not create,
+mirror, advance, resume, close or execute host workflow state.
+
+Repository topics, selected-target state, dispatch ledgers, manager/worker/
+auditor state, daemon heartbeats and repository-owned task packets are not
+product authority. Deterministic guarded generation/validation evidence may be
+written only to its admitted owner surface and cannot become workflow truth.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-013`
@@ -398,5 +447,5 @@ scope for this rule.
   at `P-DEV-004` `MUST NOT` clause against mutable resolvers; the
   floor enumeration itself is owned by `P-NAPP-018`)
 - This contract is the active authority for developer repository layout,
-  workflow steps, local audit dry-run, CI build, immutable submission, and
-  workflow non-targets.
+  workflow steps, local audit dry-run, CI build, immutable submission,
+  production Developer Mode, and workflow non-targets.

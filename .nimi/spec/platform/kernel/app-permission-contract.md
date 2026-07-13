@@ -4,23 +4,21 @@
 
 ## Scope
 
-定义 Nimi App 的 product-facing 权限合同：closed permission taxonomy、grant
-lifecycle、audit event mapping、fail-closed denial state machine、与
-cross-app authorization 规则。本契约由 Platform 拥有 product-facing
-authority；Realm 负责 grant lifecycle 与 audit 的 backend 实现真相，
-Runtime 仍拥有 local AI spend / connector custody / local audit，Cognition
-仍拥有 memory / knowledge access policy（`C-APMEM-*`）。
-
-Platform 拥有 `P-PERM-*` 不替代 Realm/Runtime/Cognition 已 admit 的 backend
-authority；Realm `R-OAUTH-*` 与 Runtime grant-service / auth / authz
-backend rules 保留为各自 backend authority，本契约只锁定 product surface
-与跨域 owner split。
+定义 Nimi App 的 product-facing permission vocabulary、grant state
+semantics、presence classes、audit mapping、cross-app boundary 与 fail-closed
+规则。Platform owns the taxonomy; Runtime K-GRANT owns the PC-local
+account-and-principal grant lifecycle for local apps. Realm grants/audit remain
+remote-domain truth and are not a prerequisite or competing local store.
+Runtime retains spend/credential custody/local audit; Cognition and
+RuntimeAgentService retain memory and Agent semantics.
 
 ## P-PERM-001 — Product-Facing Authority
 
-`MUST`：Platform 拥有 Nimi App permission 的 product-facing authority。
-Realm 实现 grant lifecycle 与 cloud audit；Runtime 实现 local AI spend
-metering 与 local audit；Cognition 实现 memory / knowledge access policy。
+`MUST`：Platform 拥有 Nimi App permission 的 product-facing taxonomy。
+Runtime K-GRANT implements one PC-local lifecycle keyed by account +
+`local_app_principal_id` + capability/resource fingerprint. Realm implements
+its remote grant/cloud-audit truth; Runtime implements local AI spend and local
+audit; Cognition implements memory/knowledge access policy.
 
 `MUST NOT`：apps、Home shell、SDK 不得绕过 Platform-defined permission
 taxonomy 或 fail-closed denial state machine。
@@ -64,8 +62,8 @@ governance gate。
 
 ## P-PERM-004 — Audit Event Mapping
 
-`MUST`：每个 grant lifecycle 转移必须发出 admitted audit event；event
-shape 至少包含 `app_id`、`AIScopeRef`、`scope_name`、`old_state`、
+`MUST`：每个 local grant lifecycle 转移必须发出 admitted audit event；event
+shape 至少包含 `local_app_principal_id`、display `app_id`、`AIScopeRef`、`scope_name`、`old_state`、
 `new_state`、`triggered_by`、`timestamp`。Realm 拥有 cloud audit 写入；
 Runtime 拥有 local audit 写入；两者不得互相替代。
 
@@ -74,10 +72,10 @@ Runtime 拥有 local audit 写入；两者不得互相替代。
 
 ## P-PERM-005 — Fail-Closed Denial State Machine
 
-`MUST`：缺少 grant、grant `expired`、grant `revoked`、当前 trust tier 低
-于 scope 要求（参见 `nimi-app-trust-tiers.yaml` 与 ecosystem expansion
-authority）、
-scope 不在 `P-PERM-002` 枚举集合中，皆必须 `denied`。
+`MUST`：缺少 grant、grant `expired`、grant `revoked`、scope 不在
+`P-PERM-002` 枚举集合中、或 principal/account/resource fingerprint mismatch
+皆必须 `denied`。Publisher trust tier and local provenance never change the
+permission result.
 
 `MUST NOT`：缺少 grant 时不得静默 allow；请求失败时不得跳过 audit。
 
@@ -96,19 +94,21 @@ filesystem、socket 等私有 channel 实现 cross-app 数据访问。
 
 ```
 {
-  appId: string,
+  localAppPrincipalId: opaque string,
+  appId: string, // display/routing only
   scopeFamily: 'account' | 'data' | 'agent' | 'ai_spend' | 'memory' | 'knowledge' | 'notification' | 'file_device' | 'audit' | 'ai_profile',
   scopeName: <one of P-PERM-002 enum entries>,
   qualifier?: string
 }
 ```
 
-The exact product permission for installed callers retrieving their own
+The exact product permission for local-app callers retrieving their own
 Runtime artifact audience is `data.scope.read` with qualifier
 `runtime.artifacts`. This is an operation mapping, not a new permission scope:
 the Runtime operation id, product permission and AI capability namespaces stay
-distinct. A registry row is only the static ceiling; a current account grant
-for the same app, scope and qualifier is still required on every operation.
+distinct. A request/descriptor is only a static capability request; a current
+account-and-principal grant for the same scope/resource fingerprint is still
+required on every operation.
 
 `tables/nimi-app-registry.yaml` 的 `permission_scope_ref` 必须解析到该
 schema；`permission_fabric_pending` 是 permission fabric 尚未 admit 具体
@@ -157,11 +157,11 @@ enum — with `qualifier: app-local-drafts`, the qualifier denotes the
 calling app's data root:
 
 ```text
-<nimi_data>/apps/<app_id>/
+<nimi_data>/apps/<local_app_principal_id>/
 ```
 
-where `<app_id>` is the calling app's admitted Nimi App registry row
-`app_id` (`P-NAPP-002`).
+where `<local_app_principal_id>` is resolved by Runtime K-APP and is never
+caller-supplied. `app_id` remains display/routing metadata.
 
 This qualifier is permission-review and scope-expression semantics only.
 It does not by itself admit a Runtime-mediated file API, SDK file client,
@@ -182,14 +182,14 @@ separate authority-bearing change to `P-PERM-002`.
 `MUST NOT`：no consumer may treat this qualifier as permission to
 silently allow a path that escapes the admitted root. Parent traversal,
 absolute paths leaving the root, paths into another app's root
-`<nimi_data>/apps/<other_app_id>/`, symbolic-link traversal that
+`<nimi_data>/apps/<other_local_app_principal_id>/`, symbolic-link traversal that
 crosses out of the root, heuristic "close enough" path resolution, and
 fallback remapping are all forbidden. If a callable Nimi-mediated file
 surface is admitted by its execution owner, escape attempts MUST fail
 closed with typed reason `out_of_data_root`.
 
 `MUST NOT`：cross-app file access is not admitted by this rule. A path
-resolving into `<nimi_data>/apps/<other_app_id>/` is not made valid by
+resolving into `<nimi_data>/apps/<other_local_app_principal_id>/` is not made valid by
 declaring `qualifier: app-local-drafts`.
 
 Cross-references: `K-APP-018` records the current Runtime-mediated
@@ -226,6 +226,28 @@ Realm/Runtime grant evidence.
 `MUST NOT`: `notification.not_admitted` is the required delivery-channel value
 for OS notification paths in this PP6 slice until separate host notification
 authority exists.
+
+## P-PERM-013 — Local Principal Grant And Presence Separation
+
+Local project/package admission creates a principal and lifecycle record with
+zero grant. Provenance promotion also creates or widens no grant. The active
+grant is a separate K-GRANT record keyed by Runtime-derived OS-user anchor,
+current account, opaque local principal, and exact capability/resource
+fingerprint. `LocalAppRecord` contains no authoritative grant boolean.
+
+A valid principal and launch may open a restricted zero-grant identity session
+for permission posture. Every protected operation independently re-reads the
+current grant and owner policy. Grant mutation does not require relaunch, but
+the very next operation observes the new revision.
+
+Presence outcomes are the closed set `none | grant_presence |
+operation_presence | bounded_lease`. Runtime issues and atomically consumes
+the challenge bound to protected control session, account/generation,
+principal/record/provenance/generation, action, resource-impact digest, nonce,
+policy revision, and expiry. Project trust/reactivation and capability
+expansion use grant presence; operation-time presence remains owned by the
+operation domain. Cancel, expiry, replay, account switch, control disconnect,
+principal change, or policy change fails closed.
 
 ## Fact Sources
 

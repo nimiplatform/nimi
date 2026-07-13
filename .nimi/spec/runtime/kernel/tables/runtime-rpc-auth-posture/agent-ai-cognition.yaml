@@ -185,11 +185,15 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
-    posture: anonymous_read
-    rationale: subject_user_id taken from request body; no JWT validation
+    posture: protected_or_scoped_binding_or_local_app_operation
+    local_app_transport_class: local_app_host
+    local_app_required_origin_role: local_app_session
+    rationale: LOCAL_APP requires the current coordinator decision and explicit agent relation; principal is caller/audit subject and never conversation or agent owner
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-ACCSVC-026
+      - K-AGCORE-032
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot
     posture: anonymous_read
     rationale: handler matches anchor by id and agent_id; no JWT lookup
@@ -218,11 +222,15 @@ methods:
       - K-AUTH-001
       - K-AGCORE-138
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
-    posture: anonymous_read
-    rationale: id-based snapshot read with no JWT validation
+    posture: protected_or_scoped_binding_or_local_app_operation
+    local_app_transport_class: local_app_host
+    local_app_required_origin_role: local_app_session
+    rationale: LOCAL_APP snapshot recovery requires the current coordinator decision and exact principal/agent/conversation relation; id possession is not authority
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-ACCSVC-026
+      - K-AGCORE-032
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection
     posture: protected_or_scoped_binding_read
     rationale: companion participation projection requires runtime protected capability or scoped app binding

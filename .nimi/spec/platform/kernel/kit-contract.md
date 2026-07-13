@@ -70,8 +70,8 @@
   `status/start/restart`. Kit carries typed calls only; Runtime/OS own endpoint,
   origin, custody, service lifecycle and security truth. Product stop, binary /
   service/path selection, generic config JSON and bearer privilege are absent.
-  The A.1 Windows child carrier is host-only and cannot be exported to renderer
-  or npm surfaces.
+  The Windows local-app child carrier is host-only and cannot be exported to
+  renderer or npm surfaces.
 - `shell/tauri` is an infra module that consumes `shell/protected-local` and
   implements app-agnostic Tauri shell capabilities. It must not implement a
   parallel daemon manager, stage/execute Runtime, own credentials, exchange
@@ -113,8 +113,10 @@
 - Standard `data.pathResolve` and `storage.*` operations resolve under a
   host-owned app data root. Renderer payloads must not carry absolute storage
   roots; they may carry only `{ relativePath }` or `{ relativePath, value }`.
-  Hosts obtain the root from Runtime `GetAppStorage(app_id)` or a
-  Runtime-attested launch projection.
+  Once separately admitted for a caller, hosts obtain the root from a
+  Runtime-internal principal/session-derived storage projection, never an app-id
+  lookup or renderer input. These operations are unavailable on the 0K
+  local-app carrier.
 - `storage.removeJson` is an idempotent app-storage lifecycle primitive. If
   the file exists the host removes it; if it is already absent the operation
   still succeeds. The result shape is `{ path, removed }`.
@@ -150,9 +152,10 @@
   `{ relativePath, mimeType?, dataBase64 }`; subtree escape fails closed as
   `invalid-path`. Written artifact paths are eligible inputs to
   `local-assets.resolveUrl`.
-- `artifacts.readRuntimeBytes` is the only installed-app artifact operation.
+- `artifacts.readRuntimeBytes` is the admitted local-app artifact operation;
+  selected RuntimeAgent conversation operations are separately exact-allowlisted.
   It accepts exactly `{ artifactId }` and returns only canonical base64 bytes,
-  MIME, observed size, and MIME-inferred state from the opaque installed
+  MIME, observed size, and MIME-inferred state from the opaque local-app
   Runtime session. Renderer input cannot contain session, proof, account,
   release, grant, endpoint, metadata, or method identifiers.
 - `floating-window.*` operations act on the invoking window only.
@@ -162,7 +165,7 @@
   `shell-ui.startWindowDrag`, not by floating-window manual drag. Hosts that
   cannot support an operation must fail closed with `capability-unavailable`,
   never simulate success.
-- Installed-app capability sets forbid all P-KIT-041F operations by default.
+- Local-app capability sets forbid all P-KIT-041F operations by default.
   The sole admitted exception is the separately specified
   `artifacts.readRuntimeBytes` operation in P-KIT-044; every further operation
   requires its own capability-set admission.
@@ -188,10 +191,10 @@
   `shell/protected-local` for exact typed protected calls and fixed-service
   status/start/restart while keeping preload IPC narrowed. There is no
   production external-daemon mode.
-- Installed app hosts use the Kit-owned artifact-only registration entrypoint;
+- Local-app hosts use the Kit-owned exact capability registration entrypoint;
   app input is limited to app id, exact renderer URLs, and Electron IPC
   registration. Runtime endpoint, ordinary gRPC client, native carrier,
-  capability-set, command-handler, and installed-session selection are not
+  capability-set, command-handler, and local-app-session selection are not
   app inputs.
 - Authority id and source location are `kit.shell.electron` at `kit/shell/electron/`.
 - Delivered as subpath exports of the single `@nimiplatform/kit` package: `./shell/electron/main` and `./shell/electron/preload`.
@@ -209,7 +212,7 @@
   carrier and must not be reconstructed as Electron metadata. The typed account
   probe may classify only `PRINCIPAL_UNAUTHORIZED` paired with
   `CALLER_UNAUTHORIZED` or `CALLER_ENVELOPE_MISMATCH`; explicit
-  `APP_NOT_REGISTERED`, `APP_GRANT_INVALID`, and `SESSION_EXPIRED` retain their
+  `APP_NOT_REGISTERED`, `LOCAL_APP_GRANT_REVOKED`, and `SESSION_EXPIRED` retain their
   owner-specific typed handling. Endpoint, business, other permission, and
   unclassified failures never enter this recovery path or retry indefinitely.
 - Public/binding-only Runtime gRPC calls may use raw identity byte
@@ -226,60 +229,35 @@
 - Standard Electron acceptance windows must enable `sandbox: true`, `contextIsolation: true`, and `nodeIntegration: false`.
 - Local artifact URLs must be served through a registered protocol or same-origin host handler with path/root validation. The protocol registration, path/root validation, and readable-file registry are owned by `shell/electron`; consumer apps must not register parallel per-app file protocols or app-local URL resolvers for standard local-asset serving. Electron renderer code must not receive raw `file://` escape hatches for artifact inspection.
 
-## P-KIT-044 - Installed App Standard Shell Capability Sets
+## P-KIT-044 - Local App Standard Shell Capability Set
 
-**Owner-only authority allocation.** Kit owns typed shell APIs and trusted carrier implementation only. A Kit host adapter may carry opaque Runtime/Platform/Desktop attestations across a trusted shell boundary, but it cannot create account, catalog, release, grant, launch, unary, realtime, or media truth. A host or renderer MUST NOT supply or retain authenticated Realm credentials, signed upload credentials, refresh material, or self-certified privilege evidence.
+Kit owns typed shell APIs and trusted carrier implementation only. It cannot
+create account, principal, provenance, record, grant, launch, process, session,
+or owner-operation truth. The final host-private carrier opens one common
+request-empty local-app session after Runtime has bound the native connection
+to a current launch lease and verified process/record. It never accepts these
+facts from renderer, app, endpoint, environment, or caller metadata.
 
-The A.1 Windows installed-app child carrier consumes only the Runtime-created
-launch correlation defined by K-PLOCAL-008, starts the Runtime-resolved exact
-executable suspended, and submits its PID over retained protected Desktop
-control before resuming it. The child opens the fixed installed pipe itself;
-Kit never inherits or forwards a pre-connected pipe handle and cannot create
-launch, process, release, account/session or capability truth.
-The A.1 carrier admits only exact process launch binding and opaque
-installed-session establishment. No Electron/Tauri metadata, Runtime unary
-proxy, host provider, app id, or standard-shell operation may upgrade that
-narrow native carrier. `tables/standard-shell-capabilities.yaml` separately
-records the Windows x64 A.4 artifact-read admission described below;
-macOS/Linux remain fail-closed and cannot claim A.1 or A.4 completion.
+The Electron and Tauri host adapters consume the same local-app client and
+typed failure model. Fixed production AppHost and native development remain
+different execution profiles, but provenance has no permission effect. The
+selected checkpoint operations are exact typed artifact read and RuntimeAgent
+conversation surfaces; no method-id/bytes proxy or generic protected Runtime
+forwarding is admitted. Missing operation families return typed owner-
+unavailable without app-id fallback.
 
-The first A.4 business method admitted on the opaque installed session is the
-host-only typed `read_artifact_bytes(artifact_id)` call, bound exactly to
-Runtime `ReadArtifactBytes`. It returns only validated bytes, MIME, observed
-size and MIME-inferred state, and preserves typed invalid-input, forbidden,
-not-found, too-large and Runtime availability failures. The session proof,
-account, app, release, grant and transport channel remain private to the
-carrier. This does not admit a method-id/bytes proxy, generic `runtime.unary`,
-arbitrary metadata, or any renderer command other than the exact
-`nimi.shell.artifacts.readRuntimeBytes` operation. Its capability-set input is
-exactly `{ artifactId }`; its result contains only `dataBase64`, `mimeType`,
-`sizeBytes`, and `mimeInferred`. macOS/Linux continue to fail closed at session
-open until their native carrier admission.
+A zero-grant session may project permission posture, but it authorizes no
+protected operation. Every operation is evaluated against the current
+account-and-principal grant and its domain owner policy; grant revoke affects
+the next operation without requiring session rotation. Session, lease, proof,
+account, grant, principal, record, provenance, process, and boot-epoch material
+remain native-host private and are absent from preload/renderer/status/logs.
 
-The Tauri A.4 host adapter owns one lazily opened opaque installed-session
-handle per host instance and forwards only the typed artifact selector to that
-handle. Concurrent or repeated reads reuse that handle; they cannot mint a
-second account/session truth. Its public Rust host API preserves the carrier's
-typed errors. The Tauri command adapter exposes exactly
-`artifacts_read_runtime_bytes` and the shared renderer bridge maps it to the
-catalogued operation. No portable `RuntimeBridgeAppSession`, session bytes,
-generic unary hook, or authorization-bearing renderer payload is admitted.
-
-The Electron A.4 host adapter has the same host-only artifact surface. On the
-independently admitted Windows x64 target it loads the fixed
-`@nimiplatform/kit-protected-local-win32-x64` Node-API package; that package is
-an ABI projection of `shell/protected-local`, not a second transport or trust
-implementation. Its native export set is exactly session open plus typed
-artifact read, and one successful opaque session is reused for the Electron
-main process. The package and the TypeScript adapter expose no method-id/bytes
-proxy, endpoint, metadata, session proof, account, release, grant, or
-credential surface. Electron main dispatches only the catalogued artifact-read
-command and projects bytes to the same renderer result shape as Tauri. Missing
-packages, malformed native projections, Windows arm64, macOS, and Linux remain
-`protected-carrier-required` or `runtime-service-untrusted` as applicable;
-they cannot fall back to ordinary gRPC. The standard-shell `allowed_operations`
-list contains exactly `artifacts.readRuntimeBytes`; generic Runtime
-unary/stream/storage/config/lifecycle operations remain forbidden.
+The Windows fixed-service carrier is the positive path. Missing/untrusted
+service or carrier, process mismatch, revoke, account switch, or Runtime restart
+returns a typed failure and requires the admitted recovery flow. Ordinary gRPC,
+external-daemon mode, renderer auth, manually started host, and pseudo-success
+fallback are forbidden. Unsupported OS/profile combinations remain fail-closed.
 
 ## P-KIT-045 - Desktop Open Intent Kit Surfaces
 
@@ -304,14 +282,12 @@ unary/stream/storage/config/lifecycle operations remain forbidden.
 
 ## P-KIT-046 - Local-Development Host Bootstrap And Status
 
-Kit owns one typed local-development bootstrap/status and operation surface for
-Electron and Tauri. Native host adapters consume only the Runtime-created
-`installed_host` native carrier opened through the Desktop-owned supervisor
-flow and carrying the mutually exclusive local-development process/session
-roles. They automatically open, rotate, invalidate, and re-open the technical
-session across controlled host restarts and Runtime restart; app code cannot
-provide a Runtime endpoint, launch correlation, session, proof, epoch, PID,
-root, capability fingerprint, or trust class.
+Kit owns one typed local-development bootstrap/status projection over the
+common local-app host/client. Native adapters consume only the Runtime-created
+carrier opened through Desktop's verified supervisor. They rotate and reopen a
+new lease/session for controlled process replacement or Runtime restart; app
+code cannot provide endpoint, bootstrap, session, proof, epoch, PID, principal,
+record, root, capability fingerprint, account, or trust class.
 
 Renderer-safe bootstrap state is the closed set `authorizing`, `ready`,
 `denied`, `runtime-unavailable`, `revoked`, and `project-changed`, with typed
@@ -320,12 +296,12 @@ renderer globals, terminal output, logs, exceptions, or status payloads.
 Electron and Tauri project identical state and operation semantics even though
 their native host restart mechanics differ.
 
-The Wave A positive surface contains only
-`artifacts.readRuntimeBytes`. Kit must not expose a generic protected proxy or
-use development mode to enable account, lifecycle, Realm, AI, realtime, or
-media methods. A missing or untrusted development carrier fails closed and
-cannot fall back to ordinary gRPC or reuse/convert production-installed trust
-or session state on the shared carrier.
+The positive surface contains only owner-admitted exact operations, including
+artifact read and the selected RuntimeAgent conversation family used by the
+checkpoint. Kit must not expose account control, credential material,
+lifecycle mutation, generic Runtime forwarding, or unadmitted operation
+families. A missing/untrusted carrier fails closed and cannot fall back to
+ordinary gRPC or inherit another principal's state.
 
 ## P-KIT-043 — Runtime Capabilities Module
 

@@ -14,11 +14,6 @@ rows:
   - config_files_1
   - config_files_2
   - config_files_3
-  - config_files_4
-  - config_files_5
-  - config_files_6
-  - config_files_7
-  - config_files_7
   - every governed ~/.nimi user-local config file must declare its schema owner
     and current-schema validation framework authority before it is admitted to ordinary
     readiness paths
@@ -26,6 +21,9 @@ rows:
     owner packet explicitly adds a migration capability
   - Runtime service-owned configuration is outside this user-local registry;
     retired ~/.nimi/runtime/config.json import is forbidden by K-CFG-001
+  - Runtime-owned local-app principal, record, grant, session, inventory, and
+    package-seam state is excluded; retired user-local app projections are not
+    repair or migration inputs
   - unknown future schemaVersion or broken pointer in any governed file routes
     to repair_required or blocked per P-MIG-004, never a raw error
 
@@ -45,29 +43,5 @@ config_files:
   - config_file_id: factory_index_json
     path: "~/.nimi/profiles/factory-index.json"
     schema_owner: factory_profile_index
-    framework_authority: P-MIG-003
-    source_rule: P-MIG-001
-
-  - config_file_id: registry_json
-    path: "~/.nimi/apps/registry.json"
-    schema_owner: account_apps_registry
-    framework_authority: P-MIG-003
-    source_rule: P-MIG-001
-
-  - config_file_id: packages_json
-    path: "~/.nimi/apps/packages.json"
-    schema_owner: account_apps_packages
-    framework_authority: P-MIG-003
-    source_rule: P-MIG-001
-
-  - config_file_id: account_app_inventory_json
-    path: "~/.nimi/accounts/<account-id>/apps/inventory.json"
-    schema_owner: account_app_inventory_projection
-    framework_authority: P-MIG-003
-    source_rule: P-MIG-001
-
-  - config_file_id: grants_json
-    path: "~/.nimi/accounts/<account-id>/permissions/grants.json"
-    schema_owner: permission_grant_projection
     framework_authority: P-MIG-003
     source_rule: P-MIG-001

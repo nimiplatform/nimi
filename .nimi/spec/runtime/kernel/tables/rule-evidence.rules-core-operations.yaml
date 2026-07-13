@@ -73,6 +73,7 @@ entries:
   - K-DAEMON-009
   - K-DAEMON-010
   - K-DAEMON-011
+  - K-DAEMON-012
   - K-DEV-001
   - K-DEV-002
   - K-DEV-003
@@ -93,6 +94,7 @@ entries:
   - K-ERR-009
   - K-ERR-010
   - K-ERR-011
+  - K-ERR-012
   - K-GATE-001
   - K-GATE-010
   - K-GATE-020
@@ -379,6 +381,11 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
     evidence_requirement: required
+  - rule_id: K-DAEMON-012
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Fixed-service restart preserves principal/record/grant but advances boot epoch and invalidates every local-app lease/process/session before readiness.
+    test_files: [scripts/check-protected-local-authority.mjs]
   - rule_id: K-DEV-001
     evidence_refs:
       - runtime_kernel_consistency
@@ -479,6 +486,10 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
     evidence_requirement: required
+  - rule_id: K-ERR-012
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+    evidence_requirement: required
+    note: Closed local-app failure family preserves actionable states without leaking principal, grant, session, process, endpoint or credential material.
   - rule_id: K-GATE-001
     evidence_refs:
       - runtime_kernel_consistency

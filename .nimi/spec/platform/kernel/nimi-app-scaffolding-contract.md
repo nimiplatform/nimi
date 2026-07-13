@@ -74,9 +74,9 @@ are authoritative for this scaffolding contract:
 |---|---|
 | A0 | App authoring CLI authority stays `nimi-app create|init|doctor|update`; it does not move under the runtime-occupied `nimi app send|watch` namespace. |
 | A1 | Public Rust crate delivery name is `nimi-shell-tauri`; standalone targets the published crate channel after API/publication mechanics are admitted, and workspace apps use Cargo path dependency. |
-| A2 | SDK auth cuts a generated-app helper shape with modes `first-party-local-app`, `developer-registered-local-app`, `third-party-nimi-app`, and `dev-standalone`; generated local apps use developer registration for Runtime-shared auth and must not reuse first-party helper paths as self-declared first-party. |
+| A2 | SDK exposes one host-neutral local-app client after protected launch. Generated third-party apps use an injected `local_app_host` carrier and never select caller mode, trust class, endpoint, principal, grant, lease, or session. Bundled first-party composition remains separately owner-admitted. |
 | A3 | Explicit `workspace-app` scaffolding may auto-write monorepo app-slice admission under `P-APP-*`; standalone scaffolding never writes admitted truth. |
-| A4 | `dev-standalone` auth uses an explicit developer app session or returns typed unavailable; mock auth, disabled auth gates, pseudo-success, and first-party self-declaration are forbidden. |
+| A4 | Local development uses the production Developer Mode authorization, isolated `local_development` principal, fixed Windows service, shared grant/evaluator, and host-private common local-app session. Direct daemon, mock auth, disabled gates, pseudo-success, and first-party self-declaration are forbidden. |
 | A5 | Default scaffold content cannot import `kit/features/model-test` until Kit admits that feature surface. |
 
 `MUST NOT`: later implementation must not reopen A0-A5 as compatibility
@@ -343,29 +343,28 @@ tester Electron acceptance host code, tester environment variables, or tester
 app ids must not leak into default third-party templates. Tester passing does
 not substitute for generated default starter acceptance.
 
-## P-SCAF-016 - Installed-App Launch Binding Custody For Scaffolds
+## P-SCAF-016 - Local-app Launch And Session Custody For Scaffolds
 
-`MUST`: scaffolded installed-app paths consume Runtime/Desktop launch binding
-custody exactly as owned by `K-ACCSVC-022` and `K-APP-017`. The launch host id,
-launch nonce, release descriptor ref, caller posture, and Runtime-issued app
-session metadata remain inside the Desktop installed-app host and Kit native
-carrier; they are never SDK or renderer bootstrap inputs.
+`MUST`: scaffolded third-party paths consume the final Runtime/Desktop
+`PrepareLocalAppLaunch` and request-empty `OpenLocalAppSession` chain. Opaque
+principal, provenance, execution profile, launch lease, process proof, account/
+grant revisions, boot epoch, and session material remain inside Runtime and
+the Kit native carrier; they are never SDK constructor or renderer inputs.
 
-`MUST`: generated default starter source may contain fail-closed installed-app
-mode detection and host bridge consumption, but renderer-owned app code must
-not read, construct, persist, or pass `launchNonce`, `releaseDescriptorRef`, or
-`launchBinding` as app-supplied truth.
+`MUST`: generated source may detect whether the final host bridge exists and
+consume typed status, but app code must not read, construct, persist, or pass a
+principal, trust class, bootstrap, lease, process, record, grant, or session as
+app-supplied truth.
 
-`MUST`: the generated starter composes SDK `createInstalledNimiAppBootstrap`
-with Kit `createInstalledNimiAppStandardShellSurface` in one scaffold-managed
-module. Installed mode may consume only its admitted artifact reader; the
-general Runtime platform projection remains unavailable until separate
-operations are admitted.
+`MUST`: the generated starter composes the final SDK local-app client with the
+Kit local-app host surface in one scaffold-managed module. Fixed production
+AppHost and native development carriers share that client contract but retain
+different execution profiles. Operations missing from the owner-admitted
+applicability set return typed unavailable.
 
-`MUST NOT`: the generated installed path must not construct or return a
-developer-registered account caller. Developer caller helpers remain usable
-only when the resolved auth mode is explicitly
-`developer-registered-local-app`.
+`MUST NOT`: generated code must not construct a developer/installed account
+caller or expose the retired split auth modes. Runtime derives the single
+`LOCAL_APP` caller from the protected native connection.
 
 `MUST NOT`: scaffolding must not teach third-party apps to self-report launch
 binding, descriptor truth, host identity, Runtime account caller posture, app
@@ -405,6 +404,12 @@ or registry/release descriptor truth.
 validation, build coordination, and developer-safe status output only. It
 cannot issue an authorization, grant, ticket, session, protected endpoint,
 credential, release trust, or production evidence.
+
+`MUST`: the positive command requests Desktop's production Developer Mode,
+fresh project presence, isolated local principal, and supervised launch through
+the fixed Runtime service. Controlled rebuild/restart may rotate the host-
+private lease/session without repeated consent while the durable authorization
+tuple is exact. The CLI receives only stable status/failure projections.
 
 `MUST`: generated project validation and `nimi-app doctor` reject direct
 `tauri dev`, manually launched Electron host scripts, generic Runtime/localhost

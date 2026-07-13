@@ -10,20 +10,30 @@ rows:
   - APP_NOT_REGISTERED
   - EXTERNAL_PRINCIPAL_NOT_REGISTERED
   - PRINCIPAL_UNAUTHORIZED
-  - APP_AUTHORIZATION_DENIED
-  - APP_GRANT_INVALID
   - APP_TOKEN_EXPIRED
   - APP_TOKEN_REVOKED
-  - APP_SCOPE_CATALOG_UNPUBLISHED
-  - APP_DELEGATION_FORBIDDEN
-  - APP_DELEGATION_DEPTH_EXCEEDED
-  - APP_RESOURCE_SELECTOR_INVALID
-  - APP_RESOURCE_OUT_OF_SCOPE
-  - APP_CONSENT_MISSING
-  - APP_CONSENT_INVALID
   - EXTERNAL_PRINCIPAL_PROOF_MISSING
   - EXTERNAL_PRINCIPAL_PROOF_INVALID
   - APP_MODE_WORLD_RELATION_FORBIDDEN
+  - LOCAL_APP_PRINCIPAL_REQUIRED
+  - LOCAL_APP_RECORD_NOT_FOUND
+  - LOCAL_APP_RECORD_TOMBSTONED
+  - LOCAL_APP_PROVENANCE_UNAVAILABLE
+  - LOCAL_APP_LAUNCH_LEASE_REQUIRED
+  - LOCAL_APP_LAUNCH_LEASE_MISMATCH
+  - LOCAL_APP_LAUNCH_LEASE_REPLAY
+  - LOCAL_APP_PROCESS_MISMATCH
+  - LOCAL_APP_SESSION_REVOKED
+  - LOCAL_APP_GRANT_REQUIRED
+  - LOCAL_APP_GRANT_REVOKED
+  - LOCAL_APP_GRANT_SUPERSEDED
+  - LOCAL_APP_ACCOUNT_CHANGED
+  - LOCAL_APP_OPERATION_UNAVAILABLE
+  - LOCAL_APP_PRESENCE_REQUIRED
+  - LOCAL_APP_PRESENCE_EXPIRED
+  - LOCAL_APP_DEVELOPER_MODE_DISABLED
+  - LOCAL_APP_REMEMBERED_PROJECT_DORMANT
+  - LOCAL_APP_RISK_DISCLOSURE_REQUIRED
 mappings:
   - reason_code: REASON_CODE_UNSPECIFIED
     grpc_code: OK
@@ -65,16 +75,6 @@ mappings:
     surface: authz_gate
     exit_shape: grpc_status
     source_rule: K-AUTH-001
-  - reason_code: APP_AUTHORIZATION_DENIED
-    grpc_code: PERMISSION_DENIED
-    surface: app_authorization_gate
-    exit_shape: grpc_status
-    source_rule: K-GRANT-003
-  - reason_code: APP_GRANT_INVALID
-    grpc_code: INVALID_ARGUMENT
-    surface: grant_validation
-    exit_shape: grpc_status
-    source_rule: K-GRANT-004
   - reason_code: APP_TOKEN_EXPIRED
     grpc_code: UNAUTHENTICATED
     surface: app_session_validation
@@ -85,41 +85,6 @@ mappings:
     surface: app_session_validation
     exit_shape: grpc_status
     source_rule: K-AUTHSVC-005
-  - reason_code: APP_SCOPE_CATALOG_UNPUBLISHED
-    grpc_code: FAILED_PRECONDITION
-    surface: scope_catalog_validation
-    exit_shape: grpc_status
-    source_rule: K-GRANT-008
-  - reason_code: APP_DELEGATION_FORBIDDEN
-    grpc_code: PERMISSION_DENIED
-    surface: delegation_gate
-    exit_shape: grpc_status
-    source_rule: K-GRANT-005
-  - reason_code: APP_DELEGATION_DEPTH_EXCEEDED
-    grpc_code: FAILED_PRECONDITION
-    surface: delegation_depth_guard
-    exit_shape: grpc_status
-    source_rule: K-GRANT-005
-  - reason_code: APP_RESOURCE_SELECTOR_INVALID
-    grpc_code: INVALID_ARGUMENT
-    surface: resource_selector_validation
-    exit_shape: grpc_status
-    source_rule: K-GRANT-003
-  - reason_code: APP_RESOURCE_OUT_OF_SCOPE
-    grpc_code: PERMISSION_DENIED
-    surface: resource_scope_gate
-    exit_shape: grpc_status
-    source_rule: K-GRANT-005
-  - reason_code: APP_CONSENT_MISSING
-    grpc_code: FAILED_PRECONDITION
-    surface: consent_validation
-    exit_shape: grpc_status
-    source_rule: K-GRANT-003
-  - reason_code: APP_CONSENT_INVALID
-    grpc_code: INVALID_ARGUMENT
-    surface: consent_validation
-    exit_shape: grpc_status
-    source_rule: K-GRANT-003
   - reason_code: EXTERNAL_PRINCIPAL_PROOF_MISSING
     grpc_code: INVALID_ARGUMENT
     surface: external_principal_proof_validation
@@ -225,6 +190,25 @@ mappings:
     surface: protected_executable_verification
     exit_shape: grpc_status_with_sanitized_detail
     source_rule: K-PLOCAL-005
+  - { reason_code: LOCAL_APP_PRINCIPAL_REQUIRED, grpc_code: PERMISSION_DENIED, surface: local_app_principal_resolution, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_RECORD_NOT_FOUND, grpc_code: NOT_FOUND, surface: local_app_record_resolution, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_RECORD_TOMBSTONED, grpc_code: PERMISSION_DENIED, surface: local_app_record_resolution, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_PROVENANCE_UNAVAILABLE, grpc_code: FAILED_PRECONDITION, surface: local_app_provenance_resolution, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_LAUNCH_LEASE_REQUIRED, grpc_code: FAILED_PRECONDITION, surface: local_app_launch, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_LAUNCH_LEASE_MISMATCH, grpc_code: PERMISSION_DENIED, surface: local_app_launch, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_LAUNCH_LEASE_REPLAY, grpc_code: PERMISSION_DENIED, surface: local_app_launch, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_PROCESS_MISMATCH, grpc_code: PERMISSION_DENIED, surface: local_app_process_binding, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_SESSION_REVOKED, grpc_code: UNAUTHENTICATED, surface: local_app_session, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_GRANT_REQUIRED, grpc_code: PERMISSION_DENIED, surface: local_app_operation_grant, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_GRANT_REVOKED, grpc_code: PERMISSION_DENIED, surface: local_app_operation_grant, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_GRANT_SUPERSEDED, grpc_code: PERMISSION_DENIED, surface: local_app_operation_grant, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_ACCOUNT_CHANGED, grpc_code: UNAUTHENTICATED, surface: local_app_account_partition, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_OPERATION_UNAVAILABLE, grpc_code: UNIMPLEMENTED, surface: local_app_operation_owner, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_PRESENCE_REQUIRED, grpc_code: FAILED_PRECONDITION, surface: local_app_presence, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_PRESENCE_EXPIRED, grpc_code: PERMISSION_DENIED, surface: local_app_presence, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_DEVELOPER_MODE_DISABLED, grpc_code: FAILED_PRECONDITION, surface: local_app_developer_mode, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, grpc_code: FAILED_PRECONDITION, surface: local_app_development_record, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, grpc_code: FAILED_PRECONDITION, surface: local_app_development_approval, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - reason_code: LIFECYCLE_INTENT_REQUIRED
     grpc_code: FAILED_PRECONDITION
     surface: protected_lifecycle_intent_gate
@@ -245,48 +229,3 @@ mappings:
     surface: protected_lifecycle_intent_gate
     exit_shape: grpc_status_with_sanitized_detail
     source_rule: K-APP-026
-  - reason_code: LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED
-    grpc_code: PERMISSION_DENIED
-    surface: local_development_authorization
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED
-    grpc_code: FAILED_PRECONDITION
-    surface: local_development_authorization
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_PROJECT_CHANGED
-    grpc_code: FAILED_PRECONDITION
-    surface: local_development_project
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED
-    grpc_code: PERMISSION_DENIED
-    surface: local_development_process_binding
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_SESSION_REVOKED
-    grpc_code: UNAUTHENTICATED
-    surface: local_development_session
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED
-    grpc_code: FAILED_PRECONDITION
-    surface: local_development_platform
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN
-    grpc_code: PERMISSION_DENIED
-    surface: local_development_operation
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED
-    grpc_code: PERMISSION_DENIED
-    surface: local_development_dev_server
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009
-  - reason_code: LOCAL_DEVELOPMENT_APPROVAL_DENIED
-    grpc_code: PERMISSION_DENIED
-    surface: local_development_authorization
-    exit_shape: grpc_status_with_sanitized_detail
-    source_rule: K-PLOCAL-009

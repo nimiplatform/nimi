@@ -64,7 +64,26 @@ surfaces:
     family_scope: app_memory_access
     return_contract: "*AppMemoryAccessService"
     capability_concerns: []
-    notes: Sole C-APMEM app-facing facade for admitted app memory, knowledge, and skill access.
+    caller_context:
+      authority: runtime_immutable_local_app_access_decision
+      required_subject: local_app_principal_id
+      required_bindings:
+        - local_os_user_anchor
+        - account_generation
+        - local_app_record_generation
+        - grant_revision
+        - session_generation
+        - operation_and_resource
+      forbidden_owner_inference:
+        - app_id
+        - local_app_principal_id
+        - project_path
+        - process
+        - local_app_record
+        - local_app_grant
+      canonical_owner_resolution: runtime_agent_and_cognition_relations
+    notes: Sole C-APMEM app-facing facade; local principal is caller/access/audit subject only, while RuntimeAgent/Cognition retain agent, conversation, memory, knowledge, and skill ownership.
+    policy_source_rule: C-APMEM-009
     source_rule: C-COG-027
   - surface_id: cognition.skill_service
     surface_kind: facade_accessor

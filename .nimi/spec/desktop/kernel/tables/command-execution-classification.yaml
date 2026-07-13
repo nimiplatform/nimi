@@ -575,16 +575,16 @@ registered_command_families:
     source_rule: D-GATE-092
 
 dormant_command_families:
-  - family: kit_installed_app_commands_for_non_desktop_hosts
+  - family: kit_local_app_commands_for_non_desktop_hosts
     match:
       exact:
         - app_host_bootstrap
         - artifacts_read_runtime_bytes
     origin_crate: kit/shell/tauri
-    owner_domain: installed-app-standard-shell
+    owner_domain: local-app-standard-shell
     dormant_class: dormant_admitted
     remediation_required: false
-    reason: Shared Kit installed-app commands are registered only by supervised installed or local-development app hosts; the Desktop renderer does not expose this app-host surface.
+    reason: Shared Kit local-app commands are registered only by supervised local-app hosts; the Desktop renderer does not expose this app-host surface and immutable package launch is unavailable in 0K.
     source_rule: D-GATE-095
 
   - family: kit_shell_floating_window_for_non_desktop_hosts

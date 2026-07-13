@@ -15,28 +15,31 @@ values:
   - CAPABILITY_PROFILE_DYNAMIC_PUSH_REJECTED
   - PROTOCOL_ENVELOPE_INVALID
   - PROTOCOL_DOMAIN_FIELD_CONFLICT
-  - APP_AUTHORIZATION_DENIED
-  - APP_GRANT_INVALID
-  - APP_TOKEN_EXPIRED
-  - APP_TOKEN_REVOKED
-  - APP_SCOPE_FORBIDDEN
-  - APP_DELEGATION_FORBIDDEN
-  - APP_DELEGATION_DEPTH_EXCEEDED
+  - LOCAL_APP_PRINCIPAL_REQUIRED
+  - LOCAL_APP_RECORD_NOT_FOUND
+  - LOCAL_APP_RECORD_TOMBSTONED
+  - LOCAL_APP_PROVENANCE_UNAVAILABLE
+  - LOCAL_APP_LAUNCH_LEASE_REQUIRED
+  - LOCAL_APP_LAUNCH_LEASE_MISMATCH
+  - LOCAL_APP_LAUNCH_LEASE_REPLAY
+  - LOCAL_APP_PROCESS_MISMATCH
+  - LOCAL_APP_SESSION_REVOKED
+  - LOCAL_APP_GRANT_REQUIRED
+  - LOCAL_APP_GRANT_REVOKED
+  - LOCAL_APP_GRANT_SUPERSEDED
+  - LOCAL_APP_ACCOUNT_CHANGED
+  - LOCAL_APP_OPERATION_UNAVAILABLE
+  - LOCAL_APP_PRESENCE_REQUIRED
+  - LOCAL_APP_PRESENCE_EXPIRED
+  - LOCAL_APP_DEVELOPER_MODE_DISABLED
+  - LOCAL_APP_REMEMBERED_PROJECT_DORMANT
+  - LOCAL_APP_RISK_DISCLOSURE_REQUIRED
   - EXTERNAL_PRINCIPAL_PROOF_MISSING
   - EXTERNAL_PRINCIPAL_PROOF_INVALID
-  - APP_SCOPE_MANIFEST_INVALID
-  - APP_SCOPE_NAMESPACE_FORBIDDEN
-  - APP_SCOPE_CONFLICT
-  - APP_SCOPE_CATALOG_UNPUBLISHED
-  - APP_SCOPE_REVOKED
   - APP_MODE_DOMAIN_FORBIDDEN
   - APP_MODE_SCOPE_FORBIDDEN
   - APP_MODE_WORLD_RELATION_FORBIDDEN
   - APP_MODE_MANIFEST_INVALID
-  - APP_RESOURCE_SELECTOR_INVALID
-  - APP_RESOURCE_OUT_OF_SCOPE
-  - APP_CONSENT_MISSING
-  - APP_CONSENT_INVALID
   - WORLD_RENDER_WRITE_FORBIDDEN
   - WORLD_EXTENSION_BINDING_REQUIRED
   - WORLD_EXTENSION_APP_MISMATCH
@@ -92,50 +95,32 @@ codes:
   - name: PROTOCOL_DOMAIN_FIELD_CONFLICT
     group: protocol_envelope
     source_rule: P-PROTO-010
-  # App authorization errors
-  - name: APP_AUTHORIZATION_DENIED
-    group: app_auth
-    source_rule: P-PROTO-030
-  - name: APP_GRANT_INVALID
-    group: app_auth
-    source_rule: P-PROTO-030
-  - name: APP_TOKEN_EXPIRED
-    group: app_auth
-    source_rule: P-PROTO-030
-  - name: APP_TOKEN_REVOKED
-    group: app_auth
-    source_rule: P-PROTO-030
-  - name: APP_SCOPE_FORBIDDEN
-    group: app_auth
-    source_rule: P-PROTO-030
-  - name: APP_DELEGATION_FORBIDDEN
-    group: app_auth
-    source_rule: P-PROTO-035
-  - name: APP_DELEGATION_DEPTH_EXCEEDED
-    group: app_auth
-    source_rule: P-PROTO-035
+  # Local app kernel errors
+  - { name: LOCAL_APP_PRINCIPAL_REQUIRED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_RECORD_NOT_FOUND, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_RECORD_TOMBSTONED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_PROVENANCE_UNAVAILABLE, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_LAUNCH_LEASE_REQUIRED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_LAUNCH_LEASE_MISMATCH, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_LAUNCH_LEASE_REPLAY, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_PROCESS_MISMATCH, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_SESSION_REVOKED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_GRANT_REQUIRED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_GRANT_REVOKED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_GRANT_SUPERSEDED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_ACCOUNT_CHANGED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_OPERATION_UNAVAILABLE, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_PRESENCE_REQUIRED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_PRESENCE_EXPIRED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_DEVELOPER_MODE_DISABLED, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, group: local_app, source_rule: P-PROTO-020 }
+  - { name: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, group: local_app, source_rule: P-PROTO-020 }
   - name: EXTERNAL_PRINCIPAL_PROOF_MISSING
     group: app_auth
     source_rule: P-PROTO-020
   - name: EXTERNAL_PRINCIPAL_PROOF_INVALID
     group: app_auth
     source_rule: P-PROTO-020
-  # Scope extension errors
-  - name: APP_SCOPE_MANIFEST_INVALID
-    group: scope_extension
-    source_rule: P-PROTO-021
-  - name: APP_SCOPE_NAMESPACE_FORBIDDEN
-    group: scope_extension
-    source_rule: P-PROTO-021
-  - name: APP_SCOPE_CONFLICT
-    group: scope_extension
-    source_rule: P-PROTO-021
-  - name: APP_SCOPE_CATALOG_UNPUBLISHED
-    group: scope_extension
-    source_rule: P-PROTO-040
-  - name: APP_SCOPE_REVOKED
-    group: scope_extension
-    source_rule: P-PROTO-040
   # App mode errors
   - name: APP_MODE_DOMAIN_FORBIDDEN
     group: app_mode
@@ -153,19 +138,6 @@ codes:
     group: app_mode
     action_hint: fix_app_mode_manifest
     source_rule: P-PROTO-060
-  # App resource and consent errors
-  - name: APP_RESOURCE_SELECTOR_INVALID
-    group: app_resource
-    source_rule: P-PROTO-030
-  - name: APP_RESOURCE_OUT_OF_SCOPE
-    group: app_resource
-    source_rule: P-PROTO-030
-  - name: APP_CONSENT_MISSING
-    group: app_resource
-    source_rule: P-PROTO-030
-  - name: APP_CONSENT_INVALID
-    group: app_resource
-    source_rule: P-PROTO-030
   # World-App binding errors
   - name: WORLD_RENDER_WRITE_FORBIDDEN
     group: world_app_binding

@@ -1,0 +1,49 @@
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_local_app_grant_binding_schema
+source_rule: K-GRANT-014
+grant:
+  owner: runtime_k_grant
+  store_identity: local_app_grants
+  key:
+    - local_os_user_anchor
+    - account_id
+    - local_app_principal_id
+    - capability_resource_fingerprint
+  fields:
+    - grant_id
+    - capability_scope
+    - resource_scope
+    - capability_resource_fingerprint
+    - grant_generation
+    - grant_revision
+    - state
+    - issued_at
+    - expires_at
+    - supersedes_grant_id
+    - presence_evidence_ref
+  state_enum: [pending, granted, denied, expired, revoked, superseded]
+  allowed_transitions:
+    - pending_to_granted_denied_or_expired
+    - granted_to_revoked_expired_or_superseded
+    - denied_to_new_pending_request_only
+  invariants:
+    - local_app_record_contains_no_grant_boolean
+    - install_project_authorization_or_promotion_creates_zero_grant
+    - trust_class_has_no_permission_effect
+    - account_switch_never_transfers_grant
+    - grant_mutation_does_not_rotate_identity_session
+    - next_protected_operation_reads_current_grant
+    - no_app_id_only_positive_lookup
+forbidden_outputs:
+  - bearer
+  - token
+  - portable_grant_credential
+  - session_proof
+  - owner_policy_result_cache
+store_separation:
+  principal_record_store_dependency: reference_only
+  launch_session_store_dependency: none
+  shared_serialized_record: forbidden
+  app_id_positive_key: forbidden

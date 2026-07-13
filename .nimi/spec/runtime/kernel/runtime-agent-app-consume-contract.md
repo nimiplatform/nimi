@@ -9,7 +9,8 @@ This file is a semantic split from `runtime-agent-service-contract.md`; Rule IDs
 ## K-AGCORE-032 App-Facing Reactive Chat Consume Seam
 
 `RuntimeAgentService` owns one admitted app-facing reactive chat consume seam
-for first-party host surfaces.
+for first-party host surfaces and the protected selected-operation subset for
+third-party `LOCAL_APP` callers.
 
 Fixed rules:
 
@@ -61,6 +62,11 @@ Fixed rules:
   turn projection remains governed by the admitted `RuntimeAppService` /
   app-messaging path; query surfaces are owned by `RuntimeAgentService` unary
   RPCs
+- a third-party local app reaches only open-conversation, send-turn,
+  subscribe-turn and conversation-snapshot operations through the common
+  protected local-app carrier; Runtime maps those typed operations into this
+  canonical seam after `K-ACCSVC-026` authorization and never exposes the
+  reserved app target as a generic message bus
 
 ## K-AGCORE-052 Scoped Binding Attachment For App-Facing Consume
 
@@ -68,6 +74,11 @@ Explicit binding-only first-party consume modes must attach a Runtime-issued
 scoped binding to every app-facing reactive consume operation. Default Nimi
 Avatar launch is not binding-only; it consumes runtime-agent through admitted
 local first-party Runtime / SDK account and agent authorization paths.
+
+Third-party `LOCAL_APP` callers do not mint or attach first-party scoped
+bindings. They present no portable credential: the protected transport resolves
+their current process-bound local-app session, and `K-ACCSVC-026` separately
+resolves the exact grant and owner policy for each selected operation.
 
 Fixed rules:
 
@@ -94,3 +105,6 @@ Fixed rules:
   external-principal paths, but it is never scoped binding proof.
 - Default local first-party Avatar must not be forced through this binding
   attachment path solely because Desktop launched it.
+- a local-app principal remains only the caller/access/audit subject; it cannot
+  substitute for `agent_id`, `conversation_anchor_id`, agent ownership, memory
+  ownership or `subject_user_id`

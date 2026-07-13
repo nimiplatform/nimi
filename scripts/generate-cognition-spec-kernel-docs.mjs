@@ -13,6 +13,8 @@ const tablesDir = path.join(repoRoot, '.nimi', 'spec', 'cognition', 'kernel', 't
 const outDir = path.join(repoRoot, '.nimi', 'spec', 'cognition', 'kernel', 'generated');
 
 const specs = [
+  { input: 'rule-evidence.catalog.yaml', output: 'rule-evidence.catalog.md', render: renderJsonSnapshot('Generated Cognition Evidence Catalog') },
+  { input: 'rule-evidence.rules-app-memory-access.yaml', output: 'rule-evidence.rules-app-memory-access.md', render: renderJsonSnapshot('Generated Cognition App Memory Rule Evidence') },
   { input: 'artifact-families.yaml', output: 'artifact-families.md', render: renderArtifactFamilies },
   { input: 'public-surface.yaml', output: 'public-surface.md', render: renderPublicSurface },
   { input: 'runtime-bridge-boundary.yaml', output: 'runtime-bridge-boundary.md', render: renderRuntimeBridgeBoundary },
@@ -37,6 +39,18 @@ function header(title, sourceName) {
     `> Source: \`.nimi/spec/cognition/kernel/tables/${sourceName}\``,
     '',
   ].join('\n'));
+}
+
+function renderJsonSnapshot(title) {
+  return function renderSnapshot(doc, sourceName) {
+    return normalizeMarkdown([
+      header(title, sourceName),
+      '```json',
+      JSON.stringify(doc, null, 2),
+      '```',
+      '',
+    ].join('\n'));
+  };
 }
 
 function renderRuleEvidence(doc, sourceName) {

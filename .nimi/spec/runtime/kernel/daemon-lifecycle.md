@@ -216,3 +216,20 @@ Runtime daemon 必须通过 gRPC server metadata 暴露版本信息，供 SDK �
 
 - Desktop 通过 `runtime_bridge_status` 返回的 `daemonVersion` 字段获取版本（`D-IPC-002`/`D-IPC-014`），不依赖本规则。
 - 本规则面向 `node-grpc` 传输的独立 SDK 消费者。两条路径语义等价，传输手段不同。
+
+## K-DAEMON-012 Local App Restart Invalidation
+
+The fixed OS service preserves the service-owned local-app principal, local
+record, grant and audit stores across a normal Runtime restart. Every restart
+advances the boot epoch and invalidates all outstanding local-app launch
+leases, process bindings, sessions, challenges and presence proofs before any
+protected listener becomes ready. Durable grants remain records, but no grant
+authorizes work until the caller opens a new session for the new boot epoch and
+the per-operation coordinator re-resolves the current grant revision.
+
+Runtime restart must therefore support conversation continuity owned by
+RuntimeAgent/Cognition while refusing reuse of the pre-restart process carrier.
+State corruption, rollback mismatch, account-partition mismatch, service-owned
+root mismatch or inability to commit epoch invalidation makes protected local
+app access unavailable; no direct daemon, environment-selected root, portable
+session, app-id lookup or old process channel may recover it.

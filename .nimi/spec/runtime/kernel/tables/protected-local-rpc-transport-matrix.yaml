@@ -1,107 +1,91 @@
-version: 4
+version: 5
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
 surfaces:
   - RuntimeAuthService
   - RuntimeAccountService
-  - RuntimeGrantService
   - RuntimeAppService
   - RuntimeArtifactService
+  - RuntimeAgentService
   - RuntimeDevelopmentService
-description: Closed transport and verified-origin admission for A.0 Desktop control, A.1 Windows installed launch/session methods, A.3 artifact reads, and A.5 mutable local-development authorization and technical sessions.
+description: >-
+  Closed transport and verified-origin admission for Desktop control and the
+  common third-party local-app kernel. Immutable package/install/update/
+  promotion remains typed unavailable; local_development is the only 0K
+  positive third-party trust class.
 authority_refs:
   - K-PLOCAL-001
   - K-PLOCAL-002
   - K-PLOCAL-006
   - K-PLOCAL-007
-  - K-AGCORE-053
+  - K-PLOCAL-008
   - K-PLOCAL-009
-transport_classes:
-  - public_tcp
-  - desktop_control
-  - launch_bootstrap
-  - installed_host
-reserved_not_admitted_in_a0: [launch_bootstrap, installed_host]
-a1_platform_admission:
-  windows: admitted
+  - K-APP-017
+  - K-ACCSVC-026
+  - K-GRANT-014
+  - K-AGCORE-032
+  - K-AGCORE-052
+  - K-AGCORE-053
+transport_classes: [public_tcp, desktop_control, local_app_bootstrap, local_app_host]
+platform_admission:
+  windows: admitted_fixed_service_and_process_verification
   macos: fail_closed_pending_native_admission
   linux: fail_closed_pending_native_admission
-  forbidden_fallbacks: [localhost_grpc, same_user_daemon, argv, env, temp_file, renderer_ipc, portable_bearer]
-a5_local_development_admission:
-  windows:
-    authority_status: admitted
-    implementation_status: pending_live_e2e
-    closeout_status: blocked
-  macos:
-    authority_status: pending_independent_admission
-    implementation_status: fail_closed_not_implemented
-    closeout_status: blocked
-  linux:
-    authority_status: pending_independent_admission
-    implementation_status: fail_closed_not_implemented
-    closeout_status: blocked
-  trust_class: local-development-installed-admission
-  production_release_conversion: forbidden
-  forbidden_fallbacks: [localhost_grpc, same_user_daemon, direct_tauri_dev, manual_electron, renderer_ipc, portable_bearer]
-installed_host_carrier:
-  physical_transport_shared_by: [production_installed, local_development]
-  trust_classes_mutually_exclusive: true
-  process_roles_mutually_exclusive: true
-  session_handles_mutually_exclusive: true
-  operation_authorization_revalidated_per_call: true
-  cross_class_conversion: forbidden
+  forbidden_fallbacks:
+    - localhost_grpc
+    - same_user_daemon
+    - direct_tauri_dev
+    - manual_electron
+    - argv
+    - env
+    - temp_file
+    - renderer_ipc
+    - portable_bearer
+    - raw_executable_self_auth
+trust_classes:
+  admitted_positive: [local_development]
+  opaque_typed_unavailable: [verified, user_imported]
+  bundled_excluded: true
 origin_roles:
   - binding_only
   - verified_desktop_process
   - desktop_account_host
-  - desktop_lifecycle_host
-  - verified_installed_process
-  - installed_host_session
-  - verified_local_development_process
-  - local_development_host_session
+  - local_app_control
+  - local_app_process
+  - local_app_session
 operation_classes:
   - binding_bootstrap
   - desktop_session_bootstrap
+  - local_app_session_bootstrap
   - desktop_account_projection
   - desktop_account_control
   - desktop_binding_control
+  - local_app_grant_projection
+  - local_app_grant_request
+  - local_app_grant_control
   - realm_broker_transport
-  - desktop_lifecycle_ux_projection
-  - desktop_lifecycle_mutation
-  - installed_session_bootstrap
-  - installed_launch_process_binding
-  - installed_artifact_read
-  - local_development_evaluation
-  - local_development_decision
-  - local_development_authorization_management
-  - local_development_launch_preparation
-  - local_development_process_binding
-  - local_development_session_bootstrap
-  - local_development_session_status
+  - local_app_launch_preparation
+  - local_app_process_binding
+  - local_development_control
   - local_development_run_end
+  - local_app_artifact_read
+  - local_app_agent_conversation
   - blocked_pending_separate_authority
-  - ordinary_projection
 matrix_schema:
   fields:
     - method_id
     - operation_class
     - allowed_transport_classes
     - required_origin_roles
+    - required_origin_roles_by_transport
     - request_may_select_role
     - portable_session_allowed
     - public_tcp_disposition
-    - lifecycle_challenge_required
     - source_rule
-legacy_lifecycle_challenge_field:
-  authority_status: transitional_schema_name
-  false_semantics: no_prepare_projection_required
-  true_semantics: lifecycle_operation_binding_and_transaction_required_not_anchored_challenge
-  removal_owner: proto_and_generator_migration
 public_tcp_privileged_disposition: deny
 request_role_selection: forbidden
 portable_privileged_session: forbidden
-authority_admitted_pending_proto_projection: []
 open_desktop_session_wire:
   request:
     message: OpenDesktopSessionRequest
@@ -111,422 +95,90 @@ open_desktop_session_wire:
   response:
     message: OpenDesktopSessionResponse
     fields:
-      - name: desktop_session_id
-        type: bytes
-        exact_length: 32
-        authority: correlation_only_non_portable
-      - name: runtime_boot_epoch
-        type: bytes
-        exact_length: 32
-        authority: stale_projection_rejection_only
+      - { name: desktop_session_id, type: bytes, exact_length: 32, authority: correlation_only_non_portable }
+      - { name: runtime_boot_epoch, type: bytes, exact_length: 32, authority: stale_projection_rejection_only }
   renderer_projection: forbidden
   app_projection: forbidden
   connection_binding: exact_verified_desktop_control_connection
   session_reuse_or_rebind: forbidden
   source_rule: K-PLOCAL-006
-open_installed_session_wire:
+open_local_app_session_wire:
   request:
-    message: OpenDesktopLaunchedAppSessionRequest
+    message: OpenLocalAppSessionRequest
     fields: []
     request_metadata_authority_inputs: []
     unknown_field_disposition: reject
   response:
-    message: OpenDesktopLaunchedAppSessionResponse
-    authority_fields: [installed_session_id, installed_session_proof, expires_at]
-    projection_fields: [app_id, release_digest, account_generation, runtime_boot_epoch]
-  connection_binding: exact_verified_launch_bootstrap_connection
-  atomic_transition: launch_ticket_consume_and_installed_session_insert
-  renderer_projection: forbidden
+    message: OpenLocalAppSessionResponse
+    projection_fields: [state, trust_class, account_generation, runtime_boot_epoch, reason_code]
+    forbidden_fields:
+      - local_app_principal_id
+      - immutable_lineage_id
+      - local_record_id
+      - grant_id
+      - grant_revision
+      - session_id
+      - session_proof
+      - launch_lease
+      - process_proof
+      - endpoint
+      - token
+      - credential
+  connection_binding: exact_bound_local_app_process_and_current_launch_lease
+  atomic_transition: launch_lease_consume_and_private_local_app_session_insert
+  renderer_projection: typed_session_and_permission_posture_only
   ordinary_grpc_disposition: deny
   source_rule: K-PLOCAL-008
-open_local_development_session_wire:
-  request:
-    message: OpenLocalDevelopmentAppSessionRequest
-    fields: []
-    request_metadata_authority_inputs: []
-    unknown_field_disposition: reject
-  response:
-    message: OpenLocalDevelopmentAppSessionResponse
-    authority_fields: []
-    projection_fields: [state, app_id, bootstrap_artifact_id, expires_at, account_generation, runtime_boot_epoch, reason_code]
-    forbidden_fields: [session_id, session_proof, launch_ticket, token, credential]
-  connection_binding: installed_host_carrier_exact_verified_desktop_supervised_local_development_process
-  atomic_transition: development_launch_consume_and_private_session_insert
-  renderer_projection: typed_status_and_bootstrap_artifact_selector_only
-  ordinary_grpc_disposition: deny
-  source_rule: K-PLOCAL-009
 methods:
-  - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
-    operation_class: binding_bootstrap
-    allowed_transport_classes: [public_tcp]
-    required_origin_roles: [binding_only]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: binding_only
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-001
-  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenSession
-    operation_class: binding_bootstrap
-    allowed_transport_classes: [public_tcp]
-    required_origin_roles: [binding_only]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: binding_only
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-001
-  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
-    operation_class: desktop_session_bootstrap
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [verified_desktop_process]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession
-    operation_class: installed_session_bootstrap
-    allowed_transport_classes: [launch_bootstrap]
-    required_origin_roles: [verified_installed_process]
+  - { method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp, operation_class: binding_bootstrap, allowed_transport_classes: [public_tcp], required_origin_roles: [binding_only], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: binding_only, source_rule: K-PLOCAL-001 }
+  - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenSession, operation_class: binding_bootstrap, allowed_transport_classes: [public_tcp], required_origin_roles: [binding_only], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: binding_only, source_rule: K-PLOCAL-001 }
+  - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession, operation_class: desktop_session_bootstrap, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession, operation_class: local_app_session_bootstrap, allowed_transport_classes: [local_app_bootstrap], required_origin_roles: [local_app_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-008 }
+
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus, operation_class: desktop_account_projection, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents, operation_class: desktop_account_projection, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/BeginLogin, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/CompleteLogin, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/Logout, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary, operation_class: realm_broker_transport, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-023 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding, operation_class: desktop_binding_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-024 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding, operation_class: desktop_binding_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-024 }
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus
+    operation_class: local_app_grant_projection
+    allowed_transport_classes: [desktop_control, local_app_host]
+    required_origin_roles_by_transport:
+      desktop_control: [local_app_control]
+      local_app_host: [local_app_session]
     request_may_select_role: false
     portable_session_allowed: false
     public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-008
-  - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
-    operation_class: installed_artifact_read
-    allowed_transport_classes: [installed_host]
-    required_origin_roles: [installed_host_session, local_development_host_session]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
-    operation_class: local_development_evaluation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject
-    operation_class: local_development_decision
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
-    operation_class: local_development_authorization_management
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
-    operation_class: local_development_authorization_management
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch
-    operation_class: local_development_launch_preparation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess
-    operation_class: local_development_process_binding
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession
-    operation_class: local_development_session_bootstrap
-    allowed_transport_classes: [installed_host]
-    required_origin_roles: [verified_local_development_process]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus
-    operation_class: local_development_session_status
-    allowed_transport_classes: [installed_host]
-    required_origin_roles: [local_development_host_session]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
-    operation_class: local_development_run_end
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-009
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
-    operation_class: desktop_account_projection
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents
-    operation_class: desktop_account_projection
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/BeginLogin
-    operation_class: desktop_account_control
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/CompleteLogin
-    operation_class: desktop_account_control
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification
-    operation_class: desktop_account_control
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/Logout
-    operation_class: desktop_account_control
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
-    operation_class: desktop_account_control
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-006
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
-    operation_class: realm_broker_transport
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-ACCSVC-023
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding
-    operation_class: desktop_binding_control
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-ACCSVC-024
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding
-    operation_class: desktop_binding_control
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_account_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-ACCSVC-024
-  - method_id: /nimi.runtime.v1.RuntimeAppService/InstallApp
-    operation_class: desktop_lifecycle_mutation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: true
-    source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
-    operation_class: desktop_lifecycle_ux_projection
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-APP-026
-  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus
-    operation_class: desktop_lifecycle_ux_projection
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-APP-026
-  - method_id: /nimi.runtime.v1.RuntimeAppService/UninstallApp
-    operation_class: desktop_lifecycle_mutation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: true
-    source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/UpdateApp
-    operation_class: desktop_lifecycle_mutation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: true
-    source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/HealthRepairApp
-    operation_class: desktop_lifecycle_mutation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: true
-    source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/AdoptLocalApp
-    operation_class: desktop_lifecycle_mutation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: true
-    source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption
-    operation_class: desktop_lifecycle_mutation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: true
-    source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/OpenApp
-    operation_class: desktop_lifecycle_mutation
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess
-    operation_class: installed_launch_process_binding
-    allowed_transport_classes: [desktop_control]
-    required_origin_roles: [desktop_lifecycle_host]
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-008
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/ListTokenChain
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-001
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-002
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
-    request_may_select_role: false
-    portable_session_allowed: false
-    public_tcp_disposition: deny
-    lifecycle_challenge_required: false
-    source_rule: K-PLOCAL-002
-future_method_policy:
-  developer_installed_admission_or_launch:
-    operation_class: desktop_lifecycle_mutation
-    missing_explicit_row_disposition: fail_generation
-  source_rule: K-PLOCAL-002
+    source_rule: K-GRANT-014
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant, operation_class: local_app_grant_request, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-GRANT-014 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant, operation_class: local_app_grant_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-GRANT-014 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant, operation_class: local_app_grant_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-GRANT-014 }
+
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch, operation_class: local_app_launch_preparation, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-APP-017 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess, operation_class: local_app_process_binding, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-008 }
+
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+  - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun, operation_class: local_development_run_end, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+
+  - { method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes, operation_class: local_app_artifact_read, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-053 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
+blocked_or_unadmitted:
+  immutable_package_methods: typed_unavailable_until_0p_or_p
+  workspace_binding_methods: blocked_pending_separate_authority
+  missing_explicit_method_row: fail_generation
+  generic_proxy: forbidden
+  public_grant_credentials: removed_and_reserved

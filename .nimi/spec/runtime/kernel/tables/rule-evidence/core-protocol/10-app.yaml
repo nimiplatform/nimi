@@ -52,6 +52,10 @@ entries:
   - K-APP-025
   - K-APP-026
   - K-APP-027
+  - K-APP-028
+  - K-APP-029
+  - K-APP-030
+  - K-APP-031
 
 rules:
   - rule_id: K-APP-001
@@ -193,20 +197,40 @@ rules:
       - runtime_go_test
       - sdk_runtime_test
       - desktop_boundary_test
-    note: Local app adoption is Runtime-owned explicit adoption truth; tests cover manifest/path/permission/storage validation, typed SDK accessors, and Desktop consumption without local source scanning.
+    note: Workspace adoption is not runnable authority; local records arise only from local_development in 0K or future 0P immutable mapping, never scanning or file presence.
     evidence_requirement: required
   - rule_id: K-APP-026
     evidence_refs:
       - runtime_kernel_consistency
       - protected_local_authority_gate
-    note: Structural authority for the generic Desktop lifecycle intent prepare/display/consume/status protocol; proto and product implementation evidence remain pending A.0 implementation.
+    note: Immutable lifecycle intent is typed unavailable in 0K; positive third-party launch uses PrepareLocalAppLaunch and exact process binding.
     evidence_requirement: required
   - rule_id: K-APP-027
     evidence_refs:
       - runtime_kernel_consistency
       - protected_local_authority_gate
-    note: Runtime-owned local-development authorization/launch lifecycle remains distinct from adoption and production OpenApp.
+    note: Runtime-owned production Developer Mode local-development authorization uses the shared local-app principal/launch/session kernel.
     evidence_requirement: required
     test_files:
       - scripts/check-local-development-admission-authority.mjs
       - scripts/check-local-development-admission-authority.test.mjs
+  - rule_id: K-APP-028
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Local OS-user anchor is Runtime-derived from the verified Windows SID and partitions every local-app store.
+    test_files: [scripts/check-protected-local-authority.mjs]
+  - rule_id: K-APP-029
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Random non-reused principal and opaque lineage replace app-id security identity; tombstones never reactivate or inherit.
+    test_files: [scripts/check-protected-local-authority.mjs]
+  - rule_id: K-APP-030
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: LocalAppRecord freezes provenance revision, execution-profile/digest slots, promotion invalidation and no embedded grant; immutable positive mapping remains unavailable.
+    test_files: [scripts/check-protected-local-authority.mjs]
+  - rule_id: K-APP-031
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Principal/record, grant and launch/session stores remain separate and the resolver creates no parallel cache or app-id fallback.
+    test_files: [scripts/check-protected-local-authority.mjs]

@@ -4,7 +4,9 @@ owner: platform
 catalog_id: platform_nimi_app_identity_surfaces
 source_rule: P-NAPP-012
 entries:
-  - canonical app_id is the single app identity used by Platform admission, Runtime caller eligibility, SDK appId, app storage roots, and audit filters
+  - canonical app_id is the shared display and routing identifier used by Platform, Runtime projections, SDK appId, and OS bundle derivation
+  - local_app_principal_id is the Runtime-assigned random non-reused security subject for third-party grants, private storage, app-scoped audience, sessions, and audit
+  - trust_class and publisher trust tier are provenance/review facts and never security principals
   - tauri_identifier is derived only as ai.nimi.apps.<app_id>
   - tauri_identifier is OS bundle/signing/update identity only and must not be used as Runtime or Platform app identity
   - developer/testing posture must not be encoded into app_id
@@ -18,6 +20,8 @@ identity_schema:
     - sdk_app_id
     - runtime_app_id
     - runtime_caller_mode
+    - principal_posture
+    - development_integration_profile
     - tauri_identifier
     - tauri_identifier_required
     - npm_package
@@ -31,6 +35,8 @@ identity_schema:
     - runtime_app_id must equal canonical_app_id
     - tauri_identifier must equal ai.nimi.apps.<canonical_app_id> when tauri_identifier_required is true
     - active source must not use app.nimi.* or dev.nimi.* as app identity
+    - app_id must not key a third-party grant private storage audience session or audit subject
+    - a local development integration profile must use an isolated Runtime local_app_principal_id
 
 apps:
   - source_root: apps/desktop
@@ -39,6 +45,8 @@ apps:
     sdk_app_id: nimi.desktop
     runtime_app_id: nimi.desktop
     runtime_caller_mode: desktop-shell
+    principal_posture: protected_desktop_shell_not_third_party
+    development_integration_profile: null
     tauri_identifier: ai.nimi.apps.nimi.desktop
     tauri_identifier_required: true
     npm_package: "@nimiplatform/desktop"
@@ -51,6 +59,8 @@ apps:
     sdk_app_id: nimi.web
     runtime_app_id: nimi.web
     runtime_caller_mode: web-cloud-adapter
+    principal_posture: web_cloud_not_local_app
+    development_integration_profile: null
     tauri_identifier: null
     tauri_identifier_required: false
     npm_package: "@nimiplatform/web"
@@ -63,6 +73,8 @@ apps:
     sdk_app_id: nimi.avatar
     runtime_app_id: nimi.avatar
     runtime_caller_mode: local-first-party
+    principal_posture: bundled_owner_admitted_first_party
+    development_integration_profile: null
     tauri_identifier: ai.nimi.apps.nimi.avatar
     tauri_identifier_required: true
     npm_package: "@nimiplatform/avatar"
@@ -74,7 +86,11 @@ apps:
     canonical_app_id: nimi.tester
     sdk_app_id: nimi.tester
     runtime_app_id: nimi.tester
-    runtime_caller_mode: local-developer-app
+    runtime_caller_mode: local-app
+    principal_posture: isolated_local_development
+    development_integration_profile:
+      trust_class: local_development
+      shipped_identity_inheritance: forbidden
     tauri_identifier: ai.nimi.apps.nimi.tester
     tauri_identifier_required: true
     npm_package: "@nimiplatform/tester"
@@ -86,9 +102,14 @@ apps:
     canonical_app_id: nimi.zhiyu
     sdk_app_id: nimi.zhiyu
     runtime_app_id: nimi.zhiyu
-    runtime_caller_mode: local-developer-app
+    runtime_caller_mode: local-first-party
+    principal_posture: bundled_owner_admitted_first_party
+    development_integration_profile:
+      trust_class: local_development
+      principal_posture: isolated_local_development
+      shipped_identity_inheritance: forbidden
     tauri_identifier: null
     tauri_identifier_required: false
     npm_package: "@nimiplatform/zhiyu"
-    product_status: first-party-consuming-app-preparation
+    product_status: bundled-first-party-with-isolated-development-integration
     source_rule: P-NAPP-012

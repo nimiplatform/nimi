@@ -1,109 +1,113 @@
-version: 1
+version: 2
 table_family: owner_matrix
 owner: platform
 matrix_id: nimi_app_local_development_admission
-description: Canonical non-production local-development trust, authorization, session, owner, reapproval, platform, command, and operation posture.
-authority_refs: [P-NAPP-035, K-PLOCAL-009, K-APP-027, D-IPC-019, P-KIT-046, P-SCAF-018, S-TRANSPORT-014]
+description: Production Developer Mode project authorization, supervision, iteration, and invalidation semantics for the final local_development provenance class.
+authority_refs: [P-NAPP-035, P-DEV-006, K-APP-028, K-APP-029, K-PLOCAL-009, K-ACCSVC-026, K-GRANT-014, D-IPC-019, D-IPC-020, P-KIT-046, P-SCAF-018, S-TRANSPORT-014]
 trust_class:
-  id: local-development-installed-admission
-  environment: non_production_development
+  id: local_development
+  taxonomy_ref: tables/nimi-app-local-trust-classes.yaml
   mutable_project_allowed: true
-  product_readiness_claim_allowed: false
-  store_listing_allowed: false
-  production_release_conversion: forbidden_new_admission_required
-  adoption_alone_authorizes: false
+  product_release_conversion: forbidden_new_immutable_admission_required
+  app_id_collision_inherits_state: false
+developer_mode:
+  shipped_in_production: true
+  default_enabled: false
+  global_toggle_grants_capability: false
+  hidden_flag_env_or_argv_enablement: forbidden
+  disable_effect:
+    active_sessions: revoke
+    run_once_authorizations: revoke
+    remembered_authorizations: dormant
+    immutable_records: unaffected
 user_development_authorization:
-  owner: runtime_protected_state
+  owner: runtime_k_app
   bindings:
-    - canonical_project_root
-    - app_id
+    - local_os_user_anchor
+    - local_app_principal_id
+    - canonical_project_file_id
+    - declared_app_id
     - manifest_capability_fingerprint
     - account_id
-    - trust_class
+    - fixed_shell_entry_policy
   choices: [run_once, remember_project]
-  app_owned_storage_allowed: false
-  renderer_storage_allowed: false
-  generic_keyring_allowed: false
-  survives_technical_session: true
-technical_session:
-  owner: runtime
-  ttl_class: short_rotating
+  initial_grant_state: zero
+  remembered_reactivation_requires_fresh_presence: true
+  account_switch_transfers_authorization: false
+  app_owned_or_renderer_storage: forbidden
+technical_launch_and_session:
+  owner: runtime_k_plocal
+  transport: local_app_host
+  session_role: local_app_session
   bindings:
     - development_authorization_id
+    - local_app_principal_id
+    - local_app_record_id
+    - provenance_revision
+    - project_generation
+    - launch_lease_id
     - desktop_supervisor_process
-    - host_process_id
-    - host_process_creation_marker
+    - host_process_tuple
+    - executable_and_build_digest
+    - controlled_renderer_origin_and_output_roots
     - shell_kind
     - account_generation
+    - account_id
     - runtime_boot_epoch
-    - expires_at
+  new_process_requires_new_lease_and_session: true
   material_visibility: runtime_and_native_host_private_only
-  cli_visibility: forbidden
-  renderer_visibility: forbidden
-  terminal_visibility: forbidden
-reapproval_matrix:
-  no_reapproval:
-    - renderer_source_hmr
-    - renderer_reload
-    - electron_main_or_preload_rebuild_and_controlled_restart
-    - tauri_rust_rebuild_and_controlled_restart
-    - technical_session_rotation
-    - runtime_restart_with_valid_authorization
-    - controlled_host_restart_same_project_app_capability_account_shell
-  reapprove_or_reject:
+  renderer_cli_terminal_visibility: forbidden
+continuity_matrix:
+  no_reapproval_new_lease_and_session_required:
+    - renderer_hmr_or_reload
+    - electron_main_or_preload_controlled_rebuild_and_restart
+    - tauri_host_controlled_rebuild_and_restart
+    - controlled_host_replacement_same_authorization
+    - runtime_restart_during_live_supervisor_run
+  invalidate_or_require_fresh_approval:
     - capability_expansion
-    - app_id_change
-    - canonical_project_root_change
-    - shell_or_trust_class_change
-    - account_change
-    - authorization_revoked
-    - host_outside_desktop_supervisor
-    - executable_or_renderer_origin_outside_controlled_project_outputs
+    - declared_app_id_change
+    - canonical_project_file_identity_change
+    - copied_project
+    - shell_or_entry_policy_change
+    - account_switch_or_logout
+    - mode_off
+    - authorization_revoke
+    - supervisor_run_termination
+    - host_outside_verified_supervisor
+    - executable_or_renderer_origin_outside_controlled_outputs
     - remote_or_uncontrolled_dev_server
-rows:
-  - owner_id: app_tools
-    responsibility: command_scaffold_project_validation_build_coordination_and_user_safe_status_only
-    may_mint_portable_authority: false
-  - owner_id: desktop
-    responsibility: confirmation_ui_dev_supervisor_dev_server_and_host_process_ownership
-    may_mint_portable_authority: false
-  - owner_id: runtime
-    responsibility: authorization_admission_generation_revocation_and_session_truth
-    may_mint_portable_authority: false
-  - owner_id: kit
-    responsibility: electron_tauri_typed_bootstrap_status_rotation_and_operation_surface
-    may_mint_portable_authority: false
-platform_posture:
-  windows:
-    authority_status: admitted
-    implementation_status: pending_live_e2e
-    closeout_status: blocked
-  macos:
-    authority_status: pending_independent_admission
-    implementation_status: fail_closed_not_implemented
-    closeout_status: blocked
-  linux:
-    authority_status: pending_independent_admission
-    implementation_status: fail_closed_not_implemented
-    closeout_status: blocked
-  localhost_grpc_fallback: forbidden
-  same_user_daemon_fallback: forbidden
-implementation_evidence:
-  windows_restricted_runtime_service: green
-  desktop_confirmation_and_supervisor: pending
-  kit_typed_bootstrap_and_rotation: pending
-  app_tools_one_command_launcher: pending
-  electron_live_shell: pending
-  tauri_live_shell: pending
-  authority_gate_green_means_product_closeout_green: false
-command_surface:
-  commands:
-    - pnpm dev
-    - pnpm dev:shell -- --shell electron
-    - pnpm dev:shell -- --shell tauri
-  canonical_launcher: nimi-app dev
-  direct_tauri_dev: denied
-  manual_electron: denied
+lifetimes:
+  run_once_ends_on: [supervisor_run_termination, mode_off, logout_or_account_switch, revoke, identity_capability_or_shell_mismatch]
+  run_once_terminal_transition: tombstone_principal_and_mark_record_removed
+  subsequent_run_once: fresh_approval_new_principal_and_record
+  remember_project_on_mode_off: dormant
+  remember_project_auto_runs_after_reenable: false
+  remembered_account_switch: live_session_revoked_record_remains_bound_to_original_account_and_requires_fresh_presence_after_return
+risk_and_background:
+  production_account_allowed_through_runtime_mediation: true
+  runtime_credential_custody_required: true
+  native_os_risk_disclosure_required: true
+  nimi_grants_cover_all_windows_rights: false
+  nimi_managed_logon_or_boot_autostart: forbidden
 operation_posture:
-  allowed: [artifacts.readRuntimeBytes]
-  denied_families: [account, lifecycle, realm, ai, realtime, media, generic_protected_proxy]
+  same_grant_and_owner_policy_as_other_trust_classes: true
+  selected_checkpoint_families:
+    - runtime_artifact_read
+    - runtime_agent_conversation
+  missing_families: typed_owner_unavailable
+  generic_protected_proxy: forbidden
+owners:
+  app_tools: project_validation_build_coordination_and_user_safe_status_only
+  desktop: confirmation_ui_and_verified_supervisor
+  runtime_k_app: authorization_principal_and_record
+  runtime_k_plocal: launch_process_and_session
+  runtime_k_grant: account_principal_grant
+  runtime_account_service: credential_custody_and_enforcement_coordination
+  runtime_agent_service_and_cognition: agent_conversation_and_memory_semantics
+  sdk_and_kit: typed_client_and_host_private_carrier
+platform_posture:
+  windows: final_fixed_service_positive_required
+  macos: fail_closed_pending_independent_admission
+  linux: fail_closed_pending_independent_admission
+  localhost_grpc_or_same_user_daemon_fallback: forbidden

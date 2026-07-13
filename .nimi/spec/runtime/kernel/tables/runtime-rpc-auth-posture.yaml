@@ -26,8 +26,16 @@ posture_enum:
     meaning: Public bootstrap may create only a non-privileged binding. Effective domains and scopes are empty; app id, manifest, caller enum, source host, session material, and AppMode cannot upgrade protected origin.
   - value: protected_origin_required
     meaning: Method is authority-admitted only on the exact K-PLOCAL transport and Runtime-derived live-process origin role. Portable credentials and request metadata cannot satisfy this posture.
-  - value: deny_all_tombstone
-    meaning: The public wire symbol remains only as a removal tombstone. No transport, origin, identity, capability, consent flag, bearer, or product caller may invoke it; a named follow-up owns physical proto/generated/code removal.
+  - value: protected_or_scoped_binding_read
+    meaning: Read requires either an exact protected origin or a Runtime-issued first-party scoped binding under the operation owner policy.
+  - value: protected_or_scoped_binding_write
+    meaning: Write requires either an exact protected origin or a Runtime-issued first-party scoped binding under the operation owner policy.
+  - value: authenticated_or_protected_local_app_operation
+    meaning: Existing admitted callers use their owner-defined authenticated posture; LOCAL_APP is admitted only on local_app_host with current session, exact grant, relation and operation-owner decision.
+  - value: protected_or_scoped_binding_or_local_app_operation
+    meaning: Existing protected/first-party scoped consumers retain their posture; LOCAL_APP is separately admitted only through K-ACCSVC-026 without treating the principal as agent, conversation or memory owner.
+  - value: unavailable_by_authority
+    meaning: The method name may preserve a frozen future seam, but no transport or caller can produce a positive result until the named future authority maps inputs into the frozen schema.
   - value: blocked_pending_authority
     meaning: The method is not admitted on any current transport or origin. Unlike a removal tombstone, a future authority batch may define an exact protected origin and operation policy before implementation.
   - value: mixed
@@ -52,9 +60,11 @@ posture_decision_doctrine: |
     `binding_only_bootstrap`; no domain/scope or protected role may be derived.
   - If the method requires K-PLOCAL verified transport/process origin before
     handler parsing, classify it `protected_origin_required`.
-  - If authority has hard-cut the public method while physical wire removal is
-    assigned to a named follow-up, classify it `deny_all_tombstone`. This value
-    admits no caller and must be paired with an empty protected-transport row.
+  - If an existing authenticated/protected/scoped method additionally admits
+    the exact LOCAL_APP operation subset, classify it with the matching closed
+    multi-origin value and require K-ACCSVC-026 per-call evaluation.
+  - If 0K freezes only an opaque future method seam without a positive producer,
+    classify it `unavailable_by_authority` and pair it with no transport row.
   - If a method remains in the design surface but no exact protected origin and
     operation authority is admitted, classify it `blocked_pending_authority`
     and pair it with an empty protected-transport row.
@@ -73,11 +83,10 @@ posture_decision_doctrine: |
 method_shards:
   - path: ./runtime-rpc-auth-posture/identity-access.yaml
     id: nimicoding.runtime-rpc-auth-posture.identity-access.v1
-    method_count: 55
+    method_count: 53
     services:
       - RuntimeAccountService
       - RuntimeAuthService
-      - RuntimeGrantService
       - RuntimeAppService
       - RuntimeDevelopmentService
   - path: ./runtime-rpc-auth-posture/agent-ai-cognition.yaml

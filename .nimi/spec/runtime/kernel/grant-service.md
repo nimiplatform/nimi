@@ -4,20 +4,14 @@
 
 ## K-GRANT-001 Public Grant Family Hardcut
 
-`RuntimeGrantService` is not an admitted product credential surface. The five
-public wire symbols remain deny-all tombstones only until A.3d removes their
-proto, generated, SDK, handler, registration, and persistence paths:
-
-1. `AuthorizeExternalPrincipal`
-2. `ValidateAppAccessToken`
-3. `RevokeAppAccessToken`
-4. `IssueDelegatedAccessToken`
-5. `ListTokenChain`
+The former public credential-grant service has been removed from proto,
+generated clients, SDK exports, Runtime handlers/registration and persistence.
+Its wire and field identities are reserved and must not be reused or recreated
+under aliases.
 
 No public TCP, loopback gRPC, renderer IPC, ordinary SDK client, app-owned host,
 Desktop bearer, request-body consent, parent-token possession, scope claim, or
-portable session may invoke or revive this family. Retaining a symbol during
-the A.0-to-A.3d transition does not retain its former behavior.
+portable session may revive this family.
 
 ## K-GRANT-002 Runtime-Private Grant Evaluation
 
@@ -35,12 +29,12 @@ that origin. Such evaluation:
   storage; and
 - may expose only typed operation results and redacted status projection.
 
-The detailed private evaluator and replacement type surface are owned by A.3d.
-A.0 admits only this boundary and does not claim that the replacement exists.
+The final local-app grant binding and evaluator input are defined by
+K-GRANT-014. No public credential family is required or permitted.
 
 ## K-GRANT-003 Removal And Drift Boundary
 
-The authoritative deny-all projection is closed across:
+The authoritative removal is closed across:
 
 - `tables/runtime-rpc-auth-posture/identity-access.yaml`;
 - `tables/protected-local-rpc-transport-matrix.yaml`;
@@ -48,50 +42,35 @@ The authoritative deny-all projection is closed across:
 - `tables/rpc-migration-map/methods-identity-app.yaml`; and
 - `../../sdks/kernel/tables/runtime-method-groups.yaml`.
 
-Any active SDK export, anonymous/authenticated posture, non-empty transport or
-origin admission, protected credential response, or product caller for one of
-the five methods is authority drift and must fail validation.
+Any active SDK export, auth posture, transport/origin admission, generated
+symbol, handler, protected credential response or product caller for the
+removed family is authority drift and must fail validation.
 
 Former public grant, delegation, scope-catalog, token-chain, and request-body
 consent behavior is retired pre-cutover authority history available from Git;
 it is not active product truth and must not be copied into a new facade.
 
-## K-GRANT-004 Reserved Validate Tombstone
+## K-GRANT-014 PC-local App Account Grant
 
-Reserved for A.3d deletion tracking; it admits no validation RPC or success response.
+Runtime owns one protected `AppAccountGrant` lifecycle keyed by
+`local_os_user_anchor + account_id + local_app_principal_id +
+capability_resource_fingerprint`. The schema and exact state transitions are
+defined by `tables/local-app-grant-binding-schema.yaml`.
 
-## K-GRANT-005 Reserved Delegation Tombstone
+Principal/project/package admission and provenance promotion create zero grant.
+`LocalAppRecord` contains no grant boolean. Publisher tier, app id, provenance,
+catalog presence, session existence, or operation request cannot substitute for
+an active exact grant. Account switch never transfers it; uninstall/project
+revoke tombstones the principal and leaves no grant inheritance.
 
-Reserved for A.3d deletion tracking; it admits no delegation RPC, parent-token authority, or active depth policy.
+A valid zero-grant local-app session may read redacted permission posture and
+request Desktop-owned grant UX. Grant create/expand consumes the exact Runtime-
+issued presence challenge. Revoke/expire/supersede changes the grant revision
+without rotating the identity session; the next protected operation reads the
+current revision and denies or allows through the provenance-agnostic
+K-ACCSVC coordinator plus the domain owner policy.
 
-## K-GRANT-006 Reserved Revocation/Chain Tombstone
-
-Reserved for A.3d deletion tracking; it admits no public revocation or chain visibility.
-
-## K-GRANT-007 Tombstone Audit Boundary
-
-Rejected calls are security events; this rule does not admit a public grant operation.
-
-## K-GRANT-008 Reserved Scope-Catalog Tombstone
-
-Reserved for A.3d deletion tracking; former public grant scope catalogs confer no capability.
-
-## K-GRANT-009 Reserved Scope-Prefix Tombstone
-
-Reserved for A.3d deletion tracking; matching a former prefix never authorizes an operation.
-
-## K-GRANT-010 Reserved Scope-Revocation Tombstone
-
-Reserved for A.3d deletion tracking; it admits no public token or scope mutation.
-
-## K-GRANT-011 Reserved Chain-Request Tombstone
-
-Reserved for A.3d deletion tracking; the former request fields have no admitted caller.
-
-## K-GRANT-012 Reserved Chain-Response Tombstone
-
-Reserved for A.3d deletion tracking; Runtime must not produce the former response publicly.
-
-## K-GRANT-013 Tombstone Error Boundary
-
-Any retained former error mapping is removal inventory only and cannot imply an active method.
+The grant store is separate from principal/record and launch/session stores.
+No dual read/write, app-id positive fallback, cloud grant prerequisite, public
+token, bearer, portable grant credential, or app/renderer mutation surface is
+admitted.

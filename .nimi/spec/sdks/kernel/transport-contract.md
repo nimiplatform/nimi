@@ -18,8 +18,9 @@ Electron transport rules:
   protected method ids and authorization-bearing renderer payloads.
 - Protected Desktop calls use the host-injected native carrier. SDK receives a
   typed carrier handle, never endpoint/session/process/trust material, and
-  cannot derive or inject origin. Installed/developer app child carriers are
-  absent pending A.1.
+  cannot derive or inject origin. Third-party app calls use the final
+  host-injected `LOCAL_APP` carrier; bundled first-party calls retain their
+  separately admitted carrier.
 
 规则：
 
@@ -130,8 +131,9 @@ Mode D 投影规则按 Phase 分层：
   calls never inject a bearer. They require the native verified carrier and the
   exact Runtime-derived origin/operation policy.
 - Public/binding-only calls cannot be upgraded by a bearer, app id, caller enum
-  or metadata. `GetAccessToken`, public refresh and all five public Grant
-  methods remain deny-all regardless of token validity.
+  or metadata. Removed public token/refresh and credential-grant methods remain
+  reserved. Local-app grant status/mutation uses the protected owner surface
+  and never returns a portable credential.
 - `metadata.extra` and renderer IPC must reject `authorization`, provider keys,
   Realm bases, protected session ids and origin material rather than silently
   stripping and continuing.
@@ -143,6 +145,9 @@ renderer-constructed. It exposes only typed bootstrap/status and admitted
 business calls. The SDK cannot accept or return a Runtime endpoint, project
 authorization, launch correlation, process binding, session id/proof, Runtime
 epoch, credential, token, capability fingerprint, or trust-class override.
+The native host performs request-empty `OpenLocalAppSession` only after the
+single-use launch lease has been consumed by the exact process bind; the SDK
+receives neither that bootstrap operation nor any of its authority inputs.
 
 Technical-session rotation and controlled host/Runtime restart are transparent
 behind the typed transport. A revoked, expired, project-changed,
@@ -150,10 +155,13 @@ account-changed, untrusted-host, or unavailable carrier produces a stable typed
 failure before a business call. Session material never enters renderer IPC,
 application state, telemetry, errors, or retry callbacks.
 
-Local-development transport does not widen the Runtime method set. During Wave
-A it can carry only `artifacts.readRuntimeBytes`; every account, lifecycle,
-Realm, AI, realtime, media, or generic proxy attempt remains unavailable even
-when a valid development authorization exists. Ordinary Electron/Tauri IPC and
+Local-development transport does not widen the Runtime method set. It carries
+only typed session/permission posture, `artifacts.readRuntimeBytes`, and the
+selected RuntimeAgent open-conversation, send-turn, subscribe-turn and
+conversation-snapshot operations. Missing operation families remain typed
+unavailable; every account-control, lifecycle mutation, Realm, broad AI,
+realtime, media, admin, memory, generic RuntimeAgent or generic proxy attempt
+remains unavailable even when a grant exists. Ordinary Electron/Tauri IPC and
 localhost gRPC cannot claim this transport type.
 
 ## S-TRANSPORT-011 背压投影

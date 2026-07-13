@@ -20,7 +20,7 @@ envelope:
   source_host:
     - electron-standard-shell
     - tauri-standard-shell
-    - desktop-electron-installed-app-host
+    - desktop-electron-local-app-host
     - dev-fixture
   request_id: host-generated-or-validated
   request_id_grammar: "^desktop-open-[A-Za-z0-9][A-Za-z0-9._:-]{0,114}$"

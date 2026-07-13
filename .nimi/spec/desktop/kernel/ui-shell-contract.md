@@ -655,17 +655,26 @@ Fixed rules:
 - any future widening into shared non-desktop shell truth requires an explicit
   separate authority reopen
 
-## D-SHELL-038 - Installed Nimi App Launch Host
+## D-SHELL-038 - Local App Launch Host
 
-A.0 admits no installed-app host class or positive child launch. The registry
-row in `tables/installed-app-launch-hosts.yaml` is a blocked A.1 placeholder
-only. Desktop must not create an installed app process/window, bind launch
-metadata, expose a child bridge, inject account/session material, or claim
-launch success. Runtime `OpenApp`, local adoption, account inventory, tester
-registration, Desktop identity, process liveness, renderer metadata, ordinary
-gRPC and existing Electron code cannot bypass this block. A separate A.1 batch
-must admit the exact child transport/session/host/projection/capability shapes
-across all owners before Desktop implementation.
+`tables/installed-app-launch-hosts.yaml` records the final host-neutral local-app
+launch behavior despite its retained authority-file path. Desktop may launch an
+isolated `local_development` Electron or Tauri child only after the Runtime-owned
+record and Desktop decision path succeed. The native supervisor obtains a
+single-use launch lease, starts the exact controlled output, binds the live
+process, and attaches the request-empty local-app session carrier without
+exposing any material to the renderer.
+
+Shipped Zhiyu/Avatar remain bundled and are excluded from third-party local-app
+records. The Zhiyu integration build used by acceptance is a distinct isolated
+`local_development` project and principal. Immutable verified/user-imported
+package launch remains typed unavailable until 0P/P and cannot fall back to
+`OpenApp`, local adoption, account inventory, tester registration, Desktop
+identity, process liveness, renderer metadata or ordinary gRPC.
+
+Every process replacement and Runtime restart requires a new lease, bind and
+session. Desktop exposes only Kit typed session/permission posture and selected
+operations; it injects no account/token/principal/grant/endpoint material.
 
 ## D-SHELL-039 - Desktop Open Intent Navigation Targets
 
@@ -692,7 +701,7 @@ require page-owned focus state.
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举
-- `tables/installed-app-launch-hosts.yaml` - installed Nimi App launch host
+- `tables/installed-app-launch-hosts.yaml` - local-app launch host behavior
   registry
 - `tables/desktop-open-targets.yaml` - aggregate Desktop Open target catalog
 - `tables/runtime-config-open-actions.yaml` - Runtime Config Desktop Open action targets

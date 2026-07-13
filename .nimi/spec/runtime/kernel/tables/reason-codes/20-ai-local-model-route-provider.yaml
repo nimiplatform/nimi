@@ -182,7 +182,7 @@ codes:
   - name: AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN
     value: 213
     family: REQUEST_CREDENTIAL
-    source_rule: K-GRANT-005
+    source_rule: K-KEYSRC-007
   - name: AI_FINISH_LENGTH
     value: 370
     family: FINISH

@@ -8,7 +8,6 @@ surfaces:
   - ConnectorService
   - RuntimeLocalService
   - RuntimeAuthService
-  - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeWorkflowService
@@ -245,9 +244,9 @@ services:
       - name: OpenDesktopSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
-      - name: OpenDesktopLaunchedAppSession
+      - name: OpenLocalAppSession
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
       - name: RefreshSession
         type: unary
       - name: RevokeSession
@@ -258,34 +257,6 @@ services:
         type: unary
       - name: RevokeExternalPrincipalSession
         type: unary
-  - name: RuntimeGrantService
-    source_rule: K-GRANT-002
-    methods:
-      - name: AuthorizeExternalPrincipal
-        type: unary
-        authority_status: tombstone_pending_a3d_removal
-        transport_disposition: deny_all
-        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal
-      - name: ValidateAppAccessToken
-        type: unary
-        authority_status: tombstone_pending_a3d_removal
-        transport_disposition: deny_all
-        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken
-      - name: RevokeAppAccessToken
-        type: unary
-        authority_status: tombstone_pending_a3d_removal
-        transport_disposition: deny_all
-        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken
-      - name: IssueDelegatedAccessToken
-        type: unary
-        authority_status: tombstone_pending_a3d_removal
-        transport_disposition: deny_all
-        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken
-      - name: ListTokenChain
-        type: unary
-        authority_status: tombstone_pending_a3d_removal
-        transport_disposition: deny_all
-        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/ListTokenChain
   - name: RuntimeExternalAgentService
     source_rule: K-RPC-026
     methods:
@@ -331,6 +302,18 @@ services:
       - name: RevokeScopedAppBinding
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding
+      - name: GetLocalAppGrantStatus
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus
+      - name: RequestLocalAppGrant
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant
+      - name: DecideLocalAppGrant
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant
+      - name: RevokeLocalAppGrant
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant
       - name: IssueWorkspaceBinding
         type: unary
         authority_status: blocked_pending_separate_authority
@@ -458,14 +441,6 @@ services:
         type: unary
       - name: GetAccountAppInventory
         type: unary
-      - name: AdoptLocalApp
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/AdoptLocalApp
-      - name: ListLocalAppAdoptions
-        type: unary
-      - name: RemoveLocalAppAdoption
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption
       - name: GetAppPackageReadiness
         type: unary
       - name: GetAppInstallJob
@@ -480,12 +455,12 @@ services:
       - name: HealthRepairApp
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/HealthRepairApp
-      - name: OpenApp
+      - name: PrepareLocalAppLaunch
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/OpenApp
-      - name: BindInstalledLaunchProcess
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
+      - name: BindLocalAppProcess
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess
       - name: PrepareAppLifecycleIntent
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
@@ -497,16 +472,20 @@ services:
     methods:
       - name: ReadArtifactBytes
         type: unary
-        authority_status: admitted_installed_and_local_development
-        implementation_status: pending_live_e2e
-        closeout_status: blocked
-        transport_disposition: protected_native_app_host_only
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
       - name: CleanupGeneratedVoiceArtifacts
         type: unary
   - name: RuntimeDevelopmentService
     source_rule: K-PLOCAL-009
     methods:
+      - name: GetDeveloperModeStatus
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
+      - name: SetDeveloperMode
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode
       - name: EvaluateLocalDevelopmentProject
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
@@ -516,21 +495,12 @@ services:
       - name: ListLocalDevelopmentAuthorizations
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
+      - name: ReactivateLocalDevelopmentProject
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject
       - name: RevokeLocalDevelopmentAuthorization
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
-      - name: PrepareLocalDevelopmentLaunch
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch
-      - name: BindLocalDevelopmentHostProcess
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess
-      - name: OpenLocalDevelopmentAppSession
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession
-      - name: GetLocalDevelopmentSessionStatus
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus
       - name: EndLocalDevelopmentRun
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun

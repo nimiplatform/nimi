@@ -36,6 +36,7 @@ entries:
   - P-PERM-010
   - P-PERM-011
   - P-PERM-012
+  - P-PERM-013
 rules:
   - rule_id: P-PERM-001
     evidence_refs:
@@ -97,3 +98,10 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; Zhiyu proactive_interruptibility_v1 permission binding admits AIScopeRef shape and notification.not_admitted posture, while grant lifecycle enforcement requires Realm/Runtime grant evidence and Runtime/SDK/Zhiyu consumer validation under K-AGCORE-143
+  - rule_id: P-PERM-013
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: local principal/record/session/grant separation, trust-class non-effect and exact current operation enforcement require Runtime protected-local and LocalAgent journey evidence.
+    test_files:
+      - scripts/check-protected-local-authority.mjs

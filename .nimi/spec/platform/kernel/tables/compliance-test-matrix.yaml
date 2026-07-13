@@ -85,15 +85,15 @@ layers:
         source_rule: P-PROTO-020
 
   - layer: L1_app_auth
-    label: "Public Grant deny-all tombstone"
+    label: "Local app principal/session/grant separation"
     items:
-      - item: "RuntimeGrantService five-method family rejects every public/protected caller and returns no credential material"
-        positive: forbidden
+      - item: "LOCAL_APP opens a request-empty process-bound zero-grant session without returning credential or owner identifiers"
+        positive: required
         rejection: required
         regression: required
         source_rule: P-PROTO-030
-      - item: "SDK/Kit/Desktop export none of the public grant credential family pending A.3d removal"
-        positive: forbidden
+      - item: "SDK/Kit/Desktop expose exact typed local-app operations and no bearer, generic Runtime forwarder, or retired public grant credential family"
+        positive: required
         rejection: required
         regression: required
         source_rule: P-PROTO-035

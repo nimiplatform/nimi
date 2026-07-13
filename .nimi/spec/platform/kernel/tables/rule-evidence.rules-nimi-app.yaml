@@ -39,7 +39,6 @@ entries:
 - P-NAPP-013
 - P-NAPP-014
 - P-NAPP-015
-- P-NAPP-017
 - P-NAPP-018
 - P-NAPP-019
 - P-NAPP-020
@@ -58,6 +57,7 @@ entries:
 - P-NAPP-033
 - P-NAPP-034
 - P-NAPP-035
+- P-NAPP-036
 - P-MOEX-001
 - P-MOEX-002
 - P-MOEX-003
@@ -147,40 +147,32 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; third-party PR admission requires Apps
-    registry/install/storage consumer validation
+  evidence_scope_note: structural catalog-review vocabulary only in 0K; no
+    local package import, install, materialization, or principal creation is admitted
 - rule_id: P-NAPP-014
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; release descriptor digest verification
-    requires SDK/Desktop install tests
+  evidence_scope_note: structural descriptor vocabulary only in 0K; digest
+    verification does not admit download, unpack, install, execution, or SDK/Desktop mutation
 - rule_id: P-NAPP-015
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; app install storage enforcement requires
-    Runtime/SDK/Desktop install and uninstall tests
-- rule_id: P-NAPP-017
-  evidence_refs:
-  - platform_kernel_consistency
-  evidence_requirement: structural_required
-  evidence_scope_note: structural only; developer-only Realm Persona Studio admission
-    is enforced by `tables/nimi-app-registry.yaml` and `tables/nimi-app-release-descriptors.yaml`
-    cross-table consumer validation
+  evidence_scope_note: structural storage-policy vocabulary only in 0K; the
+    local-app kernel is principal-keyed and exposes no positive immutable install/uninstall path
 - rule_id: P-NAPP-018
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; third-party release descriptor shape enforcement
-    is `tables/nimi-app-release-descriptors.yaml` consumer validation and SDK install
-    descriptor verification consumer validation
+  evidence_scope_note: structural catalog descriptor vocabulary only in 0K;
+    external immutable descriptor consumption and package mapping are deferred to 0P
 - rule_id: P-NAPP-019
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; no-collapsed sizes/dates/versions enforcement
-    is downstream Apps registry/install/storage consumer validation
+  evidence_scope_note: structural catalog non-collapse vocabulary only in 0K;
+    install/update/rollback evidence is typed unavailable and cannot authorize a local record
 - rule_id: P-NAPP-020
   evidence_refs:
   - platform_kernel_consistency
@@ -198,8 +190,8 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; artifact mirror ref and mirror license clearance
-    enforcement is downstream Apps registry/install/storage consumer validation
+  evidence_scope_note: structural catalog-review vocabulary only in 0K; mirror
+    retrieval and local package materialization are deferred to 0P
 - rule_id: P-NAPP-023
   evidence_refs:
   - platform_kernel_consistency
@@ -210,8 +202,8 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; platform signing assurance subfields enforcement
-    is downstream Apps registry/install/storage consumer validation
+  evidence_scope_note: structural catalog-review vocabulary only in 0K; no
+    signing-assurance row maps to a local principal before 0P
 - rule_id: P-NAPP-025
   evidence_refs:
   - platform_kernel_consistency
@@ -258,19 +250,19 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; explicit local adoption is enforced by Runtime adoption validation and SDK typed lifecycle accessors under their owner evidence catalogs.
+  evidence_scope_note: structural only; local record creation is Runtime-owned, workspace adoption is absent, and SDK exposes read-only current-carrier record posture without filesystem discovery.
 - rule_id: P-NAPP-033
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: blocked detailed catalog/release conflict; the owner-only allocation does not admit admission-track schemas or product-readiness rows.
+  evidence_scope_note: verified catalog review has one ordinary-release-proof track; CI/local-development fixtures are not catalog rows and create no local package readiness.
   test_files:
   - scripts/check-installed-realm-owner-boundary.mjs
 - rule_id: P-NAPP-034
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: A.0 admits platform executable trust and A.1 admits Windows process-bound launch/session ownership; unsupported platforms remain blocked, while positive implementation and macOS/Linux admission remain independently open.
+  evidence_scope_note: Windows local-app launch requires the fixed Runtime service, verified control origin, single-use lease, live process binding, and request-empty session; macOS/Linux remain fail closed pending independent admission.
   test_files:
   - scripts/check-installed-realm-owner-boundary.mjs
   - scripts/check-protected-local-authority.mjs
@@ -283,6 +275,14 @@ rules:
   test_files:
   - scripts/check-local-development-admission-authority.mjs
   - scripts/check-local-development-admission-authority.test.mjs
+- rule_id: P-NAPP-036
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: closed local trust classes, principal separation, bundled exclusion, promotion invalidation, and opaque 0P seam are structurally validated; live Runtime/SDK/Kit/Desktop evidence is required by checkpoint rows.
+  test_files:
+  - scripts/check-local-development-admission-authority.mjs
+  - scripts/check-protected-local-authority.mjs
 - rule_id: P-MOEX-001
   evidence_refs:
   - platform_kernel_consistency

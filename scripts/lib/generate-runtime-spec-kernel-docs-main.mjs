@@ -57,6 +57,21 @@ const outDir = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'genera
 
 const specs = [
   {
+    input: 'local-app-principal-record-schema.yaml',
+    output: 'local-app-principal-record-schema.md',
+    render: renderJsonSnapshot('Generated Local App Principal And Record Schema'),
+  },
+  {
+    input: 'local-app-grant-binding-schema.yaml',
+    output: 'local-app-grant-binding-schema.md',
+    render: renderJsonSnapshot('Generated Local App Grant Binding Schema'),
+  },
+  {
+    input: 'local-app-presence-protocol.yaml',
+    output: 'local-app-presence-protocol.md',
+    render: renderJsonSnapshot('Generated Local App Presence Protocol'),
+  },
+  {
     input: 'rpc-methods.yaml',
     output: 'rpc-methods.md',
     render: renderRpcMethods,

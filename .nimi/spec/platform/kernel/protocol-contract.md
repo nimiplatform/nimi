@@ -20,7 +20,7 @@ core/read path 仍需回到 realm canonical surface 继续展开。
 
 ## P-PROTO-010 — 请求封装字段规则
 
-`MUST`: `domain=world-primitive` 时必须提供 `worldId + primitive`。`domain=app-auth` 时 `primitive` 必须为空，`appId` 必填。所有请求必须提供 `participantId`。所有写操作必须提供 `idempotencyKey`。非 Realm 参与方不得以 `world-primitive` 域执行原语写入。V1 domain 枚举为封闭集：`world-primitive`（世界原语操作）、`app-auth`（应用授权操作）。
+`MUST`: `domain=world-primitive` 时必须提供 `worldId + primitive`。所有请求必须提供 `participantId`。所有写操作必须提供 `idempotencyKey`。非 Realm 参与方不得以 `world-primitive` 域执行原语写入。V1 L0 domain 枚举不承载 PC-local app authorization；`LOCAL_APP` authority is derived from protected transport and body-independent Runtime context, never `x-nimi-domain`/`appId` metadata.
 
 ## P-PROTO-011 — L0 Envelope gRPC 映射
 
@@ -28,33 +28,42 @@ core/read path 仍需回到 realm canonical surface 继续展开。
 
 ## P-PROTO-020 — App 授权语义规范
 
-`MUST`: App 是授权策略决策点。Runtime 是访问 token 的签发与校验执行点。SDK 负责 scope catalog 定义/版本发布与授权协议封装，不作为最终签发者。同一 ExternalPrincipal 访问不同 App 必须使用不同 App 访问 token。授权执行按业务域落地。
+`MUST`: Platform owns permission vocabulary, Runtime K-APP owns the local
+principal/record, K-GRANT owns exact account+principal grant truth,
+K-PLOCAL owns process/session truth, and K-ACCSVC coordinates the immutable
+per-call decision with the domain owner policy. SDK/Kit transport typed
+projections only. No layer mints an app-held access token.
 
 ## P-PROTO-021 — Scope 扩展 manifest 规则
 
-`MUST`: 扩展 scope 仅允许 `app.<appId>.*` 命名空间。禁止覆盖 `realm.*`/`runtime.*`/`platform.*`。发布前必须通过 SDK 自动审核。审核通过后才可发布新 `scopeCatalogVersion`。扩展 scope 被撤销后后续 catalog 版本必须移除。
+`MUST`: Local apps cannot publish free-form scope extensions. Each admitted
+operation uses a canonical capability/resource fingerprint and owner policy.
+`app_id` namespaces, manifests and SDK catalogs cannot add or widen authority.
 
 ## P-PROTO-030 — App 授权策略原子性
 
 `MUST`: The former public app authorization/preset/token issuance family is
-deny-all. Request-body consent, `readOnly/full/delegate`, custom scopes,
+physically removed and reserved. Request-body consent, custom scopes,
 resource selectors, app id, external-principal session, parent token or bearer
-cannot authorize or mint a protected credential. The five
-`RuntimeGrantService` wire methods remain removal tombstones only; A.3d removes
-proto/generated/SDK/handler/persistence surfaces. Runtime-private operation
+cannot authorize or mint a protected credential. The former public
+credential-grant wire family is removed from proto/generated/SDK/handler/
+persistence surfaces and its identities are reserved. Runtime-private operation
 evaluation requires an exact protected origin and operation policy and returns
 no reusable credential.
 
 ## P-PROTO-035 — 委托规则
 
-`MUST`: Public delegation is a deny-all tombstone pending A.3d removal. No
+`MUST`: Public delegation has been removed. No
 parent token, scope subset, TTL, resource selector, `canDelegate`, preset, or
 chain record admits a child credential. Former delegation fields are removal
 inventory, not a compatibility path.
 
 ## P-PROTO-040 — 策略更新与 catalog 规则
 
-`MUST`: App 授权策略更新后既有 token 立即失效。token 校验以 `issuedScopeCatalogVersion` 解析 scope 集合。命中已撤销 scope 必须拒绝（`APP_SCOPE_REVOKED`）。发布新 catalog 版本不导致既有 token 自动失效。
+`MUST`: Local grant create/expand/revoke/supersede atomically increments the
+grant revision. Each protected operation resolves the exact current revision;
+prior success or a session-time snapshot never authorizes. Grant mutation does
+not rotate the identity session, and the next operation must reflect it.
 
 ## P-PROTO-050 — World-App 产品关系
 

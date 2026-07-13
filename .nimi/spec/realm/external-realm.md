@@ -18,6 +18,13 @@ Nimi owns only consumer behavior:
 - typed rejection handling for auth, transport, schema, and domain errors
 - local projection boundaries outside Realm canonical truth
 
+The 0K local-app principal, record, local grant, process/session and selected
+RuntimeAgent/Cognition access decision are Nimi local authority. A Realm grant
+is neither a prerequisite nor a substitute for that local decision. When a
+selected operation independently consumes Realm-owned data, Runtime still uses
+the canonical Realm consumer path and Realm policy; it never exports bearer
+material or mirrors Realm grant truth into the local-app stores.
+
 No Realm server/domain definitions, forks, or mirrors are part of this pointer
 under `.nimi/spec/realm/**`.
 

@@ -5,14 +5,14 @@
 > **Authority Disposition**：
 > 本契约被分为两种显式 mode：
 >
-> - **Local Runtime app modes**：no authenticated Realm transport is admitted
->   by A.0. Future local Realm access must use an exact Runtime-mediated
->   protected operation after its operation row and the caller's A.1 child
->   carrier are independently admitted. All local modes prohibit app/host/SDK
+> - **Local Runtime app modes**：no generic authenticated Realm transport is
+>   admitted. Any local Realm access must use an exact Runtime-mediated
+>   protected operation after its operation row and caller carrier are
+>   independently admitted. All local modes prohibit app/host/SDK
 >   bearer, token/refresh provider, session store, JWT subject decode,
 >   `MeService.getMe` account truth, Realm login route and SDK-owned 401 refresh.
->   Public `GetAccessToken` and the entire public `RuntimeGrantService` family
->   are deny-all pending A.3d removal.
+>   Public token/refresh and credential-grant families are removed and their
+>   identities reserved.
 > - **Web / cloud adapter 与 external-principal mode**：可保留本契约的 app-provided token / subject / Realm route seams，但必须显式 fenced。
 >
 > Local account / login / refresh-token custody 与 Realm mediation 真相由
@@ -111,7 +111,7 @@ repository.
 The realtime protocol, dependency, delivery, and replay details recorded by `S-REALM-035` through `S-REALM-037` remain blocked authority conflicts until Runtime admits the corresponding realtime authority. Runtime compatibility evidence must precede any replay posture; client caches, outboxes, event shapes, or reconnect success cannot establish replay guarantees. SDK media helpers likewise remain carrier-only until Runtime admits exact media states, limits, credential custody, and failure behavior.
 
 `createRuntimeAccountMediatedRealmTransport` is a reserved typed constructor,
-not an A.0 data-path admission. It returns protected-unavailable for every app
+not a generic data-path admission. It returns protected-unavailable for every app
 composition until the exact Runtime operation policy and caller carrier are
 admitted. When enabled by a later authority batch, it may send only typed
 operation ids on that verified carrier and can never accept/expose

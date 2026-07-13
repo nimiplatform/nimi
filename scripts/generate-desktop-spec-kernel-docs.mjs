@@ -14,6 +14,11 @@ const outDir = path.join(repoRoot, '.nimi', 'spec', 'desktop', 'kernel', 'genera
 
 const specs = [
   {
+    input: 'local-app-control-surfaces.yaml',
+    output: 'local-app-control-surfaces.md',
+    render: renderJsonSnapshot('Generated Local App Control Surfaces'),
+  },
+  {
     input: 'bootstrap-phases.yaml',
     output: 'bootstrap-phases.md',
     render: renderBootstrapPhases,
@@ -127,6 +132,18 @@ function header(title, sourceName) {
     `> Source: \`.nimi/spec/desktop/kernel/tables/${sourceName}\``,
     '',
   ].join('\n'));
+}
+
+function renderJsonSnapshot(title) {
+  return function renderSnapshot(doc, sourceName) {
+    return normalizeMarkdown([
+      header(title, sourceName),
+      '```json',
+      JSON.stringify(doc, null, 2),
+      '```',
+      '',
+    ].join('\n'));
+  };
 }
 
 function mdBool(value) {

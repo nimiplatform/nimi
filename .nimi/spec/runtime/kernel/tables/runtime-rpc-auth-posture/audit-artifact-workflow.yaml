@@ -31,9 +31,9 @@ services:
 methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
     posture: protected_origin_required
-    protected_transport_class: installed_host
-    required_origin_roles: [installed_host_session, local_development_host_session]
-    rationale: artifact id is a selector only; production installed callers require the current catalog/inventory/release/grant chain, while local-development callers require the explicit approved capability fingerprint and live Desktop-supervised technical session; both require an exact durable account/app/trust/session/use audience match
+    protected_transport_class: local_app_host
+    required_origin_roles: [local_app_session]
+    rationale: artifact id is a selector only; the coordinator requires the current principal, record, exact grant revision, live process-bound session, owner policy and durable principal/lineage/session/use audience match
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

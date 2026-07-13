@@ -6,8 +6,6 @@ rows:
   - WF_NODE_CONFIG_MISMATCH
   - WF_TIMEOUT
   - WF_TASK_NOT_FOUND
-  - GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND
-  - GRANT_TOKEN_CHAIN_ROOT_REQUIRED
   - PAGE_TOKEN_INVALID
   - KNOWLEDGE_BANK_ALREADY_EXISTS
   - KNOWLEDGE_BANK_NOT_FOUND
@@ -46,16 +44,6 @@ mappings:
     surface: workflow_query
     exit_shape: grpc_status
     source_rule: K-WF-003
-  - reason_code: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND
-    grpc_code: NOT_FOUND
-    surface: grant_list_token_chain
-    exit_shape: grpc_status
-    source_rule: K-GRANT-013
-  - reason_code: GRANT_TOKEN_CHAIN_ROOT_REQUIRED
-    grpc_code: INVALID_ARGUMENT
-    surface: grant_list_token_chain
-    exit_shape: grpc_status
-    source_rule: K-GRANT-013
   - reason_code: PAGE_TOKEN_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: list_rpc_page_token_validation

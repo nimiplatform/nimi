@@ -9,7 +9,6 @@ protocol_id: runtime_identity_access
 surfaces:
   - RuntimeAccountService
   - RuntimeAuthService
-  - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAppService
   - RuntimeDevelopmentService
@@ -44,74 +43,67 @@ surfaces:
   - methods_29
   - methods_30
   - methods_31
-description: Account, auth, grants, app binding, and local-development posture entries.
+description: Account, auth, protected local-app grants, app binding, and local-development posture entries.
 services:
   - RuntimeAccountService
   - RuntimeAuthService
-  - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAppService
   - RuntimeDevelopmentService
 methods:
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: local_app_control
+    rationale: one Runtime-owned production Developer Mode and Dev Trust Set projection; enabled grants nothing
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: local_app_control
+    rationale: only the verified Desktop local-app control UX may change Developer Mode; mode-off invalidates live development carriers
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
     posture: protected_origin_required
     protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
+    required_origin_role: local_app_control
     rationale: Runtime canonicalizes the project manifest and current account only for the live Desktop-owned supervisor; public TCP and caller metadata cannot create an evaluation
     kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject
     posture: protected_origin_required
     protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
+    required_origin_role: local_app_control
     rationale: a user decision consumes a short-lived Runtime evaluation on the verified Desktop connection and never accepts a caller-confirmed boolean
     kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
     posture: protected_origin_required
     protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
+    required_origin_role: local_app_control
     rationale: remembered mutable-project authorizations are Runtime-owned account truth exposed only to Desktop management UI
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: local_app_control
+    rationale: remembered project is dormant between runs and requires explicit reactivation with current account, presence and risk disclosure
     kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
     posture: protected_origin_required
     protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    rationale: Desktop revocation atomically invalidates pending launches and technical sessions for the selected non-secret authorization id
-    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    rationale: only the Desktop supervisor may prepare an exact project, shell, loopback renderer origin, and host executable binding
-    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    rationale: Runtime opens and validates the actual suspended child process against the prepared mutable-project launch before Desktop resumes it
-    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession
-    posture: protected_origin_required
-    protected_transport_class: installed_host
-    required_origin_role: verified_local_development_process
-    rationale: the empty request consumes only the exact Desktop-bound native host connection and returns no technical session material
-    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus
-    posture: protected_origin_required
-    protected_transport_class: installed_host
-    required_origin_role: local_development_host_session
-    rationale: typed status is revalidated against current account, Runtime epoch, process liveness, authorization generation, and session expiry
+    required_origin_role: local_app_control
+    rationale: Desktop revocation atomically invalidates grants, pending launches and sessions for the selected current record
     kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
     posture: protected_origin_required
     protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
+    required_origin_role: local_app_control
     rationale: the Desktop supervisor ends the exact run and Runtime revokes every bound launch and technical session without exposing them
     kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
     posture: protected_origin_required
     protected_transport_class: desktop_control
     required_origin_role: desktop_account_host
-    rationale: A.0 admits only the verified Desktop account projection; installed, bundled, and developer projections remain blocked pending A.1
+    rationale: the verified Desktop account projection is the only admitted account-control origin; local-app sessions cannot inherit it
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
@@ -120,7 +112,7 @@ methods:
     posture: protected_origin_required
     protected_transport_class: desktop_control
     required_origin_role: desktop_account_host
-    rationale: A.0 event projection remains connection-bound to the verified Desktop account host; portable and app sessions are denied
+    rationale: account events remain connection-bound to the verified Desktop account host; portable and local-app sessions are denied
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
@@ -156,7 +148,7 @@ methods:
     posture: protected_origin_required
     protected_transport_class: desktop_control
     required_origin_role: desktop_account_host
-    rationale: A.0 admits only verified Desktop transport; operation vocabulary remains separately governed by K-ACCSVC-023 and installed/bundled/developer transport remains blocked pending A.1
+    rationale: verified Desktop transport is admitted only for the exact K-ACCSVC-023 operation vocabulary; LOCAL_APP is denied until an exact Runtime-mediated operation is independently admitted
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
@@ -201,7 +193,7 @@ methods:
     posture: blocked_pending_authority
     authority_status: blocked_pending_separate_authority
     transport_disposition: deny_all
-    rationale: no A.0 or A.1 protected origin owns workspace-binding issuance; authenticated or ordinary SDK callers remain denied pending an independent authority admission
+    rationale: no admitted protected origin owns workspace-binding issuance; authenticated or ordinary SDK callers remain denied pending an independent authority admission
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
@@ -213,69 +205,77 @@ methods:
     posture: blocked_pending_authority
     authority_status: blocked_pending_separate_authority
     transport_disposition: deny_all
-    rationale: no A.0 or A.1 protected origin owns workspace-binding revocation; authenticated or ordinary SDK callers remain denied pending an independent authority admission
+    rationale: no admitted protected origin owns workspace-binding revocation; authenticated or ordinary SDK callers remain denied pending an independent authority admission
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
       - K-ACCSVC-019
       - K-BIND-018
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus
+    posture: protected_origin_required
+    protected_transport_classes: [desktop_control, local_app_host]
+    required_origin_roles_by_transport:
+      desktop_control: local_app_control
+      local_app_host: local_app_session
+    rationale: projects current exact grant posture without a portable credential
+    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant
+    posture: protected_origin_required
+    protected_transport_class: local_app_host
+    required_origin_role: local_app_session
+    rationale: zero-grant identity session may request one exact operation but cannot approve it
+    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: local_app_control
+    rationale: verified Desktop UX decides the exact pending operation grant with current presence when required
+    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: local_app_control
+    rationale: revokes the exact current grant and causes the next operation to deny without rotating the identity session
+    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
   - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
-    posture: authenticated_required
-    rationale: requires app session credential via envelope.ParseSessionFromContext for non-internal callers
+    posture: authenticated_or_protected_local_app_operation
+    protected_transport_class_additional: local_app_host
+    rationale: ordinary callers use their admitted posture; LOCAL_APP may send only the selected runtime.agent turn through the per-operation coordinator
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
-    posture: authenticated_required
-    rationale: requires app session credential via envelope.ParseSessionFromContext for non-internal callers
+    posture: authenticated_or_protected_local_app_operation
+    protected_transport_class_additional: local_app_host
+    rationale: ordinary callers use their admitted posture; LOCAL_APP may subscribe only to the selected exact conversation through the per-operation coordinator
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: false
-    authority_status: transitional_fail_closed_ux_projection
-    rationale: returns a non-authorizing Desktop lifecycle impact projection; public TCP, installed, developer, bundled and renderer callers are denied
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: 0K retains only opaque immutable-package fields and does not admit a package lifecycle intent producer or consumer
     kernel_refs:
-      - K-PLOCAL-006
-      - K-PLOCAL-007
       - K-APP-026
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: false
-    authority_status: transitional_reconciliation_projection
-    rationale: returns non-authorizing lifecycle reconciliation status only to a verified Desktop lifecycle origin
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: 0K has no positive immutable-package lifecycle intent state to reconcile or project
     kernel_refs:
-      - K-PLOCAL-006
-      - K-PLOCAL-007
       - K-APP-026
   - method_id: /nimi.runtime.v1.RuntimeAppService/InstallApp
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: true
-    rationale: app lifecycle write; requires admitted caller identity to drive the Runtime-owned install gateway
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: 0K retains only opaque immutable-package fields; positive install requires 0P/P
+    kernel_refs: [K-APP-011]
   - method_id: /nimi.runtime.v1.RuntimeAppService/UninstallApp
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: true
-    rationale: app lifecycle write; requires admitted caller identity to remove the Runtime-owned release payload
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: 0K has no immutable positive materialization to remove
+    kernel_refs: [K-APP-014]
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppStorage
     posture: authenticated_required
     rationale: app-scoped storage truth read; requires admitted caller identity before projecting Runtime-owned app roots
@@ -294,83 +294,49 @@ methods:
       - K-APP-024
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness
     posture: authenticated_required
-    rationale: app package readiness truth read; requires admitted caller identity before projecting Runtime-owned active release and install evidence state
+    rationale: callable only to return typed unavailable for the opaque 0K immutable-package seam; no install, release, readiness, or promotion truth exists
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
       - K-APP-023
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAppInstallJob
-    posture: authenticated_required
-    rationale: owner-scoped install job read; requires admitted caller identity
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: 0K admits no immutable-package install job state
+    kernel_refs: [K-APP-011]
   - method_id: /nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs
-    posture: authenticated_required
-    rationale: owner-scoped install job read; requires admitted caller identity
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: 0K admits no immutable-package install job collection
+    kernel_refs: [K-APP-011]
   - method_id: /nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents
-    posture: authenticated_required
-    rationale: owner-scoped install job progress stream; requires admitted caller identity
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: 0K admits no immutable-package install job event stream
+    kernel_refs: [K-APP-011]
   - method_id: /nimi.runtime.v1.RuntimeAppService/UpdateApp
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: true
-    rationale: app lifecycle write; requires admitted caller identity to drive the Runtime-owned atomic update
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: opaque promotion revision is frozen but positive immutable update requires 0P/P
+    kernel_refs: [K-APP-015]
   - method_id: /nimi.runtime.v1.RuntimeAppService/HealthRepairApp
+    posture: unavailable_by_authority
+    transport_disposition: deny_all
+    rationale: immutable repair is unavailable before 0P/P; no local-development repair alias exists
+    kernel_refs: [K-APP-016]
+  - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
     posture: protected_origin_required
     protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: true
-    rationale: app lifecycle write; requires admitted caller identity to drive the Runtime-owned health/repair action
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeAppService/AdoptLocalApp
+    required_origin_role: local_app_control
+    rationale: creates one single-use lease after exact principal, record, account, boot epoch and host or project resolution
+    kernel_refs: [K-PLOCAL-008, K-APP-017]
+  - method_id: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess
     posture: protected_origin_required
     protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: true
-    rationale: local developer adoption is a lifecycle mutation; renderer path and developer registration are non-authorizing
-    kernel_refs:
-      - K-PLOCAL-006
-      - K-PLOCAL-007
-      - K-APP-025
-  - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: true
-    rationale: removing local adoption requires the live protected Desktop origin, current generation and transactional idempotency; UX intent is non-authorizing
-    kernel_refs:
-      - K-PLOCAL-006
-      - K-PLOCAL-007
-      - K-APP-025
-  - method_id: /nimi.runtime.v1.RuntimeAppService/OpenApp
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: desktop_lifecycle_host
-    lifecycle_challenge_required: false
-    rationale: app launch requires the live protected Desktop origin, current target/generation and transactional idempotency but no prepare challenge
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+    required_origin_role: local_app_control
+    rationale: binds the exact live native child and executable to the current launch lease before session open
+    kernel_refs: [K-PLOCAL-008]
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
     posture: binding_only_bootstrap
     protected_transport_class: public_tcp
@@ -391,13 +357,18 @@ methods:
     posture: protected_origin_required
     protected_transport_class: desktop_control
     required_origin_role: verified_desktop_process
-    authority_status: admitted_a0_pending_proto_and_runtime_implementation
     rationale: derives the non-portable Desktop control session only after mutual endpoint, process liveness, and executable trust verification
     kernel_refs:
       - K-PLOCAL-003
       - K-PLOCAL-004
       - K-PLOCAL-005
       - K-PLOCAL-006
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
+    posture: protected_origin_required
+    protected_transport_class: local_app_bootstrap
+    required_origin_role: local_app_process
+    rationale: request-empty open atomically consumes the current launch lease and binds a zero-grant local-app session to the exact connection
+    kernel_refs: [K-PLOCAL-008, K-AUTHSVC-002]
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RefreshSession
     posture: authenticated_required
     rationale: requires app session_id + session_token via envelope.ParseSessionFromContext as admitted
@@ -428,46 +399,6 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession
     posture: anonymous_read
     rationale: handler revokes by external_session_id with no caller credential check
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal
-    posture: deny_all_tombstone
-    authority_status: tombstone_pending_a3d_removal
-    transport_disposition: deny_all
-    rationale: public request-body consent cannot authorize protected credential issuance; the public wire symbol is deny-all pending A.3d removal
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken
-    posture: deny_all_tombstone
-    authority_status: tombstone_pending_a3d_removal
-    transport_disposition: deny_all
-    rationale: public protected-token introspection is not an admitted product capability; the wire symbol is deny-all pending A.3d removal
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken
-    posture: deny_all_tombstone
-    authority_status: tombstone_pending_a3d_removal
-    transport_disposition: deny_all
-    rationale: public protected-token mutation has no admitted origin; the wire symbol is deny-all pending A.3d removal
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken
-    posture: deny_all_tombstone
-    authority_status: tombstone_pending_a3d_removal
-    transport_disposition: deny_all
-    rationale: possession of a parent token cannot authorize public protected credential issuance; the wire symbol is deny-all pending A.3d removal
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeGrantService/ListTokenChain
-    posture: deny_all_tombstone
-    authority_status: tombstone_pending_a3d_removal
-    transport_disposition: deny_all
-    rationale: public protected-token chain enumeration is not admitted; the wire symbol is deny-all pending A.3d removal
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

@@ -180,6 +180,23 @@ Runtime verification floor:
 
 任一步骤失败必须 fail closed，不提供泄露性诊断详情。
 
+## D-SEC-015 — Local App Carrier Custody And Leak Boundary
+
+The local-app child renderer and application code may observe only typed Kit
+session/permission posture, selected business inputs/results and stable reason
+codes. Desktop main/native supervisor, preload, renderer storage, network,
+telemetry, logs and errors must not expose or persist account bearer/refresh
+material, Runtime endpoint, authorization header, local-app principal/record/
+grant/session ids, immutable lineage, attestation refs, SID partition, launch
+lease/challenge, process proof, Runtime epoch or native carrier handles.
+
+Electron preload and Tauri commands expose exact named typed operations only.
+There is no generic Runtime unary/stream, method-id/bytes forwarder, renderer
+auth callback, endpoint/env override or caller-selected trust posture. On
+revoke, account switch, mode off, process replacement or Runtime restart the
+native host invalidates the old carrier before projecting the failure; retry
+must traverse the owner-approved new launch/session path.
+
 ## Fact Sources
 
 - `tables/error-codes.yaml` — 安全相关错误码（`LOCAL_AI_ENDPOINT_NOT_LOOPBACK`、`LOCAL_AI_ENDPOINT_INVALID`）

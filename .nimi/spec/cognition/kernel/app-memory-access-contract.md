@@ -11,12 +11,16 @@ policy enum、chat-derived projection 规则、与 no-implicit-allow rule。
 
 ## C-APMEM-001 — Cognition Owns App Memory / Knowledge / Skill Access Policy
 
-`MUST`：Cognition 拥有 app 访问 memory / knowledge / skill 的 policy
-决策；Realm grant lifecycle 决定 scope 可否使用，Cognition policy 决定具体
-read / write / projection 的形状与约束。
+`MUST`：Cognition 拥有 app 访问 memory / knowledge / skill 的 owner policy
+决策。对 PC-local `LOCAL_APP`，Runtime K-GRANT 的 exact account+principal grant
+决定本地 capability/resource 是否可进入 owner policy；Cognition 再决定具体
+read / write / projection 的形状与约束。Realm grant 仅在所选 operation 独立消费
+Realm-owned data 时按 Realm owner policy 生效，不是本地 grant/Cognition decision
+的 prerequisite、substitute 或 fallback。
 
-`MUST NOT`：Realm grant、Runtime local execution、Desktop hosted shell、
-SDK 都不得自创 memory / knowledge / skill access policy。
+`MUST NOT`：Realm grant、Runtime local execution、Desktop hosted shell、SDK
+都不得自创 memory / knowledge / skill owner policy；K-GRANT 也不得把 capability
+allow 解释为 memory/knowledge ownership。
 
 `MUST`：RuntimeAgentService 仍是 agent lifecycle 中 canonical agent memory
 admission 的 semantic owner；本契约仅约束 app 访问 Cognition memory /
@@ -45,10 +49,11 @@ truth 转移给 Desktop、SDK、Kit 或 app-local session code。
 `MUST`：chat transcript 转换为 memory truth 必须满足：
 
 - 存在 active `chat_derived.projection.admitted` grant
-- projection request 携带 `ConversationAnchor` 引用、source app id、target
-  persona id、与 Realm audit event id
+- projection request 携带 `ConversationAnchor` 引用、Runtime-derived caller
+  subject（第三方本地 app 使用 `local_app_principal_id`）、target persona id、
+  与 admitted audit event id
 - Cognition 写入的 memory record 含 `source.anchor` 与
-  `source.app_id` 字段
+  `source.caller_subject` 字段；`source.app_id` 只能作为非授权显示 metadata
 
 `MUST NOT`：不得在缺少 grant 时由 background job、passive cache、replay
 触发 chat → memory 转换；不得在 transcript display 路径上直接写入
@@ -98,6 +103,22 @@ policy enum 触发。
 
 `MUST NOT`：Desktop-hosted Home shell 不得维护 cross-session memory
 cache；session lifecycle 结束后必须 release projection。
+
+## C-APMEM-009 — Local App Principal Is Not Memory Or Agent Ownership
+
+`MUST`：第三方本地 app 的 `local_app_principal_id` 只作为 caller、access
+control 与 audit subject。Cognition 必须从 RuntimeAgent/Cognition canonical
+relation 解析显式 agent、persona、conversation anchor、memory bank 与 knowledge
+owner；不得从 principal、`app_id`、project path、process、record 或 grant 推断。
+
+`MUST`：来自 `LOCAL_APP` 的 selected RuntimeAgent operation 必须先携带
+Runtime `K-ACCSVC-026` 的不可变 allow decision，再由 Cognition 重新执行本规则
+拥有的 memory/knowledge policy。两层任一缺失、过期、撤销或 relation mismatch
+都 fail-close，且不得回退到 Realm grant、first-party binding 或 app-local cache。
+
+Bundled first-party Zhiyu/Avatar 保持各自已承认 posture；Zhiyu 的隔离
+`local_development` integration build 是独立第三方 principal，不能继承 shipped
+bundled identity、memory 或 agent ownership。
 
 ## Fact Sources
 

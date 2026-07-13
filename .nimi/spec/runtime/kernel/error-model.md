@@ -112,3 +112,23 @@ canonical truth。
   `voice_workflow.voice_clone` / `voice_workflow.voice_design` 专属 reason code。
 - Desktop `LOCAL_AI_SPEECH_*` 仅可保留为 bridge 诊断别名；canonical 产品错误
   owner 仍是 runtime ReasonCode。
+
+## K-ERR-012 Local App Kernel Reason Family
+
+Local-app principal/record/grant/launch/session failures use the closed
+`LOCAL_APP_*` family in `tables/reason-codes.yaml`. The response exposes only
+the stable reason, action hint, retryability and trace id; it must not expose
+principal/record/grant/session ids, lineage, SID partition, process proof,
+attestation refs, endpoint, bearer or native verification detail.
+
+Fixed action classes:
+
+- principal/record/provenance failures require Desktop owner action and are not
+  silently retryable by the app;
+- lease replay/process mismatch/session revoked/account changed require a new
+  owner-approved launch/session and never reuse the old carrier;
+- grant required/revoked/superseded returns a denied permission posture while
+  the identity session may remain valid;
+- Developer Mode disabled/dormant/risk disclosure failures require explicit
+  Desktop interaction and never background-reactivate or autostart;
+- operation unavailable is not a generic proxy fallback signal.

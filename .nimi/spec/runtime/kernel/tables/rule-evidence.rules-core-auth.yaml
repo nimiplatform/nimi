@@ -80,6 +80,7 @@ entries:
   - K-ACCSVC-023
   - K-ACCSVC-024
   - K-ACCSVC-025
+  - K-ACCSVC-026
   - K-PLOCAL-001
   - K-PLOCAL-002
   - K-PLOCAL-003
@@ -92,16 +93,7 @@ entries:
   - K-GRANT-001
   - K-GRANT-002
   - K-GRANT-003
-  - K-GRANT-004
-  - K-GRANT-005
-  - K-GRANT-006
-  - K-GRANT-007
-  - K-GRANT-008
-  - K-GRANT-009
-  - K-GRANT-010
-  - K-GRANT-011
-  - K-GRANT-012
-  - K-GRANT-013
+  - K-GRANT-014
   - K-SEC-001
   - K-SEC-002
   - K-SEC-003
@@ -359,8 +351,8 @@ rules:
       - desktop_boundary_test
       - protected_local_authority_gate
     evidence_requirement: required
-    note: A.1 admits the Windows verified child origin and Runtime-owned installed session; installed operations remain denied pending their policy rows.
-    evidence_scope_note: The protected-local gate covers A.0 Desktop and A.1 Windows launch/session structure. Blocked installed operations remain denied, and Runtime/SDK/Kit/Desktop positive evidence remains required before product closeout.
+    note: Final LOCAL_APP posture requires the common process-bound session, separate exact grant and owner policy; a zero-grant session remains denied.
+    evidence_scope_note: Protected-local structure plus Runtime/SDK/Kit/Desktop and LocalAgent journey evidence are required for checkpoint closeout.
     test_files:
       - runtime/internal/services/account/service_test.go
       - sdks/typescript/runtime/app-session.test.ts
@@ -387,8 +379,8 @@ rules:
       - protected_local_authority_gate
       - public_raw_token_authority_hardcut_gate
     evidence_requirement: required
-    note: A.0 admits only Desktop account-control origin and Runtime-private refresh transport slices; installed/bundled/developer carrier and broker rows remain blocked.
-    evidence_scope_note: The protected-local gate is structural A.0 authority evidence. Runtime tests remain implementation compatibility evidence only for all remaining blocked caller rows.
+    note: The matrix admits Desktop account control and exact LOCAL_APP grant status/request/control postures without portable credentials.
+    evidence_scope_note: Protected-local structure and positive/negative owner tests must prove caller separation and per-operation enforcement.
     test_files:
       - runtime/internal/services/account/service_test.go
       - runtime/internal/services/account/realm_unary_test.go
@@ -402,50 +394,56 @@ rules:
       - desktop_boundary_test
       - protected_local_authority_gate
     evidence_requirement: required
-    note: A.1 admits only inherited native-channel origin proof; every self-asserted envelope and portable replay field remains denied.
-    evidence_scope_note: The protected-local gate is structural A.1 authority evidence. Blocked portable envelopes remain denied; Runtime/SDK/Kit tests must prove native origin and ordinary gRPC/renderer denial.
+    note: LOCAL_APP authority comes only from inherited native-channel and verified live peer context; every self-asserted envelope and portable replay field remains denied.
+    evidence_scope_note: Runtime/SDK/Kit tests must prove native origin and ordinary gRPC/renderer denial.
     test_files:
       - runtime/internal/services/account/realm_unary_test.go
       - runtime/internal/appregistry/registry_test.go
       - kit/shell/electron/test/electron-runtime-account-auth.test.ts
       - scripts/check-installed-realm-owner-boundary.mjs
+  - rule_id: K-ACCSVC-026
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Per-operation coordinator joins current principal/record/session/account/grant/presence and domain owner policy without owning or caching their truth.
+    test_files:
+      - scripts/check-protected-local-authority.mjs
   - rule_id: K-PLOCAL-001
     evidence_refs:
       - runtime_kernel_consistency
       - protected_local_authority_gate
     evidence_requirement: required
-    note: A.0 structural authority only; anonymous privilege fails closed, while bundled positive closeout remains dependent on separately admitted and implemented A.1 protected child channels.
+    note: Protected-local roles derive only from the fixed service and verified native connection; anonymous, public TCP, and request-selected role elevation fail closed.
     test_files:
       - scripts/check-protected-local-authority.test.mjs
       - scripts/testdata/protected-local-authority/negative-fixtures.json
   - rule_id: K-PLOCAL-002
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: Structural transport and immutable-origin vocabulary; launch_bootstrap and installed_host remain reserved and unadmitted in A.0.
+    note: Final transport vocabulary is desktop_control, local_app_bootstrap, and local_app_host with immutable Runtime-derived origin context.
   - rule_id: K-PLOCAL-003
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: Structural mutual endpoint authentication requirements; implementation and live OS evidence are not claimed by this row.
+    note: Mutual endpoint authentication is mandatory and requires platform-native live evidence in addition to static authority validation.
   - rule_id: K-PLOCAL-004
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: Structural process tuple and liveness requirements; implementation and live OS evidence are pending.
+    note: Process tuple, creation marker, same-open-object identity, liveness, and login-session checks are required for positive live evidence.
   - rule_id: K-PLOCAL-005
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: Structural same-open-file executable verification and Platform trust-set reference boundary; signer verification implementation is pending.
+    note: Same-open-file executable verification and the Platform trust-set boundary require signer-positive and mismatch-negative live evidence.
   - rule_id: K-PLOCAL-006
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: Structural Desktop control-session authority; proto, Runtime, Desktop, and carrier implementation evidence is pending.
+    note: Desktop control-session authority remains Desktop-specific and requires exact proto, Runtime, Desktop, and carrier evidence.
   - rule_id: K-PLOCAL-007
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: Structural transactional lifecycle operation, boot epoch, and limited durable-anchor authority; platform-native implementation and closeout evidence remain per-platform.
+    note: Transactional lifecycle, boot epoch, and limited durable-anchor authority require platform-native evidence for each admitted OS.
   - rule_id: K-PLOCAL-008
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
-    note: A.1 structurally admits Windows process-bound launch bootstrap and atomic Runtime-owned installed sessions; product positive evidence and macOS/Linux admission remain open.
+    note: Windows admits a process-bound single-use local-app launch lease and atomic Runtime-owned request-empty session; macOS/Linux remain fail closed pending independent authority.
   - rule_id: K-PLOCAL-009
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
@@ -468,56 +466,12 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
     evidence_requirement: required
-  - rule_id: K-GRANT-004
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
+  - rule_id: K-GRANT-014
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test, protected_local_authority_gate]
     evidence_requirement: required
-  - rule_id: K-GRANT-005
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-006
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-007
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-008
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-009
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-010
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-011
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-012
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
-  - rule_id: K-GRANT-013
-    evidence_refs:
-      - runtime_kernel_consistency
-      - runtime_go_test
-    evidence_requirement: required
+    note: Exact account+principal grant store is separate from record/session, exposes no credential, and the next operation observes revoke/supersede without session rotation.
+    test_files:
+      - scripts/check-protected-local-authority.mjs
   - rule_id: K-SEC-001
     evidence_refs:
       - runtime_kernel_consistency

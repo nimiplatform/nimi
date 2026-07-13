@@ -14,15 +14,14 @@ entries:
   - Avatar must remain hidden-internal for ordinary Apps even when package/update coordination rows exist
   - Realm Persona Studio and Realm World Studio are admitted only as developer-only
     first-party Apps in this cut so standalone desktop dev-shell account
-    registration can use Runtime registry truth and short-lived Realm account
-    tokens without app-owned refresh-token custody
+    registration can consume Runtime-mediated bounded account results without
+    any app-held Realm access or refresh token
   - Zhiyu is admitted only as a first-party bundled developer-only App in R1;
     it does not satisfy ordinary Apps catalog discovery or ordinary release
     readiness
-  - admission-sandbox-ci fixture rows are developer-only non-product plumbing
-    evidence and must not satisfy ordinary Apps catalog discovery or ordinary
-    release readiness
-  - every installable non-bundled version must resolve to an immutable release descriptor with digest verification before unpack or execution
+  - CI fixtures are not registry or product truth
+  - verified non-bundled discovery may resolve an immutable release descriptor,
+    but 0K does not claim local package/install readiness
   - permission_scope_ref carries the admitted first-party Avatar seed grant set
 
 # Canonical Nimi App registry — Platform admission/catalog authority.
@@ -142,73 +141,6 @@ apps:
     source_repo_url: null
     admission_status: admitted
     source_rule: P-NAPP-011
-  - app_id: community.nimi.fixture.platform-proof
-    display_label: Platform Proof Fixture
-    publisher: nimiplatform-fixtures
-    trust_tier_ref: nimi-community
-    package_kind: nimi-app
-    package_signature_policy_ref: nimi-community-signature-policy
-    update_channel_ref: platform-proof-sandbox-channel
-    ai_profile_selection_ref: local-standard
-    capability_set_refs:
-      - text.generate
-    local_compute_pack_refs:
-      - local-text
-    runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: account
-        scopeName: account.session.read
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.me.personas.read-probe
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.worlds.read-probe
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: runtime.artifacts
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: ai_spend
-        scopeName: ai.spend.meter
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: app-config
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: app-config
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: app-storage
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: app-storage
-      - appId: community.nimi.fixture.platform-proof
-        scopeFamily: file_device
-        scopeName: file.read.scoped
-        qualifier: local-assets
-    health_repair_projection:
-      - unavailable
-      - setup-required
-      - needs-confirmation
-      - in-progress
-      - failed
-      - unsupported
-      - repair-required
-      - stale-projection
-    ordinary_visibility: developer-only
-    release_descriptor_ref: community.nimi.fixture.platform-proof.0.1.0-sandbox
-    install_storage_policy_ref: nimi-data-app-roots
-    source_repo_url: https://github.com/nimiplatform-fixtures/nimi-app-platform-fixture
-    admission_status: admitted
-    source_rule: P-NAPP-033
   - app_id: nimi.realm-persona-studio
     display_label: Realm Persona Studio
     publisher: nimi-first-party

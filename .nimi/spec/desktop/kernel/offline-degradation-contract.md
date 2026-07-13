@@ -43,9 +43,9 @@ Runtime 和 Realm 均不可达时的行为规则：
 
 After reconnect, `OpenSession` may restore only `BINDING_ONLY`. Desktop must
 repeat the complete protected endpoint/process/executable handshake and
-`OpenDesktopSession` before account-control or lifecycle commands. Bundled or
-installed positive child access cannot resume until A.1 supplies a fresh
-protected child channel; cached metadata/session ids never authorize replay.
+`OpenDesktopSession` before account-control commands. A local app cannot resume
+until the final carrier supplies a fresh launch lease, exact process bind and
+request-empty `OpenLocalAppSession`; cached metadata/session ids never authorize replay.
 
 断联后的重连行为：
 

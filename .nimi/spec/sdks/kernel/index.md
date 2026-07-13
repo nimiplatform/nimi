@@ -27,6 +27,9 @@ Current scope:
   Agent Participation method projection gate.
 - `nimi-proposal-intake-client-contract.md` owns the SDK typed consumer
   surface for Platform `P-PROP-*` proposal intake.
-- `transport-contract.md` owns the host-injected local-development carrier
-  projection; it exposes no session material and cannot widen the A.5
-  artifact-only operation set.
+- `transport-contract.md` owns the host-injected common local-app carrier;
+  it exposes no principal/grant/session material and cannot widen the exact
+  artifact plus selected RuntimeAgent conversation operation set.
+- `nimi-app-client-contract.md` owns the Nimi App catalog/local-record
+  projection and final local-app SDK consumer boundary; it exposes no package
+  mutation, app-id launch selector, principal selector, bearer, or session proof.

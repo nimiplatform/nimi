@@ -18,7 +18,7 @@
 > | `D-AUTH-010` / `D-AUTH-011` / `D-AUTH-012` | retained | external-principal UI 仍由 Desktop 拥有，与 account session 分离 |
 >
 > Desktop 可以保留 feature-local Realm data calls，但默认且最终路径是
-> Runtime-mediated Realm broker。Desktop shell 不使用 raw `GetAccessToken`；
+> Runtime-mediated Realm broker。Desktop shell 不使用已移除的 public token accessor；
 > 不得持有 refresh token、durable session、或 app-owned login truth。
 >
 > Active owner switch 与代码删除由 `K-ACCSVC-013` 约束；不得保留 dual-read / fallback。

@@ -29,6 +29,8 @@ entries:
   - P-DEV-003
   - P-DEV-004
   - P-DEV-005
+  - P-DEV-006
+  - P-DEV-007
 rules:
   - rule_id: P-DEV-001
     evidence_refs:
@@ -55,3 +57,15 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; PR-based admission workflow obligations enforcement is downstream review-tool and Apps registry/install/storage consumer validation
+  - rule_id: P-DEV-006
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: one production Developer Mode/Dev Trust Set, zero-grant toggle, explicit lifetimes and invalidation require Runtime/Desktop/real-shell checkpoint evidence.
+    test_files:
+      - scripts/check-local-development-admission-authority.mjs
+  - rule_id: P-DEV-007
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: external AI host workflow ownership is validated by AI-governance and retired-methodology-reference guards; repository workflow state is forbidden.

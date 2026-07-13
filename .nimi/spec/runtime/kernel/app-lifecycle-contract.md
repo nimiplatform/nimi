@@ -2,261 +2,147 @@
 
 > Owner Domain: `K-APP-*`
 
-Runtime-owned Nimi App install, uninstall, update, health repair, open, and file-API non-admission authority.
+Runtime K-APP owns PC-local principal/record lifecycle. It does not own
+Platform package format, K-GRANT grant state, K-PLOCAL process/session facts,
+account custody, or operation-domain policy.
 
-This file is a semantic split from `app-messaging-contract.md`; Rule IDs and rule text remain authoritative under Runtime kernel.
+All mutations require Runtime-derived `local_app_control` on the current
+protected Desktop connection. Public TCP, app id, caller enum, renderer
+metadata, request confirmation, endpoint, environment, or portable bearer is
+denied before target parsing.
 
-All lifecycle mutations (`InstallApp`, `UninstallApp`, `UpdateApp`,
-`HealthRepairApp`, `AdoptLocalApp`, `RemoveLocalAppAdoption`, and `OpenApp`)
-require the `desktop_control` / `desktop_lifecycle_host` row in
-`tables/protected-local-rpc-transport-matrix.yaml`. Public TCP, app session,
-app id, caller enum, source host, renderer metadata, and portable bearer are
-denied before lifecycle parsing. Mutations require the K-PLOCAL-007 lifecycle
-challenge and anchored durable intent; loss of protected transport, ledger, or
-process verification fails closed without fallback.
+## K-APP-011 Immutable Local-app Admission Posture
 
-## K-APP-011 InstallApp Lifecycle
+The 0K wire/schema reserves immutable principal and record lifecycle fields,
+but positive install/import is typed unavailable until 0P defines signed
+package and attestation mapping and Lane P implements it. No existing catalog
+download, local adoption, source directory, or unsigned package path may create
+an immutable principal or runnable record.
 
-Before download or filesystem side effects, Runtime validates the
-`desktop_lifecycle_host` protected origin and consumes a matching lifecycle
-challenge into an anchored durable intent.
+Any retained `InstallApp` symbol during the atomic wire migration is inactive
+and must fail with the stable immutable-profile-unavailable reason. The final
+package/import RPC shape is owned by 0P and cannot reshape the 0K principal,
+record, grant, launch, or session contracts.
 
-`MUST`：`InstallApp` 由 Runtime 拥有，是 Nimi App install 的唯一 RPC 入口。
-Runtime registration / supervision / sandbox 归 Runtime 所有
-（Platform `P-NAPP-006`）。Install handler 必须：
+## K-APP-012 App Lifecycle Job Projection
 
-- 解析 `app_id` 对应的 admitted Nimi App registry row 与其 bound release
-  descriptor；
-- 对 `external-immutable-artifact` descriptor，仅从 descriptor 的 artifact
-  locator 下载，对下载字节计算 `sha256`，与 descriptor 比对，digest 不匹配
-  时在 unpack 之前 fail closed（Platform `P-NAPP-014`）；
-- 对 `bundled-with-nimi` descriptor，从 atomic Nimi release bundle 的
-  bundled-app artifact 物化，不授权外部 download；
-- 在 `<nimi_data>/apps/<app-id>/{releases/<version>,data,cache,tmp}` 物化
-  存储根（Platform `P-NAPP-015`）；
-- 写入 Runtime-owned `install-evidence.json`。
+Lifecycle job projections are typed owner results, not admission truth. A job
+must carry stable id, kind, state, phase, target record/principal refs where
+available, generation, reason code, redacted detail, and retryability. A future
+immutable job remains `unavailable` before 0P/P; it cannot report installed,
+updated, or runnable success.
 
-`MUST NOT`：install handler 不得在 digest/manifest/storage 违例时返回
-pseudo-success；失败 install 必须留下 recoverable 状态（retry / 移除
-partial files），不得投影为 success。
+## K-APP-013 App Lifecycle Event Stream
 
-## K-APP-012 AppInstallJob Typed Projection
+Lifecycle events carry monotonic sequence and full typed job snapshot. They do
+not carry grant, credential, launch lease, process, session proof, or domain
+operation truth. An unavailable immutable lifecycle emits an explicit terminal
+failure rather than synthetic progress or success.
 
-`MUST`：`InstallApp` / `GetAppInstallJob` / `ListAppInstallJobs` 返回
-typed `AppInstallJob`，携带 stable job id、typed `state`、typed `phase`、
-typed `source_kind`、`release_descriptor_ref`、storage projection、与
-fail-closed `reason_code` / `failure_detail` / `retryable`。
+## K-APP-014 Remove And Tombstone Lifecycle
 
-`MUST NOT`：不得从 transfer completion、endpoint reachability、process
-liveness、file existence 推断 `installed`；不得用单一 `failed` 文案
-collapse 多种 fail-closed reason。
+Removing an active immutable record or revoking a development authorization
+transactionally revokes its leases/sessions and permanently tombstones the
+principal. Retained durable data remains keyed to the tombstone and is
+delete-only after fresh presence. Reinstall or re-authorization allocates a
+new non-reused principal and inherits no grant, storage, app-scoped audience,
+session, or audit subject.
 
-## K-APP-013 WatchAppInstallJobEvents 事件流
+Before 0P/P, immutable remove/uninstall is typed unavailable because no 0K
+positive immutable install exists. Development revoke is active through the
+Developer Mode lifecycle.
 
-`MUST`：`WatchAppInstallJobEvents` 以 server-stream 投影 install job 的
-typed 进度帧。每个 `AppInstallJobEvent` 携带单调递增 `sequence` 与该时刻
-完整的 `AppInstallJob` 快照，使 consumer 不从 partial delta 重建状态。
+## K-APP-015 Immutable Update And Promotion Posture
 
-`MUST NOT`：进度流不承载 audit / permission / spend 事件。
+Positive immutable update and imported-to-verified promotion are typed
+unavailable until 0P/P. The frozen semantic seam is exact: eligible update or
+promotion preserves `local_app_principal_id`, increments record/provenance or
+release generation as applicable, invalidates current leases/sessions, and
+never creates or widens a grant. Signer/attestation mapping and atomic package
+promotion remain 0P authority.
 
-## K-APP-014 UninstallApp Lifecycle
+## K-APP-016 Immutable Repair Posture
 
-Before any irreversible removal, Runtime consumes the K-PLOCAL-007
-challenge/intent transaction. A request-body confirmation is product intent,
-not origin or authorization.
+Immutable repair/reinstall cannot be active before the 0P package and fixed-
+host lifecycle exists. Requests fail with typed immutable-profile-unavailable;
+they do not download catalog bytes, scan local directories, or revive a
+tombstoned principal. Development recovery uses supervised rebuild/restart and
+new K-PLOCAL lease/session, not an immutable repair alias.
 
-`MUST`：`UninstallApp` 默认移除 `<nimi_data>/apps/<app-id>/releases` 下的
-release payload，保留 `<nimi_data>/apps/<app-id>/data` 下的 durable data
-（Platform `P-NAPP-015`）。只有当 caller 显式确认 destructive delete 时才
-额外移除 durable data。
+## K-APP-017 Prepare Local-app Launch
 
-`MUST NOT`：uninstall 不得隐式删除 shared models、Runtime dependencies、
-account data、或其他 app 的数据。
+`PrepareLocalAppLaunch` is the sole local-app launch preparation RPC. It is
+callable only by Runtime-derived `local_app_control` and selects one active
+record by opaque `local_app_record_id`. Runtime resolves OS-user anchor,
+principal, provenance revision, release-or-project generation, capability
+fingerprint, execution profile, host/payload digest slots, current account,
+and boot epoch.
 
-## K-APP-015 UpdateApp Atomic Update Lifecycle
+Success creates one short-lived K-PLOCAL launch lease and returns only an
+opaque host-private `local_app_bootstrap` plus expiry. It does not launch a raw
+executable, create a session/grant, or return principal/account/provenance
+details. `BindLocalAppProcess` and request-empty `OpenLocalAppSession` complete
+the protected process/session path under K-PLOCAL-008.
 
-Protected Desktop lifecycle-origin validation and anchored challenge/intent
-creation precede download, swap, or active-release mutation.
+The positive 0K profile is an approved, supervised `local_development` record.
+Immutable execution profiles return typed unavailable until 0P/P. A shortcut
+invokes the verified Nimi/Desktop launcher with a record selector; it never
+points to app code.
 
-`MUST`：`UpdateApp` 由 Runtime 拥有，是 Nimi App update 的唯一 RPC 入口。
-Update handler 必须：
+## K-APP-018 Runtime-mediated File API Non-admission
 
-- 解析 `app_id` 对应的 admitted Nimi App registry row 与其当前 bound release
-  descriptor；
-- 对 `external-immutable-artifact` descriptor，仅从 descriptor 的 artifact
-  locator 下载新 release，对下载字节计算 `sha256`，与 descriptor 比对，digest
-  不匹配时在 unpack 之前 fail closed（Platform `P-NAPP-014`）；
-- 在 `<nimi_data>/apps/<app-id>/releases/<new-version>` 物化新 release，
-  完全 materialize + verify + 写入 evidence **之后**，才以一次 atomic
-  pointer swap 切换 active release；
-- 保留 `<nimi_data>/apps/<app-id>/data` 下的 durable data 不变
-  （Platform `P-NAPP-015`）；
-- 区分 required（breaking）update 与 non-breaking update：required update
-  在 caller 确认前 fail closed。
+No generic local-app file API is admitted by 0K. Principal-keyed private
+storage exists as an owner seam, but apps cannot convert it into raw filesystem
+or path authority. Any future typed file operation must resolve the current
+principal and grant and must not expose another principal's root.
 
-`MUST NOT`：失败的 update 不得 corrupt 既有 installed release——active
-release pointer 在 swap commit 前必须仍指向旧 release，旧 release 保持可用；
-update 不得删除或改写 durable data；不得在 digest/storage/swap 违例时返回
-pseudo-success。
+## K-APP-026 Protected Local-app Control Protocol
 
-## K-APP-016 HealthRepairApp Lifecycle
+Lifecycle and development mutations consume the live protected Desktop
+connection, `local_app_control`, current OS-user anchor/account/boot epoch,
+exact target generation, and applicable Runtime-issued presence challenge in
+one service-owned transaction. Returned evaluation/job/bootstrap ids are
+correlation only.
 
-Every repair mutation requires the protected Desktop lifecycle origin and a
-single-use anchored lifecycle challenge; health reads do not manufacture that
-write authority.
+The logical role covers local-app lifecycle UX coordination, grant UX,
+protected launch, and development supervision. It does not generalize
+`OpenDesktopSession` account control and creates no portable controller
+credential. A future controller requires a separate transport/identity
+admission while consuming the same logical role.
 
-`MUST`：`HealthRepairApp` 由 Runtime 拥有，是 Nimi App health/repair 的唯一
-RPC 入口。它仅 admit 四个显式 action token：`cancel`、`retry`、`repair`、
-`reinstall`（SDK `S-APP-002`）。
+## K-APP-027 Local Development Lifecycle
 
-- `cancel` — 取消一个 in-flight lifecycle job；被取消的 job 进入 recoverable
-  cancelled 终态，可被 retry，不投影为 success；
-- `retry` — 以相同 kind 重新派发一个 failed / cancelled lifecycle job；
-- `repair` — drop（可能损坏的）release payload 并重新 materialize 同版本
-  release，保留 durable data；
-- `reinstall` — 干净重装当前 bound descriptor，保留 durable data。
+Production Developer Mode is the sole positive 0K lifecycle. Enabling the
+global mode grants nothing. `EvaluateLocalDevelopmentProject` resolves the
+canonical project-root file identity, declared app id, capability fingerprint,
+current account, and fixed shell/entry policy without creating authority.
+`DecideLocalDevelopmentProject` consumes fresh grant presence and exactly
+`run_once | remember_project`, then creates a new isolated development
+principal/record with zero grant.
 
-`MUST NOT`：任何 action 不得删除 durable data；不得把失败的 repair op 投影为
-success；不得 admit 上述四个 token 之外的 action。
+Every supervised host process uses `PrepareLocalAppLaunch`, a new process bind,
+and a new common local-app session. Controlled HMR/rebuild/restart and Runtime
+restart may preserve the durable authorization while rotating technical state.
+Mode off, account switch/logout, revoke, supervisor end, copied/changed project,
+capability expansion, shell/entry/origin mismatch, or uncontrolled output
+revokes or requires fresh approval. Remembered records become dormant on mode
+off and require fresh presence to reactivate; they never auto-run.
+When a `run_once` supervisor run reaches any terminal condition, Runtime
+tombstones that principal and marks its record removed; another run requires a
+fresh decision and new non-reused principal/record. A remembered record does
+not transfer across account switch: its live carrier is revoked, it remains
+bound to the original account, and it needs fresh presence after that account
+becomes current again.
 
-## K-APP-017 OpenApp Launch Flow
+The development principal may use a controlled production account only through
+the common K-GRANT/K-ACCSVC/owner-operation envelope. It receives no credential,
+portable proof, stronger permission, or persistent Nimi-managed autostart.
 
-Before package or launch-resolution work, the current `desktop_control`
-connection must carry Runtime-derived `desktop_lifecycle_host` origin and a
-matching current account/release/adoption generation. A.1 admits the Windows
-installed child channel under K-PLOCAL-008; unadmitted platforms remain
-fail-closed without a temporary fallback.
+## Fact Sources
 
-In A.0, `OpenApp` is admitted only as a protected Desktop lifecycle mutation
-with transactional idempotency and exact target/generation checks. It does not
-require a prepare challenge. Because the installed child
-transport/session and launch projection are not admitted, it must not create a
-process/window or return `APP_OPEN_STATE_LAUNCHED`. It fails closed with the
-typed protected-transport-unavailable reason after operation validation and before
-child side effects.
-
-A.1 defines the process-bound Windows launch record and installed session in
-K-PLOCAL-008. `OpenApp` may expose only the non-authorizing launch correlation
-id in its renderer-safe projection; verified child-process binding is host-only.
-Filesystem guesses, process liveness alone, local adoption, account inventory,
-tester registration, Desktop identity, app metadata,
-ordinary gRPC and prior implementation cannot approximate launch success.
-
-`MUST`：`UninstallApp`（`K-APP-014`）必须发射一个可被 watch 的 lifecycle
-job —— `AppLifecycleJobKind` admit 一个 `uninstall` job kind，使
-`UninstallApp` 产出一个 typed `AppInstallJob`（`K-APP-012`）并可通过
-`WatchAppInstallJobEvents`（`K-APP-013`）订阅其 typed 进度帧。`uninstall`
-job 是 `uninstalling` 卡片状态的唯一 live-job 真相源。
-
-`MUST NOT`：`uninstalling` 进度态不得由 renderer-local in-flight flag 或
-其他 parallel-truth 信号推断；uninstall 进度 job 不得承载
-audit / permission / spend 事件，也不得改变 `K-APP-014` 的 durable-data
-保留语义。
-
-`OpenApp` 不承载 app-to-app message broker 语义，与
-`SendAppMessage` / `SubscribeAppMessages` 语义独立（对齐 `K-APP-001`）。
-
-## K-APP-018 Runtime-Mediated File-API Non-Admission
-
-`RuntimeAppService` 的 admitted method set is exactly the 18 methods listed in
-`K-APP-001`. The two K-APP-026 lifecycle-intent methods remain non-callable and
-fail closed until the A.0 proto/`rpc-methods.yaml`/Runtime/SDK/Kit projection
-lands atomically; absence is not permission to emulate them. No
-Runtime-mediated file-API RPC is admitted on this service surface.
-
-The following method names are explicitly non-admitted on the current
-surface and MUST NOT be exposed by Runtime, SDK, Kit, Desktop, Tester, or
-scaffold clients as callable product APIs:
-
-- `ReadAppLocalDraftFile`
-- `WriteAppLocalDraftFile`
-- `ListAppLocalDraftDir`
-- `DeleteAppLocalDraftFile`
-- `MoveAppLocalDraftFile`
-
-`P-PERM-011` still admits the `app-local-drafts` qualifier semantics for
-permission review and scope expression, but that qualifier does not by
-itself admit a Runtime file API, SDK file client, Desktop bridge helper, or
-generic REST/proxy path. Any current attempt to materialize a
-Nimi-mediated file API outside the admitted method set fails closed by
-absence of an admitted method; consumers MUST NOT emulate the missing
-surface through `SendAppMessage`, `proxyHttp`, private Runtime APIs,
-Realm REST, direct cross-app path access, or a generic "file op" wrapper.
-
-For apps admitted with `storage_policy_ref.kind: app-owned-os-storage`
-(`P-NAPP-027` / `P-NAPP-028`), file IO remains outside this Runtime app
-messaging surface. For apps admitted with `nimi-mediated-default`, the
-admitted storage truth remains the Runtime app-storage projection
-(`GetAppStorage`, `K-APP-022`); it is not an authorization to expose raw
-file read/write RPCs.
-
-A Runtime-mediated file API cannot be admitted unless the same authority
-change updates `K-APP-001`, `rpc-methods.yaml`,
-`proto/runtime/v1/app.proto`, the Runtime implementation, SDK projection,
-and consumer tests together. A rule body outside `K-APP-001` MUST NOT
-amend the service method set by implication.
-
-## K-APP-026 Protected Desktop Lifecycle Operation Protocol
-
-`tables/protected-local-lifecycle-intent-protocol.yaml` is the sole action,
-operation-admission, renderer-projection, idempotency, replay, and
-reconciliation authority. `PrepareAppLifecycleIntent` is a transitional UX
-projection, not security authority; `GetAppLifecycleIntentStatus` reconciles a
-non-authorizing operation identifier.
-
-When used, `PrepareAppLifecycleIntent` is available only on the live
-`desktop_lifecycle_host` connection. Runtime resolves current release,
-artifact/adoption generation, account generation, destructive options, and
-impact flags before returning a typed canonical impact. `intent_id`, impact
-digest, and any job id are correlation-only and non-authorizing.
-Renderer may receive only the table's safe projection; it never receives a
-portable proof, process tuple, boot epoch, durable anchor, account generation
-material, or credential.
-
-Every lifecycle mutation revalidates the same protected Desktop
-session/process/account/boot epoch and exact target generation, consumes a
-non-secret idempotency key, and creates its durable operation record in one
-service-owned database transaction. No external side effect starts before that
-transaction commits. Caller `confirmed=true`, an intent id, or a displayed
-digest never authorizes. Conflicting idempotency reuse, wrong target/release,
-wrong process/account/epoch, revoked session, or stale generation fails closed.
-Lost responses reconcile through the typed status RPC; status never authorizes
-a new mutation.
-
-## K-APP-027 Local-Development Admission Lifecycle
-
-Runtime owns the distinct `local-development-installed-admission` lifecycle.
-`AdoptLocalApp` continues to establish only validated local inventory and an
-adoption generation; adoption alone cannot create a development authorization,
-launch, host session, or protected operation posture.
-
-The protected `RuntimeDevelopmentService` owns request/list/revoke of user
-development authorizations and prepare/bind/open/status of technical launches.
-Authorization mutations and launch preparation are accepted only from the live
-`desktop_lifecycle_host` origin. The development host may call only the empty
-bootstrap/session-open surface on the shared native `installed_host` carrier
-after Runtime derives `verified_local_development_process`, followed by only
-the exact operations admitted for `local_development_host_session`. A
-production-installed process or session on the same carrier, public TCP,
-renderer, app metadata, and app-tools cannot invoke those methods or
-select/convert a trust class.
-
-Authorization creation consumes the current submitted manifest under the
-canonical selected project root, independently validates its closed permission
-declarations, computes the canonical manifest capability fingerprint, binds the
-authenticated account, and records the user choice supplied by the trusted
-Desktop confirmation flow. One-command development does not require a prior
-`AdoptLocalApp` record and does not synthesize one: local adoption remains an
-independent inventory lifecycle whose presence or absence cannot authorize a
-development host. Evaluation fails closed on wrong app/root/fingerprint/account/
-shell, capability expansion, revoked approval, or an unsupported platform.
-Listing and revoke projections expose no session, ticket, process, epoch,
-credential, or endpoint material.
-
-Launch preparation is distinct from `OpenApp` production release resolution.
-It uses K-PLOCAL-009 and returns only a non-authorizing correlation to Desktop;
-the host receives no portable launch value. Host bind, session creation,
-rotation, process/supervisor exit, Runtime restart, account change, and revoke
-are transactional Runtime truth. A remembered authorization may authorize a
-new supervised command run without a repeated prompt, but every run and every
-host restart creates new process-bound technical state.
+- `local-app-principal-record-contract.md` — `K-APP-028..K-APP-031`
+- `tables/local-app-principal-record-schema.yaml`
+- `protected-local-session-contract.md` — `K-PLOCAL-*`
+- `account-session-contract.md` — `K-ACCSVC-*`
+- `grant-service.md` — `K-GRANT-*`
+- `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`

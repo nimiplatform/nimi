@@ -47,6 +47,8 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/command-execution-contract.md',
   '.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml',
   '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml',
+  '.nimi/spec/desktop/kernel/tables/installed-app-launch-hosts.yaml',
+  '.nimi/spec/desktop/kernel/tables/local-app-control-surfaces.yaml',
   '.nimi/spec/desktop/kernel/tables/app-tabs.yaml',
   '.nimi/spec/desktop/kernel/tables/store-slices.yaml',
   '.nimi/spec/desktop/kernel/tables/feature-flags.yaml',

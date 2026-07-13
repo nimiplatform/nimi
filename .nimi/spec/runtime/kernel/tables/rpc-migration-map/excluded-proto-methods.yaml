@@ -7,7 +7,19 @@ table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_rpc_design_proto_mapping
 surfaces:
-  - RuntimeAiService
+  - RuntimeAuthService
+  - RuntimeAppService
+  - RuntimeDevelopmentService
   - excluded_proto_methods
-excluded_count: 0
-excluded_proto_methods: []
+excluded_count: 10
+excluded_proto_methods:
+  - { proto_service: RuntimeAuthService, proto_method: OpenDesktopLaunchedAppSession, reason: retired_by_LOCAL_APP_hardcut, source_rule: K-AUTHSVC-002 }
+  - { proto_service: RuntimeAppService, proto_method: AdoptLocalApp, reason: retired_workspace_adoption_surface, source_rule: K-APP-017 }
+  - { proto_service: RuntimeAppService, proto_method: ListLocalAppAdoptions, reason: retired_workspace_adoption_surface, source_rule: K-APP-017 }
+  - { proto_service: RuntimeAppService, proto_method: RemoveLocalAppAdoption, reason: retired_workspace_adoption_surface, source_rule: K-APP-017 }
+  - { proto_service: RuntimeAppService, proto_method: OpenApp, reason: immutable_positive_launch_unavailable_in_0K, source_rule: K-APP-017 }
+  - { proto_service: RuntimeAppService, proto_method: BindInstalledLaunchProcess, reason: retired_installed_app_public_surface, source_rule: K-PLOCAL-002 }
+  - { proto_service: RuntimeDevelopmentService, proto_method: PrepareLocalDevelopmentLaunch, reason: replaced_by_RuntimeAppService_PrepareLocalAppLaunch, source_rule: K-PLOCAL-009 }
+  - { proto_service: RuntimeDevelopmentService, proto_method: BindLocalDevelopmentHostProcess, reason: replaced_by_RuntimeAppService_BindLocalAppProcess, source_rule: K-PLOCAL-009 }
+  - { proto_service: RuntimeDevelopmentService, proto_method: OpenLocalDevelopmentAppSession, reason: replaced_by_request_empty_RuntimeAuthService_OpenLocalAppSession, source_rule: K-PLOCAL-009 }
+  - { proto_service: RuntimeDevelopmentService, proto_method: GetLocalDevelopmentSessionStatus, reason: replaced_by_common_local_app_session_projection, source_rule: K-PLOCAL-009 }

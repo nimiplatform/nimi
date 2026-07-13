@@ -48,18 +48,17 @@ token transport as a Desktop bridge surface.
 
 ## D-IPC-002 — Daemon 生命周期命令
 
-Install, uninstall, update, repair, local adoption/removal, and `OpenApp`
-commands require Runtime's `desktop_lifecycle_host` origin and K-PLOCAL-007
-transactional operation admission with current target/generation
-checks. A UI confirmation boolean is display
-intent only. A.0 cannot claim positive Avatar/Zhiyu child launch until A.1
-protected child-channel authority and implementation land; no nonce, metadata,
-or portable bearer fallback is allowed.
+The product daemon lifecycle surface controls only the fixed Runtime service.
+Immutable app install, import, update, promotion and repair are typed
+unavailable in 0K and cannot be reconstructed as Desktop commands. Local-app
+launch uses the separate `local_app_control` role in `D-IPC-020`; a UI
+confirmation boolean, app id, project path, nonce, metadata or portable bearer
+cannot authorize it.
 
 The shared Kit protected-local host carrier exposes exactly three typed product
 operations: `status`, `start`, and `restart`. The authoritative product surface
-has no `runtime_bridge_stop`; product registration/export of that command must
-be removed by the A.0 implementation cut. No operation accepts a binary path,
+has no `runtime_bridge_stop`; product registration/export of that command is
+removed by the atomic protected-local hardcut. No operation accepts a binary path,
 argv, endpoint, config path, service name, code-signing policy, or environment
 override.
 
@@ -227,9 +226,10 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
   AI, connector, scenario, account, lifecycle and every other protected
   operation require their own admitted transport/origin/policy; listing a
   generated method does not admit it.
-- The entire public `RuntimeGrantService` protected-token family is deny-all
-  pending A.3d physical removal. Desktop/SDK cannot issue, validate, revoke,
-  delegate, enumerate, inject, or consume a portable protected credential.
+- The former public protected-token grant family is physically removed and its
+  identities reserved. Desktop/SDK cannot issue, validate, revoke, delegate,
+  enumerate, inject, or consume a portable protected credential. Local-app
+  grant UX uses the exact protected owner methods and returns no credential.
 - `RegisterApp` / `OpenSession` in this list are binding-only bootstrap and do
   not authorize any other listed capability. Each privileged capability must
   satisfy its own admitted transport/origin/operation authority.
@@ -407,6 +407,14 @@ project root, shell kind, current account, requested manifest capabilities,
 `run once`, `remember this project`, and cancel/deny before requesting Runtime
 authorization.
 
+Developer Mode is available with a production account, is off by default and
+grants nothing. There is exactly one Dev Trust Set. `run_once` ends with the
+supervisor run; `remember_project` persists a Runtime-owned local record and
+authorization posture, becomes `dormant` after the run, and requires explicit
+`reactivate` before another launch. Mode-off, revoke, account switch, principal
+tombstone or project identity change terminates current runs and invalidates
+leases/sessions according to Runtime owner rules.
+
 Approval UI state is Desktop product state, but authorization persistence,
 generation, and revocation remain Runtime-owned. The UI lists remembered
 projects and can revoke them through the protected typed Runtime operation.
@@ -427,6 +435,31 @@ CLI receives only stable request/status/failure projections. The renderer sees
 only Kit typed bootstrap/status and admitted operations. Direct `tauri dev`,
 manual Electron, remote/uncontrolled dev servers, and direct localhost gRPC do
 not traverse this supervisor and remain denied.
+
+Each edit/build/process replacement produces a fresh host/payload digest
+observation, launch lease, verified process bind and local-app session. The
+remembered principal/record may remain only when Runtime proves the same
+canonical project identity; the old process/session is never inherited. Native
+Windows execution risk disclosure must be shown before first approval and when
+the risk text/revision changes. Local-development runs never create persistent
+autostart.
+
+## D-IPC-020 - Local App Control Role
+
+`tables/local-app-control-surfaces.yaml` is the executable Desktop owner map.
+The Runtime-derived `local_app_control` role exists only on the verified
+Desktop control connection and is distinct from `desktop_account_host` and a
+local-app child session. It may coordinate Developer Mode, project evaluation,
+user grant decisions, revocation and native launch/process binding, but it owns
+none of the principal, record, grant, lease, session, account or operation
+policy truth.
+
+Renderer IPC may carry renderer-safe status, project selectors and explicit
+user decisions only. `PrepareLocalAppLaunch`, process binding and native carrier
+attachment stay in the Desktop native supervisor. Principal/record/grant ids,
+lineage, attestation refs, SID partition, process tuple, session proof, Runtime
+endpoint, bearer and authorization metadata must not enter renderer state,
+storage, network, logs or errors.
 
 ## Fact Sources
 

@@ -2,7 +2,8 @@
 
 > Owner Domain: `K-APP-*`
 
-Runtime-owned app health, response-state, next-action, storage, package readiness, account inventory, and local adoption projection authority.
+Runtime-owned app health, response-state, next-action, storage, package
+readiness, account inventory, and local-record projection authority.
 
 This file is a semantic split from `app-messaging-contract.md`; Rule IDs and rule text remain authoritative under Runtime kernel.
 
@@ -282,34 +283,40 @@ table 是 closed contract faces，不接受 free-form 投影层重新解释。
 
 ## K-APP-022 App Storage Truth Projection
 
-`MUST`：`GetAppStorage(app_id)` 是 Runtime-owned app-scoped storage truth
-projection。它从 Runtime `dataRootRef` 和 Platform-admitted
-`nimi_data` app layout 解析以下绝对路径：
+`MUST`：app-private storage is Runtime-owned principal-scoped truth. A
+local-app session resolves its opaque principal internally; the request does
+not accept `app_id` or a principal override. Runtime derives the following
+roots:
 
-- `<nimi_data>/apps/<app-id>/data`
-- `<nimi_data>/apps/<app-id>/cache`
-- `<nimi_data>/apps/<app-id>/tmp`
+- `<nimi_data>/apps/<local-app-principal-id>/data`
+- `<nimi_data>/apps/<local-app-principal-id>/cache`
+- `<nimi_data>/apps/<local-app-principal-id>/tmp`
 - active release root, only when an active installed release pointer resolves
 
-`MUST`：runtime-registered developer apps may receive data/cache/tmp roots even
-when no ordinary release descriptor or active release exists. This projects
-storage truth only; it does not project package install or launch readiness.
+`MUST`：an active development principal may receive data/cache/tmp roots without
+an immutable release. Same-app-id principals remain isolated. Tombstoned data
+is not rebound to a new authorization and is delete-only after fresh presence.
 
 `MUST NOT`：apps, Desktop, or SDK consumers must not read `~/.nimi/nimi.json`,
 `~/.nimi/runtime/config.json`, or concatenate `<nimi_data>/apps/<app-id>` as an
-alternate storage authority. Missing `dataRootRef`, invalid app id/path shape,
+alternate storage authority. Missing `dataRootRef`, invalid principal/path shape,
 symlink/non-directory corruption, or unsupported storage policy must fail
 closed with typed storage state/reason.
 
 ## K-APP-023 App Package Readiness Projection
 
-`MUST`：`GetAppPackageReadiness(app_id)` 是 Runtime-owned package readiness
+0K freezes the projection fields needed to report immutable profile
+unavailability, but no immutable package may become ready before 0P/P. Any
+legacy catalog/download/install evidence is non-authorizing and must project
+`blocked` with the stable immutable-profile-unavailable reason.
+
+`MUST`：`GetAppPackageReadiness(local_app_record_id)` 是 Runtime-owned package readiness
 projection。它读取 Runtime admitted registry / release descriptor、
 selected `nimi_data` app layout、active release pointer、与
 Runtime-written `install-evidence.json`，并返回 typed
 `AppPackageReadinessProjection`：
 
-- `ready` when active release pointer resolves and install evidence is in a
+- `ready` only after 0P/P is admitted and an active release pointer resolves and install evidence is in a
   verified state (`digest-verified` or `bundled-source`) for that active
   release;
 - `install_required` when the app is admitted but has no active release;
@@ -337,11 +344,11 @@ renderer- or app-supplied `account_id`.
 `MUST`：schema version 2 separates account visibility from local
 materialization. `AccountAppInventoryRow.account_state` carries
 `verified | entitled | disabled | removed | revoked` semantics; `install_state`
-carries `not-installed | installed | adopted-local | removed`. A verified or
-entitled row with `not-installed` is valid and is the authority for "Nimi
-account verified but not installed" Apps visibility.
+carries `not-present | local-record-active | local-record-dormant | removed`.
+Account eligibility and PC-local principal/record state remain separate and
+must not be collapsed into one installed boolean.
 
-`MUST`：install, uninstall, and local-adoption lifecycle mutations may only
+`MUST`：immutable/development lifecycle mutations may only
 change local materialization fields. They MUST NOT create account entitlement
 truth or silently upgrade a row to verified.
 
@@ -349,7 +356,7 @@ truth or silently upgrade a row to verified.
 present, validated `AccountAppInventoryRecord`. Corrupt JSON, unsupported
 schema, account-id mismatch, invalid row state, invalid install state, or
 invalid data policy must fail closed with
-`APP_OPEN_LIBRARY_STATE_INVALID`.
+`PROTOCOL_ENVELOPE_INVALID`.
 
 `MUST NOT`：Desktop, SDK, Kit, or apps must not read
 `~/.nimi/accounts/<account-id>/apps/inventory.json`, derive the authenticated
@@ -357,35 +364,15 @@ account directory, or expose a mutation path as an alternate inventory
 authority. SDK may expose typed request/response helpers and decoders over this
 Runtime surface, but Runtime remains the writer and validator.
 
-## K-APP-025 Local App Adoption Truth Projection
+## K-APP-025 Retired Local Adoption Boundary
 
-`MUST`：`AdoptLocalApp(root_path, expected_app_id?)` is the only Runtime RPC that
-can admit a locally installed external app into the Apps inventory. Runtime
-canonicalizes `root_path`, reads `nimi.app.yaml` or `nimi.app.json`, validates
-app id, display name, version, entry ref, permission scope ref, storage policy
-ref, manifest shape, and local path containment, then writes a Runtime-owned
-local adoption record. Any missing/invalid field fails closed before a record
-is written.
+The predecessor local-adoption family is retired and must be removed from
+Proto, generated clients, Runtime handlers/stores, SDK/Kit exports, Desktop UX,
+tests, and inventory states in the atomic public wire epoch. It has no active
+success behavior and no alias.
 
-`MUST`：`ListLocalAppAdoptions()` returns only Runtime-owned local adoption
-records. `RemoveLocalAppAdoption(app_id, delete_durable_data_confirmed=false)`
-marks the adoption removed and may delete durable data only when the destructive
-confirmation is explicit.
-
-`MUST`: `AdoptLocalApp` and `RemoveLocalAppAdoption` are lifecycle mutations
-and require the K-PLOCAL-006 `desktop_control` /
-`desktop_lifecycle_host` origin plus the K-PLOCAL-007 anchored lifecycle
-challenge/intent. A renderer path, confirmation flag, app id,
-developer-registration session, or public TCP caller cannot satisfy origin.
-Positive developer Runtime/auth/Realm/AI E2E remains dependent on the
-separately admitted and implemented A.1 protected child channel.
-
-`MUST`：local adoption is not Platform public admission. It may create a local
-inventory source, but OpenApp must still pass account/session, app data,
-permissions, AIConfig, manifest, and storage gates. A local-adopted app without
-an authenticated account may be visible as sign-in-required but MUST NOT launch.
-
-`MUST NOT`：Runtime, Desktop, SDK, Kit, or apps must not scan package-manager
-install roots, workspaces, source trees, app-local specs, or file presence to
-manufacture Apps inventory. Local adoption must not bypass `P-NAPP-*`,
-`P-PERM-*`, `S-AICONF-*`, or scoped app binding gates.
+Mutable source enters through K-APP-027 Developer Mode and creates a fresh
+isolated development principal/record only after Runtime presence and approval.
+Immutable bytes remain typed unavailable until 0P/P. Package-manager roots,
+workspace/source scanning, app-local manifests, app id, file presence, process
+liveness, or an inventory-only record cannot create runnable truth.

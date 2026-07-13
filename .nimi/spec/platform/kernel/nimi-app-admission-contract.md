@@ -4,22 +4,27 @@
 
 ## Scope
 
-定义 `Nimi App` 作为公开可安装 product unit 的 admission authority。本契约拥有
-admission row schema、admitted package kind set、trust tier reference、factory
-AIProfile selection reference、capability_set / local compute pack / runtime
-registration mode / permission scope reference、与 app health/repair projection
-的 fail-closed semantics。
+定义 Platform 对 verified catalog/release discovery 和第三方 local-app
+provenance taxonomy 的产品 authority。PC-local runnable truth、opaque security
+principal、lifecycle record 与 tombstone 由 Runtime K-APP 拥有；grant、launch/
+process/session 与 owner operation policy 分属 K-GRANT、K-PLOCAL 和既有 domain
+owners。本契约不得把 catalog row、app id、trust tier 或 provenance 变成
+本地安全主体或权限。
 
 ## P-NAPP-001 — Admission Authority And Package Kind
 
-`MUST`：Platform 拥有 Nimi App admission、`tables/nimi-app-registry.yaml` 与
-admitted package kind set。当前仅 admit `nimi-app` package kind。
+`MUST`：Platform 拥有 verified Nimi App catalog/release admission、
+`tables/nimi-app-registry.yaml` 与 admitted package kind set。Runtime owns the
+local runnable ledger for `verified | user_imported | local_development`.
+Catalog absence does not prohibit a future 0P-valid local import, while catalog
+presence never creates a local principal, record, grant, lease, or session.
+当前仅 admit `nimi-app` package kind。
 
 `MUST NOT`：不得 admit shared Nimi Content Pack 作为可安装 product unit。
 
 ## P-NAPP-002 — Registry Row Schema
 
-`MUST`：每个 registry row 必须包含以下字段：
+`MUST`：每个 verified catalog registry row 必须包含以下字段：
 
 - `app_id` — 全局稳定 ID（dot-separated namespace，例如 `nimi.avatar`）。
 - `display_label`
@@ -52,7 +57,7 @@ admitted package kind set。当前仅 admit `nimi-app` package kind。
   `developer-only`、`not-admitted-visible` 之一。Apps 只能显示
   `ordinary-visible` 且 `admission_status=admitted` 的 row。
 - `release_descriptor_ref` — 引用
-  `tables/nimi-app-release-descriptors.yaml` 中的 installable release
+  `tables/nimi-app-release-descriptors.yaml` 中的 verified discovery release
   descriptor；bundled first-party app 可引用 atomic Nimi bundle descriptor。
 - `install_storage_policy_ref` — 引用 `P-NAPP-015` 的 storage policy。
 - `admission_status` — admitted 值集合：`admitted`,
@@ -71,12 +76,14 @@ engine id / model id 字符串常量。任何 vendor 倾向必须 alias-driven�
 
 ## P-NAPP-004 — Trust Tier Reference
 
-`MUST`：`trust_tier_ref` 必须是 canonical trust-tier floor 的 enum value：
+`MUST`：`trust_tier_ref` 必须是 publisher/review posture 的 canonical enum：
 `nimi-first-party`, `nimi-verified-partner`, 或 `nimi-community`
 （`trust-tier-enum-floor.md`）。
 
-`MUST NOT`：不得静默新增第四类 public trust tier；新增必须由显式
-authority admission 扩展。
+`MUST NOT`：不得把 publisher/review trust tier 与
+`verified | user_imported | local_development` local provenance 混用。Trust
+tier does not grant, deny, widen, or narrow a Nimi API permission. 不得静默
+新增第四类 public trust tier；新增必须由显式 authority admission 扩展。
 
 ## P-NAPP-005 — Capability Requirement And Compute Pack Resolution
 
@@ -97,18 +104,20 @@ route bindings, provider health, scheduler state, or connector secrets.
 
 ## P-NAPP-006 — Runtime Registration Ownership
 
-`MUST`：app runtime registration / enforcement / sandbox / process supervision
-由 Runtime 拥有。Registry row 仅记录 `runtime_registration_mode` 的引用，不
-拥有 runtime registration truth。
+`MUST`：app runtime registration、local principal/record、enforcement、
+process/session supervision 由 Runtime 拥有。Registry row 仅记录 verified
+release input，不拥有 local runnable truth。
 
 `MUST NOT`：Registry / Platform 不得通过 admission row 强行替换 Runtime app
 registration semantics。
 
 ## P-NAPP-007 — Package Trust / Signature / Update Channel
 
-`MUST`：package trust posture、signature policy、与 update channel identity
-由 Platform 拥有，并引用已 admit 的
-`P-PKGREL-002..P-PKGREL-008` 与 `release-gate-registry.yaml`。
+`MUST`：Platform owns verified catalog signature, attestation, and update
+metadata. The 0K kernel freezes only opaque `immutable_lineage_id`, provenance
+attestation refs/revision, execution-profile ref, and host/payload digest slots.
+How a signed package or Platform attestation maps into those fields is 0P
+authority and remains typed unavailable before 0P.
 
 `MUST NOT`：Nimi App update 不得 mutate Runtime-owned selected source
 record（`P-SUPD-005` / `P-PKGREL-007`）。不得借 update path 引入
@@ -133,7 +142,17 @@ completion 推断 `ready`。
 
 ## P-NAPP-009 — Apps Non-Owner Rule
 
-**Owner-only authority allocation.** Platform is the sole owner of dynamic installed-app catalog, release, capability, grant, and trust-root truth. An app id, manifest, renderer metadata, or app-owned host self-description MUST NOT grant privilege. App-provided signatures, health claims, launch claims, capability declarations, or other self-certifying evidence are inputs only and cannot satisfy admission or authorization. app-tools owns authoring, sync, doctor, and launcher orchestration only; it is not product authority and cannot mint catalog, release, capability, grant, trust, or launch truth. Desktop, Runtime, SDK, and Kit may consume or carry Platform decisions only within their admitted owner boundaries. This rule admits only the owner allocation and the prohibition on self-authorization. Existing detailed catalog, release, and launch rows remain blocked authority conflicts until each row family is independently admitted by its canonical Platform, Runtime, or Desktop owner. Their presence in a contract or table does not make them implementation authority or release evidence.
+**Owner-only authority allocation.** Platform owns verified catalog/release,
+publisher/review posture, the permission vocabulary, and the closed local
+provenance taxonomy. Runtime K-APP owns PC-local principals and records;
+K-GRANT owns account-and-principal grants; K-PLOCAL owns launch/process/session;
+RuntimeAccountService owns credential custody and enforcement coordination;
+RuntimeAgentService/Cognition and other domains retain operation semantics.
+An app id, catalog row, trust class/tier, manifest, renderer metadata, or
+app-owned host description MUST NOT grant privilege or establish runnable
+identity. app-tools owns authoring/build orchestration only. Desktop is the
+current protected `local_app_control` UX/launcher implementation and is not a
+principal, grant, or session owner.
 
 `MUST`：Desktop `Apps` surface（`D-HOME-004` / `D-HOME-005`）仅消费 registry/package/SDK projection。Ordinary Apps visibility 的闭合条件为：
 
@@ -157,22 +176,25 @@ subordinate authority semantics 与本契约 admission 并行存在；两者互�
 
 ## P-NAPP-011 — First-Party Seed
 
-`MUST`：first-party seed row 仅包含 Avatar hardcut target：
+`MUST`：the verified catalog may retain the currently admitted bundled
+first-party rows (`nimi.avatar`, Realm Persona Studio, Realm World Studio and
+`nimi.zhiyu`) with their existing owner-defined hidden/developer-only posture.
+This third-party 0K redesign neither deletes nor redesigns those U/R/B surfaces
+and never maps them into the three third-party provenance classes.
 
-- `nimi.avatar` — `admission_status: admitted` after Avatar productization
-  master-gate clearance. Even with admitted package/update coordination, ordinary
-  Apps visibility remains `hidden-internal` unless a later product authority
-  explicitly changes Avatar Apps posture.
-
-其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app scopes
-暂不进入 active seed registry，除非后续 owner admission 显式恢复。
+Shipped Avatar and Zhiyu are bundled Platform components and retain their
+existing owner-admitted caller semantics. Zhiyu's mutable integration build uses
+an isolated `local_development` principal without inheriting bundled identity,
+grant, storage, audience, session, Agent, or memory state. No bundled registry
+row grants an external local-app principal or supplies package readiness.
 
 ## P-NAPP-012 — App Identity Surface Mapping
 
-`MUST`：Platform owns the canonical Nimi app identity surface. The canonical
-identity is `app_id`; it is the only app identity used for Platform admission,
-Runtime registration eligibility, permission scope ownership, app storage roots,
-audit filtering, and SDK `appId` parameters. Current app identity facts are
+`MUST`：Platform owns canonical `app_id` syntax and display/routing mapping.
+`app_id` is not the local security principal and MUST NOT by itself key a
+grant, private storage, app-scoped audience, session, or audit subject. Runtime
+resolves those surfaces through a random/non-reused `local_app_principal_id`
+inside a Runtime-derived `local_os_user_anchor`. Current surface mappings are
 recorded in `tables/nimi-app-identity-surfaces.yaml`.
 
 `MUST`：`app_id` is lowercase and dot-separated. A segment must start and end
@@ -180,10 +202,10 @@ with an ASCII lowercase letter or digit and may contain internal lowercase
 letters, digits, or hyphens. Underscore is not admitted because OS bundle
 identifier derivation would otherwise be lossy.
 
-`MUST`：Runtime-facing app caller identity must use the same canonical `app_id`
-as SDK-facing `appId`. Runtime may derive `app_instance_id` and device identity
-for a caller mode, but those derived fields do not create a second app id and
-must not be used as Platform admission truth.
+`MUST`：Runtime/SDK projections may carry the same canonical `app_id` for
+display/routing, but protected local calls use opaque principal/session context
+derived by Runtime. Neither `app_instance_id`, `device_id`, nor app id is a
+substitute for `local_app_principal_id`.
 
 `MUST`：Tauri `identifier` is an OS bundle/signing/update identifier only. It
 must be derived from canonical `app_id` as:
@@ -198,14 +220,16 @@ provider, or model identifier.
 
 `MUST NOT`：active app source, scaffold state, Runtime caller tests, or Tauri
 configuration may use `app.nimi.*`, `dev.nimi.*`, or any other side namespace
-as an active app identity surface. Developer/testing posture belongs in
-admission status, visibility, developer registration, build profile, or local
-Runtime configuration; it must not be encoded into canonical `app_id`.
+as an active app identity surface. Developer/testing posture belongs in the
+Runtime-owned Developer Mode, local record, build profile, or typed non-product
+evidence boundary; it must not be encoded into canonical `app_id`.
 
 ## P-NAPP-013 — Third-Party Admission Path
 
-`MUST`：early third-party app admission may begin as a GitHub PR into the
-Platform-owned Nimi App registry/package tables. The PR must admit, in the same
+`MUST`：Platform-verified catalog/release admission may begin as a GitHub PR
+into Platform-owned registry/release tables. This path owns verified discovery
+and attestation input only; it is not the sole local install door and cannot
+create a PC-local principal, grant, or session. The PR must admit, in the same
 reviewable change set:
 
 - registry row metadata;
@@ -219,19 +243,21 @@ reviewable change set:
 - storage policy.
 
 `MUST NOT`：GitHub repository ownership、npm package name、source directory、
-or app-local spec presence is not Nimi App admission. Direct `npm install`,
+or app-local spec presence is not local runnable authority. Direct `npm install`,
 direct `npx`, mutable git branch/tag, direct clone/build/run, or installer
-script execution is not ordinary-user product install truth.
+script execution cannot create immutable local truth. Mutable source uses the
+separate `local_development` path; 0P later owns immutable package import.
 
 ## P-NAPP-014 — Release Descriptor And Digest Verification
 
-`MUST`：every installable non-bundled app version must resolve to an immutable
+`MUST`：every Platform-verified catalog version must resolve to an immutable
 release descriptor in `tables/nimi-app-release-descriptors.yaml`. The descriptor
 must include exact `app_id`, `version`, source kind/ref, artifact locator,
 `sha256`, size, signature/provenance reference, runtime package kind/entry,
 permissions, and storage policy.
 
-Install must:
+Any future 0P mapping from this descriptor into the frozen opaque Runtime
+package seam must:
 
 - download only from the descriptor source;
 - compute `sha256` over downloaded bytes before unpack/register/execute;
@@ -240,37 +266,31 @@ Install must:
 - continue manifest, permission, Runtime, and storage validation only after
   digest match.
 
-`MUST NOT`：hash match is not a safety proof by itself. Review must still
-evaluate permissions, entry point, lifecycle scripts, dependency behavior,
-Runtime sandbox fit, and file/storage boundaries.
+`MUST NOT`：this verified catalog descriptor is not the 0P `.nimiapp` package
+format, hostile-byte inspector, or fixed-AppHost authority. It cannot enable
+`user_imported` positive install before 0P. Hash match is not a safety proof by
+itself.
 
 ## P-NAPP-015 — App Install Storage Policy
 
 `MUST`：app package/data storage is rooted under selected `nimi_data`:
 
 ```text
-<nimi_data>/apps/<app-id>/releases/<version>
-<nimi_data>/apps/<app-id>/data
-<nimi_data>/apps/<app-id>/cache
-<nimi_data>/apps/<app-id>/tmp
+<nimi_data>/apps/<local_app_principal_id>/releases/<version>
+<nimi_data>/apps/<local_app_principal_id>/data
+<nimi_data>/apps/<local_app_principal_id>/cache
+<nimi_data>/apps/<local_app_principal_id>/tmp
 ```
 
-Uninstall removes release payloads by default and keeps durable app data unless
-the user explicitly confirms destructive data deletion with impact preview.
+The local principal is resolved by Runtime; callers cannot supply or derive the
+root. Uninstall/project revoke tombstones the principal. Retained durable data
+remains orphaned and delete-only unless the user explicitly confirms deletion
+with fresh presence; reinstall/re-authorization never rebinds it.
 
 `MUST NOT`：ordinary app install may not write outside these roots except
 through an admitted Runtime-managed dependency/materialization path. App
 uninstall must not delete shared models, Runtime dependencies, account data, or
 other app data by implication.
-
-## P-NAPP-017 — Retired Agent-Named Studio Admission
-
-P-NAPP-017 was retired on 2026-05-25. It admits no active Nimi App, grants no
-permission scope, and must not be used as an active admission authority. Any
-previous agent-named studio app id, release descriptor, Runtime caller identity,
-and source tree are withdrawn. Current Realm Persona Studio admission is owned
-by the active first-party app rows and their release descriptors, not by this
-retired rule.
 
 ## P-NAPP-018 — Third-Party Release Descriptor Shape
 
@@ -286,7 +306,8 @@ Required descriptor fields:
 - `descriptor_id` — stable descriptor identity.
 - `app_id` — admitted app identifier (`P-NAPP-002`).
 - `version` — exact semantic version.
-- `admission_track` — closed enum `ordinary-release-proof | admission-sandbox-ci` (`P-NAPP-033`).
+- `admission_track` — closed enum containing only `ordinary-release-proof`
+  (`P-NAPP-033`); CI fixtures are not catalog admission tracks.
 - `publisher.github_namespace` — `github.com/<owner>` namespace anchor.
 - `publisher.namespace_kind` — closed enum `user | org`.
 - `publisher.identity_assurance` — closed enum
@@ -336,9 +357,9 @@ MUST be a typed sub-object with five distinct integer fields:
 
 - `download` — wire-bytes downloaded from the artifact locator;
 - `installed` — bytes on disk under
-  `<nimi_data>/apps/<app_id>/releases/<version>/`;
-- `user_data` — bytes under `<nimi_data>/apps/<app_id>/data/`;
-- `cache` — bytes under `<nimi_data>/apps/<app_id>/cache/`;
+  `<nimi_data>/apps/<local_app_principal_id>/releases/<version>/`;
+- `user_data` — bytes under `<nimi_data>/apps/<local_app_principal_id>/data/`;
+- `cache` — bytes under `<nimi_data>/apps/<local_app_principal_id>/cache/`;
 - `shared_deps` — bytes attributable to admitted shared runtime
   dependencies.
 
@@ -353,9 +374,9 @@ as separate fields:
   source artifact;
 - `review.decided_at` — review terminal-decision timestamp (`P-NAPP-025`);
 - `registry.admission_date` — registry row admission timestamp;
-- `install-evidence.local_install_date` — host-local install timestamp;
-- `install-evidence.local_update_date` — host-local update timestamp;
-- `launch-evidence.last_used_at` — host-local last launch timestamp.
+- `install-evidence.local_install_date` — future host-local install timestamp;
+- `install-evidence.local_update_date` — future host-local update timestamp;
+- `launch-evidence.last_used_at` — future host-local last launch timestamp.
 
 Aliasing any two of these into a single field fails admission closed with
 typed reason `descriptor_date_collapsed`.
@@ -368,6 +389,12 @@ typed reason `descriptor_date_collapsed`.
   for the app;
 - `install-evidence.rollback_candidate_version` — admitted prior
   descriptor eligible for rollback (`P-NAPP-018` `rollback_eligibility`).
+
+In 0K all immutable install/update/rollback evidence fields are typed
+unavailable; they reserve non-collapsed shapes only and do not assert a positive
+local package, principal, release or launch. 0P may map verified package and
+attestation inputs into the frozen Runtime opaque fields but may not reshape
+the principal/record/session schema.
 
 Collapsing any two of these into a single `version` field fails admission
 closed with typed reason `descriptor_version_collapsed`.
@@ -503,7 +530,16 @@ resolve to the required value fails admission closed with typed reason
 
 `MUST NOT`：a third-party ordinary release proof MUST NOT carry `macos_notarization: not-applicable`, `macos_notarization: not-required-internal`, `windows_code_signing: not-applicable`, or `windows_code_signing: not-required-internal`; declaring any of those values on `admission_track: ordinary-release-proof` fails admission closed with typed reason `platform_signing_required`.
 
-`MUST`：a third-party `admission_track: admission-sandbox-ci` descriptor MAY carry `not-required-internal` platform-signing subfields only under the non-product boundary in `P-NAPP-033`; that allowance is CI plumbing evidence, not ordinary-user signing evidence, and MUST fail closed if the registry row is projected as `ordinary_visibility: ordinary-visible`.
+These fields are verified catalog review/discovery evidence only in 0K. They do
+not define the immutable package signing identity, do not create a local
+principal or record, and do not admit install, import, update, promotion, or
+launch. Future 0P mapping must consume them through the frozen opaque lineage,
+attestation, execution-profile, and digest seam rather than treating this
+descriptor as the package envelope.
+
+`MUST NOT`: no CI, sandbox, fixture, local-development, or internal-only
+descriptor track may use this catalog field set to claim ordinary visibility or
+local package readiness.
 
 `MUST NOT`：this rule MUST NOT introduce a new `admission_status` enum
 value. The existing admitted `admission_status` enum in
@@ -591,17 +627,20 @@ closed with typed reason `storage_policy_kind_unresolved`.
 descriptor's resolved storage template MUST be exactly:
 
 ```text
-<nimi_data>/apps/<app_id>/releases/<version>
-<nimi_data>/apps/<app_id>/data
-<nimi_data>/apps/<app_id>/cache
-<nimi_data>/apps/<app_id>/tmp
+<nimi_data>/apps/<local_app_principal_id>/releases/<version>
+<nimi_data>/apps/<local_app_principal_id>/data
+<nimi_data>/apps/<local_app_principal_id>/cache
+<nimi_data>/apps/<local_app_principal_id>/tmp
 ```
 
-Runtime materializes this tree at install per `K-APP-011` and the
+Runtime may materialize this tree for immutable packages only after 0P/P maps
+verified inputs into the frozen principal/record seam; 0K returns typed
+unavailable for that positive path. The
 storage roots are admitted by `P-NAPP-015`; this rule binds the
 descriptor's `storage_policy_ref.kind` to those existing admitted
 behaviors without duplicating them. Template-resolution failure
-(unresolved `<nimi_data>` selection, unresolved `<app_id>`, or any
+(unresolved `<nimi_data>` selection, unresolved Runtime-derived
+`<local_app_principal_id>`, or any
 sub-path missing from the resolved template) fails admission closed
 with typed reason `nimi_mediated_storage_unresolved`.
 
@@ -649,8 +688,8 @@ must be absent, the same typed reason is emitted on the symmetric
 posture; admission MUST treat the disjoint shapes as a single
 disclosure invariant).
 
-`MUST NOT`：Runtime uninstall (`K-APP-014`), Update (`K-APP-015`), or
-HealthRepair (`K-APP-016`) MUST NOT unilaterally touch paths listed
+`MUST NOT`：any future Runtime immutable uninstall, update, or repair MUST NOT
+unilaterally touch paths listed
 under `os_storage_disclosure`. For `app-owned-os-storage` admissions,
 clean-uninstall coverage of OS-level paths is outside Nimi's mediation
 surface; the disclosure exists so the user is informed, not so the
@@ -728,103 +767,88 @@ admitted conjunction.
 
 ## P-NAPP-031 — Unified Apps Inventory Source Model
 
-`MUST`：the Desktop/SDK Apps surface projects a unified inventory composed from
-three admitted source families:
+`MUST`：Desktop/SDK inventory preserves distinct owner projections:
 
-- `catalog` — Platform registry rows that satisfy the `P-NAPP-009` /
-  `P-NAPP-030` ordinary listing predicate;
-- `account` — Runtime authenticated account app inventory rows
-  (`K-APP-024`) whose account state is verified or entitled, including rows
-  whose local install state is `not-installed`;
-- `local` — Runtime local adoption rows (`K-APP-025`) written only after an
-  explicit local adoption validation succeeds.
+- `catalog` — Platform verified discovery/release metadata;
+- `account` — Runtime-authenticated account eligibility projection;
+- `local_record` — Runtime K-APP local principal/lifecycle projection.
 
-`MUST`：source identity is part of the projection. A single `app_id` may carry more than one source, but source truth must remain independently inspectable. Catalog admission, account verification, and local adoption are not interchangeable.
+Source identity remains inspectable. Joining rows by display `app_id` cannot
+merge principals, grant state, storage, audience, or sessions. Catalog,
+account, local record, and current grant are separate facts and no inventory
+composer may turn one into another.
 
-`MUST NOT`：`P-NAPP-031` MUST NOT redefine the `P-NAPP-009` ordinary listing
-predicate. It admits an inventory composition above that predicate; it does not
-allow hidden-internal, app-local spec, source-discovered, or workspace apps to
-enter catalog truth.
+## P-NAPP-032 — Local Record Creation Boundary
 
-## P-NAPP-032 — Explicit Local Adoption Boundary
-
-`MUST`：a locally installed external app can enter Nimi only through explicit
-Runtime local adoption. The user-selected root must contain a validated
-`nimi.app.yaml` or `nimi.app.json` with app id, display name, version, runtime
-entry ref, permission scope ref, and storage policy ref. Runtime owns the
-adoption record and may expose it as an inventory source.
-
-`MUST`：local adoption establishes a local trust posture, not public Platform
-admission. It does not grant ordinary visibility, mirror rights, publisher
-identity assurance, review decision, or release descriptor admission.
-
-`MUST NOT`：Nimi MUST NOT infer local adoption from npm/npx installs, cloned
-repositories, PATH entries, process liveness, filesystem presence, or app-local
-spec slices. Local adoption MUST NOT bypass permission, account/session,
-AIConfig, storage, or Runtime OpenApp gates.
+A mutable project enters only through `local_development`; an immutable package
+remains typed unavailable until 0P admits the package-to-opaque-lineage mapping.
+Workspace adoption, workspace scanning, file presence, npm/npx installation,
+cloned source, process liveness, or app-local specs cannot create a principal,
+record, provenance, grant, launch lease, or session. No alias or inventory-only
+record may provide another positive path.
 
 ## P-NAPP-033 — Third-Party Admission Track Boundary
-**Authority disposition:** Blocked detailed authority conflict. Admission-track, catalog, and release-row details are conflict evidence only and are not independently admitted for implementation; exact Platform product authority requires a separate admission under `P-NAPP-009`.
-`MUST`: every third-party external immutable descriptor declares exactly one `admission_track`: `ordinary-release-proof` is the only track that may satisfy ordinary-user third-party product readiness; `admission-sandbox-ci` is non-product CI plumbing for descriptor download, digest verification, install, launch-resolution, host binding, and SDK/Kit probes before public release evidence exists. `MUST`: an `ordinary-release-proof` app projected as `ordinary_visibility: ordinary-visible` must truthfully satisfy the full third-party descriptor floor: immutable GitHub-style or pinned package source, public source repository visibility, publisher identity posture, mirror/license clearance, typed sizes/dates/versions, support posture, and platform signing/notarization required by `P-NAPP-024`. `MUST`: an `admission-sandbox-ci` app row, when later admitted for tests, must use non-product `ordinary_visibility: developer-only`; it MUST NOT appear in ordinary Apps catalog proof, satisfy live readiness claims, or be described as an ordinary-visible community app. `MUST`: `admission-sandbox-ci` may use an immutable HTTPS CI artifact endpoint and constrained internal signing posture only with `admission_track: admission-sandbox-ci`, `source.kind: admission-sandbox-https-artifact`, exact `artifact.sha256`, typed artifact sizes, mirror/license test evidence, and review/support test evidence; Runtime must still verify sha256 before unpack, registration, launch-resolution, or execution. `MUST NOT`: unsigned local artifacts, mutable Git refs, direct clone/build/run source, direct `npx`, or app-local fixture manifests must never be admitted or projected as ordinary-visible community proof. Promotion from `admission-sandbox-ci` to `ordinary-release-proof` is a new descriptor and registry admission, not in-place reinterpretation.
-## P-NAPP-034 — Desktop-Launched Installed Nimi App Boundary
-**A.0 authority disposition:** Admitted per OS platform: `tables/protected-local-executable-trust-sets.yaml` owns bidirectional Desktop/Linux-control-carrier/Runtime-service executable roles, platform-native code-signing policy references, immutable installer/launch/config authority and strict production/non-product isolation. K-PLOCAL-003/005 require both peers to verify the live same-object process/executable identity through the admitted OS verifier. Protected IPC does not create a second RFC8785/Ed25519 release-record truth; installer/package-manager rollback authority and A.1 installed release digests remain owned by their canonical Platform release surfaces. Runtime's distinct OS principal and credential/state isolation remain Runtime-owned. Windows, macOS and Linux may be admitted independently; an unadmitted platform remains fail-closed and cannot use localhost or a same-user daemon fallback.
+Platform admission tracks classify verified catalog review only. Non-product
+CI descriptors cannot become local runnable truth. `local_development` is not
+a catalog track, and `user_imported` cannot be simulated by a catalog fixture.
+Immutable positive package behavior remains unavailable until 0P.
 
-**A.1 authority disposition:** Windows is admitted independently through K-PLOCAL-008. Runtime owns the durable short-lived launch record, verified child-process binding and atomic installed session; Platform installer/release authority supplies the exact executable, active release digest and signing policy. Desktop/Kit start that exact executable suspended and carry only the host-private launch/PID binding call; the child opens the fixed service-owned installed pipe itself, allowing Runtime to compare the native pipe peer PID with the retained verified process. `OpenApp` returns a non-authorizing launch correlation id, never a portable ticket. Renderer metadata, ordinary gRPC, inherited pipe handles, local adoption alone, tester registration and app self-report remain non-authorizing. macOS/Linux remain fail-closed until separately admitted and cannot claim A.1 completion.
+## P-NAPP-034 — Protected Local-app Launch Boundary
 
-**A.2 protected catalog custody:** Production Runtime ignores portable config,
-environment and user-selected `AppRegistryPath` / bundled-artifact roots for
-app admission. Only the native service bootstrap may bind fixed Platform
-registry/release and bundled-app resource paths from the trusted installation;
-an absent binding leaves product app admission fail-closed without degrading to
-the portable path. Non-production harnesses may supply explicit fixture paths,
-but those paths cannot produce product readiness or signing evidence.
+Windows positive third-party sessions require the fixed Runtime service,
+Runtime-derived `local_app_control`, `PrepareLocalAppLaunch`, native
+peer/process/executable proof, exact principal/record/provenance/generation,
+account context, and the current boot epoch. The launch lease is necessary but
+not durable identity and never enters renderer/app state. A shortcut invokes
+the verified Nimi/Desktop launcher; it never points at raw app code.
 
-Windows independently resolves the protected binding from the OS Known Folder
-Program Files tree and the already verified Runtime service executable. Its
-fixed layout is `<Runtime directory>/resources/nimi-app-registry.yaml`, the
-sibling `nimi-app-release-descriptors.yaml`, and optional `nimi-apps/`. Every
-path component must be non-reparse, the registry/descriptor pair is atomic,
-and a Runtime outside Program Files receives no product app resources. This is
-installer/package ACL custody, not a second release-signature protocol;
-production signed-installer evidence remains required at Windows closeout.
+Desktop is the current protected launcher implementation, not the principal or
+semantic owner. Public names are host-neutral. Ordinary gRPC, endpoint/env
+selection, app id, caller metadata, copied lease, raw executable self-launch,
+and direct Runtime process launch are forbidden. `OpenDesktopSession` account
+control remains unchanged and Desktop-specific.
 
-## P-NAPP-035 — Local-Development Installed Admission Is A Separate Trust Class
+## P-NAPP-035 — Production Developer Mode And Local Development
 
-Production release trust and mutable local-development trust are distinct and
-non-convertible. Production continues to require an immutable admitted release
-digest and its platform signing policy. Local development instead authorizes a
-user-selected mutable project under the exact
-`local-development-installed-admission` trust class defined by
-`tables/nimi-app-local-development-admission.yaml`. That class is
-non-production, developer-only, cannot create a store listing or product
-readiness claim, and cannot become a production release without a new ordinary
-admission.
+`local_development` is the sole mutable third-party provenance class and uses
+the same principal, launch/session, grant, and owner-operation coordinator as
+immutable classes. The global Developer Mode toggle grants nothing. Each
+project requires fresh presence and an explicit `run_once` or
+`remember_project` decision.
 
-`AdoptLocalApp` remains Runtime-owned local inventory and source validation. It
-never creates installed or local-development privilege by itself. A positive
-development chain additionally requires a current Runtime-owned user
-development authorization and a live Desktop-supervised technical session.
-App identity, manifest content, filesystem presence, localhost reachability,
-ordinary gRPC, a direct shell command, and a local adoption row are inputs or
-selectors only and cannot satisfy that chain.
+Authorization binds canonical project-root file identity, declared app id,
+capability fingerprint, current account, fixed shell/entry policy, and
+development authorization. Every build/host replacement receives a new lease,
+process binding, and local-app session. Controlled HMR/rebuild/restart and
+Runtime restart may rebind without repeated consent only while those durable
+bindings and the supervisor run remain exact. Account switch, mode-off,
+revoke, supervisor end, root/app/capability/shell/origin mismatch, or copied
+project invalidates the applicable authority.
 
-The user authorization binds canonical project root, app id, manifest
-capability fingerprint, current account, and trust class. The technical
-session separately binds the Desktop supervisor, actual host process and
-creation marker, shell, account generation, and Runtime boot epoch. The exact
-no-reapproval and reapprove-or-reject matrix is canonical in the table. HMR,
-renderer reload, controlled Electron/Tauri rebuild and restart, short-session
-rotation, and Runtime restart under the same authorization do not repeat the
-user confirmation. Identity, root, capability expansion, account, shell,
-supervision, controlled output, or dev-server-origin changes reapprove or fail
-closed.
+`remember_project` becomes dormant when mode is off and requires fresh
+presence to reactivate; it never auto-runs. `run_once` ends with the supervisor
+run or any invalidation trigger. Development may use a controlled production
+account through Runtime-mediated APIs but receives no token, bearer, stronger
+permission, or persistent Nimi-managed logon/boot autostart. UI must disclose
+that Nimi grants constrain Nimi APIs, not all ordinary Windows rights of native
+development code.
 
-Windows is admitted independently for the A.5 implementation. macOS and Linux
-remain fail-closed until separately admitted. Localhost gRPC, a same-user
-daemon, ordinary `tauri dev`, and manually started Electron are never fallback
-trust paths. The Wave A local-development positive operation ceiling remains
-`artifacts.readRuntimeBytes`; account, lifecycle, Realm, AI, realtime, media,
-and generic protected proxies stay denied.
+## P-NAPP-036 — Closed Local Provenance And Principal Relationship
+
+`tables/nimi-app-local-trust-classes.yaml` is the executable authority for the
+closed `verified | user_imported | local_development` third-party provenance
+set, transition seams, bundled-component exclusions, and principal
+relationship. Trust class is Runtime-derived record state and has no Nimi API
+permission effect. A caller/request cannot select or upgrade it.
+
+The security subject is Runtime's random/non-reused
+`local_app_principal_id`, partitioned by Runtime-derived
+`local_os_user_anchor`. Opaque immutable lineage, attestation refs,
+provenance revision, execution-profile ref, and host/payload digest slots are
+frozen by 0K. 0P may map package and attestation inputs into those slots but
+cannot rename or reshape them. Promotion invalidates leases/sessions and never
+grants. Shipped Zhiyu remains bundled; its integration build is an isolated
+development principal.
 
 ## Fact Sources
 
@@ -845,7 +869,7 @@ and generic protected proxies stay denied.
 - `.nimi/spec/platform/kernel/kit-contract.md` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — `D-SHELL-038`
 - `.nimi/spec/desktop/kernel/tables/installed-app-launch-hosts.yaml`
-- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-021`
+- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-022`
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*`
 - `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-*`
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`

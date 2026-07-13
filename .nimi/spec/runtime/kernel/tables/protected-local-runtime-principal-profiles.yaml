@@ -52,15 +52,20 @@ windows_service_host:
 windows_principal_selection:
   authority_status: admitted
   selected_profile: local_system_host_with_restricted_service_sid
-  selected_fixture: NimiRuntimeE2E
-  selected_fixture_result: elevated_installer_fixture_green_unelevated_process_security_green_token_query_blocked
-  product_closeout_implication: none_authority_selection_only
-  a5_closeout_status: blocked
-  rejected_candidate: NT_SERVICE_NimiRuntimeE2EVirtual_virtual_account
-  rejected_fixture_result: fail_closed_pipe_active_session_info_access_ERROR_ACCESS_DENIED
-  rejection_boundary: WTSQuerySessionInformation_for_another_user_requires_Query_Information_and_exact_LsaGetLogonSessionData_requires_session_owner_or_local_system_administrator
-  privilege_grant_to_rescue_virtual_account: forbidden
   rationale: exact_active_logon_bootstrap_without_interactive_user_token_retention_requires_LocalSystem_host
+service_acceptance_isolation:
+  service_name: NimiRuntime
+  service_principal: same_production_local_system_and_restricted_service_sid
+  service_owned_candidate_root: required
+  candidate_binding_source: signed_installer_or_service_owned_acceptance_manifest
+  environment_or_argv_root_selection: forbidden
+  candidate_root_acl: restricted_service_sid_only
+  candidate_id_in_app_or_renderer: forbidden
+  account_partition: verified_interactive_sid
+  runtime_lifecycle_and_restart: real_scm_service
+  cleanup: service_owned_candidate_cleanup_after_all_leases_sessions_and_jobs_end
+  parallel_isolation: candidate_namespace_for_state_audit_and_child_pipes
+  test_only_service_principal: forbidden
 production_boot_security_configuration_authority: signed_service_definition_and_signed_release_descriptor_only
 mutable_product_configuration_authority: typed_protected_desktop_control_write_to_service_owned_state_only
 production_environment_or_argv_override: forbidden
@@ -75,11 +80,7 @@ platform_admission:
   cross_platform_parity_required_before_first_platform_positive_chain: false
 account_partition_source: verified_interactive_os_principal_and_login_session
 non_product_same_user_fixture:
-  allowed: true
-  custody: synthetic_ephemeral_only
-  production_account_or_realm_endpoint: forbidden
-  production_trust_set: forbidden
-  product_readiness_claim_allowed: false
+  allowed: false
 profile_schema:
   fields:
     - os
@@ -91,8 +92,6 @@ profile_schema:
     - transaction_store_and_durable_anchor
     - process_isolation
     - endpoint_connect_boundary
-    - non_product_e2e_principal
-    - non_product_endpoint_boundary
     - source_rule
 profiles:
   - os: windows
@@ -104,8 +103,6 @@ profiles:
     transaction_store_and_durable_anchor: service_sid_acl_transaction_db_plus_dpapi_ng_anchor_only_for_admitted_nonrollbackable_generation
     process_isolation: service_process_dacl_denies_interactive_sensitive_rights_and_allows_only_sync_query_limited_read_control_for_mutual_runtime_verification
     endpoint_connect_boundary: named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_exact_process_token_LSA_and_active_WTS_verification_before_NetConn
-    non_product_e2e_principal: LocalSystem_token_user_with_restricted_NT_SERVICE_NimiRuntimeE2E_service_sid
-    non_product_endpoint_boundary: synthetic_accounts_and_non_product_endpoints_only
     source_rule: K-PLOCAL-007
   - os: linux
     production_principal: dedicated_nimi_runtime_system_uid
@@ -116,8 +113,6 @@ profiles:
     transaction_store_and_durable_anchor: dedicated_uid_transaction_db_plus_root_loaded_anchor_only_for_admitted_nonrollbackable_generation
     process_isolation: systemd_protect_proc_invisible_no_new_privileges_protect_system_strict_private_tmp
     endpoint_connect_boundary: service_owned_socket_acl_grants_connect_only_to_active_interactive_uid
-    non_product_e2e_principal: dedicated_nimi_runtime_e2e_system_uid
-    non_product_endpoint_boundary: synthetic_accounts_and_non_product_endpoints_only
     source_rule: K-PLOCAL-007
   - os: macos
     production_principal: dedicated_nimi_runtime_launchdaemon_principal
@@ -128,6 +123,4 @@ profiles:
     transaction_store_and_durable_anchor: launchdaemon_transaction_db_plus_code_identity_keychain_anchor_only_for_admitted_nonrollbackable_generation
     process_isolation: hardened_runtime_library_validation_and_task_for_pid_denial
     endpoint_connect_boundary: privileged_xpc_mach_service_validates_client_audit_token_and_code_identity
-    non_product_e2e_principal: dedicated_nimi_runtime_e2e_launchdaemon_principal
-    non_product_endpoint_boundary: synthetic_accounts_and_non_product_endpoints_only
     source_rule: K-PLOCAL-007

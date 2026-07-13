@@ -72,12 +72,14 @@ OS custom scheme transport is not canonical for this standard because it can
 start Desktop. Production transport is the Desktop-owned running presence
 descriptor plus exact-loopback bridge, invoked by Kit standard shell hosts.
 
-## P-DOPEN-007 - Installed App Host Identity
+## P-DOPEN-007 - Local App Host Identity
 
-`desktop-electron-installed-app-host` is an admitted `sourceHost` value for
-`installed-nimi-app-standard-shell-v1`. Installed Nimi App hosts must preserve
-that host class in Desktop Open envelopes and must not collapse it into generic
-Electron host identity.
+`desktop-electron-local-app-host` is the admitted third-party `sourceHost` value
+for `local-nimi-app-standard-shell-v1`. A verified local-app carrier injects
+that host class into Desktop Open envelopes; application code cannot select or
+override it, and the host must not collapse it into generic Electron identity.
+The value carries routing provenance only and is never principal, grant,
+session, package, or authorization truth.
 
 ## P-DOPEN-008 - Domain Result Codes
 

@@ -70,7 +70,6 @@ pagination are non-identity list facts and must not mint durable target refs.
 | `ListNodeCatalog` | RuntimeLocalService | 是（K-PAGE-005） | node_type ASC, node_id ASC | type_filter | K-LOCAL-030 |
 | `ListLocalAudits` | RuntimeLocalService | 是（K-PAGE-005） | timestamp DESC | app_id, subject_user_id, time_range | K-LOCAL-029/030 |
 | `ListLocalTransfers` | RuntimeLocalService | 是（K-PAGE-005） | created_at DESC, install_session_id ASC | session_kind, state, model_id, artifact_id | K-LOCAL-030 |
-| `ListTokenChain` | RuntimeGrantService | deny-all tombstone；无分页行为 | — | — | K-GRANT-001/011 |
 | `ListAuditEvents` | RuntimeAuditService | 是（K-PAGE-005） | timestamp DESC | app_id, subject_user_id, domain, reason_code, caller_kind, caller_id, time_range | K-AUDIT-007 |
 | `ListUsageStats` | RuntimeAuditService | 是（K-PAGE-005） | bucket_start DESC | app_id, subject_user_id, caller_kind, caller_id, capability, model_id | K-AUDIT-008 |
 | `ListAIProviderHealth` | RuntimeAuditService | 否（全量返回） | provider_name ASC | — | K-AUDIT-013 |

@@ -6,7 +6,6 @@ entries:
   - nimi-desktop-production-v1
   - nimi-desktop-e2e-fixture-v1
   - nimi-runtime-production-v1
-  - nimi-runtime-e2e-fixture-v1
   - nimi-desktop-control-carrier-production-v1
   - nimi-desktop-control-carrier-e2e-fixture-v1
   - nimi-production-release-signing-policy
@@ -49,7 +48,7 @@ platform_native_release_verification:
   peer_owned_release_generation: forbidden
   custom_peer_release_record: absent
   update_and_rollback_authority: signed_installer_package_manager_or_service_updater
-  installed_app_release_digest_authority: platform_catalog_release_descriptor_consumed_by_A1
+  immutable_app_release_digest_authority: opaque_0K_slot_unavailable_for_positive_launch_until_0P
   same_open_object_required: true
 signer_policies:
   - signer_policy_id: nimi-production-release-signing-policy
@@ -126,18 +125,6 @@ trust_sets:
     configuration_authority: signed_service_definition_and_runtime_release_descriptor_only
     runtime_build_allowance: production_only
     product_readiness_claim_allowed: true
-    runtime_configuration_mutable: false
-    source_rule: P-NAPP-034
-  - trust_set_id: nimi-runtime-e2e-fixture-v1
-    executable_role: nimi_runtime_service
-    environment: non_product_test
-    allowed_os_profiles: [windows, linux, macos]
-    platform_code_signing_policy_ref: external-non-product-e2e-signing-policy
-    installer_release_authority: isolated_non_product_service_fixture_installer
-    launch_authority: separate_non_product_os_service_manager_definition
-    configuration_authority: synthetic_accounts_and_non_product_endpoints_only
-    runtime_build_allowance: test_only
-    product_readiness_claim_allowed: false
     runtime_configuration_mutable: false
     source_rule: P-NAPP-034
   - trust_set_id: nimi-desktop-control-carrier-production-v1

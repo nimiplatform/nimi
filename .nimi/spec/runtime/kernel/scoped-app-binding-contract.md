@@ -13,8 +13,8 @@ reuse Avatar / agent / window / anchor tuple semantics. WORKSPACE_PRIVATE
 knowledge access uses the workspace-specific binding authority in
 `workspace-binding-contract.md` (`K-BIND-016..024`).
 
-Public `RuntimeAccountService.GetAccessToken` is a deny-all tombstone pending
-A.3d removal. Scoped binding never carries or redeems account bearer material;
+The removed public token accessor identity is reserved. Scoped binding never
+carries or redeems account bearer material;
 all local app Realm access uses the Runtime-mediated broker.
 
 Default Nimi Avatar launch is no longer a Desktop scoped-binding consumer.
@@ -63,8 +63,8 @@ Avatar binding 必需 scope 集合：
 | `subject_user_id` 字段 | `forbidden` | 调用方提供的 subject truth |
 
 Invariant: no local consumer may redeem binding material into durable account,
-session, subject, bearer, or token truth. First-party, bundled, installed,
-developer and binding-only callers all use Runtime-mediated operations; binding
+session, subject, bearer, or token truth. First-party, bundled, local-app and
+binding-only callers all use Runtime-mediated operations; binding
 is an authorization relation, never a token surface.
 
 ## K-BIND-004 生命周期
@@ -156,18 +156,22 @@ binding 事件家族（与 `K-ACCSVC-006` 一致）：
 `IssueScopedAppBinding` 必须从 Runtime account custody 内部派生 subject / account 上下文。
 
 - 调用方不得提供 `subject_user_id`、Realm token、refresh token、或 raw JWT。
-- 调用方必须是 Runtime app registry/admission policy 已登记的 local first-party app instance，或经 developer-registration double gate admitted 的 local developer app instance；`caller.app_id` / `caller.app_instance_id` 必须与待发放 binding relation 精确一致。
+- 调用方必须是 Runtime owner policy 已登记的 local first-party app instance；
+  `caller.app_id` / `caller.app_instance_id` 必须与待发放 binding relation 精确
+  一致。Third-party `LOCAL_APP`, including local-development projects, is
+  categorically ineligible for this binding and uses only its process-bound
+  session plus account-and-principal grant.
 - account state 不为 `authenticated` 时，binding 发放必须 fail-close（reason `account_unavailable`）。
 - account state 从 `authenticated` 转出时，active/issued binding 必须 revoke 或 suspend；覆盖 custody unavailable、refresh failure / reauth-required、logout、switch、daemon restart no-custody、policy revoke。
 - 切换 / logout / reauth-required / custody-unavailable 期间，正在飞的 binding issuance 必须取消并发出 `binding.revoked` reason `account_expired` / `user_switch` / `logout` / `account_unavailable`。
 
 ## K-BIND-011 与 Grant Service 的关系
 
-The public `RuntimeGrantService` family is deny-all pending A.3d removal.
+The former public credential-grant family is physically removed.
 External-principal binding cannot interoperate with or substitute for this
 scoped local binding contract:
 
-- local first-party / developer-registered local scoped binding 必须由 `RuntimeAccountService.IssueScopedAppBinding` 发出，subject 由 Runtime 内部派生。
+- admitted first-party scoped binding 必须由 `RuntimeAccountService.IssueScopedAppBinding` 发出，subject 由 Runtime 内部派生。Third-party `LOCAL_APP` uses its separate process-bound session and exact account+principal grant and never mints a first-party scoped binding.
 - no public external-principal grant or caller-supplied `subject_user_id`
   issuance path is admitted;
 - 二者 binding ID 命名空间必须可区分，且不可互相赎回。

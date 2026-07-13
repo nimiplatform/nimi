@@ -4,8 +4,8 @@ owner: platform
 catalog_id: platform_nimi_app_release_descriptors
 entries:
   - descriptors_1
-  - release descriptor is the install truth for each installable app version
-  - third-party install must verify sha256 before unpack, registration, or execution
+  - release descriptor is verified discovery and attestation input only in 0K
+  - future 0P mapping must verify sha256 before unpack, registration, or execution
   - GitHub and npm are source/distribution inputs only, not admission truth
   - bundled first-party descriptors bind to the atomic Nimi release bundle and do not authorize external download
   - Zhiyu R1 uses a bundled first-party descriptor and does not use the local
@@ -46,10 +46,8 @@ descriptor_schema:
       - github-release
       - github-commit
       - npm-package
-      - admission-sandbox-https-artifact
     admission_track:
       - ordinary-release-proof
-      - admission-sandbox-ci
     artifact.digest_algorithm:
       - sha256
     runtime.package_kind:
@@ -155,78 +153,6 @@ descriptors:
       mutable_source_allowed: false
       install_digest_verification_required: inherited_from_atomic_bundle
     source_rule: P-NAPP-014
-  - descriptor_id: community.nimi.fixture.platform-proof.0.1.0-sandbox
-    app_id: community.nimi.fixture.platform-proof
-    version: 0.1.0-sandbox
-    admission_track: admission-sandbox-ci
-    descriptor_class: external-immutable-artifact
-    publisher:
-      github_namespace: github.com/nimiplatform-fixtures
-      namespace_kind: org
-      identity_assurance: domain-verified
-      verified_domain: fixtures.nimi.test
-      kyc_verification_ref: ci-kyc-deferred
-    source:
-      kind: admission-sandbox-https-artifact
-      ref: https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar
-    artifact:
-      locator: https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar
-      digest_algorithm: sha256
-      sha256: 2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863 # pragma: allowlist secret -- public deterministic fixture digest
-      size:
-        download: "1503232"
-        installed: "1499267"
-        user_data: "0"
-        cache: "0"
-        shared_deps: "0"
-      signature_or_provenance_ref: ci-provenance/platform-proof/0.1.0-sandbox/sha256-2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863
-    artifact_mirror_ref: nimi-ci-mirror://platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar
-    mirror_license_cleared: true
-    build_assurance: deterministic-fixture-build
-    dependency_assurance: pnpm-lock-and-sdk-kit-boundary-scan
-    platform_signing_assurance:
-      macos_notarization: not-required-internal
-      macos_developer_id_subject: not-required-internal
-      windows_code_signing: not-required-internal
-      installer_signature: not-required-internal
-      entitlements_ref: ci-entitlements/platform-proof
-      signing_subject: nimi-internal-ci
-    runtime:
-      package_kind: nimi-app
-      entry_ref: dist/index.html
-      sandbox_ref: installed-nimi-app-standard-shell-v1
-    permissions_ref: community.nimi.fixture.platform-proof.permission_scope_ref
-    storage_policy_ref:
-      id: nimi-data-app-roots
-      kind: nimi-mediated-default
-    update_channel_ref: platform-proof-sandbox-channel
-    rollback_eligibility: no-prior-admitted-descriptor
-    review:
-      admission_path: admission-sandbox-ci
-      mutable_source_allowed: false
-      install_digest_verification_required: required
-      decision: approved
-      adjudicator_kind: platform-review-bot
-      adjudicator_ref: ci/platform-proof
-      decided_at: "2026-06-30T00:00:00Z"
-    support:
-      diagnostics_bundle_fields:
-        - runtime
-        - storage
-        - descriptor
-      redaction_rules:
-        - strip-account-token
-        - strip-launch-nonce
-      user_visible_issue_categories:
-        - install-failed
-        - launch-failed
-      escalation_path: ci-fixture-support
-      kill_switch_visibility: developer-only
-      recovery_instructions:
-        - reinstall
-        - rerun-digest-verification
-    source_rule: P-NAPP-033
-
 third_party_descriptor_floor:
   required_fields:
     - descriptor_id
@@ -283,24 +209,14 @@ third_party_descriptor_floor:
     - github-release
     - github-commit
     - npm-package
-    - admission-sandbox-https-artifact
   admission_track_constraints:
     ordinary-release-proof:
-      product_readiness_claim_allowed: true
-      ordinary_visibility_allowed:
-        - ordinary-visible
-      forbidden_source_kinds:
-        - admission-sandbox-https-artifact
-      platform_signing: notarized_and_signed_required
-      source_rule: P-NAPP-033
-    admission-sandbox-ci:
+      catalog_discovery_claim_allowed: true
       product_readiness_claim_allowed: false
       ordinary_visibility_allowed:
-        - developer-only
-      allowed_source_kinds:
-        - admission-sandbox-https-artifact
-      artifact_locator: immutable_https_ci_endpoint
-      platform_signing: constrained_internal_ci_only
+        - ordinary-visible
+      local_package_readiness_claim_allowed: false
+      platform_signing: notarized_and_signed_required_for_future_0p_mapping
       source_rule: P-NAPP-033
   forbidden_install_inputs:
     - mutable_git_branch
@@ -313,5 +229,5 @@ third_party_descriptor_floor:
   forbidden_third_party_build_assurance:
     - checksum-pinned
   verification:
-    before_unpack_register_execute: sha256_must_match_descriptor
-    mismatch: fail_closed_no_install_no_execution
+    future_0p_before_unpack_register_execute: sha256_must_match_descriptor
+    mismatch: fail_closed_no_local_record_no_execution

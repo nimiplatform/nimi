@@ -10,8 +10,10 @@
 本契约是 T10 portfolio 的 cross-cutting authority：它**不**重新拥有任何单个
 `~/.nimi` schema 文件的字段定义。每个 schema 文件的字段权威仍归其 surface owner
 authority family（`~/.nimi/nimi.json` → T1；
-`~/.nimi/profiles/factory-index.json` / `~/.nimi/runtime/default.json` → T2；
-`~/.nimi` app registry / packages / library / grants 文件 → T4）。本契约只拥有：
+`~/.nimi/profiles/factory-index.json` / `~/.nimi/runtime/default.json` → T2）。
+Runtime-owned local-app principal, record, grant, session, inventory, and
+package-seam state is service-owned protected state and is never a `~/.nimi`
+interactive-user projection. 本契约只拥有：
 
 - 跨文件统一的 `schemaVersion` fail-closed 规则；
 - 跨文件统一的 current-schema validation framework（无自动旧 schema upgrade）；
@@ -43,10 +45,6 @@ must not inspect, repair, migrate, recreate, or point at that retired file.
 | `~/.nimi/nimi.json` | T1 | product-control record；`P-COLD-009` |
 | `~/.nimi/runtime/default.json` | T2 | Runtime default seed |
 | `~/.nimi/profiles/factory-index.json` | T2 | factory AIProfile index |
-| `~/.nimi/apps/registry.json` | T4 | account apps registry projection |
-| `~/.nimi/apps/packages.json` | T4 | installed app packages projection |
-| `~/.nimi/accounts/<account-id>/apps/inventory.json` | T4 | account app-inventory projection |
-| `~/.nimi/accounts/<account-id>/permissions/grants.json` | T4 | account-scoped permission grant projection |
 
 `MUST`：本族的成员清单与每个成员的 schema-owner authority 由本契约 canonical
 固化于上表，并由 `tables/local-config-file-registry.yaml` 作为结构化事实源
@@ -98,6 +96,12 @@ fail-closed-to-repair。
 `MUST NOT`：本框架不得把 retired `~/.nimi/runtime/config.json` 注册为成员、
 修复输入或 migration source。Runtime service-owned state is outside the
 interactive-user file family and follows `K-CFG-014..016` only.
+
+`MUST NOT`: the framework must not register, repair, recreate, dual-read, or
+dual-write retired `~/.nimi/apps/{registry,packages}.json` or
+`~/.nimi/accounts/<account-id>/{apps/inventory,permissions/grants}.json` files.
+Local-app owner state is resolved from the separate Runtime K-APP/K-GRANT/
+K-PLOCAL stores under the verified OS-user partition.
 
 `MUST NOT`：不得存在第二套并行的 `~/.nimi` schema upgrade 实现；不得出现
 Desktop 读旧版本并自动补字段、改写文件、保留 migration backup、或把旧版本当作
@@ -191,7 +195,7 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 - `nimi_data` 子目录的 materialization 写入与 job 执行仍归 Runtime
   `K-LENV-*`；本契约只拥有目录 owner/cleanup 表与 data-root relocation admission
   floor，不提供 ordinary Desktop relocation 执行面。
-- per-file schema 字段定义仍归各 owner authority family（T1 / T2 / T4）；本契约只拥有
+- per-file schema 字段定义仍归各 owner authority family（T1 / T2）；本契约只拥有
   跨文件 current-schema validation framework 与 repair-routing 规则。
 
 ## Fact Sources

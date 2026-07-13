@@ -53,8 +53,12 @@ artifact lifecycle is owned by runtime:
   complete BEFORE the runtime emit event referencing the id (e.g.
   `voice_playback_requested`); violation logs fatal at the emitter site
 - every record exposed through `ReadArtifactBytes` binds producer job, owner
-  account, initiating app, release digest, installed session, account
-  generation, allowed use, observed byte size, content SHA-256 and expiry
+  account when applicable, initiating `local_app_principal_id` for third-party
+  local-app work, the exact principal-lineage branch (immutable
+  `immutable_lineage_id` or development authorization + canonical project-file
+  identity), host/payload digest slots, producing
+  session, account generation, allowed use, observed byte size, content SHA-256
+  and expiry; `app_id` remains display/routing metadata only
 - internal or historical records without that complete audience may remain in
   Runtime-owned storage but are not externally readable and fail closed
 - once an artifact id is written, bytes, MIME, observed size, content hash and
@@ -192,19 +196,20 @@ buffer was discarded.
 
 ### Trust Model
 
-- `ReadArtifactBytes` requires the current Account-owned installed-caller
+- `ReadArtifactBytes` requires the current Account-owned local-app operation
   decision and a matching durable artifact audience; app/session metadata,
   ordinary local gRPC and artifact-id possession are non-authorizing.
 - Runtime revalidates the live process, account generation and durable
-  installed session before the artifact lookup, then matches account/app/
-  release/session/generation/use/expiry before returning bytes.
-- unbound historical records, direct local gRPC, wrong app/account/release/
+  local-app session before the artifact lookup, then matches account/principal/
+  principal-lineage branch/session/generation/use/expiry before returning bytes.
+- unbound historical records, direct local gRPC, wrong principal/account/principal-lineage/
   session, expired or revoked records and guessed ids fail closed.
 - capability/grant admission is an additional gate. The admitted mapping is
   `data.scope.read` qualified by `runtime.artifacts`; the Account-owned
-  evaluator revalidates the protected catalog ceiling, current inventory,
-  highest-version live grant and active release on every read before the
-  durable artifact audience is matched.
+  coordinator revalidates the current local record, exact live grant revision,
+  process-bound session and artifact-owner policy on every read before the
+  durable artifact audience is matched. Immutable provenance slots remain
+  opaque and cannot become a positive package assertion before 0P/P.
 
 ## Backward Compatibility
 
@@ -226,7 +231,7 @@ readability from their id, local-user ownership or earlier anonymous behavior.
   `sdks/typescript/types/reason-code.ts` ReasonCode const); spec validator enforces.
 - emitter-side `Store.Put` must precede emit event; absence logs fatal.
 - externally readable records must persist observed size, content SHA-256 and
-  the complete account/app/release/session/use/expiry audience; disk reads
+  the complete account/principal/lineage/session/use/expiry audience; disk reads
   recheck payload size and hash.
 - runtime handler must use `grpcerr.WithReasonCode`, not status.Error
   message string.

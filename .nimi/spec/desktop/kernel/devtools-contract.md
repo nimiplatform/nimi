@@ -50,6 +50,42 @@ surface，也不得在 Developer Mode 关闭时可达。
 `MUST NOT`：`Developer Tools` 不得承载 ordinary-user 产品功能；ordinary
 product path 不得依赖 `Developer Tools` 的存在或可达性。
 
+## D-DEV-004 — One Production Developer Mode And Dev Trust Set
+
+`MUST`：Desktop 只提供一个 production `Developer Mode` 与一个 `Dev Trust
+Set`。已登录 production account 可以使用；mode 默认关闭，开启本身不授予任何
+Nimi API permission，也不创建 principal、grant、lease 或 session。
+
+`MUST NOT`：不得提供 test-only service principal、dev daemon、environment
+toggle、hidden mode、direct `go run ... serve`、renderer auth、localhost trust
+或第二套 developer account/session truth。
+
+## D-DEV-005 — Local Development Lifetimes And Invalidation
+
+`MUST`：项目 decision lifetime 只有 `run_once` 与 `remember_project`。
+Remembered project 在 run 结束后进入 `dormant`，下一次必须显式
+`reactivate`；不得自动启动。edit/build/process replacement、Runtime restart、
+mode off、revoke、account switch 与 project identity change 必须按 Runtime
+规则产生新 lease/session 或立即 deny，旧 process/session 不得继承。
+
+`MUST`：Desktop 必须同时呈现 zero-grant session 与 separate grant posture，
+不得把 project admitted、process running 或 session open 显示成 permission
+approved。
+
+## D-DEV-006 — Native Execution Risk And Failure UX
+
+`MUST`：确认面必须明确告知本地项目将在 Windows 原生进程中执行、可访问其
+OS user 权限范围内的资源，而 Nimi API 仍受独立 grant/owner policy 限制。首次
+批准及 disclosure revision 变化后必须重新确认。
+
+`MUST`：UI 必须有可判定的 loading、disabled、retry、no-grant、grant-approved、
+Runtime-unavailable、account-switched、revoked、build-failed、process-replaced
+与 Runtime-restarted 状态；长 project/error/capability 文本和窄屏不得溢出或
+隐藏主要动作。
+
+`MUST NOT`：不得用 fail-closed shell、toast-only failure、console message、
+隐式 retry 或假成功替代真实状态与恢复动作。
+
 ## D-DEV-007 — Developer Surface Visibility Default
 
 `MUST`：所有 developer / internal surface（`Developer Tools`、

@@ -25,9 +25,10 @@
 | `bootstrap-contract.md` | `D-BOOT-*` | 多阶段异步初始化、feature flag 门控 |
 | `bridge-ipc-contract.md` | `D-IPC-*` | Tauri IPC 命令与桥接类型 |
 | `bridge-ipc-contract.md#D-IPC-019` | `D-IPC-019` | Local-development confirmation UI, remembered-project management, and Desktop-owned dev supervisor boundary |
+| `bridge-ipc-contract.md#D-IPC-020` | `D-IPC-020` | Runtime-derived local_app_control role, Developer Mode/grant UX, native launch/process binding and renderer leak boundary |
 | `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-014`, `D-IPC-015`) | packaged Desktop self-update、signed Runtime service-updater handoff 与 mutual release-record compatibility |
 | `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending action lifecycle projection boundary |
-| `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
+| `auth-session-contract.md` | `D-AUTH-*` | Runtime-owned account-session lifecycle projection；Desktop/renderer 不持久化 token |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync non-admission owner map |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
@@ -39,7 +40,7 @@
 | `companion-participation-control-surface-contract.md` | `D-LLM-*` | Desktop Avatar companion/persona participation control/projection hardcut：typed SDK/Runtime consumers only；不拥有 prompt/provider/model、memory、queue、scheduler、or commit truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `support-surface-contract.md` | `D-SUP-*` | Desktop `Support` 独立 secondary 系统表面产品语义：repair / updates / diagnostics / logs-export / recovery-help 五子区、self-update 投影宿主、`P-MIG-*` 修复流程消费边界、degraded-state 可达性；不拥有 self-update 机制、`~/.nimi` 迁移执行、Runtime diagnostic/log/audit 真值、product-control first-run 状态机 |
-| `devtools-contract.md` | `D-DEV-*` | Desktop `Developer Tools` 表面与 `Developer Mode` 门控产品语义：可发现 Developer Mode 切换、DevTools surface 门控、developer diagnostics 可见性；`D-SHELL-009` 的门控收口 |
+| `devtools-contract.md` | `D-DEV-*` | One production Developer Mode/Dev Trust Set, run_once/remember-dormant-reactivate, zero-grant vs grant posture, native risk disclosure, failure states and gated developer UI |
 | `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
 | `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：四个 feed scope（personal / friends / persona_activity / world_character_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |
@@ -50,7 +51,7 @@
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
 | `telemetry-contract.md` | `D-TEL-*` | 结构化日志与消息格式 |
 | `network-contract.md` | `D-NET-*` | 重试、退避、实时传输边界 |
-| `security-contract.md` | `D-SEC-*` | CSP、凭据委托、OAuth、端点安全 |
+| `security-contract.md` | `D-SEC-*` | CSP、凭据委托、OAuth、端点安全、local-app carrier custody/leak boundary |
 | `streaming-consumption-contract.md` | `D-STRM-*` | 流式消费、取消与恢复语义；只消费 beat/action outputs，不拥有其 product semantics |
 | `offline-degradation-contract.md` | `D-OFFLINE-*` | Runtime/Realm 离线降级、缓存与重连冲突策略 |
 | `testing-gates-contract.md` | `D-GATE-*` | Desktop 测试治理、E2E 风险分层与发布门禁 |
@@ -94,6 +95,7 @@
 - `tables/relationship-categories.yaml`
 - `tables/relationship-friend-request-states.yaml`
 - `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`，含 `tables/rule-evidence.rules-support-devtools.yaml`）
+- `tables/local-app-control-surfaces.yaml`
 
 ## 6. Kernel Companion 约束
 

@@ -4,52 +4,54 @@
 
 ## Scope
 
-定义 SDK 对 Platform `Nimi App` admission / registry / install / launch
-authority 的 typed consumer surface。本契约确保 SDK 是 app / developer 对
-Nimi App lifecycle 的唯一接入入口；Desktop hosted shell（D-HOME-004 /
-D-HOME-005）通过 SDK projection 投影 Apps。
+定义 SDK 对 Platform `Nimi App` catalog、Runtime local-record projection 与
+final local-app carrier 的 typed consumer surface。0K 不 admit immutable
+package install/import/update/promotion/repair accessor，也不让 SDK 选择
+principal、launch target、account、process 或 session。Desktop hosted shell
+（D-HOME-004 / D-HOME-005）通过 SDK projection 投影 Apps。
 
 ## S-APP-001 — Sole Admitted Access Path
 
 `MUST`：SDK Nimi App client surface 是 app / developer / Desktop hosted
-shell 对 Nimi App install / update / uninstall / launch / status /
-health-repair 的唯一 admitted access path。
+shell 消费 verified catalog、account inventory、Runtime local-record status
+与 host-injected local-app carrier 的唯一 admitted typed path。
 
 `MUST NOT`：app / developer / shell 不得：
 
 - 绕过 SDK 直接读写 Platform `nimi-app-registry.yaml`
 - 绕过 SDK 直接调用 Runtime app registration 私有 RPC
 - 私自实现 installer / package-manager / source-selector 逻辑
+- 通过 app id、path、manifest、renderer metadata 或 SDK argument 选择
+  principal、launch、account、grant 或 session
 
 ## S-APP-002 — Logical Operation Set
 
-`MUST`：SDK 暴露以下 logical operation：
+`MUST`：0K SDK 暴露以下 inventory logical operation：
 
 - `app.list()` — 列出当前用户可见的 unified Apps inventory。该集合由
   Platform ordinary catalog source、Runtime authenticated account inventory
-  source、Runtime local adoption source 合成；source 必须保留，不能互相推断。
+  source、Runtime local-record source 合成；source 必须保留，不能互相推断。
 - `app.get(appId)` — 获取单个 app inventory entry 与 source/state/action
   projection。
-- `app.install(appId, options?)` — 触发 Platform-mediated install
-  flow；返回 typed job projection。
-- `app.update(appId)` — 触发 Platform-mediated update flow；遵守
-  `P-PKGREL-007` 三 surface 独立性。
-- `app.uninstall(appId)` — 触发 Platform-mediated uninstall flow。
-- `app.launch(appId, scopeRef)` — 触发 Runtime-mediated launch；必须
-  携带 canonical `AIScopeRef`（`P-AISC-001`）。
 - `app.status(appId)` — 获取 app health/repair projection state。
 - `app.subscribe(callback)` — 订阅 app lifecycle 事件；host-local
   event stream。
-- `app.healthRepair(appId, action)` — 触发 repair flow，仅 admit 显式
-  action token（cancel / retry / repair / reinstall）。
 
-## S-APP-003 — Mandatory AIScopeRef On Launch
+`MUST NOT`：0K Nimi App client 不暴露 `app.install`、`app.update`、
+`app.uninstall`、`app.launch`、`app.healthRepair`、import、promotion 或 package
+job mutation。Immutable readiness 只能通过 `S-APP-018` 返回 typed
+unavailable；local-development launch is native-host initiated and never an SDK
+app-id call.
 
-`MUST`：`app.launch(appId, scopeRef)` 必须接收 canonical `AIScopeRef`
-（`P-AISC-001`、`S-AICONF-003`）。
+## S-APP-003 — No SDK Launch Selector
 
-`MUST NOT`：SDK 不得从 active chat、renderer-local current app、或默认
-scope 隐式推断 launch scope；不得允许 caller 省略 `scopeRef`。
+`MUST`：local-development launch 只能由 verified native `local_app_control`
+supervisor 执行 `PrepareLocalAppLaunch`、process bind 与 request-empty session
+open。SDK/app code只消费已注入 carrier。
+
+`MUST NOT`：SDK 不得暴露 app-id/path/scope/package/host selector 来创建或
+恢复 local-app session，也不得从 active chat、renderer state、default scope
+或 manifest 推断 launch authority。
 
 ## S-APP-004 — Non-Owner Of Installer / Selector / Marketplace
 
@@ -90,9 +92,9 @@ install / partial launch；不把 Runtime fail-close 隐藏为 success。
 
 ## S-APP-008 — Subscription Scope
 
-`MUST`：`app.subscribe(callback)` 仅承载 app lifecycle 事件流（installed /
-updated / uninstalled / launching / launched / failed / repair-required
-等 typed event）。
+`MUST`：`app.subscribe(callback)` 仅承载 catalog/account/local-record
+projection event（source degraded、record active/dormant/removed、session or
+grant posture changed 等 typed event）。
 
 `MUST NOT`：subscription 不承载 audit / permission / spend 事件；permission
 fabric 与 Realm audit 拥有 audit truth。
@@ -113,42 +115,42 @@ internal registry row exists for bundled package/update coordination.
 
 `MUST NOT`：SDK must not expose unadmitted workspace apps, app-local spec rows,
 Avatar hidden-internal rows, or source-discovered packages as catalog Apps.
-Account inventory and local adoption sources are admitted separately by
+Account inventory and local-record sources are admitted separately by
 `S-APP-020` / `S-APP-021`; they MUST NOT be relabeled as ordinary catalog truth.
 
-## S-APP-010 — Install Descriptor Verification
+## S-APP-010 — Immutable Package Mutation Non-Admission
 
-`MUST`：`app.install(appId, options?)` must resolve the admitted release
-descriptor before any download. For external artifacts it must compute `sha256`
-over downloaded bytes and compare it with the descriptor before unpacking,
-registration, execution, or installed projection mutation.
+`MUST`：verified release descriptors are read-only discovery/review input in 0K.
+SDK may project catalog metadata but cannot download, inspect, unpack, register,
+install, import, update, promote, rollback, repair or execute an immutable
+artifact. Those operations are absent from the Nimi App client and Runtime
+package readiness maps to typed unavailable.
 
-`MUST NOT`：SDK must not perform direct `npm install`, `npx`, direct mutable
-GitHub clone, source build/run, or lifecycle script execution as ordinary-user
-install truth. Digest mismatch must fail closed and must not be projected as
-partial success.
+`MUST NOT`：SDK must not perform direct `npm install`, `npx`, GitHub clone,
+source build/run, lifecycle script execution, digest-only admission, or local
+file scanning as package truth.
 
-## S-APP-011 — Install Storage Projection
+## S-APP-011 — Principal-Keyed Storage Boundary
 
-`MUST`：SDK install/uninstall/status projections must preserve the app storage
-root split:
+`MUST`：Runtime private storage is partitioned by the inherited
+`local_app_principal_id`, never app id. The 0K local-app SDK carrier exposes no
+absolute root or storage operation; only typed unavailable posture may be
+projected until exact relative-path operations are independently admitted.
 
-- release payloads: `<nimi_data>/apps/<app-id>/releases/<version>`
-- durable data: `<nimi_data>/apps/<app-id>/data`
-- cache: `<nimi_data>/apps/<app-id>/cache`
-- temp: `<nimi_data>/apps/<app-id>/tmp`
-
-Uninstall removes release payloads by default and keeps durable data unless the
-user explicitly confirms destructive deletion.
+`MUST NOT`：SDK must not construct or return `<nimi_data>/apps/<app-id>` paths,
+accept a principal selector, inspect Runtime config, or infer storage from
+filesystem existence. Tombstoned data is delete-only owner state and cannot be
+rebound by SDK.
 
 ## S-APP-012 — Declared Nimi-API Scopes Carrier
 
 **Background fact.** The developer-authored manifest carries a
 `permissions.declared_nimi_api_scopes` list of `{ scope, qualifier?,
 purpose }` entries as transparency for review and UI, not as an enforcement
-control. The admitted release descriptor's
-`permissions_ref` (`P-NAPP-018`) and the per-tier
-`permission_ceiling_ref` (`P-PERM-*`) remain the enforcement surfaces.
+control. The verified catalog descriptor's `permissions_ref` (`P-NAPP-018`)
+remains review vocabulary only. For `LOCAL_APP`, enforcement is the exact
+Runtime K-GRANT account+principal record plus the canonical operation owner
+policy; trust tier/class and manifest declarations have no permission effect.
 
 `MUST` (transparency carrier surface). SDK Nimi App client surface
 admits a typed read-only accessor that exposes the developer-submitted
@@ -174,14 +176,14 @@ runtime grant state.
 `MUST NOT` (transparency, not enforcement). The declared-scopes
 carrier MUST NOT be admitted as an enforcement surface. The carrier
 does not grant, withhold, gate, or refuse any operation; it does not
-substitute for the `P-PERM-*` grant lifecycle, the per-endpoint
-fail-closed enforcement at Runtime / Realm / Cognition, or the
-per-tier `permission_ceiling_ref`. Apps and Apps-surface consumers
-MUST NOT infer that a scope listed in this carrier is currently
-granted; grant state is the typed return of `S-PERM-002`
-`permission.list(scopeRef)` / `permission.status(scopeRef)`. A SDK
-caller MUST NOT short-circuit a grant request, a grant subscription,
-or a fail-closed denial on the basis of this carrier; doing so
+substitute for Runtime K-GRANT or the per-operation fail-closed enforcement at
+RuntimeAgent/Cognition and any independently consumed Realm owner path. Apps and
+Apps-surface consumers MUST NOT infer that a scope listed in this carrier is
+currently granted; local-app grant posture comes only from the host-injected
+local-app carrier. `S-PERM-*` remains a separate consumer contract where
+independently admitted and cannot substitute for the local grant. A SDK caller
+MUST NOT short-circuit a grant request, a grant subscription, or a fail-closed
+denial on the basis of this carrier; doing so
 collapses the parent `PI-W1-8` "transparency for review and UI; not
 control" invariant.
 
@@ -189,83 +191,30 @@ control" invariant.
 NOT admit developer-asserted entitlement, deny-list, or any
 "manifest-claimed grant" projection that would suggest the manifest
 itself controls runtime behavior. The carrier is a projection of the
-admitted-for-review manifest content over the admitted descriptor; the
-authoritative grant truth is `S-PERM-*`.
+admitted-for-review manifest content over the verified descriptor; the
+authoritative local-app grant truth is Runtime K-GRANT.
 
 Cross-references: `P-NAPP-018` (descriptor `permissions_ref` field;
 not redefined here), `P-PERM-002` (closed scope enum; not extended
 here), `P-PERM-011` (`app-local-drafts` qualifier semantics; not
 redefined here), parent invariant `PI-W1-8`.
 
-## S-APP-013 — Uninstall Data-Retention Prompt Surface
+## S-APP-013 — Destructive Local-App Data Deletion Non-Admission
 
-**Background fact.** `K-APP-014` admits the `UninstallApp` lifecycle
-behavior: by default the Runtime removes
-`<nimi_data>/apps/<app-id>/releases/` and keeps
-`<nimi_data>/apps/<app-id>/data/` durable; destructive deletion of
-`data/` happens only when the caller explicitly confirms it.
-`P-NAPP-015` admits the install storage policy. Parent invariant
-`PI-W1-26` records that uninstall removes `<nimi_data>/apps/<app_id>/`
-"after an explicit user choice on `data/` retention". The
-admitted-behavior owners are Runtime (`K-APP-014`) and Platform
-(`P-NAPP-015`); this rule admits the SDK CONSUMER surface only.
+0K admits no immutable uninstall or SDK delete-data prompt/action. A local-app
+principal tombstone leaves retained durable data as Runtime-owned delete-only
+state; reinstall, reauthorization, same app id, same project, or SDK inventory
+composition cannot rebind it.
 
-`MUST` (prompt-shape carrier surface). SDK Nimi App client surface
-admits a typed prompt-shape interface that the calling app (or Apps
-surface, or Desktop hosted shell) uses to surface the user-facing
-data-retention choice before invoking `app.uninstall(appId, ...)`.
-The admitted prompt-shape fields are:
+`MUST NOT`: SDK must not expose `app.uninstall`, force-delete, retain/delete
+choice, absolute data path, size-derived deletion decision, direct filesystem
+mutation, or pseudo-success cleanup. A future deletion surface requires its own
+Runtime owner operation, fresh presence, impact preview, principal-bound target,
+and positive/negative evidence without reshaping the 0K principal/record seam.
 
-- `appId` — admitted app identifier (`P-NAPP-002`);
-- `data_path` — the projected
-  `<nimi_data>/apps/<app-id>/data` path (the projection of the same
-  Nimi-owned data root admitted by `P-NAPP-015`);
-- `data_bytes` — typed integer projection of the
-  `artifact.size.user_data` field (`P-NAPP-019`); the surface MUST
-  expose this as a distinct integer and MUST NOT collapse it with
-  release/cache/shared_deps sizes;
-- `default_choice` — closed enum `retain | delete`, default `retain`
-  (consistent with `K-APP-014` default-preserve posture);
-- `user_choice` — closed enum `retain | delete`, the caller-confirmed
-  value supplied back into `app.uninstall(appId, {retainData: <bool>})`;
-- `confirmation_required` — boolean; `true` whenever `user_choice ===
-  'delete'` because `K-APP-014` requires explicit confirmation for
-  destructive `data/` deletion.
-
-`MUST` (caller-binding). The SDK `app.uninstall(appId, options?)`
-admitted at `S-APP-002` MUST accept an explicit boolean (or equivalent
-closed-enum) retainData flag whose value is taken from the prompt
-surface above. The SDK MUST forward the explicit user choice to the
-Runtime `UninstallApp` call; the choice MUST NOT be inferred from
-caller defaults, host-bridge implementation detail, or renderer-local
-state.
-
-`MUST NOT` (no redefinition of admitted behavior). This rule MUST NOT
-redefine `K-APP-014` (the Runtime-side uninstall lifecycle), MUST NOT
-redefine `P-NAPP-015` (the install-storage policy), and MUST NOT
-redefine `P-NAPP-019` (the `artifact.size` typed sub-object). The
-default-preserve posture and the destructive-only-with-confirmation
-posture both remain owned by `K-APP-014`; this rule admits only the
-SDK consumer-side typed projection used to surface the user choice
-back into that admitted call. Collapsing the prompt into a generic
-"confirm uninstall" boolean fails closed against this rule; silently
-defaulting `user_choice` to `delete` (i.e. omitting the explicit user
-selection step) is a forbidden pseudo-success projection.
-
-`MUST NOT` (no parallel-truth uninstall path). The SDK MUST NOT
-expose any uninstall path that bypasses `app.uninstall(appId, ...)`
-admitted at `S-APP-002`. Apps MUST NOT obtain a "force delete data"
-shortcut that calls Runtime directly or that manipulates
-`<nimi_data>/apps/<app-id>/data/` outside the Runtime-mediated
-uninstall flow.
-
-Cross-references: `K-APP-014` (Runtime uninstall lifecycle; not
-redefined), `P-NAPP-015` (install storage policy; not redefined),
-`P-NAPP-019` (`artifact.size.user_data` typed sub-field; not
-redefined), `S-APP-002` (`app.uninstall(appId, options?)` logical
-operation; this rule binds its `options` argument), `S-APP-011`
-(install storage projection — this rule is the explicit
-choice-surfacing complement), parent invariant `PI-W1-26`.
+Cross-references: `K-APP-014` (0K tombstone/delete-only posture),
+`P-NAPP-015` (principal-keyed storage policy), `S-APP-011` (no SDK path/root
+projection).
 
 ## S-APP-014 — File-Scope Client Non-Admission
 
@@ -383,12 +332,10 @@ review-evidence accessor is NOT in S-PERM), parent invariants
 **Background fact.** Platform `P-SCAF-*` admits Nimi app scaffolding and
 requires generated apps to consume SDK/Runtime auth/session authority without
 self-declaring first-party status, owning tokens, or calling Realm login routes.
-Runtime `K-ACCSVC-*` owns local account session truth, private bearer custody,
-and Runtime-mediated Realm operations; Runtime `K-BIND-*` owns scoped app binding;
-Runtime `K-APP-*` owns app launch / lifecycle projection. A.0 admits the helper
-only as binding-only construction plus typed protected-unavailable projection.
-It admits no installed/developer/first-party protected child carrier or account
-session; those require independent A.1 authority and implementation.
+Runtime `K-ACCSVC-*` owns local account truth and the local-app operation
+coordinator; `K-APP-*` owns local principal/record truth; `K-GRANT-*` owns local
+grant truth; `K-PLOCAL-*` owns launch leases and process-bound sessions. The
+helper consumes the final host-injected carrier and must not merge those owners.
 
 `MUST` (exported names). SDK admits the following exact public exported names
 for generated Nimi app auth/client construction:
@@ -398,45 +345,32 @@ for generated Nimi app auth/client construction:
 - `NimiAppAuthMode`;
 - `NimiAppAuthProjection`;
 - `NimiAppAuthUnavailable`;
-- `NimiAppDeveloperSession`.
+- `NimiAppLocalSessionProjection`.
 
 `MUST` (mode set). `NimiAppAuthMode` is a closed mode set:
 
-- `first-party-local-app`;
-- `developer-registered-local-app`;
-- `third-party-nimi-app`;
-- `dev-standalone`.
+- `local-first-party-app`;
+- `local-app`.
 
-`MUST` (`first-party-local-app`). This value is classification only in A.0.
-Registry/admission shape, app id, workspace folder, scaffold state, bundled
-status, or first-party label cannot authorize protected operations. Until A.1
-admits its exact child carrier and caller role, the helper returns typed
-protected-unavailable and may expose only binding-only public construction.
-There is no token or normal-account-path exception, including for Avatar.
+`MUST` (`local-first-party-app`). This value is available only to the retained
+bundled first-party composition. It cannot be selected by a third-party app,
+project, manifest, fixture or mode string and cannot be inferred from Desktop
+launch. Shipped Zhiyu/Avatar remain bundled; an isolated Zhiyu integration build
+uses `local-app` instead.
 
-`MUST` (`developer-registered-local-app`). This value is also binding-only and
-protected-unavailable until A.1 admits a developer child channel. Developer
-registration, `pnpm dev:shell`, Desktop login state, or a fixture cannot grant
-account projection, Runtime app session, binding, Realm, or protected Runtime
-access. It must not wrap/call any account-control, public refresh/token, grant,
-or protected method.
+`MUST` (`local-app`). This value maps only to Runtime `LOCAL_APP`. The SDK
+receives a host-injected typed standard-shell carrier and projects session
+status plus exact selected operations. It never receives principal/record/grant
+identifiers, launch material, process proof, endpoint, bearer or authorization
+metadata. A valid zero-grant session is projected as session-bound plus denied
+operation posture, not authenticated success.
 
-`MUST` (`third-party-nimi-app`). This value does not map to an admitted Runtime
-caller enum in A.0. Installed launch/session/envelope fields are absent pending
-A.1, so the helper returns typed protected-unavailable. It must not construct a
-host session, Realm transport, first-party client, token/grant wrapper, or
-account-control/refresh helper from launch metadata or loopback connectivity.
-
-`MUST` (`dev-standalone`). `NimiAppDeveloperSession` is synthetic non-product
-fixture material only, under a distinct trust root with synthetic accounts and
-non-product endpoints. It cannot access production custody or produce product
-evidence. Product builds always return typed unavailable for this mode.
-
-`MUST` (projection). `NimiAppAuthProjection` must distinguish authenticated /
-session-bound, unavailable, and action-required states without collapsing them
-to generic success or generic unavailable. `NimiAppAuthUnavailable` is the
-typed fail-closed branch for absent Runtime support, missing developer session,
-registration mismatch, custody unavailable, or unavailable scoped binding.
+`MUST` (projection). `NimiAppAuthProjection` must distinguish session-bound
+zero-grant, session-bound granted, action-required, revoked, process-replaced,
+account-changed, Runtime-restarted, and unavailable states. It must not collapse
+session validity and authorization. `NimiAppAuthUnavailable` is the typed
+fail-closed branch for absent carrier, failed principal/record resolution,
+custody unavailable, or unavailable operation owner.
 
 `MUST NOT` (no app-owned auth truth). No mode may accept app-owned access
 tokens, refresh tokens, session stores, subject providers, direct Realm login
@@ -449,43 +383,46 @@ token exchange as app auth truth. Realm data access, when later admitted for a
 caller, must come through an exact Runtime-owned protected operation. No mode,
 including first-party local composition, has a short-lived token exception.
 
-`MUST NOT` (no pseudo-success). `dev-standalone` must not use mock auth,
-disabled auth gates, anonymous subject fallback, fixture-mode success, or
-first-party self-declaration. `third-party-nimi-app` and
-`developer-registered-local-app` must not become `first-party-local-app` by
-setting a mode string, app id, app instance id, or workspace profile flag.
+`MUST NOT` (no pseudo-success). `local-app` must not use mock auth, disabled
+gates, anonymous subject fallback, fixture-mode success, direct daemon access,
+or first-party self-declaration. It must not become
+`local-first-party-app` by setting a mode string, app id, app instance id,
+workspace profile, package metadata or Desktop launch metadata.
 
-Cross-references: `P-SCAF-002` (A2/A4 accepted mode split and fail-closed
-dev-standalone requirement), `P-SCAF-008` (generated app authoring command
+Cross-references: `P-SCAF-002` (A2/A4 final local-app split),
+`P-SCAF-008` (generated app authoring command
 family), `K-ACCSVC-001..K-ACCSVC-021` (Runtime account/session custody and
 deny-all public-token boundary), `K-BIND-001..K-BIND-015` (scoped app binding
 authority), `K-APP-017` (launch authority), `P-NAPP-013` / `P-NAPP-018`
 (public admission and descriptor authority; not redefined).
 
-## S-APP-017 — App Storage Truth Accessor
+## S-APP-017 — App Storage Partition Projection
 
-`MUST`：SDK must expose a typed app storage projection accessor backed by
-Runtime `GetAppStorage` (`K-APP-022`). The projection carries app id, typed
-storage state, app root, durable data root, cache root, temp root, optional
-active release root/version, storage policy ref, and typed reason/detail.
+`MUST`：the general Runtime facade may expose a typed storage projection only to
+an independently admitted host/owner caller backed by Runtime `GetAppStorage`
+(`K-APP-022`). For `LOCAL_APP`, the final `standardShell` carrier does not expose
+`GetAppStorage`, absolute roots, or a storage-root accessor. Runtime and the
+native host re-key private storage by the inherited principal/session context;
+the app observes no principal id and cannot request any root.
 
-`MUST`：the accessor is the official shortcut for apps, Desktop hosted shell,
-and developer tooling to obtain app storage truth. It preserves `S-APP-011`
-root split and may return data/cache/tmp for a runtime-registered developer app
-before any ordinary active release exists.
+The 0K checkpoint admits storage partitioning and live trace evidence, not a
+local-app storage operation. `data.pathResolve` and `storage.*` remain typed
+unavailable on the local-app carrier until their exact operation, grant,
+relative-path, quota, and owner-policy contracts are separately admitted.
 
 `MUST NOT`：SDK must not read `~/.nimi/nimi.json`, parse Runtime config, or
-concatenate `<nimi_data>/apps/<app-id>` as a local fallback. SDK path helpers
-may validate app-relative paths against the returned roots, but enforcement and
-storage truth remain Runtime-owned.
+concatenate `<nimi_data>/apps/<app-id>` as a local fallback. It must not accept
+app id, project path, renderer metadata, manifest data, or an app-supplied
+principal as a storage selector. Enforcement and storage truth remain
+Runtime-owned.
 
 ## S-APP-018 — App Package Readiness Accessor
 
 `MUST`：SDK must expose typed app package readiness access backed by Runtime
-`GetAppPackageReadiness` (`K-APP-023`). SDK app-client status helpers may
-compose Platform registry / release descriptor rows with this Runtime
-projection to produce developer-friendly `AppLaunchReadiness`, installed
-version, available version, verification state, and reason/detail fields.
+`GetAppPackageReadiness` (`K-APP-023`). In 0K, immutable package/install/update/
+promotion readiness returns typed unavailable while preserving opaque lineage,
+attestation, revision, execution-profile and digest slots inside Runtime. SDK
+must not expose those opaque internal refs as a positive package assertion.
 
 `MUST NOT`：SDK must not scan Runtime-owned install-evidence files, infer
 package readiness from file existence, or treat Desktop / Kit bridge evidence
@@ -500,10 +437,10 @@ decoders for Runtime `GetAccountAppInventory` (`K-APP-024`). The Runtime
 request carries no app- or renderer-supplied `account_id`; Runtime resolves the
 authenticated account binding and validates the projection.
 
-`MUST`：schema version 2 separates account visibility (`verified` /
-`entitled` / `disabled` / `removed` / `revoked`) from local materialization
-(`not-installed` / `installed` / `adopted-local` / `removed`). An account
-verified row with `not-installed` is a valid Apps inventory entry.
+`MUST`：account visibility and local record state remain separate. 0K local
+states are `not-present`, `local-record-active`, `local-record-dormant`, and
+`removed`; immutable package install state is unavailable until 0P/P. An
+account verified row without local materialization remains a valid catalog row.
 
 `MUST NOT`：SDK must not read
 `~/.nimi/accounts/<account-id>/apps/inventory.json`, infer account directories,
@@ -522,51 +459,53 @@ MUST carry:
 - closed `trustTier`, `installState`, `openReadiness`, `activeJobs[]`,
   `nextActions[]`, and typed `reasonCode/detail`.
 
-`MUST`：composition is deterministic by `appId`. A source failure is emitted as
+`MUST`：catalog/account composition is deterministic by `appId`; distinct local
+records are deterministic by their Runtime-issued opaque record reference and
+must not merge merely because their display `appId` matches. A source failure is emitted as
 a typed source-degraded projection and MUST NOT fabricate entries from another
 source. Valid entries from other sources may remain visible only with the
 source-degraded reason preserved.
 
-`MUST NOT`：SDK must not collapse account entitlement, local adoption, and
+`MUST NOT`：SDK must not collapse account entitlement, local records, and
 ordinary catalog admission into a single boolean `installed` or `ready`; it
-must not infer account visibility from install evidence or infer local adoption
+must not infer account visibility from install evidence or infer a local record
 from file existence.
 
-## S-APP-021 — Local App Adoption Accessor
+## S-APP-021 — Local App Record Projection
 
-`MUST`：SDK exposes Runtime `AdoptLocalApp`, `ListLocalAppAdoptions`, and
-`RemoveLocalAppAdoption` typed accessors. Local adoption is explicit:
-the caller supplies a user-selected root and optional expected app id; Runtime
-validates `nimi.app.yaml` / `nimi.app.json` and writes Runtime-owned adoption
-truth only after validation passes.
+`MUST`：SDK exposes read-only typed status for the current host-injected
+local-app carrier: trust class, record state, session state, grant posture and
+typed reason. The projection omits `local_app_principal_id`, lineage, SID
+partition, launch/process/session identifiers, grant identifiers/revisions,
+digests and provenance-attestation refs.
 
-`MUST NOT`：SDK/Desktop/apps must not scan workspaces, source trees, package
-manager installs, or app-local specs to manufacture Apps inventory entries.
-Local adoption is not Platform public admission and MUST NOT bypass Runtime
-OpenApp permissions, AIConfig, storage, account/session, or manifest gates.
+`MUST NOT`：SDK exposes no workspace-adoption, install, import, promote or
+repair accessor in 0K.
+Immutable positive package materialization remains typed unavailable until 0P/P.
+SDK/Desktop/apps must not scan workspaces or infer a record from a manifest,
+path, app id or file existence.
 
-## S-APP-022 - Installed-App Bootstrap Custody Boundary
+## S-APP-022 - Local App Bootstrap Custody Boundary
 
-`MUST`: the installed-app SDK bootstrap accepts exactly one host-neutral
-`standardShell` input and exposes exactly the typed
-`artifacts.readRuntimeBytes(artifactId)` projection admitted by `P-KIT-044`.
-The SDK validates ordinary artifact selectors and result shape, preserves typed
-carrier failures, and projects only bytes, MIME, observed size, and
-MIME-inferred state. Runtime and Kit remain the session, caller, release,
-account, authorization, and transport authorities.
+`MUST`: the local-app SDK bootstrap accepts exactly one host-neutral
+`standardShell` input and exposes session/permission posture plus the selected
+typed operations admitted by `P-KIT-044`: Runtime artifact bytes and explicit
+RuntimeAgent open-conversation, send-turn, subscribe-turn and
+conversation-snapshot. It preserves typed carrier failures and treats a valid
+zero-grant session as denied for those operations.
 
-`MUST NOT`: SDK installed bootstrap input or output must not contain Runtime or
-Realm clients, account caller posture, launch binding/nonce, launch host,
-release/capability refs, app session metadata, endpoint, authorization,
-credential, ordinary gRPC, generic method-id/bytes forwarding, or developer
-registration fallback. Further installed operations remain unavailable until
-their own capability-set admission. A missing/unadmitted native carrier is a
-typed fail-closed result and cannot be replaced by renderer metadata.
+`MUST NOT`: SDK input/output must not contain Runtime or Realm clients, account
+caller posture, local-app principal/record/grant ids, launch binding/nonce,
+launch host, release/capability refs, app session metadata, endpoint,
+authorization, credential, ordinary gRPC, generic method-id/bytes forwarding,
+or developer-registration fallback. Missing/unadmitted carrier or unavailable
+operation family is a typed fail-closed result and cannot be replaced by
+renderer metadata.
 
-Cross-references: `P-SCAF-016` (scaffolded installed-app binding custody),
-`K-ACCSVC-022` (Desktop-launched installed Nimi App caller posture),
-`K-APP-017` (Runtime OpenApp launch-resolution authority), `P-KIT-044`
-(installed app standard shell capability set).
+Cross-references: `P-SCAF-016` (scaffolded local-app binding custody),
+`K-ACCSVC-022` / `K-ACCSVC-026` (local-app caller and operation posture),
+`K-APP-017` (Runtime local-app launch authority), `P-KIT-044`
+(local-app standard shell capability set).
 
 ## S-APP-023 - Desktop Open Intent Data Surface
 
@@ -596,7 +535,7 @@ Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
 - `.nimi/spec/sdks/kernel/surface-contract.md` — `S-SURFACE-*`
 - `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-010` (`S-PERM-010` records the S-APP-vs-S-PERM placement anti-target for the review-evidence accessor admitted at `S-APP-015`)
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-032` (`P-NAPP-015` storage policy, `P-NAPP-018` descriptor shape, `P-NAPP-019` typed sizes/dates, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-031` unified inventory, `P-NAPP-032` local adoption)
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-036` (`P-NAPP-015` storage policy, `P-NAPP-018` descriptor shape, `P-NAPP-019` typed sizes/dates, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-031` unified inventory, `P-NAPP-032` local record creation boundary, `P-NAPP-034..036` local-app kernel)
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app authorization, `P-PERM-011` `app-local-drafts` qualifier semantics)
 - `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-001..P-AUDIT-006` (`P-AUDIT-006` review-evidence shape)
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
@@ -607,9 +546,9 @@ Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API non-admission)
-- `.nimi/spec/runtime/kernel/app-projection-contract.md` — `K-APP-022` (app storage), `K-APP-023` (package readiness), `K-APP-024` (account app-inventory), `K-APP-025` (local adoption)
-- `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session custody and Runtime-mediated broker authority consumed by `S-APP-016`; public token RPC is deny-all pending removal)
+- `.nimi/spec/runtime/kernel/app-projection-contract.md` — `K-APP-022` (principal-keyed app storage), `K-APP-023` (opaque package seam), `K-APP-024` (account/local record inventory), `K-APP-025` (retired adoption path)
+- `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session custody, local-app coordinator and removed public-token boundary consumed by `S-APP-016`)
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` — `K-BIND-*` (Runtime-issued scoped app binding authority consumed by `S-APP-016`)
-- `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app auth helper naming, auth modes, dev-standalone fail-closed posture, and no first-party self-declaration consumed by `S-APP-016`)
+- `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app helper naming, final local-app mode and no first-party self-declaration consumed by `S-APP-016`)
 - `.nimi/spec/platform/kernel/desktop-open-intent-contract.md` — `P-DOPEN-*`
 - `.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`

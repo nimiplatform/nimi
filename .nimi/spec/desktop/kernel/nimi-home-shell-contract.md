@@ -46,30 +46,30 @@ authority 缺失仍按 `P-COLD-001` 状态投影。
 `MUST`：Apps surface placement 是 Desktop primary navigation 的 ordinary
 入口之一。Apps 行的数据 source 由 SDK `NimiAppClient.list()` 的 unified
 inventory projection 提供；该 projection 保留 Platform catalog、Runtime
-authenticated account inventory、Runtime local adoption 三个 source。
+authenticated account inventory、Runtime local-record 三个 source。
 Desktop 只负责呈现 source/state/action，不拥有 source truth。
 
 `MUST NOT`：Apps 不得拥有 app admission truth、marketplace truth、或
 package trust truth；不得读取 app-local spec、workspace source tree、package
 manager install roots、或未 admitted registry row 作为 catalog 可见性来源；
-不得把 local adoption 投影为 ordinary catalog admission；不得显示 Avatar。
+不得把 local record 投影为 ordinary catalog admission；不得显示 Avatar。
 
 ## D-HOME-005 — Apps Card State Placement
 
-`MUST`：Apps 必须以显式 typed projection 区分
-`not_installed_installable`、`installing`、`installed_ready`、
-`update_available`、`update_required`、`permission_required`、
-`repair_required`、`unsupported_on_this_device`、`blocked_by_policy`、
-`install_failed`、`uninstalling` 等状态。
+`MUST`：Apps 必须以显式 typed projection 区分 catalog-only、account-visible、
+local-record-active/dormant/removed、permission-required、unsupported、
+blocked-by-policy 与 immutable-package-unavailable。0K 不得显示 immutable
+install/update/repair 正向成功；这些状态只有 0P/P admission 后才可加入。
 
 `MUST NOT`：Apps 不得自创 app registry truth；不得把 distinct
 fail-closed 状态压缩为单一 `Unavailable` / `Blocked`；admission state 由
 Nimi App registry 拥有，package readiness 由 package/runtime projection
 拥有。
 
-`MUST`：Apps 必须为 local adoption 提供显式 "connect local app" action。
-该 action 只能调用 SDK/Runtime local adoption surface；Desktop 不得扫描本地
-app、不得写 adoption truth、不得从 renderer-local in-flight state 推断接入成功。
+`MUST NOT`：Apps 不提供 workspace connect/adoption 入口。Mutable project
+admission 只在 Developer Mode/Developer Tools 通过 `D-DEV-*` 与 `D-IPC-019`
+进入；Desktop 不得扫描本地 app、不得写 local record truth、不得从
+renderer-local in-flight state 推断接入成功。
 
 ## D-HOME-006 — Agent Chat Placement
 

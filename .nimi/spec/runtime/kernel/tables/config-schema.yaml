@@ -279,13 +279,6 @@ fields:
     description: 幂等性存储容量上限
     source_rule: K-DAEMON-006
 
-  - key: maxDelegationDepth
-    type: int
-    default: "3"
-    reload: hot
-    description: Removal-inventory field for the deny-all public grant family; no active delegation policy, pending A.3d deletion
-    source_rule: K-GRANT-005
-
   - key: auditRingBufferSize
     type: int
     default: "20000"

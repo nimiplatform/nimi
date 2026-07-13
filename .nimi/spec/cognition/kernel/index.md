@@ -35,6 +35,8 @@ updated: 2026-04-16
 - `tables/admitted-reference-matrix.yaml`
 - `tables/prompt-serving-lanes.yaml`
 - `tables/completion-gates.yaml`
+- `tables/rule-evidence.catalog.yaml`
+- `tables/rule-evidence.rules-app-memory-access.yaml`
 
 ## Derived Views
 

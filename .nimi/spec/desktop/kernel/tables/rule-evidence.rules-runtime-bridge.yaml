@@ -51,6 +51,7 @@ entries:
 - D-IPC-016
 - D-IPC-018
 - D-IPC-019
+- D-IPC-020
 - D-IPC-010
 - D-IPC-011
 - D-IPC-012
@@ -172,7 +173,7 @@ rules:
   - desktop_test_gate
   - desktop_e2e_smoke_gate
   evidence_requirement: required
-  evidence_scope_note: Existing bridge/E2E evidence does not prove K-PLOCAL process origin; A.0 bridge authority is structural and implementation/live proof remains pending.
+  evidence_scope_note: Bridge/E2E evidence must prove K-PLOCAL process origin through the fixed service; loopback or synthetic state is insufficient.
   test_files:
   - scripts/check-protected-local-authority.mjs
 - rule_id: D-IPC-002
@@ -182,7 +183,7 @@ rules:
   - desktop_test_gate
   - desktop_e2e_journey_gate
   evidence_requirement: required
-  evidence_scope_note: Existing lifecycle command tests are compatibility evidence only; protected Desktop origin and anchored challenge implementation are pending.
+  evidence_scope_note: Lifecycle commands require protected Desktop origin, anchored challenge, and live fixed-service positive/negative evidence.
   test_files:
   - scripts/check-protected-local-authority.mjs
 - rule_id: D-IPC-003
@@ -198,7 +199,7 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
-  evidence_scope_note: Existing lifecycle command tests are compatibility evidence only; protected Desktop origin and anchored challenge implementation are pending.
+  evidence_scope_note: Lifecycle command evidence must prove protected Desktop origin and anchored challenge; command registration alone is insufficient.
   test_files:
   - scripts/check-protected-local-authority.mjs
 - rule_id: D-IPC-005
@@ -287,7 +288,18 @@ rules:
   - desktop_test_gate
   - desktop_e2e_journey_gate
   evidence_requirement: required
-  note: Desktop confirmation, remembered-project management, supervisor ownership, non-leak, and controlled restart authority for A.5.
+  note: Production Developer Mode confirmation, run-once/remembered-project lifetimes, fixed-service supervisor ownership, non-leak, and edit/build/restart invalidation authority.
+  test_files:
+  - scripts/check-local-development-admission-authority.mjs
+  - scripts/check-local-development-admission-authority.test.mjs
+- rule_id: D-IPC-020
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_journey_gate
+  evidence_requirement: required
+  note: Desktop local_app_control coordinates user decisions and native launch binding while Runtime retains principal, record, grant, lease, session, account, and operation-policy truth.
   test_files:
   - scripts/check-local-development-admission-authority.mjs
   - scripts/check-local-development-admission-authority.test.mjs

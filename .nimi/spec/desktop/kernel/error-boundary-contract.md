@@ -183,7 +183,7 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 
 | ReasonCode 族群 | Runtime 来源 | 补充映射优先级 | 推荐消息方向 |
 |---|---|---|---|
-| `GRANT_*` 族 | K-GRANT-013 | 中（Phase 2 Grant UI 启动时） | 按具体 GRANT 错误分别映射 |
+| `LOCAL_APP_*` 族 | K-ERR-012 | 高（Developer Mode / local app journey） | 区分未授权、已撤销、进程替换、账号切换、Runtime 重启、需重新确认与 owner-unavailable，并提供明确恢复动作 |
 | `PAGE_TOKEN_INVALID` | K-PAGE-002 | 低（分页错误罕见） | "分页参数无效，请刷新重试" |
 | `WORKFLOW_*` 族 | Phase 2 | 中（Workflow UI 启动时） | 待 K-WF-012 消费契约定义 |
 | `APP_MESSAGE_*` 族 | K-APP-005 | 中（AppMessage UI 启动时） | 待 K-APP-006a 消费契约定义 |

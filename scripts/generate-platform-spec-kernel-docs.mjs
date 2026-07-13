@@ -27,6 +27,7 @@ const specs = [
   { input: 'nimi-ui-compositions.yaml', output: 'nimi-ui-compositions.md', render: renderDesignCompositions },
   { input: 'nimi-ui-allowlists.yaml', output: 'nimi-ui-allowlists.md', render: renderDesignAllowlists },
   { input: 'nimi-kit-registry.yaml', output: 'nimi-kit-registry.md', render: renderNimiKitRegistry },
+  { input: 'nimi-app-local-trust-classes.yaml', output: 'nimi-app-local-trust-classes.md', render: renderJsonSnapshot('Generated Local App Trust Classes') },
   { input: 'package-authority-admissions.yaml', output: 'package-authority-admissions.md', render: renderPackageAuthorityAdmissions },
   { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
@@ -43,6 +44,18 @@ function header(title, sourceName) {
     `> Source: \`.nimi/spec/platform/kernel/tables/${sourceName}\``,
     '',
   ].join('\n'));
+}
+
+function renderJsonSnapshot(title) {
+  return function renderSnapshot(doc, sourceName) {
+    return normalizeMarkdown([
+      header(title, sourceName),
+      '```json',
+      JSON.stringify(doc, null, 2),
+      '```',
+      '',
+    ].join('\n'));
+  };
 }
 
 function renderErrorCodes(doc, sourceName) {

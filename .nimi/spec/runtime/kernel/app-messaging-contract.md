@@ -14,24 +14,22 @@ Split authority map:
 2. `SubscribeAppMessages` — 订阅应用消息事件流
 3. `PrepareAppLifecycleIntent` — 解析并冻结 Desktop 将展示的 canonical lifecycle impact（见 `K-APP-026`）
 4. `GetAppLifecycleIntentStatus` — 查询 non-authorizing intent/reconciliation 状态（见 `K-APP-026`）
-5. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
-6. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
+5. `InstallApp` — immutable package seam；0K 固定返回 typed unavailable（见 `K-APP-011`）
+6. `UninstallApp` — immutable package seam；0K 无 positive materialization（见 `K-APP-014`）
 7. `GetAppStorage` — 读取 app-scoped storage projection（见 `K-APP-022`）
 8. `GetAccountAppInventory` — 读取 authenticated account app-inventory projection（见 `K-APP-024`）
-9. `AdoptLocalApp` — 创建显式本地 app adoption（见 `K-APP-025`）
-10. `ListLocalAppAdoptions` — 读取本地 app adoption（见 `K-APP-025`）
-11. `RemoveLocalAppAdoption` — 移除本地 app adoption（见 `K-APP-025`）
-12. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
-13. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
-14. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
-15. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
-16. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
-17. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
-18. `OpenApp` — 触发 Runtime-owned Nimi App launch/open flow（见 `K-APP-017`）
+9. `GetAppPackageReadiness` — 读取 opaque package seam typed-unavailable projection（见 `K-APP-023`）
+10. `GetAppInstallJob` — 0K typed-unavailable job seam（见 `K-APP-012`）
+11. `ListAppInstallJobs` — 0K typed-unavailable job seam（见 `K-APP-012`）
+12. `WatchAppInstallJobEvents` — 0K typed-unavailable event seam（见 `K-APP-013`）
+13. `UpdateApp` — immutable update seam；0K 固定返回 typed unavailable（见 `K-APP-015`）
+14. `HealthRepairApp` — immutable repair seam；0K 固定返回 typed unavailable（见 `K-APP-016`）
+15. `PrepareLocalAppLaunch` — 创建 single-use protected launch lease（见 `K-APP-017`）
+16. `BindLocalAppProcess` — 将 exact native process 绑定到 current lease（见 `K-PLOCAL-008`）
 
-App messaging 方法（1–2）与 lifecycle intent/install/uninstall/update/repair 方法
-（3–18）共用 `RuntimeAppService`，但语义独立：lifecycle / projection 方法不承载
-app-to-app message broker 语义，messaging 方法不承载 install/uninstall/update/repair/open
+App messaging 方法（1–2）与 lifecycle intent/package-seam/local-app launch 方法
+（3–16）共用 `RuntimeAppService`，但语义独立：lifecycle / projection 方法不承载
+app-to-app message broker 语义，messaging 方法不承载 package/launch
 语义。
 
 ## K-APP-002 SendAppMessage 语义
@@ -93,9 +91,9 @@ AppMessaging 的安全基线规则，实现必须满足：
 
 | 规则 | 约束 | 理由 |
 |---|---|---|
-| **应用认证** | `SendAppMessage` 必须验证 `from_app_id` 已通过 RuntimeAuthService 注册且当前 session 持有对应 token。未认证请求返回 `UNAUTHENTICATED` | 防止任意进程冒充已注册应用发送消息 |
+| **应用认证** | `SendAppMessage` 必须从当前已认证连接派生发送主体；ordinary/external callers 使用各自已 admitted 的会话，`LOCAL_APP` 只使用 host-injected `local_app_session`，Runtime 从 principal record 派生 `from_app_id` 并拒绝请求自报不一致。LOCAL_APP 不持有 token、bearer 或可移植凭据。未认证或不匹配请求返回 `UNAUTHENTICATED` | 防止任意进程冒充已注册应用，并保持 local-app principal/session authority 不泄露 |
 | **消息大小限制** | `payload` Struct 序列化后不得超过 **64 KB**。超限返回 `INVALID_ARGUMENT` + `APP_MESSAGE_PAYLOAD_TOO_LARGE` | 防止单条消息耗尽 Runtime 内存 |
-| **发送速率限制** | 单个 `from_app_id` 发送速率上限为 **100 条/秒**（滑动窗口）。超限返回 `RESOURCE_EXHAUSTED` + `APP_MESSAGE_RATE_LIMITED` | 防止消息风暴和 DoS |
+| **发送速率限制** | ordinary caller 按已认证 sender identity、`LOCAL_APP` 按 `local_os_user_anchor + local_app_principal_id` 的发送速率上限为 **100 条/秒**（滑动窗口）；app ID 仅作路由标签，不能合并两个 principal 的预算。超限返回 `RESOURCE_EXHAUSTED` + `APP_MESSAGE_RATE_LIMITED` | 防止消息风暴、DoS 与同 app-id principal 预算串扰 |
 | **消息回路检测** | Runtime 检测 A→B→A 回路：同一无序 app pair 在 **1 秒内方向切换达到 20 次** 时，自动熔断该 pair 后续消息 **60 秒**，返回 `FAILED_PRECONDITION` + `APP_MESSAGE_LOOP_DETECTED`。单个请求后同向产生多个 streaming / presentation 投影只形成一次方向切换，不得按投影数量误判为回路；熔断期间双方仍可与其他 app 通信 | 防止两个 app 之间形成无限 ping-pong 回路，同时保留合法的一对多流式投影 |
 
 ## K-APP-006 — No Desktop-Local Alternate Message Bus

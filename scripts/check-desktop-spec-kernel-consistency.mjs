@@ -127,6 +127,8 @@ checkDesktopFeatureCoverage(fail, kernelRuleDefinitions);
 
 checkIpcCommandsMatchRegisteredTauriCommands();
 
+checkLocalAppControlSurfaces();
+
 // ── Result ──
 
 if (failed) process.exit(1);
@@ -146,6 +148,51 @@ function checkSourceRuleFormats() {
         fail(`${rel} has invalid source_rule format: ${value}`);
       }
     }
+  }
+}
+
+function checkLocalAppControlSurfaces() {
+  const rel = '.nimi/spec/desktop/kernel/tables/local-app-control-surfaces.yaml';
+  if (!fileExists(rel)) return;
+  const doc = readYaml(rel) || {};
+  const role = doc?.logical_role ?? {};
+  if (String(role?.id || '').trim() !== 'local_app_control') {
+    fail(`${rel} logical_role.id must be local_app_control`);
+  }
+  if (String(role?.portable_credential || '').trim() !== 'forbidden') {
+    fail(`${rel} local_app_control must forbid portable credentials`);
+  }
+  const expectedActions = new Set([
+    'get_developer_mode_status',
+    'set_developer_mode',
+    'evaluate_local_development_project',
+    'decide_local_development_project',
+    'reactivate_local_development_project',
+    'prepare_local_app_launch',
+    'bind_local_app_process',
+    'revoke_local_development_project',
+  ]);
+  const actions = Array.isArray(doc?.actions) ? doc.actions : [];
+  const actualActions = new Set(actions.map((row) => String(row?.action || '').trim()).filter(Boolean));
+  if (actions.length !== expectedActions.size
+    || actualActions.size !== expectedActions.size
+    || [...expectedActions].some((action) => !actualActions.has(action))) {
+    fail(`${rel} actions must match the final local-app control action set`);
+  }
+  for (const nativeAction of ['prepare_local_app_launch', 'bind_local_app_process']) {
+    const row = actions.find((item) => item?.action === nativeAction);
+    if (row?.renderer_access !== 'forbidden' || row?.native_host_only !== true) {
+      fail(`${rel} ${nativeAction} must be native-host-only and renderer-forbidden`);
+    }
+  }
+  const constraints = new Set((Array.isArray(doc?.constraints) ? doc.constraints : []).map(String));
+  for (const required of [
+    'developer_mode_grants_nothing',
+    'remembered_project_is_dormant_between_runs',
+    'no_persistent_local_development_autostart',
+    'no_direct_runtime_process_launch',
+  ]) {
+    if (!constraints.has(required)) fail(`${rel} missing constraint ${required}`);
   }
 }
 

@@ -106,6 +106,13 @@ Fixed rules:
 
 Apps consume `RuntimeAgentService` as controllers and projection readers.
 
+For a third-party `LOCAL_APP`, the Runtime-derived
+`local_app_principal_id` is the caller, access-control and audit subject only.
+It never becomes `agent_id`, agent owner, conversation owner, memory-bank owner,
+`subject_user_id`, or a default/current agent selector. The local-app operation
+coordinator must resolve an explicit permitted agent and conversation relation
+under the canonical RuntimeAgent/Cognition owner policy.
+
 Apps may:
 
 - initialize agents
@@ -126,6 +133,8 @@ Apps may not:
   policy, tool, media, or output-contract context to a turn
 - submit system/developer roles, execution bindings, or a context manifest for
   Runtime Agent Chat
+- infer agent, conversation, memory or source ownership from app identity,
+  local-app principal, project path, process identity, record or grant
 
 - AUTHORITY-RELATION subject=runtime action=accept object=consumer-attached-localagent-turn-context value=denied polarity=forbid
 
@@ -166,6 +175,15 @@ Apps may not:
 - `GetAgentCanonicalMemoryReviewStatus`
 - `SetAgentPresentationProfile`
 - `SubscribeAgentEvents`
+
+The local-app protected carrier exposes only the selected conversation subset:
+open an explicit conversation anchor, submit a user turn, subscribe to that
+turn, and recover the explicit conversation snapshot. Each call must pass the
+`K-ACCSVC-026` decision for the same principal/session/grant and exact agent and
+conversation relation. All other RuntimeAgent operations are typed unavailable
+to `LOCAL_APP` until an owner rule admits them; local-app session validity alone
+does not broaden this list. Bundled first-party callers retain their separately
+admitted posture and are not converted into third-party principals.
 
 The source-materialization operations above register the K-AGCORE-151..153
 semantic surface only. Their concrete Proto messages and fields are not defined

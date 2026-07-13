@@ -153,7 +153,7 @@ Runtime 分页具体默认值（`K-PAGE-001`）：
 ## S-RUNTIME-067 鉴权与主体上下文分离
 
 > **Authority Disposition**：
-> 本规则仅在 **Web/cloud 与 external-principal 模式** 保留为 app-provided auth/subject seam。所有 local Runtime app 模式下，本规则被 superseded：SDK 不允许接收或取得 app/host bearer、`auth.accessToken`、`subjectContext`、refresh-token provider、session store 或 subject provider；account 上下文与 Realm data 只能通过 Runtime projection、scoped binding 和 Runtime-mediated operations 消费。Public `GetAccessToken` is a deny-all tombstone pending A.3d removal。详见 `S-RUNTIME-109`。
+> 本规则仅在 **Web/cloud 与 external-principal 模式** 保留为 app-provided auth/subject seam。所有 local Runtime app 模式下，本规则被 superseded：SDK 不允许接收或取得 app/host bearer、`auth.accessToken`、`subjectContext`、refresh-token provider、session store 或 subject provider；account 上下文与 Realm data 只能通过 Runtime projection、scoped binding 和 Runtime-mediated operations 消费。Removed public token/refresh identities are reserved。详见 `S-RUNTIME-109`。
 
 Runtime SDK 必须将“鉴权 token”与“业务主体标识”分离建模：
 
@@ -161,8 +161,8 @@ Runtime SDK 必须将“鉴权 token”与“业务主体标识”分离建模�
 - `subjectContext`：用于填充请求体 `subjectUserId`。
 
 两者语义独立，不得复用同一配置字段。
-Neither field establishes K-PLOCAL protected origin or permits a public
-RuntimeGrantService credential operation.
+Neither field establishes K-PLOCAL protected origin or permits any removed
+public credential-grant operation.
 
 **模式适用范围（authority split）：**
 
@@ -204,7 +204,9 @@ rebind protected authority:
   native carrier must repeat service-principal, endpoint, live process, same
   executable object and release-record verification, then open a fresh empty
   `OpenDesktopSession`. SDK cannot copy a session id/bearer onto the new
-  connection. Future app child reconnect requires its own A.1 protocol.
+  connection. A local-app child reconnect repeats `PrepareLocalAppLaunch`,
+  verified process bind and request-empty `OpenLocalAppSession`; it never
+  recovers the pre-restart session.
 
 ## S-RUNTIME-071 Connector 字段预校验（建议性）
 
@@ -473,7 +475,7 @@ Fixed rules:
 Retired SDK Event API and PresentationTimeline designs are evidence only and
 cannot close SDK timeline support without current tests.
 
-## S-RUNTIME-109 Local First-Party Account Projection And Binding Consumer
+## S-RUNTIME-109 Local Runtime Account And Local App Consumer
 
 > Authority: SDK kernel
 >
@@ -481,46 +483,46 @@ cannot close SDK timeline support without current tests.
 
 **Owner-only authority allocation.** SDK owns typed Runtime APIs and trusted carriers only. It may validate and transport opaque owner-issued projections, bindings, and failures, but SDK MUST NOT own or infer account, token, unary, realtime, or media truth. SDK configuration, generated descriptors, helpers, caches, and app-mode discriminators cannot grant privilege, mint credentials, select a canonical Realm endpoint, or replace Runtime refresh and data-plane decisions.
 
-The detailed installed-app caller/session/bootstrap fields are not admitted.
-They remain blocked until A.1 independently admits the exact Runtime,
-Platform, Desktop, Kit and SDK carrier/session contract. A.0 exposes protected
-account projection/control only through the Desktop account-UX facade on the
-verified `desktop_control` connection.
+The verified Desktop account-UX facade remains the only local account-control
+consumer. Bundled first-party surfaces retain their admitted first-party
+projection. Third-party apps use one `LOCAL_APP` facade over the final
+host-injected protected carrier; SDK does not receive caller/session bootstrap
+fields.
 
-Fixed A.0 rules:
+Fixed rules:
 
-- `first-party-local-app`, `developer-registered-local-app`,
-  `third-party-nimi-app`, binding-only Avatar and other ordinary app facades
-  remain binding-only for protected account/Realm/agent operations. Mode names,
-  app ids, manifests, registry rows and loopback connectivity do not authorize.
-- These app facades must not export or invoke account status/events,
-  `InvokeRealmUnary`, presence verification, scoped/workspace binding control,
-  login/logout/switch, or another protected method until the exact A.1 child
-  transport and caller role are admitted.
-- Default Avatar has no first-party exception and cannot use a normal account /
-  agent path without the future protected child carrier.
-- The Desktop account-UX facade may expose only the A.0 account methods listed
-  in the protected transport matrix and only when the injected native carrier
-  proves `desktop_account_host`; SDK never derives that role.
-- Public `RefreshAccountSession` and `GetAccessToken` are deny-all wire
-  tombstones; refresh is Runtime-private. The whole public
-  `RuntimeGrantService` credential family is deny-all pending A.3d removal and
-  has no SDK export.
+- `local-first-party-app` and `local-app` are the only local app modes. A mode
+  name, app id, manifest, registry row, project path or loopback connectivity
+  does not authorize.
+- The `local-app` facade exposes session/permission posture and only the exact
+  artifact/RuntimeAgent operations admitted by `S-APP-022`. It does not expose
+  login/logout/switch, account control, presence mutation, scoped/workspace
+  binding control, generic Realm, generic Runtime or generic RuntimeAgent APIs.
+- Session-bound zero-grant, granted, revoked, process-replaced,
+  account-changed, Runtime-restarted and unavailable are distinct projections.
+  SDK cannot infer or cache authorization from prior success.
+- Shipped Zhiyu/Avatar stay bundled first-party. An isolated Zhiyu integration
+  build is `local-app` and cannot inherit bundled identity or bindings.
+- The Desktop account-UX facade may expose only methods listed in the protected
+  transport matrix and only when the injected native carrier proves
+  `desktop_account_host`; SDK never derives that role.
+- Removed public token/refresh and credential-grant wire identities remain
+  reserved. Protected local-app grant methods project status/mutation only and
+  expose no credential.
 - No local mode accepts or exposes `auth.accessToken`, refresh token,
   authorization-header/subject provider, session store, JWT hook, Realm base,
-  public grant, or equivalent credential surface.
-- Runtime-mediated Realm operation tables remain unavailable until their exact
-  operation authority is admitted; SDK cannot fall back to direct Realm,
-  `MeService`, HTTP proxy, SDK-owned 401 refresh, or a generated descriptor.
-- Mode discriminators are immutable classification inputs only. Missing
-  protected carrier, account state, operation admission, or future binding
-  state fails closed with typed unavailable/permission results, never
-  anonymous, fixture or mock success.
+  principal/record/grant/session identifiers, or equivalent credential surface.
+- Runtime-mediated operation tables remain exact allowlists; SDK cannot fall
+  back to direct Realm, `MeService`, HTTP proxy, direct daemon, SDK-owned 401
+  refresh, generated descriptor or a broader Runtime client.
+- Missing carrier, account state when required, record, session, grant or
+  operation owner state fails closed with typed unavailable/permission results,
+  never anonymous, fixture or mock success.
 
 Web/cloud adapter 与 external-principal mode 仍可保留 app-provided token / subject provider 输入，但这些 mode 必须在公共 surface 上显式 fenced，且不得对 local first-party 消费可达。
 
 Only the Desktop account-UX facade may expose
-`runtime.account.requestPresenceVerification(...)` in A.0, as a typed thin
+`runtime.account.requestPresenceVerification(...)`, as a typed thin
 projection of `RuntimeAccountService.RequestPresenceVerification` on the
 verified Desktop carrier. Ordinary app facades must not export it. SDK must not implement the
 second factor itself, accept passwords or secrets from the app, convert current
@@ -535,7 +537,7 @@ or expired Runtime responses remain fail-closed.
 local account login/logout/switch UX 仅由 Desktop account UX 拥有，并以
 `ACCOUNT_CALLER_MODE_DESKTOP_SHELL` 调用 Runtime `BeginLogin` /
 `CompleteLogin` / `Logout` / `SwitchAccount`。SDK 在 Desktop-owned composition
-中仅扮演 typed projection；developer、installed third-party、binding-only
+中仅扮演 typed projection；third-party `LOCAL_APP`、binding-only
 Avatar 与 ordinary first-party app facades 不得暴露这些 account-control helper：
 
 The facade is constructible only from the injected verified native carrier and
@@ -546,8 +548,8 @@ IPC.
 - SDK 只在 Desktop account-UX facade 暴露 typed `beginLogin(...)`、
   `completeLogin(...)`、`logout(...)`、`switchAccount(...)` 包装并转发到
   Runtime；不得在 SDK 层完成 token exchange 或解码 JWT。
-- public `RefreshAccountSession` 不属于 app-facing facade。SDK broker/token
-  composition 不得调用它；refresh 由 Runtime private helper 完成。
+- removed public refresh 不属于 app-facing facade。SDK broker/token
+  composition 不得恢复它；refresh 由 Runtime private helper 完成。
 - SDK 不得在 local first-party mode 暴露 Realm 直接登录路径；登录只允许通过 Runtime Nimi Auth Browser callback proof。
 - SDK 必须把 Runtime 返回的 UX instruction envelope（不含 PKCE verifier）原样投影给 kit / Desktop。
 - SDK 必须把 `CompleteLogin` proof envelope 视为不透明字节包，不得检查、解析或重写 token 字段。
@@ -566,8 +568,8 @@ SDK 必须暴露通用 artifact bytes 取回 surface，与 typed media projectio
 - `ReadArtifactBytes` 的 wire binding 仅是 typed projection，不代表 public
   transport admission。普通 `Runtime.generated`、`Runtime.artifacts`、app
   session metadata 和 direct local gRPC 必须返回
-  `SDK_RUNTIME_METHOD_UNAVAILABLE` 且不得发出请求；只有未来 admitted 的
-  installed protected carrier 在 A.3 capability/grant 与 artifact audience
+  `SDK_RUNTIME_METHOD_UNAVAILABLE` 且不得发出请求；只有当前 admitted 的
+  protected local-app carrier在 exact grant、owner policy 与 artifact audience
   同时成立后才能消费该 binding。
 - SDK Runtime class 的 `artifacts` module 必须暴露 Runtime-owned generated voice cleanup RPC binding：`cleanupGeneratedVoiceArtifacts({ agentId?, conversationAnchorId? })`，绑定到 `RuntimeArtifactService.CleanupGeneratedVoiceArtifacts`；SDK 不得在 app/Avatar 层实现文件删除逻辑。
 - SDK 不得以 singleton const（如 `export const runtime = { artifacts }`）形式暴露 artifacts namespace；必须通过 Runtime class 实例化路径（`new Runtime(options)` 或 `createLocalFirstPartyRuntimePlatformClient(...)`）。

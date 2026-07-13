@@ -55,6 +55,7 @@ const delegatedProjectionAdmissionsTable = readYaml('.nimi/spec/platform/kernel/
 const aiProfileFactoryCatalogTable = readYaml('.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
 const nimiAppRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
 const nimiAppTrustTiersTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml');
+const nimiAppLocalTrustClassesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-local-trust-classes.yaml');
 const testGovernancePolicyTable = readYaml('.nimi/spec/platform/kernel/tables/test-governance-policy.yaml');
 const testGovernanceRuleEvidenceFragment = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.rules-test-governance.yaml');
 const ruleEvidenceTable = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.yaml');
@@ -345,6 +346,7 @@ const requiredKernelFiles = [
   'nimi-package-release-contract.md',
   'cold-start-authority-contract.md',
   'nimi-app-admission-contract.md',
+  'local-config-migration-contract.md',
   'nimi-app-audit-pipeline-contract.md',
   'nimi-app-developer-workflow-contract.md',
   'nimi-app-scaffolding-contract.md',
@@ -367,6 +369,15 @@ const requiredKernelFiles = [
   'tables/ai-profile-factory-catalog.yaml',
   'tables/nimi-app-registry.yaml',
   'tables/nimi-app-trust-tiers.yaml',
+  'tables/nimi-app-identity-surfaces.yaml',
+  'tables/nimi-app-local-development-admission.yaml',
+  'tables/nimi-app-local-trust-classes.yaml',
+  'tables/nimi-app-release-descriptors.yaml',
+  'tables/nimi-data-directory-ownership.yaml',
+  'tables/protected-local-executable-trust-sets.yaml',
+  'tables/standard-shell-capabilities.yaml',
+  'tables/local-config-file-registry.yaml',
+  'tables/product-control-record-schema.yaml',
   'tables/test-governance-policy.yaml',
   'tables/error-code-mapping.yaml',
   'tables/nimi-ui-tokens.yaml',
@@ -384,6 +395,8 @@ for (const file of requiredKernelFiles) {
     fail(`kernel file missing: .nimi/spec/platform/kernel/${file}`);
   }
 }
+
+checkLocalAppTrustClasses();
 
 // ========================================================
 // Check 9: Rule ID existence — all YAML source refs must
@@ -597,6 +610,47 @@ checkOrphanRules(definedRuleIds, domainDocs);
 
 if (failed) process.exit(1);
 console.log('platform-spec-kernel-consistency: OK');
+
+function checkLocalAppTrustClasses() {
+  const rel = '.nimi/spec/platform/kernel/tables/nimi-app-local-trust-classes.yaml';
+  const rows = Array.isArray(nimiAppLocalTrustClassesTable?.closed_trust_classes)
+    ? nimiAppLocalTrustClassesTable.closed_trust_classes
+    : [];
+  const expected = new Set(['verified', 'user_imported', 'local_development']);
+  const actual = new Set(rows.map((row) => String(row?.trust_class || '').trim()).filter(Boolean));
+  if (rows.length !== expected.size || actual.size !== expected.size || [...expected].some((value) => !actual.has(value))) {
+    fail(`${rel}: closed_trust_classes must be exactly verified, user_imported, local_development`);
+  }
+  for (const row of rows) {
+    const trustClass = String(row?.trust_class || '').trim() || '<empty>';
+    if (String(row?.nimi_api_permission_effect || '').trim() !== 'none') {
+      fail(`${rel}: ${trustClass} must have nimi_api_permission_effect=none`);
+    }
+  }
+  const principal = nimiAppLocalTrustClassesTable?.principal_relationship ?? {};
+  if (String(principal?.security_subject || '').trim() !== 'local_app_principal_id') {
+    fail(`${rel}: principal_relationship.security_subject must be local_app_principal_id`);
+  }
+  if (String(principal?.app_id_role || '').trim() !== 'display_and_routing_only') {
+    fail(`${rel}: principal_relationship.app_id_role must be display_and_routing_only`);
+  }
+  const bundled = nimiAppLocalTrustClassesTable?.bundled_component_disposition ?? {};
+  if (String(bundled?.zhiyu_shipped || '').trim() !== 'bundled_owner_admitted_caller_preserved') {
+    fail(`${rel}: shipped Zhiyu must remain bundled`);
+  }
+  if (String(bundled?.zhiyu_integration_build || '').trim() !== 'isolated_local_development_principal') {
+    fail(`${rel}: Zhiyu integration build must use an isolated local_development principal`);
+  }
+  const promotion = (Array.isArray(nimiAppLocalTrustClassesTable?.transitions)
+    ? nimiAppLocalTrustClassesTable.transitions
+    : []).find((row) => row?.from === 'user_imported' && row?.to === 'verified');
+  if (!promotion?.preserves_local_app_principal_id
+    || !promotion?.increments_provenance_revision
+    || !promotion?.invalidates_launch_leases_and_sessions
+    || promotion?.creates_or_widens_grant !== false) {
+    fail(`${rel}: user_imported-to-verified seam must preserve principal, increment provenance, invalidate leases/sessions, and grant nothing`);
+  }
+}
 
 function checkErrorCodeMapping(definedRuleIds) {
   const rel = '.nimi/spec/platform/kernel/tables/error-code-mapping.yaml';

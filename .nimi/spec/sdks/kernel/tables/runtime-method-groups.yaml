@@ -13,7 +13,6 @@ entries:
   - RuntimeAiRealtimeService
   - RuntimeLocalService
   - RuntimeAuthService
-  - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeWorkflowService
@@ -23,6 +22,7 @@ entries:
   - RuntimeAppService
   - RuntimeArtifactService
   - RuntimeAgentService
+  - RuntimeDevelopmentService
 groups:
   - group: ai_service_projection
     service: AIService
@@ -171,34 +171,13 @@ groups:
     methods:
       - RegisterApp
       - OpenSession
+      - OpenDesktopSession
+      - OpenLocalAppSession
       - RefreshSession
       - RevokeSession
       - RegisterExternalPrincipal
       - OpenExternalPrincipalSession
       - RevokeExternalPrincipalSession
-    source_rule: S-SURFACE-002
-  - group: grant_service_projection
-    service: RuntimeGrantService
-    phase: 1
-    status: tombstone_pending_a3d_removal
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
-    methods: []
-    excluded:
-      - name: AuthorizeExternalPrincipal
-        authority_status: tombstone_pending_a3d_removal
-        reason: Public request-body consent cannot issue a protected credential.
-      - name: ValidateAppAccessToken
-        authority_status: tombstone_pending_a3d_removal
-        reason: Public protected-token introspection has no admitted product caller.
-      - name: RevokeAppAccessToken
-        authority_status: tombstone_pending_a3d_removal
-        reason: Public protected-token mutation has no admitted origin.
-      - name: IssueDelegatedAccessToken
-        authority_status: tombstone_pending_a3d_removal
-        reason: Parent-token possession cannot authorize protected credential issuance.
-      - name: ListTokenChain
-        authority_status: tombstone_pending_a3d_removal
-        reason: Public protected-token chain enumeration has no admitted product caller.
     source_rule: S-SURFACE-002
   - group: external_agent_service_projection
     service: RuntimeExternalAgentService
@@ -222,7 +201,7 @@ groups:
     service: RuntimeAccountService
     phase: 1
     status: active
-    carrier_scope: verified_desktop_account_ux_only
+    carrier_scope: verified_desktop_account_ux_and_exact_local_app_grant_projection
     note: >
       Runtime account authority is admitted by K-ACCSVC-* as the local
       first-party custody source, with K-ACCSVC-002 defining the frozen method
@@ -243,6 +222,10 @@ groups:
       - SwitchAccount
       - IssueScopedAppBinding
       - RevokeScopedAppBinding
+      - GetLocalAppGrantStatus
+      - RequestLocalAppGrant
+      - DecideLocalAppGrant
+      - RevokeLocalAppGrant
     excluded:
       - name: IssueWorkspaceBinding
         authority_status: blocked_pending_separate_authority
@@ -250,6 +233,27 @@ groups:
       - name: RevokeWorkspaceBinding
         authority_status: blocked_pending_separate_authority
         reason: No exact protected origin or operation owner is admitted; ordinary SDK callers remain denied.
+    source_rule: S-RUNTIME-109
+  - group: local_development_service_projection
+    service: RuntimeDevelopmentService
+    phase: 1
+    status: active
+    carrier_scope: verified_desktop_local_app_control_only
+    note: >
+      One production Developer Mode and Dev Trust Set, explicit run_once or
+      remember/dormant/reactivate lifecycle, and Runtime-owned revocation. The
+      app child does not consume this control group; it receives only the common
+      local-app carrier.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - GetDeveloperModeStatus
+      - SetDeveloperMode
+      - EvaluateLocalDevelopmentProject
+      - DecideLocalDevelopmentProject
+      - ListLocalDevelopmentAuthorizations
+      - ReactivateLocalDevelopmentProject
+      - RevokeLocalDevelopmentAuthorization
+      - EndLocalDevelopmentRun
     source_rule: S-RUNTIME-109
   - group: workflow_service_projection
     service: RuntimeWorkflowService
@@ -377,26 +381,27 @@ groups:
     phase: 1
     status: active
     note: >
-      App account inventory, local adoption, install/update/open/readiness,
-      storage, and job operations are Runtime-owned lifecycle surfaces projected
-      by the vNext SDK. App message operations remain in
+      App account inventory, principal-keyed storage, typed-unavailable opaque
+      package seams, and protected local-app launch preparation are Runtime-owned
+      lifecycle surfaces. App message operations remain in
       app_service_projection because they carry the app-message bus semantics.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - GetAccountAppInventory
-      - AdoptLocalApp
-      - ListLocalAppAdoptions
-      - RemoveLocalAppAdoption
-      - InstallApp
-      - UninstallApp
       - GetAppStorage
       - GetAppPackageReadiness
-      - GetAppInstallJob
-      - ListAppInstallJobs
-      - WatchAppInstallJobEvents
-      - UpdateApp
-      - HealthRepairApp
-      - OpenApp
+      - PrepareLocalAppLaunch
+      - BindLocalAppProcess
+    excluded_methods:
+      - { method: PrepareAppLifecycleIntent, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: GetAppLifecycleIntentStatus, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: InstallApp, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: UninstallApp, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: GetAppInstallJob, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: ListAppInstallJobs, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: WatchAppInstallJobEvents, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: UpdateApp, authority_status: typed_unavailable_0k_no_sdk_export }
+      - { method: HealthRepairApp, authority_status: typed_unavailable_0k_no_sdk_export }
     source_rule: S-SURFACE-002
   - group: artifact_service_projection
     service: RuntimeArtifactService
@@ -407,8 +412,8 @@ groups:
       projections for Runtime-owned artifact retrieval and cleanup. Artifact
       identity, authorization, MIME, size, and lifecycle truth remain
       Runtime-owned. ReadArtifactBytes is blocked on the ordinary/public
-      Runtime facade; its typed projection is reserved for an admitted
-      installed protected carrier with current capability/grant and audience.
+      Runtime facade and is available only through the protected local-app
+      carrier with current principal/session/grant/owner decision and audience.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - ReadArtifactBytes

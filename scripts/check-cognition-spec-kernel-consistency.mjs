@@ -94,6 +94,16 @@ if (definitionMap.size === 0) {
   fail('cognition contract defines no cognition rules');
 }
 
+const appMemoryEvidenceCatalogRel = '.nimi/spec/cognition/kernel/tables/rule-evidence.catalog.yaml';
+const appMemoryEvidenceRel = '.nimi/spec/cognition/kernel/tables/rule-evidence.rules-app-memory-access.yaml';
+checkScopedRuleEvidence(
+  definitionMap,
+  readYaml(appMemoryEvidenceCatalogRel),
+  readYaml(appMemoryEvidenceRel),
+  appMemoryEvidenceRel,
+  'C-APMEM-',
+);
+
 const familyTable = readYaml('.nimi/spec/cognition/kernel/tables/artifact-families.yaml');
 checkSourceRuleTable(
   '.nimi/spec/cognition/kernel/tables/artifact-families.yaml',
@@ -160,6 +170,7 @@ validatePublicSurfaceCapabilityMappings(publicSurfaceTable?.surfaces, upgradeMat
 validateSQLiteOnlyBackendFreeze();
 validateSupportDocsAlignment();
 validateCorePublicSurface(publicSurfaceTable?.surfaces);
+validateAppMemoryAccessSurface(publicSurfaceTable?.surfaces);
 
 if (failed) process.exit(1);
 console.log('cognition-spec-kernel-consistency: OK');
@@ -193,7 +204,7 @@ function checkNoRuleDefinitionHeadings(content, rel) {
 
 function collectRuleDefinitions(files) {
   const definitionMap = new Map();
-  const ruleHeadingPattern = /^##\s+(C-COG-\d{3})\b/gmu;
+  const ruleHeadingPattern = /^##\s+(C-(?:COG|APMEM)-\d{3})\b/gmu;
   for (const rel of files) {
     const content = read(rel);
     for (const match of content.matchAll(ruleHeadingPattern)) {
@@ -296,6 +307,77 @@ function checkRuleEvidence(definitionMap, doc, rel) {
     if (!seenRules.has(ruleID)) {
       fail(`${rel} is missing rule-evidence entry for ${ruleID}`);
     }
+  }
+}
+
+function checkScopedRuleEvidence(definitions, catalogDoc, evidenceDoc, rel, rulePrefix) {
+  const expected = [...definitions.keys()].filter((ruleID) => ruleID.startsWith(rulePrefix));
+  const expectedSet = new Set(expected);
+  const catalogRefs = new Set(
+    (Array.isArray(catalogDoc?.entries) ? catalogDoc.entries : [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean),
+  );
+  const entries = Array.isArray(evidenceDoc?.entries) ? evidenceDoc.entries : [];
+  const declared = entries.map((value) => String(value || '').trim()).filter(Boolean);
+  const rules = Array.isArray(evidenceDoc?.rules) ? evidenceDoc.rules : [];
+  const allowedRequirements = new Set(['required', 'deferred', 'not_applicable']);
+  const seen = new Set();
+
+  if (expected.length === 0) fail(`${rel} has no definitions for ${rulePrefix}`);
+  if (catalogRefs.size === 0) fail(`${rel} evidence catalog is empty`);
+  if (declared.length !== expected.length) {
+    fail(`${rel} entries length ${declared.length} does not match ${rulePrefix} definitions ${expected.length}`);
+  }
+  if (rules.length !== expected.length) {
+    fail(`${rel} rules length ${rules.length} does not match ${rulePrefix} definitions ${expected.length}`);
+  }
+  for (const ruleID of declared) {
+    if (!expectedSet.has(ruleID)) fail(`${rel} entries contains unknown scoped rule ${ruleID}`);
+  }
+  for (const row of rules) {
+    const ruleID = String(row?.rule_id || '').trim();
+    if (!expectedSet.has(ruleID)) fail(`${rel} rules contains unknown scoped rule ${ruleID || '<empty>'}`);
+    if (seen.has(ruleID)) fail(`${rel} duplicates scoped rule ${ruleID}`);
+    seen.add(ruleID);
+    const requirement = String(row?.evidence_requirement || '').trim();
+    if (!allowedRequirements.has(requirement)) {
+      fail(`${rel} rule ${ruleID} has invalid evidence_requirement ${requirement || '<empty>'}`);
+    }
+    const refs = Array.isArray(row?.evidence_refs) ? row.evidence_refs : [];
+    if (refs.length === 0) fail(`${rel} rule ${ruleID} has no evidence_refs`);
+    for (const rawRef of refs) {
+      const ref = String(rawRef || '').trim();
+      if (!catalogRefs.has(ref)) fail(`${rel} rule ${ruleID} references unknown evidence ${ref || '<empty>'}`);
+    }
+  }
+  for (const ruleID of expected) {
+    if (!seen.has(ruleID)) fail(`${rel} is missing scoped rule ${ruleID}`);
+  }
+}
+
+function validateAppMemoryAccessSurface(entries) {
+  const rel = '.nimi/spec/cognition/kernel/tables/public-surface.yaml';
+  const rows = Array.isArray(entries) ? entries : [];
+  const row = rows.find((item) => item?.surface_id === 'cognition.app_memory_access_service');
+  if (!row) {
+    fail(`${rel} missing cognition.app_memory_access_service`);
+    return;
+  }
+  const context = row?.caller_context ?? {};
+  if (context?.authority !== 'runtime_immutable_local_app_access_decision'
+    || context?.required_subject !== 'local_app_principal_id'
+    || context?.canonical_owner_resolution !== 'runtime_agent_and_cognition_relations') {
+    fail(`${rel} app-memory surface must consume the Runtime local-app decision while preserving RuntimeAgent/Cognition owner resolution`);
+  }
+  const forbidden = new Set((Array.isArray(context?.forbidden_owner_inference)
+    ? context.forbidden_owner_inference
+    : []).map(String));
+  for (const field of ['app_id', 'local_app_principal_id', 'project_path', 'process', 'local_app_record', 'local_app_grant']) {
+    if (!forbidden.has(field)) fail(`${rel} app-memory surface missing forbidden owner inference ${field}`);
+  }
+  if (row?.policy_source_rule !== 'C-APMEM-009') {
+    fail(`${rel} app-memory surface policy_source_rule must be C-APMEM-009`);
   }
 }
 

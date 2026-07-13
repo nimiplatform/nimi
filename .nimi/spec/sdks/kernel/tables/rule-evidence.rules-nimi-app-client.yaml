@@ -81,27 +81,27 @@ rules:
   - rule_id: S-APP-009
     evidence_refs:
       - sdk_kernel_consistency
-    note: Ordinary-visible filter requires Apps registry/install/storage consumer validation.
+    note: Ordinary-visible catalog filtering remains separate from account inventory and distinct local records; it creates no install, storage, principal, or launch truth.
     evidence_requirement: required
   - rule_id: S-APP-010
     evidence_refs:
       - sdk_kernel_consistency
-    note: Install descriptor sha256 verification requires SDK/Desktop install tests.
+    note: Immutable package mutation is absent from the 0K Nimi App client; catalog descriptors are read-only and readiness returns typed unavailable.
     evidence_requirement: required
   - rule_id: S-APP-011
     evidence_refs:
       - sdk_kernel_consistency
-    note: Install storage projection requires SDK/Desktop install and uninstall tests.
+    note: Storage is Runtime principal-keyed; SDK/local-app carrier exposes no absolute root or storage operation and cannot derive app-id paths.
     evidence_requirement: required
   - rule_id: S-APP-012
     evidence_refs:
       - sdk_kernel_consistency
-    note: Declared nimi-API scopes carrier is transparency-only; enforcement remains in permission grant lifecycle and is not weakened by the SDK carrier. SDK install projection tests are required.
+    note: Declared Nimi-API scopes are transparency-only; LOCAL_APP enforcement remains exact Runtime K-GRANT plus owner policy with no trust-tier or manifest effect.
     evidence_requirement: required
   - rule_id: S-APP-013
     evidence_refs:
       - sdk_kernel_consistency
-    note: Uninstall data-retention prompt surface consumes Runtime K-APP-014; SDK/Desktop uninstall tests are required.
+    note: Immutable uninstall and SDK delete-data prompts are not admitted in 0K; tombstoned data remains Runtime-owned delete-only state with no force-delete or filesystem fallback.
     evidence_requirement: required
   - rule_id: S-APP-014
     evidence_refs:
@@ -117,41 +117,41 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - public_raw_token_authority_hardcut_gate
-    note: Generated-app Runtime platform client auth helper admits the mode split but every local mode receives typed Runtime-mediated results only; no first-party or installed token helper is admitted.
+    note: Generated-app Runtime platform client admits only local-first-party-app and local-app; the third-party branch receives a host-injected typed carrier with zero credential, principal, grant, endpoint, or caller-mode custody.
     evidence_requirement: required
   - rule_id: S-APP-017
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK app storage truth accessor is backed by Runtime GetAppStorage and must not re-derive app storage roots locally.
+    note: SDK preserves Runtime principal-partitioned storage truth, but the 0K LOCAL_APP carrier exposes no GetAppStorage operation or absolute root; storage operations remain typed unavailable pending separate admission.
     evidence_requirement: required
   - rule_id: S-APP-018
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK app package readiness accessor is backed by Runtime GetAppPackageReadiness and must not re-derive install evidence or active release truth locally.
+    note: SDK package readiness preserves the 0K typed-unavailable boundary and must not promote opaque lineage, attestation, execution-profile, or digest slots into a positive install assertion.
     evidence_requirement: required
   - rule_id: S-APP-019
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK account app-inventory accessor is backed by Runtime GetAccountAppInventory and must not read account-scoped projection files locally.
+    note: SDK account inventory preserves catalog visibility and local-record state as separate projections, with no caller-supplied account id or local filesystem fallback.
     evidence_requirement: required
   - rule_id: S-APP-020
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK unified Apps inventory composition preserves source identity and must not relabel account or local adoption entries as ordinary catalog truth.
+    note: SDK unified Apps inventory preserves catalog, account, and distinct Runtime local-record sources; same-app-id principals never merge or become an installed boolean.
     evidence_requirement: required
   - rule_id: S-APP-021
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK local app adoption accessor is backed by Runtime explicit adoption APIs and must not scan local workspaces as inventory truth.
+    note: SDK exposes read-only current-carrier local-record/session/grant posture and no adoption, install, import, promotion, repair, workspace scan, or opaque owner identifiers.
     evidence_requirement: required
   - rule_id: S-APP-022
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK installed-app bootstrap exposes only the P-KIT-044 typed artifact reader, carries no launch/session/caller truth, and fails closed on renderer-owned auth or launch-binding custody.
+    note: SDK local-app bootstrap accepts only the host-neutral standardShell carrier and exposes the exact P-KIT-044 artifact and RuntimeAgent operations; zero grant and unavailable owners fail closed without generic Runtime forwarding.
     evidence_requirement: required

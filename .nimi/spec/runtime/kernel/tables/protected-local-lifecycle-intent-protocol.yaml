@@ -1,87 +1,93 @@
-version: 2
+version: 3
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_lifecycle_operation_protocol
-surfaces: [PrepareAppLifecycleIntent, GetAppLifecycleIntentStatus, InstallApp, UninstallApp, UpdateApp, HealthRepairApp, AdoptLocalApp, RemoveLocalAppAdoption, OpenApp]
-description: Protected Desktop lifecycle operation admission with transitional UX intent projection and ordinary transactional idempotency.
-authority_refs: [K-PLOCAL-006, K-PLOCAL-007, K-APP-026]
+surfaces:
+  - PrepareAppLifecycleIntent
+  - GetAppLifecycleIntentStatus
+  - InstallApp
+  - UninstallApp
+  - GetAppPackageReadiness
+  - GetAppInstallJob
+  - ListAppInstallJobs
+  - WatchAppInstallJobEvents
+  - UpdateApp
+  - HealthRepairApp
+  - PrepareLocalAppLaunch
+  - BindLocalAppProcess
+description: >-
+  Opaque immutable-package seam plus the admitted local-app launch lease and
+  process bind. No local adoption, production import/install/update/promotion,
+  or OpenApp positive path is admitted in 0K.
+authority_refs: [K-PLOCAL-006, K-PLOCAL-007, K-PLOCAL-008, K-APP-011, K-APP-017, K-APP-026]
 platform_admission:
-  closeout_unit: os_platform
+  windows_local_app_launch: admitted
+  immutable_package_positive: typed_unavailable_until_0p_or_p
   unadmitted_platform_disposition: fail_closed
   localhost_or_same_user_fallback: forbidden
-rpc_vocabulary:
-  transitional_prepare: PrepareAppLifecycleIntent
-  operation_status: GetAppLifecycleIntentStatus
-action_enum: [INSTALL, UNINSTALL, UPDATE, HEALTH_REPAIR, ADOPT_LOCAL_APP, REMOVE_LOCAL_APP_ADOPTION, OPEN_APP]
-status_enum: [PREPARED, CONSUMED, SIDE_EFFECT_STARTED, SUCCEEDED, FAILED, CANCELLED, EXPIRED]
-transitional_prepare_projection:
-  authority_status: transitional_fail_closed_ux_projection
-  fields: [action, app_id, expected_release_ref, expected_artifact_digest, expected_adoption_generation, destructive_options]
-  response_fields: [intent_id, canonical_impact, canonical_impact_digest, deadline, reason_code]
-  intent_id_authorizes: false
-  required_for_open_app: false
-  removable_after_consumer_migration: true
-operation_admission:
-  security_authority: live_protected_desktop_connection
-  required_bindings: [desktop_session, process_tuple, account_generation, runtime_boot_epoch, action, app_id, release_or_adoption_generation]
-  request_idempotency_key: runtime_or_desktop_host_generated_non_secret
-  caller_confirmed_boolean_authorizes: false
-  renderer_identifier_authorizes: false
-  database_transaction: validate_bindings_consume_idempotency_key_create_operation
-  hmac_chain_required: false
-  anti_rollback_anchor_required: false
-  side_effect_before_transaction_commit: forbidden
-status_query:
-  request_fields: [intent_id]
-  response_fields: [intent_id, status, non_authorizing_job_id, canonical_result, reason_code, retryability]
-  identifier_authorizes_mutation: false
-  terminal_reconciliation_after_reconnect: same_verified_os_principal_account_and_target_only
-renderer_projection:
-  allowed_fields: [intent_id, canonical_impact, canonical_impact_digest, deadline, status, canonical_result, reason_code, retryability]
-  renderer_receives_authorizing_material: false
-  forbidden_fields: [process_tuple, boot_epoch, account_generation_raw, credential, launch_ticket, session_proof, durable_anchor]
+package_seam:
+  operations:
+    - PrepareAppLifecycleIntent
+    - GetAppLifecycleIntentStatus
+    - InstallApp
+    - UninstallApp
+    - GetAppPackageReadiness
+    - GetAppInstallJob
+    - ListAppInstallJobs
+    - WatchAppInstallJobEvents
+    - UpdateApp
+    - HealthRepairApp
+  positive_disposition: typed_unavailable
+  opaque_fields:
+    - immutable_lineage_id
+    - provenance_attestation_refs
+    - provenance_revision
+    - execution_profile_ref
+    - host_digest
+    - payload_digest
+  fields_authorize: false
+  producer_admission: deferred_to_0p_or_p
+local_app_launch:
+  prepare_rpc: PrepareLocalAppLaunch
+  bind_rpc: BindLocalAppProcess
+  security_authority: live_local_app_control_origin
+  required_bindings:
+    - local_os_user_anchor
+    - local_app_principal_id
+    - local_record_revision
+    - account_id
+    - account_generation
+    - runtime_boot_epoch
+    - trust_class
+    - host_kind
+    - entrypoint
+    - host_digest_slot
+    - payload_digest_slot
+    - expected_child_process
+  principal_lineage_binding:
+    immutable: [immutable_lineage_id]
+    development: [development_authorization_id, canonical_project_file_id, declared_app_id]
+    exactly_one_branch_required: true
+  request_may_select_principal: false
+  request_may_select_account: false
+  single_use_lease: true
+  side_effect_before_lease_commit: forbidden
+  bind_requires_exact_live_process_and_executable: true
+  renderer_projection: forbidden
+  portable_lease_or_session: forbidden
 replay_and_revocation:
-  consumed_idempotency_key_replay: return_same_non_authorizing_operation_status
-  conflicting_idempotency_key_reuse: deny
-  account_generation_change: revoke_pending
-  runtime_boot_epoch_change: revoke_pending
-  desktop_process_exit: revoke_pending
-  release_or_adoption_generation_change: revoke_pending
-action_schema:
-  fields: [action, consuming_rpc, target_fields, destructive_ux_confirmation, source_rule]
-actions:
-  - action: INSTALL
-    consuming_rpc: InstallApp
-    target_fields: [app_id, expected_release_ref, expected_artifact_digest]
-    destructive_ux_confirmation: false
-    source_rule: K-APP-026
-  - action: UNINSTALL
-    consuming_rpc: UninstallApp
-    target_fields: [app_id, expected_release_ref, expected_artifact_digest, delete_durable_data]
-    destructive_ux_confirmation: true
-    source_rule: K-APP-026
-  - action: UPDATE
-    consuming_rpc: UpdateApp
-    target_fields: [app_id, expected_release_ref, expected_artifact_digest]
-    destructive_ux_confirmation: false
-    source_rule: K-APP-026
-  - action: HEALTH_REPAIR
-    consuming_rpc: HealthRepairApp
-    target_fields: [app_id, expected_release_ref, expected_artifact_digest]
-    destructive_ux_confirmation: false
-    source_rule: K-APP-026
-  - action: ADOPT_LOCAL_APP
-    consuming_rpc: AdoptLocalApp
-    target_fields: [app_id, expected_artifact_digest, expected_adoption_generation]
-    destructive_ux_confirmation: false
-    source_rule: K-APP-026
-  - action: REMOVE_LOCAL_APP_ADOPTION
-    consuming_rpc: RemoveLocalAppAdoption
-    target_fields: [app_id, expected_adoption_generation]
-    destructive_ux_confirmation: true
-    source_rule: K-APP-026
-  - action: OPEN_APP
-    consuming_rpc: OpenApp
-    target_fields: [app_id, expected_release_ref, expected_artifact_digest]
-    destructive_ux_confirmation: false
-    source_rule: K-APP-026
+  lease_replay: deny
+  process_mismatch: deny
+  principal_or_record_revision_change: invalidate
+  promotion_revision_change: invalidate
+  account_generation_change: invalidate
+  runtime_boot_epoch_change: invalidate
+  desktop_supervisor_exit: invalidate_for_local_development
+  process_replacement: new_lease_bind_and_session
+forbidden_surfaces:
+  - workspace_scan_as_local_record
+  - app_id_as_positive_local_identity
+  - generic_open_without_prepare_and_bind
+  - raw_executable_launch
+  - renderer_selected_endpoint
+  - app_id_positive_fallback
