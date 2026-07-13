@@ -291,7 +291,8 @@ roots:
 - `<nimi_data>/apps/<local-app-principal-id>/data`
 - `<nimi_data>/apps/<local-app-principal-id>/cache`
 - `<nimi_data>/apps/<local-app-principal-id>/tmp`
-- active release root, only when an active installed release pointer resolves
+- immutable release root is absent in 0K; a later 0P/P may add its positive
+  projection without changing the principal-keyed data/cache/tmp roots
 
 `MUST`：an active development principal may receive data/cache/tmp roots without
 an immutable release. Same-app-id principals remain isolated. Tombstoned data
@@ -305,34 +306,23 @@ closed with typed storage state/reason.
 
 ## K-APP-023 App Package Readiness Projection
 
-0K freezes the projection fields needed to report immutable profile
-unavailability, but no immutable package may become ready before 0P/P. Any
-legacy catalog/download/install evidence is non-authorizing and must project
-`blocked` with the stable immutable-profile-unavailable reason.
+0K admits `GetAppPackageReadiness` only as an opaque typed-unavailable seam.
+The response identifies `blocked / immutable_profile_unavailable` without
+reading or asserting an active release, install job, install evidence, package
+root, update candidate, rollback candidate, or repair state. It cannot create a
+principal/record and cannot authorize launch.
 
-`MUST`：`GetAppPackageReadiness(local_app_record_id)` 是 Runtime-owned package readiness
-projection。它读取 Runtime admitted registry / release descriptor、
-selected `nimi_data` app layout、active release pointer、与
-Runtime-written `install-evidence.json`，并返回 typed
-`AppPackageReadinessProjection`：
+`MUST`：Runtime derives the blocked response without accepting app ID, path,
+descriptor, digest, release, or account selectors as package truth. A later 0P
+may populate only the already frozen `immutable_lineage_id`, opaque provenance
+attestation refs/revision, `execution_profile_ref`, `host_executable_digest`,
+and `payload_root_digest` fields. It must not reshape the 0K principal, record,
+grant, lease, process, or session schema.
 
-- `ready` only after 0P/P is admitted and an active release pointer resolves and install evidence is in a
-  verified state (`digest-verified` or `bundled-source`) for that active
-  release;
-- `install_required` when the app is admitted but has no active release;
-- `update_required` when the active release is verified but differs from the
-  currently bound release descriptor version;
-- `repair_required` when active pointer / evidence / digest state is missing,
-  corrupt, or not verified;
-- `blocked` when Runtime package readiness cannot be evaluated because
-  descriptor/storage authority is unavailable.
-
-`MUST NOT`：Desktop, Kit, SDK, or apps must not scan
-`<nimi_data>/apps/<app-id>/releases/*/.nimi/install-evidence.json`, parse
-Runtime install evidence, or derive package readiness from file existence as
-an alternate package authority. SDK may expose typed decoders and compose this
-projection with Platform registry/admission rows for developer ergonomics, but
-the readiness facts remain Runtime-owned.
+`MUST NOT`：Runtime, Desktop, Kit, SDK, or apps must scan a package directory,
+active pointer, install evidence, or file existence in 0K. `ready`,
+`install_required`, `update_required`, `repair_required`, package jobs and
+positive immutable launch are unavailable until 0P/P is independently admitted.
 
 ## K-APP-024 Account App-Inventory Projection
 

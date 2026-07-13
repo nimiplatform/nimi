@@ -181,7 +181,7 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
       - sdk_runtime_test
-    note: GetAppPackageReadiness is the Runtime-owned active release / install evidence readiness projection; tests cover Runtime evidence interpretation and SDK typed client consumption.
+    note: GetAppPackageReadiness is an opaque typed-unavailable 0K seam; tests prove no active release/install evidence is read or projected and SDK consumption cannot authorize package or launch state.
     evidence_requirement: required
   - rule_id: K-APP-024
     evidence_refs:

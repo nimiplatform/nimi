@@ -82,6 +82,7 @@ lifetimes:
   run_once_terminal_transition: tombstone_principal_and_mark_record_removed
   subsequent_run_once: fresh_approval_new_principal_and_record
   remember_project_on_mode_off: dormant
+  remember_project_on_supervisor_run_termination: dormant
   remember_project_auto_runs_after_reenable: false
   remembered_account_switch: live_session_revoked_record_remains_bound_to_original_account_and_requires_fresh_presence_after_return
 risk_and_background:

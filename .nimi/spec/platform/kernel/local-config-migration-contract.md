@@ -153,8 +153,9 @@ environment 数据失去其权威 pointer，该操作必须 fail-closed，并把
 
 `MUST`：任何对 `nimi_data` 子目录的清理 / 删除 / 修复操作都必须遵守该表中对应
 行声明的 owner 与 cleanup rule。`models/` / `dependencies/` / `environments/`
-只能通过 Runtime 拥有的 management / job 路径变更；`apps/<app-id>/data/` 默认
-在 app 卸载时保留，删除需显式用户动作；`accounts/<account-id>/` 大数据需显式
+只能通过 Runtime 拥有的 management / job 路径变更；`apps/<local-app-principal-id>/data/`
+是 Runtime-private principal partition，record remove/tombstone 后默认保留为
+delete-only state，删除需显式用户动作；`accounts/<account-id>/` 大数据需显式
 用户 / export / delete 策略。
 
 `MUST NOT`：Desktop shell、Support surface 或任何 renderer 不得绕过对应 owner

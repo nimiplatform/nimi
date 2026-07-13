@@ -271,8 +271,7 @@ review block. The accessor exposes the typed fields owned by
 - `adjudicator_kind` — closed enum `human | nimi-automated-gate`;
 - `adjudicator_ref` — string reference (reviewer policy or human
   reviewer identifier);
-- `decided_at` — terminal-decision timestamp distinct from the other
-  lifecycle dates per `P-NAPP-019`.
+- `decided_at` — terminal-decision timestamp owned by the review record.
 
 The accessor is read-only; it returns the descriptor's terminal
 review-decision record as admitted. The accessor is the SDK surface
@@ -320,7 +319,6 @@ first-level Apps display.
 
 Cross-references: `P-NAPP-025` (review-decision schema; not
 redefined), `P-AUDIT-006` (review-evidence shape; not redefined),
-`P-NAPP-019` (date-distinctness for `decided_at`; not redefined),
 `K-APP-017` (launch gate authority; not driven by this accessor),
 `P-AUDIT-001` (admission gate authority; not driven by this
 accessor), `S-PERM-010` (anti-target rule recording that the
@@ -535,7 +533,7 @@ Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
 - `.nimi/spec/sdks/kernel/surface-contract.md` — `S-SURFACE-*`
 - `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-010` (`S-PERM-010` records the S-APP-vs-S-PERM placement anti-target for the review-evidence accessor admitted at `S-APP-015`)
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-036` (`P-NAPP-015` storage policy, `P-NAPP-018` descriptor shape, `P-NAPP-019` typed sizes/dates, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-031` unified inventory, `P-NAPP-032` local record creation boundary, `P-NAPP-034..036` local-app kernel)
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-036` (`P-NAPP-015` storage policy, `P-NAPP-018` catalog descriptor shape, `P-NAPP-019` opaque immutable-package slots, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-031` unified inventory, `P-NAPP-032` local record creation boundary, `P-NAPP-034..036` local-app kernel)
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app authorization, `P-PERM-011` `app-local-drafts` qualifier semantics)
 - `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-001..P-AUDIT-006` (`P-AUDIT-006` review-evidence shape)
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`

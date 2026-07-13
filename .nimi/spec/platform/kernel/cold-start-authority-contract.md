@@ -109,7 +109,7 @@ ready only after writability and required root directory creation evidence.
 models/
 dependencies/
 environments/
-apps/<app-id>/{releases,data,cache,tmp}
+apps/<local-app-principal-id>/{releases,data,cache,tmp}
 accounts/<account-id>/{data,cache,exports,tmp}
 cache/
 logs/
@@ -121,6 +121,9 @@ tmp/
 `MUST NOT`：first-run readiness may not silently default `nimi_data` to
 `~/.nimi/data`. Existing Desktop path records may be migration inputs only; they
 are not readiness truth until reconciled into `~/.nimi/nimi.json`.
+App storage subpaths are Runtime-private principal partitions; app ID is never
+a positive storage key and the displayed skeleton does not admit immutable
+release materialization before 0P.
 
 ## P-COLD-011 — First-Run Install Level State Machine
 

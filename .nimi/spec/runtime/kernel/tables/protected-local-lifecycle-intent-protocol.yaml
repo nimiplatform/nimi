@@ -43,8 +43,8 @@ package_seam:
     - provenance_attestation_refs
     - provenance_revision
     - execution_profile_ref
-    - host_digest
-    - payload_digest
+    - host_executable_digest
+    - payload_root_digest
   fields_authorize: false
   producer_admission: deferred_to_0p_or_p
 local_app_launch:
@@ -54,15 +54,18 @@ local_app_launch:
   required_bindings:
     - local_os_user_anchor
     - local_app_principal_id
-    - local_record_revision
+    - local_app_record_id
+    - provenance_revision
+    - install_or_project_generation
     - account_id
     - account_generation
     - runtime_boot_epoch
     - trust_class
+    - execution_profile_ref
     - host_kind
     - entrypoint
-    - host_digest_slot
-    - payload_digest_slot
+    - host_executable_digest
+    - payload_root_digest
     - expected_child_process
   principal_lineage_binding:
     immutable: [immutable_lineage_id]

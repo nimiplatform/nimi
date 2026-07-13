@@ -323,7 +323,8 @@ Required descriptor fields:
   or pinned npm version).
 - `artifact.locator` — opaque locator for the artifact in `source`.
 - `artifact.sha256` — digest computed before unpack per `P-NAPP-014`.
-- `artifact.size` — typed sub-object (`P-NAPP-019`).
+- `artifact.size` — opaque catalog-review metadata in 0K; no local install,
+  storage, update or rollback size projection is admitted (`P-NAPP-019`).
 - `artifact.signature_or_provenance_ref` — signature / attestation ref.
 - `artifact_mirror_ref` — Nimi-controlled mirror locator (`P-NAPP-022`).
 - `build_assurance` — closed enum
@@ -336,11 +337,10 @@ Required descriptor fields:
 - `runtime.sandbox_ref` — Runtime process-profile identifier; NOT an OS
   sandbox claim.
 - `permissions_ref` — admitted permission scope set.
-- `storage_policy_ref` — storage policy identifier (`P-NAPP-015`;
-  `P-NAPP-019+` admits typed posture enum).
+- `storage_policy_ref` — storage policy identifier (`P-NAPP-015`).
 - `update_channel_ref` — admitted release channel identity.
-- `rollback_eligibility` — typed eligibility marker (separate from the
-  rollback candidate version in `P-NAPP-019`).
+- `rollback_eligibility` — catalog-review marker only; it does not create a
+  local rollback candidate in 0K.
 - `review` — sub-object with decision schema (`P-NAPP-025`).
 - `support` — sub-object with required manifest fields (`P-NAPP-026`).
 
@@ -350,59 +350,29 @@ admitted descriptor is the platform-owned canonical truth produced by
 review (`P-NAPP-013`, `P-NAPP-014`); the developer-authored manifest is
 not admission truth.
 
-## P-NAPP-019 — No-Collapsed Sizes, Dates, And Versions
+## P-NAPP-019 — Opaque Immutable Package Seam Only In 0K
 
-`MUST`：`artifact.size` on every third-party admitted release descriptor
-MUST be a typed sub-object with five distinct integer fields:
+`MUST`：0K freezes only these immutable-package integration slots:
 
-- `download` — wire-bytes downloaded from the artifact locator;
-- `installed` — bytes on disk under
-  `<nimi_data>/apps/<local_app_principal_id>/releases/<version>/`;
-- `user_data` — bytes under `<nimi_data>/apps/<local_app_principal_id>/data/`;
-- `cache` — bytes under `<nimi_data>/apps/<local_app_principal_id>/cache/`;
-- `shared_deps` — bytes attributable to admitted shared runtime
-  dependencies.
+- principal `immutable_lineage_id`;
+- record `provenance_attestation_refs` and `provenance_revision`;
+- record `execution_profile_ref`;
+- record `host_executable_digest` and `payload_root_digest`.
 
-Collapsing any subset of these into a single integer fails admission
-closed with typed reason `artifact_size_collapsed`.
+Every field is opaque in 0K. No size partition, install/update date, installed
+version, rollback candidate, active release pointer, install evidence, package
+job, storage root, signer envelope, import result, update result, promotion
+result or repair result is admitted. All positive immutable package operations
+and readiness states are typed unavailable.
 
-`MUST`：dates MUST be kept distinct across the admission lifecycle. The
-admitted descriptor + registry projection carry the following typed dates
-as separate fields:
+`MUST`：0P may verify package/signing/attestation inputs and map them into the
+frozen opaque slots, but it cannot rename, split, merge or add identity-bearing
+fields to the principal/record/grant/lease/process/session schema. Detailed
+package evidence shapes belong to 0P/P and require their own authority batch.
 
-- `release.publisher_release_date` — publisher's release timestamp on the
-  source artifact;
-- `review.decided_at` — review terminal-decision timestamp (`P-NAPP-025`);
-- `registry.admission_date` — registry row admission timestamp;
-- `install-evidence.local_install_date` — future host-local install timestamp;
-- `install-evidence.local_update_date` — future host-local update timestamp;
-- `launch-evidence.last_used_at` — future host-local last launch timestamp.
-
-Aliasing any two of these into a single field fails admission closed with
-typed reason `descriptor_date_collapsed`.
-
-`MUST`：versions MUST be kept distinct:
-
-- `install-evidence.installed_version` — host-local currently-installed
-  version;
-- `registry.latest_approved_version` — registry's latest admitted version
-  for the app;
-- `install-evidence.rollback_candidate_version` — admitted prior
-  descriptor eligible for rollback (`P-NAPP-018` `rollback_eligibility`).
-
-In 0K all immutable install/update/rollback evidence fields are typed
-unavailable; they reserve non-collapsed shapes only and do not assert a positive
-local package, principal, release or launch. 0P may map verified package and
-attestation inputs into the frozen Runtime opaque fields but may not reshape
-the principal/record/session schema.
-
-Collapsing any two of these into a single `version` field fails admission
-closed with typed reason `descriptor_version_collapsed`.
-
-`MUST NOT`：a third-party admission MUST NOT carry a single "size", a
-single "date", or a single "version" field that conflates the typed
-fields above. The five sizes, six dates, and three versions are not
-interchangeable projections of one another.
+`MUST NOT`：catalog review metadata such as descriptor `version`, `artifact.size`,
+dates or rollback eligibility may not be interpreted as local package,
+principal, install, launch, grant or promotion truth in 0K.
 
 ## P-NAPP-020 — Publisher Identity Required Fields
 
@@ -565,8 +535,7 @@ sub-fields:
   (extensible only per a future `P-AUDIT-*` rule, not this rule);
 - `review.adjudicator_ref` — string reference to reviewer policy or human
   reviewer identifier;
-- `review.decided_at` — terminal-decision timestamp (distinct from the
-  other lifecycle dates per `P-NAPP-019`).
+- `review.decided_at` — terminal-decision timestamp owned by the review record.
 
 `MUST NOT`：the pre-decision P-ECO-004 state-machine positions
 `submitted` and `under-review` MUST NOT appear as `review.decision`

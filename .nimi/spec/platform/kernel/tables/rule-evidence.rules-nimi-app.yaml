@@ -171,8 +171,8 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural catalog non-collapse vocabulary only in 0K;
-    install/update/rollback evidence is typed unavailable and cannot authorize a local record
+  evidence_scope_note: structural 0K opaque-slot vocabulary only; positive
+    install/update/rollback evidence and detailed package shapes are deferred to 0P/P
 - rule_id: P-NAPP-020
   evidence_refs:
   - platform_kernel_consistency
