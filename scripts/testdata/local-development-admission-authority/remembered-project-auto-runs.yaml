@@ -1,0 +1,7 @@
+target: policy
+expected_issue: LOCAL_DEVELOPMENT_LIFETIME_INVALID
+mutations:
+  - path: lifetimes.remember_project_auto_runs_after_reenable
+    value: true
+  - path: lifetimes.remembered_account_switch
+    value: transferable_to_current_account

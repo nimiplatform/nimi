@@ -11,89 +11,136 @@ const repoRoot = path.resolve(scriptDir, '..');
 export const authorityPaths = Object.freeze({
   policy: '.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml',
   platform: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
-  runtime: '.nimi/spec/runtime/kernel/protected-local-session-contract.md',
-  appLifecycle: '.nimi/spec/runtime/kernel/app-lifecycle-contract.md',
+  runtimeSession: '.nimi/spec/runtime/kernel/protected-local-session-contract.md',
+  account: '.nimi/spec/runtime/kernel/account-session-contract.md',
+  grant: '.nimi/spec/runtime/kernel/grant-service.md',
   desktop: '.nimi/spec/desktop/kernel/bridge-ipc-contract.md',
   kit: '.nimi/spec/platform/kernel/kit-contract.md',
-  scaffold: '.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md',
   sdk: '.nimi/spec/sdks/kernel/transport-contract.md',
+  principalSchema: '.nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml',
+  grantSchema: '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml',
+  presenceProtocol: '.nimi/spec/runtime/kernel/tables/local-app-presence-protocol.yaml',
+  transportMatrix: '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
+  rpcAuth: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+  desktopControls: '.nimi/spec/desktop/kernel/tables/local-app-control-surfaces.yaml',
 });
 
-const requiredRules = new Map([
-  ['platform', ['P-NAPP-035', /production release trust.*mutable local-development trust/isu, /AdoptLocalApp.*never.*installed/isu]],
-  ['runtime', ['K-PLOCAL-009', /user\s+development authorization/iu, /technical session/iu, /account generation.*Runtime\s+boot\s+epoch/isu]],
-  ['appLifecycle', [
-    'K-APP-027',
-    /local-development-installed-admission/iu,
-    /AdoptLocalApp.*inventory/isu,
-    /does not require.*AdoptLocalApp/isu,
-  ]],
-  ['desktop', ['D-IPC-019', /Desktop-owned dev supervisor/iu, /confirmation/iu, /never.*CLI.*renderer/isu]],
-  ['kit', ['P-KIT-046', /typed.*bootstrap.*status/isu, /Electron.*Tauri/isu, /artifacts\.readRuntimeBytes/iu]],
-  ['scaffold', ['P-SCAF-018', /pnpm dev/iu, /nimi-app dev/iu, /direct.*tauri dev/isu]],
-  ['sdk', ['S-TRANSPORT-014', /local-development/iu, /host-injected/iu, /session.*renderer/isu]],
+const yamlKeys = new Set([
+  'policy',
+  'principalSchema',
+  'grantSchema',
+  'presenceProtocol',
+  'transportMatrix',
+  'rpcAuth',
+  'desktopControls',
 ]);
 
-const authorizationBindings = [
-  'canonical_project_root',
-  'app_id',
+const authorizationBindings = Object.freeze([
+  'local_os_user_anchor',
+  'local_app_principal_id',
+  'canonical_project_file_id',
+  'declared_app_id',
   'manifest_capability_fingerprint',
   'account_id',
-  'trust_class',
-];
-const sessionBindings = [
+  'fixed_shell_entry_policy',
+]);
+
+const sessionBindings = Object.freeze([
   'development_authorization_id',
+  'local_app_principal_id',
+  'local_app_record_id',
+  'provenance_revision',
+  'project_generation',
+  'launch_lease_id',
   'desktop_supervisor_process',
-  'host_process_id',
-  'host_process_creation_marker',
+  'host_process_tuple',
+  'executable_and_build_digest',
+  'controlled_renderer_origin_and_output_roots',
   'shell_kind',
   'account_generation',
+  'account_id',
   'runtime_boot_epoch',
-  'expires_at',
-];
-const noReapprovalChanges = [
-  'renderer_source_hmr',
-  'renderer_reload',
-  'electron_main_or_preload_rebuild_and_controlled_restart',
-  'tauri_rust_rebuild_and_controlled_restart',
-  'technical_session_rotation',
-  'runtime_restart_with_valid_authorization',
-  'controlled_host_restart_same_project_app_capability_account_shell',
-];
-const reapprovalOrRejectChanges = [
+]);
+
+const continuityWithoutReapproval = Object.freeze([
+  'renderer_hmr_or_reload',
+  'electron_main_or_preload_controlled_rebuild_and_restart',
+  'tauri_host_controlled_rebuild_and_restart',
+  'controlled_host_replacement_same_authorization',
+  'runtime_restart_during_live_supervisor_run',
+]);
+
+const continuityInvalidators = Object.freeze([
   'capability_expansion',
-  'app_id_change',
-  'canonical_project_root_change',
-  'shell_or_trust_class_change',
-  'account_change',
-  'authorization_revoked',
-  'host_outside_desktop_supervisor',
-  'executable_or_renderer_origin_outside_controlled_project_outputs',
+  'declared_app_id_change',
+  'canonical_project_file_identity_change',
+  'copied_project',
+  'shell_or_entry_policy_change',
+  'account_switch_or_logout',
+  'mode_off',
+  'authorization_revoke',
+  'supervisor_run_termination',
+  'host_outside_verified_supervisor',
+  'executable_or_renderer_origin_outside_controlled_outputs',
   'remote_or_uncontrolled_dev_server',
-];
-const ownerRows = Object.freeze({
-  app_tools: 'command_scaffold_project_validation_build_coordination_and_user_safe_status_only',
-  desktop: 'confirmation_ui_dev_supervisor_dev_server_and_host_process_ownership',
-  runtime: 'authorization_admission_generation_revocation_and_session_truth',
-  kit: 'electron_tauri_typed_bootstrap_status_rotation_and_operation_surface',
-});
-const admittedWindowsPosture = Object.freeze({
-  authority_status: 'admitted',
-  implementation_status: 'pending_live_e2e',
-  closeout_status: 'blocked',
-});
-const unimplementedPlatformPosture = Object.freeze({
-  authority_status: 'pending_independent_admission',
-  implementation_status: 'fail_closed_not_implemented',
-  closeout_status: 'blocked',
-});
+]);
+
+const runOnceEnds = Object.freeze([
+  'supervisor_run_termination',
+  'mode_off',
+  'logout_or_account_switch',
+  'revoke',
+  'identity_capability_or_shell_mismatch',
+]);
+
+const developerMethods = Object.freeze([
+  'GetDeveloperModeStatus',
+  'SetDeveloperMode',
+  'EvaluateLocalDevelopmentProject',
+  'DecideLocalDevelopmentProject',
+  'ListLocalDevelopmentAuthorizations',
+  'ReactivateLocalDevelopmentProject',
+  'RevokeLocalDevelopmentAuthorization',
+  'EndLocalDevelopmentRun',
+]);
+
+const selectedOperationMethods = Object.freeze([
+  '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes',
+  '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor',
+  '/nimi.runtime.v1.RuntimeAppService/SendAppMessage',
+  '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages',
+  '/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot',
+]);
+
+const requiredRuleClauses = Object.freeze([
+  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*remember_project/isu, /Every build\/host replacement receives a new lease/iu, /account switch, mode-off,\s*revoke/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
+  ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /remember_project.*dormant/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /It never autostarts/iu]],
+  ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /exact grant revision/iu, /owner.*resource policy/iu, /opening a session grants nothing/iu]],
+  ['grant', ['K-GRANT-014', /create zero grant/iu, /Account switch never transfers/iu, /next protected operation reads the\s+current revision/isu, /separate from principal\/record and launch\/session stores/iu]],
+  ['desktop', ['D-IPC-019', /production account.*off by default.*grants nothing/isu, /exactly one Dev Trust Set/iu, /remember_project.*dormant.*reactivate/isu, /fresh host\/payload digest.*launch lease.*process bind.*local-app session/isu, /Native\s+Windows execution risk disclosure/isu, /never create persistent/iu]],
+  ['desktop', ['D-IPC-020', /local_app_control.*verified\s+Desktop control connection/isu, /PrepareLocalAppLaunch.*process binding.*native supervisor/isu, /must not enter renderer state,\s*storage, network, logs or errors/isu]],
+  ['kit', ['P-KIT-046', /common local-app host\/client/iu, /controlled process replacement or Runtime restart/iu, /artifact read.*selected RuntimeAgent conversation/isu, /missing\/untrusted carrier fails closed/iu, /ordinary gRPC/iu]],
+  ['sdk', ['S-TRANSPORT-014', /host-injected by Kit.*never\s*renderer-constructed/isu, /request-empty `OpenLocalAppSession`/iu, /controlled host\/Runtime restart/iu, /selected RuntimeAgent open-conversation, send-turn, subscribe-turn and\s*conversation-snapshot/isu, /Missing operation families remain typed\s*unavailable/isu, /localhost gRPC cannot claim/iu]],
+]);
 
 function issue(code, target, reason) {
   return { code, target, reason };
 }
 
 function exactArray(value, expected) {
-  return Array.isArray(value) && value.length === expected.length && value.every((entry, index) => entry === expected[index]);
+  return Array.isArray(value)
+    && value.length === expected.length
+    && value.every((entry, index) => entry === expected[index]);
+}
+
+function sameSet(value, expected) {
+  return Array.isArray(value)
+    && value.length === expected.length
+    && expected.every((entry) => value.includes(entry));
+}
+
+function includesAll(value, expected) {
+  return Array.isArray(value) && expected.every((entry) => value.includes(entry));
 }
 
 function extractRule(source, ruleId) {
@@ -102,6 +149,25 @@ function extractRule(source, ruleId) {
   if (!match) return '';
   const next = source.indexOf('\n## ', match.index + match[0].length);
   return source.slice(match.index, next === -1 ? source.length : next);
+}
+
+function methodMap(table) {
+  return new Map((table?.methods ?? []).map((row) => [row.method_id, row]));
+}
+
+function hasExactProtectedRow(row, transport, role) {
+  return row?.posture === 'protected_origin_required'
+    && row?.protected_transport_class === transport
+    && row?.required_origin_role === role;
+}
+
+function hasExactTransportRow(row, operationClass, transport, role) {
+  return row?.operation_class === operationClass
+    && exactArray(row?.allowed_transport_classes, [transport])
+    && exactArray(row?.required_origin_roles, [role])
+    && row?.request_may_select_role === false
+    && row?.portable_session_allowed === false
+    && row?.public_tcp_disposition === 'deny';
 }
 
 export function loadAuthorityBundle(root = repoRoot) {
@@ -113,13 +179,23 @@ export function loadAuthorityBundle(root = repoRoot) {
 
 export function validateLocalDevelopmentAuthority(bundle) {
   const issues = [];
+  const parsed = {};
+
   for (const [key, relative] of Object.entries(authorityPaths)) {
     if (bundle[key] === null || bundle[key] === undefined) {
       issues.push(issue('LOCAL_DEVELOPMENT_AUTHORITY_FILE_MISSING', relative, 'Required local-development authority file is missing.'));
+      continue;
+    }
+    if (yamlKeys.has(key)) {
+      try {
+        parsed[key] = typeof bundle[key] === 'string' ? YAML.parse(bundle[key]) : bundle[key];
+      } catch {
+        issues.push(issue('LOCAL_DEVELOPMENT_AUTHORITY_YAML_INVALID', relative, 'Required local-development authority YAML is invalid.'));
+      }
     }
   }
 
-  for (const [key, [ruleId, ...patterns]] of requiredRules) {
+  for (const [key, [ruleId, ...patterns]] of requiredRuleClauses) {
     const section = extractRule(bundle[key] ?? '', ruleId);
     if (!section) {
       issues.push(issue('LOCAL_DEVELOPMENT_AUTHORITY_RULE_MISSING', `${authorityPaths[key]}#${ruleId}`, `Required rule ${ruleId} is missing.`));
@@ -132,115 +208,262 @@ export function validateLocalDevelopmentAuthority(bundle) {
     }
   }
 
-  let policy;
-  if (typeof bundle.policy === 'string') {
-    try {
-      policy = YAML.parse(bundle.policy);
-    } catch {
-      issues.push(issue('LOCAL_DEVELOPMENT_AUTHORITY_YAML_INVALID', authorityPaths.policy, 'Local-development authority YAML is invalid.'));
+  const policy = parsed.policy;
+  if (policy) {
+    if (
+      policy.version !== 2
+      || policy.table_family !== 'owner_matrix'
+      || policy.owner !== 'platform'
+      || policy.matrix_id !== 'nimi_app_local_development_admission'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v2 local-development owner matrix.'));
+    }
+
+    if (
+      policy.trust_class?.id !== 'local_development'
+      || policy.trust_class?.taxonomy_ref !== 'tables/nimi-app-local-trust-classes.yaml'
+      || policy.trust_class?.mutable_project_allowed !== true
+      || policy.trust_class?.product_release_conversion !== 'forbidden_new_immutable_admission_required'
+      || policy.trust_class?.app_id_collision_inherits_state !== false
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_TRUST_CLASS_INVALID', authorityPaths.policy, 'Local development must be the isolated mutable provenance class and cannot convert to or inherit immutable product state.'));
+    }
+
+    const mode = policy.developer_mode;
+    if (
+      mode?.shipped_in_production !== true
+      || mode?.default_enabled !== false
+      || mode?.global_toggle_grants_capability !== false
+      || mode?.hidden_flag_env_or_argv_enablement !== 'forbidden'
+      || mode?.disable_effect?.active_sessions !== 'revoke'
+      || mode?.disable_effect?.run_once_authorizations !== 'revoke'
+      || mode?.disable_effect?.remembered_authorizations !== 'dormant'
+      || mode?.disable_effect?.immutable_records !== 'unaffected'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_DEVELOPER_MODE_INVALID', authorityPaths.policy, 'Production Developer Mode must default off, grant nothing, reject hidden enablement, and apply the exact mode-off invalidations.'));
+    }
+
+    const authorization = policy.user_development_authorization;
+    if (
+      authorization?.owner !== 'runtime_k_app'
+      || !exactArray(authorization?.bindings, authorizationBindings)
+      || !exactArray(authorization?.choices, ['run_once', 'remember_project'])
+      || authorization?.initial_grant_state !== 'zero'
+      || authorization?.remembered_reactivation_requires_fresh_presence !== true
+      || authorization?.account_switch_transfers_authorization !== false
+      || authorization?.app_owned_or_renderer_storage !== 'forbidden'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID', authorityPaths.policy, 'Project authorization must use the exact principal/project/account/shell bindings, zero-grant start, and run-once/remember lifetimes.'));
+    }
+
+    const session = policy.technical_launch_and_session;
+    if (
+      session?.owner !== 'runtime_k_plocal'
+      || session?.transport !== 'local_app_host'
+      || session?.session_role !== 'local_app_session'
+      || !exactArray(session?.bindings, sessionBindings)
+      || session?.new_process_requires_new_lease_and_session !== true
+      || session?.material_visibility !== 'runtime_and_native_host_private_only'
+      || session?.renderer_cli_terminal_visibility !== 'forbidden'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_TECHNICAL_SESSION_INVALID', authorityPaths.policy, 'Each exact supervised process requires a new private lease/session with all principal, record, digest, account, and epoch bindings.'));
+    }
+
+    if (!exactArray(policy.continuity_matrix?.no_reapproval_new_lease_and_session_required, continuityWithoutReapproval)) {
+      issues.push(issue('LOCAL_DEVELOPMENT_CONTINUITY_INVALID', authorityPaths.policy, 'Controlled edit/build/restart and Runtime restart must rotate lease/session without widening durable authorization.'));
+    }
+    if (!exactArray(policy.continuity_matrix?.invalidate_or_require_fresh_approval, continuityInvalidators)) {
+      issues.push(issue('LOCAL_DEVELOPMENT_INVALIDATION_INVALID', authorityPaths.policy, 'Project, account, mode, revoke, supervisor, process, output, and origin changes must invalidate or require fresh approval.'));
+    }
+
+    const lifetimes = policy.lifetimes;
+    if (
+      !exactArray(lifetimes?.run_once_ends_on, runOnceEnds)
+      || lifetimes?.run_once_terminal_transition !== 'tombstone_principal_and_mark_record_removed'
+      || lifetimes?.subsequent_run_once !== 'fresh_approval_new_principal_and_record'
+      || lifetimes?.remember_project_on_mode_off !== 'dormant'
+      || lifetimes?.remember_project_on_supervisor_run_termination !== 'dormant'
+      || lifetimes?.remember_project_auto_runs_after_reenable !== false
+      || lifetimes?.remembered_account_switch !== 'live_session_revoked_record_remains_bound_to_original_account_and_requires_fresh_presence_after_return'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_LIFETIME_INVALID', authorityPaths.policy, 'Run-once must terminate/tombstone while remembered projects remain dormant, account-bound, presence-gated, and never auto-run.'));
+    }
+
+    const risk = policy.risk_and_background;
+    if (
+      risk?.production_account_allowed_through_runtime_mediation !== true
+      || risk?.runtime_credential_custody_required !== true
+      || risk?.native_os_risk_disclosure_required !== true
+      || risk?.nimi_grants_cover_all_windows_rights !== false
+      || risk?.nimi_managed_logon_or_boot_autostart !== 'forbidden'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_RISK_POSTURE_INVALID', authorityPaths.policy, 'Production-account mediation requires Runtime custody, native Windows risk disclosure, and no Nimi-managed persistent autostart.'));
+    }
+
+    const operation = policy.operation_posture;
+    if (
+      operation?.same_grant_and_owner_policy_as_other_trust_classes !== true
+      || !exactArray(operation?.selected_checkpoint_families, ['runtime_artifact_read', 'runtime_agent_conversation'])
+      || operation?.missing_families !== 'typed_owner_unavailable'
+      || operation?.generic_protected_proxy !== 'forbidden'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID', authorityPaths.policy, 'The checkpoint admits only artifact read and selected RuntimeAgent conversation through common grants/owner policy; missing families stay typed unavailable.'));
+    }
+
+    if (
+      policy.platform_posture?.windows !== 'final_fixed_service_positive_required'
+      || policy.platform_posture?.macos !== 'fail_closed_pending_independent_admission'
+      || policy.platform_posture?.linux !== 'fail_closed_pending_independent_admission'
+      || policy.platform_posture?.localhost_grpc_or_same_user_daemon_fallback !== 'forbidden'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID', authorityPaths.policy, 'Windows requires the final fixed service; macOS/Linux and localhost/same-user-daemon fallbacks remain fail closed.'));
     }
   }
-  if (!policy) return issues;
 
-  if (
-    policy.table_family !== 'owner_matrix'
-    || policy.owner !== 'platform'
-    || policy.matrix_id !== 'nimi_app_local_development_admission'
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned local-development owner matrix.'));
-  }
-
-  const trust = policy.trust_class;
-  if (
-    trust?.id !== 'local-development-installed-admission'
-    || trust?.environment !== 'non_production_development'
-    || trust?.mutable_project_allowed !== true
-    || trust?.product_readiness_claim_allowed !== false
-    || trust?.store_listing_allowed !== false
-    || trust?.production_release_conversion !== 'forbidden_new_admission_required'
-    || trust?.adoption_alone_authorizes !== false
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_TRUST_CLASS_INVALID', authorityPaths.policy, 'Development trust must stay mutable, non-product, non-listing, and distinct from adoption and production release trust.'));
-  }
-
-  const authorization = policy.user_development_authorization;
-  if (
-    authorization?.owner !== 'runtime_protected_state'
-    || !exactArray(authorization?.bindings, authorizationBindings)
-    || !exactArray(authorization?.choices, ['run_once', 'remember_project'])
-    || authorization?.app_owned_storage_allowed !== false
-    || authorization?.renderer_storage_allowed !== false
-    || authorization?.generic_keyring_allowed !== false
-    || authorization?.survives_technical_session !== true
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID', authorityPaths.policy, 'User authorization must use the exact protected bindings, choices, persistence owner, and storage prohibitions.'));
-  }
-
-  const session = policy.technical_session;
-  if (
-    session?.owner !== 'runtime'
-    || session?.ttl_class !== 'short_rotating'
-    || !exactArray(session?.bindings, sessionBindings)
-    || session?.material_visibility !== 'runtime_and_native_host_private_only'
-    || session?.cli_visibility !== 'forbidden'
-    || session?.renderer_visibility !== 'forbidden'
-    || session?.terminal_visibility !== 'forbidden'
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_TECHNICAL_SESSION_INVALID', authorityPaths.policy, 'Technical sessions must be short, process/supervisor/account/epoch bound, and invisible outside Runtime/native host.'));
-  }
-
-  if (!exactArray(policy.reapproval_matrix?.no_reapproval, noReapprovalChanges)) {
-    issues.push(issue('LOCAL_DEVELOPMENT_NO_REAPPROVAL_MATRIX_INVALID', authorityPaths.policy, 'HMR, controlled restarts, rotation, and Runtime restart must not require repeat confirmation.'));
-  }
-  if (!exactArray(policy.reapproval_matrix?.reapprove_or_reject, reapprovalOrRejectChanges)) {
-    issues.push(issue('LOCAL_DEVELOPMENT_REAPPROVAL_MATRIX_INVALID', authorityPaths.policy, 'Identity, root, capability, account, shell, supervision, output, and server changes must reapprove or reject.'));
-  }
-
-  const rows = new Map((policy.rows ?? []).map((row) => [row.owner_id, row]));
-  for (const [ownerId, responsibility] of Object.entries(ownerRows)) {
-    const row = rows.get(ownerId);
-    if (row?.responsibility !== responsibility || row?.may_mint_portable_authority !== false) {
-      issues.push(issue('LOCAL_DEVELOPMENT_OWNER_BOUNDARY_INVALID', authorityPaths.policy, `Owner row ${ownerId} is missing or widens portable authority.`));
+  const principal = parsed.principalSchema;
+  if (principal) {
+    if (
+      principal.local_os_user_anchor?.windows_source !== 'verified_interactive_user_sid'
+      || principal.local_os_user_anchor?.request_supplied !== 'forbidden'
+      || principal.local_os_user_anchor?.active_anchors_per_data_root !== 1
+      || !includesAll(principal.principal?.fields, ['local_os_user_anchor', 'local_app_principal_id', 'app_id', 'development_authorization_id', 'canonical_project_file_id', 'state'])
+      || !principal.principal?.invariants?.includes('local_app_principal_id_is_random_non_reused_and_opaque')
+      || !principal.principal?.invariants?.includes('development_principal_has_only_development_authorization_id_and_canonical_project_file_id')
+      || principal.store_separation?.app_id_positive_key !== 'forbidden'
+      || principal.invalidation?.run_once_terminal_tombstones_principal_and_removes_record !== true
+      || principal.invalidation?.subsequent_run_once_reuses_principal !== false
+      || !exactArray(principal.principal_lineage_binding?.development, ['development_authorization_id', 'canonical_project_file_id', 'app_id'])
+      || principal.principal_lineage_binding?.exactly_one_branch_required !== true
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_PRINCIPAL_SCHEMA_INVALID', authorityPaths.principalSchema, 'Development principals must be SID-partitioned, random/non-reused, project-authorized, app-id-non-authorizing, and terminally tombstoned for run-once.'));
     }
   }
 
-  if (
-    JSON.stringify(policy.platform_posture?.windows) !== JSON.stringify(admittedWindowsPosture)
-    || JSON.stringify(policy.platform_posture?.macos) !== JSON.stringify(unimplementedPlatformPosture)
-    || JSON.stringify(policy.platform_posture?.linux) !== JSON.stringify(unimplementedPlatformPosture)
-    || policy.platform_posture?.localhost_grpc_fallback !== 'forbidden'
-    || policy.platform_posture?.same_user_daemon_fallback !== 'forbidden'
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID', authorityPaths.policy, 'Authority admission, implementation evidence, and closeout must remain separate while unimplemented platforms and weak fallbacks fail closed.'));
+  const grant = parsed.grantSchema;
+  if (grant) {
+    if (
+      grant.grant?.owner !== 'runtime_k_grant'
+      || !exactArray(grant.grant?.key, ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'capability_resource_fingerprint'])
+      || !grant.grant?.invariants?.includes('install_project_authorization_or_promotion_creates_zero_grant')
+      || !grant.grant?.invariants?.includes('account_switch_never_transfers_grant')
+      || !grant.grant?.invariants?.includes('next_protected_operation_reads_current_grant')
+      || grant.store_separation?.launch_session_store_dependency !== 'none'
+      || !includesAll(grant.forbidden_outputs, ['bearer', 'token', 'portable_grant_credential', 'session_proof'])
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_GRANT_SCHEMA_INVALID', authorityPaths.grantSchema, 'Grant state must be separately keyed by SID/account/principal/resource, start at zero, deny transfer, and expose no portable material.'));
+    }
   }
 
-  const evidence = policy.implementation_evidence;
-  if (
-    evidence?.windows_restricted_runtime_service !== 'green'
-    || evidence?.desktop_confirmation_and_supervisor !== 'pending'
-    || evidence?.kit_typed_bootstrap_and_rotation !== 'pending'
-    || evidence?.app_tools_one_command_launcher !== 'pending'
-    || evidence?.electron_live_shell !== 'pending'
-    || evidence?.tauri_live_shell !== 'pending'
-    || evidence?.authority_gate_green_means_product_closeout_green !== false
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_EVIDENCE_STATUS_INVALID', authorityPaths.policy, 'Restricted-service evidence cannot promote pending Desktop, Kit, app-tools, or live-shell evidence into product closeout.'));
+  const presence = parsed.presenceProtocol;
+  if (presence) {
+    if (
+      presence.challenge?.owner !== 'runtime_account_service'
+      || !sameSet(presence.challenge?.required_bindings, ['protected_control_session', 'local_os_user_anchor', 'account_id', 'account_generation', 'local_app_principal_id', 'local_app_record_id', 'provenance_revision', 'release_or_project_generation', 'action', 'resource_impact_digest', 'policy_revision', 'nonce', 'issued_at', 'expires_at'])
+      || presence.challenge?.request_supplied_authority !== 'forbidden'
+      || presence.challenge?.consume !== 'atomic_with_state_change'
+      || presence.challenge?.replay !== 'denied'
+      || presence.assignments?.developer_project_trust !== 'grant_presence'
+      || presence.assignments?.remembered_project_reactivation !== 'grant_presence'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_PRESENCE_PROTOCOL_INVALID', authorityPaths.presenceProtocol, 'Project approval and remembered reactivation require an exact Runtime-owned, atomic, non-replayable presence challenge.'));
+    }
   }
 
-  if (
-    !exactArray(policy.command_surface?.commands, ['pnpm dev', 'pnpm dev:shell -- --shell electron', 'pnpm dev:shell -- --shell tauri'])
-    || policy.command_surface?.canonical_launcher !== 'nimi-app dev'
-    || policy.command_surface?.direct_tauri_dev !== 'denied'
-    || policy.command_surface?.manual_electron !== 'denied'
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_COMMAND_SURFACE_INVALID', authorityPaths.policy, 'Public commands must converge on nimi-app dev while direct shell launches remain denied.'));
+  const transport = parsed.transportMatrix;
+  if (transport) {
+    const methods = methodMap(transport);
+    const localWire = transport.open_local_app_session_wire;
+    if (
+      !exactArray(localWire?.request?.fields, [])
+      || !exactArray(localWire?.request?.request_metadata_authority_inputs, [])
+      || localWire?.request?.unknown_field_disposition !== 'reject'
+      || localWire?.connection_binding !== 'exact_bound_local_app_process_and_current_launch_lease'
+      || localWire?.atomic_transition !== 'launch_lease_consume_and_private_local_app_session_insert'
+      || localWire?.ordinary_grpc_disposition !== 'deny'
+      || !includesAll(localWire?.response?.forbidden_fields, ['local_app_principal_id', 'local_record_id', 'grant_id', 'session_id', 'session_proof', 'launch_lease', 'process_proof', 'endpoint', 'token', 'credential'])
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_OPEN_SESSION_WIRE_INVALID', authorityPaths.transportMatrix, 'OpenLocalAppSession must be request-empty, exact-process/lease-bound, atomic, non-gRPC, and non-portable.'));
+    }
+
+    const open = methods.get('/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession');
+    if (!hasExactTransportRow(open, 'local_app_session_bootstrap', 'local_app_bootstrap', 'local_app_process')) {
+      issues.push(issue('LOCAL_DEVELOPMENT_BOOTSTRAP_TRANSPORT_INVALID', authorityPaths.transportMatrix, 'OpenLocalAppSession requires the local-app bootstrap transport and exact bound process role.'));
+    }
+    const prepare = methods.get('/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch');
+    const bind = methods.get('/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess');
+    if (
+      !hasExactTransportRow(prepare, 'local_app_launch_preparation', 'desktop_control', 'local_app_control')
+      || !hasExactTransportRow(bind, 'local_app_process_binding', 'desktop_control', 'local_app_control')
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_LAUNCH_TRANSPORT_INVALID', authorityPaths.transportMatrix, 'Only Desktop local_app_control may prepare a launch and bind the retained native process witness.'));
+    }
+
+    for (const name of developerMethods) {
+      const row = methods.get(`/nimi.runtime.v1.RuntimeDevelopmentService/${name}`);
+      const operationClass = name === 'EndLocalDevelopmentRun' ? 'local_development_run_end' : 'local_development_control';
+      if (!hasExactTransportRow(row, operationClass, 'desktop_control', 'local_app_control')) {
+        issues.push(issue('LOCAL_DEVELOPMENT_CONTROL_TRANSPORT_INVALID', `${authorityPaths.transportMatrix}#${name}`, 'Developer Mode/project controls must be non-portable Desktop local_app_control operations.'));
+      }
+    }
+
+    for (const methodId of selectedOperationMethods) {
+      if (!hasExactTransportRow(methods.get(methodId), methodId.includes('ReadArtifactBytes') ? 'local_app_artifact_read' : 'local_app_agent_conversation', 'local_app_host', 'local_app_session')) {
+        issues.push(issue('LOCAL_DEVELOPMENT_SELECTED_OPERATION_INVALID', `${authorityPaths.transportMatrix}#${methodId}`, 'Selected checkpoint operations must require the exact local-app host/session carrier.'));
+      }
+    }
+    if (
+      transport.platform_admission?.windows !== 'admitted_fixed_service_and_process_verification'
+      || !sameSet(transport.platform_admission?.forbidden_fallbacks, ['localhost_grpc', 'same_user_daemon', 'direct_tauri_dev', 'manual_electron', 'argv', 'env', 'temp_file', 'renderer_ipc', 'portable_bearer', 'raw_executable_self_auth'])
+      || !exactArray(transport.trust_classes?.admitted_positive, ['local_development'])
+      || transport.blocked_or_unadmitted?.missing_explicit_method_row !== 'fail_generation'
+      || transport.blocked_or_unadmitted?.generic_proxy !== 'forbidden'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_TRANSPORT_BOUNDARY_INVALID', authorityPaths.transportMatrix, 'Only local_development is positive on the fixed Windows service; all self-asserted/fallback carriers and generic proxies remain denied.'));
+    }
   }
 
-  if (
-    !exactArray(policy.operation_posture?.allowed, ['artifacts.readRuntimeBytes'])
-    || !exactArray(policy.operation_posture?.denied_families, ['account', 'lifecycle', 'realm', 'ai', 'realtime', 'media', 'generic_protected_proxy'])
-  ) {
-    issues.push(issue('LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID', authorityPaths.policy, 'A.5 must remain artifact-read-only and deny every unadmitted operation family.'));
+  const rpcAuth = parsed.rpcAuth;
+  if (rpcAuth) {
+    const methods = methodMap(rpcAuth);
+    for (const name of developerMethods) {
+      if (!hasExactProtectedRow(methods.get(`/nimi.runtime.v1.RuntimeDevelopmentService/${name}`), 'desktop_control', 'local_app_control')) {
+        issues.push(issue('LOCAL_DEVELOPMENT_RPC_AUTH_INVALID', `${authorityPaths.rpcAuth}#${name}`, 'Runtime auth posture must independently require Desktop local_app_control for every development method.'));
+      }
+    }
+    if (
+      !hasExactProtectedRow(methods.get('/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch'), 'desktop_control', 'local_app_control')
+      || !hasExactProtectedRow(methods.get('/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess'), 'desktop_control', 'local_app_control')
+      || !hasExactProtectedRow(methods.get('/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession'), 'local_app_bootstrap', 'local_app_process')
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_RPC_LAUNCH_AUTH_INVALID', authorityPaths.rpcAuth, 'Runtime auth posture must match the Desktop prepare/bind and bound-process request-empty bootstrap roles.'));
+    }
+  }
+
+  const controls = parsed.desktopControls;
+  if (controls) {
+    const actions = new Map((controls.actions ?? []).map((row) => [row.action, row]));
+    const prepare = actions.get('prepare_local_app_launch');
+    const bind = actions.get('bind_local_app_process');
+    const decide = actions.get('decide_local_development_project');
+    const reactivate = actions.get('reactivate_local_development_project');
+    if (
+      controls.logical_role?.id !== 'local_app_control'
+      || controls.logical_role?.current_implementation !== 'protected_desktop_process'
+      || controls.logical_role?.portable_credential !== 'forbidden'
+      || prepare?.renderer_access !== 'forbidden'
+      || prepare?.native_host_only !== true
+      || bind?.renderer_access !== 'forbidden'
+      || bind?.native_host_only !== true
+      || !sameSet(decide?.native_host_attaches, ['current_presence_proof', 'authoritative_risk_disclosure_revision'])
+      || !sameSet(reactivate?.native_host_attaches, ['current_presence_proof', 'authoritative_risk_disclosure_revision'])
+      || !controls.constraints?.includes('developer_mode_grants_nothing')
+      || !controls.constraints?.includes('mode_off_revoke_account_switch_and_runtime_restart_invalidate_live_carrier')
+      || !controls.constraints?.includes('native_windows_execution_risk_disclosure_is_required')
+      || !controls.constraints?.includes('no_persistent_local_development_autostart')
+      || !controls.constraints?.includes('no_endpoint_token_bearer_session_proof_process_tuple_or_trust_override_in_renderer')
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_DESKTOP_CONTROL_INVALID', authorityPaths.desktopControls, 'Desktop must split renderer-safe decisions from native-only prepare/bind/presence while exposing no portable authority.'));
+    }
   }
 
   return issues;

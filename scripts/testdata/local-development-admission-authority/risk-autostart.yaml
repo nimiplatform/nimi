@@ -1,0 +1,7 @@
+target: policy
+expected_issue: LOCAL_DEVELOPMENT_RISK_POSTURE_INVALID
+mutations:
+  - path: risk_and_background.native_os_risk_disclosure_required
+    value: false
+  - path: risk_and_background.nimi_managed_logon_or_boot_autostart
+    value: allowed

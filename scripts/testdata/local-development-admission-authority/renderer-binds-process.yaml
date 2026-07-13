@@ -1,0 +1,9 @@
+target: desktopControls
+expected_issue: LOCAL_DEVELOPMENT_DESKTOP_CONTROL_INVALID
+mutations:
+  - path: actions.5.renderer_access
+    value: allowed
+  - path: actions.5.native_host_only
+    value: false
+  - path: actions.6.renderer_access
+    value: allowed

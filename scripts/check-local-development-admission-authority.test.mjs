@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 import {
@@ -8,62 +11,62 @@ import {
   validateLocalDevelopmentAuthority,
 } from './check-local-development-admission-authority.mjs';
 
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const fixtureDir = path.join(scriptDir, 'testdata', 'local-development-admission-authority');
+
+function setPath(root, dottedPath, value) {
+  const segments = dottedPath.split('.').map((segment) => /^\d+$/u.test(segment) ? Number(segment) : segment);
+  let cursor = root;
+  for (const segment of segments.slice(0, -1)) cursor = cursor[segment];
+  cursor[segments.at(-1)] = value;
+}
+
+function applyNegativeFixture(bundle, fixture) {
+  const document = YAML.parse(bundle[fixture.target]);
+  for (const mutation of fixture.mutations) setPath(document, mutation.path, mutation.value);
+  return { ...bundle, [fixture.target]: YAML.stringify(document) };
+}
+
 test('local-development admission authority is complete and internally bounded', () => {
   assert.deepEqual(validateLocalDevelopmentAuthority(loadAuthorityBundle()), []);
 });
 
-test('gate rejects adoption-only privilege and production trust conversion', () => {
-  const bundle = loadAuthorityBundle();
-  const policy = YAML.parse(bundle.policy);
-  policy.trust_class.adoption_alone_authorizes = true;
-  policy.trust_class.production_release_conversion = 'allowed';
-  const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_TRUST_CLASS_INVALID'));
-});
+for (const filename of fs.readdirSync(fixtureDir).filter((entry) => entry.endsWith('.yaml')).sort()) {
+  test(`independent negative fixture is rejected: ${filename}`, () => {
+    const fixture = YAML.parse(fs.readFileSync(path.join(fixtureDir, filename), 'utf8'));
+    const bundle = applyNegativeFixture(loadAuthorityBundle(), fixture);
+    const issues = validateLocalDevelopmentAuthority(bundle);
+    assert.ok(
+      issues.some((entry) => entry.code === fixture.expected_issue),
+      `expected ${fixture.expected_issue}, got ${issues.map((entry) => entry.code).join(', ')}`,
+    );
+  });
+}
 
-test('gate rejects a pre-adoption prerequisite for one-command development', () => {
+test('gate rejects loss of required v2 prose rather than accepting a machine-table-only claim', () => {
   const bundle = loadAuthorityBundle();
-  bundle.appLifecycle = bundle.appLifecycle.replace(
-    /does not require[^.]*AdoptLocalApp[^.]*\./iu,
-    'requires AdoptLocalApp before evaluation.',
-  );
+  bundle.platform = bundle.platform.replace('The global Developer Mode toggle grants nothing.', 'The toggle determines project authority.');
   const issues = validateLocalDevelopmentAuthority(bundle);
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_AUTHORITY_CLAUSE_MISSING'));
 });
 
-test('gate rejects session leakage and weak transport fallbacks', () => {
+test('gate rejects a missing selected RuntimeAgent carrier row', () => {
   const bundle = loadAuthorityBundle();
-  const policy = YAML.parse(bundle.policy);
-  policy.technical_session.cli_visibility = 'allowed';
-  policy.platform_posture.localhost_grpc_fallback = 'allowed';
-  const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_TECHNICAL_SESSION_INVALID'));
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID'));
+  const matrix = YAML.parse(bundle.transportMatrix);
+  matrix.methods = matrix.methods.filter((row) => row.method_id !== '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor');
+  const issues = validateLocalDevelopmentAuthority({ ...bundle, transportMatrix: YAML.stringify(matrix) });
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_SELECTED_OPERATION_INVALID'));
 });
 
-test('gate keeps authority admission separate from implementation evidence and closeout', () => {
+test('gate rejects Desktop/runtime role drift independently of the transport matrix', () => {
   const bundle = loadAuthorityBundle();
-  const policy = YAML.parse(bundle.policy);
-  policy.platform_posture.windows.implementation_status = 'complete';
-  policy.platform_posture.windows.closeout_status = 'green';
-  policy.implementation_evidence.authority_gate_green_means_product_closeout_green = true;
-  const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID'));
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_EVIDENCE_STATUS_INVALID'));
-});
-
-test('gate rejects missing owner and reapproval rules', () => {
-  const bundle = loadAuthorityBundle();
-  const policy = YAML.parse(bundle.policy);
-  policy.rows = policy.rows.filter((row) => row.owner_id !== 'desktop');
-  policy.reapproval_matrix.reapprove_or_reject = [];
-  const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_OWNER_BOUNDARY_INVALID'));
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_REAPPROVAL_MATRIX_INVALID'));
+  const auth = YAML.parse(bundle.rpcAuth);
+  const row = auth.methods.find((entry) => entry.method_id.endsWith('/SetDeveloperMode'));
+  row.required_origin_role = 'desktop_account_host';
+  const issues = validateLocalDevelopmentAuthority({ ...bundle, rpcAuth: YAML.stringify(auth) });
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_RPC_AUTH_INVALID'));
 });
 
 test('authority paths remain canonical spec files', () => {
-  for (const relative of Object.values(authorityPaths)) {
-    assert.match(relative, /^\.nimi\/spec\//);
-  }
+  for (const relative of Object.values(authorityPaths)) assert.match(relative, /^\.nimi\/spec\//u);
 });
