@@ -615,7 +615,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if localStatePath := strings.TrimSpace(d.cfg.LocalStatePath); filepath.IsAbs(localStatePath) {
 		mgr.SetRuntimeWorkRoot(filepath.Join(filepath.Dir(localStatePath), "engine-work"))
 	}
-	managedLlamaConfigPath := resolveManagedLlamaModelsConfigPath()
+	managedLlamaConfigPath := resolveManagedLlamaModelsConfigPath(d.cfg.LocalStatePath)
 	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, managedLlamaConfigPath)
 	if svc != nil {
 		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, managedLlamaRegistrationEnabled)

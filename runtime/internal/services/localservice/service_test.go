@@ -64,6 +64,22 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 	return svc
 }
 
+func TestNewDerivesManagedLlamaConfigFromRuntimeState(t *testing.T) {
+	stateRoot := t.TempDir()
+	statePath := filepath.Join(stateRoot, "local-state.json")
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
+	svc, err := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
+	if err != nil {
+		t.Fatalf("create local service: %v", err)
+	}
+	t.Cleanup(func() { svc.Close() })
+	want := filepath.Join(stateRoot, "llama-models.yaml")
+	if got := svc.managedLlamaModelsConfigPath; got != want {
+		t.Fatalf("managed llama config path = %q, want Runtime state path %q", got, want)
+	}
+}
+
 func TestNewUsesConfiguredLocalModelsPathForUnregisteredScan(t *testing.T) {
 	t.Helper()
 	modelsDir := t.TempDir()

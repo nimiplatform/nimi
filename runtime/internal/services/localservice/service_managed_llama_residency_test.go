@@ -255,6 +255,47 @@ func TestAcquireLocalAssetLeaseStartsExplicitManagedLlamaTarget(t *testing.T) {
 	}
 }
 
+func TestAcquireLocalAssetLeaseActivatesRegistrationForPostStartupManagedLlama(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe mocked healthy",
+			probeURL:  endpoint,
+			models:    []string{"beta-model"},
+		}
+	})
+	mgr := &mockEngineManager{statusErr: fmt.Errorf("engine llama not started")}
+	svc.SetEngineManager(mgr)
+	// A fresh acceptance round starts without inherited model registry state,
+	// so daemon bootstrap has no managed llama asset to enable yet.
+	svc.SetManagedLlamaRegistrationConfig(svc.localModelsPath, svc.managedLlamaModelsConfigPath, false)
+	beta := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_beta",
+		"local/beta-model",
+		"nimi/beta-model",
+		"beta.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+	)
+	recordManagedLlamaWarmKeyForTest(t, svc, beta, defaultLocalEndpoint)
+
+	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "text_generate_request"); err != nil {
+		t.Fatalf("AcquireLocalAssetLease: %v", err)
+	}
+	if !svc.managedLlamaEnabled {
+		t.Fatal("post-startup supervised llama admission must enable managed registration")
+	}
+	if mgr.startConfigCalls != 1 || mgr.lastStartConfig.ManagedLlamaTarget == nil {
+		t.Fatalf("expected one explicit managed llama start, calls=%d config=%+v", mgr.startConfigCalls, mgr.lastStartConfig)
+	}
+	if got := mgr.lastStartConfig.ManagedLlamaTarget.ModelPath; !strings.HasSuffix(got, "beta.gguf") {
+		t.Fatalf("managed target path = %q, want beta.gguf suffix", got)
+	}
+}
+
 func TestAcquireLocalAssetLeaseFailsClosedWhenLlamaPackageMissing(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{

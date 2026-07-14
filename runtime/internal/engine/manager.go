@@ -106,11 +106,6 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 		return nil, fmt.Errorf("load engine registry: %w", err)
 	}
 
-	modelsConfigPath, err := defaultLlamaModelsConfigPath()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Manager{
 		logger:                            logger,
 		baseDir:                           baseDir,
@@ -118,7 +113,7 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 		registry:                          registry,
 		onState:                           onState,
 		llamaModelsPath:                   "",
-		llamaModelsConfigPath:             modelsConfigPath,
+		llamaModelsConfigPath:             "",
 		llamaBackendsPath:                 filepath.Join(baseDir, "llama-backends"),
 		managedImageBackendsPath:          filepath.Join(baseDir, "managed-image-backends"),
 		sharedAcceleratorDependenciesPath: filepath.Join(depsDir, "accelerator-dependencies"),
@@ -139,19 +134,9 @@ func (m *Manager) SetSupervisorForTesting(kind EngineKind, supervisor *Superviso
 	m.mu.Unlock()
 }
 
-// defaultLlamaModelsConfigPath resolves the runtime-private generated managed
-// llama router config path. This is a generated daemon-identity-scoped config
-// file (not a downloadable dependency payload), so it remains under the
-// runtime-private `~/.nimi/runtime/` directory. The daemon overrides it via
-// SetLlamaPaths with resolveManagedLlamaModelsConfigPath, which uses the same
-// runtime-private path; this default is the engine-package fallback only.
-func defaultLlamaModelsConfigPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve home directory: %w", err)
-	}
-	return filepath.Join(home, ".nimi", "runtime", "llama-models.yaml"), nil
-}
+// The daemon must inject the generated llama preset path from its verified
+// Runtime state path. Manager construction intentionally has no HOME fallback:
+// protected services do not accept a user-profile path as configuration truth.
 
 // SetLlamaPaths overrides the default llama model directory and generated
 // config path used when callers do not explicitly populate EngineConfig.

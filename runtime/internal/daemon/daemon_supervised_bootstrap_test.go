@@ -21,6 +21,23 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
+func TestResolveManagedLlamaModelsConfigPathUsesRuntimeState(t *testing.T) {
+	stateRoot := t.TempDir()
+	statePath := filepath.Join(stateRoot, "local-state.json")
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", t.TempDir())
+	want := filepath.Join(stateRoot, "llama-models.yaml")
+	if got := resolveManagedLlamaModelsConfigPath(statePath); got != want {
+		t.Fatalf("managed llama config path = %q, want %q", got, want)
+	}
+	if got := resolveManagedLlamaModelsConfigPath(""); got != "" {
+		t.Fatalf("empty Runtime state path must fail closed, got %q", got)
+	}
+	if got := resolveManagedLlamaModelsConfigPath("relative/local-state.json"); got != "" {
+		t.Fatalf("relative Runtime state path must fail closed, got %q", got)
+	}
+}
+
 func TestStartSupervisedEnginesCachesUnsupportedImageSelectionWithoutBootstrappingMedia(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
@@ -502,15 +519,11 @@ func TestStartSupervisedEnginesInjectsManagerWithoutBootstrappingWhenNoManagedEn
 
 func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	homeDir := t.TempDir()
-	setDaemonTestHome(t, homeDir)
-	if err := os.WriteFile(filepath.Join(homeDir, ".nimi"), []byte("blocked"), 0o644); err != nil {
-		t.Fatalf("seed blocked home path: %v", err)
-	}
 	t.Setenv("NIMI_RUNTIME_MODEL_REGISTRY_PATH", filepath.Join(t.TempDir(), "model-registry.json"))
 
 	localModelsPath := filepath.Join(t.TempDir(), "models")
-	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	localStateRoot := t.TempDir()
+	localStatePath := filepath.Join(localStateRoot, "local-state.json")
 	localModelID := "model_bootstrap_sync_fail"
 	now := time.Now().UTC().Format(time.RFC3339)
 	stateRaw, err := json.Marshal(map[string]any{
@@ -555,6 +568,9 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		EngineLlamaEnabled:   true,
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "b8575",
+	}
+	if err := os.Mkdir(filepath.Join(localStateRoot, "llama-models.yaml"), 0o755); err != nil {
+		t.Fatalf("block Runtime state-derived llama config path: %v", err)
 	}
 	daemon, err := New(cfg, logger, "test")
 	if err != nil {

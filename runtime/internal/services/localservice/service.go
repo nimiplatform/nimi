@@ -187,7 +187,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		localAuditCap:                           localAuditCapacity,
 		localModelsPath:                         resolveLocalModelsPath(localModelsPath),
 		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot, localModelsPath),
-		managedLlamaModelsConfigPath:            resolveGeneratedLlamaModelsConfigPath(""),
+		managedLlamaModelsConfigPath:            resolveGeneratedLlamaModelsConfigPath(resolvedStateStorePath),
 		assets:                                  make(map[string]*runtimev1.LocalAssetRecord),
 		assetRuntimeModes:                       make(map[string]runtimev1.LocalEngineRuntimeMode),
 		services:                                make(map[string]*runtimev1.LocalServiceDescriptor),

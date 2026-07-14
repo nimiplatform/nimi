@@ -16,12 +16,12 @@ var (
 	runtimeEnvMu                 sync.RWMutex
 )
 
-func resolveManagedLlamaModelsConfigPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
+func resolveManagedLlamaModelsConfigPath(localStatePath string) string {
+	statePath := strings.TrimSpace(localStatePath)
+	if statePath == "" || !filepath.IsAbs(statePath) {
 		return ""
 	}
-	return filepath.Join(home, ".nimi", "runtime", "llama-models.yaml")
+	return filepath.Join(filepath.Dir(filepath.Clean(statePath)), "llama-models.yaml")
 }
 
 func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCode int) {

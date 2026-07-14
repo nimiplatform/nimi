@@ -16,7 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
-const generatedManagedLlamaModelsConfigRelPath = ".nimi/runtime/llama-models.yaml"
+const generatedManagedLlamaModelsConfigFile = "llama-models.yaml"
 
 const (
 	managedImageBackendServiceID    = "svc_managed_image_backend"
@@ -75,15 +75,12 @@ func (s *Service) localEnvironmentRuntimeDataRoot() string {
 	return resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot, localModelsPath)
 }
 
-func resolveGeneratedLlamaModelsConfigPath(configuredPath string) string {
-	if value := strings.TrimSpace(configuredPath); value != "" {
-		return value
-	}
-	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
+func resolveGeneratedLlamaModelsConfigPath(stateStorePath string) string {
+	statePath := strings.TrimSpace(stateStorePath)
+	if statePath == "" || !filepath.IsAbs(statePath) {
 		return ""
 	}
-	return filepath.Join(home, generatedManagedLlamaModelsConfigRelPath)
+	return filepath.Join(filepath.Dir(filepath.Clean(statePath)), generatedManagedLlamaModelsConfigFile)
 }
 
 // SetManagedLlamaRegistrationConfig updates the managed llama registration
@@ -91,7 +88,9 @@ func resolveGeneratedLlamaModelsConfigPath(configuredPath string) string {
 func (s *Service) SetManagedLlamaRegistrationConfig(modelsPath string, modelsConfigPath string, managed bool) {
 	s.mu.Lock()
 	s.localModelsPath = resolveLocalModelsPath(modelsPath)
-	s.managedLlamaModelsConfigPath = resolveGeneratedLlamaModelsConfigPath(modelsConfigPath)
+	if configured := strings.TrimSpace(modelsConfigPath); configured != "" {
+		s.managedLlamaModelsConfigPath = configured
+	}
 	s.managedLlamaEnabled = managed
 	configured := strings.TrimSpace(s.managedLlamaModelsConfigPath)
 	s.mu.Unlock()
@@ -318,6 +317,7 @@ func (s *Service) SetManagedImageBackendIdle(detail string) {
 // current local model state and restarts the managed engine when the generated
 // config changes while llama is already running.
 func (s *Service) SyncManagedLlamaAssets(ctx context.Context) error {
+	s.enableManagedLlamaRegistrationForAdmittedAssets()
 	registrations, rendered, err := s.buildManagedLlamaRegistrations()
 	if err != nil {
 		return err
@@ -371,6 +371,23 @@ func (s *Service) SyncManagedLlamaAssets(ctx context.Context) error {
 		return fmt.Errorf("restart managed llama start: %w", err)
 	}
 	return nil
+}
+
+func (s *Service) enableManagedLlamaRegistrationForAdmittedAssets() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.managedLlamaEnabled {
+		return
+	}
+	for localModelID, model := range s.assets {
+		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+			continue
+		}
+		if isManagedSupervisedLlamaModel(model, s.assetRuntimeModes[localModelID]) {
+			s.managedLlamaEnabled = true
+			return
+		}
+	}
 }
 
 func waitForManagedEnginePortRelease(ctx context.Context, port int, timeout time.Duration) error {

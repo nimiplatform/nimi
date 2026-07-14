@@ -65,6 +65,12 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 	if detail := strings.TrimSpace(registration.Problem); detail != "" {
 		return nil, errors.New(managedLocalModelRegistrationFailureDetail(detail))
 	}
+	if !registration.Managed {
+		return nil, fmt.Errorf("managed llama registration is not enabled for local asset %s", localAssetID)
+	}
+	if strings.TrimSpace(registration.RelativeModelPath) == "" {
+		return nil, fmt.Errorf("managed llama registration model path is missing for local asset %s", localAssetID)
+	}
 
 	mgr := s.engineManagerOrNil()
 	if mgr == nil {
