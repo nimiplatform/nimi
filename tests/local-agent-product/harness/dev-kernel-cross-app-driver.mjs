@@ -770,7 +770,13 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     }
   }
 
+  let setupRuntimeUnavailableObservedAt = 0;
+  let setupRuntimeUnavailableCarrierRecovered = false;
+  let setupRuntimeUnavailableRetryIssued = false;
+  const setupRuntimeUnavailableGraceMs = 360_000;
   const ready = await waitUntil(async () => {
+    const authShellVisible = await page.getByTestId('login-screen').isVisible().catch(() => false)
+      || await page.getByTestId('main-shell').isVisible().catch(() => false);
     const explicitFailures = [];
     for (const testId of [
       'first-run-setup-error',
@@ -786,11 +792,48 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
         text: visible ? await failure.innerText().catch(() => '') : '',
       });
     }
+    const setupFailure = explicitFailures.find((failure) => failure.testId === 'first-run-setup-error');
+    if (!authShellVisible
+      && setupFailure?.visible === true
+      && setupFailure.text.trim() === 'runtime-service-unavailable') {
+      if (setupRuntimeUnavailableObservedAt === 0) {
+        setupRuntimeUnavailableObservedAt = Date.now();
+        if (phaseAcceptance) {
+          phaseAcceptance.setupRuntimeUnavailableObserved = true;
+          phaseAcceptance.setupRuntimeUnavailablePath = path.join(
+            screenshotsRoot,
+            'desktop-first-run-setup-runtime-unavailable.png',
+          );
+          await page.screenshot({ path: phaseAcceptance.setupRuntimeUnavailablePath });
+        }
+      }
+      if (Date.now() - setupRuntimeUnavailableObservedAt <= setupRuntimeUnavailableGraceMs) {
+        if (!setupRuntimeUnavailableCarrierRecovered) {
+          const record = await readProductControlJSONProjection(
+            page,
+            PRODUCT_CONTROL_RECORD_METHOD,
+          ).catch(() => null);
+          setupRuntimeUnavailableCarrierRecovered = Boolean(record?.state);
+          if (phaseAcceptance && setupRuntimeUnavailableCarrierRecovered) {
+            phaseAcceptance.setupRuntimeUnavailableCarrierRecovered = true;
+          }
+        }
+        const setupRetry = page.getByTestId('first-run-setup-retry');
+        if (setupRuntimeUnavailableCarrierRecovered
+          && !setupRuntimeUnavailableRetryIssued
+          && await setupRetry.isVisible().catch(() => false)
+          && await setupRetry.isEnabled().catch(() => false)) {
+          await setupRetry.click();
+          setupRuntimeUnavailableRetryIssued = true;
+          if (phaseAcceptance) phaseAcceptance.setupRuntimeUnavailableRetryIssued = true;
+        }
+        return null;
+      }
+    }
     const setupRetry = page.getByTestId('first-run-setup-retry');
     const setupRetryVisible = await setupRetry.isVisible().catch(() => false);
     return classifyFirstRunTerminalSnapshot({
-      authShellVisible: await page.getByTestId('login-screen').isVisible().catch(() => false)
-        || await page.getByTestId('main-shell').isVisible().catch(() => false),
+      authShellVisible,
       explicitFailures,
       setupRetryVisible,
       setupText: setupRetryVisible

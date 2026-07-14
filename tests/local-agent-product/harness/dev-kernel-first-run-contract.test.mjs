@@ -121,6 +121,13 @@ test('First Run waits for fixed-service PID replacement after Storage mutation',
   assert.match(driver, /const serviceBeforeStorage = readFixedServiceStatus\(\)[\s\S]*status\.processId !== serviceBeforeStorage\.processId[\s\S]*fixed service PID replacement after first-run Storage sync/iu);
 });
 
+test('First Run bounds exact Runtime-unavailable Setup recovery without weakening owner failures', () => {
+  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  assert.match(driver, /setupFailure\.text\.trim\(\) === 'runtime-service-unavailable'/u);
+  assert.match(driver, /setupRuntimeUnavailableGraceMs = 360_000[\s\S]*PRODUCT_CONTROL_RECORD_METHOD[\s\S]*setupRuntimeUnavailableCarrierRecovered/iu);
+  assert.match(driver, /first-run-setup-retry[\s\S]*setupRuntimeUnavailableRetryIssued[\s\S]*return null[\s\S]*classifyFirstRunTerminalSnapshot/iu);
+});
+
 test('First Run Device retry observes pending and disabled controls in one DOM snapshot', () => {
   const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
   assert.match(driver, /page\.evaluate\(\(\) => \{[\s\S]*data-device-scan[\s\S]*HTMLButtonElement[\s\S]*retryDisabled:\s*retryButton\.disabled[\s\S]*continueDisabled:\s*continueButton\.disabled/u);

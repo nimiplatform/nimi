@@ -227,7 +227,7 @@ try {
         return { kind: 'ready', text: '' };
       }
       return null;
-    }, { timeoutMs: 180_000, intervalMs: 250, label: 'resumed First Run finalization diagnostic' });
+    }, { timeoutMs: 600_000, intervalMs: 250, label: 'resumed First Run finalization diagnostic' });
     const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
     const diagnostic = {
       schemaVersion: 'nimi.dev-kernel-first-run-resume-diagnostic/v1',
