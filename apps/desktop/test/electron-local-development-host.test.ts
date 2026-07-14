@@ -9,7 +9,10 @@ import type {
   NimiElectronLocalDevelopmentControl,
   NimiElectronLocalDevelopmentEvaluation,
 } from '@nimiplatform/kit/shell/electron/main';
-import { createDesktopElectronLocalDevelopmentHost } from '../src-electron/local-development-host';
+import {
+  createDesktopElectronLocalDevelopmentHost,
+  sameLocalDevelopmentProject,
+} from '../src-electron/local-development-host';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const projectRoot = path.join(repoRoot, 'apps', 'zhiyu');
@@ -121,6 +124,37 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
     await host.shutdown();
     await rm(home, { recursive: true, force: true });
   }
+});
+
+test('Electron local-development project equality accepts the Windows extended-length canonical path', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const slash = '\\';
+  const evaluation: NimiElectronLocalDevelopmentEvaluation = {
+    evaluationId,
+    project: {
+      ...project(),
+      canonicalProjectRoot: `${slash}${slash}?${slash}${projectRoot}`,
+    },
+    state: 'confirmation-required',
+    confirmationRequired: true,
+    authorization: null,
+    evaluationExpiresAtUnixMs: Date.now() + 30_000,
+  };
+  const plan = {
+    appId: 'nimi.zhiyu',
+    displayName: 'Zhiyu Development',
+    projectRoot,
+    rendererOrigin: 'http://127.0.0.1:1472',
+    electronExecutable: path.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe'),
+    mainEntry: path.join(projectRoot, 'dist-electron', 'main.js'),
+  };
+
+  assert.equal(sameLocalDevelopmentProject(evaluation, plan), true);
+  assert.equal(sameLocalDevelopmentProject({
+    ...evaluation,
+    project: { ...evaluation.project, appId: 'nimi.other' },
+  }, plan), false);
 });
 
 test('Electron local-development HTTP bridge rejects browser-originated intents', async () => {

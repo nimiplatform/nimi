@@ -267,7 +267,7 @@ class ElectronLocalDevelopmentHost {
       this.ensureHealthTimer(run);
       return;
     }
-    if (!sameProject(evaluation, run.plan)) {
+    if (!sameLocalDevelopmentProject(evaluation, run.plan)) {
       setRunState(run, 'project-changed', 'local-development-project-changed', 'local-development-project-changed', false);
       return;
     }
@@ -591,10 +591,26 @@ function projectAuthorization(selectorValue: string, authorization: NimiElectron
   };
 }
 
-function sameProject(evaluation: NimiElectronLocalDevelopmentEvaluation, plan: ElectronLocalDevelopmentPlan): boolean {
+export function sameLocalDevelopmentProject(
+  evaluation: NimiElectronLocalDevelopmentEvaluation,
+  plan: ElectronLocalDevelopmentPlan,
+): boolean {
   return evaluation.project.appId === plan.appId
-    && path.resolve(evaluation.project.canonicalProjectRoot).toLowerCase() === path.resolve(plan.projectRoot).toLowerCase()
+    && comparableCanonicalProjectPath(evaluation.project.canonicalProjectRoot)
+      === comparableCanonicalProjectPath(plan.projectRoot)
     && evaluation.project.shell === 'electron';
+}
+
+function comparableCanonicalProjectPath(value: string): string {
+  const extendedUncPrefix = '\\\\?\\UNC\\';
+  const extendedPrefix = '\\\\?\\';
+  let normalized = value;
+  if (normalized.startsWith(extendedUncPrefix)) {
+    normalized = `\\\\${normalized.slice(extendedUncPrefix.length)}`;
+  } else if (normalized.startsWith(extendedPrefix)) {
+    normalized = normalized.slice(extendedPrefix.length);
+  }
+  return path.resolve(normalized).toLowerCase();
 }
 
 function setRunState(run: RunContext, state: string, message: string, reasonCode: string | undefined, retryable: boolean): void {

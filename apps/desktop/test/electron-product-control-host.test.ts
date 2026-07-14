@@ -8,6 +8,8 @@ import type {
 import {
   ProductControlProjectionJson,
   RecordProductControlAccountDefaultProfileEvidenceRequest,
+  SelectProductControlDataRootRequest,
+  SetProductControlFirstRunInstallLevelRequest,
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/local_runtime';
 import type { DesktopProductControlEvidence } from '../src-electron/product-control-evidence';
 import {
@@ -16,6 +18,12 @@ import {
 } from '../src-electron/product-control-host';
 
 const GET_RECORD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
+const GET_SELECTED_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot';
+const ENSURE_RECORD = '/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated';
+const SELECT_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot';
+const COMPLETE_DEVICE_SCAN = '/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan';
+const SET_INSTALL_LEVEL = '/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel';
+const RECONCILE_SETUP = '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState';
 const RECORD_ACCOUNT = '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence';
 
 function projectionJson(state = 'data_root_selected'): string {
@@ -48,6 +56,116 @@ function projectionJson(state = 'data_root_selected'): string {
     error: null,
   });
 }
+
+test('Electron Product Control host maps every renderer command to an exact protected Runtime method', async () => {
+  const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
+  const control: NimiElectronDesktopControlHost = {
+    productControlUnary: async (input) => {
+      calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
+      const json = input.methodId === GET_SELECTED_DATA_ROOT
+        ? JSON.stringify({
+            path: 'C:\\ProgramData\\Nimi\\Runtime\\Protected\\nimi.json',
+            exists: true,
+            state: 'ready_for_use',
+            dataRoot: {
+              path: 'D:\\NimiData',
+              status: 'selected',
+              selectedAt: '2026-07-14T00:00:00.000Z',
+              verifiedAt: '2026-07-14T00:00:00.000Z',
+              selectedAtUnixMs: 1,
+              verifiedAtUnixMs: 1,
+            },
+            error: null,
+          })
+        : projectionJson('ready_for_use');
+      return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({ json }));
+    },
+  };
+  const host = createDesktopElectronProductControlHost({
+    control,
+    account: { invoke: async () => { throw new Error('not-called'); } },
+    evidence: {
+      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
+      readAccountDefaultProfile: () => { throw new Error('not-called'); },
+      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
+      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
+      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+    },
+  });
+
+  await host.commandHandlers.product_control_record_get({ command: 'product_control_record_get', payload: {} });
+  const selected = await host.commandHandlers.product_control_selected_data_root_get({
+    command: 'product_control_selected_data_root_get', payload: {},
+  }) as { dataRoot: { status: string } | null };
+  await host.commandHandlers.product_control_record_ensure_created({
+    command: 'product_control_record_ensure_created', payload: {},
+  });
+  await host.commandHandlers.product_control_record_select_data_root({
+    command: 'product_control_record_select_data_root', payload: { payload: { dataRoot: 'D:\\NimiData' } },
+  });
+  await host.commandHandlers.product_control_record_complete_first_run_device_environment_scan({
+    command: 'product_control_record_complete_first_run_device_environment_scan', payload: {},
+  });
+  await host.commandHandlers.product_control_record_set_first_run_install_level({
+    command: 'product_control_record_set_first_run_install_level',
+    payload: { payload: { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' } },
+  });
+  await host.commandHandlers.product_control_record_reconcile_first_run_setup_state({
+    command: 'product_control_record_reconcile_first_run_setup_state', payload: {},
+  });
+
+  assert.equal(selected.dataRoot?.status, 'selected');
+  assert.deepEqual(calls.map((call) => call.methodId), [
+    GET_RECORD,
+    GET_SELECTED_DATA_ROOT,
+    ENSURE_RECORD,
+    SELECT_DATA_ROOT,
+    COMPLETE_DEVICE_SCAN,
+    SET_INSTALL_LEVEL,
+    RECONCILE_SETUP,
+  ]);
+  assert.equal(
+    SelectProductControlDataRootRequest.fromBinary(calls[3]!.requestBytes).dataRoot,
+    'D:\\NimiData',
+  );
+  assert.deepEqual(
+    SetProductControlFirstRunInstallLevelRequest.fromBinary(calls[5]!.requestBytes),
+    { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' },
+  );
+});
+
+test('Electron Product Control host rejects extra renderer fields before protected transport', async () => {
+  let calls = 0;
+  const host = createDesktopElectronProductControlHost({
+    control: { productControlUnary: async () => { calls += 1; throw new Error('not-called'); } },
+    account: { invoke: async () => { throw new Error('not-called'); } },
+    evidence: {
+      ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
+      readAccountDefaultProfile: () => { throw new Error('not-called'); },
+      verifyAccountDefaultProfile: () => { throw new Error('not-called'); },
+      ensureBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+      readBuiltInAiConfigForScopeInit: () => { throw new Error('not-called'); },
+      verifyBuiltInAiConfigEvidenceSet: () => { throw new Error('not-called'); },
+    },
+  });
+
+  await assert.rejects(
+    host.commandHandlers.product_control_record_select_data_root({
+      command: 'product_control_record_select_data_root',
+      payload: { payload: { dataRoot: 'D:\\NimiData', methodId: GET_RECORD } },
+    }),
+    /desktop-product-control-payload-invalid/u,
+  );
+  await assert.rejects(
+    host.commandHandlers.product_control_record_get({
+      command: 'product_control_record_get',
+      payload: { methodId: GET_RECORD },
+    }),
+    /desktop-product-control-payload-invalid/u,
+  );
+  assert.equal(calls, 0);
+});
 
 test('Electron first-run host records Desktop evidence through the exact protected Runtime method', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];

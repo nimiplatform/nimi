@@ -41,7 +41,7 @@ export async function refreshDeveloperMode(): Promise<DeveloperModeProjection> {
   if (!hasShellHostInvoke()) {
     return publish(unavailable('protected-carrier-required', false));
   }
-  return publish(await invokeChecked('developer_mode_status', {}, parseProjection));
+  return publish(await invokeChecked('developer_mode_status', {}, parseDeveloperModeProjection));
 }
 
 export async function setDeveloperMode(enabled: boolean): Promise<DeveloperModeProjection> {
@@ -51,7 +51,7 @@ export async function setDeveloperMode(enabled: boolean): Promise<DeveloperModeP
   return publish(await invokeChecked(
     'developer_mode_set',
     { payload: { enabled } },
-    parseProjection,
+    parseDeveloperModeProjection,
   ));
 }
 
@@ -64,7 +64,7 @@ function publish(next: DeveloperModeProjection): DeveloperModeProjection {
   return next;
 }
 
-function parseProjection(value: unknown): DeveloperModeProjection {
+export function parseDeveloperModeProjection(value: unknown): DeveloperModeProjection {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('developer-mode-projection-invalid');
   }
@@ -84,7 +84,8 @@ function parseProjection(value: unknown): DeveloperModeProjection {
   if (!Number.isSafeInteger(revision) || revision < 0
     || !Number.isSafeInteger(accountGeneration) || accountGeneration < 0
     || (record.state === 'enabled') !== record.enabled
-    || (record.state !== 'unavailable' && (revision === 0 || accountGeneration === 0))) {
+    || (record.state !== 'unavailable' && revision === 0)
+    || (record.state === 'enabled' && accountGeneration === 0)) {
     throw new Error('developer-mode-projection-invalid');
   }
   return {
