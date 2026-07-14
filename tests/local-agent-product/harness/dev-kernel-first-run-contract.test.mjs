@@ -9,6 +9,14 @@ import {
   classifyFirstRunTerminalSnapshot,
 } from './dev-kernel-cross-app-driver.mjs';
 
+function firstRunDriverSource() {
+  return [
+    'dev-kernel-cross-app-driver.mjs',
+    'dev-kernel-host-driver.mjs',
+    'dev-kernel-first-run-driver.mjs',
+  ].map((file) => fs.readFileSync(path.join(import.meta.dirname, file), 'utf8')).join('\n');
+}
+
 function status(pid) {
   return {
     serviceName: 'NimiRuntime', state: 'running', processId: pid, startMode: 'Auto',
@@ -117,25 +125,25 @@ test('First Run runner diagnoses persisted failed or interrupted rounds without 
 });
 
 test('First Run waits for fixed-service PID replacement after Storage mutation', () => {
-  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  const driver = firstRunDriverSource();
   assert.match(driver, /const serviceBeforeStorage = readFixedServiceStatus\(\)[\s\S]*status\.processId !== serviceBeforeStorage\.processId[\s\S]*fixed service PID replacement after first-run Storage sync/iu);
 });
 
 test('First Run bounds exact Runtime-unavailable Setup recovery without weakening owner failures', () => {
-  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  const driver = firstRunDriverSource();
   assert.match(driver, /setupFailure\.text\.trim\(\) === 'runtime-service-unavailable'/u);
   assert.match(driver, /setupRuntimeUnavailableGraceMs = 360_000[\s\S]*PRODUCT_CONTROL_RECORD_METHOD[\s\S]*setupRuntimeUnavailableCarrierRecovered/iu);
   assert.match(driver, /first-run-setup-retry[\s\S]*setupRuntimeUnavailableRetryIssued[\s\S]*return null[\s\S]*classifyFirstRunTerminalSnapshot/iu);
 });
 
 test('First Run Device retry observes pending and disabled controls in one DOM snapshot', () => {
-  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  const driver = firstRunDriverSource();
   assert.match(driver, /page\.evaluate\(\(\) => \{[\s\S]*data-device-scan[\s\S]*HTMLButtonElement[\s\S]*retryDisabled:\s*retryButton\.disabled[\s\S]*continueDisabled:\s*continueButton\.disabled/u);
   assert.match(driver, /intervalMs:\s*10,\s*label:\s*'first-run Device retry pending controls'/u);
 });
 
 test('First Run terminal failure captures the bounded Runtime dependency-job owner projection', () => {
-  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  const driver = firstRunDriverSource();
   assert.match(driver, /ListLocalEnvironmentDependencyJobs/);
   assert.match(driver, /first-run-terminal-failure\.json/);
   assert.match(driver, /failureDetail:\s*String\(job\.failureDetail/);

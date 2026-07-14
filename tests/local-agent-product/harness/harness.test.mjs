@@ -27,10 +27,13 @@ import { readLocalAgentTestArchitecture } from './registry.mjs';
 import { validateArchitecture, validateJourneyRepeatIsolation, validateJourneyResult } from './validation.mjs';
 
 const clone = (value) => structuredClone(value);
-const devKernelCrossAppDriverSource = fs.readFileSync(
-  path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'),
-  'utf8',
-);
+const devKernelCrossAppDriverSource = [
+  'dev-kernel-cross-app-driver.mjs',
+  'dev-kernel-host-driver.mjs',
+  'dev-kernel-first-run-driver.mjs',
+  'dev-kernel-local-development-driver.mjs',
+  'dev-kernel-result-driver.mjs',
+].map((file) => fs.readFileSync(path.join(import.meta.dirname, file), 'utf8')).join('\n');
 const firstRunConnectivitySource = fs.readFileSync(
   path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'),
   'utf8',
