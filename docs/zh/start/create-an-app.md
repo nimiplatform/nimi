@@ -22,7 +22,7 @@ pnpm run local-audit
 pnpm run doctor
 ```
 
-`pnpm dev:shell` 会启动生成的 Tauri shell。App 像正式分发的 App 一样，通过 in-app Runtime account login 认证。尚未准入的本地 App 必须使用 Developer Mode 和 Runtime developer registration gate。Scaffold 不会创建独立的 developer session，也不会绕过 Runtime account custody。
+`pnpm dev:shell` 会启动生成的 Tauri shell。Native host 会注入 standard-shell local-app carrier。尚未准入的本地项目必须先由 Developer Mode 授权，再以隔离的 `local_development` build 启动。Scaffold 不拥有 principal、grant、session 或 Runtime account custody。
 
 如果你只需要验证 SDK 是否能调用 Runtime-backed 文本生成，先读 [第一次 AI 调用](/zh/sdk/first-ai-call)。
 

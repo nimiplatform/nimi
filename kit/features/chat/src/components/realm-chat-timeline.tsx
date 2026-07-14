@@ -21,11 +21,28 @@ export type RealmChatTimelineGiftRenderInput = {
   index: number;
 };
 
+export type RealmChatTimelineMediaKind = 'image' | 'video';
+
+export type RealmChatTimelineResolvedMediaSource = {
+  url: string;
+  dispose?: () => void;
+};
+
+export type RealmChatTimelineMediaResolveInput = {
+  sourceUrl: string;
+  kind: RealmChatTimelineMediaKind;
+  message: RealmChatTimelineMessage;
+};
+
+export type RealmChatTimelineMediaResolver = (
+  input: RealmChatTimelineMediaResolveInput,
+) => RealmChatTimelineResolvedMediaSource | Promise<RealmChatTimelineResolvedMediaSource>;
+
 export type RealmChatTimelineProps = {
   messages: readonly RealmChatTimelineMessage[];
   currentUserId: string;
   realmBaseUrl?: string;
-  authToken?: string;
+  resolveMediaSource?: RealmChatTimelineMediaResolver;
   emptyState?: ReactNode;
   emptyMessageLabel?: string;
   imageMessageLabel?: string;
@@ -115,47 +132,49 @@ function formatTimestamp(isoString: string, yesterdayLabel: string): string {
   return `${fullDate}, ${timeText}`;
 }
 
-function AuthenticatedImage({
+function useResolvedMediaSource({
   src,
-  alt,
-  realmBaseUrl,
-  authToken,
+  kind,
+  message,
+  resolveMediaSource,
 }: {
   src: string;
-  alt: string;
-  realmBaseUrl: string;
-  authToken: string;
-}) {
-  const [resolvedSrc, setResolvedSrc] = useState(src);
+  kind: RealmChatTimelineMediaKind;
+  message: RealmChatTimelineMessage;
+  resolveMediaSource?: RealmChatTimelineMediaResolver;
+}): string {
+  const [resolvedSrc, setResolvedSrc] = useState(resolveMediaSource ? '' : src);
 
   useEffect(() => {
-    setResolvedSrc(src);
     const normalizedSrc = String(src || '').trim();
-    const normalizedBase = String(realmBaseUrl || '').trim().replace(/\/$/, '');
-    const token = String(authToken || '').trim();
-    if (!normalizedSrc || !normalizedBase || !token || !normalizedSrc.startsWith(`${normalizedBase}/`)) {
+    if (!resolveMediaSource) {
+      setResolvedSrc(normalizedSrc);
+      return;
+    }
+    setResolvedSrc('');
+    if (!normalizedSrc) {
       return;
     }
 
-    let revokedUrl = '';
     let cancelled = false;
+    let dispose: (() => void) | undefined;
     const run = async () => {
       try {
-        const response = await fetch(normalizedSrc, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const resolution = await resolveMediaSource({
+          sourceUrl: normalizedSrc,
+          kind,
+          message,
         });
-        if (!response.ok) {
-          return;
-        }
-        const blob = await response.blob();
+        const resolvedUrl = String(resolution?.url || '').trim();
+        dispose = resolution?.dispose;
         if (cancelled) {
+          dispose?.();
+          dispose = undefined;
           return;
         }
-        revokedUrl = URL.createObjectURL(blob);
-        setResolvedSrc(revokedUrl);
+        setResolvedSrc(resolvedUrl);
       } catch {
+        setResolvedSrc('');
         return;
       }
     };
@@ -163,11 +182,35 @@ function AuthenticatedImage({
 
     return () => {
       cancelled = true;
-      if (revokedUrl) {
-        URL.revokeObjectURL(revokedUrl);
-      }
+      dispose?.();
+      dispose = undefined;
     };
-  }, [src, realmBaseUrl, authToken]);
+  }, [src, kind, message, resolveMediaSource]);
+
+  return resolvedSrc;
+}
+
+function ResolvedImage({
+  src,
+  alt,
+  message,
+  resolveMediaSource,
+}: {
+  src: string;
+  alt: string;
+  message: RealmChatTimelineMessage;
+  resolveMediaSource?: RealmChatTimelineMediaResolver;
+}) {
+  const resolvedSrc = useResolvedMediaSource({
+    src,
+    kind: 'image',
+    message,
+    resolveMediaSource,
+  });
+
+  if (!resolvedSrc) {
+    return <span>{alt}</span>;
+  }
 
   return (
     <img
@@ -178,11 +221,45 @@ function AuthenticatedImage({
   );
 }
 
+function ResolvedVideo({
+  src,
+  message,
+  resolveMediaSource,
+  uploading,
+}: {
+  src: string;
+  message: RealmChatTimelineMessage;
+  resolveMediaSource?: RealmChatTimelineMediaResolver;
+  uploading: boolean;
+}) {
+  const resolvedSrc = useResolvedMediaSource({
+    src,
+    kind: 'video',
+    message,
+    resolveMediaSource,
+  });
+
+  if (!resolvedSrc) {
+    return null;
+  }
+
+  return (
+    <video
+      src={resolvedSrc}
+      controls={!uploading}
+      muted={uploading}
+      playsInline
+      preload="metadata"
+      className="max-h-[320px] max-w-[260px] rounded-xl"
+    />
+  );
+}
+
 export function RealmChatTimeline({
   messages,
   currentUserId,
   realmBaseUrl = '',
-  authToken = '',
+  resolveMediaSource,
   emptyState = <p className="text-center text-sm text-[var(--nimi-text-muted)]">No messages</p>,
   emptyMessageLabel = 'Empty message',
   imageMessageLabel = 'Image',
@@ -252,11 +329,11 @@ export function RealmChatTimeline({
                     ) : display.isImageMessage ? (
                       mediaUrl ? (
                         <div className="relative">
-                          <AuthenticatedImage
+                          <ResolvedImage
                             src={mediaUrl}
                             alt={imageMessageLabel}
-                            realmBaseUrl={realmBaseUrl}
-                            authToken={authToken}
+                            message={message}
+                            resolveMediaSource={resolveMediaSource}
                           />
                           {display.isUploadingMedia ? (
                             <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_65%,transparent)] backdrop-blur-[1px]">
@@ -270,13 +347,11 @@ export function RealmChatTimeline({
                     ) : display.isVideoMessage ? (
                       mediaUrl ? (
                         <div className="relative">
-                          <video
+                          <ResolvedVideo
                             src={mediaUrl}
-                            controls={!display.isUploadingMedia}
-                            muted={display.isUploadingMedia}
-                            playsInline
-                            preload="metadata"
-                            className="max-h-[320px] max-w-[260px] rounded-xl"
+                            message={message}
+                            resolveMediaSource={resolveMediaSource}
+                            uploading={display.isUploadingMedia}
                           />
                           {display.isUploadingMedia ? (
                             <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-overlay-backdrop)_55%,transparent)]">

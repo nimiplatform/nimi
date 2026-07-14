@@ -79,7 +79,11 @@ export { RealmChatTimeline } from './components/realm-chat-timeline.js';
 export type {
   RealmChatTimelineAvatarRenderInput,
   RealmChatTimelineGiftRenderInput,
+  RealmChatTimelineMediaKind,
+  RealmChatTimelineMediaResolveInput,
+  RealmChatTimelineMediaResolver,
   RealmChatTimelineProps,
+  RealmChatTimelineResolvedMediaSource,
 } from './components/realm-chat-timeline.js';
 export { AppAiChatPanel } from './components/app-ai-chat-panel.js';
 export type { AppAiChatPanelProps } from './components/app-ai-chat-panel.js';

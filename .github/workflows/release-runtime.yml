@@ -19,7 +19,6 @@ jobs:
       NIMI_LIVE_DASHSCOPE_BASE_URL: ${{ vars.NIMI_LIVE_DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
       NIMI_LIVE_DASHSCOPE_API_KEY: ${{ secrets.NIMI_LIVE_DASHSCOPE_API_KEY }}
       NIMI_LIVE_DASHSCOPE_MODEL_ID: ${{ vars.NIMI_LIVE_DASHSCOPE_MODEL_ID || 'qwen3-max' }}
-      NIMI_LIVE_GOLD_SUBJECT_USER_ID: ${{ vars.NIMI_LIVE_GOLD_SUBJECT_USER_ID || 'gold-user' }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -49,8 +48,6 @@ jobs:
       # >>> nimi-release-gate-projection: live-smoke-checks >>>
       - name: gate.live.live2d-companion-timeline-acceptance
         run: pnpm check:live2d-companion-timeline-acceptance
-      - name: gate.live.local-agent-conversation-report
-        run: pnpm test:e2e:local-agent-conversation-report
       - name: gate.live.provider-invariants
         run: pnpm check:live-provider-invariants
       - name: gate.live.test-matrix

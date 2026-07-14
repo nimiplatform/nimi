@@ -501,7 +501,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       execute: vi.fn(async (ctx: AgentDataBundle, projection: BackendProjection) => {
         expect(ctx.activity).toBeUndefined();
         expect(ctx.emotion).toEqual({
-          current: 'joy',
+          current: 'happy',
           previous: 'neutral',
           source: 'chat_status_cue',
         });
@@ -517,7 +517,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     });
     const driver = createDriver(createBundle({
       emotion: {
-        current: 'joy',
+        current: 'happy',
         previous: 'neutral',
         source: 'chat_status_cue',
       },
@@ -535,7 +535,7 @@ describe('Avatar NAS runtime event dispatch', () => {
       name: 'runtime.agent.state.emotion_changed',
       timestamp: '2026-04-26T00:00:03.000Z',
       detail: {
-        current_emotion: 'joy',
+        current_emotion: 'happy',
         previous_emotion: 'neutral',
         source: 'chat_status_cue',
       },

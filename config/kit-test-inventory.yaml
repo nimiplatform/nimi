@@ -7,3 +7,4 @@ shards:
   - config/test-inventories/kit/shard-01.yaml
   - config/test-inventories/kit/shard-02.yaml
   - config/test-inventories/kit/shard-03.yaml
+  - config/test-inventories/kit/shard-04.yaml

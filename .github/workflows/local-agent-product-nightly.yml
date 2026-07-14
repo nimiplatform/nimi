@@ -60,10 +60,11 @@ jobs:
           pnpm test:local-agent-conversation-report-contract
           pnpm test:local-agent-product-contract
           pnpm test:local-agent-product:exhaustive
+          pnpm test:e2e:local-agent-product:extended
 
-  product-journeys:
-    runs-on: macos-14
-    timeout-minutes: 100
+  dev-kernel-checkpoint:
+    runs-on: windows-latest
+    timeout-minutes: 180
     steps:
       - name: Checkout Nimi
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -71,12 +72,17 @@ jobs:
           fetch-depth: 0
 
       - name: Checkout locked Realm source
+        shell: pwsh
         run: |
-          REALM_COMMIT="$(awk '/^  commit:/ { print $2; exit }' config/realm-contract-lock.yaml)"
-          test "${#REALM_COMMIT}" -eq 40
-          git clone --filter=blob:none https://github.com/nimiplatform/nimi-realm.git "$RUNNER_TEMP/nimi-realm"
-          git -C "$RUNNER_TEMP/nimi-realm" checkout --detach "$REALM_COMMIT"
-          echo "REALM_ROOT=$RUNNER_TEMP/nimi-realm" >> "$GITHUB_ENV"
+          $commitLine = Get-Content config/realm-contract-lock.yaml | Where-Object { $_ -match '^\s+commit:\s+' } | Select-Object -First 1
+          $realmCommit = ($commitLine -split ':', 2)[1].Trim()
+          if ($realmCommit -notmatch '^[0-9a-f]{40}$') { throw 'realm contract lock commit is invalid' }
+          $realmRoot = Join-Path $env:RUNNER_TEMP 'nimi-realm'
+          git clone --filter=blob:none https://github.com/nimiplatform/nimi-realm.git $realmRoot
+          if ($LASTEXITCODE -ne 0) { throw 'Realm clone failed' }
+          git -C $realmRoot checkout --detach $realmCommit
+          if ($LASTEXITCODE -ne 0) { throw 'Realm locked checkout failed' }
+          "REALM_ROOT=$realmRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -100,18 +106,26 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Verify Realm contract lock
-        run: pnpm check:realm-contract-lock -- --realm-root "$REALM_ROOT"
+        run: pnpm check:realm-contract-lock -- --realm-root "$env:REALM_ROOT"
 
-      - name: Run deterministic product Journeys serially
+      - name: Provision ephemeral Windows development trust
+        run: pnpm provision:windows-dev-trust
+
+      - name: Build and install the fixed dev-kernel service candidate
+        run: |
+          pnpm build:dev-kernel-service-candidate
+          pnpm install:dev-kernel-service-candidate
+          pnpm status:dev-kernel-service-candidate
+
+      - name: Run fixed-service Desktop-to-Zhiyu stability Journey serially
         run: |
           pnpm test:e2e:local-agent-product:core-stability
-          pnpm test:e2e:local-agent-product:extended
 
-      - name: Upload deterministic product evidence
+      - name: Upload dev-kernel product evidence
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: local-agent-product-deterministic-${{ github.run_id }}
+          name: local-agent-product-dev-kernel-${{ github.run_id }}
           path: .nimi/local/evidence/local-agent-full-chain
           include-hidden-files: true
           if-no-files-found: error

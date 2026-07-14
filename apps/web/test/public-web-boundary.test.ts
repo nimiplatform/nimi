@@ -80,10 +80,11 @@ test('web source imports desktop renderer only through public-web or admitted ad
       continue;
     }
     const relativePath = path.relative(webRoot, absolute).split(path.sep).join('/');
+    const isAdmittedDesktopAdapter = relativePath.startsWith('src/desktop-adapter/');
     const specifiers = importSpecifiers(readFileSync(absolute, 'utf8'));
     for (const specifier of specifiers) {
       const isDesktopPrivate = specifier.startsWith('@renderer/') || specifier.startsWith('@runtime/');
-      if (isDesktopPrivate) {
+      if (isDesktopPrivate && !isAdmittedDesktopAdapter) {
         offenders.push(`${relativePath}: ${specifier}`);
       }
       assert.ok(

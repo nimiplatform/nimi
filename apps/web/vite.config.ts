@@ -146,6 +146,14 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../desktop/src/runtime'),
         },
         {
+          find: '@renderer/features/auth/desktop-auth-adapter.js',
+          replacement: path.resolve(__dirname, 'src/desktop-adapter/web-auth-adapter.ts'),
+        },
+        {
+          find: '@renderer/features/settings/profile-oauth-platform.js',
+          replacement: path.resolve(__dirname, 'src/desktop-adapter/profile-oauth-platform.web.ts'),
+        },
+        {
           find: '@renderer',
           replacement: path.resolve(__dirname, '../desktop/src/shell/renderer'),
         },

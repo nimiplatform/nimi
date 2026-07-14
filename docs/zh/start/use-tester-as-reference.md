@@ -24,7 +24,7 @@ pnpm run update
 pnpm run test
 ```
 
-`dev:shell` 启动 Tauri shell。App 像已分发 App 一样通过 in-app Runtime account login 认证。尚未准入的本地 App 使用 Developer Mode 和 Runtime developer registration；Tester 不创建独立 developer session，也不授予 app admission。
+`dev:shell` 启动 Tauri shell。Native host 会注入 standard-shell local-app carrier。尚未准入的本地项目必须先由 Developer Mode 授权，再以隔离的 `local_development` build 启动。Tester 不拥有 principal、grant 或 session，也不授予公开 app admission。
 
 ## 应该看哪里
 

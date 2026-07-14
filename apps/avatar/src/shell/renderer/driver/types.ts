@@ -4,7 +4,21 @@ export type ExecutionState = 'IDLE' | 'CHAT_ACTIVE' | 'LIFE_PENDING' | 'LIFE_RUN
 export type ActivityCategory = 'emotion' | 'interaction' | 'state';
 export type ActivityIntensity = 'weak' | 'moderate' | 'strong';
 export type ActivitySource = 'apml_output' | 'direct_api' | 'mock';
-export type CurrentEmotion = 'neutral' | 'joy' | 'focus' | 'calm' | 'playful' | 'concerned' | 'surprised';
+export type CurrentEmotion =
+  | 'happy'
+  | 'sad'
+  | 'shy'
+  | 'angry'
+  | 'surprised'
+  | 'confused'
+  | 'excited'
+  | 'worried'
+  | 'embarrassed'
+  | 'neutral'
+  | 'ext:apologetic'
+  | 'ext:proud'
+  | 'ext:lonely'
+  | 'ext:grateful';
 
 export type RuntimePresentationAdmissionEvidence = {
   runtimeAdmissionRef: string;

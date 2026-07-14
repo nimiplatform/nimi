@@ -29,10 +29,11 @@ pnpm run update
 pnpm run test
 ```
 
-`dev:shell` launches the Tauri shell. The app authenticates through the in-app
-Runtime account login, like a shipped app. A local not-yet-admitted app uses
-Developer Mode plus Runtime developer registration; Tester does not create a
-standalone developer session or grant app admission.
+`dev:shell` launches the Tauri shell. The native host injects the standard-shell
+local-app carrier. A local not-yet-admitted project must be authorized through
+Developer Mode and launched as an isolated `local_development` build. Tester
+does not own the principal, grant, or session and does not grant public app
+admission.
 
 ## What To Study
 

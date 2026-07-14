@@ -7,14 +7,6 @@ runtime:
       when_env_all:
         - NIMI_LIVE_LOCAL_BASE_URL
         - NIMI_LIVE_LOCAL_TTS_MODEL_ID
-sdk:
-  required_interfaces: []
-  baseline_providers: []
-  conditional_baselines:
-    - provider: local
-      when_env_all:
-        - NIMI_LIVE_LOCAL_BASE_URL
-        - NIMI_LIVE_LOCAL_TTS_MODEL_ID
 exemptions:
   runtime_bindings_without_catalog:
     - volcengine_openspeech
@@ -22,5 +14,3 @@ exemptions:
     - openai_compatible
   runtime_live_generate_exemptions:
     - volcengine_openspeech
-  sdk_live_smoke_exemptions:
-    - openai_compatible

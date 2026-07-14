@@ -4,6 +4,8 @@
       "@desktop-public/*": ["../desktop/src/public-web/*"],
       "@renderer/infra/bootstrap/runtime-bootstrap": ["./src/desktop-adapter/runtime-bootstrap.web.ts"],
       "@renderer/features/runtime-config/runtime-config-panel-view": ["./src/desktop-adapter/runtime-config-panel.web.tsx"],
+      "@renderer/features/auth/desktop-auth-adapter.js": ["./src/desktop-adapter/web-auth-adapter.ts"],
+      "@renderer/features/settings/profile-oauth-platform.js": ["./src/desktop-adapter/profile-oauth-platform.web.ts"],
       "@renderer/bridge": ["./src/desktop-adapter/bridge.web.ts"],
       "@runtime/*": ["../desktop/src/runtime/*"],
       "@renderer/*": ["../desktop/src/shell/renderer/*"],

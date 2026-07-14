@@ -23,8 +23,6 @@ export const RUNTIME_INTERFACE_ORDER = [
   'connector_tts',
 ];
 
-export const SDK_INTERFACE_ORDER = [...CAPABILITY_INTERFACE_ORDER];
-
 const PROVIDER_ALIASES = {
   local: 'local',
   localprovider: 'local',
@@ -404,49 +402,6 @@ export function parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath) {
   return definitions;
 }
 
-export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
-  const source = fs.readFileSync(sdkLiveSmokePath, 'utf8');
-  const repoRoot = resolveRepoRoot(import.meta.url);
-  const sourceProviderDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
-  const definitions = new Map();
-  if (source.includes('registerSdkVNextProviderCapabilityMatrixTests')) {
-    const matrix = loadSourceProviderCapabilityMatrix(sourceProviderDir);
-    for (const [provider, capabilities] of matrix.entries()) {
-      for (const iface of capabilities) {
-        ensureNestedMapSet(
-          definitions,
-          provider,
-          iface,
-          `nimi sdk vnext live smoke: ${provider} ${iface}`,
-        );
-      }
-    }
-  }
-  const testRegex = /test\(\s*['"]nimi sdk vnext live smoke:\s*([^'"]+?)\s+generate text['"]/g;
-  let match;
-  while ((match = testRegex.exec(source)) !== null) {
-    const label = String(match[1] || '').trim();
-    const provider = canonicalProviderId(label);
-    if (!provider) {
-      continue;
-    }
-    const testName = `nimi sdk vnext live smoke: ${label} generate text`;
-    ensureNestedMapSet(definitions, provider, 'generate', testName);
-  }
-  const capabilityRegex = /test\(\s*['"]nimi sdk vnext live smoke:\s*([^'"]+?)\s+(generate|embed|image|video|tts|stt|music|voice_clone|voice_design)['"]/g;
-  while ((match = capabilityRegex.exec(source)) !== null) {
-    const providerLabel = String(match[1] || '').trim();
-    const provider = canonicalProviderId(providerLabel);
-    const iface = String(match[2] || '').trim().toLowerCase();
-    if (!provider || !iface) {
-      continue;
-    }
-    const testName = `nimi sdk vnext live smoke: ${providerLabel} ${iface}`;
-    ensureNestedMapSet(definitions, provider, iface, testName);
-  }
-  return definitions;
-}
-
 export function parseLiveEnvTemplateProviders(envTemplatePath) {
   const source = fs.readFileSync(envTemplatePath, 'utf8');
   const providers = new Map();
@@ -523,9 +478,6 @@ export function collectProviderUniverse(input) {
     providers.add(provider);
   }
   for (const provider of collectProvidersFromDefinitions(input.runtimeDefinitions || new Map())) {
-    providers.add(provider);
-  }
-  for (const provider of collectProvidersFromDefinitions(input.sdkDefinitions || new Map())) {
     providers.add(provider);
   }
   if (input.includeLocal !== false) {

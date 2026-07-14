@@ -278,13 +278,20 @@ export function requireRuntimePostureDetail(value: unknown): {
 
 export function requireRuntimeCurrentEmotion(value: unknown): BundleCurrentEmotion {
   if (
-    value === 'neutral'
-    || value === 'joy'
-    || value === 'focus'
-    || value === 'calm'
-    || value === 'playful'
-    || value === 'concerned'
+    value === 'happy'
+    || value === 'sad'
+    || value === 'shy'
+    || value === 'angry'
     || value === 'surprised'
+    || value === 'confused'
+    || value === 'excited'
+    || value === 'worried'
+    || value === 'embarrassed'
+    || value === 'neutral'
+    || value === 'ext:apologetic'
+    || value === 'ext:proud'
+    || value === 'ext:lonely'
+    || value === 'ext:grateful'
   ) {
     return value;
   }

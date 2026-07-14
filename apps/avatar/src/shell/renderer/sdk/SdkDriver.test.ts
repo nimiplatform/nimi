@@ -346,7 +346,7 @@ describe('SdkDriver', () => {
         originatingTurnId: 'turn-1',
         originatingStreamId: 'stream-1',
         detail: {
-          currentEmotion: 'joy',
+          currentEmotion: 'happy',
           previousEmotion: 'neutral',
           source: 'chat_status_cue',
         },
@@ -378,12 +378,12 @@ describe('SdkDriver', () => {
 
     expect(driver.getBundle().activity).toBeUndefined();
     expect(driver.getBundle().emotion).toEqual({
-      current: 'joy',
+      current: 'happy',
       previous: 'neutral',
       source: 'chat_status_cue',
     });
     expect(driver.getBundle().custom).toEqual(expect.objectContaining({
-      runtime_current_emotion: 'joy',
+      runtime_current_emotion: 'happy',
       runtime_previous_emotion: 'neutral',
       runtime_emotion_source: 'chat_status_cue',
     }));
@@ -497,7 +497,7 @@ describe('SdkDriver', () => {
       'runtime.agent.presentation.activity_requested',
     ]);
     expect(events[0]?.detail).toEqual(expect.objectContaining({
-      expression_id: 'joy',
+      expression_id: 'happy',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
       catchup_source: 'session_snapshot',

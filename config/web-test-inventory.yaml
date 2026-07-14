@@ -162,3 +162,14 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_import
+  - path: apps/web/test/web-realm-session.test.ts
+    owner: web
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001

@@ -1231,6 +1231,61 @@ describe('chat realm helpers', () => {
     expect(container.textContent).toContain('Uploading...');
   });
 
+  it('resolves protected timeline media through the owner adapter without Kit bearer custody', async () => {
+    const dispose = vi.fn();
+    const resolveMediaSource = vi.fn(async () => ({
+      url: 'blob:nimi-runtime-media-1',
+      dispose,
+    }));
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <RealmChatTimeline
+          currentUserId="user-1"
+          messages={[{
+            id: 'media-1',
+            chatId: 'chat-1',
+            senderId: 'user-2',
+            type: 'ATTACHMENT',
+            text: null,
+            payload: {
+              attachment: {
+                targetType: 'RESOURCE',
+                targetId: 'resource-1',
+                displayKind: 'IMAGE',
+                url: 'https://realm.example.test/media/resource-1',
+              },
+            },
+            createdAt: '2026-03-24T09:20:00.000Z',
+            isRead: true,
+            deliveryState: 'sent',
+            deliveryError: null,
+            localPreviewUrl: null,
+            localUploadState: null,
+          }]}
+          resolveMediaSource={resolveMediaSource}
+        />,
+      );
+      await flush();
+    });
+
+    expect(resolveMediaSource).toHaveBeenCalledWith(expect.objectContaining({
+      sourceUrl: 'https://realm.example.test/media/resource-1',
+      kind: 'image',
+    }));
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:nimi-runtime-media-1');
+
+    await act(async () => {
+      root?.unmount();
+      await flush();
+    });
+    root = null;
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
   it('renders stream status UI for streaming and interrupted states', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

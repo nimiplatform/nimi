@@ -1,21 +1,18 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import YAML from 'yaml';
 import {
   RUNTIME_INTERFACE_ORDER,
-  SDK_INTERFACE_ORDER,
-  collectProviderUniverse,
   collectProvidersFromDefinitions,
   loadProviderCatalog,
+  mapDefinitionsToObject,
   parseRuntimeLiveTestDefinitions,
-  parseSdkLiveTestDefinitions,
   resolveRepoRoot,
   toSortedArray,
-  mapDefinitionsToObject,
 } from './live-provider-utils.mjs';
 import { mergeMissingEnv, prepareLiveAudioFixtures } from './lib/live-audio-fixtures.mjs';
 import { buildMergedEnv } from './lib/live-env.mjs';
@@ -27,64 +24,75 @@ const runtimeLiveSmokeFile = path.join(
   repoRoot,
   'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
 );
-const sdkTestFile = path.join(
-  repoRoot,
-  'sdks/typescript/runtime/live-provider-smoke.test.ts',
-);
 const providerCatalogFile = path.join(
   repoRoot,
   '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
 );
 const reportDir = path.join(repoRoot, '.local', 'report');
 const reportPath = path.join(reportDir, 'live-test-coverage.yaml');
-const goldReportPath = path.join(reportDir, 'ai-gold-path-report.yaml');
-const args = process.argv.slice(2);
 
 function printUsage() {
-  process.stdout.write(`Usage: node scripts/run-live-test-matrix.mjs [--help] [--skip-runtime] [--skip-sdk] [--skip-gold-path]
+  process.stdout.write(`Usage: node scripts/run-live-test-matrix.mjs [--help] [--skip-runtime]
 
-Runs the required runtime, SDK, and gold-path live validation lanes and writes .local/report/live-test-coverage.yaml.
+Runs the Runtime-owned provider-by-capability live matrix and writes
+.local/report/live-test-coverage.yaml.
 
-Skip flags are diagnostic only. Any skipped required lane is recorded as blocked and exits nonzero.
+The SDK protected-carrier journey is separate candidate-bound evidence. This
+runner does not synthesize SDK coverage from direct-daemon calls or test names.
+--skip-runtime is diagnostic only and exits nonzero.
 `);
 }
 
-if (args.includes('--help') || args.includes('-h')) {
-  printUsage();
-  process.exit(0);
+function parseArgs(argv) {
+  const args = Array.isArray(argv) ? argv : [];
+  const options = { skipRuntime: false };
+  for (const token of args) {
+    if (token === '--help' || token === '-h') {
+      options.help = true;
+      continue;
+    }
+    if (token === '--skip-runtime') {
+      options.skipRuntime = true;
+      continue;
+    }
+    throw new Error(`unknown argument: ${token}`);
+  }
+  return options;
 }
 
-const baseLiveEnv = buildMergedEnv({
-  baseEnv: process.env,
-  filePaths: [
-    path.join(repoRoot, 'config', 'live', 'dashscope-gold-path.env'),
-    path.join(repoRoot, '.env'),
-  ],
-});
-const preparedAudio = prepareLiveAudioFixtures({
-  cwd: repoRoot,
-  env: baseLiveEnv,
-  strict: false,
-});
-if (preparedAudio.error) {
-  process.stdout.write(`[live-test-matrix] live audio fixture prepare skipped: ${preparedAudio.error}\n`);
-}
-const derivedProviderEnv = synthesizeLiveProviderEnvDefaults({
-  repoRoot,
-  env: baseLiveEnv,
-});
-if (derivedProviderEnv.providers.length > 0) {
-  process.stdout.write(
-    `[live-test-matrix] derived live provider defaults: ${derivedProviderEnv.providers.join(', ')}\n`,
+function buildLiveEnv() {
+  const baseLiveEnv = buildMergedEnv({
+    baseEnv: process.env,
+    filePaths: [
+      path.join(repoRoot, 'config', 'live', 'dashscope-gold-path.env'),
+      path.join(repoRoot, '.env'),
+    ],
+  });
+  const preparedAudio = prepareLiveAudioFixtures({
+    cwd: repoRoot,
+    env: baseLiveEnv,
+    strict: false,
+  });
+  if (preparedAudio.error) {
+    process.stdout.write(`[live-test-matrix] live audio fixture prepare skipped: ${preparedAudio.error}\n`);
+  }
+  const derivedProviderEnv = synthesizeLiveProviderEnvDefaults({
+    repoRoot,
+    env: baseLiveEnv,
+  });
+  if (derivedProviderEnv.providers.length > 0) {
+    process.stdout.write(
+      `[live-test-matrix] derived live provider defaults: ${derivedProviderEnv.providers.join(', ')}\n`,
+    );
+  }
+  return mergeMissingEnv(
+    mergeMissingEnv(baseLiveEnv, { env: derivedProviderEnv.env }),
+    preparedAudio.payload,
   );
 }
-const liveEnv = mergeMissingEnv(
-  mergeMissingEnv(baseLiveEnv, { env: derivedProviderEnv.env }),
-  preparedAudio.payload,
-);
 
-function runRuntimeTests() {
-  process.stdout.write('[live-test-matrix] running runtime live smoke tests...\n');
+function runRuntimeTests(liveEnv) {
+  process.stdout.write('[live-test-matrix] running Runtime provider-capability live tests...\n');
   const result = spawnSync(
     'go',
     ['test', './internal/services/ai/', '-v', '-run', 'TestLiveSmokeProviderCapabilityMatrix|TestLiveSmokeLocalSidecarMusicPromptOnly', '-timeout', '15m', '-count=1'],
@@ -106,118 +114,14 @@ function runRuntimeTests() {
   };
 }
 
-function runSdkTests() {
-  process.stdout.write('[live-test-matrix] running SDK live smoke tests...\n');
-  const result = spawnSync(
-    'pnpm',
-    ['--filter', '@nimiplatform/sdk', 'exec', 'tsx', '--test', sdkTestFile],
-    {
-      cwd: repoRoot,
-      env: { ...liveEnv, NIMI_SDK_LIVE: '1' },
-      stdio: ['ignore', 'pipe', 'pipe'],
-      encoding: 'utf8',
-      timeout: 20 * 60 * 1000,
-    },
-  );
-
-  return {
-    output: [
-      typeof result.stdout === 'string' ? result.stdout : '',
-      typeof result.stderr === 'string' ? result.stderr : '',
-    ].join('\n'),
-    status: result.status ?? 1,
-  };
-}
-
-function runGoldPathTests() {
-  process.stdout.write('[live-test-matrix] running gold-path replay tests...\n');
-  const result = spawnSync(
-    'node',
-    ['scripts/run-dashscope-gold-path.mjs'],
-    {
-      cwd: repoRoot,
-      env: liveEnv,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      encoding: 'utf8',
-      timeout: 30 * 60 * 1000,
-    },
-  );
-
-  return {
-    output: [
-      typeof result.stdout === 'string' ? result.stdout : '',
-      typeof result.stderr === 'string' ? result.stderr : '',
-    ].join('\n'),
-    status: result.status ?? 1,
-  };
-}
-
-function readGoldPathReport() {
-  if (!existsSync(goldReportPath)) {
-    return null;
-  }
-  return YAML.parse(readFileSync(goldReportPath, 'utf8')) || null;
-}
-
 function parseGoTestOutput(output) {
   const results = new Map();
-  const lines = output.split(/\r?\n/);
-  for (const line of lines) {
+  for (const line of String(output || '').split(/\r?\n/)) {
     const match = line.match(/---\s+(PASS|FAIL|SKIP):\s+(\S+)/);
-    if (!match) {
-      continue;
-    }
-    const [, status, testName] = match;
-    results.set(testName, status.toLowerCase());
-  }
-  return results;
-}
-
-function parseNodeTestOutput(output) {
-  const results = new Map();
-  const lines = output.split(/\r?\n/);
-
-  for (const line of lines) {
-    const tapMatch = line.match(/^(ok|not ok)\s+\d+\s+-\s+(.+?)(?:\s+#\s+(.+))?$/);
-    if (tapMatch) {
-      const [, okStatus, description, directive] = tapMatch;
-      const testName = description.trim();
-      if (directive && directive.toUpperCase().startsWith('SKIP')) {
-        results.set(testName, 'skip');
-      } else if (okStatus === 'ok') {
-        results.set(testName, 'pass');
-      } else {
-        results.set(testName, 'fail');
-      }
-      continue;
-    }
-
-    const nodePass = line.match(/^\s*[✓✔]\s+(.+?)(?:\s+\(\d+[\d.]*m?s\))?$/);
-    if (nodePass) {
-      results.set(nodePass[1].trim(), 'pass');
-      continue;
-    }
-
-    const nodeFail = line.match(/^\s*[✗✘✖✕]\s+(.+?)(?:\s+\(\d+[\d.]*m?s\))?$/);
-    if (nodeFail) {
-      results.set(nodeFail[1].trim(), 'fail');
-      continue;
-    }
-
-    const nodeSkip = line.match(/^\s*[-–]\s+(.+?)\s+\(skipped\)/);
-    if (nodeSkip) {
-      results.set(nodeSkip[1].trim(), 'skip');
-      continue;
-    }
-
-    // Node 24 + tsx may emit skipped cases as:
-    // "﹣ test name (0.123ms) # skip reason"
-    const nodeDashSkip = line.match(/^\s*[﹣\-–]\s+(.+?)(?:\s+\(\d+[\d.]*m?s\))\s+#\s+.+$/);
-    if (nodeDashSkip) {
-      results.set(nodeDashSkip[1].trim(), 'skip');
+    if (match) {
+      results.set(match[2], match[1].toLowerCase());
     }
   }
-
   return results;
 }
 
@@ -226,13 +130,10 @@ function lookupGoTestStatus(goResults, testName) {
   if (direct) {
     return direct;
   }
-
   const slashIndex = testName.indexOf('/');
   if (slashIndex > 0) {
-    const parent = testName.slice(0, slashIndex);
-    return goResults.get(parent) || null;
+    return goResults.get(testName.slice(0, slashIndex)) || null;
   }
-
   return null;
 }
 
@@ -255,9 +156,7 @@ function resolveGoCellStatus(goResults, testNames) {
     }
     if (status === 'pass') {
       hasPass = true;
-      continue;
-    }
-    if (status === 'skip') {
+    } else if (status === 'skip') {
       hasSkip = true;
     }
   }
@@ -266,54 +165,24 @@ function resolveGoCellStatus(goResults, testNames) {
     return { status: 'passed' };
   }
   if (hasSkip) {
-    return { status: 'skipped', reason: 'env var not set' };
+    return { status: 'skipped', reason: 'live environment requirement not satisfied' };
   }
   if (hasObserved) {
-    return { status: 'no_test', reason: 'test did not emit pass/fail/skip status' };
+    return { status: 'no_test', reason: 'test did not emit a terminal status' };
   }
-  return { status: 'no_test', reason: 'test declared but not executed' };
+  return { status: 'no_test', reason: 'declared test did not execute' };
 }
 
-function resolveNodeCellStatus(nodeResults, testNames) {
-  if (!testNames || testNames.size === 0) {
-    return { status: 'no_test', reason: 'no test exists for this cell' };
-  }
-
-  let hasPass = false;
-  let hasSkip = false;
-  let hasObserved = false;
-
-  for (const testName of testNames) {
-    const status = nodeResults.get(testName);
-    if (!status) {
-      continue;
-    }
-    hasObserved = true;
-    if (status === 'fail') {
-      return { status: 'failed' };
-    }
-    if (status === 'pass') {
-      hasPass = true;
-      continue;
-    }
-    if (status === 'skip') {
-      hasSkip = true;
-    }
-  }
-
-  if (hasPass) {
-    return { status: 'passed' };
-  }
-  if (hasSkip) {
-    return { status: 'skipped', reason: 'env var not set' };
-  }
-  if (hasObserved) {
-    return { status: 'no_test', reason: 'test did not emit pass/fail/skip status' };
-  }
-  return { status: 'no_test', reason: 'test declared but not executed' };
+function orderedInterfacesForProvider(definitions) {
+  const ifaceSet = new Set(definitions.keys());
+  const prioritized = RUNTIME_INTERFACE_ORDER.filter((iface) => ifaceSet.has(iface));
+  const extras = [...ifaceSet]
+    .filter((iface) => !RUNTIME_INTERFACE_ORDER.includes(iface))
+    .sort((left, right) => left.localeCompare(right));
+  return [...prioritized, ...extras];
 }
 
-function countSummary(runtimeMatrix, sdkMatrix) {
+function countSummary(runtimeMatrix) {
   const summary = {
     total_cells: 0,
     passed: 0,
@@ -321,192 +190,106 @@ function countSummary(runtimeMatrix, sdkMatrix) {
     failed: 0,
     no_test: 0,
   };
-
-  const matrices = [runtimeMatrix, sdkMatrix];
-  for (const matrix of matrices) {
-    for (const providerData of Object.values(matrix)) {
-      for (const cell of Object.values(providerData)) {
-        summary.total_cells += 1;
-        if (cell.status === 'passed') {
-          summary.passed += 1;
-        } else if (cell.status === 'failed') {
-          summary.failed += 1;
-        } else if (cell.status === 'skipped') {
-          summary.skipped += 1;
-        } else {
-          summary.no_test += 1;
-        }
+  for (const providerData of Object.values(runtimeMatrix)) {
+    for (const cell of Object.values(providerData)) {
+      summary.total_cells += 1;
+      if (cell.status === 'passed') {
+        summary.passed += 1;
+      } else if (cell.status === 'failed') {
+        summary.failed += 1;
+      } else if (cell.status === 'skipped') {
+        summary.skipped += 1;
+      } else {
+        summary.no_test += 1;
       }
     }
   }
-
   return summary;
 }
 
-function orderedInterfacesForProvider(definitions, order) {
-  const ifaceSet = new Set(definitions.keys());
-  const prioritized = order.filter((iface) => ifaceSet.has(iface));
-  const extras = [...ifaceSet].filter((iface) => !order.includes(iface)).sort((a, b) => a.localeCompare(b));
-  return [...prioritized, ...extras];
-}
-
 function main() {
-  const skipRuntime = args.includes('--skip-runtime');
-  const skipSdk = args.includes('--skip-sdk');
-  const skipGoldPath = args.includes('--skip-gold-path');
-  const skippedRequiredLanes = [
-    skipRuntime ? 'runtime' : null,
-    skipSdk ? 'sdk' : null,
-    skipGoldPath ? 'gold_path' : null,
-  ].filter(Boolean);
+  const options = parseArgs(process.argv.slice(2));
+  if (options.help) {
+    printUsage();
+    return;
+  }
 
   const catalogProviders = loadProviderCatalog(providerCatalogFile);
   const runtimeDefinitions = parseRuntimeLiveTestDefinitions(runtimeLiveSmokeFile);
-  const sdkDefinitions = parseSdkLiveTestDefinitions(sdkTestFile);
-
-  const providerUniverse = collectProviderUniverse({
-    catalogProviders,
-    runtimeDefinitions,
-    sdkDefinitions,
-    includeLocal: true,
-  });
-
-  let runtimeGoResults = new Map();
-  let sdkNodeResults = new Map();
-
+  const providers = toSortedArray(collectProvidersFromDefinitions(runtimeDefinitions));
+  let runtimeResults = new Map();
   let runtimeExitStatus = 0;
-  let sdkExitStatus = 0;
-  let goldExitStatus = 0;
-  let goldReport = null;
 
-  if (!skipRuntime) {
-    const runtimeRun = runRuntimeTests();
+  if (!options.skipRuntime) {
+    const runtimeRun = runRuntimeTests(buildLiveEnv());
     runtimeExitStatus = runtimeRun.status;
-    runtimeGoResults = parseGoTestOutput(runtimeRun.output);
+    runtimeResults = parseGoTestOutput(runtimeRun.output);
     if (runtimeExitStatus !== 0 && String(runtimeRun.output || '').trim()) {
-      process.stdout.write('[live-test-matrix] runtime output start\n');
+      process.stdout.write('[live-test-matrix] Runtime output start\n');
       process.stdout.write(`${runtimeRun.output}\n`);
-      process.stdout.write('[live-test-matrix] runtime output end\n');
+      process.stdout.write('[live-test-matrix] Runtime output end\n');
     }
   }
 
-  if (!skipSdk) {
-    const sdkRun = runSdkTests();
-    sdkExitStatus = sdkRun.status;
-    sdkNodeResults = parseNodeTestOutput(sdkRun.output);
-    if (sdkExitStatus !== 0 && String(sdkRun.output || '').trim()) {
-      process.stdout.write('[live-test-matrix] sdk output start\n');
-      process.stdout.write(`${sdkRun.output}\n`);
-      process.stdout.write('[live-test-matrix] sdk output end\n');
-    }
-  }
-
-  if (!skipGoldPath) {
-    const goldRun = runGoldPathTests();
-    goldExitStatus = goldRun.status;
-    goldReport = readGoldPathReport();
-    if (goldExitStatus !== 0 && String(goldRun.output || '').trim()) {
-      process.stdout.write('[live-test-matrix] gold-path output start\n');
-      process.stdout.write(`${goldRun.output}\n`);
-      process.stdout.write('[live-test-matrix] gold-path output end\n');
-    }
-  }
-
-  const providers = toSortedArray(providerUniverse);
   const runtimeMatrix = {};
-  const sdkMatrix = {};
-
   for (const provider of providers) {
-    const runtimeProviderDefinitions = runtimeDefinitions.get(provider) || new Map();
-    runtimeMatrix[provider] = {};
-    for (const iface of orderedInterfacesForProvider(runtimeProviderDefinitions, RUNTIME_INTERFACE_ORDER)) {
-      runtimeMatrix[provider][iface] = resolveGoCellStatus(
-        runtimeGoResults,
-        runtimeProviderDefinitions.get(iface),
-      );
+    const definitions = runtimeDefinitions.get(provider);
+    if (!definitions || definitions.size === 0) {
+      continue;
     }
-
-    const sdkProviderDefinitions = sdkDefinitions.get(provider) || new Map();
-    sdkMatrix[provider] = {};
-    for (const iface of orderedInterfacesForProvider(sdkProviderDefinitions, SDK_INTERFACE_ORDER)) {
-      sdkMatrix[provider][iface] = resolveNodeCellStatus(
-        sdkNodeResults,
-        sdkProviderDefinitions.get(iface),
-      );
+    const cells = {};
+    for (const iface of orderedInterfacesForProvider(definitions)) {
+      cells[iface] = resolveGoCellStatus(runtimeResults, definitions.get(iface));
+    }
+    if (Object.keys(cells).length > 0) {
+      runtimeMatrix[provider] = cells;
     }
   }
 
-  const summary = countSummary(runtimeMatrix, sdkMatrix);
+  const summary = countSummary(runtimeMatrix);
   const report = {
     generated_at: new Date().toISOString(),
     summary,
     metadata: {
       providers: {
         catalog: toSortedArray(catalogProviders),
-        runtime_live_tests: toSortedArray(collectProvidersFromDefinitions(runtimeDefinitions)),
-        sdk_live_tests: toSortedArray(collectProvidersFromDefinitions(sdkDefinitions)),
+        runtime_live_tests: providers,
         matrix_universe: providers,
       },
-      interfaces: {
-        runtime: RUNTIME_INTERFACE_ORDER,
-        sdk: SDK_INTERFACE_ORDER,
-      },
+      interfaces: { runtime: RUNTIME_INTERFACE_ORDER },
       runtime_test_definitions: mapDefinitionsToObject(runtimeDefinitions),
-      sdk_test_definitions: mapDefinitionsToObject(sdkDefinitions),
       command_status: {
-        runtime: skipRuntime ? 'skipped' : runtimeExitStatus === 0 ? 'ok' : 'failed',
-        sdk: skipSdk ? 'skipped' : sdkExitStatus === 0 ? 'ok' : 'failed',
-        gold_path: skipGoldPath ? 'skipped' : goldExitStatus === 0 ? 'ok' : 'failed',
+        runtime: options.skipRuntime ? 'skipped' : runtimeExitStatus === 0 ? 'ok' : 'failed',
       },
       required_lane_status: {
-        runtime: skipRuntime ? 'blocked_skipped_required_lane' : runtimeExitStatus === 0 ? 'ok' : 'failed',
-        sdk: skipSdk ? 'blocked_skipped_required_lane' : sdkExitStatus === 0 ? 'ok' : 'failed',
-        gold_path: skipGoldPath ? 'blocked_skipped_required_lane' : goldExitStatus === 0 ? 'ok' : 'failed',
+        runtime: options.skipRuntime
+          ? 'blocked_skipped_required_lane'
+          : runtimeExitStatus === 0 ? 'ok' : 'failed',
       },
-      skipped_required_lanes: skippedRequiredLanes,
+      skipped_required_lanes: options.skipRuntime ? ['runtime'] : [],
     },
     runtime: runtimeMatrix,
-    sdk: sdkMatrix,
-    gold_path: goldReport
-      ? {
-        ...goldReport,
-        report_path: goldReportPath,
-      }
-      : {
-        generated_at: null,
-        summary: null,
-        fixtures: [],
-        report_path: goldReportPath,
-      },
   };
 
-  if (!existsSync(reportDir)) {
-    mkdirSync(reportDir, { recursive: true });
-  }
+  mkdirSync(reportDir, { recursive: true });
   writeFileSync(reportPath, YAML.stringify(report), 'utf8');
 
   process.stdout.write(`[live-test-matrix] report written to ${reportPath}\n`);
   process.stdout.write(`[live-test-matrix] summary: ${summary.passed} passed, ${summary.skipped} skipped, ${summary.failed} failed, ${summary.no_test} no_test (${summary.total_cells} total cells)\n`);
-  if (goldReport?.summary) {
-    process.stdout.write(`[live-test-matrix] gold-path summary: ${goldReport.summary.passed} passed, ${goldReport.summary.skipped} skipped, ${goldReport.summary.failed} failed, ${goldReport.summary.reserved} reserved (${goldReport.summary.total_fixtures} total fixtures)\n`);
-  }
-  if (skippedRequiredLanes.length > 0) {
-    process.stdout.write(`[live-test-matrix] ERROR: required live matrix lanes skipped: ${skippedRequiredLanes.join(', ')}\n`);
+  if (options.skipRuntime) {
+    process.stdout.write('[live-test-matrix] ERROR: required Runtime lane was skipped\n');
   }
   if (summary.no_test > 0) {
-    process.stdout.write(`[live-test-matrix] ERROR: live matrix contains ${summary.no_test} declared cells with no test result\n`);
+    process.stdout.write(`[live-test-matrix] ERROR: Runtime matrix contains ${summary.no_test} declared cells with no test result\n`);
   }
 
   if (
-    skippedRequiredLanes.length > 0
+    options.skipRuntime
     || summary.failed > 0
     || summary.no_test > 0
     || runtimeExitStatus !== 0
-    || sdkExitStatus !== 0
-    || goldExitStatus !== 0
-    || Number(goldReport?.summary?.failed || 0) > 0
   ) {
-    process.stdout.write('[live-test-matrix] WARNING: live matrix run contains failures or blocked required lanes\n');
+    process.stdout.write('[live-test-matrix] WARNING: Runtime live matrix contains failures or a blocked lane\n');
     process.exitCode = 1;
   }
 }

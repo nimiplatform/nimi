@@ -18,7 +18,6 @@ const defaultBaselinePath = path.join(repoRoot, 'config/live/live-gate-baseline.
 const providerTargetingSmokeFiles = new Set([
   'runtime/internal/services/ai/live_provider_smoke_test.go',
   'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
-  'sdks/typescript/runtime/live-provider-smoke.test.ts',
 ]);
 
 function parseArgs() {
@@ -287,7 +286,6 @@ function detectChangedProvidersFromGit(providerUniverse) {
     'runtime/internal/services/ai/provider.go',
     'runtime/internal/services/ai/live_provider_smoke_test.go',
     'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
-    'sdks/typescript/runtime/live-provider-smoke.test.ts',
     'config/live/live-test.env.example',
     '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
     'config/live/live-gate-baseline.yaml',
@@ -442,40 +440,18 @@ function evaluateLayer(input) {
   };
 }
 
-function evaluateGoldPath(report, options) {
+function evaluateSdkProtectedCarrierProof(report, options) {
   const failures = [];
-  const softSkips = [];
-  const fixtures = Array.isArray(report?.fixtures) ? report.fixtures : [];
-  const gatedDashscopeFixtures = fixtures.filter((fixture) => fixture?.gated && fixture?.provider === 'dashscope');
+  const hasRetiredSdkMatrix = Object.prototype.hasOwnProperty.call(report || {}, 'sdk');
 
-  if (gatedDashscopeFixtures.length === 0) {
-    if (options.requireRelease) {
-      failures.push('gold_path:dashscope:missing_fixture_records');
-    }
-    return { failures, softSkips, fixtureIds: [] };
+  if (hasRetiredSdkMatrix) {
+    failures.push('sdk:retired_provider_capability_matrix_not_admitted');
+  }
+  if (options.requireRelease) {
+    failures.push('sdk:protected_carrier:missing_admitted_candidate_proof');
   }
 
-  for (const fixture of gatedDashscopeFixtures) {
-    const fixtureId = String(fixture.fixture_id || '').trim() || 'unknown-fixture';
-    for (const layer of ['L0', 'L1', 'L2']) {
-      const status = String(fixture?.layers?.[layer]?.status || '').trim();
-      const cellId = `gold_path:${fixtureId}:${layer}`;
-      if (status === 'passed') {
-        continue;
-      }
-      if (status === 'skipped' && !options.requireRelease) {
-        softSkips.push(`${cellId}:skipped`);
-        continue;
-      }
-      failures.push(`${cellId}:${status || 'missing'}`);
-    }
-  }
-
-  return {
-    failures,
-    softSkips,
-    fixtureIds: gatedDashscopeFixtures.map((fixture) => String(fixture.fixture_id || '').trim()).filter(Boolean),
-  };
+  return { failures };
 }
 
 function main() {
@@ -484,13 +460,10 @@ function main() {
   const baseline = readYamlFile(options.baselinePath);
 
   const runtimeMatrix = report?.runtime && typeof report.runtime === 'object' ? report.runtime : {};
-  const sdkMatrix = report?.sdk && typeof report.sdk === 'object' ? report.sdk : {};
 
   const runtimeProvidersInReport = new Set(Object.keys(runtimeMatrix));
-  const sdkProvidersInReport = new Set(Object.keys(sdkMatrix));
   const configuredRuntimeProviders = collectConfiguredProviders(runtimeMatrix);
-  const configuredSdkProviders = collectConfiguredProviders(sdkMatrix);
-  const providerUniverse = new Set([...runtimeProvidersInReport, ...sdkProvidersInReport]);
+  const providerUniverse = new Set(runtimeProvidersInReport);
 
   const changedProviders = parseChangedProvidersInput(options.changedProvidersInput);
   if (changedProviders.size === 0) {
@@ -515,20 +488,13 @@ function main() {
     ? baseline.exemptions
     : {};
   const runtimeExemptions = toStringSet(exemptions.runtime_live_generate_exemptions);
-  const sdkExemptions = toStringSet(exemptions.sdk_live_smoke_exemptions);
 
   const runtimeBaselineProviders = toStringSet(baseline?.runtime?.baseline_providers);
-  const sdkBaselineProviders = toStringSet(baseline?.sdk?.baseline_providers);
 
   const runtimeConditional = resolveConditionalProviders(baseline?.runtime?.conditional_baselines);
-  const sdkConditional = resolveConditionalProviders(baseline?.sdk?.conditional_baselines);
 
   const runtimeRequiredInterfaces = toStringArray(
     baseline?.runtime?.required_interfaces,
-    [],
-  );
-  const sdkRequiredInterfaces = toStringArray(
-    baseline?.sdk?.required_interfaces,
     [],
   );
 
@@ -541,16 +507,6 @@ function main() {
     exemptions: runtimeExemptions,
     requireRelease: options.requireRelease,
   });
-  const sdkRequiredProviders = resolveRequiredProviders({
-    baselineProviders: sdkBaselineProviders,
-    conditionalProviders: sdkConditional,
-    changedProviders,
-    reportProviders: sdkProvidersInReport,
-    configuredProviders: configuredSdkProviders,
-    exemptions: sdkExemptions,
-    requireRelease: options.requireRelease,
-  });
-
   const runtimeEvaluation = evaluateLayer({
     layer: 'runtime',
     matrix: runtimeMatrix,
@@ -561,30 +517,21 @@ function main() {
     ),
     requireRelease: options.requireRelease,
   });
-  const sdkEvaluation = evaluateLayer({
-    layer: 'sdk',
-    matrix: sdkMatrix,
-    requiredProviders: toSortedArray(sdkRequiredProviders),
-    requiredInterfaces: sdkRequiredInterfaces,
-    requiredInterfacesPerProvider: new Map(
-      Object.entries(sdkMatrix).map(([provider, cells]) => [provider, Object.keys(cells || {})]),
-    ),
+  const sdkProtectedCarrierEvaluation = evaluateSdkProtectedCarrierProof(report, {
     requireRelease: options.requireRelease,
   });
 
-  const goldEvaluation = evaluateGoldPath(report?.gold_path, {
-    requireRelease: options.requireRelease,
-  });
-
-  const failures = [...runtimeEvaluation.failures, ...sdkEvaluation.failures, ...goldEvaluation.failures];
-  const softSkips = [...runtimeEvaluation.softSkips, ...sdkEvaluation.softSkips, ...goldEvaluation.softSkips];
+  const failures = [
+    ...runtimeEvaluation.failures,
+    ...sdkProtectedCarrierEvaluation.failures,
+  ];
+  const softSkips = [...runtimeEvaluation.softSkips];
 
   process.stdout.write('[check-live-smoke-gate] evaluation context\n');
   process.stdout.write(`- mode: ${options.requireRelease ? 'release-hard-block' : 'pr-skip-safe'}\n`);
   process.stdout.write(`- changed providers: ${toSortedArray(changedProviders).join(', ') || '(none)'}\n`);
   process.stdout.write(`- runtime required providers: ${toSortedArray(runtimeRequiredProviders).join(', ') || '(none)'}\n`);
-  process.stdout.write(`- sdk required providers: ${toSortedArray(sdkRequiredProviders).join(', ') || '(none)'}\n`);
-  process.stdout.write(`- gold-path fixtures: ${goldEvaluation.fixtureIds.join(', ') || '(none)'}\n`);
+  process.stdout.write('- sdk protected-carrier proof: not represented by live-test-coverage schema\n');
 
   if (softSkips.length > 0) {
     process.stdout.write(`- skip-safe cells: ${softSkips.join(', ')}\n`);
@@ -613,6 +560,7 @@ export {
   collectChangedProvidersFromLines,
   detectChangedProvidersFromGit,
   evaluateChangedProviderEntries,
+  evaluateSdkProtectedCarrierProof,
   isProviderTargetingSmokeFile,
   main,
   parseArgs,

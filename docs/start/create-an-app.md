@@ -28,11 +28,11 @@ pnpm run local-audit
 pnpm run doctor
 ```
 
-`pnpm dev:shell` launches the generated Tauri shell. The app authenticates
-through the in-app Runtime account login, like a shipped app. A local
-not-yet-admitted app must use Developer Mode and the Runtime developer
-registration gate. The scaffold does not create a standalone developer session
-or bypass Runtime account custody.
+`pnpm dev:shell` launches the generated Tauri shell. The native host injects the
+standard-shell local-app carrier. A local not-yet-admitted project must be
+authorized through Developer Mode and launched as an isolated
+`local_development` build. The scaffold owns no principal, grant, session, or
+Runtime account custody.
 
 If you only need to verify SDK access to Runtime-backed text generation, read
 [First AI Call](/sdk/first-ai-call).

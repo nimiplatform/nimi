@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { evaluateChangedProviderEntries, resolveRequiredProviders } from './check-live-smoke-gate.mjs';
+import {
+  evaluateChangedProviderEntries,
+  evaluateSdkProtectedCarrierProof,
+  resolveRequiredProviders,
+} from './check-live-smoke-gate.mjs';
 
 function toSortedValues(input) {
   return [...input].sort();
@@ -40,20 +44,34 @@ test('runtime live smoke matrix edits infer provider-specific branches', () => {
   assert.deepEqual(result.unresolvedSmokeFiles, []);
 });
 
-test('SDK vNext live smoke edits infer the touched provider from changed lines', () => {
+test('SDK hardcut edits are not provider-matrix evidence', () => {
   const result = evaluateChangedProviderEntries(
     new Set(['local', 'nimillm']),
     [{
-      filePath: 'sdks/typescript/runtime/live-provider-smoke.test.ts',
+      filePath: 'sdks/typescript/runtime/public-credential-grant-hardcut.test.ts',
       changedLines: [
-        "test('nimi sdk vnext live smoke: nimillm generate', {",
-        "const provider = 'nimillm';",
+        "test('Runtime public surface has no credential-grant facade', () => {",
+        "assert.equal('grants' in runtime, false);",
       ],
     }],
   );
 
-  assert.deepEqual(toSortedValues(result.changedProviders), ['nimillm']);
+  assert.deepEqual(toSortedValues(result.changedProviders), []);
   assert.deepEqual(result.unresolvedSmokeFiles, []);
+});
+
+test('release mode fails closed without admitted SDK protected-carrier proof', () => {
+  assert.deepEqual(
+    evaluateSdkProtectedCarrierProof({}, { requireRelease: true }).failures,
+    ['sdk:protected_carrier:missing_admitted_candidate_proof'],
+  );
+});
+
+test('retired SDK provider matrix is rejected instead of treated as carrier proof', () => {
+  assert.deepEqual(
+    evaluateSdkProtectedCarrierProof({ sdk: { dashscope: { generate: { status: 'passed' } } } }, { requireRelease: false }).failures,
+    ['sdk:retired_provider_capability_matrix_not_admitted'],
+  );
 });
 
 test('generic smoke harness edits fail closed instead of misreporting a provider', () => {
@@ -100,4 +118,5 @@ test('live matrix fails closed on declared cells with no test result', () => {
 
   assert.match(source, /summary\.no_test\s*>\s*0/);
   assert.match(source, /declared cells with no test result/);
+  assert.doesNotMatch(source, /parseSdkLiveTestDefinitions|NIMI_SDK_LIVE|run-dashscope-gold-path/);
 });

@@ -800,24 +800,6 @@ gates:
     parent_p_gov_anchors: [P-GOV-011]
     experimental: false
 
-  - id: gate.live.local-agent-conversation-report
-    description: On-demand LocalAgent conversation report with two Runtime-owned streams and one cross-surface lifecycle timeline for human review.
-    command: pnpm test:e2e:local-agent-conversation-report
-    runner: pnpm
-    tiers: [release, live]
-    targets: [runtime, desktop]
-    timeout_seconds: 3000
-    requires_binaries: [pnpm, node, go]
-    requires_secrets: []
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001, P-RELG-006]
-    parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
-    experimental: false
-    notes: L5 on-demand only; live credential discovery is Runtime-catalog/provider dynamic rather than a fixed gate secret; no release/admission threshold, semantic verdict, evaluator requirement, retry, or ordinary regression binding; provider/model selection remains Runtime catalog and AI Config authority.
-
   # =====================================================================
   # owner: nimicoding (nimi-coding methodology package)
   # =====================================================================

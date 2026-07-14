@@ -58,8 +58,8 @@ migrated:
 legal_desktop_residue:
   - path: apps/desktop/src/shell/renderer/infra/realm/realm-api.ts
     rationale: Desktop owns app session/error orchestration around the SDK Realm client; it does not define Realm DTOs, endpoint paths, or service contracts.
-  - path: apps/desktop/src/shell/renderer/infra/realm/realm-platform-session.ts
-    rationale: Desktop owns product auth/session wiring for the renderer Realm client; Realm authority and service APIs remain SDK/Realm-owned.
+  - path: apps/web/src/desktop-adapter/web-realm-session.ts
+    rationale: Web owns browser credential and cookie session wiring; this bearer-capable adapter is physically outside the Desktop renderer source and production bundle graph.
   - path: apps/desktop/src/shell/renderer/features/chat/data/realm-group-chat-data.ts
     rationale: Desktop adapts product UI calls and authenticated-user state to SDK Realm group chat helpers and SDK Runtime candidate handoff; it must not call GroupChatsService methods directly.
   - path: apps/desktop/src/shell/renderer/features/notification/**
@@ -67,7 +67,7 @@ legal_desktop_residue:
   - path: apps/desktop/src/shell/renderer/features/settings/**
     rationale: Desktop owns settings page layout and form state; Realm settings/security/account operations are SDK helper calls against getPlatformClient().realm.
   - path: apps/desktop/src/public-web/realm/index.ts
-    rationale: Public-web export is a Desktop boundary facade over admitted Realm platform client session helpers, not a parallel Realm transport.
+    rationale: Public-web export is a Desktop boundary facade over token-free Realm API orchestration helpers, not a parallel Realm transport.
 tester_proof:
   - apps/tester/test/tester-contract.test.mjs proves Tester consumes SDK Realm notification, account settings, group chat, media URL, resource upload, endpoint, data sync, and Kit Realm chat attachment projections.
   - apps/tester/test/tester-contract.test.mjs proves Tester consumes Kit Realm human chat and commerce wallet/gift projections.

@@ -1,14 +1,13 @@
 type DesktopBridgeFacade = (typeof import('./bridge.web'))['desktopBridge'];
-type CreateProxyFetch = (typeof import('@desktop-public/infra'))['createProxyFetch'];
 type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRendererFlowId'];
 type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
 type DesktopPublicWebBootstrapStore = (typeof import('@desktop-public/app-store'))['desktopPublicWebBootstrapStore'];
-type ConfigureWebRealmPlatformClient = (typeof import('@desktop-public/realm'))['configureWebRealmPlatformClient'];
+type ConfigureWebRealmPlatformClient = (typeof import('./web-realm-session'))['configureWebRealmPlatformClient'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/kit/auth'))['clearPersistedAccessToken'];
 
 type RuntimeBootstrapWebDeps = {
   desktopBridge: DesktopBridgeFacade;
-  createProxyFetch: CreateProxyFetch;
+  createWebRealmFetch: (typeof import('./web-realm-fetch'))['createWebRealmFetch'];
   createRendererFlowId: CreateRendererFlowId;
   logRendererEvent: LogRendererEvent;
   bootstrapStore: DesktopPublicWebBootstrapStore;
@@ -29,13 +28,15 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
 
   depsPromise = (async () => {
     const [
-      realmModule,
+      webRealmSessionModule,
+      webRealmFetchModule,
       bridgeModule,
       infraModule,
       bootstrapStoreModule,
       authStorageModule,
     ] = await Promise.all([
-      import('@desktop-public/realm'),
+      import('./web-realm-session'),
+      import('./web-realm-fetch'),
       import('./bridge.web'),
       import('@desktop-public/infra'),
       import('@desktop-public/app-store'),
@@ -44,11 +45,11 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
 
     return {
       desktopBridge: bridgeModule.desktopBridge,
-      createProxyFetch: infraModule.createProxyFetch,
+      createWebRealmFetch: webRealmFetchModule.createWebRealmFetch,
       createRendererFlowId: infraModule.createRendererFlowId,
       logRendererEvent: infraModule.logRendererEvent,
       bootstrapStore: bootstrapStoreModule.desktopPublicWebBootstrapStore,
-      configureWebRealmPlatformClient: realmModule.configureWebRealmPlatformClient,
+      configureWebRealmPlatformClient: webRealmSessionModule.configureWebRealmPlatformClient,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
     };
   })();
@@ -92,7 +93,7 @@ async function configureWebRealmSession(deps: RuntimeBootstrapWebDeps): Promise<
   await deps.configureWebRealmPlatformClient({
     appId: 'nimi.web',
     realmBaseUrl: defaults.realm.realmBaseUrl,
-    fetchImpl: deps.createProxyFetch(),
+    fetchImpl: deps.createWebRealmFetch(),
     getCurrentUser: () => deps.bootstrapStore.getCurrentUser(),
     setAuthSession: (user) => {
       deps.bootstrapStore.applyAuthSession(user);
