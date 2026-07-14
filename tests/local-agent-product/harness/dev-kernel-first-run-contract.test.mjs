@@ -108,6 +108,7 @@ test('First Run runner never uses process home or renderer env as the data-root 
 test('First Run runner diagnoses persisted failed or interrupted rounds without promoting them to acceptance', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'), 'utf8');
   assert.match(source, /local_ai_profile_selected_assets_missing/);
+  assert.match(source, /'local_ai_profile_selected_assets_missing',\s*'local_ai_ready',[\s\S]*\.includes\(initialProjection\.state\)/u);
   assert.match(source, /nimi\.dev-kernel-first-run-resume-diagnostic\/v1/);
   assert.match(source, /nimi\.dev-kernel-first-run-device-resume-diagnostic\/v1/);
   assert.match(source, /resumeFromDevice:\s*true/);

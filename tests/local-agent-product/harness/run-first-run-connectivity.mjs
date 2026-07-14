@@ -173,9 +173,13 @@ try {
       'data_root_missing',
       'data_root_selected',
       'local_ai_profile_selected_assets_missing',
+      'local_ai_ready',
     ].includes(projection?.state) ? projection : null;
   }, { timeoutMs: 60_000, intervalMs: 100, label: 'installer-owned acceptance round' });
-  const resumedFinalizationDiagnostic = initialProjection.state === 'local_ai_profile_selected_assets_missing';
+  const resumedFinalizationDiagnostic = [
+    'local_ai_profile_selected_assets_missing',
+    'local_ai_ready',
+  ].includes(initialProjection.state);
   const resumedDeviceDiagnostic = initialProjection.state === 'data_root_selected';
   runtimeDataRoot = requireCheckpointDataRootProposal(initialProjection, serviceBefore.runtimeCandidateId);
 
