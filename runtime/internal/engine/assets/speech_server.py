@@ -6,7 +6,6 @@ import json
 import mimetypes
 import pathlib
 import re
-import tempfile
 from typing import Any
 import uuid
 
@@ -23,6 +22,7 @@ from speech_server_runtime import (
     SpeechModelState,
     build_host_state,
     driver_command_state,
+    driver_work_root,
     find_ready_model as runtime_find_ready_model,
     find_ready_workflow_model as runtime_find_ready_workflow_model,
     local_workflow_not_admitted_response,
@@ -237,8 +237,8 @@ def create_app() -> FastAPI:
                     "audio transcription requires non-empty audio bytes",
                     "speech_request_invalid",
                 )
-            with tempfile.TemporaryDirectory(prefix="nimi-speech-audio-") as temp_dir:
-                audio_path = safe_uploaded_audio_path(temp_dir, file.filename, mime_type)
+            audio_path = safe_uploaded_audio_path(driver_work_root(), file.filename, mime_type)
+            try:
                 audio_path.write_bytes(raw_audio)
                 text = await run_in_threadpool(
                     transcribe_with_driver,
@@ -262,6 +262,8 @@ def create_app() -> FastAPI:
                         "extensions": json.loads(extensions) if (extensions or "").strip() else {},
                     },
                 )
+            finally:
+                audio_path.unlink(missing_ok=True)
         except HTTPException:
             raise
         except Exception as error:

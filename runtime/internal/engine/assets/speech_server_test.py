@@ -171,9 +171,50 @@ def restore_env(name: str, old_value: str | None) -> None:
     else:
         os.environ[name] = old_value
 class SpeechServerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        speech_server_runtime = sys.modules["speech_server_runtime"]
+        self._old_driver_work_root = os.environ.get(speech_server_runtime.DRIVER_WORK_ROOT_ENV)
+        self._driver_work_root = tempfile.TemporaryDirectory(prefix="nimi-speech-test-work-")
+        os.environ[speech_server_runtime.DRIVER_WORK_ROOT_ENV] = self._driver_work_root.name
+
     def tearDown(self) -> None:
+        speech_server_runtime = sys.modules["speech_server_runtime"]
+        restore_env(speech_server_runtime.DRIVER_WORK_ROOT_ENV, self._old_driver_work_root)
+        self._driver_work_root.cleanup()
         QWEN3_TTS_DRIVER._MODEL_CACHE.clear()
         QWEN3_TTS_DRIVER._MODEL_PATH_CACHE.clear()
+
+    def test_driver_work_root_is_required_and_request_exchange_is_cleaned(self) -> None:
+        speech_server_runtime = sys.modules["speech_server_runtime"]
+        work_root = pathlib.Path(self._driver_work_root.name)
+        driver_path = work_root / "echo_driver.py"
+        write_driver_script(
+            driver_path,
+            textwrap.dedent(
+                """\
+                import argparse, json, pathlib
+                parser = argparse.ArgumentParser()
+                parser.add_argument("--request", required=True)
+                parser.add_argument("--response", required=True)
+                args = parser.parse_args()
+                request = json.loads(pathlib.Path(args.request).read_text(encoding="utf-8"))
+                pathlib.Path(args.response).write_text(json.dumps({"echo": request["value"]}), encoding="utf-8")
+                """
+            ),
+        )
+        response = speech_server_runtime.run_driver_command(
+            [sys.executable, str(driver_path)],
+            {"value": "ok"},
+        )
+        self.assertEqual(response, {"echo": "ok"})
+        self.assertEqual(sorted(path.name for path in work_root.iterdir()), ["echo_driver.py"])
+
+        old = os.environ.pop(speech_server_runtime.DRIVER_WORK_ROOT_ENV)
+        try:
+            with self.assertRaisesRegex(RuntimeError, "work root is not configured"):
+                speech_server_runtime.driver_work_root()
+        finally:
+            os.environ[speech_server_runtime.DRIVER_WORK_ROOT_ENV] = old
 
     def test_configured_driver_command_preserves_windows_paths(self) -> None:
         speech_server_runtime = sys.modules["speech_server_runtime"]

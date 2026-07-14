@@ -9,12 +9,13 @@ import mimetypes
 import os
 import pathlib
 import sys
-import tempfile
+import uuid
 from typing import Any
 
 
 VOICE_DESIGN_PREFIX = "qwen3_tts:design:"
 DEFAULT_MAX_NEW_TOKENS = 256
+DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
 
 _MODEL_CACHE: dict[tuple[str, str, str], Any] = {}
 _MODEL_PATH_CACHE: dict[str, str] = {}
@@ -319,12 +320,15 @@ def first_run_baseline_probe_enabled(request: dict[str, Any]) -> bool:
 
 
 def write_audio_artifact(wav: Any, sample_rate: int) -> tuple[str, str]:
+    raw_work_root = str(os.environ.get(DRIVER_WORK_ROOT_ENV) or "").strip()
+    work_root = pathlib.Path(raw_work_root)
+    if not raw_work_root or not work_root.is_absolute() or work_root.is_symlink() or not work_root.is_dir():
+        fail("Runtime-owned speech driver work root is unavailable")
     try:
         import soundfile as sf
     except Exception as error:
         fail(f"soundfile import failed: {error}")
-    output_dir = pathlib.Path(tempfile.mkdtemp(prefix="nimi-qwen3-tts-artifact-"))
-    output_path = output_dir / "speech.wav"
+    output_path = work_root / f"audio-{uuid.uuid4().hex}.wav"
     sf.write(str(output_path), wav, int(sample_rate))
     return str(output_path), mimetypes.guess_type(str(output_path))[0] or "audio/wav"
 

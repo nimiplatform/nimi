@@ -29,6 +29,8 @@ var speechPassThroughEnvKeys = []string{
 	"NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS",
 }
 
+const speechDriverWorkRootEnv = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
+
 func speechCommandEnv() map[string]string {
 	env := map[string]string{
 		"PYTHONUNBUFFERED": "1",
@@ -57,6 +59,9 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 	env := speechCommandEnv()
 	if modelsPath := strings.TrimSpace(cfg.ModelsPath); modelsPath != "" {
 		env["NIMI_RUNTIME_LOCAL_MODELS_PATH"] = modelsPath
+	}
+	if workRoot := strings.TrimSpace(cfg.SpeechDriverWorkRoot); workRoot != "" {
+		env[speechDriverWorkRootEnv] = workRoot
 	}
 	if strings.TrimSpace(env["NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"]) == "" {
 		if command := speechDriverCommand(firstNonEmptyString(cfg.SpeechQwen3TTSPackageSetRoot, root), SpeechQwen3TTSDriverPath); command != "" {
@@ -91,6 +96,20 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 	}
 	if strings.TrimSpace(cfg.ModelsPath) == "" {
 		return cfg, fmt.Errorf("speech managed models root is required")
+	}
+	workRoot := strings.TrimSpace(cfg.SpeechDriverWorkRoot)
+	if workRoot == "" || !filepath.IsAbs(workRoot) {
+		return cfg, fmt.Errorf("speech Runtime-owned driver work root is required")
+	}
+	if err := os.MkdirAll(workRoot, 0o700); err != nil {
+		return cfg, fmt.Errorf("create speech Runtime-owned driver work root: %w", err)
+	}
+	workInfo, err := os.Lstat(workRoot)
+	if err != nil {
+		return cfg, fmt.Errorf("inspect speech Runtime-owned driver work root: %w", err)
+	}
+	if !workInfo.IsDir() || workInfo.Mode()&os.ModeSymlink != 0 {
+		return cfg, fmt.Errorf("speech Runtime-owned driver work root must be a non-symlink directory")
 	}
 	pythonPath := managedPythonPath(root)
 	scriptPath := filepath.Join(root, "speech_server.py")

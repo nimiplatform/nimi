@@ -295,6 +295,7 @@ func TestEnsureSpeechRefreshesRuntimeOwnedSpeechScripts(t *testing.T) {
 	cfg.ModelsPath = t.TempDir()
 	cfg.SpeechQwen3TTSPackageSetRoot = root
 	cfg.SpeechQwen3ASRPackageSetRoot = asrRoot
+	cfg.SpeechDriverWorkRoot = t.TempDir()
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		t.Fatalf("create speech engine root: %v", err)
 	}
@@ -346,6 +347,26 @@ func TestEnsureSpeechRefreshesRuntimeOwnedSpeechScripts(t *testing.T) {
 	}
 }
 
+func TestEnsureSpeechRequiresRuntimeOwnedDriverWorkRoot(t *testing.T) {
+	cfg := DefaultSpeechConfig()
+	root := t.TempDir()
+	asrRoot := t.TempDir()
+	cfg.ModelsPath = t.TempDir()
+	cfg.SpeechQwen3TTSPackageSetRoot = root
+	cfg.SpeechQwen3ASRPackageSetRoot = asrRoot
+	for _, pythonPath := range []string{managedPythonPath(root), managedPythonPath(asrRoot)} {
+		if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(pythonPath, []byte("python"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := ensureSpeech(context.Background(), t.TempDir(), cfg); err == nil || !strings.Contains(err.Error(), "Runtime-owned driver work root is required") {
+		t.Fatalf("expected missing Runtime-owned speech work root rejection, got %v", err)
+	}
+}
+
 func TestSpeechCommandEnvDoesNotFallbackToDefaultModelsRoot(t *testing.T) {
 	originalValue, hadOriginal := os.LookupEnv("NIMI_RUNTIME_LOCAL_MODELS_PATH")
 	originalTTS, hadTTS := os.LookupEnv("NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD")
@@ -394,5 +415,18 @@ func TestSpeechCommandEnvDoesNotFallbackToDefaultModelsRoot(t *testing.T) {
 	}
 	if _, ok := env["NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"]; ok {
 		t.Fatal("unexpected speech driver timeout when env is unset")
+	}
+	if _, ok := env[speechDriverWorkRootEnv]; ok {
+		t.Fatal("speech command env must not inherit a work root")
+	}
+}
+
+func TestSpeechApplyDefaultEnvBindsRuntimeOwnedDriverWorkRoot(t *testing.T) {
+	cfg := DefaultSpeechConfig()
+	cfg.ModelsPath = t.TempDir()
+	cfg.SpeechDriverWorkRoot = t.TempDir()
+	env := speechApplyDefaultEnv(cfg, t.TempDir())
+	if got := env[speechDriverWorkRootEnv]; got != cfg.SpeechDriverWorkRoot {
+		t.Fatalf("speech driver work root = %q, want %q", got, cfg.SpeechDriverWorkRoot)
 	}
 }

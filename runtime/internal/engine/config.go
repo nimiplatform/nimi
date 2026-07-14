@@ -236,6 +236,11 @@ type EngineConfig struct {
 	// package-set root used to derive the supervised speech ASR driver command.
 	SpeechQwen3ASRPackageSetRoot string
 
+	// SpeechDriverWorkRoot is a Runtime-owned state-plane directory used only
+	// for bounded request/response exchange with supervised speech drivers.
+	// It must never be derived from process TEMP/HOME or the model payload root.
+	SpeechDriverWorkRoot string
+
 	// ModelsConfigPath is the managed llama router preset file passed via
 	// --models-preset when the runtime boots the shared managed llama router.
 	// When ManagedLlamaTarget is set, command construction bypasses router mode

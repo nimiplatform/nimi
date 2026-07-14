@@ -56,6 +56,7 @@ type Manager struct {
 	speechModelsPath                  string
 	speechQwen3TTSPackageSetRoot      string
 	speechQwen3ASRPackageSetRoot      string
+	runtimeWorkRoot                   string
 	managedImageBackendsPath          string
 	sharedAcceleratorDependenciesPath string
 	managedImageBackend               *ManagedImageBackendConfig
@@ -172,6 +173,15 @@ func (m *Manager) SetSpeechPaths(modelsPath string, qwen3TTSPackageSetRoot strin
 	m.speechQwen3ASRPackageSetRoot = strings.TrimSpace(qwen3ASRPackageSetRoot)
 }
 
+// SetRuntimeWorkRoot binds transient supervised-engine work to Runtime-owned
+// state. Protected callers derive this root from the verified service state
+// path; it is never accepted from an engine request or inherited environment.
+func (m *Manager) SetRuntimeWorkRoot(root string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.runtimeWorkRoot = strings.TrimSpace(root)
+}
+
 func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
 	if cfg.Kind != EngineLlama {
 		return cfg
@@ -209,6 +219,7 @@ func (m *Manager) applySpeechPaths(cfg EngineConfig) EngineConfig {
 	modelsPath := strings.TrimSpace(m.speechModelsPath)
 	ttsPackageSetRoot := strings.TrimSpace(m.speechQwen3TTSPackageSetRoot)
 	asrPackageSetRoot := strings.TrimSpace(m.speechQwen3ASRPackageSetRoot)
+	runtimeWorkRoot := strings.TrimSpace(m.runtimeWorkRoot)
 	m.mu.RUnlock()
 	if cfg.ModelsPath == "" {
 		cfg.ModelsPath = modelsPath
@@ -218,6 +229,9 @@ func (m *Manager) applySpeechPaths(cfg EngineConfig) EngineConfig {
 	}
 	if cfg.SpeechQwen3ASRPackageSetRoot == "" {
 		cfg.SpeechQwen3ASRPackageSetRoot = asrPackageSetRoot
+	}
+	if cfg.SpeechDriverWorkRoot == "" && runtimeWorkRoot != "" {
+		cfg.SpeechDriverWorkRoot = filepath.Join(runtimeWorkRoot, "speech-driver")
 	}
 	return cfg
 }

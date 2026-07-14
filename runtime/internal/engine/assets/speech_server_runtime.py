@@ -8,7 +8,7 @@ import pathlib
 import shlex
 import shutil
 import subprocess
-import tempfile
+import uuid
 from typing import Any
 
 from fastapi import HTTPException
@@ -18,6 +18,7 @@ MODELS_ROOT_ENV = "NIMI_RUNTIME_LOCAL_MODELS_PATH"
 QWEN3_TTS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 QWEN3_ASR_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
 DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
+DRIVER_WORK_ROOT_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_WORK_ROOT"
 DEFAULT_DRIVER_TIMEOUT_MS = 60_000
 DEFAULT_MODELS_ROOT = ""
 WORKFLOW_CAPABILITIES = [
@@ -121,6 +122,18 @@ def driver_timeout_seconds() -> float:
         return DEFAULT_DRIVER_TIMEOUT_MS / 1000.0
     value = min(max(value, 5_000), 300_000)
     return value / 1000.0
+
+
+def driver_work_root() -> pathlib.Path:
+    raw = os.environ.get(DRIVER_WORK_ROOT_ENV, "").strip()
+    if not raw:
+        raise RuntimeError("Runtime-owned speech driver work root is not configured")
+    root = pathlib.Path(raw)
+    if not root.is_absolute():
+        raise RuntimeError("Runtime-owned speech driver work root must be absolute")
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError("Runtime-owned speech driver work root is unavailable")
+    return root
 
 
 def plain_speech_unavailable_response(operation: str, detail: str, reason: str) -> JSONResponse:
@@ -245,10 +258,13 @@ def load_entry_payload(entry_path: str) -> dict[str, Any]:
 def run_driver_command(command: list[str], request_payload: dict[str, Any]) -> dict[str, Any]:
     if not command:
         raise RuntimeError("speech driver command is not configured")
-    with tempfile.TemporaryDirectory(prefix="nimi-speech-driver-") as temp_dir:
-        request_path = pathlib.Path(temp_dir) / "request.json"
-        response_path = pathlib.Path(temp_dir) / "response.json"
-        request_path.write_text(json.dumps(request_payload, ensure_ascii=True), encoding="utf-8")
+    work_root = driver_work_root()
+    exchange_id = uuid.uuid4().hex
+    request_path = work_root / f"request-{exchange_id}.json"
+    response_path = work_root / f"response-{exchange_id}.json"
+    try:
+        with request_path.open("x", encoding="utf-8") as handle:
+            handle.write(json.dumps(request_payload, ensure_ascii=True))
         proc = subprocess.run(
             [*command, "--request", str(request_path), "--response", str(response_path)],
             capture_output=True,
@@ -259,7 +275,7 @@ def run_driver_command(command: list[str], request_payload: dict[str, Any]) -> d
         if proc.returncode != 0:
             detail = (proc.stderr or proc.stdout or "").strip() or "driver exited non-zero"
             raise RuntimeError(f"speech driver failed: {detail}")
-        if not response_path.exists():
+        if response_path.is_symlink() or not response_path.is_file():
             raise RuntimeError("speech driver did not write a response")
         try:
             payload = json.loads(response_path.read_text(encoding="utf-8"))
@@ -267,7 +283,26 @@ def run_driver_command(command: list[str], request_payload: dict[str, Any]) -> d
             raise RuntimeError(f"speech driver response invalid: {error}") from error
         if not isinstance(payload, dict):
             raise RuntimeError("speech driver response must be an object")
-    return payload
+        return payload
+    finally:
+        request_path.unlink(missing_ok=True)
+        response_path.unlink(missing_ok=True)
+
+
+def read_driver_audio_artifact(path_value: str) -> bytes:
+    work_root = driver_work_root().resolve()
+    audio_path = pathlib.Path(path_value)
+    if audio_path.is_symlink() or not audio_path.is_file():
+        raise RuntimeError("speech driver audio artifact is unavailable")
+    resolved = audio_path.resolve()
+    try:
+        resolved.relative_to(work_root)
+    except ValueError as error:
+        raise RuntimeError("speech driver audio artifact escaped Runtime-owned work root") from error
+    try:
+        return resolved.read_bytes()
+    finally:
+        resolved.unlink(missing_ok=True)
 
 
 def qwen3_tts_driver_preflight(command: list[str], model_id: str, entry_path: str) -> tuple[bool, str]:
@@ -656,7 +691,7 @@ def synthesize_with_driver(model: SpeechModelState, request_payload: dict[str, A
         audio_path = str(response.get("audio_path") or "").strip()
         if not audio_path:
             raise RuntimeError("speech driver response missing audio output")
-        payload = pathlib.Path(audio_path).read_bytes()
+        payload = read_driver_audio_artifact(audio_path)
     content_type = str(response.get("content_type") or "audio/wav").strip() or "audio/wav"
     if not payload:
         raise RuntimeError("speech driver returned empty audio payload")
