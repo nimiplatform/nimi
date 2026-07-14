@@ -759,7 +759,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     const primary = failedJobs.find((job) => job.failureDetail) || failedJobs[0];
     const ownerReason = primary
       ? `${primary.dependencyFamily}/${primary.dependencyId} ${primary.reasonCode || primary.state}: ${primary.failureDetail || '<no detail>'}`
-      : 'no dependency-job failure projection was returned';
+      : ready.text || 'no dependency-job failure projection was returned';
     throw new Error(`Desktop first-run failed at ${ready.testId}: ${ready.text}; Runtime owner reason: ${ownerReason}`);
   }
   const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD);

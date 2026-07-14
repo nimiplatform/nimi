@@ -168,8 +168,13 @@ try {
   // native host's fail-closed runtime-service-untrusted result per attempt.
   const initialProjection = await waitUntil(async () => {
     const projection = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD);
-    return ['config_missing', 'data_root_missing'].includes(projection?.state) ? projection : null;
-  }, { timeoutMs: 60_000, intervalMs: 100, label: 'fresh installer-owned acceptance round' });
+    return [
+      'config_missing',
+      'data_root_missing',
+      'local_ai_profile_selected_assets_missing',
+    ].includes(projection?.state) ? projection : null;
+  }, { timeoutMs: 60_000, intervalMs: 100, label: 'installer-owned acceptance round' });
+  const resumedFinalizationDiagnostic = initialProjection.state === 'local_ai_profile_selected_assets_missing';
   runtimeDataRoot = requireCheckpointDataRootProposal(initialProjection, serviceBefore.runtimeCandidateId);
 
   const baseline = await prepareDesktopFixedServiceBaseline(page);
@@ -178,6 +183,36 @@ try {
   await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 60_000 });
   const login = await loginDesktop(desktopConnection, acceptance.primaryAccountId);
   if (login.outcome !== 'first-run') throw new Error(`expected First Run after login, got ${login.outcome}`);
+
+  if (resumedFinalizationDiagnostic) {
+    const outcome = await waitUntil(async () => {
+      const failure = page.getByTestId('product-first-run-finalization-error');
+      if (await failure.isVisible().catch(() => false)) {
+        return { kind: 'failure', text: String(await failure.innerText().catch(() => '')).trim() };
+      }
+      if (await page.getByTestId('main-shell').isVisible().catch(() => false)) {
+        return { kind: 'ready', text: '' };
+      }
+      return null;
+    }, { timeoutMs: 180_000, intervalMs: 250, label: 'resumed First Run finalization diagnostic' });
+    const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
+    const diagnostic = {
+      schemaVersion: 'nimi.dev-kernel-first-run-resume-diagnostic/v1',
+      observedAt: new Date().toISOString(),
+      finalAcceptanceEvidence: false,
+      serviceBefore,
+      initialProjection,
+      login,
+      outcome,
+      productControl: record,
+    };
+    const diagnosticPath = path.join(artifactRoot, 'first-run-resume-diagnostic.json');
+    fs.writeFileSync(diagnosticPath, `${JSON.stringify(diagnostic, null, 2)}\n`, { mode: 0o600 });
+    await page.screenshot({ path: path.join(screenshotsRoot, 'desktop-first-run-resume-diagnostic.png') });
+    throw new Error(outcome.kind === 'failure'
+      ? `resumed First Run finalization failed: ${outcome.text}`
+      : 'resumed First Run reached ready_for_use; a fresh installer-owned round is still required for final acceptance');
+  }
 
   const runtimeInterruption = {};
   const firstRunTrial = {

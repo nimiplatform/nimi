@@ -246,7 +246,7 @@ class ElectronProductControlHost {
       }, 60_000));
       if (response.state === 'ready') return asRecord(response.ref);
       if (response.reasonCode !== 'RUNTIME_BASELINE_READINESS_REF_BINDING_MISMATCH') {
-        throw new Error(`runtime-baseline-not-ready:${boundedText(response.reasonCode)}`);
+        throw new Error(formatRuntimeReadinessFailure('runtime-baseline-not-ready', response));
       }
     }
     const response = asRecord(await this.unary(METHOD.mintBaseline, {
@@ -256,7 +256,9 @@ class ElectronProductControlHost {
       hostProfile: input.hostProfile,
       baselineConsumers: [],
     }, 60_000));
-    if (response.state !== 'ready') throw new Error(`runtime-baseline-not-ready:${boundedText(response.reasonCode)}`);
+    if (response.state !== 'ready') {
+      throw new Error(formatRuntimeReadinessFailure('runtime-baseline-not-ready', response));
+    }
     return asRecord(response.ref);
   }
 
@@ -282,7 +284,7 @@ class ElectronProductControlHost {
         'FIRST_RUN_EXECUTION_EVIDENCE_REF_BINDING_MISMATCH',
         'FIRST_RUN_EXECUTION_EVIDENCE_BASELINE_NOT_READY',
       ].includes(String(response.reasonCode))) {
-        throw new Error(`first-run-execution-not-ready:${boundedText(response.reasonCode)}`);
+        throw new Error(formatRuntimeReadinessFailure('first-run-execution-not-ready', response));
       }
     }
     const response = asRecord(await this.unary(METHOD.mintExecution, {
@@ -295,7 +297,7 @@ class ElectronProductControlHost {
       submitSchedulingEvaluated: false,
     }, 120_000));
     if (response.state !== 'local_ai_ready') {
-      throw new Error(`first-run-execution-not-ready:${boundedText(response.reasonCode)}`);
+      throw new Error(formatRuntimeReadinessFailure('first-run-execution-not-ready', response));
     }
     return asRecord(response.ref);
   }
@@ -313,7 +315,7 @@ class ElectronProductControlHost {
       expectedInstallLevel: installLevel,
     }, 60_000));
     if (response.state !== 'local_ai_ready') {
-      throw new Error(`first-run-execution-not-ready:${boundedText(response.reasonCode)}`);
+      throw new Error(formatRuntimeReadinessFailure('first-run-execution-not-ready', response));
     }
     return asRecord(response.ref);
   }
@@ -380,6 +382,17 @@ function requiredText(value: unknown, label: string): string {
 
 function optionalText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+export function formatRuntimeReadinessFailure(
+  prefix: string,
+  response: Readonly<Record<string, unknown>>,
+): string {
+  const reason = boundedText(response.reasonCode);
+  const detail = typeof response.detail === 'string'
+    ? response.detail.trim().slice(0, 4_096)
+    : '';
+  return detail ? `${prefix}:${reason}: ${detail}` : `${prefix}:${reason}`;
 }
 
 function boundedText(value: unknown, max = 16_384): string {

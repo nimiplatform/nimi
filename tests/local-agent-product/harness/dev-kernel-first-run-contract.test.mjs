@@ -98,6 +98,14 @@ test('First Run runner never uses process home or renderer env as the data-root 
   assert.doesNotMatch(source, /(?:rmSync|removeCheckpointDataRoot)\s*\(\s*runtimeDataRoot/);
 });
 
+test('First Run runner diagnoses a persisted failed round without promoting it to acceptance', () => {
+  const source = fs.readFileSync(path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'), 'utf8');
+  assert.match(source, /local_ai_profile_selected_assets_missing/);
+  assert.match(source, /nimi\.dev-kernel-first-run-resume-diagnostic\/v1/);
+  assert.match(source, /finalAcceptanceEvidence:\s*false/);
+  assert.match(source, /fresh installer-owned round is still required for final acceptance/);
+});
+
 test('First Run terminal failure captures the bounded Runtime dependency-job owner projection', () => {
   const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
   assert.match(driver, /ListLocalEnvironmentDependencyJobs/);

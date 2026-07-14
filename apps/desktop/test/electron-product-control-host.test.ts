@@ -10,7 +10,10 @@ import {
   RecordProductControlAccountDefaultProfileEvidenceRequest,
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/local_runtime';
 import type { DesktopProductControlEvidence } from '../src-electron/product-control-evidence';
-import { createDesktopElectronProductControlHost } from '../src-electron/product-control-host';
+import {
+  createDesktopElectronProductControlHost,
+  formatRuntimeReadinessFailure,
+} from '../src-electron/product-control-host';
 
 const GET_RECORD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
 const RECORD_ACCOUNT = '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence';
@@ -117,5 +120,29 @@ test('Electron first-run host rejects renderer-supplied evidence fields', async 
       payload: { accountDefaultProfileRef: 'caller-controlled' },
     }),
     /desktop-product-control-payload-invalid/u,
+  );
+});
+
+test('Electron first-run host preserves bounded Runtime readiness detail', () => {
+  assert.equal(
+    formatRuntimeReadinessFailure('first-run-execution-not-ready', {
+      reasonCode: 'FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED',
+      detail: 'local baseline execution failed for capability local_text_chat_execution: engine unavailable',
+    }),
+    'first-run-execution-not-ready:FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED: '
+      + 'local baseline execution failed for capability local_text_chat_execution: engine unavailable',
+  );
+  assert.equal(
+    formatRuntimeReadinessFailure('runtime-baseline-not-ready', {
+      reasonCode: 'RUNTIME_BASELINE_READINESS_BLOCKED',
+    }),
+    'runtime-baseline-not-ready:RUNTIME_BASELINE_READINESS_BLOCKED',
+  );
+  assert.equal(
+    formatRuntimeReadinessFailure('first-run-execution-not-ready', {
+      reasonCode: 'FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED',
+      detail: ` ${'x'.repeat(5_000)} `,
+    }).length,
+    'first-run-execution-not-ready:FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED: '.length + 4_096,
   );
 });
