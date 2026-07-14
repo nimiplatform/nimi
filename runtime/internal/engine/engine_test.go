@@ -498,6 +498,23 @@ func TestProbeSpeechHealthRequiresCatalogReadyTrue(t *testing.T) {
 	}
 }
 
+func TestProbeSpeechHealthPreservesBoundedOwnerDetail(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/healthz" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ready":false,"detail":"managed bundles are not ready","checks":{"qwen3_tts_driver_detail":"qwen3_tts driver preflight failed: access denied","qwen3_asr_driver_detail":"qwen3_asr driver ready"}}`))
+	}))
+	defer server.Close()
+
+	err := ProbeSpeechHealth(context.Background(), server.URL)
+	if err == nil || !strings.Contains(err.Error(), "qwen3_tts driver preflight failed: access denied") {
+		t.Fatalf("expected speech owner detail, got %v", err)
+	}
+}
+
 func TestProbeMediaHealthRejectsOversizedCatalogPayload(t *testing.T) {
 	oversizedModelID := strings.Repeat("m", canonicalCatalogProbeBodyLimitBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

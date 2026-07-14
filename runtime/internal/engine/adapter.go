@@ -25,6 +25,7 @@ type EngineInfoDTO struct {
 	Endpoint            string
 	Port                int
 	Status              string
+	Detail              string
 	PID                 int
 	Platform            string
 	BinaryPath          string
@@ -148,6 +149,7 @@ func supervisorInfoToDTO(info SupervisorInfo) EngineInfoDTO {
 		Endpoint:            info.Endpoint,
 		Port:                info.Port,
 		Status:              string(info.Status),
+		Detail:              info.Detail,
 		PID:                 info.PID,
 		Platform:            PlatformString(),
 		BinaryPath:          info.BinaryPath,

@@ -35,11 +35,18 @@ func (s *Service) ensureFirstRunSpeechEngineReady(ctx context.Context, baseline 
 		return fmt.Errorf("speech engine status unavailable after activation: %w", err)
 	}
 	if !strings.EqualFold(strings.TrimSpace(info.Status), "healthy") {
-		detail := strings.TrimSpace(info.Endpoint)
-		if detail != "" {
-			detail = " endpoint=" + detail
+		details := make([]string, 0, 2)
+		if endpoint := strings.TrimSpace(info.Endpoint); endpoint != "" {
+			details = append(details, "endpoint="+endpoint)
 		}
-		return fmt.Errorf("speech engine not healthy after activation: status=%s%s", strings.TrimSpace(info.Status), detail)
+		if statusDetail := strings.TrimSpace(info.Detail); statusDetail != "" {
+			details = append(details, "detail="+statusDetail)
+		}
+		suffix := ""
+		if len(details) > 0 {
+			suffix = " " + strings.Join(details, " ")
+		}
+		return fmt.Errorf("speech engine not healthy after activation: status=%s%s", strings.TrimSpace(info.Status), suffix)
 	}
 	s.publishLocalProviderEndpoint("speech", managedEngineProviderEndpoint(info, s.managedSpeechEndpoint()))
 	if err := s.refreshFirstRunSpeechBaselineAssetHealth(ctx, baseline); err != nil {

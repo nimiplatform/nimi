@@ -27,6 +27,7 @@ type Supervisor struct {
 	cmd                 *exec.Cmd
 	process             *supervisedProcess
 	status              EngineStatus
+	statusDetail        string
 	pid                 int
 	startedAt           time.Time
 	lastHealthyAt       time.Time
@@ -172,6 +173,7 @@ func (s *Supervisor) Info() SupervisorInfo {
 		Version:             s.cfg.Version,
 		Port:                s.cfg.Port,
 		Status:              s.status,
+		Detail:              s.statusDetail,
 		PID:                 s.pid,
 		StartedAt:           s.startedAt,
 		LastHealthyAt:       s.lastHealthyAt,
@@ -197,6 +199,7 @@ type SupervisorInfo struct {
 	Version             string
 	Port                int
 	Status              EngineStatus
+	Detail              string
 	PID                 int
 	StartedAt           time.Time
 	LastHealthyAt       time.Time
@@ -564,9 +567,19 @@ func (s *Supervisor) setStatus(status EngineStatus, detail string) {
 	s.mu.Lock()
 	prev := s.status
 	s.status = status
+	s.statusDetail = boundedSupervisorStatusDetail(detail)
 	s.mu.Unlock()
 
 	if prev != status {
 		s.onState(s.cfg.Kind, status, detail)
 	}
+}
+
+func boundedSupervisorStatusDetail(detail string) string {
+	const maxStatusDetailBytes = 4096
+	trimmed := strings.TrimSpace(detail)
+	if len(trimmed) <= maxStatusDetailBytes {
+		return trimmed
+	}
+	return strings.TrimSpace(strings.ToValidUTF8(trimmed[:maxStatusDetailBytes], ""))
 }

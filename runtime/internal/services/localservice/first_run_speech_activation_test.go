@@ -71,6 +71,7 @@ func TestEnsureFirstRunSpeechEngineReadyRequiresHealthyStatus(t *testing.T) {
 	mgr := &mockEngineManager{status: &EngineInfo{
 		Engine:   "speech",
 		Status:   "unhealthy",
+		Detail:   "startup health failed: process exited with status 0xc0000142",
 		Port:     8330,
 		Endpoint: "http://127.0.0.1:8330",
 	}}
@@ -93,6 +94,9 @@ func TestEnsureFirstRunSpeechEngineReadyRequiresHealthyStatus(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "speech engine not healthy after activation") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(err.Error(), "process exited with status 0xc0000142") {
+		t.Fatalf("expected bounded supervisor failure detail, got: %v", err)
 	}
 	if mgr.startConfigCalls != 1 {
 		t.Fatalf("expected StartEngineWithConfig to be called once, got %d", mgr.startConfigCalls)

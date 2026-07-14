@@ -96,7 +96,12 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
 	healthPayload := struct {
-		Ready bool `json:"ready"`
+		Ready  bool   `json:"ready"`
+		Detail string `json:"detail"`
+		Checks struct {
+			Qwen3TTSDetail string `json:"qwen3_tts_driver_detail"`
+			Qwen3ASRDetail string `json:"qwen3_asr_driver_detail"`
+		} `json:"checks"`
 	}{}
 	_ = json.Unmarshal(body, &healthPayload)
 
@@ -105,6 +110,20 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	}
 
 	if !healthPayload.Ready {
+		details := make([]string, 0, 3)
+		for _, detail := range []string{
+			healthPayload.Detail,
+			healthPayload.Checks.Qwen3TTSDetail,
+			healthPayload.Checks.Qwen3ASRDetail,
+		} {
+			trimmed := strings.TrimSpace(detail)
+			if trimmed != "" && !stringSliceContains(details, trimmed) {
+				details = append(details, trimmed)
+			}
+		}
+		if len(details) > 0 {
+			return fmt.Errorf("%s health probe reported ready=false: %s", engineLabel, strings.Join(details, "; "))
+		}
 		return fmt.Errorf("%s health probe reported ready=false", engineLabel)
 	}
 
@@ -165,7 +184,8 @@ func waitCanonicalCatalogHealthy(
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	if err := probe(ctx, endpoint); err == nil {
+	lastErr := probe(ctx, endpoint)
+	if lastErr == nil {
 		return nil
 	}
 
@@ -174,11 +194,22 @@ func waitCanonicalCatalogHealthy(
 		case <-ctx.Done():
 			return fmt.Errorf("wait healthy cancelled: %w", ctx.Err())
 		case <-deadline:
-			return fmt.Errorf("wait healthy timed out after %s", timeout)
+			return fmt.Errorf("wait healthy timed out after %s: last probe: %w", timeout, lastErr)
 		case <-ticker.C:
 			if err := probe(ctx, endpoint); err == nil {
 				return nil
+			} else {
+				lastErr = err
 			}
 		}
 	}
+}
+
+func stringSliceContains(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }

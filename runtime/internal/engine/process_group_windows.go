@@ -11,7 +11,14 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func setSupervisorProcessGroup(_ *exec.Cmd) {}
+func setSupervisorProcessGroup(cmd *exec.Cmd) {
+	// Windows services run in Session 0 without an interactive console. Keep
+	// supervised console-subsystem engines (notably the managed Python speech
+	// host) on the same service-safe creation path as bounded materialization
+	// commands. Without CREATE_NO_WINDOW, the Python child can fail during
+	// console initialization before its health endpoint is bound.
+	configureManagedCommand(cmd)
+}
 
 func signalSupervisorProcess(pid int, sig syscall.Signal) error {
 	process, err := os.FindProcess(pid)

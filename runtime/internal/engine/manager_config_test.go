@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 func TestPortAvailable(t *testing.T) {
@@ -278,6 +279,16 @@ func TestSupervisorInfo(t *testing.T) {
 	}
 	if info.Status != StatusStopped {
 		t.Errorf("expected status %s, got %s", StatusStopped, info.Status)
+	}
+	sup.setStatus(StatusUnhealthy, "startup health failed: speech catalog not ready")
+	info = sup.Info()
+	if info.Detail != "startup health failed: speech catalog not ready" {
+		t.Fatalf("expected supervisor status detail, got %q", info.Detail)
+	}
+	sup.setStatus(StatusUnhealthy, strings.Repeat("语", 2_000))
+	info = sup.Info()
+	if len(info.Detail) > 4_096 || !utf8.ValidString(info.Detail) {
+		t.Fatalf("expected bounded UTF-8 supervisor detail, bytes=%d valid=%t", len(info.Detail), utf8.ValidString(info.Detail))
 	}
 }
 
@@ -657,6 +668,7 @@ func TestSupervisorInfoToDTOTimeFormat(t *testing.T) {
 		Version:   "b8575",
 		Port:      1234,
 		Status:    StatusHealthy,
+		Detail:    "ready",
 		StartedAt: now,
 	}
 	dto := supervisorInfoToDTO(info)
@@ -666,6 +678,9 @@ func TestSupervisorInfoToDTOTimeFormat(t *testing.T) {
 	}
 	if dto.LastHealthyAt != "" {
 		t.Errorf("expected empty LastHealthyAt for zero time, got %s", dto.LastHealthyAt)
+	}
+	if dto.Detail != "ready" {
+		t.Errorf("expected status detail pass-through, got %q", dto.Detail)
 	}
 
 	// With LastHealthyAt set.
