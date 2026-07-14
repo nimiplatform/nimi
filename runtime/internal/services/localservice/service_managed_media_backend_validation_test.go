@@ -583,7 +583,7 @@ func TestResolveManagedAssetPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *test
 		Entry:        "weights.safetensors",
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 		Source: &runtimev1.LocalAssetSource{
-			Repo: "file://" + filepath.Join(linkedDir, "asset.manifest.json"),
+			Repo: "file://" + filepath.ToSlash(filepath.Join(linkedDir, "asset.manifest.json")),
 		},
 	}
 	svc.assets[artifact.GetLocalAssetId()] = artifact

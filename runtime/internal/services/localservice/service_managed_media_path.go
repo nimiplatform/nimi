@@ -144,24 +144,24 @@ func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) 
 	}
 	if strings.HasPrefix(repo, "file://") {
 		path, err := resolveManagedFileRepoPath(repo)
-		if err == nil && path != "" {
-			if !strings.EqualFold(filepath.Base(path), "asset.manifest.json") {
-				return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-					Message:    "file source repos must point to asset.manifest.json",
-					ActionHint: "reimport_asset_manifest",
-				})
-			}
-			baseDir := filepath.Dir(path)
-			baseDir, err = filepath.Abs(baseDir)
-			if err == nil {
-				if resolvedBaseDir, resolveErr := filepath.EvalSymlinks(baseDir); resolveErr == nil {
-					baseDir = resolvedBaseDir
-				} else if !os.IsNotExist(resolveErr) {
-					return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-				}
-				return baseDir, nil
-			}
+		if err != nil || strings.TrimSpace(path) == "" {
+			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 		}
+		if !strings.EqualFold(filepath.Base(path), "asset.manifest.json") {
+			return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+				Message:    "file source repos must point to asset.manifest.json",
+				ActionHint: "reimport_asset_manifest",
+			})
+		}
+		baseDir, err := filepath.Abs(filepath.Dir(path))
+		if err != nil {
+			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		}
+		resolvedBaseDir, err := filepath.EvalSymlinks(baseDir)
+		if err != nil {
+			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		}
+		return resolvedBaseDir, nil
 	}
 	return filepath.Join(modelsRoot, slugifyLocalModelID(itemID)), nil
 }
