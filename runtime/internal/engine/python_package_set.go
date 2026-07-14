@@ -63,12 +63,22 @@ func pythonPackageSetLockHash(manifest pythonPackageSetManifest) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func verifyPythonImportProbe(ctx context.Context, interpreterPath string, probe string) error {
+func verifyPythonImportProbe(ctx context.Context, venvRoot string, interpreterPath string, probe string) error {
 	module := strings.TrimSpace(probe)
 	if module == "" {
 		return fmt.Errorf("python import probe module is required")
 	}
-	_, err := runCommandOutput(ctx, "", nil, interpreterPath, "-c", "import "+module)
+	trimmedVenvRoot := strings.TrimSpace(venvRoot)
+	if trimmedVenvRoot == "" {
+		return fmt.Errorf("python import probe managed venv root is required")
+	}
+	_, err := runCommandOutput(
+		ctx,
+		trimmedVenvRoot,
+		managedPythonRuntimeEnv(trimmedVenvRoot),
+		interpreterPath,
+		"-c", "import "+module,
+	)
 	if err != nil {
 		return fmt.Errorf("verify python import probe %s: %w", module, err)
 	}
@@ -89,10 +99,16 @@ func (m *Manager) EnsurePythonPackageSetDependency(ctx context.Context, uvPath s
 	distributions := []string(nil)
 	if pythonPackageSetHasPackages(manifest.Packages) {
 		args := append([]string{}, manifest.ExtraArgs...)
-		if err := uvPipInstall(ctx, uvPath, interpreterPath, manifest.Packages, args...); err != nil {
+		if err := uvPipInstall(ctx, uvPath, trimmedVenvRoot, interpreterPath, manifest.Packages, args...); err != nil {
 			return PythonPackageSetDependencyStatus{}, err
 		}
-		freezeOutput, err := runCommandOutput(ctx, "", nil, strings.TrimSpace(uvPath), "pip", "freeze", "--python", interpreterPath)
+		freezeOutput, err := runCommandOutput(
+			ctx,
+			trimmedVenvRoot,
+			managedPythonRuntimeEnv(trimmedVenvRoot),
+			strings.TrimSpace(uvPath),
+			"pip", "freeze", "--python", interpreterPath,
+		)
 		if err != nil {
 			return PythonPackageSetDependencyStatus{}, fmt.Errorf("verify python package set distributions: %w", err)
 		}
@@ -102,7 +118,7 @@ func (m *Manager) EnsurePythonPackageSetDependency(ctx context.Context, uvPath s
 		}
 	}
 	for _, probe := range manifest.ImportProbes {
-		if err := verifyPythonImportProbe(ctx, interpreterPath, probe); err != nil {
+		if err := verifyPythonImportProbe(ctx, trimmedVenvRoot, interpreterPath, probe); err != nil {
 			return PythonPackageSetDependencyStatus{}, err
 		}
 	}

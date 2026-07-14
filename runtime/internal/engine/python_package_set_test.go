@@ -27,12 +27,26 @@ func TestStableDiffusionCPPPackageSetDeclaresNoExternalPackages(t *testing.T) {
 }
 
 func TestUVPipInstallRejectsEmptyPackageList(t *testing.T) {
-	err := uvPipInstall(context.Background(), "uv", "python", nil)
+	err := uvPipInstall(context.Background(), "uv", "managed-venv", "python", nil)
 	if err == nil {
 		t.Fatal("uvPipInstall accepted an empty package list")
 	}
 	if !strings.Contains(err.Error(), "requires at least one declared package") {
 		t.Fatalf("error = %q, want declared package guard", err.Error())
+	}
+}
+
+func TestUVPipInstallRejectsMissingManagedVenvRoot(t *testing.T) {
+	err := uvPipInstall(context.Background(), "uv", "", "python", []string{"package"})
+	if err == nil || !strings.Contains(err.Error(), "managed venv root") {
+		t.Fatalf("error = %v, want managed venv root guard", err)
+	}
+}
+
+func TestVerifyPythonImportProbeRejectsMissingManagedVenvRoot(t *testing.T) {
+	err := verifyPythonImportProbe(context.Background(), "", "python", "json")
+	if err == nil || !strings.Contains(err.Error(), "managed venv root") {
+		t.Fatalf("error = %v, want managed venv root guard", err)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -117,5 +118,17 @@ func TestDiscoverManagedPythonRuntimeRequiresCanonicalPayloadFiles(t *testing.T)
 	}
 	if _, _, err := discoverManagedPythonRuntime(root, "3.12"); err == nil {
 		t.Fatal("incomplete managed python payload must not be admitted")
+	}
+}
+
+func TestManagedPythonRuntimeEnvKeepsUVCacheBesideManagedVenv(t *testing.T) {
+	root := filepath.Join(`D:\DataNimi`, "environments", "speech", "0.1.0-qwen3-asr")
+	env := managedPythonRuntimeEnv(root)
+	want := filepath.Join(`D:\DataNimi`, "environments", "speech", "_uv-cache")
+	if env["UV_CACHE_DIR"] != want {
+		t.Fatalf("UV_CACHE_DIR = %q, want %q", env["UV_CACHE_DIR"], want)
+	}
+	if strings.Contains(strings.ToLower(env["UV_CACHE_DIR"]), "systemprofile") {
+		t.Fatalf("UV cache escaped to system profile: %q", env["UV_CACHE_DIR"])
 	}
 }

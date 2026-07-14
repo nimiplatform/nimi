@@ -69,15 +69,21 @@ func (m *Manager) EnsurePythonTorchWheelDependency(ctx context.Context, uvPath s
 	}
 	interpreterPath := managedPythonPath(trimmedVenvRoot)
 	extraArgs := []string{"--index-url", manifest.WheelIndex}
-	if err := uvPipInstall(ctx, uvPath, interpreterPath, manifest.Packages, extraArgs...); err != nil {
+	if err := uvPipInstall(ctx, uvPath, trimmedVenvRoot, interpreterPath, manifest.Packages, extraArgs...); err != nil {
 		return PythonTorchWheelDependencyStatus{}, err
 	}
 	for _, probe := range manifest.ImportProbes {
-		if err := verifyPythonImportProbe(ctx, interpreterPath, probe); err != nil {
+		if err := verifyPythonImportProbe(ctx, trimmedVenvRoot, interpreterPath, probe); err != nil {
 			return PythonTorchWheelDependencyStatus{}, err
 		}
 	}
-	torchVersion, err := runCommandOutput(ctx, "", nil, interpreterPath, "-c", "import torch; print(torch.__version__); print(torch.version.cuda or 'cpu')")
+	torchVersion, err := runCommandOutput(
+		ctx,
+		trimmedVenvRoot,
+		managedPythonRuntimeEnv(trimmedVenvRoot),
+		interpreterPath,
+		"-c", "import torch; print(torch.__version__); print(torch.version.cuda or 'cpu')",
+	)
 	if err != nil {
 		return PythonTorchWheelDependencyStatus{}, fmt.Errorf("verify torch version and accelerator ABI: %w", err)
 	}

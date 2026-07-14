@@ -368,12 +368,16 @@ func (m *Manager) EnsurePythonVenvDependency(ctx context.Context, uvPath string,
 	}, nil
 }
 
-func uvPipInstall(ctx context.Context, uvPath string, pythonPath string, packages []string, extraArgs ...string) error {
+func uvPipInstall(ctx context.Context, uvPath string, venvRoot string, pythonPath string, packages []string, extraArgs ...string) error {
 	if !pythonPackageSetHasPackages(packages) {
 		return fmt.Errorf("uv pip install requires at least one declared package")
+	}
+	trimmedVenvRoot := strings.TrimSpace(venvRoot)
+	if trimmedVenvRoot == "" {
+		return fmt.Errorf("uv pip install requires a managed venv root")
 	}
 	args := []string{"pip", "install", "--python", pythonPath}
 	args = append(args, extraArgs...)
 	args = append(args, packages...)
-	return runCommand(ctx, "", nil, uvPath, args...)
+	return runCommand(ctx, trimmedVenvRoot, managedPythonRuntimeEnv(trimmedVenvRoot), uvPath, args...)
 }
