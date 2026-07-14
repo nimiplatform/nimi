@@ -356,7 +356,3 @@ async function withTempDir(prefix, run) {
     await rm(dir, { recursive: true, force: true });
   }
 }
-
-function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
