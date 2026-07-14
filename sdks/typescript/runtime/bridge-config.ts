@@ -195,37 +195,6 @@ export function mergeNimiRuntimeBridgeRealmJwtConfig(
   };
 }
 
-export function mergeNimiRuntimeBridgeDeveloperRegistrationConfig(
-  baseConfig: NimiRuntimeBridgeConfigJson,
-  enabled: boolean,
-): NimiRuntimeBridgeConfigProjectionResult {
-  const currentConfig = asRecord(baseConfig);
-  const currentAuth = asRecord(currentConfig.auth);
-  const currentDeveloperRegistration = asRecord(currentAuth.developerRegistration);
-  const currentEnabled = currentDeveloperRegistration.enabled === true;
-
-  if (currentEnabled === enabled) {
-    return {
-      nextConfig: currentConfig,
-      changed: false,
-    };
-  }
-
-  return {
-    nextConfig: {
-      ...currentConfig,
-      auth: {
-        ...currentAuth,
-        developerRegistration: {
-          ...currentDeveloperRegistration,
-          enabled,
-        },
-      },
-    },
-    changed: true,
-  };
-}
-
 function asRecord(value: unknown): NimiRuntimeBridgeConfigJson {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as NimiRuntimeBridgeConfigJson : {};
 }

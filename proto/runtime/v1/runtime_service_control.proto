@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "runtime/v1/common.proto";
+
+// RequestRuntimeRestartRequest is intentionally empty. The mutually verified
+// desktop_control connection and its live boot-scoped Desktop session are the
+// complete authority input; service name, path, endpoint, timeout, recovery
+// policy, and portable credentials are forbidden request data.
+message RequestRuntimeRestartRequest {
+}
+
+message RequestRuntimeRestartResponse {
+  bool accepted = 1;
+  ReasonCode reason_code = 2;
+}
+
+// RuntimeServiceControlService is registered only for the protected Runtime
+// host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
+// determine success only after SCM recovery and a new verified PID, creation
+// marker, boot epoch, and Desktop handshake.
+service RuntimeServiceControlService {
+  rpc RequestRuntimeRestart(RequestRuntimeRestartRequest) returns (RequestRuntimeRestartResponse);
+}

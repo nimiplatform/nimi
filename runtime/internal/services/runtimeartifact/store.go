@@ -258,9 +258,6 @@ func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (Art
 	input.AppID = strings.TrimSpace(input.AppID)
 	input.AllowedUse = ArtifactUse(strings.TrimSpace(string(input.AllowedUse)))
 	input.TrustClass = strings.TrimSpace(input.TrustClass)
-	if input.TrustClass == "" {
-		input.TrustClass = "production-installed"
-	}
 	input.ProjectRoot = strings.TrimSpace(input.ProjectRoot)
 	input.ExpiresAt = input.ExpiresAt.UTC()
 	if input.ProducerJobID == "" || input.OwnerAccountID == "" || input.AppID == "" || input.ReleaseDigest == (protectedlocal.Identifier{}) ||
@@ -268,11 +265,7 @@ func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (Art
 		return ArtifactAudience{}, ErrInvalidArtifactRecord
 	}
 	switch input.TrustClass {
-	case "production-installed":
-		if input.AuthorizationID != (protectedlocal.Identifier{}) || input.AuthorizationGeneration != 0 || input.ProjectRoot != "" || input.CapabilityFingerprint != (protectedlocal.Identifier{}) {
-			return ArtifactAudience{}, ErrInvalidArtifactRecord
-		}
-	case "local-development-installed-admission":
+	case "local_development":
 		if input.AuthorizationID == (protectedlocal.Identifier{}) || input.AuthorizationGeneration == 0 || input.ProjectRoot == "" || !filepath.IsAbs(input.ProjectRoot) || input.CapabilityFingerprint == (protectedlocal.Identifier{}) {
 			return ArtifactAudience{}, ErrInvalidArtifactRecord
 		}

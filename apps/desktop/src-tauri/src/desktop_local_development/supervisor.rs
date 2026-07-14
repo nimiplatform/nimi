@@ -375,18 +375,11 @@ async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
         .map_err(|_| "local-development-project-changed".to_string())?;
     ensure_path_within(&run.plan.project_root, &canonical_main)?;
     let electron_main_argument = electron_cli_path(&canonical_main)?;
-    let mut host_arguments = vec![
+    let mut host_arguments = dev_kernel_electron_observation_arguments()?;
+    host_arguments.extend([
         electron_main_argument,
         format!("--nimi-dev-renderer-url={}", run.plan.renderer_origin),
-    ];
-    #[cfg(feature = "protected-local-e2e-fixture")]
-    host_arguments.splice(
-        0..0,
-        [
-            "--remote-debugging-address=127.0.0.1".to_string(),
-            "--remote-debugging-port=0".to_string(),
-        ],
-    );
+    ]);
     let authorization_id = run.authorization_id().await?;
     let outcome = runtime_bridge::launch_local_development_host(LocalDevelopmentLaunchRequest {
         authorization_id,
@@ -404,6 +397,54 @@ async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
         return Err(error);
     }
     run.mark_running(outcome.process_id).await;
+    Ok(())
+}
+
+#[cfg(not(feature = "dev-kernel-checkpoint"))]
+fn dev_kernel_electron_observation_arguments() -> Result<Vec<String>, String> {
+    Ok(Vec::new())
+}
+
+#[cfg(feature = "dev-kernel-checkpoint")]
+fn dev_kernel_electron_observation_arguments() -> Result<Vec<String>, String> {
+    let port = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT")
+        .map_err(|_| "local-development-observation-config-invalid".to_string())?
+        .parse::<u16>()
+        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
+    if port < 1024 {
+        return Err("local-development-observation-config-invalid".to_string());
+    }
+    let trial_root = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ROOT")
+        .map(PathBuf::from)
+        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
+    let user_data_root = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT")
+        .map(PathBuf::from)
+        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
+    let trial_root = std::fs::canonicalize(trial_root)
+        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
+    let user_data_root = std::fs::canonicalize(user_data_root)
+        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
+    ensure_path_within(&trial_root, &user_data_root)?;
+    let agent_id = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID")
+        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
+    validate_dev_kernel_agent_id(&agent_id)?;
+    Ok(vec![
+        "--remote-debugging-address=127.0.0.1".to_string(),
+        format!("--remote-debugging-port={port}"),
+        format!("--user-data-dir={}", user_data_root.display()),
+        format!("--nimi-dev-agent-id={agent_id}"),
+    ])
+}
+
+#[cfg(feature = "dev-kernel-checkpoint")]
+fn validate_dev_kernel_agent_id(value: &str) -> Result<(), String> {
+    const PREFIX: &str = "local-agent:runtime-";
+    let suffix = value
+        .strip_prefix(PREFIX)
+        .ok_or_else(|| "local-development-observation-config-invalid".to_string())?;
+    if suffix.len() != 32 || !suffix.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("local-development-observation-config-invalid".to_string());
+    }
     Ok(())
 }
 
@@ -653,54 +694,8 @@ fn system_taskkill_path() -> Result<PathBuf, String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn run_guard_rejects_a_pre_cancelled_supervisor() {
-        let (cancel_tx, cancel_rx) = watch::channel(false);
-        assert!(ensure_run_active(&cancel_tx).is_ok());
-        drop(cancel_rx);
-        cancel_tx.send_replace(true);
-        assert_eq!(
-            ensure_run_active(&cancel_tx).unwrap_err(),
-            RUN_CANCELLED_REASON
-        );
-    }
-
-    #[tokio::test]
-    async fn cancellation_preempts_supervisor_waits() {
-        let (cancel_tx, mut cancel_rx) = watch::channel(false);
-        let wait =
-            tokio::spawn(
-                async move { wait_or_cancel(&mut cancel_rx, Duration::from_secs(30)).await },
-            );
-        tokio::task::yield_now().await;
-        cancel_tx.send_replace(true);
-        let result = tokio::time::timeout(Duration::from_secs(1), wait)
-            .await
-            .expect("cancellation must preempt the wait")
-            .expect("wait task");
-        assert_eq!(result.unwrap_err(), RUN_CANCELLED_REASON);
-    }
-
-    #[cfg(target_os = "windows")]
-    #[test]
-    fn electron_cli_receives_a_drive_path_after_canonical_identity_validation() {
-        assert_eq!(
-            electron_cli_path(Path::new(r"\\?\D:\project\dist-electron\main.js"))
-                .expect("projected Electron entry"),
-            r"D:\project\dist-electron\main.js"
-        );
-        assert_eq!(
-            electron_cli_path(Path::new(r"D:\project\dist-electron\main.js"))
-                .expect("ordinary Electron entry"),
-            r"D:\project\dist-electron\main.js"
-        );
-        assert!(electron_cli_path(Path::new(r"\\server\share\main.js")).is_err());
-        assert!(electron_cli_path(Path::new(r"\\?\UNC\server\share\main.js")).is_err());
-    }
-}
+#[path = "supervisor_tests.rs"]
+mod tests;
 
 fn ensure_path_within(root: &Path, path: &Path) -> Result<(), String> {
     let root = root

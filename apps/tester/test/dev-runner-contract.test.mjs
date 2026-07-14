@@ -12,7 +12,7 @@ const supervisor = readFileSync(
   'utf8',
 );
 
-test('Tester uses the same official one-command launcher as generated third-party apps', () => {
+test('Tester uses the same official one-command launcher as generated local apps', () => {
   assert.equal(packageJson.scripts.dev, 'nimi-app dev --shell tauri');
   assert.equal(packageJson.scripts['dev:shell'], 'nimi-app dev');
   assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');

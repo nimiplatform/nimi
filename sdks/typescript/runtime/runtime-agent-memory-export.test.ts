@@ -108,11 +108,6 @@ function buildClient(input: {
         throw new Error('auth path must not be used when withScopes is provided');
       },
     },
-    appAuth: {
-      async authorizeExternalPrincipal() {
-        throw new Error('app-auth path must not be used when withScopes is provided');
-      },
-    },
     agent: {
       async getAgentState() {
         return { state: input.state ?? buildAgentState() };

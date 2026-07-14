@@ -82,6 +82,16 @@ function getProtoMessageBlock(protoContent, messageName, relPath) {
   return match[1];
 }
 
+function getProtoServiceBlock(protoContent, serviceName, relPath) {
+  const pattern = new RegExp(`service\\s+${serviceName}\\s*\\{([\\s\\S]*?)\\n\\}`, 'm');
+  const match = protoContent.match(pattern);
+  if (!match) {
+    fail(`${relPath} missing service ${serviceName}`);
+    return '';
+  }
+  return match[1];
+}
+
 function assertMessageHasFields(block, messageName, relPath, fields) {
   for (const field of fields) {
     const re = new RegExp(`\\b${field}\\s*=\\s*\\d+\\s*;`);
@@ -151,53 +161,250 @@ function checkConnectorUpdateMaskAndPagination() {
   }
 }
 
-function checkGrantTokenChainEvolution() {
-  const rel = 'proto/runtime/v1/grant.proto';
-  const content = read(rel);
-
-  const req = getProtoMessageBlock(content, 'ListTokenChainRequest', rel);
-  const entry = getProtoMessageBlock(content, 'TokenChainEntry', rel);
-  const resp = getProtoMessageBlock(content, 'ListTokenChainResponse', rel);
-
-  assertMessageHasFields(req, 'ListTokenChainRequest', rel, ['include_revoked', 'page_size', 'page_token']);
-  assertMessageHasFields(entry, 'TokenChainEntry', rel, [
-    'principal_id',
-    'effective_scopes',
-    'revoked',
-    'delegation_depth',
-    'policy_version',
-    'issued_scope_catalog_version',
-  ]);
-  assertMessageHasFields(resp, 'ListTokenChainResponse', rel, ['next_page_token', 'has_more']);
-
-  const specGrant = read('.nimi/spec/runtime/kernel/grant-service.md');
-  expectRegex(specGrant, /##\s+K-GRANT-011\b/m, 'K-GRANT-011 rule definition');
-  expectRegex(specGrant, /##\s+K-GRANT-012\b/m, 'K-GRANT-012 rule definition');
-  expectRegex(specGrant, /##\s+K-GRANT-013\b/m, 'K-GRANT-013 rule definition');
-  for (const token of [
-    'deny-all tombstones',
-    'A.3d',
-    'AuthorizeExternalPrincipal',
-    'ValidateAppAccessToken',
-    'RevokeAppAccessToken',
-    'IssueDelegatedAccessToken',
-    'ListTokenChain',
+function checkGrantServiceHardcutAndLocalAppGrantBinding() {
+  const protoRoot = path.join(cwd, 'proto/runtime/v1');
+  const protoCorpus = walk(protoRoot)
+    .filter((file) => file.endsWith('.proto'))
+    .map((file) => read(toRel(file)))
+    .join('\n');
+  for (const retiredSymbol of [
+    'RuntimeGrantService',
+    'PolicyMode',
+    'AuthorizationPreset',
+    'AuthorizeExternalPrincipalRequest',
+    'AuthorizeExternalPrincipalResponse',
+    'ValidateAppAccessTokenRequest',
+    'ValidateAppAccessTokenResponse',
+    'RevokeAppAccessTokenRequest',
+    'IssueDelegatedAccessTokenRequest',
+    'IssueDelegatedAccessTokenResponse',
+    'ListTokenChainRequest',
+    'TokenChainEntry',
+    'ListTokenChainResponse',
   ]) {
-    if (!specGrant.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/grant-service.md missing token: ${token}`);
+    if (new RegExp(`\\b${retiredSymbol}\\b`).test(protoCorpus)) {
+      fail(`proto/runtime/v1 still publishes removed public Grant symbol: ${retiredSymbol}`);
     }
   }
-  for (const retiredPositiveAuthorityToken of [
-    'include_revoked',
-    'next_page_token',
-    'has_more',
-    'delegation_depth',
-    'effective_scopes',
-    'policy_version',
-    'issued_scope_catalog_version',
+
+  const accountRel = 'proto/runtime/v1/account.proto';
+  const account = read(accountRel);
+  const projection = getProtoMessageBlock(account, 'LocalAppGrantProjection', accountRel);
+  assertMessageHasFields(projection, 'LocalAppGrantProjection', accountRel, [
+    'state',
+    'operation_id',
+    'resource_ref',
+    'request_id',
+    'grant_id',
+    'grant_generation',
+    'grant_revision',
+    'expires_at',
+    'reason_code',
+  ]);
+  const localAppGrantMessages = [
+    ['GetLocalAppGrantStatusRequest', ['operation_id', 'resource_ref']],
+    ['GetLocalAppGrantStatusResponse', ['projection']],
+    ['RequestLocalAppGrantRequest', ['operation_id', 'resource_ref', 'purpose']],
+    ['RequestLocalAppGrantResponse', ['projection']],
+    ['DecideLocalAppGrantRequest', ['request_id', 'approved', 'presence_challenge_id']],
+    ['DecideLocalAppGrantResponse', ['projection']],
+    ['RevokeLocalAppGrantRequest', ['grant_id']],
+    ['RevokeLocalAppGrantResponse', ['projection']],
+  ];
+  for (const [messageName, fields] of localAppGrantMessages) {
+    const block = getProtoMessageBlock(account, messageName, accountRel);
+    assertMessageHasFields(block, messageName, accountRel, fields);
+    if (/\b(?:bearer|secret|token|session_proof|principal_id|account_id|app_id)\b/i.test(block)) {
+      fail(`${accountRel} ${messageName} exposes caller-selectable identity or portable credential material`);
+    }
+  }
+  if (/\b(?:bearer|secret|token|session_proof)\b/i.test(projection)) {
+    fail(`${accountRel} LocalAppGrantProjection exposes portable credential material`);
+  }
+
+  const accountService = getProtoServiceBlock(account, 'RuntimeAccountService', accountRel);
+  const grantMethods = [
+    'GetLocalAppGrantStatus',
+    'RequestLocalAppGrant',
+    'DecideLocalAppGrant',
+    'RevokeLocalAppGrant',
+  ];
+  for (const method of grantMethods) {
+    expectRegex(accountService, new RegExp(`\\brpc\\s+${method}\\s*\\(`), `${accountRel} RuntimeAccountService.${method}`);
+  }
+
+  const grantSpecRel = '.nimi/spec/runtime/kernel/grant-service.md';
+  const grantSpec = read(grantSpecRel);
+  for (const ruleId of ['K-GRANT-001', 'K-GRANT-002', 'K-GRANT-003', 'K-GRANT-014']) {
+    expectRegex(grantSpec, new RegExp(`^##\\s+${ruleId}\\b`, 'm'), `${grantSpecRel} ${ruleId} rule definition`);
+  }
+  expectNotRegex(grantSpec, /^##\s+K-GRANT-01[123]\b/m, `${grantSpecRel} retired K-GRANT-011/012/013 authority`);
+
+  const schemaRel = '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml';
+  const schema = readYaml(schemaRel);
+  if (String(schema?.source_rule || '') !== 'K-GRANT-014') {
+    fail(`${schemaRel} source_rule must be K-GRANT-014`);
+  }
+  const key = Array.isArray(schema?.grant?.key) ? schema.grant.key.map(String) : [];
+  for (const required of ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'capability_resource_fingerprint']) {
+    if (!key.includes(required)) fail(`${schemaRel} grant.key missing ${required}`);
+  }
+  const fields = Array.isArray(schema?.grant?.fields) ? schema.grant.fields.map(String) : [];
+  for (const required of ['grant_id', 'grant_generation', 'grant_revision', 'state', 'presence_evidence_ref']) {
+    if (!fields.includes(required)) fail(`${schemaRel} grant.fields missing ${required}`);
+  }
+  const invariants = Array.isArray(schema?.grant?.invariants) ? schema.grant.invariants.map(String) : [];
+  for (const required of [
+    'local_app_record_contains_no_grant_boolean',
+    'account_switch_never_transfers_grant',
+    'grant_mutation_does_not_rotate_identity_session',
+    'next_protected_operation_reads_current_grant',
+    'no_app_id_only_positive_lookup',
   ]) {
-    if (specGrant.includes(retiredPositiveAuthorityToken)) {
-      fail(`.nimi/spec/runtime/kernel/grant-service.md restored retired public Grant detail: ${retiredPositiveAuthorityToken}`);
+    if (!invariants.includes(required)) fail(`${schemaRel} grant.invariants missing ${required}`);
+  }
+  const forbiddenOutputs = Array.isArray(schema?.forbidden_outputs) ? schema.forbidden_outputs.map(String) : [];
+  for (const required of ['bearer', 'token', 'portable_grant_credential', 'session_proof']) {
+    if (!forbiddenOutputs.includes(required)) fail(`${schemaRel} forbidden_outputs missing ${required}`);
+  }
+
+  const authorityTables = [
+    '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml',
+    '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
+    '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+    '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
+    '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
+  ];
+  const authorityCorpus = authorityTables.map(read).join('\n');
+  if (/\bRuntimeGrantService\b/.test(authorityCorpus)) {
+    fail('active Runtime/SDK authority tables still publish removed RuntimeGrantService');
+  }
+  for (const method of grantMethods) {
+    const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
+    if (!authorityCorpus.includes(methodId) && !authorityCorpus.includes(`- ${method}`)) {
+      fail(`active Runtime/SDK authority tables missing final local-app grant method: ${method}`);
+    }
+  }
+
+  const rpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const rpcAccount = (Array.isArray(rpcMethods?.services) ? rpcMethods.services : [])
+    .find((item) => String(item?.name || '') === 'RuntimeAccountService');
+  const rpcAccountMethods = Array.isArray(rpcAccount?.methods) ? rpcAccount.methods : [];
+  for (const method of grantMethods) {
+    const row = rpcAccountMethods.find((item) => String(item?.name || '') === method);
+    const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
+    if (!row || String(row?.type || '') !== 'unary' || String(row?.protected_transport_ref || '') !== methodId) {
+      fail(`rpc-methods.yaml missing protected RuntimeAccountService.${method}`);
+    }
+  }
+
+  const authPosture = readYaml('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml');
+  const authRows = Array.isArray(authPosture?.methods) ? authPosture.methods : [];
+  for (const method of grantMethods) {
+    const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
+    const row = authRows.find((item) => String(item?.method_id || '') === methodId);
+    const refs = Array.isArray(row?.kernel_refs) ? row.kernel_refs.map(String) : [];
+    if (!row || String(row?.posture || '') !== 'protected_origin_required' || !refs.includes('K-GRANT-014')) {
+      fail(`runtime-rpc-auth-posture/identity-access.yaml missing protected K-GRANT-014 row for ${methodId}`);
+    }
+  }
+
+  const sdkGroups = readYaml('.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml');
+  const sdkAccount = (Array.isArray(sdkGroups?.groups) ? sdkGroups.groups : [])
+    .find((item) => String(item?.service || '') === 'RuntimeAccountService');
+  const sdkMethods = Array.isArray(sdkAccount?.methods) ? sdkAccount.methods.map(String) : [];
+  for (const method of grantMethods) {
+    if (!sdkMethods.includes(method)) {
+      fail(`runtime-method-groups.yaml RuntimeAccountService group missing ${method}`);
+    }
+  }
+
+  const migration = readYaml('.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml');
+  const mappings = Array.isArray(migration?.method_mappings) ? migration.method_mappings : [];
+  for (const method of grantMethods) {
+    const row = mappings.find((item) => String(item?.design_service || '') === 'RuntimeAccountService' && String(item?.design_method || '') === method);
+    if (!row || String(row?.proto_service || '') !== 'RuntimeAccountService' || String(row?.proto_method || '') !== method || String(row?.mapping_posture || '') !== 'aligned') {
+      fail(`methods-identity-app.yaml missing aligned RuntimeAccountService.${method} mapping`);
+    }
+  }
+
+  const transport = readYaml('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
+  const transportRows = Array.isArray(transport?.methods) ? transport.methods : [];
+  for (const method of grantMethods) {
+    const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
+    const row = transportRows.find((item) => String(item?.method_id || '') === methodId);
+    if (!row || String(row?.source_rule || '') !== 'K-GRANT-014' || row?.portable_session_allowed !== false || String(row?.public_tcp_disposition || '') !== 'deny') {
+      fail(`protected-local-rpc-transport-matrix.yaml missing fail-closed K-GRANT-014 row for ${methodId}`);
+    }
+  }
+}
+
+function checkDesktopProductControlProtectedAuthorityLinkage() {
+  const methodNames = [
+    'CollectDeviceProfile',
+    'ResolveLocalEnvironmentPlan',
+    'ListLocalEnvironmentDependencyJobs',
+    'StartLocalEnvironmentDependencyJob',
+    'CancelLocalEnvironmentDependencyJob',
+    'RetryLocalEnvironmentDependencyJob',
+    'RepairLocalEnvironmentDependency',
+    'ResolveRuntimeBaselineReadiness',
+    'MintRuntimeBaselineReadiness',
+    'ResolveFirstRunExecutionEvidence',
+    'MintFirstRunExecutionEvidence',
+    'GetProductControlRecord',
+    'GetProductControlSelectedDataRoot',
+    'EnsureProductControlRecordCreated',
+    'SelectProductControlDataRoot',
+    'SetProductControlFirstRunInstallLevel',
+    'CompleteProductControlFirstRunDeviceEnvironmentScan',
+    'AdmitProductControlReadyForUse',
+    'RecordProductControlAccountDefaultProfileEvidence',
+    'RecordProductControlFirstRunLocalAiReadyEvidence',
+    'ReconcileProductControlFirstRunSetupState',
+  ];
+  const expectedMethodIds = methodNames
+    .map((method) => `/nimi.runtime.v1.RuntimeLocalService/${method}`)
+    .sort();
+  const transport = readYaml('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
+  const transportRows = Array.isArray(transport?.methods) ? transport.methods : [];
+  const desktopRows = transportRows.filter((row) => String(row?.operation_class || '') === 'desktop_product_control');
+  const actualMethodIds = desktopRows.map((row) => String(row?.method_id || '')).sort();
+  if (JSON.stringify(actualMethodIds) !== JSON.stringify(expectedMethodIds)) {
+    fail(`protected-local-rpc-transport-matrix.yaml desktop_product_control set mismatch: ${actualMethodIds.join(', ')}`);
+  }
+
+  const posture = readYaml('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml');
+  const postureRows = Array.isArray(posture?.methods) ? posture.methods : [];
+  const rpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const runtimeLocal = (Array.isArray(rpcMethods?.services) ? rpcMethods.services : [])
+    .find((service) => String(service?.name || '') === 'RuntimeLocalService');
+  const runtimeLocalMethods = Array.isArray(runtimeLocal?.methods) ? runtimeLocal.methods : [];
+
+  for (const methodName of methodNames) {
+    const methodId = `/nimi.runtime.v1.RuntimeLocalService/${methodName}`;
+    const route = desktopRows.find((row) => String(row?.method_id || '') === methodId);
+    const postureRow = postureRows.find((row) => String(row?.method_id || '') === methodId);
+    const rpcRow = runtimeLocalMethods.find((row) => String(row?.name || '') === methodName);
+    const kernelRefs = Array.isArray(postureRow?.kernel_refs) ? postureRow.kernel_refs.map(String) : [];
+    if (!route
+      || JSON.stringify(route.allowed_transport_classes) !== JSON.stringify(['desktop_control'])
+      || JSON.stringify(route.required_origin_roles) !== JSON.stringify(['verified_desktop_process'])
+      || route.request_may_select_role !== false
+      || route.portable_session_allowed !== false
+      || String(route.public_tcp_disposition || '') !== 'deny'
+      || String(route.source_rule || '') !== 'K-RPC-004') {
+      fail(`protected-local-rpc-transport-matrix.yaml missing exact K-RPC-004 desktop_product_control row for ${methodId}`);
+    }
+    if (!postureRow
+      || String(postureRow?.posture || '') !== 'protected_origin_required'
+      || !kernelRefs.includes('K-RPC-004')) {
+      fail(`runtime-rpc-auth-posture/local-connector-model.yaml missing protected K-RPC-004 row for ${methodId}`);
+    }
+    if (!rpcRow
+      || String(rpcRow?.type || '') !== 'unary'
+      || String(rpcRow?.protected_transport_ref || '') !== methodId) {
+      fail(`rpc-methods.yaml missing protected RuntimeLocalService.${methodName}`);
     }
   }
 }
@@ -306,9 +513,8 @@ function checkReasonCodes359To363Linkage() {
   }
 }
 
-function checkPagingPairsInConnectorAndGrantProto() {
+function checkPagingPairsInConnectorProto() {
   const connector = read('proto/runtime/v1/connector.proto');
-  const grant = read('proto/runtime/v1/grant.proto');
 
   const connectorPairs = [
     ['ListConnectorsRequest', 'ListConnectorsResponse'],
@@ -321,13 +527,8 @@ function checkPagingPairsInConnectorAndGrantProto() {
     assertMessageHasFields(resp, respName, 'proto/runtime/v1/connector.proto', ['next_page_token']);
   }
 
-  const grantReq = getProtoMessageBlock(grant, 'ListTokenChainRequest', 'proto/runtime/v1/grant.proto');
-  const grantResp = getProtoMessageBlock(grant, 'ListTokenChainResponse', 'proto/runtime/v1/grant.proto');
-  assertMessageHasFields(grantReq, 'ListTokenChainRequest', 'proto/runtime/v1/grant.proto', ['page_size', 'page_token']);
-  assertMessageHasFields(grantResp, 'ListTokenChainResponse', 'proto/runtime/v1/grant.proto', ['next_page_token', 'has_more']);
-
   const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
-  for (const method of ['ListConnectors', 'ListConnectorModels', 'ListTokenChain']) {
+  for (const method of ['ListConnectors', 'ListConnectorModels']) {
     if (!paginationSpec.includes(method)) {
       fail(`.nimi/spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
     }
@@ -677,9 +878,10 @@ function checkRequiredRuleDefinitions() {
     'K-CONN-013',
     'K-CONN-014',
     'K-CONN-015',
-    'K-GRANT-011',
-    'K-GRANT-012',
-    'K-GRANT-013',
+    'K-GRANT-001',
+    'K-GRANT-002',
+    'K-GRANT-003',
+    'K-GRANT-014',
     'K-MEM-002',
     'K-MEM-003',
     'K-MEM-006',
@@ -704,10 +906,11 @@ function main() {
   checkRequiredRuleDefinitions();
   checkAuthJWTOnlyAndReserved();
   checkConnectorUpdateMaskAndPagination();
-  checkGrantTokenChainEvolution();
+  checkGrantServiceHardcutAndLocalAppGrantBinding();
+  checkDesktopProductControlProtectedAuthorityLinkage();
   checkLocalPaginationAndAuditFields();
   checkReasonCodes359To363Linkage();
-  checkPagingPairsInConnectorAndGrantProto();
+  checkPagingPairsInConnectorProto();
   checkMemoryProtoAdmission();
   checkRuntimeMemorySdkProjection();
   checkRuntimeAgentServiceProtoAdmission();

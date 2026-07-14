@@ -20,7 +20,6 @@ import {
   createNimiRuntimeAgentTurnsModule,
   createNimiRuntimeAgentVoiceModule,
   fromNimiRuntimeProtoStruct,
-  protectedAppAuth,
   protectedAuth,
   sourceContextStatus as rawSourceContextStatus,
   toNimiRuntimeProtoStruct,
@@ -98,7 +97,6 @@ test('Runtime Agent lifecycle surface initializes idempotently and terminates th
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions) {
           calls.push({ method: 'getAgent', request, options });
@@ -162,7 +160,6 @@ test('Runtime Agent lifecycle materialization returns Runtime-generated localAge
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async getAgent() {
           throw new Error('initializeLocalAgent must not read by caller localAgentRef');
@@ -210,7 +207,6 @@ test('Runtime Agent lifecycle rejects initialize responses without Runtime-owned
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async getAgent() {
           throw new Error('initializeLocalAgent must not read before initialize');
@@ -250,7 +246,6 @@ test('Runtime Agent lifecycle fails closed instead of synthesizing AlreadyExists
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async getAgent() {
           throw new Error('initializeLocalAgent must not read before initialize');
@@ -290,7 +285,6 @@ test('Runtime Agent lifecycle discovers existing LocalAgents through Runtime inv
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async getAgent() {
           throw new Error('discoverLocalAgentsBySource must not require caller localAgentRef');
@@ -375,7 +369,6 @@ test('Runtime Agent lifecycle discovers source provenance without caller runtime
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async getAgent() {
           throw new Error('source provenance discovery must not require caller localAgentRef');

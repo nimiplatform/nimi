@@ -67,7 +67,6 @@ export async function seedLiveRuntimeAvatarPresentationProfile(fixture) {
         appInstanceId: `${desktopAppId}.local-first-party`,
         deviceId: 'desktop-shell',
         capabilities: ['runtime.agent.write'],
-        developerRegistration: false,
         auth: fixture.runtime.auth,
       })();
       const idempotencyKey = `zhiyu-live-runtime-avatar-presentation:${fixture.localAgentRef}`;
@@ -312,7 +311,6 @@ async function resolveAvatarLiveInstanceBindingForZhiyuTest(fixture, avatarInsta
     appInstanceId: `${desktopAppId}.live-runtime-avatar-binding`,
     deviceId: 'nimi-desktop-live-runtime-avatar-binding-device',
     capabilities: ['runtime.agent.read'],
-    developerRegistration: false,
     auth: runtime.auth,
   });
   return withNimiRuntimeAgentScopes({

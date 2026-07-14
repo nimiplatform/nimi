@@ -8,6 +8,7 @@ edition = "2021"
 [features]
 desktop-e2e-fixture = []
 protected-local-e2e-fixture = ["nimi-shell-tauri/windows-e2e-fixture"]
+dev-kernel-checkpoint = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

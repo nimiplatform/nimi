@@ -150,16 +150,21 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   const testerSettingsSurfaceTest = read('apps/tester/test/tester-settings-surface.test.mjs');
   const scaffoldBoundary = read('apps/tester/test/scaffold-boundary.test.mjs');
   const testerRuntimePlatform = read('apps/tester/src/shell/auth/runtime-platform.ts');
+  const testerLocalAppPlatform = read('apps/tester/src/shell/local-app-runtime-platform.ts');
   const testerWorkbench = read('apps/tester/src/tester/tester-workbench.tsx');
   assert.match(testerContract, /tester kit gallery showcases real kit components/);
   assert.match(testerContract, /tester auth and runtime bootstrap consume Kit shell bridge primitives/);
   assert.match(testerSettingsSurfaceTest, /tester settings keeps real Realm live rows through SDK and Kit helpers/);
 
   assert.match(scaffoldBoundary, /runtime-platform\.ts/);
-  assert.match(scaffoldBoundary, /bootstrapArtifactId/);
+  assert.match(scaffoldBoundary, /local-app-runtime-platform\.ts/);
   assert.match(testerContract, /Runtime account projection without account control/);
-  assert.match(testerRuntimePlatform, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
-  assert.match(testerRuntimePlatform, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+  assert.match(testerRuntimePlatform, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+  assert.match(testerRuntimePlatform, /operationAllowed/);
+  assert.match(testerLocalAppPlatform, /createNimiAppRuntimePlatformClient/);
+  assert.match(testerLocalAppPlatform, /createNimiLocalAppStandardShellSurface/);
+  assert.match(testerLocalAppPlatform, /testerLocalAppRuntimePlatform\.artifacts\.readRuntimeBytes/);
+  assert.doesNotMatch(testerRuntimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
   assert.doesNotMatch(testerRuntimePlatform, /createRuntimeAccountBrowserBroker|createNimiRuntimeFullAppRegistration|getAccountSessionStatus|beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
   assert.doesNotMatch(testerRuntimePlatform, /desktop-runtime-oauth-url|#\/login|desktop_callback|runtimeEndpoint/);
 
@@ -202,7 +207,7 @@ test('Support typed projection lifecycle is owned by Kit UI and consumed by apps
   assert.match(testerSettingsContract, /tester settings does not create local Runtime, Realm, admission, or permission truth/);
 });
 
-test('Tester product-local persistence uses Kit storage while AIConfig is standard-shell owned', () => {
+test('Tester keeps app-owned preferences in Kit storage while unadmitted platform storage fails closed', () => {
   const testerPreferences = read('apps/tester/src/tester/tester-preferences.ts');
   const testerAiConfigStore = read('apps/tester/src/tester/tester-ai-config-store.ts');
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
@@ -214,16 +219,18 @@ test('Tester product-local persistence uses Kit storage while AIConfig is standa
   assert.doesNotMatch(testerPreferences, /JSON\.parse\(raw\)/);
   assert.doesNotMatch(testerPreferences, /JSON\.stringify\(normalized\)/);
 
-  assert.match(testerAiConfigStore, /createInstalledNimiAppStandardShellSurface/);
-  assert.match(testerAiConfigStore, /standardShellSurface\.aiConfig\.get/);
-  assert.match(testerAiConfigStore, /standardShellSurface\.aiConfig\.set/);
-  assert.match(testerAiConfigStore, /createNimiAISnapshotStore/);
+  assert.match(testerAiConfigStore, /createNimiError/);
+  assert.match(testerAiConfigStore, /TESTER_LOCAL_APP_AI_CONFIG_UNAVAILABLE/);
+  assert.match(testerAiConfigStore, /await_local_app_ai_config_operation_admission/);
+  assert.doesNotMatch(testerAiConfigStore, /createInstalledNimiAppStandardShellSurface/);
+  assert.doesNotMatch(testerAiConfigStore, /standardShellSurface\.aiConfig/);
+  assert.doesNotMatch(testerAiConfigStore, /createNimiAISnapshotStore/);
   assert.doesNotMatch(testerAiConfigStore, /from '@nimiplatform\/kit\/core\/storage-json'/);
   assert.doesNotMatch(testerAiConfigStore, /resolveBrowserStorage/);
   assert.doesNotMatch(testerAiConfigStore, /createNimiAIConfigStore/);
   assert.doesNotMatch(testerAiConfigStore, /createScopedAIConfigStore/);
   assert.doesNotMatch(testerAiConfigStore, /createScopedAISnapshotStore/);
-  assert.match(testerContract, /tester product-local preferences use Kit storage while AIConfig persistence is standard-shell owned/);
+  assert.match(testerContract, /unadmitted AIConfig and standard storage fail closed with typed SDK errors/);
 });
 
 test('Tester Electron shell host uses the fixed app bridge without app-owned config custody', () => {

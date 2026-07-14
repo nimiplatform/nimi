@@ -307,7 +307,9 @@ function normalizeDesktopTestRuntimeTransport(value: unknown) {
   if (candidate?.type === 'electron-ipc' || candidate?.type === 'tauri-ipc') {
     return candidate;
   }
-  return { type: 'tauri-ipc' as const };
+  // Runtime Agent unit doubles exercise the final Electron host-owned carrier.
+  // Tauri's renderer-side fail-closed posture has dedicated contract coverage.
+  return { type: 'electron-ipc' as const };
 }
 
 function clearDesktopTestNimiClientSession() {

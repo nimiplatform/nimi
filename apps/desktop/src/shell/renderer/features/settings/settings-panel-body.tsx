@@ -125,6 +125,7 @@ export function SettingsPanelBody() {
                       key={item.id}
                       kind="nav-row"
                       active={active}
+                      data-testid={`settings-nav:${item.id}`}
                       onClick={() => handleSelect(item.id)}
                       icon={<span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>}
                       label={itemTitle}

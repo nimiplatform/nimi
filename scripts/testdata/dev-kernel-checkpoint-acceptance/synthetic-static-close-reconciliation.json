@@ -1,0 +1,15 @@
+{
+  "schemaId": "nimi.repository.candidate-evidence.v2",
+  "evidenceId": "synthetic-static-close-reconciliation",
+  "candidateBindingSha256": "daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12",
+  "evidenceKind": "close_reconciliation",
+  "claims": [
+    {"rowId":"H-01","claimId":"close.predecessor_evidence_not_reused"},
+    {"rowId":"H-05","claimId":"close.required_rows_all_pass"},
+    {"rowId":"H-05","claimId":"close.no_open_severity_1_or_2"}
+  ],
+  "executionBinding": null,
+  "artifactRefs": [
+    {"role":"observation","ref":"synthetic-observation.json","sha256":"c1e7dda79a5089f01d76a5773a74a07fb8531ac34669cd16a5bb087c0c51ae4b"}
+  ]
+}

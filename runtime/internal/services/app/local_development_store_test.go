@@ -107,8 +107,8 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 	if err != nil {
 		t.Fatalf("Evaluate after account authority revocation: %v", err)
 	}
-	if afterLogout.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED || afterLogout.Authorization.ID != (protectedlocal.Identifier{}) {
-		t.Fatalf("logout/switch revocation must prevent remembered authorization reuse: %#v", afterLogout)
+	if afterLogout.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT || afterLogout.Authorization.ID != authorization.ID {
+		t.Fatalf("logout/switch must preserve remembered authorization only as dormant: %#v", afterLogout)
 	}
 }
 
@@ -138,12 +138,18 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 		t.Fatalf("create alternate observed host path: %v", err)
 	}
 	launch, err := store.PrepareLaunch(ctx, localDevelopmentLaunchRequest{
-		AuthorizationID: authorization.ID,
-		SupervisorRunID: runID,
-		Project:         project,
-		ShellKind:       project.ShellKind,
-		HostExecutable:  hostPath,
-		RendererOrigin:  "http://127.0.0.1:4173",
+		AuthorizationID:    authorization.ID,
+		SupervisorRunID:    runID,
+		Project:            project,
+		ShellKind:          project.ShellKind,
+		HostExecutable:     hostPath,
+		RendererOrigin:     "http://127.0.0.1:4173",
+		PrincipalID:        "lap_v1_test-principal",
+		RecordID:           "lar_v1_test-record",
+		ProvenanceRevision: 1,
+		ProjectGeneration:  1,
+		PayloadDigest:      "lad_v1_payload_test",
+		ExpectedHostDigest: localDevelopmentTestIdentifier(0x31),
 	})
 	if err != nil {
 		t.Fatalf("PrepareLaunch: %v", err)

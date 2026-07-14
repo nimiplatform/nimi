@@ -25,7 +25,7 @@ export function resolveElectronRuntimeTrustedCaller(
   if (!input) {
     throw createElectronCapabilityUnavailableError(command);
   }
-  const mode = normalizeText(input.mode) || 'local-developer-app';
+  const mode = normalizeText(input.mode);
   const modeSpec = runtimeTrustedCallerModeSpec(mode, command);
   const normalizedAppId = normalizeRequiredToken(appId, 'appId');
   const appInstanceId = normalizeText(input.appInstanceId) || `${normalizedAppId}.${modeSpec.defaultInstanceSuffix}`;
@@ -105,13 +105,6 @@ function runtimeTrustedCallerModeSpec(mode: string, command: string): {
       defaultInstanceSuffix: 'local-first-party',
       defaultDeviceId: 'local-first-party-device',
       modeValue: 1,
-    };
-  }
-  if (mode === 'local-developer-app') {
-    return {
-      defaultInstanceSuffix: 'local-developer',
-      defaultDeviceId: 'local-developer-device',
-      modeValue: 7,
     };
   }
   if (mode === 'desktop-shell') {

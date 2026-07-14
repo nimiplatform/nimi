@@ -64,32 +64,6 @@ function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]
 
 const SOURCE_CONTENT_HASH = 'a'.repeat(64);
 
-test('runtime agent client rejects a public Runtime grants fallback before invoking it', () => {
-  let publicGrantCalls = 0;
-
-  assert.throws(
-    () => createNimiRuntimeAgentClient({
-      runtime: {
-        appId: 'desktop',
-        auth: {},
-        grants: {
-          async authorizeExternalPrincipal() {
-            publicGrantCalls += 1;
-            return { tokenId: 'public-token', secret: 'public-secret' };
-          },
-        },
-        agents: {},
-        appMessages: {},
-      } as never,
-      getSubjectUserId: () => 'user-1',
-    }),
-    (error: unknown) =>
-      (error as { readonly reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_AUTH_REQUIRED',
-  );
-
-  assert.equal(publicGrantCalls, 0);
-});
-
 test('runtime agent client composes RuntimeAgentService and reserved turn seam as the owner path', async () => {
   const calls: Array<{
     readonly method: string;
@@ -100,11 +74,6 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
     auth: {
       async registerApp() {
         return { accepted: true };
-      },
-    },
-    appAuth: {
-      async authorizeExternalPrincipal() {
-        return { tokenId: 'token-1', secret: 'secret-1' };
       },
     },
     agents: {
@@ -269,11 +238,6 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
           return { accepted: true };
         },
       },
-      appAuth: {
-        async authorizeExternalPrincipal() {
-          return { tokenId: 'token-1', secret: 'secret-1' };
-        },
-      },
       agents: {
         async getAgent() {
           throw new Error('discoverBySource must not require caller localAgentRef');
@@ -369,11 +333,6 @@ test('runtime agent client lists existing LocalAgents from Runtime inventory', a
       auth: {
         async registerApp() {
           return { accepted: true };
-        },
-      },
-      appAuth: {
-        async authorizeExternalPrincipal() {
-          return { tokenId: 'token-1', secret: 'secret-1' };
         },
       },
       agents: {

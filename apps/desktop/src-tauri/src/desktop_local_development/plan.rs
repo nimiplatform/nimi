@@ -51,7 +51,8 @@ pub(crate) fn resolve_project_plan(
     #[cfg(target_os = "windows")]
     {
         let project_root = canonical_directory(Path::new(raw_root))?;
-        let (app_id, display_name) = read_manifest_identity(&project_root)?;
+        let manifest = read_project_manifest(&project_root)?;
+        let (app_id, display_name) = manifest_identity(&manifest)?;
         if expected_app_id.trim() != expected_app_id
             || expected_app_id.is_empty()
             || expected_app_id != app_id
@@ -59,8 +60,8 @@ pub(crate) fn resolve_project_plan(
             return Err("local-development-project-changed".to_string());
         }
         let package = read_json_file(&project_root.join("package.json"))?;
-        let renderer_origin = read_renderer_origin(&project_root)?;
-        require_exact_package_script(&package, "dev", "nimi-app dev --shell tauri")?;
+        let renderer_origin = read_renderer_origin(&project_root, &manifest, shell)?;
+        require_exact_package_script(&package, "dev", &format!("nimi-app dev --shell {shell}"))?;
         require_exact_package_script(&package, "dev:shell", "nimi-app dev")?;
         require_renderer_script(&package, &renderer_origin)?;
         let shell = match shell {
@@ -108,13 +109,15 @@ pub(crate) fn resolve_project_plan(
     }
 }
 
-fn read_manifest_identity(root: &Path) -> Result<(String, String), String> {
+fn read_project_manifest(root: &Path) -> Result<serde_yaml::Value, String> {
     let path = root.join("nimi.app.yaml");
     ensure_path_within(root, &path)?;
     let raw = std::fs::read_to_string(&path)
         .map_err(|_| "local-development-project-changed".to_string())?;
-    let document: serde_yaml::Value =
-        serde_yaml::from_str(&raw).map_err(|_| "local-development-project-changed".to_string())?;
+    serde_yaml::from_str(&raw).map_err(|_| "local-development-project-changed".to_string())
+}
+
+fn manifest_identity(document: &serde_yaml::Value) -> Result<(String, String), String> {
     let app_id = document
         .get("app_id")
         .and_then(serde_yaml::Value::as_str)
@@ -135,16 +138,31 @@ fn read_manifest_identity(root: &Path) -> Result<(String, String), String> {
     Ok((app_id, display_name))
 }
 
-fn read_renderer_origin(root: &Path) -> Result<String, String> {
-    let config = read_json_file(&root.join("src-tauri").join("tauri.conf.json"))?;
-    let raw = config
-        .get("build")
-        .and_then(Value::as_object)
-        .and_then(|build| build.get("devUrl"))
-        .and_then(Value::as_str)
-        .unwrap_or_default();
+fn read_renderer_origin(
+    root: &Path,
+    manifest: &serde_yaml::Value,
+    shell: &str,
+) -> Result<String, String> {
+    let raw = if shell == "electron" {
+        manifest
+            .get("local_development")
+            .and_then(|value| value.get("electron"))
+            .and_then(|value| value.get("renderer_origin"))
+            .and_then(serde_yaml::Value::as_str)
+            .unwrap_or_default()
+            .to_string()
+    } else {
+        let config = read_json_file(&root.join("src-tauri").join("tauri.conf.json"))?;
+        config
+            .get("build")
+            .and_then(Value::as_object)
+            .and_then(|build| build.get("devUrl"))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string()
+    };
     let parsed =
-        Url::parse(raw).map_err(|_| "local-development-dev-server-uncontrolled".to_string())?;
+        Url::parse(&raw).map_err(|_| "local-development-dev-server-uncontrolled".to_string())?;
     if parsed.scheme() != "http"
         || parsed.port().is_none()
         || !matches!(parsed.host_str(), Some("127.0.0.1" | "localhost" | "::1"))
@@ -276,12 +294,15 @@ mod tests {
             ("http://192.168.1.5:1468", false),
             ("http://localhost:1468/path", false),
         ] {
-            std::fs::write(
-                root.join("src-tauri/tauri.conf.json"),
-                serde_json::json!({ "build": { "devUrl": raw } }).to_string(),
-            )
-            .expect("config");
-            assert_eq!(read_renderer_origin(root).is_ok(), expected, "{raw}");
+            let manifest = serde_yaml::to_value(serde_json::json!({
+                "local_development": { "electron": { "renderer_origin": raw } }
+            }))
+            .expect("manifest");
+            assert_eq!(
+                read_renderer_origin(root, &manifest, "electron").is_ok(),
+                expected,
+                "{raw}"
+            );
         }
     }
 
@@ -310,13 +331,13 @@ mod tests {
     fn package_scripts_require_the_official_launcher_and_exact_renderer_owner() {
         let package = serde_json::json!({
             "scripts": {
-                "dev": "nimi-app dev --shell tauri",
+                "dev": "nimi-app dev --shell electron",
                 "dev:shell": "nimi-app dev",
                 "dev:renderer": "vite --host 127.0.0.1 --port 1468 --strictPort"
             }
         });
         assert!(
-            require_exact_package_script(&package, "dev", "nimi-app dev --shell tauri").is_ok()
+            require_exact_package_script(&package, "dev", "nimi-app dev --shell electron").is_ok()
         );
         assert!(require_renderer_script(&package, "http://127.0.0.1:1468").is_ok());
 

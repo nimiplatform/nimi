@@ -36,22 +36,22 @@ func TestServerRegistersRuntimeCognitionServiceExactlyOnce(t *testing.T) {
 	// `Register*ServiceServer` token must be added here intentionally
 	// and reviewed against Runtime authority.
 	allowed := map[string]struct{}{
-		"RegisterRuntimeAccountServiceServer":       {},
-		"RegisterRuntimeAgentServiceServer":         {},
-		"RegisterRuntimeAiRealtimeServiceServer":    {},
-		"RegisterRuntimeAiServiceServer":            {},
-		"RegisterRuntimeAppServiceServer":           {},
-		"RegisterRuntimeArtifactServiceServer":      {},
-		"RegisterRuntimeAuditServiceServer":         {},
-		"RegisterRuntimeAuthServiceServer":          {},
-		"RegisterRuntimeCognitionServiceServer":     {},
-		"RegisterRuntimeConnectorServiceServer":     {},
-		"RegisterRuntimeDevelopmentServiceServer":   {},
-		"RegisterRuntimeExternalAgentServiceServer": {},
-		"RegisterRuntimeGrantServiceServer":         {},
-		"RegisterRuntimeLocalServiceServer":         {},
-		"RegisterRuntimeModelServiceServer":         {},
-		"RegisterRuntimeWorkflowServiceServer":      {},
+		"RegisterRuntimeAccountServiceServer":        {},
+		"RegisterRuntimeAgentServiceServer":          {},
+		"RegisterRuntimeAiRealtimeServiceServer":     {},
+		"RegisterRuntimeAiServiceServer":             {},
+		"RegisterRuntimeAppServiceServer":            {},
+		"RegisterRuntimeArtifactServiceServer":       {},
+		"RegisterRuntimeAuditServiceServer":          {},
+		"RegisterRuntimeAuthServiceServer":           {},
+		"RegisterRuntimeServiceControlServiceServer": {},
+		"RegisterRuntimeCognitionServiceServer":      {},
+		"RegisterRuntimeConnectorServiceServer":      {},
+		"RegisterRuntimeDevelopmentServiceServer":    {},
+		"RegisterRuntimeExternalAgentServiceServer":  {},
+		"RegisterRuntimeLocalServiceServer":          {},
+		"RegisterRuntimeModelServiceServer":          {},
+		"RegisterRuntimeWorkflowServiceServer":       {},
 	}
 	tokens := scanRegisterTokens(text)
 	for token := range tokens {

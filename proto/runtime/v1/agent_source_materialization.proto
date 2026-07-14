@@ -1,0 +1,418 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/agent_common.proto";
+
+// K-AGCORE-151: closed source kinds accepted by the Runtime-owned challenge
+// and canonical chunked materialization ingress. Unknown numeric values fail
+// admission; they are never coerced to a source kind.
+enum AgentSourceMaterializationSourceKind {
+  AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER = 1;
+  AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA = 2;
+}
+enum AgentSourceMaterializationChallengeState {
+  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED = 1;
+  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED = 2;
+  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED = 3;
+  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED = 4;
+  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED = 5;
+}
+enum AgentSourceMaterializationUploadState {
+  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN = 1;
+  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING = 2;
+  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED = 3;
+  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED = 4;
+  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED = 5;
+  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED = 6;
+}
+enum AgentSourceMaterializationComponentKind {
+  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER = 1;
+  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA = 2;
+  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE = 3;
+  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY = 4;
+  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP = 5;
+  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST = 6;
+}
+enum AgentSourceMaterializationProofAlgorithm {
+  AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256 = 1;
+}
+enum AgentSourceMaterializationKeyUse {
+  AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG = 1;
+}
+enum AgentSourceMaterializationPacketSchemaVersion {
+  AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2 = 1;
+}
+enum AgentSourceMaterializationBundleManifestSchemaVersion {
+  AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentSourceMaterializationPayloadAssemblyVersion {
+  AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1 = 1;
+}
+enum AgentSourceMaterializationReasonCode {
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED = 0;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE = 1;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST = 2;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH = 3;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH = 4;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND = 5;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED = 6;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT = 7;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED = 8;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED = 9;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH = 10;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED = 11;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED = 12;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED = 13;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED = 14;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID = 15;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID = 16;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID = 17;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND = 18;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT = 19;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT = 20;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID = 21;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH = 22;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT = 23;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS = 24;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED = 25;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT = 26;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED = 27;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED = 28;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED = 29;
+  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED = 30;
+}
+enum AgentLocalSourceContextState {
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED = 1;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING = 2;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY = 3;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID = 4;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED = 5;
+}
+enum AgentLocalSourceCoverageSection {
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY = 1;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION = 2;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT = 3;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY = 4;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY = 5;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE = 6;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS = 7;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES = 8;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE = 9;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS = 10;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING = 11;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE = 12;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE = 13;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE = 14;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY = 15;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE = 16;
+}
+enum AgentLocalSourceCoverageState {
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE = 1;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE = 2;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED = 3;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID = 4;
+}
+enum AgentTurnContextState {
+  AGENT_TURN_CONTEXT_STATE_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED = 1;
+  AGENT_TURN_CONTEXT_STATE_READY = 2;
+  AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED = 3;
+  AGENT_TURN_CONTEXT_STATE_INVALID = 4;
+}
+enum AgentTurnContextLaneId {
+  AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY = 1;
+  AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT = 2;
+  AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY = 3;
+  AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR = 4;
+  AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT = 5;
+  AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT = 6;
+  AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE = 7;
+  AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY = 8;
+  AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY = 9;
+  AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT = 10;
+  AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN = 11;
+}
+enum AgentTurnContextLaneState {
+  AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED = 1;
+  AGENT_TURN_CONTEXT_LANE_STATE_EMPTY = 2;
+  AGENT_TURN_CONTEXT_LANE_STATE_OMITTED = 3;
+  AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED = 4;
+  AGENT_TURN_CONTEXT_LANE_STATE_INVALID = 5;
+}
+enum AgentTurnContextTruncationReason {
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE = 1;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED = 2;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED = 3;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED = 4;
+}
+enum AgentContextProjectionReasonCode {
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED = 0;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE = 1;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED = 2;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING = 3;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID = 4;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED = 5;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED = 6;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID = 7;
+}
+enum AgentLocalSourceContextSchemaVersion {
+  AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentLocalSourceSnapshotSchemaVersion {
+  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentTurnContextSummarySchemaVersion {
+  AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentTurnContextManifestSchemaVersion {
+  AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentTurnContextCompilerSchemaVersion {
+  AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1 = 1;
+}
+
+message SourceMaterializationSourceRef {
+  AgentSourceMaterializationSourceKind kind = 1;
+  string world_id = 2;
+  string source_id = 3;
+  string source_content_hash = 4;
+}
+message SourceMaterializationChallengeLimits {
+  uint64 max_bundle_bytes = 1;
+  uint32 max_component_count = 2;
+  uint64 max_chunk_bytes = 3;
+  uint32 max_chunks = 4;
+}
+message CreateSourceMaterializationChallengeRequest {
+  AgentRequestContext context = 1;
+  string request_id = 2;
+  SourceMaterializationSourceRef source_ref = 3;
+}
+message CreateSourceMaterializationChallengeResponse {
+  string challenge_id = 1;
+  string intended_runtime_audience = 2;
+  string challenge_digest = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  SourceMaterializationChallengeLimits limits = 5;
+  AgentSourceMaterializationChallengeState state = 6;
+  AgentSourceMaterializationReasonCode reason_code = 7;
+  SourceMaterializationSourceRef source_ref = 8;
+  string materializer_account_id = 9;
+}
+// Typed unsigned packet-v2 envelope. Semantic source/world/component bodies
+// are deliberately absent and enter Runtime only through Put chunk bytes.
+message SourceMaterializationPacketEnvelopeV2 {
+  AgentSourceMaterializationPacketSchemaVersion packet_schema_version = 1;
+  string packet_id = 2;
+  string issuer = 3;
+  string key_id = 4;
+  AgentSourceMaterializationProofAlgorithm algorithm = 5;
+  AgentSourceMaterializationKeyUse key_use = 6;
+  google.protobuf.Timestamp issued_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  string nonce = 9;
+  string intended_runtime_audience = 10;
+  string challenge_id = 11;
+  string challenge_digest = 12;
+  SourceMaterializationChallengeLimits challenge_limits = 13;
+  string materializer_account_id = 14;
+  SourceMaterializationSourceRef source_ref = 15;
+  string payload_hash = 16;
+  string bundle_manifest_hash = 17;
+  string packet_hash = 18;
+}
+message SourceMaterializationBundleComponentDescriptorV1 {
+  string component_id = 1;
+  AgentSourceMaterializationComponentKind kind = 2;
+  string schema_version = 3;
+  uint64 revision = 4;
+  string content_hash = 5;
+  string canonical_bytes_hash = 6;
+  uint64 canonical_byte_length = 7;
+}
+// Realm packet-v2 chunk descriptors intentionally do not carry component_id;
+// component binding is proved by the ordered component ranges and the Put
+// request's explicit component identity.
+message SourceMaterializationBundleChunkDescriptorV1 {
+  uint32 global_ordinal = 1;
+  uint64 component_offset = 2;
+  uint64 length = 3;
+  string chunk_sha256 = 4;
+}
+message BundleTransportManifestV1 {
+  AgentSourceMaterializationBundleManifestSchemaVersion manifest_schema_version = 1;
+  AgentSourceMaterializationPayloadAssemblyVersion payload_assembly_version = 2;
+  string packet_id = 3;
+  string challenge_digest = 4;
+  uint64 total_canonical_bytes = 5;
+  uint32 component_count = 6;
+  uint32 chunk_count = 7;
+  repeated SourceMaterializationBundleComponentDescriptorV1 components = 8;
+  repeated SourceMaterializationBundleChunkDescriptorV1 chunks = 9;
+}
+message SourceMaterializationBeginControl {
+  SourceMaterializationPacketEnvelopeV2 packet_envelope = 1;
+  string packet_proof = 2;
+  BundleTransportManifestV1 bundle_transport_manifest = 3;
+}
+message BeginSourceMaterializationUploadRequest {
+  AgentRequestContext context = 1;
+  string begin_request_id = 2;
+  SourceMaterializationBeginControl control = 3;
+}
+message BeginSourceMaterializationUploadResponse {
+  string upload_id = 1;
+  string packet_hash = 2;
+  string bundle_manifest_hash = 3;
+  AgentSourceMaterializationUploadState upload_state = 4;
+  AgentSourceMaterializationChallengeState challenge_state = 5;
+  AgentSourceMaterializationReasonCode reason_code = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+message PutSourceMaterializationChunkRequest {
+  AgentRequestContext context = 1;
+  string put_request_id = 2;
+  string upload_id = 3;
+  string packet_hash = 4;
+  string bundle_manifest_hash = 5;
+  uint32 global_ordinal = 6;
+  string component_id = 7;
+  uint64 component_offset = 8;
+  string chunk_sha256 = 9;
+  bytes bytes = 10;
+}
+message PutSourceMaterializationChunkResponse {
+  string upload_id = 1;
+  uint32 global_ordinal = 2;
+  string component_id = 3;
+  bool idempotent_replay = 4;
+  AgentSourceMaterializationUploadState upload_state = 5;
+  AgentSourceMaterializationReasonCode reason_code = 6;
+}
+message CommitSourceMaterializationRequest {
+  AgentRequestContext context = 1;
+  string commit_request_id = 2;
+  string upload_id = 3;
+  string packet_hash = 4;
+  string bundle_manifest_hash = 5;
+}
+message CommitSourceMaterializationResponse {
+  string upload_id = 1;
+  string local_agent_ref = 2;
+  AgentSourceMaterializationUploadState upload_state = 3;
+  AgentSourceMaterializationChallengeState challenge_state = 4;
+  AgentSourceMaterializationReasonCode reason_code = 5;
+  LocalAgentSourceContextStatus source_context_status = 6;
+}
+message AbortSourceMaterializationUploadRequest {
+  AgentRequestContext context = 1;
+  string abort_request_id = 2;
+  string upload_id = 3;
+  string packet_hash = 4;
+  string bundle_manifest_hash = 5;
+}
+message AbortSourceMaterializationUploadResponse {
+  string upload_id = 1;
+  AgentSourceMaterializationUploadState upload_state = 2;
+  AgentSourceMaterializationChallengeState challenge_state = 3;
+  AgentSourceMaterializationReasonCode reason_code = 4;
+  bool idempotent_replay = 5;
+}
+message LocalAgentSourceCoverageSectionStatus {
+  AgentLocalSourceCoverageSection section = 1;
+  AgentLocalSourceCoverageState state = 2;
+  uint32 required_count = 3;
+  uint32 resolved_count = 4;
+  uint32 omitted_count = 5;
+}
+// K-AGCORE-158 bounded source/snapshot projection. It intentionally excludes
+// raw core/world/closure content, proof, chunks, prompts, transcript, memory,
+// and every free-form map.
+message LocalAgentSourceContextStatus {
+  AgentLocalSourceContextSchemaVersion schema_version = 1;
+  bool ready = 2;
+  AgentLocalSourceContextState state = 3;
+  AgentContextProjectionReasonCode reason_code = 4;
+  string local_agent_ref = 5;
+  SourceMaterializationSourceRef source_ref = 6;
+  string source_schema_version = 7;
+  AgentLocalSourceSnapshotSchemaVersion snapshot_schema_version = 8;
+  string snapshot_hash = 9;
+  google.protobuf.Timestamp captured_at = 10;
+  string world_content_hash = 11;
+  string materialization_context_hash = 12;
+  repeated LocalAgentSourceCoverageSectionStatus coverage_sections = 13;
+}
+message AgentTurnContextLaneSummary {
+  AgentTurnContextLaneId lane_id = 1;
+  AgentTurnContextLaneState state = 2;
+  uint32 included_item_count = 3;
+  uint32 omitted_item_count = 4;
+  uint32 truncated_item_count = 5;
+  uint64 allocated_tokens = 6;
+  uint64 used_tokens = 7;
+}
+message AgentTurnContextBudgetSummary {
+  uint64 context_window_tokens = 1;
+  uint64 reserved_output_tokens = 2;
+  uint64 reserved_safety_tokens = 3;
+  uint64 reserved_adapter_tokens = 4;
+  uint64 input_budget_tokens = 5;
+  uint64 used_tokens = 6;
+}
+message AgentTurnContextTruncationSummary {
+  AgentTurnContextTruncationReason reason = 1;
+  uint32 omitted_item_count = 2;
+  uint32 truncated_item_count = 3;
+}
+// K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
+// provider payloads, credentials, and tool arguments/results are absent.
+message AgentTurnContextSummary {
+  AgentTurnContextSummarySchemaVersion schema_version = 1;
+  bool ready = 2;
+  AgentTurnContextState state = 3;
+  AgentContextProjectionReasonCode reason_code = 4;
+  AgentTurnContextManifestSchemaVersion manifest_schema_version = 5;
+  AgentTurnContextCompilerSchemaVersion compiler_schema_version = 6;
+  string manifest_instance_hash = 7;
+  string context_content_hash = 8;
+  string prompt_hash = 9;
+  string source_snapshot_hash = 10;
+  SourceMaterializationSourceRef source_ref = 11;
+  string world_content_hash = 12;
+  string materialization_context_hash = 13;
+  repeated AgentTurnContextLaneSummary lanes = 14;
+  AgentTurnContextBudgetSummary budget = 15;
+  repeated AgentTurnContextTruncationSummary truncation = 16;
+  uint32 transcript_turn_count = 17;
+  uint32 memory_item_count = 18;
+  uint32 media_count = 19;
+  uint32 tool_count = 20;
+  string route_digest = 21;
+  string catalog_revision_digest = 22;
+  string local_agent_ref = 23;
+  string conversation_anchor_id = 24;
+  string turn_id = 25;
+}

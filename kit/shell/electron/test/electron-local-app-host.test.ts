@@ -1,0 +1,92 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  createNimiElectronLocalAppHostForBinding,
+  resolveNimiElectronProtectedLocalBindingPackage,
+} from '../src/main/local-app-host.js';
+
+describe('Electron protected local-app host', () => {
+  it('forwards only the eight typed operation families', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+
+    await expect(host.sessionStatus()).resolves.toEqual(statusProjection());
+    await expect(host.permissionPosture({ operationId: 'runtime-agent.send-turn', resourceRef: 'agent-a' }))
+      .resolves.toMatchObject({ state: 'granted' });
+    await expect(host.permissionRequest({ operationId: 'runtime-agent.send-turn', resourceRef: 'agent-a', purpose: 'Continue the conversation' }))
+      .resolves.toMatchObject({ state: 'pending' });
+    await expect(host.artifactsReadRuntimeBytes({ artifactId: 'artifact-a' }))
+      .resolves.toMatchObject({ sizeBytes: 8, mimeType: 'text/plain' });
+    await expect(host.agentOpenConversation({ agentId: 'agent-a', requestedAnchorDisposition: 'create-or-resume' }))
+      .resolves.toMatchObject({ conversationAnchorId: 'anchor-a' });
+    await expect(host.agentSendTurn({ agentId: 'agent-a', conversationAnchorId: 'anchor-a', clientTurnId: 'turn-a', userText: '你好' }))
+      .resolves.toMatchObject({ accepted: true });
+    await expect(host.agentSubscribeTurn({ agentId: 'agent-a', conversationAnchorId: 'anchor-a', cursor: '' }))
+      .resolves.toMatchObject({ cursor: 'cursor-a' });
+    await expect(host.agentGetConversationSnapshot({ agentId: 'agent-a', conversationAnchorId: 'anchor-a' }))
+      .resolves.toMatchObject({ conversationAnchorId: 'anchor-a' });
+
+    expect(calls.map(({ method }) => method)).toEqual([
+      'localAppSessionStatus',
+      'localAppPermissionPosture',
+      'localAppPermissionRequest',
+      'localAppArtifactsReadRuntimeBytes',
+      'localAppAgentOpenConversation',
+      'localAppAgentSendTurn',
+      'localAppAgentSubscribeTurn',
+      'localAppAgentGetConversationSnapshot',
+    ]);
+  });
+
+  it('rejects protected authority material returned by the native carrier', async () => {
+    const candidate = {
+      ...binding([]),
+      localAppSessionStatus: async () => ({
+        status: 'ok' as const,
+        value: { ...statusProjection(), sessionId: 'forbidden' },
+      }),
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.sessionStatus()).rejects.toMatchObject({
+      reasonCode: 'runtime-service-untrusted',
+      retryable: false,
+    });
+  });
+
+  it('admits only the packaged Windows x64 native binding', () => {
+    expect(resolveNimiElectronProtectedLocalBindingPackage('win32', 'x64')).toBe(
+      '@nimiplatform/kit-protected-local-win32-x64',
+    );
+    for (const [platform, architecture] of [['win32', 'arm64'], ['darwin', 'arm64'], ['linux', 'x64']]) {
+      expect(() => resolveNimiElectronProtectedLocalBindingPackage(platform, architecture)).toThrow(
+        expect.objectContaining({ reasonCode: 'protected-carrier-required', retryable: false }),
+      );
+    }
+  });
+});
+
+function statusProjection() {
+  return { state: 'zero-grant', reasonCode: 'LOCAL_APP_GRANT_REQUIRED', retryable: false };
+}
+
+function binding(calls: Array<{ method: string; input?: unknown }>) {
+  const record = (method: string, value: unknown) => async (input?: unknown) => {
+    calls.push({ method, ...(input === undefined ? {} : { input }) });
+    return { status: 'ok' as const, value };
+  };
+  return {
+    localAppSessionStatus: record('localAppSessionStatus', statusProjection()),
+    localAppPermissionPosture: record('localAppPermissionPosture', { state: 'granted', reasonCode: 'OK' }),
+    localAppPermissionRequest: record('localAppPermissionRequest', { state: 'pending', reasonCode: 'NO_GRANT' }),
+    localAppArtifactsReadRuntimeBytes: record('localAppArtifactsReadRuntimeBytes', {
+      bytes: new TextEncoder().encode('artifact'),
+      mimeType: 'text/plain',
+      sizeBytes: 8,
+      mimeInferred: false,
+    }),
+    localAppAgentOpenConversation: record('localAppAgentOpenConversation', { conversationAnchorId: 'anchor-a' }),
+    localAppAgentSendTurn: record('localAppAgentSendTurn', { accepted: true }),
+    localAppAgentSubscribeTurn: record('localAppAgentSubscribeTurn', { cursor: 'cursor-a', events: [] }),
+    localAppAgentGetConversationSnapshot: record('localAppAgentGetConversationSnapshot', { conversationAnchorId: 'anchor-a', messages: [] }),
+  };
+}

@@ -7,17 +7,31 @@ export enum GpuMemoryModel {
   UNIFIED = 2,
 }
 
-export enum LocalAppAdoptionState {
+export enum LocalAppGrantState {
   UNSPECIFIED = 0,
-  ADOPTED = 1,
-  REPAIR_REQUIRED = 2,
-  REMOVED = 3,
+  NO_GRANT = 1,
+  PENDING = 2,
+  GRANTED = 3,
+  DENIED = 4,
+  EXPIRED = 5,
+  REVOKED = 6,
+  SUPERSEDED = 7,
 }
 
-export enum LocalAppAdoptionTrust {
+export enum LocalAppSessionState {
   UNSPECIFIED = 0,
-  EXPLICIT_LOCAL = 1,
-  DEVELOPER_LOCAL = 2,
+  READY = 1,
+  RUNTIME_UNAVAILABLE = 2,
+  REVOKED = 3,
+  ACCOUNT_CHANGED = 4,
+  PROCESS_REPLACED = 5,
+}
+
+export enum LocalAppTrustClass {
+  UNSPECIFIED = 0,
+  VERIFIED = 1,
+  USER_IMPORTED = 2,
+  LOCAL_DEVELOPMENT = 3,
 }
 
 export enum LocalAssetKind {
@@ -59,16 +73,7 @@ export enum LocalDevelopmentAuthorizationState {
   REAPPROVAL_REQUIRED = 3,
   DENIED = 4,
   REVOKED = 5,
-}
-
-export enum LocalDevelopmentBootstrapState {
-  UNSPECIFIED = 0,
-  READY = 1,
-  AUTHORIZATION_REQUIRED = 2,
-  DENIED = 3,
-  RUNTIME_UNAVAILABLE = 4,
-  REVOKED = 5,
-  PROJECT_CHANGED = 6,
+  DORMANT = 6,
 }
 
 export enum LocalDevelopmentDecision {
@@ -270,12 +275,6 @@ export enum ModelStatus {
   PULLING = 2,
   FAILED = 3,
   REMOVED = 4,
-}
-
-export enum PolicyMode {
-  UNSPECIFIED = 0,
-  PRESET = 1,
-  CUSTOM = 2,
 }
 
 export enum RuntimeHealthStatus {

@@ -1,4 +1,6 @@
 import {
+  hasElectronInvoke,
+  hasShellHostInvoke,
   hasTauriInvoke,
   listenTauri,
 } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -45,7 +47,7 @@ export type LocalDevelopmentRun = {
 export type LocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-remember-project';
 
 export function localDevelopmentBridgeAvailable(): boolean {
-  return hasTauriInvoke();
+  return hasShellHostInvoke();
 }
 
 export async function listPendingLocalDevelopmentApprovals(): Promise<LocalDevelopmentApproval[]> {
@@ -59,10 +61,11 @@ export async function listPendingLocalDevelopmentApprovals(): Promise<LocalDevel
 export async function decideLocalDevelopmentApproval(
   requestId: string,
   decision: LocalDevelopmentDecision,
+  riskDisclosureAcknowledged: boolean,
 ): Promise<void> {
   await invokeChecked(
     'local_development_decide',
-    { payload: { requestId, decision } },
+    { payload: { requestId, decision, riskDisclosureAcknowledged } },
     (value) => {
       const record = requireRecord(value);
       requireText(record.state, 'state');
@@ -74,9 +77,35 @@ export async function decideLocalDevelopmentApproval(
 export async function subscribeLocalDevelopmentApprovals(
   onApproval: (approval: LocalDevelopmentApproval) => void,
 ): Promise<() => void> {
-  return listenTauri(APPROVAL_EVENT, (event) => {
-    onApproval(parseApproval(event.payload));
-  });
+  if (hasTauriInvoke()) {
+    return listenTauri(APPROVAL_EVENT, (event) => {
+      onApproval(parseApproval(event.payload));
+    });
+  }
+  if (!hasElectronInvoke()) throw new Error('local-development-protected-carrier-required');
+  let disposed = false;
+  let inFlight = false;
+  const observed = new Set<string>();
+  const poll = async () => {
+    if (disposed || inFlight) return;
+    inFlight = true;
+    try {
+      for (const approval of await listPendingLocalDevelopmentApprovals()) {
+        if (!observed.has(approval.requestId)) {
+          observed.add(approval.requestId);
+          onApproval(approval);
+        }
+      }
+    } finally {
+      inFlight = false;
+    }
+  };
+  void poll().catch(() => undefined);
+  const timer = globalThis.setInterval(() => void poll().catch(() => undefined), 750);
+  return () => {
+    disposed = true;
+    globalThis.clearInterval(timer);
+  };
 }
 
 export async function listLocalDevelopmentAuthorizations(): Promise<LocalDevelopmentAuthorization[]> {

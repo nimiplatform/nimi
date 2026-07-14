@@ -4,20 +4,19 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
-	aiReplayAppID = "nimi.gold-path"
+	aiProviderRawAppID = "nimi.provider-raw"
 )
 
-type noopGoldJobUpdater struct{}
+type noopProviderRawJobUpdater struct{}
 
-func (noopGoldJobUpdater) UpdatePollState(string, string, int32, *timestamppb.Timestamp, string) {}
+func (noopProviderRawJobUpdater) UpdatePollState(string, string, int32, *timestamppb.Timestamp, string) {
+}
 
 type aiReplayPayload struct {
 	FixtureID            string         `json:"fixtureId"`
@@ -45,49 +44,10 @@ type aiReplayErrorDetails struct {
 	Message    string
 }
 
-func runRuntimeAIReplay(args []string) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
-
-	fs := flag.NewFlagSet("nimi ai replay", flag.ContinueOnError)
-	fs.SetOutput(os.Stdout)
-	grpcAddr := fs.String("grpc-addr", cfg.GRPCAddr, "runtime gRPC address")
-	timeoutRaw := fs.String("timeout", "3m", "grpc request timeout")
-	fixturePath := fs.String("fixture", "", "gold fixture path")
-	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
-	callerID := fs.String("caller-id", "nimi-cli", "caller id metadata")
-	surfaceID := fs.String("surface-id", "runtime-cli", "surface id metadata")
-	traceID := fs.String("trace-id", "", "trace id metadata")
-	subjectUserID := fs.String("subject-user-id", strings.TrimSpace(os.Getenv("NIMI_LIVE_GOLD_SUBJECT_USER_ID")), "subject user id for gold replay auth context")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if strings.TrimSpace(*subjectUserID) == "" {
-		return fmt.Errorf("subject-user-id is required for gold replay auth context (or set NIMI_LIVE_GOLD_SUBJECT_USER_ID)")
-	}
-
-	fixture, err := loadAIGoldFixture(*fixturePath)
-	if err != nil {
-		return err
-	}
-	timeout, err := time.ParseDuration(*timeoutRaw)
-	if err != nil {
-		return fmt.Errorf("parse timeout: %w", err)
-	}
-	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
-	payload, err := executeRuntimeReplay(*grpcAddr, timeout, fixture, callerMeta, *subjectUserID)
-	if err != nil {
-		return err
-	}
-	return printJSON(payload)
-}
-
 func runRuntimeAIProviderRaw(args []string) error {
 	fs := flag.NewFlagSet("nimi ai provider-raw", flag.ContinueOnError)
 	fs.SetOutput(os.Stdout)
-	fixturePath := fs.String("fixture", "", "gold fixture path")
+	fixturePath := fs.String("fixture", "", "provider fixture path")
 	timeoutRaw := fs.String("timeout", "3m", "provider request timeout")
 	if err := fs.Parse(args); err != nil {
 		return err

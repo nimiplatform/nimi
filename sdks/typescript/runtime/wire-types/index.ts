@@ -8,6 +8,9 @@ export type * from "./ai-scenario-types";
 
 export * from "./identity-app-enums";
 export * from "./agent-participation-enums";
+export * from "./agent-companion-enums";
+export * from "./agent-delegation-enums";
+export * from "./agent-participation-policy-enums";
 export * from "./local-memory-enums";
 export * from "./reason-code-enums";
 export * from "./ai-scenario-enums";

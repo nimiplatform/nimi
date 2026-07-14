@@ -4,7 +4,6 @@ import { describe, it } from 'node:test';
 import {
   buildNimiRuntimeBridgeConfigWithLocalEndpoint,
   mergeNimiRuntimeBridgeDataRootConfig,
-  mergeNimiRuntimeBridgeDeveloperRegistrationConfig,
   mergeNimiRuntimeBridgeRealmJwtConfig,
   NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS,
   projectNimiRuntimeBridgeLocalEndpoint,
@@ -183,7 +182,7 @@ describe('Runtime app storage helpers', () => {
     assert.equal(projectNimiRuntimeBridgeLocalEndpoint(config), 'http://127.0.0.1:8080/v1');
   });
 
-  it('merges Runtime bridge data root, JWT, and developer registration config', () => {
+  it('merges Runtime bridge data root and JWT config', () => {
     const dataRoot = mergeNimiRuntimeBridgeDataRootConfig(
       { localModelsPath: '/legacy/models' },
       '/nimi-data',
@@ -243,12 +242,6 @@ describe('Runtime app storage helpers', () => {
       realmBaseUrl: 'https://realm.example',
       authorizationUrl: 'https://realm.example/api/auth/oauth/authorize',
       tokenUrl: 'https://realm.example/api/auth/oauth/token',
-    });
-
-    const developer = mergeNimiRuntimeBridgeDeveloperRegistrationConfig({}, true);
-    assert.equal(developer.changed, true);
-    assert.deepEqual(developer.nextConfig.auth, {
-      developerRegistration: { enabled: true },
     });
   });
 });

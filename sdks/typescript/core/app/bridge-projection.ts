@@ -16,7 +16,6 @@ const NIMI_APP_RELEASE_SOURCE_KINDS = new Set([
   'github-release',
   'github-commit',
   'npm-package',
-  'admission-sandbox-https-artifact',
 ]);
 
 const NIMI_APP_ADMISSION_STATUSES = new Set([
@@ -97,8 +96,6 @@ export function parseNimiAppBridgeRegistryRow(value: unknown, index: number): Ni
     ),
     sourceRule: requireNimiAppBridgeString(record.sourceRule, `registryRows[${index}].sourceRule`),
     admissionStatus: admissionStatus as NimiAppRegistrySourceRow['admissionStatus'],
-    installedVersion: optionalNimiAppBridgeString(record.installedVersion),
-    availableVersion: optionalNimiAppBridgeString(record.availableVersion),
     detail: optionalNimiAppBridgeString(record.detail),
   };
 }
@@ -197,8 +194,5 @@ function optionalNimiAppBridgeString(value: unknown): string | undefined {
 
 function isDesktopBridgeCatalogCandidate(row: NimiAppRegistrySourceRow): boolean {
   return row.admissionStatus === 'admitted'
-    && (
-      row.ordinaryVisibility === 'ordinary-visible'
-      || row.ordinaryVisibility === 'developer-only'
-    );
+    && row.ordinaryVisibility === 'ordinary-visible';
 }

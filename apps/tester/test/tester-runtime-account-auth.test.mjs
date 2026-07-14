@@ -23,7 +23,7 @@ function buildModule() {
     '--types', 'node',
     '--noEmit', 'false',
     'src/shell/auth/runtime-platform.ts',
-    'src/shell/installed-app-bootstrap.ts',
+    'src/shell/local-app-runtime-platform.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -32,101 +32,65 @@ function buildModule() {
 }
 
 async function importRuntimePlatform() {
-  const moduleUrl = pathToFileURL(path.join(buildModule(), 'shell/auth/runtime-platform.js')).href;
-  return import(moduleUrl);
+  return import(pathToFileURL(path.join(buildModule(), 'shell/auth/runtime-platform.js')).href);
 }
 
-async function importInstalledAppBootstrap() {
-  const moduleUrl = pathToFileURL(path.join(buildModule(), 'shell/installed-app-bootstrap.js')).href;
-  return import(moduleUrl);
+async function importLocalAppRuntimePlatform() {
+  return import(pathToFileURL(path.join(buildModule(), 'shell/local-app-runtime-platform.js')).href);
 }
 
 test.after(() => {
-  if (buildDir) {
-    rmSync(buildDir, { recursive: true, force: true });
-  }
+  if (buildDir) rmSync(buildDir, { recursive: true, force: true });
 });
 
-test('Tester app-host projection fails closed before protected session admission', async () => {
+test('Tester local-app projection fails closed before a protected carrier is available', async () => {
   const runtimePlatform = await importRuntimePlatform();
 
   assert.equal(runtimePlatform.runtimeAccountLoginEnabled, false);
   const projection = await runtimePlatform.getRuntimePlatformProjection();
   assert.equal(projection.status, 'action-required');
-  assert.equal(projection.mode, 'third-party-nimi-app');
+  assert.equal(projection.mode, 'local-app');
   assert.equal(projection.reasonCode, 'renderer-standard-shell-host-unavailable');
-  assert.equal(projection.actionHint, 'open_nimi_desktop_and_retry');
-
-  runtimePlatform.clearRuntimePlatformProjection();
-  const refreshed = await runtimePlatform.getRuntimePlatformProjection();
-  assert.equal('client' in refreshed, false);
-  assert.equal('accountCaller' in refreshed, false);
-  assert.equal('accountRuntime' in refreshed, false);
+  assert.equal(projection.actionHint, 'start_fixed_runtime_service');
+  assert.equal('client' in projection, false);
+  assert.equal('accountCaller' in projection, false);
+  assert.equal('accountRuntime' in projection, false);
 });
 
-test('Tester proves admitted app-host bootstrap and Runtime artifact read without generic authority', async () => {
+test('Tester preserves a zero-grant identity session without implying operation authorization', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
     async invoke(command, payload) {
       calls.push({ command, payload });
-      if (command === 'nimi.app-host.bootstrap') {
-        return {
-          state: 'ready',
-          trustClass: 'local-development',
-          appId: 'nimi.tester',
-          bootstrapArtifactId: 'bootstrap-artifact',
-          expiresAtUnixMs: Date.now() + 60_000,
-        };
-      }
-      if (command === 'nimi.shell.artifacts.readRuntimeBytes') {
-        return {
-          dataBase64: 'AQIDBA==',
-          mimeType: 'application/octet-stream',
-          sizeBytes: 4,
-          mimeInferred: false,
-        };
-      }
-      throw new Error(`unexpected command: ${command}`);
+      assert.equal(command, 'nimi.shell.localApp.sessionStatus');
+      return { state: 'zero-grant', reasonCode: 'no-grant', retryable: false };
     },
-    listen() {
-      return () => {};
-    },
+    listen() { return () => {}; },
   };
   try {
     const runtimePlatform = await importRuntimePlatform();
     runtimePlatform.clearRuntimePlatformProjection();
     const projection = await runtimePlatform.getRuntimePlatformProjection();
-    assert.deepEqual(projection, {
-      status: 'ready',
-      mode: 'third-party-nimi-app',
-      appHost: {
-        state: 'ready',
-        trustClass: 'local-development',
-        appId: 'nimi.tester',
-        bootstrapArtifactId: 'bootstrap-artifact',
-        bootstrapArtifact: {
-          mimeType: 'application/octet-stream',
-          sizeBytes: 4,
-        },
-      },
+    assert.equal(projection.status, 'ready');
+    assert.equal(projection.mode, 'local-app');
+    assert.deepEqual(projection.localAppSession, {
+      mode: 'local-app',
+      state: 'session-bound-zero-grant',
+      sessionBound: true,
+      operationAllowed: false,
+      reasonCode: 'no-grant',
+      actionHint: 'request_local_app_operation_grant',
+      retryable: false,
     });
-    assert.equal('client' in projection, false);
-    assert.equal('auth' in projection, false);
-    assert.deepEqual(calls.map(({ command }) => command), [
-      'nimi.app-host.bootstrap',
-      'nimi.shell.artifacts.readRuntimeBytes',
-    ]);
+    assert.deepEqual(calls, [{ command: 'nimi.shell.localApp.sessionStatus', payload: {} }]);
   } finally {
-    if (previousElectronTest === undefined) {
-      delete globalThis.__NIMI_ELECTRON_TEST__;
-    } else {
-      globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
-    }
+    if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
+    else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
   }
 });
 
-test('Tester media artifact readback crosses the installed SDK and Kit carrier', async () => {
+test('Tester Runtime artifact readback crosses the final SDK and Kit local-app carrier', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
@@ -139,15 +103,11 @@ test('Tester media artifact readback crosses the installed SDK and Kit carrier',
         mimeInferred: false,
       };
     },
-    listen() {
-      return () => {};
-    },
+    listen() { return () => {}; },
   };
   try {
-    const { testerInstalledRuntimeArtifactReader } = await importInstalledAppBootstrap();
-    const result = await testerInstalledRuntimeArtifactReader.readArtifactBytes({
-      artifactId: 'runtime-artifact-1',
-    });
+    const { testerLocalRuntimeArtifactReader } = await importLocalAppRuntimePlatform();
+    const result = await testerLocalRuntimeArtifactReader.readArtifactBytes({ artifactId: 'runtime-artifact-1' });
 
     assert.deepEqual([...result.bytes], [1, 2, 3, 4]);
     assert.deepEqual({ ...result, bytes: undefined }, {
@@ -157,14 +117,11 @@ test('Tester media artifact readback crosses the installed SDK and Kit carrier',
       mimeInferred: false,
     });
     assert.deepEqual(calls, [{
-      command: 'nimi.shell.artifacts.readRuntimeBytes',
+      command: 'nimi.shell.localApp.artifacts.readRuntimeBytes',
       payload: { payload: { artifactId: 'runtime-artifact-1' } },
     }]);
   } finally {
-    if (previousElectronTest === undefined) {
-      delete globalThis.__NIMI_ELECTRON_TEST__;
-    } else {
-      globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
-    }
+    if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;
+    else globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
   }
 });

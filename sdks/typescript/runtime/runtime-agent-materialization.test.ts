@@ -55,7 +55,6 @@ test('materialization helper uses Runtime challenge, Realm packet v2, ordered ch
     getRuntime: () => ({
       appId: 'nimi.desktop',
       auth: {} as never,
-      appAuth: {} as never,
       agent: runtime,
     }),
     getSubjectUserId: () => OWNER_USER_ID,
@@ -115,7 +114,6 @@ test('materialization helper uses the same challenge and upload path for RealmPe
     getRuntime: () => ({
       appId: 'nimi.desktop',
       auth: {} as never,
-      appAuth: {} as never,
       agent: materializationRuntime(calls, { sourceRef: runtimePersonaSourceRef }),
     }),
     getSubjectUserId: () => OWNER_USER_ID,
@@ -158,7 +156,6 @@ test('materialization helper aborts an open upload and preserves the original po
     getRuntime: () => ({
       appId: 'nimi.desktop',
       auth: {} as never,
-      appAuth: {} as never,
       agent: runtime,
     }),
     getSubjectUserId: () => OWNER_USER_ID,
@@ -195,7 +192,6 @@ test('materialization helper rejects unknown Runtime enums before requesting Rea
     getRuntime: () => ({
       appId: 'nimi.desktop',
       auth: {} as never,
-      appAuth: {} as never,
       agent: runtime,
     }),
     getSubjectUserId: () => OWNER_USER_ID,
@@ -293,7 +289,6 @@ test('materialization helper rejects mismatched or partial READY source status',
         getRuntime: () => ({
           appId: 'nimi.desktop',
           auth: {} as never,
-          appAuth: {} as never,
           agent: materializationRuntime(calls, { commitResponse: testCase.mutate }),
         }),
         getSubjectUserId: () => OWNER_USER_ID,

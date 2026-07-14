@@ -135,27 +135,6 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 	}
 }
 
-func TestWindowsInstalledProcessVerifierRetainsExactProcessAndNativeTrustEvidence(t *testing.T) {
-	profile := mustActiveWindowsRuntimeProfile()
-	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
-	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
-	if err != nil {
-		t.Fatal(err)
-	}
-	verifier := &capturingWindowsExecutableVerifier{trustSetID: WindowsInstalledReleaseTrustSetID}
-	process, liveness, err := verifyWindowsInstalledProcess(context.Background(), uint32(os.Getpid()), identity, verifier)
-	if err != nil {
-		t.Fatalf("verify installed process: %v", err)
-	}
-	defer liveness.Close()
-	if process.PID != uint32(os.Getpid()) || process.SecurityPrincipal != identity.UserSID() || process.OSLoginSession == "" || strings.HasPrefix(process.OSLoginSession, "wts:") || process.ExecutableDigest == (Identifier{}) || process.CanonicalExecutableIdentity == "" || process.ExecutableTrustSetID != WindowsInstalledReleaseTrustSetID {
-		t.Fatalf("installed process tuple is incomplete: %#v", process)
-	}
-	if verifier.role != WindowsExecutableRoleInstalled || verifier.evidence.PID != uint32(os.Getpid()) || verifier.evidence.Digest != process.ExecutableDigest || verifier.nativeHandle == 0 {
-		t.Fatalf("installed trust evidence mismatch: role=%q evidence=%#v handle=%v", verifier.role, verifier.evidence, verifier.nativeHandle)
-	}
-}
-
 func TestWindowsExecutableTrustSetMismatchFailsClosed(t *testing.T) {
 	identity, connection, closePipe := openCurrentProcessWindowsTestPipe(t)
 	defer closePipe()

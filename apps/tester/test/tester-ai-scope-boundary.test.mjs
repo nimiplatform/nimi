@@ -17,10 +17,13 @@ test('Tester AIConfig uses the admitted app-lab AIScopeRef factory', () => {
   );
 });
 
-test('Tester AIConfig persistence is installed-app standard shell owned, not browser localStorage owned', () => {
-  assert.match(aiConfigStoreSource, /createInstalledNimiAppStandardShellSurface/);
-  assert.match(aiConfigStoreSource, /standardShellSurface\.aiConfig\.get/);
-  assert.match(aiConfigStoreSource, /standardShellSurface\.aiConfig\.set/);
+test('Tester AIConfig is typed unavailable outside the final local-app operation set', () => {
+  assert.match(aiConfigStoreSource, /createNimiError/);
+  assert.match(aiConfigStoreSource, /TESTER_LOCAL_APP_AI_CONFIG_UNAVAILABLE/);
+  assert.match(aiConfigStoreSource, /await_local_app_ai_config_operation_admission/);
+  assert.doesNotMatch(aiConfigStoreSource, /createInstalledNimiAppStandardShellSurface/);
+  assert.doesNotMatch(aiConfigStoreSource, /standardShellSurface\.aiConfig/);
+  assert.doesNotMatch(aiConfigStoreSource, /localStorage|sessionStorage/);
   assert.doesNotMatch(aiConfigStoreSource, /resolveBrowserStorage/);
   assert.doesNotMatch(aiConfigStoreSource, /createNimiAIConfigStore/);
   assert.doesNotMatch(aiConfigStoreSource, /TESTER_AI_CONFIG_STORAGE_KEY/);

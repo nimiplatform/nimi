@@ -104,16 +104,13 @@ test('Runtime-mediated Realm transport maps upstream failure to typed Realm offl
   );
 });
 
-test('Runtime-mediated Realm transport rejects installed callers before operation admission', () => {
+test('Runtime-mediated Realm transport rejects local-app callers before operation admission', () => {
   assert.throws(() => createRuntimeAccountMediatedRealmTransport({
     accountCaller: {
       appId: 'community.nimi.fixture',
       appInstanceId: 'community.nimi.fixture.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      mode: AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP,
-      launchHostId: 'forged-renderer-host',
-      launchNonce: 'launch-nonce-1',
-      releaseDescriptorRef: 'community.nimi.fixture.0.1.0-sandbox',
+      mode: AccountCallerMode.LOCAL_APP,
       scopes: [],
     },
     runtime: {

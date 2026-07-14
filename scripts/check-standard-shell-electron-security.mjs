@@ -44,9 +44,6 @@ assertContains(electronHost, /createElectronCapabilityNotInHostSetError/u, 'kit/
 assertContains(electronHost, /assertElectronStandardShellCommandAllowed/u, 'kit/shell/electron/src/main/host.ts must check capability-set allowlists before dispatch');
 const electronHostTypes = readRepo('kit/shell/electron/src/main/types.ts');
 assertContains(electronHostTypes, /capabilitySetRef\?:\s*string/u, 'kit/shell/electron/src/main/types.ts must expose host capabilitySetRef');
-const desktopInstalledAppHost = readRepo('apps/desktop/src-electron/app-launch/installed-app-host-window.ts');
-assertContains(desktopInstalledAppHost, /capabilitySetRef:\s*input\.standardShell\.capabilitySetRef/u, 'Desktop installed app host must pass the Runtime-attested standard shell capability set into Kit Electron host');
-
 for (const file of collectSourceFiles(scanRoots)) {
   const relative = slash(path.relative(repoRoot, file));
   const content = readFileSync(file, 'utf8');

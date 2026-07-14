@@ -21,18 +21,16 @@ func windowsInteractiveLogonType(logonType uint32) bool {
 }
 
 const WindowsProductionDesktopPipeName = `\\.\pipe\nimi-runtime-protected-v1`
-const WindowsProductionInstalledPipeName = `\\.\pipe\nimi-runtime-installed-v1`
+const WindowsProductionLocalAppPipeName = `\\.\pipe\nimi-runtime-local-app-v1`
 
 const (
-	WindowsExecutableRoleDesktop   WindowsExecutableRole = "nimi_desktop"
-	WindowsExecutableRoleRuntime   WindowsExecutableRole = "nimi_runtime_service"
-	WindowsExecutableRoleInstalled WindowsExecutableRole = "nimi_installed_app"
+	WindowsExecutableRoleDesktop  WindowsExecutableRole = "nimi_desktop"
+	WindowsExecutableRoleRuntime  WindowsExecutableRole = "nimi_runtime_service"
+	WindowsExecutableRoleLocalApp WindowsExecutableRole = "nimi_local_app"
 
 	WindowsDesktopProductionTrustSetID = "nimi-desktop-production-v1"
 	WindowsRuntimeProductionTrustSetID = "nimi-runtime-production-v1"
-	WindowsInstalledReleaseTrustSetID  = "windows-platform-release-authenticode-v1"
-	// WindowsLocalDevelopmentTrustSetID is never accepted by production
-	// installed admission. It denotes an exact Desktop-supervised mutable host
+	// WindowsLocalDevelopmentTrustSetID denotes an exact Desktop-supervised mutable host
 	// whose project authorization and process path are revalidated separately.
 	WindowsLocalDevelopmentTrustSetID = "windows-local-development-supervised-v1"
 

@@ -41,9 +41,9 @@ import {
   type AgentChatExperienceSettings,
 } from './chat-settings-storage';
 import {
-  loadStoredPerformancePreferences,
-  subscribeStoredPerformancePreferences,
-} from '../settings/settings-storage';
+  isDeveloperModeEnabled,
+  subscribeDeveloperMode,
+} from '../developer/developer-mode';
 import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
@@ -99,7 +99,7 @@ export function useAgentConversationModeHost(
     () => createDefaultAgentChatExperienceSettings(),
   );
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
-    () => loadStoredPerformancePreferences().developerMode === true,
+    () => isDeveloperModeEnabled(),
   );
   const schedulingJudgement = useSchedulingFeasibility();
   const [footerHostStateByThreadId, setFooterHostStateByThreadId] = useState<
@@ -132,9 +132,7 @@ export function useAgentConversationModeHost(
   const setBehaviorSettings = useCallback((nextSettings: AgentChatExperienceSettings) => {
     setBehaviorSettingsState(normalizeAgentChatExperienceSettings(nextSettings));
   }, []);
-  useEffect(() => subscribeStoredPerformancePreferences((preferences) => {
-    setDeveloperModeEnabled(preferences.developerMode === true);
-  }), []);
+  useEffect(() => subscribeDeveloperMode(setDeveloperModeEnabled), []);
   const thinkingUnsupportedReason = useMemo(() => {
     if (thinkingSupport.supported || !thinkingSupport.reason) {
       return null;

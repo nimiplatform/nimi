@@ -1,15 +1,29 @@
+mod domain;
 mod http;
 mod plan;
+mod run_context;
 mod supervisor;
 
+use self::domain::{
+    append_log_locked, developer_mode_projection, evaluation_matches_plan,
+    initial_authority_retryable, initial_status, path_text, project_authorization,
+    project_run_status, random_identifier, random_selector, recordable_terminal_status,
+    required_selector, sanitize_log, terminal_status_without_run, write_presence,
+    InitialAuthorityResolution, PendingApproval, PendingApprovalTarget,
+};
+pub(crate) use self::domain::{
+    AuthorityRefresh, DeveloperModeProjection, DeveloperModeSetPayload,
+    LocalDevelopmentApprovalProjection, LocalDevelopmentAuthorizationProjection,
+    LocalDevelopmentDecisionPayload, LocalDevelopmentRevokePayload, LocalDevelopmentRunProjection,
+    LocalDevelopmentRunStatus,
+};
 use self::plan::{resolve_project_plan, DevelopmentProjectPlan};
 use axum::Router;
 use nimi_shell_tauri::capabilities::runtime::{
-    self as runtime_bridge, LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState,
-    LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, NimiHostError,
+    self as runtime_bridge, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
+    LocalDevelopmentReactivationRequest, NimiHostError,
 };
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs,
@@ -28,7 +42,6 @@ const PRESENCE_RELATIVE_PATH: &[&str] =
     &["run", "desktop", "local-development", "presence.v1.json"];
 const PRESENCE_HEARTBEAT_INTERVAL_MS: u64 = 3_000;
 const INITIAL_AUTHORITY_RETRY_INTERVAL: Duration = Duration::from_millis(750);
-const MAX_STATUS_LOGS: usize = 80;
 const MAX_RECENT_FAILURES: usize = 20;
 
 #[cfg(feature = "protected-local-e2e-fixture")]
@@ -66,121 +79,6 @@ pub(crate) struct RunContext {
     last_tauri_launch: RwLock<Option<(PathBuf, Vec<String>)>>,
     pub(crate) status: RwLock<LocalDevelopmentRunStatus>,
     pub(crate) cancel_tx: watch::Sender<bool>,
-}
-
-pub(crate) enum AuthorityRefresh {
-    Active,
-    ApprovalRequired,
-    RuntimeUnavailable,
-    Terminal,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum InitialAuthorityResolution {
-    Settled,
-    Retryable,
-}
-
-#[derive(Clone)]
-struct PendingApproval {
-    evaluation_id: [u8; 32],
-    run: Arc<RunContext>,
-    projection: LocalDevelopmentApprovalProjection,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct LocalDevelopmentApprovalProjection {
-    pub(crate) request_id: String,
-    pub(crate) app_id: String,
-    pub(crate) display_name: String,
-    pub(crate) canonical_project_root: String,
-    pub(crate) shell: String,
-    pub(crate) account_id: String,
-    pub(crate) requested_capabilities: Vec<String>,
-    pub(crate) approval_state: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct LocalDevelopmentAuthorizationProjection {
-    pub(crate) selector: String,
-    pub(crate) app_id: String,
-    pub(crate) display_name: String,
-    pub(crate) canonical_project_root: String,
-    pub(crate) shell: String,
-    pub(crate) account_id: String,
-    pub(crate) requested_capabilities: Vec<String>,
-    pub(crate) persistence: String,
-    pub(crate) state: String,
-    pub(crate) updated_at_unix_ms: i64,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct LocalDevelopmentRunProjection {
-    pub(crate) app_id: String,
-    pub(crate) display_name: String,
-    pub(crate) canonical_project_root: String,
-    pub(crate) shell: String,
-    pub(crate) state: String,
-    pub(crate) message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) reason_code: Option<String>,
-    pub(crate) retryable: bool,
-    pub(crate) host_generation: u64,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct LocalDevelopmentRunStatus {
-    pub(crate) schema_version: u8,
-    pub(crate) run_id: String,
-    pub(crate) state: String,
-    pub(crate) app_id: String,
-    pub(crate) display_name: String,
-    pub(crate) canonical_project_root: String,
-    pub(crate) shell: String,
-    pub(crate) renderer_origin: String,
-    pub(crate) message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) reason_code: Option<String>,
-    pub(crate) retryable: bool,
-    pub(crate) host_generation: u64,
-    pub(crate) log_sequence: u64,
-    pub(crate) logs: Vec<LocalDevelopmentLogLine>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct LocalDevelopmentLogLine {
-    sequence: u64,
-    stream: String,
-    message: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct LocalDevelopmentDecisionPayload {
-    request_id: String,
-    decision: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct LocalDevelopmentRevokePayload {
-    selector: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct LocalDevelopmentPresenceDescriptor {
-    schema_version: u8,
-    desktop_app_id: String,
-    desktop_pid: u32,
-    endpoint: String,
-    started_at: String,
-    last_heartbeat_at: String,
 }
 
 impl DesktopLocalDevelopmentRuntime {
@@ -507,9 +405,19 @@ impl DesktopLocalDevelopmentRuntime {
         run: Arc<RunContext>,
         evaluation: LocalDevelopmentEvaluation,
     ) -> Result<(), String> {
-        let evaluation_id = evaluation
-            .evaluation_id
-            .ok_or_else(|| "runtime-service-untrusted".to_string())?;
+        let target = match (
+            evaluation.evaluation_id,
+            evaluation.authorization.as_ref(),
+            evaluation.state,
+        ) {
+            (Some(evaluation_id), None, _) => PendingApprovalTarget::Evaluation(evaluation_id),
+            (None, Some(authorization), LocalDevelopmentAuthorizationState::Dormant)
+                if authorization.state == LocalDevelopmentAuthorizationState::Dormant =>
+            {
+                PendingApprovalTarget::Reactivation(authorization.authorization_id)
+            }
+            _ => return Err("runtime-service-untrusted".to_string()),
+        };
         let request_id = random_selector("dev-approval", 18)?;
         let projection = LocalDevelopmentApprovalProjection {
             request_id: request_id.clone(),
@@ -526,7 +434,7 @@ impl DesktopLocalDevelopmentRuntime {
         pending.insert(
             request_id,
             PendingApproval {
-                evaluation_id,
+                target,
                 run: run.clone(),
                 projection: projection.clone(),
             },
@@ -559,6 +467,30 @@ impl DesktopLocalDevelopmentRuntime {
         Some(run.status().await)
     }
 
+    async fn terminate_all_runs_for_mode_off(&self) {
+        let runs = self
+            .inner
+            .runs
+            .read()
+            .await
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        self.inner.pending.write().await.clear();
+        for run in runs {
+            run.cancel_tx.send_replace(true);
+            let _ = runtime_bridge::terminate_local_development_host(run.supervisor_run_id);
+            *run.authorization_id.write().await = None;
+            run.set_state(
+                "stopped",
+                "Developer Mode was disabled",
+                Some("local-app-developer-mode-disabled"),
+                false,
+            )
+            .await;
+        }
+    }
+
     pub(crate) async fn pending_approvals(&self) -> Vec<LocalDevelopmentApprovalProjection> {
         self.inner
             .pending
@@ -587,12 +519,48 @@ impl DesktopLocalDevelopmentRuntime {
             .await
             .remove(request_id)
             .ok_or_else(|| "local-development-approval-request-not-found".to_string())?;
-        let authorization =
-            runtime_bridge::decide_local_development_project(LocalDevelopmentDecisionRequest {
-                evaluation_id: pending.evaluation_id,
-                decision,
-            })
-            .await;
+        let authorization = match pending.target {
+            PendingApprovalTarget::Evaluation(evaluation_id) => {
+                runtime_bridge::decide_local_development_project(LocalDevelopmentDecisionRequest {
+                    evaluation_id,
+                    decision,
+                    risk_disclosure_acknowledged: payload.risk_disclosure_acknowledged,
+                })
+                .await
+            }
+            PendingApprovalTarget::Reactivation(authorization_id) => {
+                if decision == LocalDevelopmentDecision::Deny {
+                    pending
+                        .run
+                        .set_state(
+                            "dormant",
+                            "Remembered project remains dormant",
+                            Some("local-development-approval-denied"),
+                            false,
+                        )
+                        .await;
+                    return Ok(pending.run.status().await);
+                }
+                if decision != LocalDevelopmentDecision::AllowRememberProject {
+                    pending
+                        .run
+                        .fail(
+                            "authorization-required",
+                            "local-development-reactivation-requires-remembered-lifetime",
+                            false,
+                        )
+                        .await;
+                    return Ok(pending.run.status().await);
+                }
+                runtime_bridge::reactivate_local_development_project(
+                    LocalDevelopmentReactivationRequest {
+                        authorization_id,
+                        risk_disclosure_acknowledged: payload.risk_disclosure_acknowledged,
+                    },
+                )
+                .await
+            }
+        };
         let authorization = match authorization {
             Ok(value) => value,
             Err(error) => {
@@ -754,77 +722,40 @@ impl DesktopLocalDevelopmentRuntime {
     }
 }
 
-impl RunContext {
-    pub(crate) async fn status(&self) -> LocalDevelopmentRunStatus {
-        self.status.read().await.clone()
-    }
-
-    pub(crate) async fn authorization_id(&self) -> Result<[u8; 32], String> {
-        self.authorization_id
-            .read()
-            .await
-            .ok_or_else(|| "local-development-authorization-required".to_string())
-    }
-
-    pub(crate) async fn set_state(
-        &self,
-        state: &str,
-        message: &str,
-        reason_code: Option<&str>,
-        retryable: bool,
-    ) {
-        let mut status = self.status.write().await;
-        status.state = state.to_string();
-        status.message = message.to_string();
-        status.reason_code = reason_code.map(str::to_string);
-        status.retryable = retryable;
-    }
-
-    pub(crate) async fn mark_running(&self, process_id: u32) {
-        let mut status = self.status.write().await;
-        status.state = "running".to_string();
-        status.message = format!("Supervised {} host is running", status.shell);
-        status.reason_code = None;
-        status.retryable = false;
-        status.host_generation = status.host_generation.saturating_add(1);
-        let generation = status.host_generation;
-        append_log_locked(
-            &mut status,
-            "supervisor",
-            format!("host generation {generation} started (pid {process_id})"),
-        );
-    }
-
-    pub(crate) async fn fail(&self, state: &str, reason_code: &str, retryable: bool) {
-        self.set_state(state, reason_code, Some(reason_code), retryable)
-            .await;
-    }
-
-    pub(crate) async fn fail_host_error(&self, error: NimiHostError) {
-        let reason = error.reason_code().as_str();
-        let state = match reason {
-            "runtime-service-unavailable" => "runtime-unavailable",
-            "local-development-project-changed" => "project-changed",
-            "local-development-approval-denied" => "denied",
-            "local-development-session-revoked" => "revoked",
-            "local-development-reapproval-required"
-            | "local-development-authorization-required" => "authorization-required",
-            _ => "failed",
-        };
-        self.fail(state, reason, error.retryable()).await;
-    }
-
-    pub(crate) async fn log(&self, stream: &str, message: impl Into<String>) {
-        let mut status = self.status.write().await;
-        append_log_locked(&mut status, stream, sanitize_log(message.into()));
-    }
-}
-
 #[tauri::command]
 pub(crate) async fn local_development_pending_approvals(
     runtime: tauri::State<'_, DesktopLocalDevelopmentRuntime>,
 ) -> Result<Vec<LocalDevelopmentApprovalProjection>, String> {
     Ok(runtime.pending_approvals().await)
+}
+
+#[tauri::command]
+pub(crate) async fn developer_mode_status() -> DeveloperModeProjection {
+    match runtime_bridge::get_developer_mode_status().await {
+        Ok(status) => developer_mode_projection(status),
+        Err(error) => DeveloperModeProjection {
+            state: "unavailable".to_string(),
+            enabled: false,
+            revision: 0,
+            account_generation: 0,
+            reason_code: error.reason_code().as_str().to_string(),
+            retryable: error.retryable(),
+        },
+    }
+}
+
+#[tauri::command]
+pub(crate) async fn developer_mode_set(
+    runtime: tauri::State<'_, DesktopLocalDevelopmentRuntime>,
+    payload: DeveloperModeSetPayload,
+) -> Result<DeveloperModeProjection, String> {
+    let status = runtime_bridge::set_developer_mode(payload.enabled)
+        .await
+        .map_err(|error| error.reason_code().as_str().to_string())?;
+    if !payload.enabled {
+        runtime.terminate_all_runs_for_mode_off().await;
+    }
+    Ok(developer_mode_projection(status))
 }
 
 #[tauri::command]
@@ -855,254 +786,4 @@ pub(crate) async fn local_development_authorization_revoke(
     payload: LocalDevelopmentRevokePayload,
 ) -> Result<LocalDevelopmentAuthorizationProjection, String> {
     runtime.revoke_authorization(payload).await
-}
-
-fn initial_status(run_id: &str, plan: &DevelopmentProjectPlan) -> LocalDevelopmentRunStatus {
-    LocalDevelopmentRunStatus {
-        schema_version: 1,
-        run_id: run_id.to_string(),
-        state: "preparing".to_string(),
-        app_id: plan.app_id.clone(),
-        display_name: plan.display_name.clone(),
-        canonical_project_root: path_text(&plan.project_root),
-        shell: plan.shell.name().to_string(),
-        renderer_origin: plan.renderer_origin.clone(),
-        message: "Validating project with Nimi Runtime".to_string(),
-        reason_code: None,
-        retryable: false,
-        host_generation: 0,
-        log_sequence: 0,
-        logs: Vec::new(),
-    }
-}
-
-fn terminal_status_without_run(
-    app_id: String,
-    project_root: String,
-    shell: String,
-    reason_code: String,
-) -> LocalDevelopmentRunStatus {
-    LocalDevelopmentRunStatus {
-        schema_version: 1,
-        run_id: String::new(),
-        state: if reason_code == "runtime-service-unavailable" {
-            "runtime-unavailable"
-        } else {
-            "project-changed"
-        }
-        .to_string(),
-        app_id,
-        display_name: String::new(),
-        canonical_project_root: project_root,
-        shell,
-        renderer_origin: String::new(),
-        message: reason_code.clone(),
-        reason_code: Some(reason_code),
-        retryable: false,
-        host_generation: 0,
-        log_sequence: 0,
-        logs: Vec::new(),
-    }
-}
-
-fn initial_authority_retryable(reason: &str) -> bool {
-    matches!(
-        reason,
-        "runtime-service-unavailable" | "principal-unauthorized"
-    )
-}
-
-fn recordable_terminal_status(status: &LocalDevelopmentRunStatus) -> bool {
-    let app_id = status.app_id.as_str();
-    !app_id.is_empty()
-        && app_id.len() <= 160
-        && app_id.trim() == app_id
-        && app_id
-            .as_bytes()
-            .first()
-            .is_some_and(u8::is_ascii_alphanumeric)
-        && app_id
-            .as_bytes()
-            .last()
-            .is_some_and(u8::is_ascii_alphanumeric)
-        && app_id.chars().all(|character| {
-            character.is_ascii_alphanumeric() || matches!(character, '.' | '-' | '_')
-        })
-        && std::path::Path::new(&status.canonical_project_root).is_absolute()
-        && status.canonical_project_root.trim() == status.canonical_project_root
-        && matches!(status.shell.as_str(), "electron" | "tauri")
-}
-
-fn evaluation_matches_plan(
-    project: &runtime_bridge::LocalDevelopmentProject,
-    plan: &DevelopmentProjectPlan,
-) -> bool {
-    project.app_id == plan.app_id
-        && project.display_name == plan.display_name
-        && project.shell_kind == plan.shell.kind()
-        && paths_equal(&project.canonical_project_root, &plan.project_root)
-}
-
-fn project_authorization(
-    selector: String,
-    authorization: LocalDevelopmentAuthorization,
-) -> LocalDevelopmentAuthorizationProjection {
-    LocalDevelopmentAuthorizationProjection {
-        selector,
-        app_id: authorization.project.app_id,
-        display_name: authorization.project.display_name,
-        canonical_project_root: path_text(&authorization.project.canonical_project_root),
-        shell: authorization.project.shell_kind.as_str().to_string(),
-        account_id: authorization.project.account_id,
-        requested_capabilities: authorization.project.requested_capabilities,
-        persistence: authorization.persistence.as_str().to_string(),
-        state: authorization.state.as_str().to_string(),
-        updated_at_unix_ms: authorization.updated_at_unix_ms,
-    }
-}
-
-fn project_run_status(status: LocalDevelopmentRunStatus) -> LocalDevelopmentRunProjection {
-    let display_name = if status.display_name.is_empty() {
-        status.app_id.clone()
-    } else {
-        status.display_name
-    };
-    LocalDevelopmentRunProjection {
-        app_id: status.app_id,
-        display_name,
-        canonical_project_root: status.canonical_project_root,
-        shell: status.shell,
-        state: status.state,
-        message: status.message,
-        reason_code: status.reason_code,
-        retryable: status.retryable,
-        host_generation: status.host_generation,
-    }
-}
-
-fn append_log_locked(status: &mut LocalDevelopmentRunStatus, stream: &str, message: String) {
-    status.log_sequence = status.log_sequence.saturating_add(1);
-    status.logs.push(LocalDevelopmentLogLine {
-        sequence: status.log_sequence,
-        stream: stream.to_string(),
-        message,
-    });
-    if status.logs.len() > MAX_STATUS_LOGS {
-        status.logs.drain(..status.logs.len() - MAX_STATUS_LOGS);
-    }
-}
-
-fn sanitize_log(message: String) -> String {
-    let trimmed = message.trim();
-    if trimmed.is_empty() {
-        return String::new();
-    }
-    let lowered = trimmed.to_ascii_lowercase();
-    if [
-        "session_proof",
-        "sessionproof",
-        "access_token",
-        "refresh_token",
-        "authorization: bearer",
-        "credential",
-    ]
-    .iter()
-    .any(|needle| lowered.contains(needle))
-    {
-        return "[sensitive supervisor output redacted]".to_string();
-    }
-    trimmed.chars().take(2_000).collect()
-}
-
-fn paths_equal(left: &std::path::Path, right: &std::path::Path) -> bool {
-    left.to_string_lossy()
-        .replace('/', "\\")
-        .to_ascii_lowercase()
-        == right
-            .to_string_lossy()
-            .replace('/', "\\")
-            .to_ascii_lowercase()
-}
-
-fn path_text(path: &std::path::Path) -> String {
-    path.to_string_lossy().into_owned()
-}
-
-fn random_identifier() -> Result<[u8; 32], String> {
-    let mut bytes = [0u8; 32];
-    getrandom::getrandom(&mut bytes)
-        .map_err(|_| "local-development-supervisor-required".to_string())?;
-    if bytes == [0u8; 32] {
-        return Err("local-development-supervisor-required".to_string());
-    }
-    Ok(bytes)
-}
-
-fn random_selector(prefix: &str, byte_count: usize) -> Result<String, String> {
-    crate::desktop_open_intent::presence::random_base64_url(byte_count)
-        .map(|suffix| format!("{prefix}-{suffix}"))
-}
-
-fn required_selector<'a>(value: &'a str, prefix: &str) -> Result<&'a str, String> {
-    if value.trim() != value
-        || !value.starts_with(&format!("{prefix}-"))
-        || value.len() > 160
-        || !value
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
-    {
-        return Err("local-development-supervisor-required".to_string());
-    }
-    Ok(value)
-}
-
-fn write_presence(path: &std::path::Path, endpoint: &str, started_at: &str) -> Result<(), String> {
-    crate::desktop_open_intent::presence::write_presence_document(
-        path,
-        &LocalDevelopmentPresenceDescriptor {
-            schema_version: 1,
-            desktop_app_id: "nimi.desktop".to_string(),
-            desktop_pid: std::process::id(),
-            endpoint: endpoint.to_string(),
-            started_at: started_at.to_string(),
-            last_heartbeat_at: crate::desktop_open_intent::presence::now_iso8601(),
-        },
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn selectors_are_exact_and_do_not_admit_path_or_header_syntax() {
-        assert!(required_selector("dev-run-abc_123", "dev-run").is_ok());
-        for invalid in [
-            " dev-run-abc",
-            "dev-run-abc/def",
-            "dev-run-abc:Bearer",
-            "other-abc",
-        ] {
-            assert!(required_selector(invalid, "dev-run").is_err(), "{invalid}");
-        }
-    }
-
-    #[test]
-    fn supervisor_logs_redact_security_material() {
-        assert_eq!(
-            sanitize_log("authorization: Bearer secret".to_string()),
-            "[sensitive supervisor output redacted]"
-        );
-        assert_eq!(sanitize_log("Vite ready".to_string()), "Vite ready");
-    }
-
-    #[test]
-    fn initial_authority_retry_is_limited_to_runtime_and_account_recovery() {
-        assert!(initial_authority_retryable("runtime-service-unavailable"));
-        assert!(initial_authority_retryable("principal-unauthorized"));
-        assert!(!initial_authority_retryable(
-            "local-development-project-changed"
-        ));
-        assert!(!initial_authority_retryable("runtime-service-untrusted"));
-    }
 }

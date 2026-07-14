@@ -12,7 +12,7 @@ func activeWindowsRuntimeProfile() windowsRuntimeProfile {
 		serviceHostSID:        WindowsE2EVirtualServiceSID,
 		custodyDescriptor:     windowsDPAPINGLocalUserDescriptor,
 		desktopPipeName:       WindowsE2EVirtualDesktopPipeName,
-		installedPipeName:     WindowsE2EVirtualInstalledPipeName,
+		localAppPipeName:      WindowsE2EVirtualLocalAppPipeName,
 		runtimeTrustSetID:     WindowsRuntimeE2EVirtualTrustSetID,
 		desktopTrustSetID:     WindowsDesktopE2EVirtualTrustSetID,
 		runtimeExecutableName: "nimi-runtime-e2e-virtual.exe",

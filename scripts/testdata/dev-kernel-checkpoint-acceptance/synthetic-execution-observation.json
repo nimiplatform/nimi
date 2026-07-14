@@ -1,0 +1,7 @@
+{
+  "schemaId": "nimi.repository.execution-observation.v1",
+  "executionSetId": "c1e22e7b27ad7a6172016c93591a40f4b6092b5d7c70c34b5fe00cace215d5cc",
+  "journeyTrialId": "dev-kernel-core:L2:core:1",
+  "sourceStateDigest": "2020202020202020202020202020202020202020202020202020202020202020",
+  "outcome": "passed"
+}

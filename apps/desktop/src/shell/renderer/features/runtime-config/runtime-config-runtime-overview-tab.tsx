@@ -65,13 +65,13 @@ export function RuntimeOverviewTab({
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Button variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
+              <Button data-testid="runtime-service-refresh" variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
                 {daemonBusy
                   ? t('runtimeConfig.overview.working', { defaultValue: 'Working...' })
                   : t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
               </Button>
               {daemonRunning ? (
-                <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.restartRuntimeDaemon()}>
+                <Button data-testid="runtime-service-restart" variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.restartRuntimeDaemon()}>
                   {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
                 </Button>
               ) : (

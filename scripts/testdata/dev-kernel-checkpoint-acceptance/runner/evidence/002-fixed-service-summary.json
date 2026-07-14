@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "synthetic-fixed-service-summary/v1",
+  "serviceKind": "fixed_windows_service",
+  "principal": "LocalSystem",
+  "outcome": "passed"
+}

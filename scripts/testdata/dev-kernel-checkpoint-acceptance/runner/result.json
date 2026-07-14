@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "nimi.local-agent-product-journey-result/v2",
+  "journeyTrialId": "dev-kernel-core:L2:core:1",
+  "journeyId": "dev-kernel-core",
+  "tier": "L2",
+  "batch": "core",
+  "repeatIndex": 1,
+  "sourceState": {
+    "nimiCommit": "1111111111111111111111111111111111111111",
+    "nimiSourceTreeSha256": "2121212121212121212121212121212121212121212121212121212121212121",
+    "sourceDigest": "2020202020202020202020202020202020202020202020202020202020202020"
+  },
+  "environmentIdentity": {
+    "rootId": "synthetic-isolated-dev-kernel-root-0001",
+    "accountIds": ["synthetic-primary", "synthetic-secondary"],
+    "runtimeSourceRefs": ["synthetic-runtime-source"],
+    "localAgentIds": ["synthetic-local-agent"],
+    "processStarts": {"provider": 1, "realm": 1, "runtime": 1, "desktop": 1, "zhiyu": 1}
+  },
+  "durationMs": 1000,
+  "checkpoints": [
+    {"checkpointId":"fixed-service-ready","prerequisiteIds":[],"startedAt":"2026-07-13T00:00:00.000Z","completedAt":"2026-07-13T00:00:01.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.fixed-service-ready","outcome":"passed"}],"artifactRefs":["fixed-service-summary"],"outcome":"passed"},
+    {"checkpointId":"production-account-login","prerequisiteIds":["fixed-service-ready"],"startedAt":"2026-07-13T00:00:01.000Z","completedAt":"2026-07-13T00:00:02.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.production-account-login","outcome":"passed"}],"artifactRefs":["dev-kernel-journey-summary"],"outcome":"passed"},
+    {"checkpointId":"developer-mode-enabled","prerequisiteIds":["production-account-login"],"startedAt":"2026-07-13T00:00:02.000Z","completedAt":"2026-07-13T00:00:03.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.developer-mode-enabled","outcome":"passed"}],"artifactRefs":["dev-kernel-journey-summary"],"outcome":"passed"},
+    {"checkpointId":"run-once-project-admitted","prerequisiteIds":["developer-mode-enabled"],"startedAt":"2026-07-13T00:00:03.000Z","completedAt":"2026-07-13T00:00:04.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.run-once-project-admitted","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"zero-grant-session","prerequisiteIds":["run-once-project-admitted"],"startedAt":"2026-07-13T00:00:04.000Z","completedAt":"2026-07-13T00:00:05.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.zero-grant-session","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"operation-denied-before-grant","prerequisiteIds":["zero-grant-session"],"startedAt":"2026-07-13T00:00:05.000Z","completedAt":"2026-07-13T00:00:06.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.operation-denied-before-grant","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"selected-operation-granted","prerequisiteIds":["operation-denied-before-grant"],"startedAt":"2026-07-13T00:00:06.000Z","completedAt":"2026-07-13T00:00:07.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.selected-operation-granted","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"selected-runtime-agent-operation","prerequisiteIds":["selected-operation-granted"],"startedAt":"2026-07-13T00:00:07.000Z","completedAt":"2026-07-13T00:00:08.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.selected-runtime-agent-operation","outcome":"passed"}],"artifactRefs":["provider-capture-summary"],"outcome":"passed"},
+    {"checkpointId":"process-mismatch-denied","prerequisiteIds":["selected-runtime-agent-operation"],"startedAt":"2026-07-13T00:00:08.000Z","completedAt":"2026-07-13T00:00:09.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.process-mismatch-denied","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"grant-revoked-next-operation-denied","prerequisiteIds":["process-mismatch-denied"],"startedAt":"2026-07-13T00:00:09.000Z","completedAt":"2026-07-13T00:00:10.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.grant-revoked-next-operation-denied","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"remembered-project-admitted","prerequisiteIds":["grant-revoked-next-operation-denied"],"startedAt":"2026-07-13T00:00:10.000Z","completedAt":"2026-07-13T00:00:11.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.remembered-project-admitted","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"runtime-agent-conversation","prerequisiteIds":["remembered-project-admitted"],"startedAt":"2026-07-13T00:00:11.000Z","completedAt":"2026-07-13T00:00:12.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.runtime-agent-conversation","outcome":"passed"}],"artifactRefs":["provider-capture-summary"],"outcome":"passed"},
+    {"checkpointId":"edit-build-process-replaced","prerequisiteIds":["runtime-agent-conversation"],"startedAt":"2026-07-13T00:00:12.000Z","completedAt":"2026-07-13T00:00:13.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.edit-build-process-replaced","outcome":"passed"}],"artifactRefs":["process-summary"],"outcome":"passed"},
+    {"checkpointId":"conversation-resumed-after-process-replacement","prerequisiteIds":["edit-build-process-replaced"],"startedAt":"2026-07-13T00:00:13.000Z","completedAt":"2026-07-13T00:00:14.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.conversation-resumed-after-process-replacement","outcome":"passed"}],"artifactRefs":["dev-kernel-journey-summary"],"outcome":"passed"},
+    {"checkpointId":"mode-off-dormant","prerequisiteIds":["conversation-resumed-after-process-replacement"],"startedAt":"2026-07-13T00:00:14.000Z","completedAt":"2026-07-13T00:00:15.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.mode-off-dormant","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"remembered-project-reactivated","prerequisiteIds":["mode-off-dormant"],"startedAt":"2026-07-13T00:00:15.000Z","completedAt":"2026-07-13T00:00:16.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.remembered-project-reactivated","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"fixed-service-restarted","prerequisiteIds":["remembered-project-reactivated"],"startedAt":"2026-07-13T00:00:16.000Z","completedAt":"2026-07-13T00:00:17.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.fixed-service-restarted","outcome":"passed"}],"artifactRefs":["fixed-service-summary","process-summary"],"outcome":"passed"},
+    {"checkpointId":"conversation-resumed-after-runtime-restart","prerequisiteIds":["fixed-service-restarted"],"startedAt":"2026-07-13T00:00:17.000Z","completedAt":"2026-07-13T00:00:18.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.conversation-resumed-after-runtime-restart","outcome":"passed"}],"artifactRefs":["dev-kernel-journey-summary"],"outcome":"passed"},
+    {"checkpointId":"account-switch-invalidated","prerequisiteIds":["conversation-resumed-after-runtime-restart"],"startedAt":"2026-07-13T00:00:18.000Z","completedAt":"2026-07-13T00:00:19.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.account-switch-invalidated","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"project-revoked-next-operation-denied","prerequisiteIds":["account-switch-invalidated"],"startedAt":"2026-07-13T00:00:19.000Z","completedAt":"2026-07-13T00:00:20.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.project-revoked-next-operation-denied","outcome":"passed"}],"artifactRefs":["journey-checkpoint-proof"],"outcome":"passed"},
+    {"checkpointId":"desktop-real-shell-acceptance","prerequisiteIds":["project-revoked-next-operation-denied"],"startedAt":"2026-07-13T00:00:20.000Z","completedAt":"2026-07-13T00:00:21.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.desktop-real-shell-acceptance","outcome":"passed"}],"artifactRefs":["real-shell-dom-console-a11y","real-shell-desktop-screenshot"],"outcome":"passed"},
+    {"checkpointId":"zhiyu-real-shell-acceptance","prerequisiteIds":["project-revoked-next-operation-denied"],"startedAt":"2026-07-13T00:00:20.000Z","completedAt":"2026-07-13T00:00:21.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.zhiyu-real-shell-acceptance","outcome":"passed"}],"artifactRefs":["real-shell-dom-console-a11y","real-shell-narrow-screenshot"],"outcome":"passed"},
+    {"checkpointId":"protected-carrier-privacy-closeout","prerequisiteIds":["desktop-real-shell-acceptance","zhiyu-real-shell-acceptance"],"startedAt":"2026-07-13T00:00:21.000Z","completedAt":"2026-07-13T00:00:22.000Z","correlations":{"journeyTrialId":"dev-kernel-core:L2:core:1"},"assertions":[{"assertionId":"fixture.protected-carrier-privacy-closeout","outcome":"passed"}],"artifactRefs":["real-shell-dom-console-a11y"],"outcome":"passed"}
+  ],
+  "leafResults": [],
+  "artifacts": [
+    {"artifactId":"dev-kernel-journey-summary","path":"runner/evidence/001-dev-kernel-journey-summary.json","sha256":"146338e80cc7a225682087016bc1e558c191936ea9ce62a36553f91657880074","bytes":148,"privacyClass":"safe_evidence"},
+    {"artifactId":"fixed-service-summary","path":"runner/evidence/002-fixed-service-summary.json","sha256":"d01f561933a19f3537c716ee5c08cf30254c22f9b364bea9740f73c999d4f27c","bytes":155,"privacyClass":"safe_evidence"},
+    {"artifactId":"provider-capture-summary","path":"runner/evidence/003-provider-capture-summary.json","sha256":"c70aa851c0a009305b04d24689d660909364cd812fc495e0bee9139e873072d6","bytes":142,"privacyClass":"safe_evidence"},
+    {"artifactId":"real-shell-dom-console-a11y","path":"runner/evidence/004-real-shell-dom-console-a11y.json","sha256":"78db17fe5b49cf38a505559504ae6a937be827e42568f2194bdc01d515623eae","bytes":193,"privacyClass":"safe_evidence"},
+    {"artifactId":"process-summary","path":"runner/evidence/005-process-summary.json","sha256":"e296babe35aabdf9e0688b9e04c2266acea6b91512d532890108562b052245ac","bytes":190,"privacyClass":"safe_evidence"},
+    {"artifactId":"journey-environment","path":"runner/evidence/006-journey-environment.json","sha256":"5491f5cc1144c14d04d1f64e5263b396dc031ee6ebf6d74b2a545fab5d8c9c1e","bytes":221,"privacyClass":"safe_evidence"},
+    {"artifactId":"journey-checkpoint-proof","path":"runner/evidence/007-journey-checkpoint-proof.json","sha256":"cc369e7be4e451f186edec608ed5d3a7c3140db84c292beb0b2394d0858ba2eb","bytes":160,"privacyClass":"safe_evidence"},
+    {"artifactId":"real-shell-desktop-screenshot","path":"runner/evidence/008-real-shell-desktop.png","sha256":"78be9002d8b75eab6083f3fd9624a56e5aecf11da67ffe0fc834a8b6b85ebbbb","bytes":107,"privacyClass":"safe_evidence"},
+    {"artifactId":"real-shell-narrow-screenshot","path":"runner/evidence/009-real-shell-narrow.png","sha256":"624da944bd08080e8dcf7f7031ef6f3276342aa38422e22ce629f9d4649326be","bytes":106,"privacyClass":"safe_evidence"}
+  ],
+  "processProblems": [],
+  "privacy": {"ok": true, "findings": []},
+  "outcome": "passed"
+}

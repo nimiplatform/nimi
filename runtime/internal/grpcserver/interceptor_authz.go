@@ -373,15 +373,6 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 			return "runtime.app.send.cross_app", true
 		}
 		return "", false
-	case "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal":
-		grantReq, ok := req.(*runtimev1.AuthorizeExternalPrincipalRequest)
-		if !ok {
-			return "", false
-		}
-		if grantReq.GetPolicyOverride() {
-			return "runtime.app_auth.policy.override", true
-		}
-		return "", false
 	default:
 		return "", false
 	}

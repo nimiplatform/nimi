@@ -15,11 +15,11 @@ func (s *Service) GetProductControlRecord(ctx context.Context, _ *runtimev1.GetP
 }
 
 func (s *Service) GetProductControlSelectedDataRoot(context.Context, *runtimev1.GetProductControlSelectedDataRootRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	return productControlJSON(readProductControlSelectedDataRootProjection())
+	return productControlJSON(s.readProductControlSelectedDataRootProjection())
 }
 
 func (s *Service) EnsureProductControlRecordCreated(context.Context, *runtimev1.EnsureProductControlRecordCreatedRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	path, err := productControlRecordPath()
+	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
 	}
@@ -33,14 +33,14 @@ func (s *Service) EnsureProductControlRecordCreated(context.Context, *runtimev1.
 			return nil, err
 		}
 		if err := writeProductControlRecord(path, record); err != nil {
-			message := fmt.Sprintf("~/.nimi/nimi.json could not be created: %v", err)
-			return productControlJSON(productControlRecordProjection{
+			message := fmt.Sprintf("product-control record could not be created: %v", err)
+			return productControlJSON(s.withProductControlDataRootProposal(productControlRecordProjection{
 				Path:   path,
 				Exists: false,
 				State:  productControlStateBlocked,
 				Record: nil,
 				Error:  &message,
-			}, nil)
+			}), nil)
 		}
 	}
 	return productControlJSON(s.readProductControlProjection(context.Background()))
@@ -55,7 +55,7 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 		return nil, fmt.Errorf("nimi_data path must be absolute, got: %s", trimmed)
 	}
 	normalized := filepath.Clean(trimmed)
-	path, err := productControlRecordPath()
+	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 		SelectedAtUnixMs: now,
 		VerifiedAtUnixMs: now,
 	}
-	record.Pointers = resolveProductControlPointers()
+	record.Pointers = s.resolveProductControlPointers()
 	record.Repair = productRepairRecord{}
 	if err := writeProductControlRecord(path, record); err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (s *Service) SetProductControlFirstRunInstallLevel(_ context.Context, req *
 	if err := s.verifyFirstRunFactoryAIProfile(alias, level); err != nil {
 		return nil, err
 	}
-	path, err := productControlRecordPath()
+	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (s *Service) SetProductControlFirstRunInstallLevel(_ context.Context, req *
 		return nil, err
 	}
 	if record == nil {
-		return nil, errors.New("~/.nimi/nimi.json is missing; select nimi_data before install level")
+		return nil, errors.New("product-control record is missing; select nimi_data before install level")
 	}
 	if selectedProductDataRootPath(record) == "" {
 		return nil, errors.New("selected nimi_data is required before install level")
@@ -150,7 +150,7 @@ func (s *Service) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx contex
 	if profile.GetProfile().GetOs() == "" || profile.GetProfile().GetArch() == "" {
 		return nil, errors.New("Runtime device profile must include os and arch")
 	}
-	path, err := productControlRecordPath()
+	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (s *Service) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx contex
 		return nil, err
 	}
 	if record == nil {
-		return nil, errors.New("~/.nimi/nimi.json is missing; select nimi_data before device scan")
+		return nil, errors.New("product-control record is missing; select nimi_data before device scan")
 	}
 	if selectedProductDataRootPath(record) == "" {
 		return nil, errors.New("selected nimi_data is required before device scan")
@@ -178,7 +178,7 @@ func (s *Service) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx contex
 }
 
 func (s *Service) AdmitProductControlReadyForUse(ctx context.Context, req *runtimev1.AdmitProductControlReadyForUseRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	path, err := productControlRecordPath()
+	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (s *Service) AdmitProductControlReadyForUse(ctx context.Context, req *runti
 		return productControlJSON(s.readProductControlProjection(ctx))
 	}
 	if record == nil {
-		return nil, errors.New("~/.nimi/nimi.json is missing; product readiness cannot be admitted")
+		return nil, errors.New("product-control record is missing; product readiness cannot be admitted")
 	}
 	evidence, failedState, failure := s.composeProductControlReadyAdmission(ctx, record, req)
 	if failure != "" {

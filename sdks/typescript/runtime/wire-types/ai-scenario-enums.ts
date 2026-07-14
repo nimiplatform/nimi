@@ -10,6 +10,13 @@ export enum ChatContentPartType {
   ARTIFACT_REF = 5,
 }
 
+export enum DeveloperModeState {
+  UNSPECIFIED = 0,
+  DISABLED = 1,
+  ENABLED = 2,
+  UNAVAILABLE = 3,
+}
+
 export enum EffectClass {
   UNSPECIFIED = 0,
   READ_ONLY = 1,

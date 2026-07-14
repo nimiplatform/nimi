@@ -28,6 +28,7 @@ const violations = findPatternViolations(files, [
   /\bDesktopLaunchIntent\b/u,
   /desktop-launch\.openIntent/u,
   /desktop-launch:\/\/open-intent/u,
+  /desktop-electron-installed-app-host/u,
 ], {
   allow: (relPath, line) => (
     relPath.includes('desktop-open') && line.includes('DesktopLaunchIntent') && line.includes('reject')
@@ -38,7 +39,7 @@ const failures = [
   ...violations,
   ...requireText('sdks/typescript/core/app/desktop-open.ts', [
     'DesktopOpenIntent',
-    'desktop-electron-installed-app-host',
+    'desktop-electron-local-app-host',
   ]),
   ...requireText('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs', [
     'start_desktop_open_intent_bridge',

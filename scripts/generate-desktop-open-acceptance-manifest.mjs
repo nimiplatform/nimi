@@ -89,8 +89,8 @@ function assertionFileFor(rowId, evidence) {
   if (rowId.includes('oauth-opener') || rowId === 'product.oauth-boundary-remains-intact') {
     return 'scripts/check-desktop-open-oauth-reserved-routes.mjs';
   }
-  if (rowId.includes('installed-app-source-host') || rowId === 'owner.installed-app-source-host') {
-    return 'scripts/check-desktop-open-installed-host-sourcehost.mjs';
+  if (rowId.includes('local-app-source-host') || rowId === 'owner.local-app-source-host') {
+    return 'scripts/check-desktop-open-local-app-sourcehost.mjs';
   }
   if (
     rowId === 'owner.target-kind-vocabulary'
@@ -316,14 +316,14 @@ function productEvidence(rowId) {
       evidenceRef: ['kit/core/src/desktop-open.ts', 'kit/core/test/desktop-open.test.ts'],
       command: 'pnpm --dir kit exec vitest run --config vitest.config.ts core/test/desktop-open.test.ts',
     },
-    'product.installed-app-host-source-host-is-explicit': {
-      evidenceKind: 'installed-host-sourcehost-guard',
+    'product.local-app-host-source-host-is-explicit': {
+      evidenceKind: 'local-app-sourcehost-guard',
       evidenceRef: [
-        'scripts/check-desktop-open-installed-host-sourcehost.mjs',
-        'kit/shell/electron/src/main/desktop-open.ts',
+        'scripts/check-desktop-open-local-app-sourcehost.mjs',
+        'apps/desktop/src-tauri/src/desktop_open_intent_parser.rs',
         'apps/desktop/e2e/fixtures/desktop-open-test-launcher.mjs',
       ],
-      command: 'pnpm check:desktop-open-installed-host-sourcehost',
+      command: 'pnpm check:desktop-open-local-app-sourcehost',
     },
     'product.generic-app-proof-exists': {
       evidenceKind: 'generic-fixture-unit',
@@ -420,13 +420,13 @@ function descriptorEvidence(rowId) {
 
 function ownerEvidence(rowId) {
   const mapping = {
-    'owner.installed-app-source-host': {
-      evidenceKind: 'installed-host-sourcehost-guard',
+    'owner.local-app-source-host': {
+      evidenceKind: 'local-app-sourcehost-guard',
       evidenceRef: [
-        'scripts/check-desktop-open-installed-host-sourcehost.mjs',
+        'scripts/check-desktop-open-local-app-sourcehost.mjs',
         '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml',
       ],
-      command: 'pnpm check:desktop-open-installed-host-sourcehost',
+      command: 'pnpm check:desktop-open-local-app-sourcehost',
     },
     'owner.navigation-execution': {
       evidenceKind: 'desktop-renderer-unit',

@@ -4,22 +4,22 @@ import test from 'node:test';
 
 const authSource = readFileSync(new URL('../src/shell/auth/runtime-platform.ts', import.meta.url), 'utf8');
 const authGateSource = readFileSync(new URL('../src/shell/auth/auth-gate.tsx', import.meta.url), 'utf8');
-const appHostBootstrapSource = readFileSync(new URL('../src/shell/auth/installed-app-bootstrap.ts', import.meta.url), 'utf8');
+const localAppClientSource = readFileSync(new URL('../src/shell/auth/local-app-client.ts', import.meta.url), 'utf8');
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const tauriMainSource = readFileSync(new URL('../src-tauri/src/main.rs', import.meta.url), 'utf8');
 const electronMainSource = readFileSync(new URL('../src-electron/main.ts', import.meta.url), 'utf8');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 
-test('generated app uses one typed app-host bootstrap for Electron and Tauri development', () => {
-  assert.match(authSource, /getInstalledNimiAppBootstrap/);
-  assert.match(authSource, /bootstrap\.appHost\.bootstrap\(\)/);
-  assert.match(authSource, /bootstrap\.artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
-  assert.match(authSource, /status\.appId !== appId/);
-  assert.match(authSource, /'third-party-nimi-app'/);
+test('generated app uses one typed local-app carrier for Electron and Tauri development', () => {
+  assert.match(authSource, /getNimiAppRuntimePlatformClient/);
+  assert.match(authSource, /\.auth\.status\(\)/);
+  assert.match(authSource, /status\.state !== 'session-bound-zero-grant'/);
+  assert.match(authSource, /'local-app'/);
   assert.doesNotMatch(authSource, /DeveloperRegistered|developerRegistration|AppSessionMetadataProvider|createNimiClient/);
-  assert.match(appHostBootstrapSource, /createInstalledNimiAppBootstrap/);
-  assert.match(appHostBootstrapSource, /createInstalledNimiAppStandardShellSurface/);
+  assert.match(localAppClientSource, /createNimiAppRuntimePlatformClient/);
+  assert.match(localAppClientSource, /createNimiLocalAppStandardShellSurface/);
+  assert.doesNotMatch(localAppClientSource, /InstalledNimiApp|bootstrapArtifact|trustClass/);
   assert.match(authGateSource, /projection\.status !== 'ready'/);
   assert.doesNotMatch(authGateSource, /RuntimeLoginPage|loadRuntimeAccountUser/);
 });
@@ -43,18 +43,18 @@ test('both shell hosts use Kit-owned narrowed app-host registration', () => {
   assert.match(electronMainSource, /--nimi-dev-renderer-url=/);
   assert.match(tauriMainSource, /RuntimeBridgeAppHost::platform_default\(\)/);
   assert.match(tauriMainSource, /app\.manage\(/);
-  assert.match(tauriMainSource, /nimi_shell_tauri_installed_app_standard_shell_handler!\[/);
+  assert.match(tauriMainSource, /nimi_shell_tauri_local_app_standard_shell_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /nimi_shell_tauri_runtime_bridge_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /tauri::generate_handler!\[/);
 });
 
-test('renderer installs the Kit bridge before render and exposes real bootstrap evidence', () => {
+test('renderer installs the Kit bridge before render and exposes real session posture', () => {
   const bootstrapAt = mainSource.indexOf('installNimiShellRuntimeBridge()');
   const renderAt = mainSource.indexOf('.render(');
   assert.ok(bootstrapAt > -1 && renderAt > bootstrapAt);
   assert.match(productSource, /data-testid="nimi-app-host-status"/);
   assert.match(productSource, /data-testid="nimi-app-host-artifact-status"/);
-  assert.match(productSource, /bootstrapArtifact/);
+  assert.match(productSource, /zero-grant-session/);
 });
 
 test('manifest requests only the admitted Runtime artifact operation', () => {

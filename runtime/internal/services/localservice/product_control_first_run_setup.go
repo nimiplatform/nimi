@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Service) ReconcileProductControlFirstRunSetupState(ctx context.Context, _ *runtimev1.ReconcileProductControlFirstRunSetupStateRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	path, err := productControlRecordPath()
+	path, err := s.productControlRecordPath()
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func (s *Service) ReconcileProductControlFirstRunSetupState(ctx context.Context,
 		return nil, err
 	}
 	if record == nil {
-		return nil, errors.New("~/.nimi/nimi.json is missing; select nimi_data before Runtime setup state")
+		return nil, errors.New("product-control record is missing; select nimi_data before Runtime setup state")
 	}
 	if selectedProductDataRootPath(record) == "" {
 		return nil, errors.New("selected nimi_data is required before Runtime setup state")

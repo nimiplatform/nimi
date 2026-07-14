@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -10,6 +11,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
 
 var (
@@ -157,9 +160,12 @@ type Service struct {
 	realmBaseURL            string
 	presenceVerifier        PresenceVerifier
 	appSessionValidator     AppSessionValidator
-	installedSessions       InstalledSessionResolver
-	installedPolicy         InstalledOperationPolicySource
+	localAppSessions        LocalAppSessionResolver
 	accountAuthorityRevoker AccountAuthorityRevoker
+	localAppKernel          *localappkernel.Kernel
+	localAppGrantControl    LocalAppGrantControlAuthority
+	localAppGrantRandom     io.Reader
+	auditStore              *auditlog.Store
 
 	partition                string
 	productionActivated      bool
@@ -180,5 +186,6 @@ type Service struct {
 	events                       []*runtimev1.AccountSessionEvent
 	nextSubscriberID             uint64
 	subscribers                  map[uint64]subscriber
-	launchNonceSessions          map[string]string
+	localAppGrantMu              sync.Mutex
+	localAppGrantRequests        map[string]localAppGrantPendingRequest
 }

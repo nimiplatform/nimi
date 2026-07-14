@@ -36,10 +36,9 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
   assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.completeLogin\(/);
   assert.doesNotMatch(desktopAuthAdapter, /validateRuntimeOAuthAuthorizationUrl/);
   assert.doesNotMatch(desktopAuthAdapter, /realm\.services\.AuthService\./);
-  assert.match(desktopAuthAdapter, /checkNimiRealmAuthEmail/);
-  assert.match(desktopAuthAdapter, /loginNimiRealmAuthPassword/);
-  assert.match(desktopAuthAdapter, /verifyNimiRealmEmailOtp/);
-  assert.match(desktopAuthAdapter, /loginNimiRealmOAuth/);
+  assert.match(desktopAuthAdapter, /supportsPasswordLogin: false/);
+  assert.match(desktopAuthAdapter, /runtimeAccountOwned/);
+  assert.doesNotMatch(desktopAuthAdapter, /checkNimiRealmAuthEmail|loginNimiRealmAuthPassword|verifyNimiRealmEmailOtp|loginNimiRealmOAuth/);
   assert.match(desktopAuthAdapter, /getDesktopAccountRuntime/);
   assert.match(desktopAuthAdapter, /Runtime account login completed without an authenticated account projection/);
   assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.getAccessToken\(/);
@@ -63,11 +62,13 @@ test('Desktop browser auth completion is gated by Runtime account projection rea
   );
 });
 
-test('Desktop auth DTO projection is owned by SDK Realm auth extension', () => {
+test('Desktop auth projection is token-free while Web owns the Realm auth extension', () => {
   const desktopAuthAdapter = read('apps/desktop/src/shell/renderer/features/auth/desktop-auth-adapter.ts');
+  const webAuthAdapter = read('apps/web/src/desktop-adapter/web-auth-adapter.ts');
   const desktopWebAuthMenu = read('apps/desktop/src/shell/renderer/features/auth/web-auth-menu.tsx');
 
-  assert.match(desktopAuthAdapter, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(desktopAuthAdapter, /@nimiplatform\/sdk\/realm|accessToken|refreshToken|Bearer/);
+  assert.match(webAuthAdapter, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(desktopWebAuthMenu, /toNimiRealmAuthUserRecord/);
   assert.doesNotMatch(desktopAuthAdapter, /toAuthTokensDto|toOAuthLoginResultDto|toCheckEmailResponseDto|isExpectedAnonymousSessionError/);
   assert.doesNotMatch(desktopWebAuthMenu, /auth-session-utils/);

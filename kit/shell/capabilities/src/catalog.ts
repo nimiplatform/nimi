@@ -12,6 +12,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_IDS = [
   'storage',
   'config',
   'local-assets',
+  'local-app',
   'local-agent',
   'ai-profile',
   'ai-config',
@@ -27,10 +28,21 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_IDS = [
 
 export type NimiStandardShellCapabilityId = (typeof NIMI_STANDARD_SHELL_CAPABILITY_IDS)[number];
 
+export type NimiStandardShellNegativeState =
+  | NimiStandardShellErrorCode
+  | 'process-replaced'
+  | 'account-changed'
+  | 'runtime-restarted'
+  | 'revoked'
+  | 'no-grant'
+  | 'request-pending'
+  | 'grant-revoked'
+  | 'grant-superseded';
+
 export interface NimiStandardShellOperation {
   id: string;
   command: string;
-  negativeStates: readonly NimiStandardShellErrorCode[];
+  negativeStates: readonly NimiStandardShellNegativeState[];
 }
 
 export interface NimiStandardShellCapability {
@@ -38,7 +50,7 @@ export interface NimiStandardShellCapability {
   operations: readonly NimiStandardShellOperation[];
 }
 
-export const NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID = 'installed-nimi-app-standard-shell-v1';
+export const NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID = 'local-app-standard-shell-v1';
 
 export interface NimiStandardShellCapabilitySet {
   readonly setId: string;
@@ -136,6 +148,19 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     ],
   },
   {
+    id: 'local-app',
+    operations: [
+      { id: 'sessionStatus', command: 'nimi.shell.localApp.sessionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked'] },
+      { id: 'permissionPosture', command: 'nimi.shell.localApp.permissionPosture', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'no-grant', 'grant-revoked', 'grant-superseded', 'account-changed', 'runtime-restarted'] },
+      { id: 'permissionRequest', command: 'nimi.shell.localApp.permissionRequest', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'invalid-payload', 'request-pending', 'account-changed', 'runtime-restarted'] },
+      { id: 'artifactsReadRuntimeBytes', command: 'nimi.shell.localApp.artifacts.readRuntimeBytes', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found', 'resource-exhausted'] },
+      { id: 'agentOpenConversation', command: 'nimi.shell.localApp.agent.openConversation', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
+      { id: 'agentSendTurn', command: 'nimi.shell.localApp.agent.sendTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
+      { id: 'agentSubscribeTurn', command: 'nimi.shell.localApp.agent.subscribeTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
+      { id: 'agentGetConversationSnapshot', command: 'nimi.shell.localApp.agent.getConversationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found'] },
+    ],
+  },
+  {
     id: 'local-agent',
     operations: [
       { id: 'identity', command: 'nimi.shell.localAgent.identity', negativeStates: ['capability-unavailable'] },
@@ -222,7 +247,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
   },
 ] as const satisfies readonly NimiStandardShellCapability[];
 
-const INSTALLED_NIMI_APP_PLANNED_OPERATIONS = [
+const LOCAL_APP_PLANNED_OPERATIONS = [
   'data.pathResolve',
   'storage.readJson',
   'storage.writeJson',
@@ -238,11 +263,18 @@ const INSTALLED_NIMI_APP_PLANNED_OPERATIONS = [
   'shell-ui.focusMainWindow',
 ] as const;
 
-const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS: readonly string[] = [
-  'artifacts.readRuntimeBytes',
+const LOCAL_APP_ALLOWED_OPERATIONS = [
+  'local-app.sessionStatus',
+  'local-app.permissionPosture',
+  'local-app.permissionRequest',
+  'local-app.artifactsReadRuntimeBytes',
+  'local-app.agentOpenConversation',
+  'local-app.agentSendTurn',
+  'local-app.agentSubscribeTurn',
+  'local-app.agentGetConversationSnapshot',
 ];
 
-const INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS = [
+const LOCAL_APP_FORBIDDEN_OPERATIONS = [
   'runtime.unary',
   'runtime.streamOpen',
   'runtime.streamClose',
@@ -292,31 +324,33 @@ const INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS = [
 
 export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
   {
-    setId: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-    hostClass: 'desktop-installed-app-standard-shell-host',
+    setId: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+    hostClass: 'protected-local-app-host',
     appPackageKind: 'nimi-app',
-    launchResolution: 'runtime_launch_record_windows_a4_host_consumed',
-    authBinding: 'runtime_owned_installed_session_host_carried',
-    authorityStatus: 'a4_windows_x64_artifact_read_admitted',
-    allowedOperations: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS,
-    plannedOperations: INSTALLED_NIMI_APP_PLANNED_OPERATIONS,
+    launchResolution: 'runtime_prepare_local_app_launch_and_verified_process_binding',
+    authBinding: 'runtime_owned_request_empty_local_app_session',
+    authorityStatus: '0k_final_surface_windows_development_positive',
+    allowedOperations: LOCAL_APP_ALLOWED_OPERATIONS,
+    plannedOperations: LOCAL_APP_PLANNED_OPERATIONS,
     plannedOperationsDisposition: 'deny_until_separate_operation_admission',
-    forbiddenOperations: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS,
-    allowedCommands: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS.map(resolveStandardShellOperationCommand),
-    forbiddenCommands: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS
+    forbiddenOperations: LOCAL_APP_FORBIDDEN_OPERATIONS,
+    allowedCommands: LOCAL_APP_ALLOWED_OPERATIONS.map(resolveStandardShellOperationCommand),
+    forbiddenCommands: LOCAL_APP_FORBIDDEN_OPERATIONS
       .map(resolveOptionalStandardShellOperationCommand)
       .filter((command): command is string => Boolean(command)),
     negativeTests: [
-      'desktop-installed-app-denies-runtime-lifecycle',
-      'desktop-installed-app-denies-generic-runtime-proxy',
-      'desktop-installed-app-denies-auth-session-custody',
-      'desktop-installed-app-denies-oauth-token-exchange',
-      'desktop-installed-app-denies-local-agent-trusted-caller',
-      'desktop-installed-app-denies-platform-projection',
-      'desktop-installed-app-denies-desktop-private-bridge',
-      'desktop-installed-app-denies-tauri-only-commands',
-      'desktop-installed-app-denies-file-system-handoff',
-      'desktop-installed-app-denies-floating-window',
+      'local-app-zero-grant-session-denies-operation',
+      'local-app-denies-runtime-lifecycle',
+      'local-app-denies-generic-runtime-proxy',
+      'local-app-denies-auth-session-custody',
+      'local-app-denies-oauth-token-exchange',
+      'local-app-denies-platform-projection',
+      'local-app-denies-desktop-private-bridge',
+      'local-app-denies-tauri-only-commands',
+      'local-app-denies-file-system-handoff',
+      'local-app-denies-floating-window',
+      'local-app-process-mismatch-denied',
+      'local-app-revoked-grant-denied-on-next-operation',
     ],
     sourceRule: 'P-KIT-044',
   },

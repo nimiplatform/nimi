@@ -94,6 +94,14 @@ func LoadFileConfig(path string) (FileConfig, error) {
 		if err := rejectLegacyLocalRuntimeConfigKeys(path, root); err != nil {
 			return FileConfig{}, err
 		}
+		if rawAuth, ok := root["auth"]; ok {
+			var authFields map[string]json.RawMessage
+			if err := json.Unmarshal(rawAuth, &authFields); err == nil {
+				if _, retired := authFields["developerRegistration"]; retired {
+					return FileConfig{}, fmt.Errorf("parse runtime config file %q: auth.developerRegistration is retired; use Runtime-owned Developer Mode and the protected local-app carrier", path)
+				}
+			}
+		}
 		if _, legacyCatalogOverride := root["modelCatalogOverridePath"]; legacyCatalogOverride {
 			return FileConfig{}, fmt.Errorf("parse runtime config file %q: modelCatalogOverridePath is removed; use modelCatalogCustomDir", path)
 		}

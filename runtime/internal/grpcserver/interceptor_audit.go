@@ -44,10 +44,6 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 		callerKind, callerID, surfaceID, traceID := readCallerMetadata(handlerCtx)
 		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(handlerCtx)
 		tokenID := accessTokenIDFromMetadata(handlerCtx)
-		grantDetails := inferGrantAuditDetails(req, resp)
-		if tokenID == "" && grantDetails.TokenID != "" {
-			tokenID = grantDetails.TokenID
-		}
 
 		reasonCode := reasonCodeFromError(err)
 		if reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED {
@@ -81,28 +77,21 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 			GRPCCode:      grpcCodeOnFailure(err, success),
 		})
 		appendAuditEvent(store, auditEventInput{
-			AppID:                 appID,
-			SubjectUserID:         subjectUserID,
-			Domain:                domain,
-			Operation:             operation,
-			Capability:            capability,
-			ReasonCode:            reasonCode,
-			TraceID:               traceID,
-			RequestID:             requestID,
-			CallerKind:            callerKind,
-			CallerID:              callerID,
-			SurfaceID:             surfaceID,
-			TokenID:               tokenID,
-			ParentTokenID:         grantDetails.ParentTokenID,
-			ConsentID:             grantDetails.ConsentID,
-			ConsentVersion:        grantDetails.ConsentVersion,
-			PolicyVersion:         grantDetails.PolicyVersion,
-			ResourceSelectorHash:  grantDetails.ResourceSelectorHash,
-			ScopeCatalogVersion:   grantDetails.ScopeCatalogVersion,
-			ExternalPrincipalType: grantDetails.ExternalPrincipalType,
-			PrincipalID:           principalID(callerID, tokenID),
-			PrincipalType:         principalType(callerKind, tokenID),
-			Payload:               payload,
+			AppID:         appID,
+			SubjectUserID: subjectUserID,
+			Domain:        domain,
+			Operation:     operation,
+			Capability:    capability,
+			ReasonCode:    reasonCode,
+			TraceID:       traceID,
+			RequestID:     requestID,
+			CallerKind:    callerKind,
+			CallerID:      callerID,
+			SurfaceID:     surfaceID,
+			TokenID:       tokenID,
+			PrincipalID:   principalID(callerID, tokenID),
+			PrincipalType: principalType(callerKind, tokenID),
+			Payload:       payload,
 		})
 		store.RecordUsage(auditlog.UsageInput{
 			Timestamp:     startedAt,

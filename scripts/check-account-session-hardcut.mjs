@@ -623,6 +623,7 @@ function scanRuntimeCallerAdmission(files, violations) {
     methodName,
     tokenRequest = false,
     accountControlOnly = false,
+    protectedDesktopStatus = false,
     scopedBindingOnly = false,
     label,
     detail,
@@ -631,7 +632,9 @@ function scanRuntimeCallerAdmission(files, violations) {
     const method = findAccountServiceMethod(methodName);
     const methodIndex = method ? method.start : source.indexOf(methodName);
     const methodSource = method ? method.text : '';
-    const admissionPatterns = accountControlOnly
+    const admissionPatterns = protectedDesktopStatus
+      ? [/(?:s\.)?validateProtectedDesktopAccountStatusCaller\(ctx,\s*req\.GetCaller\(\)\)/u]
+      : accountControlOnly
       ? [/(?:s\.)?validateRuntimeAccountControlCaller\(ctx,\s*req\.GetCaller\(\)\)/u]
       : scopedBindingOnly
         ? [/(?:s\.)?validateScopedBindingCaller\(ctx,\s*req\.GetCaller\(\)\)/u]
@@ -663,9 +666,9 @@ function scanRuntimeCallerAdmission(files, violations) {
 
   requireMethodAdmission({
     methodName: 'GetAccountSessionStatus',
-    tokenRequest: false,
+    protectedDesktopStatus: true,
     label: 'Runtime status caller admission',
-    detail: 'GetAccountSessionStatus must use Runtime app registry/admission, not shape-only caller validation',
+    detail: 'GetAccountSessionStatus must use protected Desktop origin admission while retaining generic admission for non-Desktop callers',
     beforeNeedles: ['s.mu.RLock()'],
   });
   requireMethodAdmission({
@@ -751,6 +754,48 @@ function scanRuntimeCallerAdmission(files, violations) {
       source.indexOf('validateRuntimeAdmittedCaller') >= 0 ? source.indexOf('validateRuntimeAdmittedCaller') : 0,
       'Runtime registry admission source',
       'account service must consult the Runtime app registry admission source',
+    );
+  }
+  const protectedStatusAdmission = findAccountServiceMethod('validateProtectedDesktopAccountStatusCaller');
+  const protectedStatusSource = protectedStatusAdmission?.text || '';
+  if (!protectedStatusAdmission
+    || !/caller\.GetMode\(\)\s*!=\s*runtimev1\.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL/u.test(protectedStatusSource)
+    || !/validateRuntimeAdmittedCaller\(ctx,\s*caller,\s*false\)/u.test(protectedStatusSource)
+    || !/validateDesktopAccountHost\(ctx,\s*caller\)/u.test(protectedStatusSource)) {
+    pushViolation(
+      violations,
+      protectedStatusAdmission?.relPath || 'runtime/internal/services/account/helpers.go',
+      protectedStatusAdmission?.source || accountServiceSource,
+      protectedStatusAdmission?.start || 0,
+      'Runtime protected Desktop status authority',
+      'Desktop status must use protected Desktop host admission, while non-Desktop status remains on generic Runtime admission',
+    );
+  }
+  const desktopHostAdmission = findAccountServiceMethod('validateDesktopAccountHost');
+  const desktopHostSource = desktopHostAdmission?.text || '';
+  if (!desktopHostAdmission
+    || !/protectedlocal\.DesktopConnectionFromContext\(ctx\)/u.test(desktopHostSource)
+    || !/origin\.TransportClass\s*==\s*protectedlocal\.TransportDesktopControl/u.test(desktopHostSource)
+    || !/origin\.HasRole\(protectedlocal\.RoleVerifiedDesktopProcess\)/u.test(desktopHostSource)
+    || !/origin\.HasRole\(protectedlocal\.RoleDesktopAccountHost\)/u.test(desktopHostSource)
+    || !/desktopCallerMatchesHostEnvelope\(ctx,\s*caller\)/u.test(desktopHostSource)) {
+    pushViolation(
+      violations,
+      desktopHostAdmission?.relPath || 'runtime/internal/services/account/caller_envelope.go',
+      desktopHostAdmission?.source || accountServiceSource,
+      desktopHostAdmission?.start || 0,
+      'Runtime protected Desktop origin authority',
+      'Desktop account authority requires a verified desktop-control connection, both fixed roles, and the host-owned caller envelope',
+    );
+  }
+  if (!/func\s+desktopCallerMatchesHostEnvelope\([\s\S]*?x-nimi-source-host[\s\S]*?protectedLocalDesktopAccountSourceHost[\s\S]*?x-nimi-caller-kind[\s\S]*?desktop-shell[\s\S]*?x-nimi-app-id[\s\S]*?x-nimi-app-instance-id[\s\S]*?x-nimi-device-id/u.test(accountServiceSource)) {
+    pushViolation(
+      violations,
+      'runtime/internal/services/account/caller_envelope.go',
+      accountServiceSource,
+      accountServiceSource.indexOf('desktopCallerMatchesHostEnvelope') >= 0 ? accountServiceSource.indexOf('desktopCallerMatchesHostEnvelope') : 0,
+      'Runtime protected Desktop host envelope',
+      'Desktop account caller fields must match the complete native host-owned metadata envelope',
     );
   }
 }

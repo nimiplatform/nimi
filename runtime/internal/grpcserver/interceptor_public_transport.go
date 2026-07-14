@@ -11,37 +11,39 @@ import (
 )
 
 var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
-	"/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding":                runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding":               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession":                      runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession":           runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent":                runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus":              runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/InstallApp":                               runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/UninstallApp":                             runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/UpdateApp":                                runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/HealthRepairApp":                          runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp":                            runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption":                   runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/OpenApp":                                  runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess":               runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession":   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus": runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":                           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/StreamScenario":                            runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":                         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob":                            runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob":                         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents":                runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts":                      runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset":                             runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets":                           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset":                          runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/UploadArtifact":                            runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart": runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding":        runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding":       runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession":              runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession":             runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus":       runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant":         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant":          runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant":          runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch":            runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess":              runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAppService/SendAppMessage":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":             runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/StreamScenario":                    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":                 runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob":                    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob":                 runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents":        runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts":              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset":                     runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset":                  runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/UploadArtifact":                    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 }
 
 func newUnaryPublicTransportInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		if info != nil && immutablePackageTransportDenied(info.FullMethod) {
+			return nil, immutablePackageTransportUnavailable()
+		}
 		if reason, blocked := publicTransportDenial(info.FullMethod); blocked {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, reason)
 		}
@@ -51,6 +53,9 @@ func newUnaryPublicTransportInterceptor() grpc.UnaryServerInterceptor {
 
 func newStreamPublicTransportInterceptor() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if info != nil && immutablePackageTransportDenied(info.FullMethod) {
+			return immutablePackageTransportUnavailable()
+		}
 		if reason, blocked := publicTransportDenial(info.FullMethod); blocked {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, reason)
 		}
@@ -59,11 +64,14 @@ func newStreamPublicTransportInterceptor() grpc.StreamServerInterceptor {
 }
 
 func publicTransportDenial(fullMethod string) (runtimev1.ReasonCode, bool) {
+	if immutablePackageTransportDenied(fullMethod) {
+		return runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, true
+	}
 	if reason, blocked := publicTransportBlockedMethods[fullMethod]; blocked {
 		return reason, true
 	}
-	if strings.HasPrefix(fullMethod, "/nimi.runtime.v1.RuntimeGrantService/") {
-		return runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH, true
+	if protectedDesktopProductControlMethod(fullMethod) {
+		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
 	}
 	if strings.HasPrefix(fullMethod, "/nimi.runtime.v1.RuntimeAccountService/") {
 		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true

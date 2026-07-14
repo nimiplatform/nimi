@@ -17,6 +17,7 @@ import (
 )
 
 const protectedOpenDesktopSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession"
+const protectedRequestRuntimeRestartMethod = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
 
 func protectedDesktopUnaryMethodAllowed(method string) bool {
 	_, allowed := protectedDesktopMethodRole(method)
@@ -28,8 +29,11 @@ func protectedDesktopStreamMethodAllowed(method string) bool {
 }
 
 func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool) {
+	if protectedDesktopProductControlMethod(method) {
+		return protectedlocal.RoleVerifiedDesktopProcess, true
+	}
 	switch method {
-	case protectedOpenDesktopSessionMethod:
+	case protectedOpenDesktopSessionMethod, protectedRequestRuntimeRestartMethod:
 		return protectedlocal.RoleVerifiedDesktopProcess, true
 	case "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
 		"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
@@ -42,25 +46,51 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
 		"/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding":
 		return protectedlocal.RoleDesktopAccountHost, true
-	case "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
-		"/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
-		"/nimi.runtime.v1.RuntimeAppService/InstallApp",
-		"/nimi.runtime.v1.RuntimeAppService/UninstallApp",
-		"/nimi.runtime.v1.RuntimeAppService/UpdateApp",
-		"/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
-		"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
-		"/nimi.runtime.v1.RuntimeAppService/OpenApp",
-		"/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
+	case "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
+		"/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
+		"/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
+		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
+		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun":
-		return protectedlocal.RoleDesktopLifecycleHost, true
+		return protectedlocal.RoleLocalAppControl, true
 	default:
 		return "", false
+	}
+}
+
+func protectedDesktopProductControlMethod(method string) bool {
+	switch method {
+	case "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
+		"/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
+		"/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
+		"/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
+		"/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
+		"/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
+		"/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+		"/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+		"/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
+		"/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
+		"/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
+		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
+		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+		"/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+		"/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+		"/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+		"/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+		"/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+		"/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+		"/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+		"/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -164,8 +194,10 @@ func (protectedDesktopTransportCredentials) OverrideServerName(string) error {
 }
 
 func newProtectedDesktopRPCServer(
+	runtimeControlService runtimev1.RuntimeServiceControlServiceServer,
 	authService runtimev1.RuntimeAuthServiceServer,
 	accountService runtimev1.RuntimeAccountServiceServer,
+	localService runtimev1.RuntimeLocalServiceServer,
 	appService runtimev1.RuntimeAppServiceServer,
 	developmentService runtimev1.RuntimeDevelopmentServiceServer,
 	desktopSessions *protectedlocal.DesktopSessionManager,
@@ -180,8 +212,10 @@ func newProtectedDesktopRPCServer(
 		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions)),
 		grpc.StreamInterceptor(newStreamProtectedDesktopTransportInterceptor(desktopSessions)),
 	)
+	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountService)
+	runtimev1.RegisterRuntimeLocalServiceServer(server, localService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
 	runtimev1.RegisterRuntimeDevelopmentServiceServer(server, developmentService)
 	return server
@@ -191,6 +225,9 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		if immutablePackageTransportDenied(info.FullMethod) {
+			return nil, immutablePackageTransportUnavailable()
 		}
 		if !protectedDesktopUnaryMethodAllowed(info.FullMethod) {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -218,7 +255,13 @@ func (stream *protectedDesktopServerStream) Context() context.Context {
 
 func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager) grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if info == nil || !protectedDesktopStreamMethodAllowed(info.FullMethod) {
+		if info == nil {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		if immutablePackageTransportDenied(info.FullMethod) {
+			return immutablePackageTransportUnavailable()
+		}
+		if !protectedDesktopStreamMethodAllowed(info.FullMethod) {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		connection, err := protectedDesktopConnectionFromPeer(stream.Context())
@@ -238,7 +281,7 @@ func authorizeProtectedDesktopMethod(ctx context.Context, method string, desktop
 	if !allowed {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
-	if role == protectedlocal.RoleVerifiedDesktopProcess {
+	if method == protectedOpenDesktopSessionMethod {
 		return nil
 	}
 	if desktopSessions == nil {

@@ -213,6 +213,8 @@ test('doctor compatibility rejects every non-allowlisted failure and invalid con
 test('host inspection enforces projection semantics, absence, authority, scripts, and entrypoints', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-host-hardcut-'));
   const manifest = fixtureManifest();
+  manifest.entrypoint_scan.roots.push('.claude');
+  manifest.entrypoint_scan.excluded_path_segments.push('worktrees');
   try {
     await mkdir(path.join(root, '.nimi', 'spec', 'platform', 'kernel'), { recursive: true });
     await mkdir(path.join(root, '.nimi', 'methodology'), { recursive: true });
@@ -225,6 +227,11 @@ test('host inspection enforces projection semantics, absence, authority, scripts
       'version: 1\nexecution_bootstrap:\n  host_execution_owner: external_ai_host\n',
     );
     await writeFile(path.join(root, 'README.md'), 'Host-owned workflow.\n');
+    await mkdir(path.join(root, '.claude', 'worktrees', 'external-session'), { recursive: true });
+    await writeFile(
+      path.join(root, '.claude', 'worktrees', 'external-session', 'README.md'),
+      'Use TOPIC-RUNNER in an independent worktree.\n',
+    );
     await writeFile(path.join(root, 'package.json'), JSON.stringify({
       scripts: {
         'check:nimicoding-host-hardcut': 'node scripts/check-nimicoding-host-hardcut.mjs',

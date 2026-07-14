@@ -42,11 +42,8 @@ message RegisterAppRequest {
   string app_version = 4;
   repeated string capabilities = 5;
   AppModeManifest mode_manifest = 6;
-  // K-AUTHSVC-014: explicit local developer-registration intent. When true AND
-  // the daemon's auth.developerRegistration.enabled gate is on, RegisterApp may
-  // admit an app_id not present in the Nimi App registry. Default false keeps
-  // production admission fail-closed (APP_NOT_REGISTERED).
-  bool developer_registration = 7;
+  reserved 7;
+  reserved "developer_registration";
 }
 
 message RegisterAppResponse {
@@ -86,21 +83,34 @@ message OpenDesktopSessionResponse {
   bytes runtime_boot_epoch = 2;
 }
 
-// Empty by design: the Runtime-owned launch record is selected by the exact
-// verified launch_bootstrap connection, never by request data or metadata.
-message OpenDesktopLaunchedAppSessionRequest {
+enum LocalAppSessionState {
+  LOCAL_APP_SESSION_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_SESSION_STATE_READY = 1;
+  LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE = 2;
+  LOCAL_APP_SESSION_STATE_REVOKED = 3;
+  LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED = 4;
+  LOCAL_APP_SESSION_STATE_PROCESS_REPLACED = 5;
 }
 
-// Host-only installed session proof. It is returned only on the inherited
-// native child channel and must never cross renderer IPC.
-message OpenDesktopLaunchedAppSessionResponse {
-  bytes installed_session_id = 1;
-  bytes installed_session_proof = 2;
-  google.protobuf.Timestamp expires_at = 3;
-  string app_id = 4;
-  bytes release_digest = 5;
-  uint64 account_generation = 6;
-  bytes runtime_boot_epoch = 7;
+enum LocalAppTrustClass {
+  LOCAL_APP_TRUST_CLASS_UNSPECIFIED = 0;
+  LOCAL_APP_TRUST_CLASS_VERIFIED = 1;
+  LOCAL_APP_TRUST_CLASS_USER_IMPORTED = 2;
+  LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT = 3;
+}
+
+// Request-empty by design. Runtime consumes the exact bound launch lease on
+// the verified local_app_bootstrap connection; request data and metadata carry
+// no principal, record, account, grant, process, endpoint, or credential.
+message OpenLocalAppSessionRequest {
+}
+
+message OpenLocalAppSessionResponse {
+  LocalAppSessionState state = 1;
+  LocalAppTrustClass trust_class = 2;
+  uint64 account_generation = 3;
+  bytes runtime_boot_epoch = 4;
+  ReasonCode reason_code = 5;
 }
 
 message RefreshSessionRequest {
@@ -156,7 +166,7 @@ service RuntimeAuthService {
   rpc RegisterApp(RegisterAppRequest) returns (RegisterAppResponse);
   rpc OpenSession(OpenSessionRequest) returns (OpenSessionResponse);
   rpc OpenDesktopSession(OpenDesktopSessionRequest) returns (OpenDesktopSessionResponse);
-  rpc OpenDesktopLaunchedAppSession(OpenDesktopLaunchedAppSessionRequest) returns (OpenDesktopLaunchedAppSessionResponse);
+  rpc OpenLocalAppSession(OpenLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
   rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
   rpc RevokeSession(RevokeSessionRequest) returns (Ack);
   rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);

@@ -39,10 +39,6 @@ pub(crate) fn allow_http_request_origin_with_history(
     true
 }
 
-pub(crate) fn is_authorized_http_origin_allowed(origin: &str, allowed: &HashSet<String>) -> bool {
-    allowed.contains(origin)
-}
-
 fn allow_http_request_origin(origin: &str) -> bool {
     let limiter = HTTP_REQUEST_RATE_LIMITER.get_or_init(|| Mutex::new(HashMap::new()));
     let now = SystemTime::now()
@@ -129,35 +125,6 @@ pub(crate) async fn http_request(
             allowed_list.join(", ")
         ));
     }
-    let has_authorization = payload
-        .authorization
-        .as_deref()
-        .map(str::trim)
-        .is_some_and(|value| !value.is_empty());
-    if has_authorization && !is_authorized_http_origin_allowed(&origin, &allowed) {
-        let allowed_list = allowed.iter().cloned().collect::<Vec<_>>();
-        append_diag_log_entry(
-            "http-request",
-            "warn",
-            "http_request",
-            "request:blocked-authorization-origin",
-            diag_session_id.as_deref(),
-            None,
-            None,
-            json!({
-                "method": method.to_string(),
-                "url": url.as_str(),
-                "origin": origin,
-                "allowedOrigins": allowed_list,
-            }),
-        );
-        return Err(crate::runtime_bridge::bridge_error(
-            "DESKTOP_HTTP_AUTH_ORIGIN_BLOCKED",
-            &format!(
-                "Authorization is only allowed for admitted Runtime or Realm origins: {origin}"
-            ),
-        ));
-    }
     if !allow_http_request_origin(&origin) {
         append_diag_log_entry(
             "http-request",
@@ -178,7 +145,7 @@ pub(crate) async fn http_request(
         return Err("HTTP request rate limit exceeded; retry later".to_string());
     }
 
-    let mut redacted_headers = payload
+    let redacted_headers = payload
         .headers
         .as_ref()
         .map(|h| {
@@ -193,9 +160,6 @@ pub(crate) async fn http_request(
                 .collect::<HashMap<String, String>>()
         })
         .unwrap_or_default();
-    if payload.authorization.as_deref().is_some() {
-        redacted_headers.insert("authorization".to_string(), "[REDACTED]".to_string());
-    }
     let body_preview = payload
         .body
         .as_ref()
@@ -227,16 +191,6 @@ pub(crate) async fn http_request(
     let headers = sanitize_headers(payload.headers)?;
     let client = shared_http_client()?;
     let mut request = client.request(method.clone(), url.clone()).headers(headers);
-    if let Some(authorization) = payload
-        .authorization
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    {
-        let authorization_value = reqwest::header::HeaderValue::from_str(authorization)
-            .map_err(|error| error.to_string())?;
-        request = request.header(reqwest::header::AUTHORIZATION, authorization_value);
-    }
 
     if !matches!(method, Method::GET | Method::HEAD) {
         if let Some(body) = payload.body {

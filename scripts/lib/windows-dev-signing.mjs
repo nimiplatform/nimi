@@ -80,3 +80,26 @@ export function signWindowsDevFiles(paths, options = {}) {
   }
   return payload;
 }
+
+export function requireWindowsDevSignedFiles(paths, expectedCertificateSha256, options = {}) {
+  if (!Array.isArray(paths) || paths.length === 0) {
+    throw new Error('at least one Windows signed-file path is required');
+  }
+  const expected = String(expectedCertificateSha256 || '').trim();
+  if (!SHA256_PATTERN.test(expected)) {
+    throw new Error('expected Windows signer identity must be an exact lowercase SHA-256 digest');
+  }
+  const payload = runSigningHelper('Diagnose', paths, options);
+  const signatures = Array.isArray(payload?.signatures) ? payload.signatures : [];
+  if (payload?.status !== 'diagnosed' || signatures.length !== paths.length) {
+    throw new Error('Windows signing helper did not return every requested signature');
+  }
+  for (const signature of signatures) {
+    if (signature?.exists !== true
+      || signature?.status !== 'Valid'
+      || signature?.signerCertificateSha256 !== expected) {
+      throw new Error(`Windows executable is not signed by the admitted identity: ${signature?.path || '<unknown>'}`);
+    }
+  }
+  return Object.freeze(signatures.map((signature) => Object.freeze({ ...signature })));
+}

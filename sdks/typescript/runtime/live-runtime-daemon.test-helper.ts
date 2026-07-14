@@ -1,182 +1,91 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { once } from 'node:events';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
-import net from 'node:net';
-import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { LocalAssetKind, LocalAssetStatus } from '../core-generated/runtime-typed-client';
-import { createRuntime } from './index';
+function daemonHasExited(daemon: ReturnType<typeof spawn>): boolean {
+  return daemon.exitCode !== null || daemon.signalCode !== null;
+}
 
-export type RuntimeDaemonRunContext = {
-  readonly endpoint: string;
-  readonly stateRoot: string;
-  readonly runtimeConfigPath: string;
-  readonly localModelsPath: string;
-  readonly localStatePath: string;
-  readonly modelRegistryPath: string;
-};
+function daemonExitError(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+): Error {
+  return new Error(
+    `runtime daemon exited before ready: code=${String(code)} signal=${String(signal)}`,
+  );
+}
 
-export type RuntimeDaemonPrepareStateContext = RuntimeDaemonRunContext & {
-  readonly httpEndpoint: string;
-};
-
-const DEFAULT_RUNTIME_READY_TIMEOUT_MS = 120_000;
-const DEFAULT_RUNTIME_READY_POLL_INTERVAL_MS = 250;
-const DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS = 1_000;
-const DEFAULT_PROVIDER_HEALTH_READY_TIMEOUT_MS = 45_000;
-
-async function allocatePort(): Promise<number> {
-  return new Promise((resolvePromise, reject) => {
-    const server = net.createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      if (!address || typeof address === 'string') {
-        server.close();
-        reject(new Error('failed to allocate port'));
-        return;
-      }
-      const { port } = address;
-      server.close((error) => {
-        if (error) reject(error);
-        else resolvePromise(port);
-      });
-    });
-    server.on('error', reject);
+function waitForDaemonExit(daemon: ReturnType<typeof spawn>): Promise<'exit' | 'error'> {
+  if (daemonHasExited(daemon)) {
+    return Promise.resolve('exit');
+  }
+  return new Promise((resolvePromise) => {
+    const onExit = () => {
+      daemon.off('error', onError);
+      resolvePromise('exit');
+    };
+    const onError = () => {
+      daemon.off('exit', onExit);
+      resolvePromise('error');
+    };
+    daemon.once('exit', onExit);
+    daemon.once('error', onError);
   });
 }
 
-function resolveRuntimeDir(): string {
-  let cursor = dirname(fileURLToPath(import.meta.url));
-  for (let depth = 0; depth < 12; depth += 1) {
-    const candidate = resolve(cursor, 'runtime');
-    if (existsSync(resolve(candidate, 'cmd', 'nimi'))) {
-      return candidate;
-    }
-    const parent = resolve(cursor, '..');
-    if (parent === cursor) break;
-    cursor = parent;
-  }
-  throw new Error('runtime directory not found from SDK vNext live smoke test');
-}
-
-async function waitForRuntimeReady(endpoint: string, appId: string): Promise<void> {
-  const runtime = createRuntime({
-    appId,
-    transport: {
-      type: 'node-grpc',
-      endpoint,
-    },
-  });
-
-  let lastError: unknown = null;
-  const timeoutMs = resolveRuntimeReadyTimeoutMs();
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const remainingMs = Math.max(1, deadline - Date.now());
-      await runtime.local.listLocalAssets({
-        statusFilter: LocalAssetStatus.UNSPECIFIED,
-        kindFilter: LocalAssetKind.UNSPECIFIED,
-        engineFilter: '',
-        pageSize: 1,
-        pageToken: '',
-      }, {
-        timeoutMs: Math.min(DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS, remainingMs),
-      });
-      return;
-    } catch (error) {
-      lastError = error;
-      await new Promise((resolvePromise) => setTimeout(resolvePromise, DEFAULT_RUNTIME_READY_POLL_INTERVAL_MS));
-    }
-  }
-
-  throw new Error(`runtime readiness check failed after ${timeoutMs}ms: ${String(lastError)}`);
-}
-
-function expectedCloudProviderHealthNames(runtimeEnv: Readonly<Record<string, string>> | undefined): string[] {
-  if (!runtimeEnv) return [];
-  const names = new Set<string>();
-  for (const [key, value] of Object.entries(runtimeEnv)) {
-    if (!String(value || '').trim()) continue;
-    const match = key.match(/^NIMI_RUNTIME_CLOUD_(.+)_API_KEY$/);
-    if (!match) continue;
-    const provider = match[1]
-      .trim()
-      .toLowerCase()
-      .replace(/_/g, '-');
-    if (provider) names.add(`cloud-${provider}`);
-  }
-  return [...names].sort((left, right) => left.localeCompare(right));
-}
-
-async function waitForCloudProviderHealth(
-  endpoint: string,
-  appId: string,
-  providerNames: readonly string[],
+export async function waitForRuntimeDaemonReadyOrExit(
+  daemon: ReturnType<typeof spawn>,
+  ready: Promise<void>,
 ): Promise<void> {
-  if (providerNames.length === 0) return;
-
-  const runtime = createRuntime({
-    appId,
-    transport: {
-      type: 'node-grpc',
-      endpoint,
-    },
-  });
-  const wanted = new Set(providerNames.map((name) => name.trim().toLowerCase()).filter(Boolean));
-  const timeoutMs = resolveProviderHealthReadyTimeoutMs();
-  const deadline = Date.now() + timeoutMs;
-  let lastSummary = '';
-
-  while (Date.now() < deadline) {
-    const response = await runtime.audit.listAIProviderHealth({}, {
-      timeoutMs: Math.min(DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS, Math.max(1, deadline - Date.now())),
-    });
-    const byName = new Map<string, { readonly state?: string; readonly reason?: string }>();
-    for (const provider of response.providers) {
-      const providerName = String(provider.providerName || '').trim().toLowerCase();
-      if (providerName) {
-        byName.set(providerName, provider);
-      }
-      for (const subHealth of provider.subHealth || []) {
-        const subProviderName = String(subHealth.providerName || '').trim().toLowerCase();
-        if (subProviderName) {
-          byName.set(subProviderName, subHealth);
-        }
-      }
-    }
-    const missing: string[] = [];
-    const unhealthy: string[] = [];
-    for (const name of wanted) {
-      const item = byName.get(name);
-      if (!item) {
-        missing.push(name);
-        continue;
-      }
-      if (String(item.state || '').trim().toLowerCase() !== 'healthy') {
-        unhealthy.push(`${name}:${item.state || 'unknown'}:${item.reason || ''}`);
-      }
-    }
-    if (missing.length === 0 && unhealthy.length === 0) {
-      return;
-    }
-    lastSummary = [
-      missing.length > 0 ? `missing=${missing.join(',')}` : '',
-      unhealthy.length > 0 ? `unhealthy=${unhealthy.join(',')}` : '',
-    ].filter(Boolean).join(' ');
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, DEFAULT_RUNTIME_READY_POLL_INTERVAL_MS));
+  if (daemonHasExited(daemon)) {
+    throw daemonExitError(daemon.exitCode, daemon.signalCode);
   }
 
-  throw new Error(`cloud provider health readiness failed after ${timeoutMs}ms for ${providerNames.join(', ')}: ${lastSummary}`);
+  await new Promise<void>((resolvePromise, reject) => {
+    const cleanup = () => {
+      daemon.off('exit', onExit);
+      daemon.off('error', onError);
+    };
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      cleanup();
+      reject(daemonExitError(code, signal));
+    };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(new Error(`runtime daemon failed before ready: ${error.message}`));
+    };
+
+    daemon.once('exit', onExit);
+    daemon.once('error', onError);
+    if (daemonHasExited(daemon)) {
+      onExit(daemon.exitCode, daemon.signalCode);
+      return;
+    }
+
+    void ready.then(
+      () => {
+        cleanup();
+        resolvePromise();
+      },
+      (error: unknown) => {
+        cleanup();
+        reject(error);
+      },
+    );
+  });
 }
 
-async function terminateDaemon(daemon: ReturnType<typeof spawn>): Promise<void> {
+export async function terminateRuntimeDaemon(daemon: ReturnType<typeof spawn>): Promise<void> {
+  if (daemonHasExited(daemon)) {
+    return;
+  }
+
+  const exited = waitForDaemonExit(daemon);
   if (process.platform === 'win32' && daemon.pid !== undefined) {
     spawnSync('taskkill', ['/PID', String(daemon.pid), '/T', '/F'], { stdio: 'ignore' });
+    if (daemonHasExited(daemon)) {
+      return;
+    }
     await Promise.race([
-      once(daemon, 'exit'),
+      exited,
       new Promise((resolvePromise) => setTimeout(() => resolvePromise('timeout'), 8_000)),
     ]);
     return;
@@ -187,210 +96,21 @@ async function terminateDaemon(daemon: ReturnType<typeof spawn>): Promise<void> 
     try {
       process.kill(-daemon.pid, signal);
     } catch {
-      // ignore already-exited process groups
+      // The process group may already be gone.
     }
     try {
       process.kill(daemon.pid, signal);
     } catch {
-      // ignore already-exited process
+      // The process may already be gone.
     }
   };
 
   killGroup('SIGTERM');
   const settled = await Promise.race([
-    once(daemon, 'exit'),
+    exited,
     new Promise((resolvePromise) => setTimeout(() => resolvePromise('timeout'), 8_000)),
   ]);
   if (settled === 'timeout') {
     killGroup('SIGKILL');
   }
-}
-
-async function removeRuntimeStateRoot(stateRoot: string): Promise<void> {
-  let lastError: unknown = null;
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    try {
-      rmSync(stateRoot, { recursive: true, force: true });
-      return;
-    } catch (error) {
-      lastError = error;
-      await new Promise((resolvePromise) => setTimeout(resolvePromise, 250 * (attempt + 1)));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
-}
-
-export async function withRuntimeDaemon(
-  input: {
-    readonly appId: string;
-    readonly runtimeEnv?: Readonly<Record<string, string>>;
-    readonly prepareState?: (context: RuntimeDaemonPrepareStateContext) => Promise<void> | void;
-    readonly run: (context: RuntimeDaemonRunContext) => Promise<void>;
-  },
-): Promise<void> {
-  const runtimeDir = resolveRuntimeDir();
-  const stateRoot = mkdtempSync(join(tmpdir(), 'nimi-sdk-vnext-runtime-'));
-  const grpcPort = await allocatePort();
-  const httpPort = await allocatePort();
-  const endpoint = `127.0.0.1:${grpcPort}`;
-  const httpEndpoint = `127.0.0.1:${httpPort}`;
-  const localModelsPath = join(stateRoot, 'local-models');
-  const localStatePath = join(stateRoot, 'local-state.json');
-  const modelRegistryPath = join(stateRoot, 'model-registry.json');
-  const runtimeConfigPath = String(input.runtimeEnv?.NIMI_RUNTIME_CONFIG_PATH || '').trim()
-    || join(stateRoot, 'config.json');
-
-  await input.prepareState?.({
-    endpoint,
-    httpEndpoint,
-    stateRoot,
-    runtimeConfigPath,
-    localModelsPath,
-    localStatePath,
-    modelRegistryPath,
-  });
-
-  const daemon = spawn('go', ['run', './cmd/nimi', 'serve'], {
-    cwd: runtimeDir,
-    detached: true,
-    env: {
-      ...process.env,
-      NIMI_RUNTIME_GRPC_ADDR: endpoint,
-      NIMI_RUNTIME_HTTP_ADDR: httpEndpoint,
-      NIMI_RUNTIME_ENABLE_WORKERS: '0',
-      NIMI_RUNTIME_LOCK_PATH: join(stateRoot, 'runtime.lock'),
-      NIMI_RUNTIME_CONFIG_PATH: runtimeConfigPath,
-      NIMI_RUNTIME_MODEL_REGISTRY_PATH: modelRegistryPath,
-      NIMI_RUNTIME_MODEL_CATALOG_CUSTOM_DIR: join(stateRoot, 'model-catalog-custom'),
-      NIMI_RUNTIME_LOCAL_STATE_PATH: localStatePath,
-      NIMI_RUNTIME_LOCAL_MODELS_PATH: localModelsPath,
-      NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',
-      NIMI_RUNTIME_CONNECTOR_STORE_PATH: join(stateRoot, 'connector-store.json'),
-      NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS: '1',
-      NIMI_RUNTIME_ACCOUNT_TEST_CUSTODY_FILE_PATH: join(stateRoot, 'account-custody.json'),
-      XDG_DATA_HOME: join(stateRoot, 'xdg-data'),
-      XDG_CACHE_HOME: join(stateRoot, 'xdg-cache'),
-      ...(input.runtimeEnv || {}),
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-
-  let stdout = '';
-  daemon.stdout.on('data', (chunk: Buffer | string) => {
-    stdout += String(chunk || '');
-  });
-
-  let stderr = '';
-  daemon.stderr.on('data', (chunk: Buffer | string) => {
-    stderr += String(chunk || '');
-  });
-
-  const daemonError = once(daemon, 'error')
-    .then(([error]) => error as Error)
-    .catch(() => null);
-
-  let primaryError: Error | null = null;
-  const cleanupErrors: string[] = [];
-  try {
-    const readyOrError = await Promise.race([
-      waitForRuntimeReady(endpoint, input.appId).then(() => null),
-      daemonError,
-    ]);
-
-    if (readyOrError) {
-      throw new Error(`runtime daemon failed before ready: ${readyOrError.message}`);
-    }
-
-    await waitForCloudProviderHealth(endpoint, input.appId, expectedCloudProviderHealthNames(input.runtimeEnv));
-    await input.run({
-      endpoint,
-      stateRoot,
-      runtimeConfigPath,
-      localModelsPath,
-      localStatePath,
-      modelRegistryPath,
-    });
-  } catch (error) {
-    const detail = formatRuntimeLiveError(error);
-    primaryError = new Error(`${detail}\nstdout=${stdout}\nstderr=${stderr}`);
-  } finally {
-    try {
-      await terminateDaemon(daemon);
-    } catch (error) {
-      cleanupErrors.push(`terminate=${formatRuntimeLiveError(error)}`);
-    }
-    try {
-      await removeRuntimeStateRoot(stateRoot);
-    } catch (error) {
-      cleanupErrors.push(`stateRoot=${formatRuntimeLiveError(error)}`);
-    }
-  }
-  if (primaryError) {
-    if (cleanupErrors.length > 0) {
-      primaryError.message += `\ncleanup=${cleanupErrors.join('\n')}`;
-    }
-    throw primaryError;
-  }
-  if (cleanupErrors.length > 0) {
-    throw new Error(`Runtime live smoke cleanup failed\n${cleanupErrors.join('\n')}`);
-  }
-}
-
-function formatRuntimeLiveError(error: unknown): string {
-  if (!error || typeof error !== 'object') {
-    return String(error || '');
-  }
-  const record = error as {
-    readonly message?: unknown;
-    readonly code?: unknown;
-    readonly reasonCode?: unknown;
-    readonly actionHint?: unknown;
-    readonly traceId?: unknown;
-    readonly retryable?: unknown;
-    readonly details?: unknown;
-    readonly cause?: unknown;
-  };
-  const parts = [String(record.message || 'Runtime live smoke failed')];
-  for (const [label, value] of [
-    ['code', record.code],
-    ['reasonCode', record.reasonCode],
-    ['actionHint', record.actionHint],
-    ['traceId', record.traceId],
-    ['retryable', record.retryable],
-  ] as const) {
-    if (value !== undefined && value !== null && String(value).trim()) {
-      parts.push(`${label}=${String(value)}`);
-    }
-  }
-  if (record.details !== undefined) {
-    parts.push(`details=${safeJson(record.details)}`);
-  }
-  if (record.cause !== undefined) {
-    parts.push(`cause=${formatRuntimeLiveError(record.cause)}`);
-  }
-  return parts.join('\n');
-}
-
-function safeJson(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function resolveRuntimeReadyTimeoutMs(): number {
-  const configured = Number(process.env.NIMI_RUNTIME_READY_TIMEOUT_MS || '');
-  if (Number.isFinite(configured) && configured > 0) {
-    return configured;
-  }
-  return DEFAULT_RUNTIME_READY_TIMEOUT_MS;
-}
-
-function resolveProviderHealthReadyTimeoutMs(): number {
-  const configured = Number(process.env.NIMI_PROVIDER_HEALTH_READY_TIMEOUT_MS || '');
-  if (Number.isFinite(configured) && configured > 0) {
-    return configured;
-  }
-  return DEFAULT_PROVIDER_HEALTH_READY_TIMEOUT_MS;
 }

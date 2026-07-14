@@ -61,18 +61,16 @@ test('bootstrap failure performs teardown before auth reset and surfaces cleanup
   );
 });
 
-test('fresh first-run storage sync skip does not surface a runtime config warning', () => {
-  assert.match(bootstrapConfigSyncSource, /isFirstRunDataRootSelectionPendingMessage/);
-  assert.match(bootstrapConfigSyncSource, /phase:runtime-config-sync:skipped-first-run-data-root/);
-  assert.match(bootstrapConfigSyncSource, /projection\.state === 'config_missing' \|\| projection\.state === 'data_root_missing'/);
-  assert.match(bootstrapConfigSyncSource, /if \(warning\) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning \?\? warning/);
+test('runtime config bootstrap is observation-only after Runtime custody hardcut', () => {
+  assert.match(bootstrapConfigSyncSource, /Runtime owns security-sensitive configuration/);
+  assert.match(bootstrapConfigSyncSource, /daemonStatus: input\.daemonStatus/);
+  assert.match(bootstrapConfigSyncSource, /bootstrapRuntimeConfigWarning: null/);
+  assert.doesNotMatch(bootstrapConfigSyncSource, /setRuntimeConfig|getRuntimeConfig/);
 });
 
-test('external runtime manual restart is degraded by error code instead of action-hint text', () => {
-  assert.match(bootstrapConfigSyncSource, /isRuntimeConfigManualRestartRequiredError/);
-  assert.doesNotMatch(bootstrapConfigSyncSource, /isManualRestartRequiredMessage/);
-  assert.match(bootstrapConfigSyncSource, /phase:runtime-config-sync:manual-restart-required/);
-  assert.match(bootstrapConfigSyncSource, /return message;/);
+test('runtime config bootstrap never owns Runtime restart', () => {
+  assert.match(bootstrapConfigSyncSource, /runtimeUnavailable: runtimeDaemonUnavailable\(input\.daemonStatus\)/);
+  assert.doesNotMatch(bootstrapConfigSyncSource, /startRuntimeBridge|restartRuntime|manual-restart-required/);
 });
 
 test('external agent runtime facade is deleted with no desktop action bridge residue', () => {

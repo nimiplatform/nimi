@@ -88,7 +88,7 @@ func TestUnaryLifecycleInterceptorRejectsLocalWriteWhenStopping(t *testing.T) {
 	}
 }
 
-func TestUnaryLifecycleInterceptorRejectsAppLocalAdoptionWritesWhenStoppingOrStopped(t *testing.T) {
+func TestUnaryLifecycleInterceptorRejectsLocalAppLaunchWritesWhenStoppingOrStopped(t *testing.T) {
 	for _, stateStatus := range []health.Status{health.StatusStopping, health.StatusStopped} {
 		t.Run(stateStatus.String(), func(t *testing.T) {
 			state := health.NewState()
@@ -96,8 +96,8 @@ func TestUnaryLifecycleInterceptorRejectsAppLocalAdoptionWritesWhenStoppingOrSto
 			interceptor := newUnaryLifecycleInterceptor(state)
 
 			for _, fullMethod := range []string{
-				"/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
-				"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
+				"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
+				"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 			} {
 				handlerCalled := false
 				_, err := interceptor(

@@ -145,7 +145,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
   const [preferences] = useState<TesterPreferences>(() => loadTesterPreferences().preferences);
-  const [appHostProjection, setAppHostProjection] = useState<RuntimePlatformReadyProjection | null>(null);
+  const [localAppProjection, setLocalAppProjection] = useState<RuntimePlatformReadyProjection | null>(null);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
   const runtimeState = useMemo(() => runtimeBadge(summary), [summary]);
@@ -197,24 +197,21 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     void refreshSummary();
     void refreshHistory();
     void getRuntimePlatformProjection().then((projection) => {
-      if (projection.status === 'ready') setAppHostProjection(projection);
+      if (projection.status === 'ready') setLocalAppProjection(projection);
     });
   }, [refreshSummary, refreshHistory]);
 
-  const appHostTooltipRows = useMemo(() => {
-    const appHost = appHostProjection?.appHost;
+  const localAppTooltipRows = useMemo(() => {
+    const session = localAppProjection?.localAppSession;
     return [
-      { label: 'Status', value: appHost ? 'Ready' : 'Checking' },
-      { label: 'Trust', value: appHost?.trustClass || 'Pending' },
-      { label: 'App', value: appHost?.appId || 'Pending' },
+      { label: 'Session', value: session?.state || 'Checking' },
+      { label: 'Identity', value: session?.sessionBound ? 'Bound' : 'Pending' },
       {
-        label: 'Protected artifact',
-        value: appHost?.bootstrapArtifact
-          ? `${appHost.bootstrapArtifact.mimeType} · ${appHost.bootstrapArtifact.sizeBytes} bytes`
-          : 'Pending',
+        label: 'Operation grant',
+        value: session?.operationAllowed ? 'Granted' : 'Zero grant',
       },
     ];
-  }, [appHostProjection]);
+  }, [localAppProjection]);
 
   const handleSelectHistoryRun = useCallback((record: TesterRunHistoryRecord) => {
     const capabilityId = record.capabilityId as TesterCapabilityId;
@@ -361,15 +358,17 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                 headerActions={(
                   <>
                     <Tooltip
-                      content={<TopbarStatusTooltip title="Protected app host" rows={appHostTooltipRows} />}
+                      content={<TopbarStatusTooltip title="Protected local app" rows={localAppTooltipRows} />}
                       placement="bottom"
                     >
                       <span
-                        className={`workbench-topbar__attachment workbench-topbar__attachment--${appHostProjection ? 'success' : 'neutral'}`}
-                        data-testid="tester-app-host-status"
+                        className={`workbench-topbar__attachment workbench-topbar__attachment--${localAppProjection
+                          ? (localAppProjection.localAppSession.operationAllowed ? 'success' : 'warning')
+                          : 'neutral'}`}
+                        data-testid="tester-local-app-status"
                       >
                         <span className="workbench-topbar__dot" aria-hidden="true" />
-                        <span>App host</span>
+                        <span>Local app</span>
                       </span>
                     </Tooltip>
                     <Tooltip

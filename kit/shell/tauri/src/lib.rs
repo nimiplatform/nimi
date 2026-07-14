@@ -42,10 +42,13 @@ mod standard_export;
 mod standard_file_dialog;
 mod standard_file_reveal;
 pub mod standard_floating_window;
-mod standard_installed_artifacts;
 mod standard_local_agent;
+mod standard_local_app;
 mod standard_local_assets;
 mod standard_platform_projection;
+
+#[cfg(target_os = "windows")]
+pub use nimi_shell_protected_local::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};
 
 #[cfg(test)]
 mod agent_center_avatar_asset_tests;

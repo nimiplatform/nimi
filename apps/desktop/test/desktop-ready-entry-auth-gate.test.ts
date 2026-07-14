@@ -5,10 +5,6 @@ import test from 'node:test';
 
 import { getProductControlRecord } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
 import type { NimiProductControlRecordProjection } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
-import {
-  clearDesktopNimiClientSession,
-  setDesktopNimiClientSessionForTests,
-} from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
 
 const appRoutesSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
@@ -160,7 +156,7 @@ test('Wave 7: bridge exposes a backend-only admitProductReadyForUse request', ()
   assert.match(productControlBridgeSource, /export async function admitProductReadyForUse\(\): Promise<NimiProductControlRecordProjection>/);
   assert.match(productControlBridgeSource, /invokeChecked\('product_control_record_admit_ready_for_use', \{\}, parseNimiProductControlRecordProjection\)/);
   // Fails closed when the Tauri runtime is unavailable.
-  assert.match(productControlBridgeSource, /product_control_record_admit_ready_for_use requires Tauri runtime/);
+  assert.match(productControlBridgeSource, /product_control_record_admit_ready_for_use requires standard shell Runtime/);
   // Account Default Profile payload decoding is shared SDK AIProfile parsing;
   // product-control remains the command/state authority, not the profile parser.
   assert.match(productControlBridgeSource, /parseNimiAIProfile/);
@@ -351,7 +347,7 @@ test('Wave 8: a fabricated renderer/localStorage ready_for_use never mounts Read
   }
 });
 
-test('Desktop Electron product-control record reads the RuntimeLocalService projection', async () => {
+test('Desktop Electron product-control record reads the final Kit shell projection', async () => {
   const globalRecord = globalThis as Record<string, unknown>;
   const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
   const previousElectron = globalRecord.__NIMI_ELECTRON_TEST__;
@@ -359,40 +355,28 @@ test('Desktop Electron product-control record reads the RuntimeLocalService proj
   const calls: unknown[] = [];
   delete globalRecord.__NIMI_TAURI_TEST__;
   const electronHook = {
-    invoke: async () => ({}),
+    invoke: async (command: string, payload: unknown) => {
+      calls.push({ command, payload });
+      return {
+        path: '/runtime/.nimi/nimi.json',
+        exists: true,
+        state: 'ready_for_use',
+        record: null,
+        error: null,
+      };
+    },
     listen: () => () => {},
   };
   globalRecord.__NIMI_ELECTRON_TEST__ = electronHook;
   globalRecord.window = {
     __NIMI_ELECTRON_TEST__: electronHook,
   };
-  setDesktopNimiClientSessionForTests({
-    appId: 'nimi.desktop',
-    realm: {} as never,
-    runtime: {
-      generated: {
-        async getProductControlRecord(request: unknown) {
-          calls.push(request);
-          return {
-            json: JSON.stringify({
-              path: '/runtime/.nimi/nimi.json',
-              exists: true,
-              state: 'ready_for_use',
-              record: null,
-              error: null,
-            }),
-          };
-        },
-      },
-    } as never,
-  });
   try {
     const projection = await getProductControlRecord();
     assert.equal(projection.state, 'ready_for_use');
     assert.equal(projection.path, '/runtime/.nimi/nimi.json');
-    assert.deepEqual(calls, [{}]);
+    assert.deepEqual(calls, [{ command: 'product_control_record_get', payload: {} }]);
   } finally {
-    clearDesktopNimiClientSession();
     if (typeof previousTauri === 'undefined') {
       delete globalRecord.__NIMI_TAURI_TEST__;
     } else {
@@ -434,6 +418,7 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
       exists: true,
       state,
       record: null,
+      dataRootProposal: null,
       error: state === 'repair_required' ? 'repair gate' : null,
     };
     assert.equal(
@@ -447,6 +432,7 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
     exists: true,
     state: 'ready_for_use',
     record: null,
+    dataRootProposal: null,
     error: null,
   };
   assert.equal(deriveOrdinaryShellAdmission(backendReady), 'ready');

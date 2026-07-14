@@ -86,8 +86,6 @@ func accountAppInstallStateToProto(state string) runtimev1.AccountAppInstallStat
 		return runtimev1.AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED
 	case accountAppInstallStateInstalled:
 		return runtimev1.AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_INSTALLED
-	case accountAppInstallStateAdoptedLocal:
-		return runtimev1.AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL
 	case accountAppInstallStateRemoved:
 		return runtimev1.AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_REMOVED
 	default:

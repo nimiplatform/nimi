@@ -1,8 +1,18 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  requireWindowsDevSigningIdentity,
+  signWindowsDevFiles,
+} from './lib/windows-dev-signing.mjs';
+import {
+  assertRuntimeBuildSourceUnchanged,
+  captureRuntimeBuildSource,
+  createRuntimeBuildRecord,
+  fileSha256,
+} from './lib/runtime-build-record.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -10,7 +20,12 @@ const runtimeDir = path.join(repoRoot, 'runtime');
 const distDir = path.join(repoRoot, 'dist');
 const binaryName = process.platform === 'win32' ? 'nimi.exe' : 'nimi';
 const outputPath = path.join(distDir, binaryName);
-const windowsDevSigningScript = path.join(repoRoot, 'scripts', 'lib', 'windows-dev-signing.ps1');
+const buildRecordPath = path.join(distDir, 'nimi-build-record.json');
+const nonReleaseAcceptanceProfile = process.argv.slice(2).includes('--dev-kernel-checkpoint');
+
+const buildSource = process.platform === 'win32'
+  ? captureRuntimeBuildSource(repoRoot)
+  : null;
 
 function powerShellSingleQuoted(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
@@ -67,51 +82,6 @@ function assertWindowsRuntimeBinaryNotRunning(binaryPath) {
   );
 }
 
-function signWindowsDevBinary(binaryPath) {
-  if (process.platform !== 'win32') {
-    return;
-  }
-  const result = spawnSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      windowsDevSigningScript,
-      '-Mode',
-      'Sign',
-      '-Path',
-      binaryPath,
-      '-Json',
-    ],
-    {
-      cwd: repoRoot,
-      env: process.env,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
-  if (result.error) {
-    throw new Error(`failed to start powershell.exe: ${result.error.message}`);
-  }
-  if (result.status !== 0) {
-    const detail = [result.stderr, result.stdout]
-      .map((value) => String(value || '').trim())
-      .filter(Boolean)
-      .join('\n');
-    throw new Error(
-      [
-        `powershell.exe exited with status ${result.status ?? 'unknown'}`,
-        detail,
-        'Run `pnpm provision:windows-dev-trust` once before building Windows runtime binaries.',
-      ].filter(Boolean).join('\n'),
-    );
-  }
-  const payload = JSON.parse(String(result.stdout || '{}'));
-  process.stdout.write(`[build-runtime] signed ${path.relative(repoRoot, binaryPath)} with ${payload.thumbprint}\n`);
-}
-
 mkdirSync(distDir, { recursive: true });
 try {
   assertWindowsRuntimeBinaryNotRunning(outputPath);
@@ -120,7 +90,32 @@ try {
   process.exit(1);
 }
 
-const result = spawnSync('go', ['build', '-o', outputPath, './cmd/nimi'], {
+let windowsSignerIdentity = null;
+try {
+  if (process.platform === 'win32') {
+    windowsSignerIdentity = requireWindowsDevSigningIdentity({ cwd: repoRoot });
+  }
+} catch (error) {
+  process.stderr.write(`[build-runtime] Windows signer identity unavailable: ${String(error?.message ?? error)}\n`);
+  process.exit(1);
+}
+
+const goBuildArguments = ['build'];
+if (windowsSignerIdentity) {
+  const linkerValues = [
+    `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.WindowsProductionSignerCertSHA256=${windowsSignerIdentity.certificateSha256}`,
+  ];
+  if (nonReleaseAcceptanceProfile) {
+    linkerValues.push('-X github.com/nimiplatform/nimi/runtime/internal/entrypoint.windowsNonReleaseAcceptanceProfileEnabled=true');
+  }
+  goBuildArguments.push(
+    '-ldflags',
+    linkerValues.join(' '),
+  );
+}
+goBuildArguments.push('-o', outputPath, './cmd/nimi');
+
+const result = spawnSync('go', goBuildArguments, {
   cwd: runtimeDir,
   stdio: 'inherit',
   env: process.env,
@@ -137,10 +132,28 @@ if (result.status !== 0) {
 
 try {
   assertWindowsRuntimeBinaryNotRunning(outputPath);
-  signWindowsDevBinary(outputPath);
+  if (process.platform === 'win32') {
+    const payload = signWindowsDevFiles([outputPath], { cwd: repoRoot });
+    if (payload.certificateSha256 !== windowsSignerIdentity.certificateSha256) {
+      throw new Error('build-time Runtime signer identity changed before signing');
+    }
+    assertRuntimeBuildSourceUnchanged(buildSource, repoRoot);
+    const buildRecord = createRuntimeBuildRecord({
+      source: buildSource,
+      runtimeBinarySha256: fileSha256(outputPath),
+      signerCertificateSha256: payload.certificateSha256,
+      nonRelease: nonReleaseAcceptanceProfile,
+    });
+    writeFileSync(buildRecordPath, `${JSON.stringify(buildRecord, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+    process.stdout.write(`[build-runtime] signed ${path.relative(repoRoot, outputPath)} with ${payload.thumbprint}\n`);
+    process.stdout.write(`[build-runtime] bound ${buildRecord.candidateId} to source ${buildSource.dirtyDescriptorSha256}\n`);
+  }
 } catch (error) {
   process.stderr.write(`[build-runtime] failed to sign ${path.relative(repoRoot, outputPath)}: ${String(error?.message ?? error)}\n`);
   process.exit(1);
 }
 
 process.stdout.write(`[build-runtime] built ${path.relative(repoRoot, outputPath)}\n`);
+if (nonReleaseAcceptanceProfile) {
+  process.stdout.write('[build-runtime] non-release dev_kernel_checkpoint acceptance profile enabled\n');
+}

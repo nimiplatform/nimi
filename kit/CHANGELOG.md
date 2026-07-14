@@ -9,13 +9,23 @@ Discipline.
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the bearer-bearing `authToken` prop from `RealmChatTimeline`.
+  Protected image/video material must now enter through the optional
+  `resolveMediaSource` owner adapter, which returns a renderer-safe URL and an
+  optional disposer. Kit no longer fetches Realm media with an Authorization
+  header. This is a breaking pre-1.0 minor change.
+- Hardcut the pre-1.0 Electron local-app carrier to
+  `registerNimiElectronAppBridge` and `local-app-standard-shell-v1`. The public
+  surface is now exactly session status, permission posture, Runtime artifact
+  read, and four selected RuntimeAgent conversation operations. Consumers must
+  replace the retired artifact-only host/bootstrap helpers with
+  `createNimiLocalAppStandardShellSurface`; no compatibility alias is shipped.
+  This is a breaking pre-1.0 minor change.
+
 ### Added
 
-- Added `registerNimiElectronInstalledAppBridge` as the artifact-only Electron
-  host entrypoint for installed apps. Its input deliberately excludes Runtime
-  endpoints, ordinary gRPC factories, native-host injection, capability-set
-  selection, and command handlers. This is a compatible public-surface
-  addition and therefore a pre-1.0 minor change.
 - Added the Agent Center bounded LocalAgent source/context projection. Kit now
   consumes the SDK-validated source status and latest turn summary through its
   core SDK contract, maps them to the closed `ready`, `blocked`, `truncated`,

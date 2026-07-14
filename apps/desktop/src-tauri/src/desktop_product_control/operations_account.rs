@@ -83,7 +83,6 @@ pub(crate) fn product_control_runtime_app_registration_request(
             realm_required: true,
             world_relation: crate::runtime_bridge::generated::WorldRelation::None as i32,
         }),
-        developer_registration: false,
     }
 }
 

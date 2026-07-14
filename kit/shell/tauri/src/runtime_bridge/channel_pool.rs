@@ -5,6 +5,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use tonic::transport::{Channel, Endpoint};
 
+#[cfg(target_os = "windows")]
+use nimi_shell_protected_local::open_verified_desktop_runtime_channel;
+
 use super::error_map::bridge_error;
 
 #[derive(Debug, Clone)]
@@ -119,6 +122,30 @@ pub async fn shared_unary_channel(grpc_addr: &str) -> Result<Channel, String> {
 
 pub async fn shared_stream_channel(grpc_addr: &str) -> Result<Channel, String> {
     shared_channel_for_role(grpc_addr, ChannelRole::Stream).await
+}
+
+/// Opens the fixed-service verified Desktop channel for the closed protected
+/// method vocabulary. Ordinary Runtime RPCs must use the public fixed-service
+/// listener above; using this carrier for them would bypass the normative
+/// protected transport matrix and fail at Runtime's exact method gate.
+#[cfg(target_os = "windows")]
+pub async fn protected_desktop_unary_channel() -> Result<Channel, String> {
+    open_verified_desktop_runtime_channel()
+        .await
+        .map_err(|error| {
+            bridge_error(
+                "RUNTIME_BRIDGE_CONNECT_FAILED",
+                error.reason_code().as_str(),
+            )
+        })
+}
+
+#[cfg(not(target_os = "windows"))]
+pub async fn protected_desktop_unary_channel() -> Result<Channel, String> {
+    Err(bridge_error(
+        "RUNTIME_BRIDGE_PROTECTED_CARRIER_REQUIRED",
+        "protected Desktop account transport is not admitted on this platform",
+    ))
 }
 
 #[cfg(test)]

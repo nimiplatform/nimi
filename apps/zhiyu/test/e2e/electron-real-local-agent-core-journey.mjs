@@ -16,7 +16,6 @@ export async function runFullChainCoreContinuation({
   handoff,
   targetAgent,
   readyEvidence,
-  setPresentationProfile,
   assertProductDesignLayout,
   waitForEvidence,
 }) {
@@ -101,7 +100,6 @@ export async function runFullChainCoreContinuation({
   checkpoints.imageAction = { passed: true, requestId: image.chat.requestId };
   await captureRealLocalAgentEvidence(page, 'core-image-action', pageProblems, { image });
 
-  await setPresentationProfile(targetAgent, true);
   const voice = await sendCorePlannedTurn(page, handoff, {
     checkpointId: 'core-native-voice',
     prompt: '用当前伙伴的 Runtime Voice 回应。',
@@ -166,7 +164,6 @@ export async function runFullChainCoreContinuation({
   const updatedHandoff = JSON.parse(await readFile(process.env.NIMI_LOCAL_AGENT_PRODUCT_HANDOFF_PATH, 'utf8'));
   const persona = updatedHandoff.agents.find((agent) => agent.sourceKind === 'realmPersona');
   assert.ok(persona, 'Desktop must materialize a RealmPersona in the same Journey environment');
-  await setPresentationProfile(persona, true);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForEvidence(page, () => globalThis.window.__nimiZhiyuEvidence?.inventory?.ready === true
     && globalThis.window.__nimiZhiyuEvidence?.inventory?.count === 2, 'two-agent Runtime inventory');

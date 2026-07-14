@@ -16,10 +16,7 @@ const rendererSessionSource = readFileSync(
   new URL('../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts', import.meta.url),
   'utf8',
 );
-const electronRuntimeAuthSource = readFileSync(
-  new URL('../src-electron/runtime-auth.ts', import.meta.url),
-  'utf8',
-);
+const electronMainSource = readFileSync(new URL('../src-electron/main.ts', import.meta.url), 'utf8');
 
 test('Desktop Runtime account contract keeps protected scopes in a single shared authority', () => {
   assert.equal(PLATFORM_RUNTIME_SESSION_DEVICE_ID, 'platform-runtime-session');
@@ -60,9 +57,7 @@ test('Desktop renderer consumes the shared Runtime account contract instead of l
   assert.doesNotMatch(rendererSessionSource, /function buildDesktopRuntimeProtectedScopeSignature/u);
 });
 
-test('Desktop Electron host consumes the same contract and is not tester developer registration', () => {
-  assert.match(electronRuntimeAuthSource, /from ['"]\.\.\/src\/shell\/shared\/runtime-account-contract\.js/u);
-  assert.match(electronRuntimeAuthSource, /createNimiDesktopShellRuntimeAccountCaller/u);
-  assert.doesNotMatch(electronRuntimeAuthSource, /createNimiDeveloperRegisteredRuntimeAccountCaller/u);
-  assert.doesNotMatch(electronRuntimeAuthSource, /developerRegistration:\s*true/u);
+test('Desktop Electron host exposes no ordinary Runtime account metadata provider', () => {
+  assert.doesNotMatch(electronMainSource, /trustedRuntimeMetadataProvider|runtime-auth\.js/u);
+  assert.match(electronMainSource, /createDesktopElectronProductControlHost/u);
 });

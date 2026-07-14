@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
@@ -10,7 +10,13 @@ import {
   type NimiElectronStandardShellHost,
 } from '../src/main/index.js';
 import { FakeElectronProtocol } from './fake-electron-protocol.js';
-import { FakeIpcMain, createInvokeEvent, invokeBridge, withTempDir } from './electron-shell-test-utils.js';
+import {
+  FakeIpcMain,
+  createInvokeEvent,
+  invokeBridge,
+  replaceManagedFileWithPathEscape,
+  withTempDir,
+} from './electron-shell-test-utils.js';
 
 const VALID_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 
@@ -261,11 +267,12 @@ describe('Electron Agent Center scoped custody', () => {
       await rm(extraDirectory, { recursive: true });
 
       const manifestPathA = path.join(custodyDirA, 'live2d-adapter.json');
-      await rm(manifestPathA);
-      await symlink(sidecar, manifestPathA);
-      await expect(reuse()).rejects.toMatchObject({ code: 'invalid-path' });
-      await rm(manifestPathA);
-      await writeFile(manifestPathA, await readFile(sidecar));
+      const restoreManifest = await replaceManagedFileWithPathEscape(manifestPathA, sidecar, root);
+      try {
+        await expect(reuse()).rejects.toMatchObject({ code: 'invalid-path' });
+      } finally {
+        await restoreManifest();
+      }
 
       await writeFile(custodyPathA, JSON.stringify({ ...custodyA, local_asset_id: secondRefA }));
       await expect(reuse()).rejects.toMatchObject({ code: 'invalid-payload' });
@@ -425,15 +432,18 @@ describe('Electron Agent Center scoped custody', () => {
 
       await writeFile(manifestPath, JSON.stringify(manifest));
       const imagePath = path.join(backgroundRoot, String(manifest.image_file));
-      await writeFile(path.join(root, 'outside.png'), VALID_PNG);
-      await rm(imagePath);
-      await symlink(path.join(root, 'outside.png'), imagePath);
-
-      await expect(invokeAgentCenter(
-        ipcMain,
-        NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet'],
-        { ...SCOPE_A, backgroundAssetRef: ref },
-      )).rejects.toMatchObject({ code: 'invalid-path' });
+      const outsideImagePath = path.join(root, 'outside.png');
+      await writeFile(outsideImagePath, VALID_PNG);
+      const restoreImage = await replaceManagedFileWithPathEscape(imagePath, outsideImagePath, root);
+      try {
+        await expect(invokeAgentCenter(
+          ipcMain,
+          NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet'],
+          { ...SCOPE_A, backgroundAssetRef: ref },
+        )).rejects.toMatchObject({ code: 'invalid-path' });
+      } finally {
+        await restoreImage();
+      }
     });
   });
 });

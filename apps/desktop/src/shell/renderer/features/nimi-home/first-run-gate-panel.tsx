@@ -32,6 +32,7 @@ function useProductControlRecord(): {
           exists: false,
           state: 'repair_required',
           record: null,
+          dataRootProposal: null,
           error: message,
         };
       });

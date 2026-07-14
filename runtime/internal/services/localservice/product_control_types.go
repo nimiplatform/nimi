@@ -72,11 +72,18 @@ type productRepairRecord struct {
 }
 
 type productControlRecordProjection struct {
-	Path   string                `json:"path"`
-	Exists bool                  `json:"exists"`
-	State  productControlState   `json:"state"`
-	Record *productControlRecord `json:"record"`
-	Error  *string               `json:"error"`
+	Path             string                          `json:"path"`
+	Exists           bool                            `json:"exists"`
+	State            productControlState             `json:"state"`
+	Record           *productControlRecord           `json:"record"`
+	DataRootProposal *productControlDataRootProposal `json:"dataRootProposal"`
+	Error            *string                         `json:"error"`
+}
+
+type productControlDataRootProposal struct {
+	Path      string `json:"path"`
+	Authority string `json:"authority"`
+	Profile   string `json:"profile"`
 }
 
 type productControlSelectedDataRootProjection struct {

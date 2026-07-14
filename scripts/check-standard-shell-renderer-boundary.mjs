@@ -12,7 +12,7 @@ const allowedRawTauriBootstrapFiles = new Set([
 ]);
 
 const standardCommandFiles = [
-  'installed-app.ts',
+  'local-app.ts',
   'oauth.ts',
   'runtime-daemon.ts',
   'runtime-defaults.ts',

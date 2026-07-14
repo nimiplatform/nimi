@@ -15,6 +15,50 @@ const EXECUTE_SCENARIO_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAiService/Exec
 const TEXT_GENERATE_ROUTE_DESCRIBE_EXTENSION_NAMESPACE: &str =
     "nimi.scenario.text_generate.route_describe";
 const RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES: usize = 32 * 1024 * 1024;
+const PROTECTED_DESKTOP_ACCOUNT_UNARY_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
+    "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
+    "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+    "/nimi.runtime.v1.RuntimeAccountService/Logout",
+    "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
+];
+const PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS: &[&str] = &[
+    super::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
+    super::RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID,
+    super::RUNTIME_LOCAL_LIST_LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD_ID,
+    super::RUNTIME_LOCAL_START_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID,
+    super::RUNTIME_LOCAL_CANCEL_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID,
+    super::RUNTIME_LOCAL_RETRY_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID,
+    super::RUNTIME_LOCAL_REPAIR_LOCAL_ENVIRONMENT_DEPENDENCY_METHOD_ID,
+    super::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
+    super::RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
+    super::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
+    super::RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
+    super::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID,
+    super::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID,
+    super::RUNTIME_LOCAL_ENSURE_PRODUCT_CONTROL_RECORD_CREATED_METHOD_ID,
+    super::RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
+    super::RUNTIME_LOCAL_SET_PRODUCT_CONTROL_FIRST_RUN_INSTALL_LEVEL_METHOD_ID,
+    super::RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
+    super::RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
+    super::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_ACCOUNT_DEFAULT_PROFILE_EVIDENCE_METHOD_ID,
+    super::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID,
+    super::RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UnaryTransport {
+    PublicRuntime,
+    ProtectedDesktop,
+}
+
+fn transport_for_public_unary(method_id: &str) -> UnaryTransport {
+    if PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS.contains(&method_id) {
+        UnaryTransport::ProtectedDesktop
+    } else {
+        UnaryTransport::PublicRuntime
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -219,19 +263,32 @@ fn validate_unary_method(method_id: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub async fn invoke_unary(
-    payload: &RuntimeBridgeUnaryPayload,
-) -> Result<RuntimeBridgeUnaryResult, String> {
-    validate_unary_method(payload.method_id.as_str())?;
+fn validate_desktop_account_unary_method(method_id: &str) -> Result<(), String> {
+    if !PROTECTED_DESKTOP_ACCOUNT_UNARY_METHODS.contains(&method_id) {
+        return Err(bridge_error(
+            "RUNTIME_BRIDGE_DESKTOP_ACCOUNT_METHOD_FORBIDDEN",
+            method_id,
+        ));
+    }
+    Ok(())
+}
 
+async fn invoke_validated_unary(
+    payload: &RuntimeBridgeUnaryPayload,
+    transport: UnaryTransport,
+) -> Result<RuntimeBridgeUnaryResult, String> {
     let request_bytes = decode_request_bytes(payload)?;
     debug_log_execute_scenario_route_describe_request(payload.method_id.as_str(), &request_bytes);
     let path = tonic::codegen::http::uri::PathAndQuery::from_maybe_shared(
         payload.method_id.trim().to_string(),
     )
     .map_err(|_| bridge_error("RUNTIME_BRIDGE_METHOD_INVALID", payload.method_id.as_str()))?;
-    let channel =
-        channel_pool::shared_unary_channel(super::daemon_manager::grpc_addr().as_str()).await?;
+    let channel = match transport {
+        UnaryTransport::PublicRuntime => {
+            channel_pool::shared_unary_channel(super::daemon_manager::grpc_addr().as_str()).await?
+        }
+        UnaryTransport::ProtectedDesktop => channel_pool::protected_desktop_unary_channel().await?,
+    };
     let mut grpc = Grpc::new(channel)
         .max_decoding_message_size(RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES);
 
@@ -271,6 +328,24 @@ pub async fn invoke_unary(
     })
 }
 
+pub async fn invoke_unary(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    validate_unary_method(payload.method_id.as_str())?;
+    invoke_validated_unary(
+        payload,
+        transport_for_public_unary(payload.method_id.as_str()),
+    )
+    .await
+}
+
+pub(super) async fn invoke_desktop_account_unary(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    validate_desktop_account_unary_method(payload.method_id.as_str())?;
+    invoke_validated_unary(payload, UnaryTransport::ProtectedDesktop).await
+}
+
 #[cfg(test)]
 mod tests {
     use base64::Engine;
@@ -278,7 +353,9 @@ mod tests {
 
     use super::{
         build_unary_payload, build_unary_payload_with_metadata, decode_request_bytes,
-        decode_unary_result, invoke_unary, validate_unary_method, RuntimeBridgeUnaryResult,
+        decode_unary_result, invoke_unary, transport_for_public_unary,
+        validate_desktop_account_unary_method, validate_unary_method, RuntimeBridgeUnaryResult,
+        UnaryTransport,
     };
     use crate::runtime_bridge::{generated, RuntimeBridgeMetadata, RuntimeBridgeUnaryPayload};
 
@@ -312,6 +389,64 @@ mod tests {
             .err()
             .unwrap_or_default()
             .contains("RUNTIME_BRIDGE_METHOD_FORBIDDEN"));
+    }
+
+    #[test]
+    fn protected_desktop_account_allowlist_is_private_and_exact() {
+        for method_id in [
+            "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
+            "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
+            "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+            "/nimi.runtime.v1.RuntimeAccountService/Logout",
+            "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
+        ] {
+            assert!(validate_desktop_account_unary_method(method_id).is_ok());
+            assert!(validate_unary_method(method_id).is_err());
+        }
+        for forbidden in [
+            "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+            "/nimi.runtime.v1.RuntimeAccountService/GetTokens",
+            "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+            "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
+        ] {
+            assert!(validate_desktop_account_unary_method(forbidden).is_err());
+        }
+    }
+
+    #[test]
+    fn desktop_product_control_methods_use_protected_transport_without_widening_local_service() {
+        for method_id in super::PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS {
+            assert_eq!(
+                transport_for_public_unary(method_id),
+                UnaryTransport::ProtectedDesktop
+            );
+        }
+        for public_method in [
+            "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
+            "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
+            "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+        ] {
+            assert_eq!(
+                transport_for_public_unary(public_method),
+                UnaryTransport::PublicRuntime
+            );
+        }
+    }
+
+    #[test]
+    fn desktop_first_run_dependency_job_controls_use_protected_transport() {
+        for method_id in [
+            "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
+            "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
+            "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
+            "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+        ] {
+            assert!(super::PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS.contains(&method_id));
+            assert_eq!(
+                transport_for_public_unary(method_id),
+                UnaryTransport::ProtectedDesktop
+            );
+        }
     }
 
     #[test]

@@ -8,7 +8,6 @@ export type FixtureProof = {
   readonly appId: typeof FIXTURE_APP_ID;
   readonly admissionTrack: 'admission-sandbox-ci';
   readonly productReadinessClaimAllowed: false;
-  readonly developerRegistration: false;
   readonly localAdoption: false;
   readonly scopeRef: NimiAppScopeRef;
   readonly realm: {
@@ -32,7 +31,6 @@ export function createInitialFixtureProof(): FixtureProof {
     appId: FIXTURE_APP_ID,
     admissionTrack: 'admission-sandbox-ci',
     productReadinessClaimAllowed: false,
-    developerRegistration: false,
     localAdoption: false,
     scopeRef: createAppScopeRef({ appId: FIXTURE_APP_ID, surfaceId: 'platform-proof' }),
     realm: {

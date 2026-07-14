@@ -846,6 +846,146 @@ export interface RevokeWorkspaceBindingResponse {
     productionInert: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppGrantProjection
+ */
+export interface LocalAppGrantProjection {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppGrantState state = 1
+     */
+    state: LocalAppGrantState;
+    /**
+     * @generated from protobuf field: string operation_id = 2
+     */
+    operationId: string;
+    /**
+     * @generated from protobuf field: string resource_ref = 3
+     */
+    resourceRef: string;
+    /**
+     * @generated from protobuf field: bytes request_id = 4
+     */
+    requestId: Uint8Array;
+    /**
+     * @generated from protobuf field: bytes grant_id = 5
+     */
+    grantId: Uint8Array;
+    /**
+     * @generated from protobuf field: uint64 grant_generation = 6
+     */
+    grantGeneration: string;
+    /**
+     * @generated from protobuf field: uint64 grant_revision = 7
+     */
+    grantRevision: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 8
+     */
+    expiresAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 9
+     */
+    reasonCode: ReasonCode;
+    /**
+     * Present only on the verified Desktop local_app_control projection. The
+     * local-app carrier never receives this host-private decision correlation.
+     *
+     * @generated from protobuf field: bytes presence_challenge_id = 10
+     */
+    presenceChallengeId: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppGrantStatusRequest
+ */
+export interface GetLocalAppGrantStatusRequest {
+    /**
+     * @generated from protobuf field: string operation_id = 1
+     */
+    operationId: string;
+    /**
+     * @generated from protobuf field: string resource_ref = 2
+     */
+    resourceRef: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppGrantStatusResponse
+ */
+export interface GetLocalAppGrantStatusResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppGrantProjection projection = 1
+     */
+    projection?: LocalAppGrantProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestLocalAppGrantRequest
+ */
+export interface RequestLocalAppGrantRequest {
+    /**
+     * @generated from protobuf field: string operation_id = 1
+     */
+    operationId: string;
+    /**
+     * @generated from protobuf field: string resource_ref = 2
+     */
+    resourceRef: string;
+    /**
+     * @generated from protobuf field: string purpose = 3
+     */
+    purpose: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestLocalAppGrantResponse
+ */
+export interface RequestLocalAppGrantResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppGrantProjection projection = 1
+     */
+    projection?: LocalAppGrantProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DecideLocalAppGrantRequest
+ */
+export interface DecideLocalAppGrantRequest {
+    /**
+     * @generated from protobuf field: bytes request_id = 1
+     */
+    requestId: Uint8Array;
+    /**
+     * @generated from protobuf field: bool approved = 2
+     */
+    approved: boolean;
+    /**
+     * @generated from protobuf field: bytes presence_challenge_id = 3
+     */
+    presenceChallengeId: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DecideLocalAppGrantResponse
+ */
+export interface DecideLocalAppGrantResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppGrantProjection projection = 1
+     */
+    projection?: LocalAppGrantProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RevokeLocalAppGrantRequest
+ */
+export interface RevokeLocalAppGrantRequest {
+    /**
+     * @generated from protobuf field: bytes grant_id = 1
+     */
+    grantId: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RevokeLocalAppGrantResponse
+ */
+export interface RevokeLocalAppGrantResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppGrantProjection projection = 1
+     */
+    projection?: LocalAppGrantProjection;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AccountSessionState
  */
 export enum AccountSessionState {
@@ -1163,13 +1303,9 @@ export enum AccountCallerMode {
      */
     EXTERNAL_PRINCIPAL = 6,
     /**
-     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP = 7;
+     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_LOCAL_APP = 9;
      */
-    LOCAL_DEVELOPER_APP = 7,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP = 8;
-     */
-    DESKTOP_LAUNCHED_NIMI_APP = 8
+    LOCAL_APP = 9
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScopedAppBindingState
@@ -1283,6 +1419,43 @@ export enum WorkspaceBindingState {
      * @generated from protobuf enum value: WORKSPACE_BINDING_STATE_EXPIRED = 4;
      */
     EXPIRED = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppGrantState
+ */
+export enum LocalAppGrantState {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_NO_GRANT = 1;
+     */
+    NO_GRANT = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_PENDING = 2;
+     */
+    PENDING = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_GRANTED = 3;
+     */
+    GRANTED = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_DENIED = 4;
+     */
+    DENIED = 4,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_EXPIRED = 5;
+     */
+    EXPIRED = 5,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_REVOKED = 6;
+     */
+    REVOKED = 6,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_STATE_SUPERSEDED = 7;
+     */
+    SUPERSEDED = 7
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class WorkspaceMembershipProjection$Type extends MessageType<WorkspaceMembershipProjection> {
@@ -3767,3 +3940,533 @@ class RevokeWorkspaceBindingResponse$Type extends MessageType<RevokeWorkspaceBin
  * @generated MessageType for protobuf message nimi.runtime.v1.RevokeWorkspaceBindingResponse
  */
 export const RevokeWorkspaceBindingResponse = new RevokeWorkspaceBindingResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppGrantProjection$Type extends MessageType<LocalAppGrantProjection> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppGrantProjection", [
+            { no: 1, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppGrantState", LocalAppGrantState, "LOCAL_APP_GRANT_STATE_"] },
+            { no: 2, name: "operation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "resource_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "request_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 5, name: "grant_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 6, name: "grant_generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "grant_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 8, name: "expires_at", kind: "message", T: () => Timestamp },
+            { no: 9, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 10, name: "presence_challenge_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppGrantProjection>): LocalAppGrantProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.state = 0;
+        message.operationId = "";
+        message.resourceRef = "";
+        message.requestId = new Uint8Array(0);
+        message.grantId = new Uint8Array(0);
+        message.grantGeneration = "0";
+        message.grantRevision = "0";
+        message.reasonCode = 0;
+        message.presenceChallengeId = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppGrantProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppGrantProjection): LocalAppGrantProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppGrantState state */ 1:
+                    message.state = reader.int32();
+                    break;
+                case /* string operation_id */ 2:
+                    message.operationId = reader.string();
+                    break;
+                case /* string resource_ref */ 3:
+                    message.resourceRef = reader.string();
+                    break;
+                case /* bytes request_id */ 4:
+                    message.requestId = reader.bytes();
+                    break;
+                case /* bytes grant_id */ 5:
+                    message.grantId = reader.bytes();
+                    break;
+                case /* uint64 grant_generation */ 6:
+                    message.grantGeneration = reader.uint64().toString();
+                    break;
+                case /* uint64 grant_revision */ 7:
+                    message.grantRevision = reader.uint64().toString();
+                    break;
+                case /* google.protobuf.Timestamp expires_at */ 8:
+                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 9:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* bytes presence_challenge_id */ 10:
+                    message.presenceChallengeId = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppGrantProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppGrantState state = 1; */
+        if (message.state !== 0)
+            writer.tag(1, WireType.Varint).int32(message.state);
+        /* string operation_id = 2; */
+        if (message.operationId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.operationId);
+        /* string resource_ref = 3; */
+        if (message.resourceRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.resourceRef);
+        /* bytes request_id = 4; */
+        if (message.requestId.length)
+            writer.tag(4, WireType.LengthDelimited).bytes(message.requestId);
+        /* bytes grant_id = 5; */
+        if (message.grantId.length)
+            writer.tag(5, WireType.LengthDelimited).bytes(message.grantId);
+        /* uint64 grant_generation = 6; */
+        if (message.grantGeneration !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.grantGeneration);
+        /* uint64 grant_revision = 7; */
+        if (message.grantRevision !== "0")
+            writer.tag(7, WireType.Varint).uint64(message.grantRevision);
+        /* google.protobuf.Timestamp expires_at = 8; */
+        if (message.expiresAt)
+            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 9; */
+        if (message.reasonCode !== 0)
+            writer.tag(9, WireType.Varint).int32(message.reasonCode);
+        /* bytes presence_challenge_id = 10; */
+        if (message.presenceChallengeId.length)
+            writer.tag(10, WireType.LengthDelimited).bytes(message.presenceChallengeId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppGrantProjection
+ */
+export const LocalAppGrantProjection = new LocalAppGrantProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppGrantStatusRequest$Type extends MessageType<GetLocalAppGrantStatusRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppGrantStatusRequest", [
+            { no: 1, name: "operation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "resource_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppGrantStatusRequest>): GetLocalAppGrantStatusRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.operationId = "";
+        message.resourceRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppGrantStatusRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppGrantStatusRequest): GetLocalAppGrantStatusRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string operation_id */ 1:
+                    message.operationId = reader.string();
+                    break;
+                case /* string resource_ref */ 2:
+                    message.resourceRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppGrantStatusRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string operation_id = 1; */
+        if (message.operationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.operationId);
+        /* string resource_ref = 2; */
+        if (message.resourceRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.resourceRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppGrantStatusRequest
+ */
+export const GetLocalAppGrantStatusRequest = new GetLocalAppGrantStatusRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppGrantStatusResponse$Type extends MessageType<GetLocalAppGrantStatusResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppGrantStatusResponse", [
+            { no: 1, name: "projection", kind: "message", T: () => LocalAppGrantProjection }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppGrantStatusResponse>): GetLocalAppGrantStatusResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppGrantStatusResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppGrantStatusResponse): GetLocalAppGrantStatusResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppGrantProjection projection */ 1:
+                    message.projection = LocalAppGrantProjection.internalBinaryRead(reader, reader.uint32(), options, message.projection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppGrantStatusResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppGrantProjection projection = 1; */
+        if (message.projection)
+            LocalAppGrantProjection.internalBinaryWrite(message.projection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppGrantStatusResponse
+ */
+export const GetLocalAppGrantStatusResponse = new GetLocalAppGrantStatusResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestLocalAppGrantRequest$Type extends MessageType<RequestLocalAppGrantRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RequestLocalAppGrantRequest", [
+            { no: 1, name: "operation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "resource_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RequestLocalAppGrantRequest>): RequestLocalAppGrantRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.operationId = "";
+        message.resourceRef = "";
+        message.purpose = "";
+        if (value !== undefined)
+            reflectionMergePartial<RequestLocalAppGrantRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestLocalAppGrantRequest): RequestLocalAppGrantRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string operation_id */ 1:
+                    message.operationId = reader.string();
+                    break;
+                case /* string resource_ref */ 2:
+                    message.resourceRef = reader.string();
+                    break;
+                case /* string purpose */ 3:
+                    message.purpose = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestLocalAppGrantRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string operation_id = 1; */
+        if (message.operationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.operationId);
+        /* string resource_ref = 2; */
+        if (message.resourceRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.resourceRef);
+        /* string purpose = 3; */
+        if (message.purpose !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.purpose);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestLocalAppGrantRequest
+ */
+export const RequestLocalAppGrantRequest = new RequestLocalAppGrantRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestLocalAppGrantResponse$Type extends MessageType<RequestLocalAppGrantResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RequestLocalAppGrantResponse", [
+            { no: 1, name: "projection", kind: "message", T: () => LocalAppGrantProjection }
+        ]);
+    }
+    create(value?: PartialMessage<RequestLocalAppGrantResponse>): RequestLocalAppGrantResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RequestLocalAppGrantResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestLocalAppGrantResponse): RequestLocalAppGrantResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppGrantProjection projection */ 1:
+                    message.projection = LocalAppGrantProjection.internalBinaryRead(reader, reader.uint32(), options, message.projection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestLocalAppGrantResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppGrantProjection projection = 1; */
+        if (message.projection)
+            LocalAppGrantProjection.internalBinaryWrite(message.projection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestLocalAppGrantResponse
+ */
+export const RequestLocalAppGrantResponse = new RequestLocalAppGrantResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DecideLocalAppGrantRequest$Type extends MessageType<DecideLocalAppGrantRequest> {
+    constructor() {
+        super("nimi.runtime.v1.DecideLocalAppGrantRequest", [
+            { no: 1, name: "request_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "approved", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "presence_challenge_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DecideLocalAppGrantRequest>): DecideLocalAppGrantRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.requestId = new Uint8Array(0);
+        message.approved = false;
+        message.presenceChallengeId = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<DecideLocalAppGrantRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DecideLocalAppGrantRequest): DecideLocalAppGrantRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes request_id */ 1:
+                    message.requestId = reader.bytes();
+                    break;
+                case /* bool approved */ 2:
+                    message.approved = reader.bool();
+                    break;
+                case /* bytes presence_challenge_id */ 3:
+                    message.presenceChallengeId = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DecideLocalAppGrantRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes request_id = 1; */
+        if (message.requestId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.requestId);
+        /* bool approved = 2; */
+        if (message.approved !== false)
+            writer.tag(2, WireType.Varint).bool(message.approved);
+        /* bytes presence_challenge_id = 3; */
+        if (message.presenceChallengeId.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.presenceChallengeId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DecideLocalAppGrantRequest
+ */
+export const DecideLocalAppGrantRequest = new DecideLocalAppGrantRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DecideLocalAppGrantResponse$Type extends MessageType<DecideLocalAppGrantResponse> {
+    constructor() {
+        super("nimi.runtime.v1.DecideLocalAppGrantResponse", [
+            { no: 1, name: "projection", kind: "message", T: () => LocalAppGrantProjection }
+        ]);
+    }
+    create(value?: PartialMessage<DecideLocalAppGrantResponse>): DecideLocalAppGrantResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<DecideLocalAppGrantResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DecideLocalAppGrantResponse): DecideLocalAppGrantResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppGrantProjection projection */ 1:
+                    message.projection = LocalAppGrantProjection.internalBinaryRead(reader, reader.uint32(), options, message.projection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DecideLocalAppGrantResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppGrantProjection projection = 1; */
+        if (message.projection)
+            LocalAppGrantProjection.internalBinaryWrite(message.projection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DecideLocalAppGrantResponse
+ */
+export const DecideLocalAppGrantResponse = new DecideLocalAppGrantResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevokeLocalAppGrantRequest$Type extends MessageType<RevokeLocalAppGrantRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RevokeLocalAppGrantRequest", [
+            { no: 1, name: "grant_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RevokeLocalAppGrantRequest>): RevokeLocalAppGrantRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.grantId = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<RevokeLocalAppGrantRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevokeLocalAppGrantRequest): RevokeLocalAppGrantRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes grant_id */ 1:
+                    message.grantId = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevokeLocalAppGrantRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes grant_id = 1; */
+        if (message.grantId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.grantId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevokeLocalAppGrantRequest
+ */
+export const RevokeLocalAppGrantRequest = new RevokeLocalAppGrantRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevokeLocalAppGrantResponse$Type extends MessageType<RevokeLocalAppGrantResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RevokeLocalAppGrantResponse", [
+            { no: 1, name: "projection", kind: "message", T: () => LocalAppGrantProjection }
+        ]);
+    }
+    create(value?: PartialMessage<RevokeLocalAppGrantResponse>): RevokeLocalAppGrantResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RevokeLocalAppGrantResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevokeLocalAppGrantResponse): RevokeLocalAppGrantResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppGrantProjection projection */ 1:
+                    message.projection = LocalAppGrantProjection.internalBinaryRead(reader, reader.uint32(), options, message.projection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevokeLocalAppGrantResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppGrantProjection projection = 1; */
+        if (message.projection)
+            LocalAppGrantProjection.internalBinaryWrite(message.projection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevokeLocalAppGrantResponse
+ */
+export const RevokeLocalAppGrantResponse = new RevokeLocalAppGrantResponse$Type();

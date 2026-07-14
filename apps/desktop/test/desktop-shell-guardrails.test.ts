@@ -157,8 +157,9 @@ test('Desktop auth custody stays RuntimeAccountService-owned', () => {
   assert.doesNotMatch(commandRegistrationSource, /auth_session_load|auth_session_save|auth_session_clear/);
   assert.doesNotMatch(commandRegistrationSource, /AuthSession|AUTH_SESSION_COMMANDS/);
   assert.doesNotMatch(ipcCommandsSource, /auth_session_load|Kit shared auth session surface/);
-  assert.match(tauriBootstrapSource, /RuntimeBridgeHostAppSessionProvider/);
-  assert.match(tauriBootstrapSource, /RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST/);
+  assert.match(tauriBootstrapSource, /DESKTOP_CONTROL_TRANSPORT_REQUIRED/);
+  assert.doesNotMatch(tauriBootstrapSource, /desktop-tauri-account-host|RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST/);
+  assert.doesNotMatch(tauriBootstrapSource, /RuntimeBridgeHostAppSessionProvider|app_session:\s*Some/);
 });
 
 test('proxyHttp fallback blocks private-network absolute URLs outside the app origin', async () => {
@@ -254,7 +255,7 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.doesNotMatch(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller/);
   assert.match(desktopClientSessionSource, /createNimiDesktopShellRuntimeAccountCaller/);
   assert.doesNotMatch(desktopClientSessionSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
-  assert.match(desktopClientSessionSource, /desktop shell Runtime account caller registration rejected/);
+  assert.doesNotMatch(desktopClientSessionSource, /createNimiRuntimeFullAppRegistration|registerApp\(/);
   assert.match(logoutSource, /getDesktopRuntimeAccountCaller/);
   assert.doesNotMatch(logoutSource, /createNimiDesktopShellRuntimeAccountCaller|createDesktopShellRuntimeAccountCaller/);
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);

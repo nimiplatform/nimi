@@ -42,7 +42,6 @@ import {
 } from './wire-types/agent-participation-enums';
 import {
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -83,7 +82,6 @@ export interface NimiRuntimeAgentMaterializationModule {
 export interface NimiRuntimeAgentMaterializationRuntime {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: NimiRuntimeAgentMaterializationModule;
 }
 

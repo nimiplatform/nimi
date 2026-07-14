@@ -47,6 +47,10 @@ func accountTestProcess(pid uint32, principal string, executable string, digest 
 }
 
 func protectedDesktopAccountContext(t *testing.T) context.Context {
+	return protectedDesktopAccountContextForCaller(t, desktopAccountControlCaller())
+}
+
+func protectedDesktopAccountContextForCaller(t *testing.T, caller *runtimev1.AccountCaller) context.Context {
 	t.Helper()
 	connection, err := protectedlocal.EstablishDesktopConnection(
 		context.Background(),
@@ -63,7 +67,14 @@ func protectedDesktopAccountContext(t *testing.T) context.Context {
 	if err != nil {
 		t.Fatalf("establish protected Desktop account context: %v", err)
 	}
-	return protectedlocal.ContextWithDesktopConnection(context.Background(), connection)
+	ctx := protectedlocal.ContextWithDesktopConnection(context.Background(), connection)
+	return metadata.NewIncomingContext(ctx, metadata.Pairs(
+		"x-nimi-source-host", protectedLocalDesktopAccountSourceHost,
+		"x-nimi-caller-kind", "desktop-shell",
+		"x-nimi-app-id", caller.GetAppId(),
+		"x-nimi-app-instance-id", caller.GetAppInstanceId(),
+		"x-nimi-device-id", caller.GetDeviceId(),
+	))
 }
 
 func TestDesktopAccountHostRequiresProtectedDesktopOrigin(t *testing.T) {
@@ -72,6 +83,22 @@ func TestDesktopAccountHostRequiresProtectedDesktopOrigin(t *testing.T) {
 
 	if reason, ok := svc.validateDesktopAccountHost(protectedDesktopAccountContext(t), caller); !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 		t.Fatalf("protected Desktop account origin rejected: ok=%v reason=%v", ok, reason)
+	}
+
+	for _, retiredSourceHost := range []string{"desktop-tauri-account-host", "desktop-electron-account-host"} {
+		retiredContext := metadata.NewIncomingContext(
+			protectedlocal.ContextWithDesktopConnection(context.Background(), mustAccountTestDesktopConnection(t)),
+			metadata.Pairs(
+				"x-nimi-source-host", retiredSourceHost,
+				"x-nimi-caller-kind", "desktop-shell",
+				"x-nimi-app-id", caller.GetAppId(),
+				"x-nimi-app-instance-id", caller.GetAppInstanceId(),
+				"x-nimi-device-id", caller.GetDeviceId(),
+			),
+		)
+		if reason, ok := svc.validateDesktopAccountHost(retiredContext, caller); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH {
+			t.Fatalf("retired source host %q must not authorize: ok=%v reason=%v", retiredSourceHost, ok, reason)
+		}
 	}
 
 	legacyEnvelope := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
@@ -85,6 +112,32 @@ func TestDesktopAccountHostRequiresProtectedDesktopOrigin(t *testing.T) {
 	if reason, ok := svc.validateDesktopAccountHost(legacyEnvelope, caller); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH {
 		t.Fatalf("metadata/session envelope must not establish Desktop account origin: ok=%v reason=%v", ok, reason)
 	}
+
+	mismatched := desktopAccountControlCaller()
+	mismatched.DeviceId = "renderer-selected-device"
+	if reason, ok := svc.validateDesktopAccountHost(protectedDesktopAccountContext(t), mismatched); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH {
+		t.Fatalf("renderer-selected Desktop caller fields must not override the host envelope: ok=%v reason=%v", ok, reason)
+	}
+}
+
+func mustAccountTestDesktopConnection(t *testing.T) *protectedlocal.Connection {
+	t.Helper()
+	connection, err := protectedlocal.EstablishDesktopConnection(
+		context.Background(),
+		accountTestDesktopVerifier{peers: protectedlocal.VerifiedDesktopPeers{
+			Client:             accountTestProcess(303, "interactive-user", "nimi-desktop", 0x71),
+			Server:             accountTestProcess(404, "runtime-service", "nimi-runtime", 0x72),
+			ClientLiveness:     &accountTestDesktopLiveness{revoked: make(chan struct{})},
+			RuntimeBootEpoch:   accountTestIdentifier(0x73),
+			EndpointInstanceID: accountTestIdentifier(0x74),
+			TranscriptNonce:    accountTestIdentifier(0x75),
+		}},
+		bytes.NewReader(bytes.Repeat([]byte{0x76}, protectedlocal.IdentifierBytes)),
+	)
+	if err != nil {
+		t.Fatalf("establish retired-host test connection: %v", err)
+	}
+	return connection
 }
 
 func TestProtectedDesktopAccountStatusDoesNotDependOnGenericAppRegistry(t *testing.T) {
@@ -99,7 +152,7 @@ func TestProtectedDesktopAccountStatusDoesNotDependOnGenericAppRegistry(t *testi
 	caller.DeviceId = "desktop-shell"
 
 	status, err := svc.GetAccountSessionStatus(
-		protectedDesktopAccountContext(t),
+		protectedDesktopAccountContextForCaller(t, caller),
 		&runtimev1.GetAccountSessionStatusRequest{Caller: caller},
 	)
 	if err != nil {
@@ -121,5 +174,37 @@ func TestProtectedDesktopAccountStatusDoesNotDependOnGenericAppRegistry(t *testi
 	if rejected.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
 		rejected.GetAccountProjection() != nil {
 		t.Fatalf("unprotected Desktop account status must remain rejected: %+v", rejected)
+	}
+}
+
+func TestProtectedDesktopAccountControlDoesNotDependOnGenericAppRegistry(t *testing.T) {
+	svc := newProductionHarnessService(t, &memoryCustody{})
+	svc.registry = nil
+	caller := desktopAccountControlCaller()
+
+	begin, err := svc.BeginLogin(
+		protectedDesktopAccountContextForCaller(t, caller),
+		&runtimev1.BeginLoginRequest{
+			Caller:         caller,
+			RedirectUri:    "http://127.0.0.1:46373/auth/callback",
+			CallbackOrigin: "http://127.0.0.1:46373",
+		},
+	)
+	if err != nil {
+		t.Fatalf("BeginLogin: %v", err)
+	}
+	if !begin.GetAccepted() || begin.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("protected Desktop account control rejected without generic registry: %+v", begin)
+	}
+
+	rejected, err := svc.BeginLogin(
+		context.Background(),
+		&runtimev1.BeginLoginRequest{Caller: caller},
+	)
+	if err != nil {
+		t.Fatalf("BeginLogin without protected origin: %v", err)
+	}
+	if rejected.GetAccepted() || rejected.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH {
+		t.Fatalf("unprotected Desktop account control must remain rejected: %+v", rejected)
 	}
 }

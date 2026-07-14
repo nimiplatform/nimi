@@ -10,10 +10,10 @@ const (
 	WindowsE2EVirtualServiceAccount = `NT SERVICE\NimiRuntimeE2EVirtual`
 	WindowsE2EVirtualServiceSID     = "S-1-5-80-614952668-3885649176-109076348-3419474809-3167076013"
 
-	WindowsE2EDesktopPipeName          = `\\.\pipe\nimi-runtime-e2e-protected-v1`
-	WindowsE2EInstalledPipeName        = `\\.\pipe\nimi-runtime-e2e-installed-v1`
-	WindowsE2EVirtualDesktopPipeName   = `\\.\pipe\nimi-runtime-e2e-virtual-protected-v1`
-	WindowsE2EVirtualInstalledPipeName = `\\.\pipe\nimi-runtime-e2e-virtual-installed-v1`
+	WindowsE2EDesktopPipeName         = `\\.\pipe\nimi-runtime-e2e-protected-v1`
+	WindowsE2ELocalAppPipeName        = `\\.\pipe\nimi-runtime-e2e-local-app-v1`
+	WindowsE2EVirtualDesktopPipeName  = `\\.\pipe\nimi-runtime-e2e-virtual-protected-v1`
+	WindowsE2EVirtualLocalAppPipeName = `\\.\pipe\nimi-runtime-e2e-virtual-local-app-v1`
 
 	WindowsDesktopE2ETrustSetID        = "nimi-desktop-e2e-fixture-v1"
 	WindowsRuntimeE2ETrustSetID        = "nimi-runtime-e2e-fixture-v1"
@@ -30,7 +30,7 @@ type windowsRuntimeProfile struct {
 	serviceHostSID        string
 	custodyDescriptor     string
 	desktopPipeName       string
-	installedPipeName     string
+	localAppPipeName      string
 	runtimeTrustSetID     string
 	desktopTrustSetID     string
 	runtimeExecutableName string
@@ -42,7 +42,7 @@ type windowsRuntimeProfile struct {
 func (profile windowsRuntimeProfile) validate() error {
 	if profile.id == "" || profile.serviceName == "" || profile.serviceAccount == "" ||
 		profile.serviceSID == "" || profile.serviceHostAccount == "" || profile.serviceHostSID == "" || profile.custodyDescriptor == "" ||
-		profile.desktopPipeName == "" || profile.installedPipeName == "" ||
+		profile.desktopPipeName == "" || profile.localAppPipeName == "" ||
 		profile.runtimeTrustSetID == "" || profile.desktopTrustSetID == "" ||
 		profile.runtimeExecutableName == "" || profile.desktopExecutableName == "" ||
 		profile.stateRelativePath == "" {
@@ -56,14 +56,14 @@ func (profile windowsRuntimeProfile) validate() error {
 			valid = valid && profile.serviceName == WindowsE2EServiceName &&
 				profile.serviceAccount == WindowsE2EServiceAccount && profile.serviceSID == WindowsE2EServiceSID &&
 				profile.serviceHostAccount == WindowsServiceHostAccount && profile.serviceHostSID == WindowsServiceHostSID &&
-				profile.desktopPipeName == WindowsE2EDesktopPipeName && profile.installedPipeName == WindowsE2EInstalledPipeName &&
+				profile.desktopPipeName == WindowsE2EDesktopPipeName && profile.localAppPipeName == WindowsE2ELocalAppPipeName &&
 				profile.runtimeTrustSetID == WindowsRuntimeE2ETrustSetID && profile.desktopTrustSetID == WindowsDesktopE2ETrustSetID &&
 				profile.runtimeExecutableName == "nimi-runtime-e2e.exe" && profile.stateRelativePath == `Nimi\Runtime\E2E`
 		case "windows-e2e-virtual-v1":
 			valid = valid && profile.serviceName == WindowsE2EVirtualServiceName &&
 				profile.serviceAccount == WindowsE2EVirtualServiceAccount && profile.serviceSID == WindowsE2EVirtualServiceSID &&
 				profile.serviceHostAccount == WindowsE2EVirtualServiceAccount && profile.serviceHostSID == WindowsE2EVirtualServiceSID &&
-				profile.desktopPipeName == WindowsE2EVirtualDesktopPipeName && profile.installedPipeName == WindowsE2EVirtualInstalledPipeName &&
+				profile.desktopPipeName == WindowsE2EVirtualDesktopPipeName && profile.localAppPipeName == WindowsE2EVirtualLocalAppPipeName &&
 				profile.runtimeTrustSetID == WindowsRuntimeE2EVirtualTrustSetID && profile.desktopTrustSetID == WindowsDesktopE2EVirtualTrustSetID &&
 				profile.runtimeExecutableName == "nimi-runtime-e2e-virtual.exe" && profile.stateRelativePath == `Nimi\Runtime\E2E-Virtual`
 		default:
@@ -82,7 +82,7 @@ func (profile windowsRuntimeProfile) validate() error {
 		profile.serviceHostSID != WindowsServiceHostSID ||
 		profile.custodyDescriptor != windowsDPAPINGLocalUserDescriptor ||
 		profile.desktopPipeName != WindowsProductionDesktopPipeName ||
-		profile.installedPipeName != WindowsProductionInstalledPipeName ||
+		profile.localAppPipeName != WindowsProductionLocalAppPipeName ||
 		profile.runtimeTrustSetID != WindowsRuntimeProductionTrustSetID ||
 		profile.desktopTrustSetID != WindowsDesktopProductionTrustSetID ||
 		profile.runtimeExecutableName != "nimi.exe" ||

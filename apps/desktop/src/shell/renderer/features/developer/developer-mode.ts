@@ -1,58 +1,109 @@
-/**
- * Developer Mode gating resolver (`D-DEV-002`, `D-DEV-007`).
- *
- * Developer Mode is the single discoverable switch that controls every
- * developer / internal surface. Per `D-DEV-002` it MUST be reachable from a
- * discoverable in-app location (canonically `Settings`) and MUST NOT be
- * reachable only through launch parameters or environment variables.
- *
- * The developer-surface feature flag `enableDeveloperTools` is NOT a static
- * build flag — its effective runtime value is derived from the admitted
- * Developer Mode preference. `D-DEV-007` requires every developer
- * surface to default to invisible / unreachable; that default is satisfied
- * because Developer Mode defaults to `false` (`settings-storage.ts`).
- *
- * This module is the one place the renderer consults to answer "is this
- * developer surface reachable?". It never invents product truth — it only
- * reads the admitted `developerMode` preference.
- */
+import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { invokeChecked } from '@renderer/bridge/runtime-bridge/invoke';
 
-import {
-  loadStoredPerformancePreferences,
-  subscribeStoredPerformancePreferences,
-} from '@renderer/features/settings/settings-storage';
+export type DeveloperModeProjection = {
+  readonly state: 'disabled' | 'enabled' | 'unavailable';
+  readonly enabled: boolean;
+  readonly revision: number;
+  readonly accountGeneration: number;
+  readonly reasonCode: string;
+  readonly retryable: boolean;
+};
+
+const subscribers = new Set<(enabled: boolean) => void>();
+let current: DeveloperModeProjection = unavailable('protected-carrier-required', false);
+let refreshInFlight: Promise<DeveloperModeProjection> | undefined;
 
 /**
- * The admitted Developer Mode state. `true` only when the user has explicitly
- * enabled Developer Mode from the discoverable Settings toggle.
+ * Returns only the last Runtime-derived projection. The safe initial value is
+ * disabled; renderer storage and launch flags never create Developer Mode.
  */
 export function isDeveloperModeEnabled(): boolean {
-  return loadStoredPerformancePreferences().developerMode === true;
+  return current.state === 'enabled' && current.enabled;
 }
 
-/**
- * `enableDeveloperTools` (`D-DEV-001`) — the `Developer Tools` developer-group
- * surface is reachable only behind admitted Developer Mode. There is no
- * separate persisted flag: the surface gate IS Developer Mode.
- */
 export function isDeveloperToolsEnabled(): boolean {
   return isDeveloperModeEnabled();
 }
 
-/**
- * Subscribe to Developer Mode changes. The callback fires whenever the user
- * toggles Developer Mode from the discoverable Settings entry, so gated
- * surfaces can react immediately without a reload.
- */
 export function subscribeDeveloperMode(onChange: (enabled: boolean) => void): () => void {
-  return subscribeStoredPerformancePreferences((prefs) => {
-    onChange(prefs.developerMode === true);
-  });
+  subscribers.add(onChange);
+  if (!refreshInFlight && hasShellHostInvoke()) {
+    refreshInFlight = refreshDeveloperMode().finally(() => {
+      refreshInFlight = undefined;
+    });
+    void refreshInFlight.catch(() => undefined);
+  }
+  return () => subscribers.delete(onChange);
 }
 
-/**
- * Persist a Developer Mode change. The actual write goes through the canonical
- * performance-preferences store so a single source of truth is preserved;
- * callers use this from the discoverable toggle.
- */
-export { loadStoredPerformancePreferences, persistStoredPerformancePreferences } from '@renderer/features/settings/settings-storage';
+export async function refreshDeveloperMode(): Promise<DeveloperModeProjection> {
+  if (!hasShellHostInvoke()) {
+    return publish(unavailable('protected-carrier-required', false));
+  }
+  return publish(await invokeChecked('developer_mode_status', {}, parseProjection));
+}
+
+export async function setDeveloperMode(enabled: boolean): Promise<DeveloperModeProjection> {
+  if (!hasShellHostInvoke()) {
+    throw new Error('protected-carrier-required');
+  }
+  return publish(await invokeChecked(
+    'developer_mode_set',
+    { payload: { enabled } },
+    parseProjection,
+  ));
+}
+
+function publish(next: DeveloperModeProjection): DeveloperModeProjection {
+  const changed = current.enabled !== next.enabled || current.state !== next.state;
+  current = next;
+  if (changed) {
+    for (const subscriber of subscribers) subscriber(isDeveloperModeEnabled());
+  }
+  return next;
+}
+
+function parseProjection(value: unknown): DeveloperModeProjection {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('developer-mode-projection-invalid');
+  }
+  const record = value as Record<string, unknown>;
+  const exact = ['accountGeneration', 'enabled', 'reasonCode', 'retryable', 'revision', 'state'];
+  if (Object.keys(record).sort().join('|') !== exact.sort().join('|')) {
+    throw new Error('developer-mode-projection-invalid');
+  }
+  if (!['disabled', 'enabled', 'unavailable'].includes(String(record.state))
+    || typeof record.enabled !== 'boolean'
+    || typeof record.retryable !== 'boolean'
+    || typeof record.reasonCode !== 'string') {
+    throw new Error('developer-mode-projection-invalid');
+  }
+  const revision = Number(record.revision);
+  const accountGeneration = Number(record.accountGeneration);
+  if (!Number.isSafeInteger(revision) || revision < 0
+    || !Number.isSafeInteger(accountGeneration) || accountGeneration < 0
+    || (record.state === 'enabled') !== record.enabled
+    || (record.state !== 'unavailable' && (revision === 0 || accountGeneration === 0))) {
+    throw new Error('developer-mode-projection-invalid');
+  }
+  return {
+    state: record.state as DeveloperModeProjection['state'],
+    enabled: record.enabled,
+    revision,
+    accountGeneration,
+    reasonCode: record.reasonCode,
+    retryable: record.retryable,
+  };
+}
+
+function unavailable(reasonCode: string, retryable: boolean): DeveloperModeProjection {
+  return {
+    state: 'unavailable',
+    enabled: false,
+    revision: 0,
+    accountGeneration: 0,
+    reasonCode,
+    retryable,
+  };
+}

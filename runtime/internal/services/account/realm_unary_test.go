@@ -556,9 +556,8 @@ func TestInvokeRealmUnaryRejectsSignedUploadCredentialOperations(t *testing.T) {
 	}
 }
 
-func TestInvokeRealmUnaryRejectsUnadmittedRealmBaseAndDeveloperCaller(t *testing.T) {
-	developer := localDeveloperCaller()
-	registry := testDeveloperAppRegistry(t, developer)
+func TestInvokeRealmUnaryRejectsUnadmittedRealmBase(t *testing.T) {
+	registry := testAppRegistry(t, firstPartyCaller())
 	worldCaller := realmWorldStudioCaller()
 	if err := registry.UpsertInstance(worldCaller.GetAppId(), worldCaller.GetAppInstanceId(), worldCaller.GetDeviceId(), &runtimev1.AppModeManifest{
 		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -587,19 +586,6 @@ func TestInvokeRealmUnaryRejectsUnadmittedRealmBaseAndDeveloperCaller(t *testing
 	}
 	if foreign.GetAccepted() || foreign.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN || foreign.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED {
 		t.Fatalf("foreign Realm base URL must fail closed: %+v", foreign)
-	}
-
-	dev, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-		Caller:       developer,
-		MethodId:     "WorldCoreController_listWorldCores",
-		RealmBaseUrl: "https://realm.authorized.test",
-		RequestJson:  `{"path":{}}`,
-	})
-	if err != nil {
-		t.Fatalf("developer InvokeRealmUnary: %v", err)
-	}
-	if dev.GetAccepted() || dev.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED {
-		t.Fatalf("developer caller must not use Runtime Realm mediation: %+v", dev)
 	}
 }
 

@@ -1,12 +1,19 @@
 use nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile;
 use std::path::Path;
 
+#[path = "account_profile_library/constants.rs"]
 mod constants;
+#[path = "account_profile_library/factory.rs"]
 mod factory;
+#[path = "account_profile_library/hashing.rs"]
 mod hashing;
+#[path = "account_profile_library/paths.rs"]
 mod paths;
+#[path = "account_profile_library/record_io.rs"]
 mod record_io;
+#[path = "account_profile_library/types.rs"]
 mod types;
+#[path = "account_profile_library/validation.rs"]
 mod validation;
 
 use factory::new_profile_record;
@@ -139,4 +146,5 @@ pub fn ensure_account_default_profile(
 }
 
 #[cfg(test)]
+#[path = "account_profile_library/tests.rs"]
 mod tests;

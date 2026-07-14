@@ -3,7 +3,31 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
-pub const LOCAL_DEVELOPMENT_TRUST_CLASS: &str = "local-development-installed-admission";
+pub const LOCAL_DEVELOPMENT_TRUST_CLASS: &str = "local_development";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeveloperModeState {
+    Disabled,
+    Enabled,
+    Unavailable,
+}
+
+impl DeveloperModeState {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Disabled => "disabled",
+            Self::Enabled => "enabled",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DeveloperModeStatus {
+    pub state: DeveloperModeState,
+    pub revision: u64,
+    pub account_generation: u64,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalDevelopmentShellKind {
@@ -59,6 +83,7 @@ pub enum LocalDevelopmentAuthorizationState {
     ReapprovalRequired,
     Denied,
     Revoked,
+    Dormant,
 }
 
 impl LocalDevelopmentAuthorizationState {
@@ -69,6 +94,7 @@ impl LocalDevelopmentAuthorizationState {
             Self::ReapprovalRequired => "reapproval-required",
             Self::Denied => "denied",
             Self::Revoked => "revoked",
+            Self::Dormant => "dormant",
         }
     }
 }
@@ -118,6 +144,13 @@ pub struct LocalDevelopmentEvaluation {
 pub struct LocalDevelopmentDecisionRequest {
     pub evaluation_id: [u8; 32],
     pub decision: LocalDevelopmentDecision,
+    pub risk_disclosure_acknowledged: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentReactivationRequest {
+    pub authorization_id: [u8; 32],
+    pub risk_disclosure_acknowledged: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -144,53 +177,6 @@ pub struct LocalDevelopmentEndRunRequest {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AppHostTrustClass {
-    ProductionInstalled,
-    LocalDevelopment,
-}
-
-impl AppHostTrustClass {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::ProductionInstalled => "production-installed",
-            Self::LocalDevelopment => LOCAL_DEVELOPMENT_TRUST_CLASS,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AppHostBootstrapState {
-    Ready,
-    AuthorizationRequired,
-    Denied,
-    RuntimeUnavailable,
-    Revoked,
-    ProjectChanged,
-}
-
-impl AppHostBootstrapState {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Ready => "ready",
-            Self::AuthorizationRequired => "authorization-required",
-            Self::Denied => "denied",
-            Self::RuntimeUnavailable => "runtime-unavailable",
-            Self::Revoked => "revoked",
-            Self::ProjectChanged => "project-changed",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AppHostBootstrapStatus {
-    pub state: AppHostBootstrapState,
-    pub trust_class: AppHostTrustClass,
-    pub app_id: String,
-    pub bootstrap_artifact_id: Option<String>,
-    pub expires_at_unix_ms: i64,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NimiHostErrorReasonCode {
     ProtectedCarrierRequired,
     RuntimeServiceUnavailable,
@@ -206,6 +192,12 @@ pub enum NimiHostErrorReasonCode {
     LocalDevelopmentOperationForbidden,
     LocalDevelopmentDevServerUncontrolled,
     LocalDevelopmentApprovalDenied,
+    LocalAppGrantRequired,
+    LocalAppGrantRevoked,
+    LocalAppGrantSuperseded,
+    LocalAppPresenceRequired,
+    LocalAppPresenceExpired,
+    LocalAppOperationUnavailable,
 }
 
 impl NimiHostErrorReasonCode {
@@ -229,6 +221,12 @@ impl NimiHostErrorReasonCode {
                 "local-development-dev-server-uncontrolled"
             }
             Self::LocalDevelopmentApprovalDenied => "local-development-approval-denied",
+            Self::LocalAppGrantRequired => "local-app-grant-required",
+            Self::LocalAppGrantRevoked => "local-app-grant-revoked",
+            Self::LocalAppGrantSuperseded => "local-app-grant-superseded",
+            Self::LocalAppPresenceRequired => "local-app-presence-required",
+            Self::LocalAppPresenceExpired => "local-app-presence-expired",
+            Self::LocalAppOperationUnavailable => "local-app-operation-unavailable",
         }
     }
 }

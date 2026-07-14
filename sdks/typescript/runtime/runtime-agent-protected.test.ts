@@ -8,15 +8,9 @@ const runtime = {
   auth: {
     registerApp: async () => ({ accepted: true }),
   },
-  appAuth: {
-    authorizeExternalPrincipal: async () => ({
-      tokenId: 'public-grant-token',
-      secret: 'public-grant-secret',
-    }),
-  },
 };
 
-test('protected Agent calls fail closed instead of minting a public Grant credential', async () => {
+test('protected Agent calls fail closed without a Runtime-owned scope runner', async () => {
   let operationCalled = false;
 
   await assert.rejects(

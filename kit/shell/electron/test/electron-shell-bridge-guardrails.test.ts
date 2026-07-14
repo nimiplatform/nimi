@@ -14,7 +14,7 @@ import {
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_IDS,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
@@ -95,7 +95,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     }
   });
 
-  it('denies forbidden and A.1-planned commands before dispatch for installed Nimi App hosts', async () => {
+  it('denies forbidden and planned commands before dispatch for local-app hosts', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
       appId: 'community.nimi.fixture.platform-proof',
@@ -106,14 +106,11 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('forbidden command must not initialize Runtime client');
       },
       standardShellHost: {
-        capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
         localAgentIdentity: {
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'tester-runtime',
           localAgentRef: 'local-agent:opaque-tester-runtime',
-        },
-        runtimeTrustedCaller: {
-          mode: 'local-developer-app',
         },
       },
     });
@@ -138,7 +135,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         source: 'electron',
         details: {
           command,
-          capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
         },
       });
     }
@@ -155,7 +152,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('renderer-owned auth metadata must not reach Runtime client');
       },
       standardShellHost: {
-        capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       },
     });
     const protectedPayloads = [

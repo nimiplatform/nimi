@@ -1,0 +1,8 @@
+schema_version: 1
+app_id: nimi.zhiyu
+display_name: 知语 Zhiyu
+disposition: bundled_component_with_isolated_integration_build
+local_development:
+  electron:
+    renderer_origin: http://127.0.0.1:1472
+    execution_profile_ref: opaque:windows-native-electron-development-v1

@@ -28,7 +28,7 @@ pub(crate) fn parse_desktop_open_intent_envelope(
         source_host.as_str(),
         "electron-standard-shell"
             | "tauri-standard-shell"
-            | "desktop-electron-installed-app-host"
+            | "desktop-electron-local-app-host"
             | "dev-fixture"
     ) {
         return Err(invalid(

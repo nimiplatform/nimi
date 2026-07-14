@@ -8,24 +8,36 @@ pub use catalog::{
 
 pub mod runtime {
     pub use crate::runtime_bridge::{
-        bridge_error, build_unary_payload, build_unary_payload_with_metadata,
-        channel_invalidation_count, current_daemon_status, current_daemon_status_async,
-        decide_local_development_project, decode_unary_result, end_local_development_run,
-        evaluate_local_development_project, generated, generated_method_ids, http_addr,
-        invoke_unary_typed, invoke_unary_typed_with_metadata, is_allowlisted_method,
-        is_stream_method, launch_local_development_host, list_local_development_authorizations,
-        local_development_host_running, reset_channel_invalidation_count, restart_daemon_async,
-        revoke_local_development_authorization, set_runtime_bridge_host_hooks, start_daemon_async,
-        stream_event_name_with_namespace, terminate_local_development_host,
-        DesktopAccountSessionStatusRequest, LocalDevelopmentAuthorization,
+        begin_desktop_account_login, bridge_error, build_unary_payload,
+        build_unary_payload_with_metadata, channel_invalidation_count,
+        complete_desktop_account_login, current_daemon_status, current_daemon_status_async,
+        decide_local_app_grant, decide_local_development_project, decode_unary_result,
+        end_local_development_run, evaluate_local_development_project, generated,
+        generated_method_ids, get_developer_mode_status, http_addr,
+        invoke_desktop_account_realm_unary, invoke_unary_typed, invoke_unary_typed_with_metadata,
+        is_allowlisted_method, is_stream_method, launch_local_development_host,
+        list_local_development_authorizations, local_development_host_running,
+        logout_desktop_account, pending_local_app_grant, reactivate_local_development_project,
+        reset_channel_invalidation_count, restart_daemon_async, revoke_local_app_grant,
+        revoke_local_development_authorization, set_developer_mode, set_runtime_bridge_host_hooks,
+        start_daemon_async, stream_event_name_with_namespace, switch_desktop_account,
+        terminate_local_development_host, DesktopAccountSessionStatusRequest, DeveloperModeState,
+        DeveloperModeStatus, LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
+        LocalAppGrantControlProjection, LocalAppGrantControlState, LocalDevelopmentAuthorization,
         LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
         LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
         LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-        LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentShellKind,
-        NimiHostError, NimiHostErrorReasonCode, RuntimeBridgeAppHost, RuntimeBridgeAppHostError,
-        RuntimeBridgeAppSession, RuntimeBridgeDaemonStatus, RuntimeBridgeDesktopAccountProjection,
-        RuntimeBridgeDesktopAccountSessionStatus, RuntimeBridgeHostAppSessionConfig,
-        RuntimeBridgeHostAppSessionProvider, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
+        LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+        LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind, NimiHostError,
+        NimiHostErrorReasonCode, RuntimeBridgeAppSession, RuntimeBridgeDaemonStatus,
+        RuntimeBridgeDesktopAccountActionRequest, RuntimeBridgeDesktopAccountBeginLoginRequest,
+        RuntimeBridgeDesktopAccountBeginLoginResponse,
+        RuntimeBridgeDesktopAccountCompleteLoginRequest,
+        RuntimeBridgeDesktopAccountMutationResponse, RuntimeBridgeDesktopAccountProjection,
+        RuntimeBridgeDesktopAccountRealmUnaryRequest,
+        RuntimeBridgeDesktopAccountRealmUnaryResponse, RuntimeBridgeDesktopAccountSessionStatus,
+        RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
+        RuntimeBridgeHostHooks, RuntimeBridgeLocalAppHost, RuntimeBridgeMetadata,
         RuntimeBridgeProtectedAccessToken, RuntimeBridgeStreamClosePayload,
         RuntimeBridgeStreamOpenPayload, RuntimeBridgeStreamOpenResult,
         RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
@@ -38,10 +50,7 @@ pub mod runtime {
         RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID,
         RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID,
         RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
-        RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID,
-        RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID, RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
-        RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
-        RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
+        RUNTIME_AUTH_REGISTER_APP_METHOD_ID, RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
         RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
         RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
         RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
@@ -65,6 +74,41 @@ pub mod runtime {
     pub async fn runtime_account_session_status(
     ) -> Result<RuntimeBridgeDesktopAccountSessionStatus, String> {
         crate::runtime_bridge::runtime_account_session_status().await
+    }
+
+    #[tauri::command]
+    pub async fn runtime_account_begin_login(
+        payload: RuntimeBridgeDesktopAccountBeginLoginRequest,
+    ) -> Result<RuntimeBridgeDesktopAccountBeginLoginResponse, String> {
+        crate::runtime_bridge::begin_desktop_account_login(payload).await
+    }
+
+    #[tauri::command]
+    pub async fn runtime_account_complete_login(
+        payload: RuntimeBridgeDesktopAccountCompleteLoginRequest,
+    ) -> Result<RuntimeBridgeDesktopAccountMutationResponse, String> {
+        crate::runtime_bridge::complete_desktop_account_login(payload).await
+    }
+
+    #[tauri::command]
+    pub async fn runtime_account_invoke_realm_unary(
+        payload: RuntimeBridgeDesktopAccountRealmUnaryRequest,
+    ) -> Result<RuntimeBridgeDesktopAccountRealmUnaryResponse, String> {
+        crate::runtime_bridge::invoke_desktop_account_realm_unary(payload).await
+    }
+
+    #[tauri::command]
+    pub async fn runtime_account_logout(
+        payload: RuntimeBridgeDesktopAccountActionRequest,
+    ) -> Result<RuntimeBridgeDesktopAccountMutationResponse, String> {
+        crate::runtime_bridge::logout_desktop_account(payload).await
+    }
+
+    #[tauri::command]
+    pub async fn runtime_account_switch_account(
+        payload: RuntimeBridgeDesktopAccountActionRequest,
+    ) -> Result<RuntimeBridgeDesktopAccountMutationResponse, String> {
+        crate::runtime_bridge::switch_desktop_account(payload).await
     }
 
     #[tauri::command]
@@ -127,8 +171,8 @@ pub mod runtime_defaults {
 
 pub mod oauth {
     pub use crate::oauth_commands::{
-        OauthListenForCodePayload, OauthListenForCodeResult, OauthTokenExchangePayload,
-        OauthTokenExchangeResult, OpenExternalUrlPayload, OpenExternalUrlResult,
+        OauthListenForCodePayload, OauthListenForCodeResult, OpenExternalUrlPayload,
+        OpenExternalUrlResult,
     };
 
     #[tauri::command]
@@ -136,13 +180,6 @@ pub mod oauth {
         payload: OpenExternalUrlPayload,
     ) -> Result<OpenExternalUrlResult, String> {
         crate::oauth_commands::open_external_url(payload)
-    }
-
-    #[tauri::command]
-    pub async fn oauth_token_exchange(
-        payload: OauthTokenExchangePayload,
-    ) -> Result<OauthTokenExchangeResult, String> {
-        crate::oauth_commands::oauth_token_exchange(payload).await
     }
 
     #[tauri::command]
@@ -396,9 +433,7 @@ pub mod local_assets {
 }
 
 pub mod local_agent {
-    pub use crate::runtime_account_caller::{
-        local_developer_runtime_account_caller, local_first_party_runtime_account_caller,
-    };
+    pub use crate::runtime_account_caller::local_first_party_runtime_account_caller;
     pub use crate::runtime_local_agent_identity::{
         is_runtime_local_agent_ref, project_runtime_local_agent_identity, RuntimeLocalAgentIdentity,
     };
@@ -535,17 +570,6 @@ pub mod artifacts {
     pub use crate::standard_artifacts::{
         StandardArtifactsWritePayload, StandardArtifactsWriteResult,
     };
-    pub use crate::standard_installed_artifacts::{
-        AppHostBootstrapResult, InstalledArtifactReadResult,
-    };
-
-    #[tauri::command]
-    pub async fn app_host_bootstrap(
-        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeAppHost>,
-    ) -> Result<AppHostBootstrapResult, String> {
-        crate::standard_installed_artifacts::app_host_bootstrap_for_host(host.inner()).await
-    }
-
     #[tauri::command]
     pub fn artifacts_write(
         slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
@@ -557,17 +581,72 @@ pub mod artifacts {
         )?;
         crate::standard_artifacts::artifacts_write(&roots, payload)
     }
+}
+
+pub mod local_app {
+    #[tauri::command]
+    pub async fn local_app_session_status(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::session_status_for_host(host.inner()).await
+    }
 
     #[tauri::command]
-    pub async fn artifacts_read_runtime_bytes(
-        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeAppHost>,
+    pub async fn local_app_permission_posture(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,
-    ) -> Result<InstalledArtifactReadResult, String> {
-        crate::standard_installed_artifacts::artifacts_read_runtime_bytes_for_host(
-            host.inner(),
-            payload,
-        )
-        .await
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::permission_posture_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_permission_request(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::permission_request_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_artifacts_read_runtime_bytes(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::artifacts_read_runtime_bytes_for_host(host.inner(), payload)
+            .await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_open_conversation(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_open_conversation_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_send_turn(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_send_turn_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_subscribe_turn(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_subscribe_turn_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_get_conversation_snapshot(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_get_conversation_snapshot_for_host(host.inner(), payload)
+            .await
     }
 }
 

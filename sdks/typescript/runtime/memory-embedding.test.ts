@@ -130,21 +130,14 @@ test('Runtime memory embedding protected surface is runtime-only and inspect dri
   assert.deepEqual(receivedMetadata, [{ 'x-nimi-protected-carrier': 'test-carrier' }]);
 });
 
-test('Runtime memory embedding protected surface rejects public grant minting without a scoped carrier', async () => {
+test('Runtime memory embedding protected surface rejects calls without a scoped carrier', async () => {
 	let registrationCalls = 0;
-	let grantCalls = 0;
 	const runtime = {
 		appId: 'sdk.test',
 		auth: {
 			async registerApp() {
 				registrationCalls += 1;
 				return { accepted: true, reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED };
-			},
-		},
-		appAuth: {
-			async authorizeExternalPrincipal() {
-				grantCalls += 1;
-				return { tokenId: 'portable-token', secret: 'portable-secret' };
 			},
 		},
 		memory: {
@@ -177,5 +170,4 @@ test('Runtime memory embedding protected surface rejects public grant minting wi
 		return true;
 	});
 	assert.equal(registrationCalls, 0);
-	assert.equal(grantCalls, 0);
 });

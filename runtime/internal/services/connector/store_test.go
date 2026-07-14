@@ -293,6 +293,44 @@ func TestConnectorStoreReconcileStartup(t *testing.T) {
 	}
 }
 
+func TestReconcileStartupDoesNotCreateRetiredLocalCategories(t *testing.T) {
+	store := newTestStore(t)
+	if err := store.ReconcileStartup(); err != nil {
+		t.Fatalf("reconcile empty connector store: %v", err)
+	}
+	records, err := store.Load()
+	if err != nil {
+		t.Fatalf("load reconciled connector store: %v", err)
+	}
+	if len(records) != 0 {
+		t.Fatalf("startup minted ConnectorService records: %+v", records)
+	}
+
+	created, err := store.Create(ConnectorRecord{
+		ConnectorID: "remote-only",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "remote-secret")
+	if err != nil {
+		t.Fatalf("create admitted remote connector: %v", err)
+	}
+	if err := store.ReconcileStartup(); err != nil {
+		t.Fatalf("reconcile remote connector store: %v", err)
+	}
+	records, err = store.Load()
+	if err != nil || len(records) != 1 || records[0].ConnectorID != created.ConnectorID {
+		t.Fatalf("reconciled remote connector projection = (%+v, %v)", records, err)
+	}
+	for _, record := range records {
+		if record.RetiredLocalCategory != 0 {
+			t.Fatalf("startup retained or minted retired local connector category: %+v", record)
+		}
+	}
+}
+
 func TestConnectorStoreAtomicWrite(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test-file")

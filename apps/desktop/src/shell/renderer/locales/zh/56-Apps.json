@@ -63,6 +63,12 @@
     "unknown": "未知"
   },
   "state": {
+    "catalogOnly": "仅目录可见",
+    "accountVisible": "账户可见",
+    "localRecordActive": "本地开发记录已激活",
+    "localRecordDormant": "本地开发记录已休眠",
+    "localRecordRemoved": "本地开发记录已移除",
+    "immutablePackageUnavailable": "不可变应用包暂不可用（0K）",
     "notInstalledInstallable": "需要安装",
     "installing": "安装中",
     "installedReady": "可用",

@@ -161,11 +161,6 @@ test('reads Runtime bank-level review status without projecting per-record revie
         throw new Error('auth path must not be used when withScopes is provided');
       },
     },
-    appAuth: {
-      async authorizeExternalPrincipal() {
-        throw new Error('app-auth path must not be used when withScopes is provided');
-      },
-    },
     agent: {
       async getAgentState() {
         return {
@@ -274,11 +269,6 @@ test('fails closed when Runtime bank-level review status points at a different b
     auth: {
       async registerApp() {
         throw new Error('auth path must not be used when withScopes is provided');
-      },
-    },
-    appAuth: {
-      async authorizeExternalPrincipal() {
-        throw new Error('app-auth path must not be used when withScopes is provided');
       },
     },
     agent: {

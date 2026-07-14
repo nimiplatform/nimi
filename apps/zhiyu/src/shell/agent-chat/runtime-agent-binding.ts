@@ -49,6 +49,7 @@ export interface ZhiyuRuntimeAgentHostEquivalenceInput {
 export interface ZhiyuRuntimeAgentBindingHost {
   readonly scopedBinding?: ZhiyuScopedRuntimeBindingAttachment | null;
   readonly hostEquivalence?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
+  readonly localAppCarrier?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
   readonly getScopedBinding?: () => ZhiyuScopedRuntimeBindingAttachment | null;
   readonly setScopedBinding?: (scopedBinding: ZhiyuNormalizedScopedRuntimeBindingAttachment) => unknown;
 }
@@ -60,6 +61,10 @@ export type ZhiyuRuntimeAgentBindingDecision =
   }
   | {
     readonly kind: 'runtime-sdk-authority-admitted-first-party-electron-host-equivalence';
+    readonly evidenceRef: string;
+  }
+  | {
+    readonly kind: 'local-app-carrier';
     readonly evidenceRef: string;
   }
   | {
@@ -100,12 +105,21 @@ type NormalizedScopedBindingIssueRequest = {
 export function resolveZhiyuRuntimeAgentBindingDecision(input: {
   readonly scopedBinding?: ZhiyuScopedRuntimeBindingAttachment | null;
   readonly hostEquivalence?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
+  readonly localAppCarrier?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
 } = {}, requiredScopes: readonly string[] = []): ZhiyuRuntimeAgentBindingDecision {
   const scopedBinding = normalizeScopedBinding(input.scopedBinding);
   if (scopedBinding && scopedBindingCoversScopes(scopedBinding, requiredScopes)) {
     return {
       kind: 'runtime-issued-scoped-binding',
       scopedBinding,
+    };
+  }
+
+  const localAppCarrier = normalizeHostEquivalence(input.localAppCarrier);
+  if (localAppCarrier) {
+    return {
+      kind: 'local-app-carrier',
+      evidenceRef: localAppCarrier.evidenceRef,
     };
   }
 
@@ -260,6 +274,9 @@ function callOptionsForBindingDecision(
     return {
       metadata: metadataForScopedBinding(decision.scopedBinding),
     };
+  }
+  if (decision.kind === 'local-app-carrier') {
+    return {};
   }
   return {
     metadata: {
@@ -444,6 +461,7 @@ function scopedBindingExpiresAtMs(scopedBinding: ZhiyuNormalizedScopedRuntimeBin
 function readBindingHost(input: ZhiyuRuntimeAgentBindingHost | null | undefined): {
   readonly scopedBinding?: ZhiyuScopedRuntimeBindingAttachment | null;
   readonly hostEquivalence?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
+  readonly localAppCarrier?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
 } | null {
   if (!isRecord(input)) {
     return null;
@@ -456,6 +474,7 @@ function readBindingHost(input: ZhiyuRuntimeAgentBindingHost | null | undefined)
   return {
     scopedBinding,
     hostEquivalence: host.hostEquivalence,
+    localAppCarrier: host.localAppCarrier,
   };
 }
 

@@ -195,3 +195,21 @@ test('architecture checker rejects old 2x10 required paths and source-owned conv
   const failures = validateConversationReportArchitecture(bad);
   assert.match(failures.join('\n'), /2x10|old live behavior|required path|source-owned|characterConversationId/iu);
 });
+
+test('architecture checker rejects restoring the retired conversation-report execution path', () => {
+  const bad = {
+    packageScripts: {
+      'test:e2e:local-agent-conversation-report': 'node tests/local-agent-product/conversation-report/run-conversation-report.mjs',
+      'check:local-agent-conversation-report': 'node scripts/check-local-agent-conversation-report.mjs',
+    },
+    executionPolicy: {
+      gates: { conversation_report: { command: 'pnpm test:e2e:local-agent-conversation-report' } },
+      repeat_policies: { conversation_report: { runs: 1 } },
+      suites: [{ suite_id: 'conversation-report-i8' }],
+      required_local_pr_composition: [],
+    },
+    scenarioRegistry: { schema_version: 'invalid', scenarios: [] },
+  };
+  const failures = validateConversationReportArchitecture(bad);
+  assert.match(failures.join('\n'), /direct-daemon|executable gate|repeat policy|executable suite/iu);
+});

@@ -3,7 +3,52 @@ authority_class: non_authoritative_execution_manifest
 owner: platform-test-governance
 source_rules: [P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
 journeys:
+  - journey_id: dev-kernel-core
+    execution_disposition: active_checkpoint
+    applicable_layer: L2
+    environment:
+      type: fixed_windows_service_local_development_cross_app
+      requires_real_realm: false
+      supports_real_realm: false
+      requires_desktop: true
+      requires_zhiyu: true
+      requires_native_macos: false
+      # Maximum observed start/replacement events. Runtime allows the product-
+      # control Storage sync restart plus the explicit journey restart; Zhiyu
+      # includes five launchers plus the observed edit/build replacement.
+      start_limits: {provider: 1, realm: 1, runtime: 3, desktop: 1, zhiyu: 6}
+    prerequisites: [fixed_windows_runtime_service, desktop_tauri_candidate, zhiyu_renderer_build, zhiyu_electron_build]
+    isolation_level: exclusive_fixed_service_candidate_plus_clean_desktop_zhiyu_roots
+    repeat_policy_ref: core
+    time_budget_ms: 1200000
+    checkpoints:
+      - {checkpoint_id: fixed-service-ready, prerequisite_ids: [], covered_leaf_ids: []}
+      - {checkpoint_id: production-account-login, prerequisite_ids: [fixed-service-ready], covered_leaf_ids: []}
+      - {checkpoint_id: developer-mode-enabled, prerequisite_ids: [production-account-login], covered_leaf_ids: []}
+      - {checkpoint_id: run-once-project-admitted, prerequisite_ids: [developer-mode-enabled], covered_leaf_ids: []}
+      - {checkpoint_id: zero-grant-session, prerequisite_ids: [run-once-project-admitted], covered_leaf_ids: []}
+      - {checkpoint_id: operation-denied-before-grant, prerequisite_ids: [zero-grant-session], covered_leaf_ids: []}
+      - {checkpoint_id: selected-operation-granted, prerequisite_ids: [operation-denied-before-grant], covered_leaf_ids: []}
+      - {checkpoint_id: selected-runtime-agent-operation, prerequisite_ids: [selected-operation-granted], covered_leaf_ids: []}
+      - {checkpoint_id: process-mismatch-denied, prerequisite_ids: [selected-runtime-agent-operation], covered_leaf_ids: []}
+      - {checkpoint_id: grant-revoked-next-operation-denied, prerequisite_ids: [process-mismatch-denied], covered_leaf_ids: []}
+      - {checkpoint_id: remembered-project-admitted, prerequisite_ids: [grant-revoked-next-operation-denied], covered_leaf_ids: []}
+      - {checkpoint_id: runtime-agent-conversation, prerequisite_ids: [remembered-project-admitted], covered_leaf_ids: []}
+      - {checkpoint_id: edit-build-process-replaced, prerequisite_ids: [runtime-agent-conversation], covered_leaf_ids: []}
+      - {checkpoint_id: conversation-resumed-after-process-replacement, prerequisite_ids: [edit-build-process-replaced], covered_leaf_ids: []}
+      - {checkpoint_id: mode-off-dormant, prerequisite_ids: [conversation-resumed-after-process-replacement], covered_leaf_ids: []}
+      - {checkpoint_id: remembered-project-reactivated, prerequisite_ids: [mode-off-dormant], covered_leaf_ids: []}
+      - {checkpoint_id: fixed-service-restarted, prerequisite_ids: [remembered-project-reactivated], covered_leaf_ids: []}
+      - {checkpoint_id: conversation-resumed-after-runtime-restart, prerequisite_ids: [fixed-service-restarted], covered_leaf_ids: []}
+      - {checkpoint_id: account-switch-invalidated, prerequisite_ids: [conversation-resumed-after-runtime-restart], covered_leaf_ids: []}
+      - {checkpoint_id: project-revoked-next-operation-denied, prerequisite_ids: [account-switch-invalidated], covered_leaf_ids: []}
+      - {checkpoint_id: desktop-real-shell-acceptance, prerequisite_ids: [project-revoked-next-operation-denied], covered_leaf_ids: []}
+      - {checkpoint_id: zhiyu-real-shell-acceptance, prerequisite_ids: [project-revoked-next-operation-denied], covered_leaf_ids: []}
+      - {checkpoint_id: protected-carrier-privacy-closeout, prerequisite_ids: [desktop-real-shell-acceptance, zhiyu-real-shell-acceptance], covered_leaf_ids: []}
+
   - journey_id: full-chain-core
+    execution_disposition: historical_mapping_only
+    positive_runtime_path: none_direct_daemon_retired
     applicable_layer: L2
     environment:
       type: full_cross_app
@@ -48,6 +93,8 @@ journeys:
       - {checkpoint_id: artifact-privacy-closeout, prerequisite_ids: [realm-recovery-no-duplication], covered_leaf_ids: [O-01, O-02, O-03-06]}
 
   - journey_id: access-denial
+    execution_disposition: historical_mapping_only
+    positive_runtime_path: none_direct_daemon_retired
     applicable_layer: L3
     environment:
       type: cross_account_denial
@@ -116,7 +163,7 @@ journeys:
       requires_desktop: false
       requires_zhiyu: false
       requires_native_macos: false
-      start_limits: {provider: 0, realm: 0, runtime: 2, desktop: 0, zhiyu: 0}
+      start_limits: {provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0}
     prerequisites: []
     isolation_level: clean_upload_replay_ledger_root
     repeat_policy_ref: extended
@@ -138,7 +185,7 @@ journeys:
       requires_desktop: false
       requires_zhiyu: false
       requires_native_macos: false
-      start_limits: {provider: 0, realm: 0, runtime: 2, desktop: 0, zhiyu: 0}
+      start_limits: {provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0}
     prerequisites: []
     isolation_level: clean_crash_recovery_root
     repeat_policy_ref: extended
@@ -147,6 +194,8 @@ journeys:
       - {checkpoint_id: open-upload-crash-recovery, prerequisite_ids: [], covered_leaf_ids: [S-01-21]}
 
   - journey_id: pre-materialization-offline
+    execution_disposition: historical_mapping_only
+    positive_runtime_path: none_direct_daemon_retired
     applicable_layer: L3
     environment:
       type: offline_product_boundary
@@ -165,6 +214,8 @@ journeys:
       - {checkpoint_id: runtime-offline-before-materialize, prerequisite_ids: [], covered_leaf_ids: [L-08-02]}
 
   - journey_id: turn-media-recovery
+    execution_disposition: historical_mapping_only
+    positive_runtime_path: none_direct_daemon_retired
     applicable_layer: L3
     environment:
       type: runtime_zhiyu_recovery
@@ -188,6 +239,8 @@ journeys:
       - {checkpoint_id: retry-new-turn, prerequisite_ids: [stop-cancels-all], covered_leaf_ids: [E-10]}
 
   - journey_id: native-macos-input
+    execution_disposition: historical_mapping_only
+    positive_runtime_path: none_direct_daemon_retired
     applicable_layer: L3
     environment:
       type: native_macos_cross_app
@@ -206,6 +259,8 @@ journeys:
       - {checkpoint_id: native-ime-composition, prerequisite_ids: [native-edit-shortcuts], covered_leaf_ids: [O-03-05]}
 
   - journey_id: conversation-report-baseline
+    execution_disposition: historical_mapping_only
+    positive_runtime_path: none_direct_daemon_retired
     applicable_layer: L5
     environment:
       type: single_environment_cross_app_live_provider_report

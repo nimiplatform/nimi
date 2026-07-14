@@ -703,16 +703,6 @@ function assertSelectedScenarios(options, selectedScenarios) {
   if (selectedScenarios.length > 0) {
     return;
   }
-  if (options.suite === 'nimi-app-platform-ordinary') {
-    throw new Error(
-      'nimi-app-platform-ordinary is blocked until a real ordinary-visible descriptor is admitted; no ordinary descriptor E2E scenario is registered',
-    );
-  }
-  if (options.suite === 'nimi-app-platform-live-sandbox') {
-    throw new Error(
-      'nimi-app-platform-live-sandbox is blocked until an integrated Runtime install/open/launch E2E starts Runtime, serves a TLS immutable artifact, installs through appinstallgateway, consumes the real OpenApp launch resolution, and captures Runtime/host/app attestations',
-    );
-  }
   if (options.suite && options.suite !== 'all') {
     throw new Error(`E2E suite ${options.suite} selected no runnable scenarios`);
   }

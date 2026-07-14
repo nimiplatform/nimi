@@ -1,6 +1,11 @@
 import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type NimiStandardShellCapabilityId } from '@nimiplatform/kit/shell/capabilities';
 import { runtimeRpcAuthPosture } from '@nimiplatform/sdk/runtime/generated';
 import {
+  isElectronDesktopProductControlMethod,
+  NimiElectronDesktopControlHostError,
+  type NimiElectronDesktopControlHost,
+} from './desktop-control-host.js';
+import {
   createElectronRuntimeEndpointUnavailableError,
   toElectronRuntimeBridgeError,
 } from './errors.js';
@@ -26,11 +31,8 @@ import {
   resolveTrustedRuntimeMetadataWithSingleInvalidation,
   trustedRuntimeMetadataInvalidationReason,
 } from './runtime-trusted-metadata.js';
-
 export { resolveTrustedRuntimeMetadata } from './runtime-trusted-metadata.js';
-
 let electronRuntimeBridgeIdempotencyCounter = 1;
-
 function standardCommand(key: keyof typeof NIMI_STANDARD_SHELL_COMMANDS): string {
   return NIMI_STANDARD_SHELL_COMMANDS[key];
 }
@@ -48,7 +50,6 @@ export function createElectronRuntimeBridgeCommandNames(
   };
 }
 export const ELECTRON_STANDARD_SHELL_CAPABILITY_IDS = NIMI_STANDARD_SHELL_CAPABILITY_IDS;
-
 export function getElectronStandardShellCapabilityIds(): readonly NimiStandardShellCapabilityId[] {
   return ELECTRON_STANDARD_SHELL_CAPABILITY_IDS;
 }
@@ -66,8 +67,35 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly runtimeEndpoint: string;
   readonly command: string;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
+  readonly desktopControlHost?: NimiElectronDesktopControlHost;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
+  if (isElectronDesktopProductControlMethod(request.methodId)) {
+    if (!input.desktopControlHost) {
+      throw electronDesktopControlError(
+        new NimiElectronDesktopControlHostError('protected-carrier-required', false),
+        input.command,
+        request.methodId,
+      );
+    }
+    try {
+      const responseBytes = await input.desktopControlHost.productControlUnary({
+        methodId: request.methodId,
+        requestBytes: fromBase64(request.requestBytesBase64),
+        timeoutMs: request.timeoutMs,
+      });
+      return { responseBytesBase64: toBase64(responseBytes) };
+    } catch (error) {
+      if (error instanceof NimiElectronDesktopControlHostError) {
+        throw electronDesktopControlError(error, input.command, request.methodId);
+      }
+      throw electronDesktopControlError(
+        new NimiElectronDesktopControlHostError('runtime-service-untrusted', false),
+        input.command,
+        request.methodId,
+      );
+    }
+  }
   assertElectronGenericRuntimeMethodAllowed(request.methodId);
   const response = await invokeElectronRuntimeTrustedUnary({
     client: input.client,
@@ -83,6 +111,30 @@ export async function invokeElectronRuntimeUnary(input: {
     responseBytesBase64: toBase64(response.responseBytes),
     responseMetadata: response.responseMetadata,
   };
+}
+
+function electronDesktopControlError(
+  error: NimiElectronDesktopControlHostError,
+  command: string,
+  methodId: string,
+): NimiElectronShellHostError {
+  const code = error.reasonCode === 'protected-carrier-required'
+    ? 'protected-carrier-required'
+    : error.reasonCode === 'runtime-service-unavailable'
+      ? 'runtime-service-unavailable'
+      : error.reasonCode === 'runtime-service-repair-required'
+        ? 'runtime-service-repair-required'
+        : error.reasonCode === 'runtime-service-untrusted'
+          ? 'runtime-service-untrusted'
+          : 'runtime-permission-denied';
+  return new NimiElectronShellHostError({
+    code,
+    message: error.reasonCode,
+    reasonCode: error.reasonCode,
+    actionHint: error.retryable ? 'retry_verified_desktop_control_operation' : 'refresh_desktop_control_projection',
+    source: error.reasonCode === 'protected-carrier-required' ? 'electron' : 'runtime',
+    details: { command, methodId, retryable: error.retryable },
+  });
 }
 
 export async function invokeElectronRuntimeTrustedUnary(input: {

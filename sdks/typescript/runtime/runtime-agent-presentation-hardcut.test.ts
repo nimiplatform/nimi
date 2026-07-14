@@ -12,8 +12,13 @@ import {
   AgentPresentationBackendKind,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
-import { setFixtureRuntimeAgentPresentationProfile } from './runtime-agent-live-e2e-fixture-runtime.test-helper';
-import type { RuntimeAgentLiveE2EAgentPresentationSurface } from './runtime-agent-live-e2e-fixture-shared.test-helper';
+import type { RuntimeLocalAgentIdentityInput } from './agent-local-identity';
+import type { NimiRuntimeAgentInspectSurface } from './runtime-agent-inspect-types';
+import type {
+  NimiRuntimeAgentPresentationProfileInput,
+  NimiRuntimeAgentPresentationProfileMutationResult,
+  NimiRuntimeAgentPresentationProfileSurface,
+} from './runtime-agent-presentation';
 
 const IDENTITY = {
   ownerUserId: 'user-1',
@@ -25,6 +30,26 @@ const CONTEXT = {
   appId: 'sdk.test',
   subjectUserId: 'user-1',
 } as const;
+
+type RuntimeAgentPresentationTestSurface =
+  Pick<NimiRuntimeAgentInspectSurface, 'getPresentationProfile'>
+  & NimiRuntimeAgentPresentationProfileSurface;
+
+async function setPresentationProfileAtCurrentRevision(input: {
+  readonly presentation: RuntimeAgentPresentationTestSurface;
+  readonly identity: RuntimeLocalAgentIdentityInput;
+  readonly profile: NimiRuntimeAgentPresentationProfileInput;
+}): Promise<NimiRuntimeAgentPresentationProfileMutationResult> {
+  const current = await input.presentation.getPresentationProfile(input.identity);
+  if (current.committedRevision === null) {
+    throw new Error('presentation mutation requires a committed Runtime Agent revision');
+  }
+  return input.presentation.setPresentationProfile(
+    input.identity,
+    input.profile,
+    current.committedRevision,
+  );
+}
 
 function buildProfileRequest(overrides: Record<string, unknown> = {}) {
   return buildNimiSetRuntimeAgentPresentationProfileRequest({
@@ -257,9 +282,9 @@ test('presentation projection rejects retired metadata and invalid persisted pro
   }
 });
 
-test('live fixture presentation helper reads CAS revision through the narrow capability', async () => {
+test('presentation mutation reads CAS revision through the narrow capability', async () => {
   const calls: Array<{ readonly method: string; readonly expectedRevision?: string }> = [];
-  const presentation: RuntimeAgentLiveE2EAgentPresentationSurface = {
+  const presentation: RuntimeAgentPresentationTestSurface = {
     async getPresentationProfile() {
       calls.push({ method: 'get' });
       return { profile: null, committedRevision: '11' };
@@ -273,7 +298,7 @@ test('live fixture presentation helper reads CAS revision through the narrow cap
     },
   };
 
-  const result = await setFixtureRuntimeAgentPresentationProfile({
+  const result = await setPresentationProfileAtCurrentRevision({
     presentation,
     identity: IDENTITY,
     profile: {
@@ -342,21 +367,6 @@ test('presentation surface returns Runtime committed revision without retrying',
     auth: {
       async registerApp() {
         return { appInstanceId: 'sdk.test.presentation', accepted: true, reasonCode: 0 };
-      },
-    },
-    appAuth: {
-      async authorizeExternalPrincipal(request: { readonly scopes: string[] }) {
-        return {
-          tokenId: 'token-1',
-          secret: 'secret-1',
-          appId: 'sdk.test',
-          subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test.presentation',
-          effectiveScopes: request.scopes,
-          policyVersion: 'runtime-agent-v1',
-          issuedScopeCatalogVersion: 'sdk-v2',
-          canDelegate: false,
-        };
       },
     },
     agent: {

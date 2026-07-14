@@ -1,14 +1,37 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import {
+  assessAccessibilityAudit,
+  assessObservedProcessBudget,
+  beginObservedProcess,
+  createObservedProcessLedger,
+  inspectNetworkAuthorityMaterial,
+  isRuntimeObservedProcessMismatch,
+  isRuntimeRestartUiTransition,
+  isTypedProjectRevocationDenial,
+  resolveHostRustToolchainHomes,
+  waitForObservedProcessConnection,
+} from './dev-kernel-contract.mjs';
+import { startProcess } from './cross-app-driver.mjs';
+import { probeRealRealmBrowserLoginAuthority } from './dev-kernel-cross-app-driver.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { readLocalAgentTestArchitecture } from './registry.mjs';
 import { validateArchitecture, validateJourneyRepeatIsolation, validateJourneyResult } from './validation.mjs';
 
 const clone = (value) => structuredClone(value);
+const devKernelCrossAppDriverSource = fs.readFileSync(
+  path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'),
+  'utf8',
+);
+const firstRunConnectivitySource = fs.readFileSync(
+  path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'),
+  'utf8',
+);
 
 test('portable process invocation executes the pnpm CLI through Node without a Windows shell', () => {
   assert.deepEqual(
@@ -25,6 +48,102 @@ test('portable process invocation executes the pnpm CLI through Node without a W
   assert.deepEqual(
     resolvePortableProcessInvocation('go', ['test'], { platform: 'win32' }),
     { command: 'go', args: ['test'] },
+  );
+});
+
+test('dev-kernel Desktop journey invokes the final Electron standard shell carrier', () => {
+  assert.match(devKernelCrossAppDriverSource, /window\.__NIMI_ELECTRON_RUNTIME__/);
+  assert.match(devKernelCrossAppDriverSource, /NIMI_STANDARD_SHELL_COMMANDS\['runtime-lifecycle\.status'\]/);
+  assert.doesNotMatch(devKernelCrossAppDriverSource, /window\.__TAURI_INTERNALS__/);
+  assert.doesNotMatch(devKernelCrossAppDriverSource, /['"]runtime_bridge_status['"]/);
+});
+
+test('dev-kernel Electron journeys preserve the established external browser profile', () => {
+  for (const source of [devKernelCrossAppDriverSource, firstRunConnectivitySource]) {
+    assert.doesNotMatch(source, /^\s*APPDATA:\s*trial\.paths\./mu);
+    assert.doesNotMatch(source, /^\s*LOCALAPPDATA:\s*trial\.paths\./mu);
+    assert.match(source, /NIMI_LOCAL_AGENT_PRODUCT_DESKTOP_USER_DATA_ROOT/);
+  }
+});
+
+test('real Realm login preflight requires a web login continuation and rejects automatic callback', async () => {
+  let mode = 'web-login';
+  let origin = '';
+  const server = http.createServer((request, response) => {
+    const authorization = new URL(request.url || '/', origin);
+    if (mode === 'automatic-callback') {
+      response.writeHead(302, { location: authorization.searchParams.get('redirect_uri') || '/' });
+    } else {
+      const login = new URL('http://localhost:3000/login');
+      login.searchParams.set('oauth_next', authorization.toString());
+      response.writeHead(302, { location: login.toString() });
+    }
+    response.end();
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    origin = `http://127.0.0.1:${address.port}`;
+    const positive = await probeRealRealmBrowserLoginAuthority(origin, 'http://localhost:3000');
+    assert.equal(positive.automaticLoopbackCallbackObserved, false);
+    assert.equal(positive.oauthNextOrigin, origin);
+    mode = 'automatic-callback';
+    await assert.rejects(
+      () => probeRealRealmBrowserLoginAuthority(origin, 'http://localhost:3000'),
+      /invalid browser-login continuation/u,
+    );
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test('process capture persists full logs while bounding in-memory diagnostics', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-process-capture-'));
+  try {
+    const stdoutPath = path.join(root, 'stdout.log');
+    const stderrPath = path.join(root, 'stderr.log');
+    const handle = startProcess(process.execPath, [
+      '-e',
+      "process.stdout.write('A'.repeat(256)); process.stderr.write('B'.repeat(192));",
+    ], { stdoutPath, stderrPath, maxCapturedBytes: 64 });
+    const result = await handle.completed;
+    assert.equal(result.code, 0);
+    assert.equal(result.stdout, 'A'.repeat(64));
+    assert.equal(result.stderr, 'B'.repeat(64));
+    assert.equal(result.stdoutTruncated, true);
+    assert.equal(result.stderrTruncated, true);
+    assert.equal(fs.readFileSync(stdoutPath, 'utf8'), 'A'.repeat(256));
+    assert.equal(fs.readFileSync(stderrPath, 'utf8'), 'B'.repeat(192));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('host Rust toolchain roots remain outside product HOME isolation and fail closed on ambiguity', () => {
+  const hostHome = path.join(os.tmpdir(), 'nimi-host-home');
+  assert.deepEqual(resolveHostRustToolchainHomes({ env: {}, hostHome }), {
+    rustupHome: path.resolve(hostHome, '.rustup'),
+    cargoHome: path.resolve(hostHome, '.cargo'),
+  });
+  assert.deepEqual(resolveHostRustToolchainHomes({
+    env: { RUSTUP_HOME: path.join(hostHome, 'rustup'), CARGO_HOME: path.join(hostHome, 'cargo') },
+  }), {
+    rustupHome: path.resolve(hostHome, 'rustup'),
+    cargoHome: path.resolve(hostHome, 'cargo'),
+  });
+  assert.throws(
+    () => resolveHostRustToolchainHomes({ env: { RUSTUP_HOME: 'relative', CARGO_HOME: 'also-relative' } }),
+    /absolute paths/,
+  );
+  assert.throws(
+    () => resolveHostRustToolchainHomes({
+      env: { RUSTUP_HOME: hostHome, CARGO_HOME: hostHome },
+    }),
+    /must remain distinct/,
   );
 });
 
@@ -142,6 +261,172 @@ test('architecture rejects a nonexistent checkpoint', () => {
   const point = mutated.points.points.find((row) => row.minimum_sufficient_layer === 'L2');
   point.execution_binding.checkpoint_ids = ['checkpoint-does-not-exist'];
   expectFailure(validateArchitecture(mutated), /checkpoint-does-not-exist/);
+});
+
+test('architecture rejects dev-kernel owner-minimal checkpoint reordering', () => {
+  const mutated = clone(validArchitecture());
+  const journey = mutated.journeys.journeys.find((row) => row.journey_id === 'dev-kernel-core');
+  const processMismatch = journey.checkpoints.find((row) => row.checkpoint_id === 'process-mismatch-denied');
+  processMismatch.prerequisite_ids = ['zero-grant-session'];
+  expectFailure(validateArchitecture(mutated), /dev-kernel-core.*checkpoint graph/i);
+});
+
+test('architecture rejects replacing the Desktop Tauri product prerequisite with Electron', () => {
+  const mutated = clone(validArchitecture());
+  const journey = mutated.journeys.journeys.find((row) => row.journey_id === 'dev-kernel-core');
+  journey.prerequisites = journey.prerequisites.map((value) => (
+    value === 'desktop_tauri_candidate' ? 'desktop_electron_build' : value
+  ));
+  expectFailure(validateArchitecture(mutated), /dev-kernel-core.*checkpoint graph/i);
+});
+
+test('architecture rejects reactivating historical direct-daemon mappings', () => {
+  const mutated = clone(validArchitecture());
+  const historical = mutated.journeys.journeys.find((row) => row.journey_id === 'full-chain-core');
+  historical.execution_disposition = 'active_checkpoint';
+  historical.positive_runtime_path = 'direct_daemon';
+  mutated.policy.gates.core.journeys = [{ journey_id: 'full-chain-core', repeats: 1 }];
+  mutated.policy.gates.acceptance.journeys.push('full-chain-core');
+  expectFailure(validateArchitecture(mutated), /non-executable|historical|direct-daemon|core gates/i);
+});
+
+test('process-mismatch checkpoint requires a Runtime-observed mismatch', () => {
+  assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'process-replaced' } }), true);
+  assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'protected-carrier-required' } }), false);
+  assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'no-grant' } }), false);
+  assert.equal(isRuntimeObservedProcessMismatch(null), false);
+});
+
+test('project revoke checkpoint requires an attempted selected operation and typed denial', () => {
+  const valid = {
+    attempted: true,
+    operationId: 'runtime_agent.conversation.open',
+    denial: {
+      state: 'access-lost',
+      lastError: {
+        reasonCode: 'revoked',
+        actionHint: 'readmit_local_development_project',
+        message: 'The local-development project authorization was revoked.',
+        retryable: false,
+      },
+    },
+  };
+  assert.equal(isTypedProjectRevocationDenial(valid), true);
+  assert.equal(isTypedProjectRevocationDenial({ ...valid, attempted: false }), false);
+  assert.equal(isTypedProjectRevocationDenial({ processTerminated: true, runs: [{ state: 'revoked' }] }), false);
+  assert.equal(isTypedProjectRevocationDenial({
+    ...valid,
+    denial: { ...valid.denial, lastError: { ...valid.denial.lastError, reasonCode: 'grant-revoked' } },
+  }), false);
+});
+
+test('fixed-service restart checkpoint requires visible unavailable then recovered UI states', () => {
+  const valid = {
+    before: { processId: 101 },
+    after: { processId: 202 },
+    unavailableUi: { state: 'runtime-unavailable', reasonCode: 'runtime-service-unavailable' },
+    recoveredUi: { state: 'open-granted', openPermissionState: 'granted' },
+  };
+  assert.equal(isRuntimeRestartUiTransition(valid), true);
+  assert.equal(isRuntimeRestartUiTransition({ ...valid, unavailableUi: null }), false);
+  assert.equal(isRuntimeRestartUiTransition({ ...valid, recoveredUi: { state: 'runtime-unavailable', openPermissionState: '' } }), false);
+  assert.equal(isRuntimeRestartUiTransition({ ...valid, after: { processId: 101 } }), false);
+});
+
+test('renderer observation starts before the process and detects network authority material', async () => {
+  const order = [];
+  let resolveConnection;
+  const launch = beginObservedProcess({
+    connect: () => {
+      order.push('observer-started');
+      return new Promise((resolve) => { resolveConnection = resolve; });
+    },
+    start: () => {
+      order.push('process-started');
+      return { pid: 42 };
+    },
+  });
+  assert.deepEqual(order, ['observer-started', 'process-started']);
+  assert.deepEqual(launch.handle, { pid: 42 });
+  resolveConnection({ page: 'renderer' });
+  assert.deepEqual(await launch.connectionPromise, { page: 'renderer' });
+
+  assert.deepEqual(inspectNetworkAuthorityMaterial({ url: 'https://example.test/safe', headers: {} }), {
+    authorizationHeaderObserved: false,
+    secretTextObserved: false,
+  });
+  assert.equal(inspectNetworkAuthorityMaterial({ headers: { Authorization: 'Bearer private-value' } }).authorizationHeaderObserved, true);
+  assert.equal(inspectNetworkAuthorityMaterial({ url: 'https://example.test/?access_token=private-value' }).secretTextObserved, true);
+  assert.equal(inspectNetworkAuthorityMaterial({ postData: 'refresh_token=private-value' }).secretTextObserved, true);
+});
+
+test('renderer observation fails immediately with persisted launcher diagnostics when the process exits', async () => {
+  const handle = {
+    child: { exitCode: 17, signalCode: null },
+    completed: Promise.resolve({ code: 17, signal: null }),
+    snapshot: () => ({
+      code: 17,
+      signal: null,
+      stdoutPath: 'desktop.stdout.log',
+      stderrPath: 'desktop.stderr.log',
+      stdout: '',
+      stderr: 'rustc host unavailable',
+    }),
+  };
+  await assert.rejects(
+    waitForObservedProcessConnection({
+      connectionPromise: new Promise(() => {}),
+      handle,
+      label: 'Desktop',
+    }),
+    /Desktop.*desktop\.stderr\.log.*rustc host unavailable/,
+  );
+});
+
+test('dev-kernel process starts are derived from an observed deduplicated ledger and bounded by maxima', () => {
+  const ledger = createObservedProcessLedger();
+  ledger.observe('provider', `fixture:${process.pid}`);
+  ledger.observe('realm', `fixture:${process.pid}`);
+  ledger.observe('runtime', 'pid:101');
+  ledger.observe('runtime', 'pid:101');
+  ledger.observe('runtime', 'pid:202');
+  ledger.observe('desktop', 'pid:303');
+  for (const identity of ['pid:401', 'pid:402', 'pid:403', 'generation:2', 'pid:404', 'pid:405']) {
+    ledger.observe('zhiyu', identity, { kind: identity.startsWith('generation:') ? 'supervised-process-replacement' : 'process-start' });
+  }
+  const snapshot = ledger.snapshot();
+  assert.deepEqual(snapshot.processStarts, { provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 6 });
+  assert.deepEqual(
+    assessObservedProcessBudget(
+      snapshot.processStarts,
+      { provider: 1, realm: 1, runtime: 3, desktop: 1, zhiyu: 6 },
+      { provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 6 },
+    ),
+    { ok: true, overages: [], missing: [] },
+  );
+  assert.equal(assessObservedProcessBudget(
+    { ...snapshot.processStarts, runtime: 4 },
+    { provider: 1, realm: 1, runtime: 3, desktop: 1, zhiyu: 6 },
+  ).ok, false);
+});
+
+test('accessibility acceptance requires an exposed document, named controls, language, and real inputs', () => {
+  const audit = {
+    dom: { lang: 'zh-CN', visibleButtons: 2, inputs: 1 },
+    accessibility: [
+      { role: 'RootWebArea', name: 'Nimi', ignored: false },
+      { role: 'button', name: '重试', ignored: false },
+      { role: 'textbox', name: '消息', ignored: false },
+    ],
+  };
+  assert.equal(assessAccessibilityAudit(audit, { requiresInput: true }).ok, true);
+  assert.deepEqual(
+    assessAccessibilityAudit({
+      dom: { lang: '', visibleButtons: 1, inputs: 0 },
+      accessibility: [{ role: 'button', name: '', ignored: false }],
+    }, { requiresInput: true }).findings,
+    ['missing-exposed-document-root', 'unnamed-interactive-controls:1', 'document-language-missing', 'input-control-missing'],
+  );
 });
 
 test('architecture rejects duplicate or conflicting leaf owners', () => {

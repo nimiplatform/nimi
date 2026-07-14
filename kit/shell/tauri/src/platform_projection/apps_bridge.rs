@@ -157,37 +157,20 @@ mod tests {
     }
 
     #[test]
-    fn bridge_projection_preserves_external_release_descriptor_fields() {
+    fn bridge_projection_does_not_fabricate_external_release_descriptors_before_0p() {
         let projection = build_apps_bridge_projection(
             "~/.nimi/apps/registry.json".to_string(),
             "~/.nimi/apps/packages.json".to_string(),
         )
         .expect("projection");
-        let descriptor = projection
+        assert!(!projection.release_descriptors.is_empty());
+        assert!(projection
             .release_descriptors
             .iter()
-            .find(|row| row.descriptor_id == "community.nimi.fixture.platform-proof.0.1.0-sandbox")
-            .expect("sandbox fixture descriptor");
-
-        assert_eq!(descriptor.source_kind, "admission-sandbox-https-artifact");
-        assert_eq!(
-            descriptor.source_ref,
-            "https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar"
-        );
-        assert_eq!(descriptor.artifact_locator, descriptor.source_ref);
-        assert_eq!(descriptor.size, "1503232");
-        assert_eq!(
-            descriptor.provenance_ref,
-            "ci-provenance/platform-proof/0.1.0-sandbox/sha256-2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863" // pragma: allowlist secret -- public fixture digest
-        );
-        assert_eq!(descriptor.entry_ref, "dist/index.html");
-        assert_eq!(
-            descriptor.sandbox_ref,
-            "installed-nimi-app-standard-shell-v1"
-        );
-        assert_eq!(
-            descriptor.permissions_ref,
-            "community.nimi.fixture.platform-proof.permission_scope_ref"
-        );
+            .all(|descriptor| descriptor.descriptor_class == "bundled-with-nimi"));
+        assert!(!projection.release_descriptors.iter().any(|descriptor| {
+            descriptor.descriptor_class == "external-immutable-artifact"
+                || descriptor.descriptor_id.contains("platform-proof")
+        }));
     }
 }

@@ -17,6 +17,37 @@ const requiredProviderLaneIds = [
   'capability_context',
 ];
 const logicalIdentityFields = ['accountIds', 'worldIds', 'sourceIds', 'runtimeSourceRefs', 'localAgentIds'];
+const devKernelProductPrerequisites = [
+  'fixed_windows_runtime_service',
+  'desktop_tauri_candidate',
+  'zhiyu_renderer_build',
+  'zhiyu_electron_build',
+];
+const devKernelCheckpointPrerequisites = [
+  ['fixed-service-ready', []],
+  ['production-account-login', ['fixed-service-ready']],
+  ['developer-mode-enabled', ['production-account-login']],
+  ['run-once-project-admitted', ['developer-mode-enabled']],
+  ['zero-grant-session', ['run-once-project-admitted']],
+  ['operation-denied-before-grant', ['zero-grant-session']],
+  ['selected-operation-granted', ['operation-denied-before-grant']],
+  ['selected-runtime-agent-operation', ['selected-operation-granted']],
+  ['process-mismatch-denied', ['selected-runtime-agent-operation']],
+  ['grant-revoked-next-operation-denied', ['process-mismatch-denied']],
+  ['remembered-project-admitted', ['grant-revoked-next-operation-denied']],
+  ['runtime-agent-conversation', ['remembered-project-admitted']],
+  ['edit-build-process-replaced', ['runtime-agent-conversation']],
+  ['conversation-resumed-after-process-replacement', ['edit-build-process-replaced']],
+  ['mode-off-dormant', ['conversation-resumed-after-process-replacement']],
+  ['remembered-project-reactivated', ['mode-off-dormant']],
+  ['fixed-service-restarted', ['remembered-project-reactivated']],
+  ['conversation-resumed-after-runtime-restart', ['fixed-service-restarted']],
+  ['account-switch-invalidated', ['conversation-resumed-after-runtime-restart']],
+  ['project-revoked-next-operation-denied', ['account-switch-invalidated']],
+  ['desktop-real-shell-acceptance', ['project-revoked-next-operation-denied']],
+  ['zhiyu-real-shell-acceptance', ['project-revoked-next-operation-denied']],
+  ['protected-carrier-privacy-closeout', ['desktop-real-shell-acceptance', 'zhiyu-real-shell-acceptance']],
+];
 
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -161,7 +192,7 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
     }
     checkCycles(failures, journey, checkpointMap);
   }
-  for (const requiredJourney of ['full-chain-core', 'conversation-report-baseline']) if (!journeyById.has(requiredJourney)) failures.push(`journey registry must contain ${requiredJourney}`);
+  for (const requiredJourney of ['dev-kernel-core', 'full-chain-core', 'conversation-report-baseline']) if (!journeyById.has(requiredJourney)) failures.push(`journey registry must contain ${requiredJourney}`);
   if (journeyById.has('live-behavior-product') || journeyById.has('live-evaluator-calibration')) failures.push('old live behavior/calibration Journeys are forbidden');
 
   for (const point of points) {
@@ -200,10 +231,61 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
     || !same(reportJourney?.environment?.start_limits, { provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1 })
     || !same(reportJourney?.environment?.materialization_limits, { worldCharacter: 1, realmPersona: 1 })) failures.push('conversation report Journey must declare one environment, two one-time materializations, and one Runtime restart');
   if (!array(coreJourney?.checkpoints).some((checkpoint) => array(checkpoint.covered_leaf_ids).length > 1)) failures.push('a Journey checkpoint must be able to cover multiple acceptance points');
+  for (const historicalJourney of [
+    coreJourney,
+    reportJourney,
+    journeyById.get('access-denial'),
+    journeyById.get('pre-materialization-offline'),
+    journeyById.get('turn-media-recovery'),
+    journeyById.get('native-macos-input'),
+  ]) {
+    if (historicalJourney?.execution_disposition !== 'historical_mapping_only'
+      || historicalJourney?.positive_runtime_path !== 'none_direct_daemon_retired') {
+      failures.push(`${historicalJourney?.journey_id || 'historical Journey'} must remain a non-executable mapping with no direct-daemon positive path`);
+    }
+  }
+  const devKernelJourney = journeyById.get('dev-kernel-core');
+  const devKernelCheckpoints = array(devKernelJourney?.checkpoints);
+  const devKernelCheckpointIds = devKernelCheckpointPrerequisites.map(([checkpointId]) => checkpointId);
+  if (!devKernelJourney
+    || devKernelJourney.execution_disposition !== 'active_checkpoint'
+    || devKernelJourney.applicable_layer !== 'L2'
+    || devKernelJourney.environment?.type !== 'fixed_windows_service_local_development_cross_app'
+    || devKernelJourney.environment?.requires_real_realm !== false
+    || devKernelJourney.environment?.supports_real_realm !== false
+    || devKernelJourney.environment?.requires_desktop !== true
+    || devKernelJourney.environment?.requires_zhiyu !== true
+    || devKernelJourney.environment?.requires_native_macos !== false
+    || !same(devKernelJourney.environment?.start_limits, { provider: 1, realm: 1, runtime: 3, desktop: 1, zhiyu: 6 })
+    || !same(devKernelJourney.prerequisites, devKernelProductPrerequisites)
+    || devKernelJourney.isolation_level !== 'exclusive_fixed_service_candidate_plus_clean_desktop_zhiyu_roots'
+    || devKernelJourney.repeat_policy_ref !== 'core'
+    || devKernelJourney.time_budget_ms !== 1200000
+    || !same(devKernelCheckpoints.map((checkpoint) => checkpoint.checkpoint_id), devKernelCheckpointIds)
+    || devKernelCheckpointPrerequisites.some(([checkpointId, prerequisiteIds], index) => (
+      devKernelCheckpoints[index]?.checkpoint_id !== checkpointId
+      || !same(devKernelCheckpoints[index]?.prerequisite_ids, prerequisiteIds)
+    ))) {
+    failures.push('dev-kernel-core must retain the fixed-service Developer Mode checkpoint graph');
+  }
 
   if (policy?.active_required_runner !== 'tests/local-agent-product/harness/run-gate.mjs') failures.push(`active runner must be Journey-based run-gate.mjs, got ${policy?.active_required_runner}`);
   const forbiddenPaths = array(policy?.forbidden_active_paths);
-  for (const forbiddenPath of ['tests/local-agent-product/harness/run-tier.mjs', 'tests/local-agent-product/harness/orchestrator.mjs', 'leaf_per_process', 'full_environment_starts_equals_leaf_count_times_repeat', 'tests/local-agent-product/behavior/run-live-behavior.mjs', 'scripts/check-local-agent-live-behavior.mjs']) if (!forbiddenPaths.includes(forbiddenPath)) failures.push(`execution policy must forbid old runner/path ${forbiddenPath}`);
+  for (const forbiddenPath of [
+    'tests/local-agent-product/harness/run-tier.mjs',
+    'tests/local-agent-product/harness/orchestrator.mjs',
+    'leaf_per_process',
+    'full_environment_starts_equals_leaf_count_times_repeat',
+    'tests/local-agent-product/behavior/run-live-behavior.mjs',
+    'scripts/check-local-agent-live-behavior.mjs',
+    'tests/local-agent-product/harness/cross-app-driver.mjs#runFullChainCoreTrial',
+    'tests/local-agent-product/conversation-report/run-conversation-report.mjs',
+    'tests/local-agent-product/conversation-report/product-driver.mjs#runConversationReportProductTrial',
+    'apps/desktop/scripts/run-electron-explore-materialization-acceptance.mjs',
+    'apps/desktop/scripts/lib/runtime-local-agent-center-runner.mjs',
+    'apps/desktop/scripts/lib/runtime-local-agent-center-evidence.mjs',
+    'tests/local-agent-product/harness/native-macos-product.mjs',
+  ]) if (!forbiddenPaths.includes(forbiddenPath)) failures.push(`execution policy must forbid old runner/path ${forbiddenPath}`);
   if (policy?.i8_execution_in_i7 !== 'forbidden') failures.push('I8 execution in I7 must be forbidden');
   const expectedGateCommands = {
     coverage: 'pnpm check:local-agent-product-coverage',
@@ -212,22 +294,45 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
     core_stability: 'pnpm test:e2e:local-agent-product:core-stability',
     extended: 'pnpm test:e2e:local-agent-product:extended',
     exhaustive: 'pnpm test:local-agent-product:exhaustive',
-    conversation_report: 'pnpm test:e2e:local-agent-conversation-report',
     acceptance: 'pnpm check:local-agent-product-acceptance',
   };
   for (const [gateId, command] of Object.entries(expectedGateCommands)) if (policy?.gates?.[gateId]?.command !== command) failures.push(`execution policy gate ${gateId} must use ${command}`);
+  if (policy?.gates?.core?.journeys?.length !== 1
+    || policy.gates.core.journeys[0]?.journey_id !== 'dev-kernel-core'
+    || policy.gates.core.journeys[0]?.repeats !== 1
+    || policy?.gates?.core_stability?.journeys?.length !== 1
+    || policy.gates.core_stability.journeys[0]?.journey_id !== 'dev-kernel-core'
+    || policy.gates.core_stability.journeys[0]?.repeats !== 3) {
+    failures.push('core gates must execute the merged dev-kernel-core Journey');
+  }
+  if (!same(policy?.gates?.extended?.journeys, [
+    { journey_id: 'source-revision-no-rebase', repeats: 1 },
+    { journey_id: 'destructive-termination', repeats: 1 },
+    { journey_id: 'challenge-replay-concurrency', repeats: 1 },
+    { journey_id: 'crash-recovery', repeats: 1 },
+  ])) failures.push('extended gate must retain command-only Runtime regression mappings and exclude historical product-shell paths');
   if (Object.hasOwn(policy?.gates || {}, 'live_behavior')) failures.push('old live behavior gate is forbidden');
-  if (array(policy?.required_local_pr_composition).includes('conversation_report')) failures.push('on-demand conversation report cannot enter required local/PR composition');
+  if (Object.hasOwn(policy?.gates || {}, 'conversation_report')) failures.push('historical conversation report cannot remain an executable gate');
+  if (array(policy?.suites).some((suite) => suite?.suite_id === 'conversation-report-i8')) failures.push('historical conversation report cannot remain an executable suite');
+  if (Object.hasOwn(policy?.repeat_policies || {}, 'conversation_report')) failures.push('historical conversation report cannot retain an active repeat policy');
+  if (array(policy?.required_local_pr_composition).includes('conversation_report')) failures.push('historical conversation report entered the ordinary required regression composition');
+  if (!same(policy?.non_executable_historical_mappings, [
+    'full-chain-core',
+    'conversation-report-baseline',
+    'access-denial',
+    'pre-materialization-offline',
+    'turn-media-recovery',
+    'native-macos-input',
+  ])) failures.push('historical full-chain/report/product mappings must be explicitly non-executable');
+  if (!same(policy?.gates?.acceptance?.journeys, [
+    'dev-kernel-core',
+    'source-revision-no-rebase',
+    'destructive-termination',
+    'challenge-replay-concurrency',
+    'crash-recovery',
+  ])) failures.push('checkpoint acceptance must exclude historical full-chain/report/product execution');
   if (policy?.repeat_policies?.core?.stability !== 3 || policy?.repeat_policies?.core?.clean_root_per_repeat !== true || policy?.repeat_policies?.core?.fresh_logical_identity_per_repeat !== true) failures.push('core stability must use three clean Journey repeats with fresh logical identities');
   if (policy?.repeat_policies?.exhaustive?.full_environment_per_leaf !== false) failures.push('exhaustive policy must forbid full environment per leaf');
-  if (!same(policy?.repeat_policies?.conversation_report, {
-    owner_iteration: 'I8', runs: 1, models_per_run: 1, repeats_per_model: 1,
-    clean_root_per_run: true, retry: 'none', full_environment_per_scene_or_turn: false,
-  })) failures.push('conversation report repeat policy must be one run/one model/one repeat/no retry/one environment');
-  if (policy?.gates?.conversation_report?.admission_threshold !== 'none'
-    || policy?.gates?.conversation_report?.human_review !== 'required'
-    || policy?.gates?.conversation_report?.ordinary_regression !== 'forbidden') failures.push('conversation report must be on-demand human review with no admission threshold');
-  if (policy?.gate_budgets_ms?.conversation_report_journey_hard !== 2700000 || policy?.gate_budgets_ms?.conversation_report_closeout_hard !== 3000000) failures.push('conversation report time budgets drifted from P-TEST');
   if (array(scenarios?.scenarios).length !== 1 || scenarios.scenarios[0]?.scenario_id !== 'conversation-report-baseline' || array(scenarios.scenarios[0]?.streams).length !== 2 || Object.hasOwn(scenarios.scenarios[0]?.lifecycle_timeline || {}, 'turns')) failures.push('scenario registry must contain two LocalAgent streams and one non-conversation lifecycle timeline');
   return failures;
 }
@@ -244,12 +349,32 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
   if (JSON.stringify(result?.sourceState) !== JSON.stringify(expectedSourceState)) failures.push('journey source state or source digest mismatch');
   if (!Number.isInteger(result?.durationMs) || result.durationMs < 0 || result.durationMs > Number(journey?.time_budget_ms || 0)) failures.push(`journey duration exceeds budget ${journey?.time_budget_ms}`);
   if (!object(result?.environmentIdentity) || !text(result.environmentIdentity.rootId)) failures.push('journey environment identity/root is missing');
-  if (JSON.stringify(result?.environmentIdentity?.processStarts) !== JSON.stringify(journey?.environment?.start_limits)) failures.push('journey environment process start count mismatch');
+  if (journey?.journey_id === 'dev-kernel-core') {
+    const observed = result?.environmentIdentity?.processStarts;
+    const limits = journey?.environment?.start_limits;
+    const minimums = { provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 6 };
+    for (const role of ['provider', 'realm', 'runtime', 'desktop', 'zhiyu']) {
+      if (!Number.isInteger(observed?.[role])
+        || observed[role] < minimums[role]
+        || observed[role] > Number(limits?.[role])) {
+        failures.push(`dev-kernel-core observed ${role} process starts must be within ${minimums[role]}..${limits?.[role]}`);
+      }
+    }
+  } else if (JSON.stringify(result?.environmentIdentity?.processStarts) !== JSON.stringify(journey?.environment?.start_limits)) {
+    failures.push('journey environment process start count mismatch');
+  }
   if (journey?.journey_id === 'full-chain-core') {
     for (const field of logicalIdentityFields) {
       const values = array(result?.environmentIdentity?.[field]);
       if (values.length === 0 || values.some((value) => !text(value)) || new Set(values).size !== values.length) {
         failures.push(`full-chain-core environment identity ${field} must contain unique observed identities`);
+      }
+    }
+  } else if (journey?.journey_id === 'dev-kernel-core') {
+    for (const field of ['accountIds', 'runtimeSourceRefs', 'localAgentIds']) {
+      const values = array(result?.environmentIdentity?.[field]);
+      if (values.length === 0 || values.some((value) => !text(value)) || new Set(values).size !== values.length) {
+        failures.push(`dev-kernel-core environment identity ${field} must contain unique observed identities`);
       }
     }
   }
@@ -343,16 +468,16 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
   for (const leaf of leafMap.values()) for (const evidenceRef of array(leaf.evidenceRefs)) if (!artifactMap.has(evidenceRef)) failures.push(`${leaf.leafId} references missing evidence ${evidenceRef}`);
   for (const checkpoint of checkpointMap.values()) for (const artifactRef of array(checkpoint.artifactRefs)) if (!artifactMap.has(artifactRef)) failures.push(`${checkpoint.checkpointId} references missing artifact ${artifactRef}`);
 
-  if (journey?.journey_id === 'full-chain-core') {
+  if (journey?.journey_id === 'full-chain-core' || journey?.journey_id === 'dev-kernel-core') {
     const provider = artifactMap.get('provider-capture-summary');
-    if (!provider || !fs.existsSync(provider.path)) failures.push('full-chain-core provider capture summary is missing');
+    if (!provider || !fs.existsSync(provider.path)) failures.push(`${journey.journey_id} provider capture summary is missing`);
     else {
       try {
         const summary = JSON.parse(fs.readFileSync(provider.path, 'utf8'));
         const laneIds = array(summary.contextLaneIds ?? summary.laneIds);
         if (summary.complete !== true
           || summary.contextLaneOrderVerified !== true
-          || requiredProviderLaneIds.some((laneId) => !laneIds.includes(laneId))) failures.push('provider capture lanes are incomplete');
+          || requiredProviderLaneIds.some((laneId) => !laneIds.includes(laneId))) failures.push(`${journey.journey_id} provider capture lanes are incomplete`);
       } catch {
         failures.push('provider capture summary is invalid JSON');
       }

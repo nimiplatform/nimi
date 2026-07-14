@@ -11,7 +11,6 @@ import { createNimiError } from '../types';
 import { projectRuntimeLocalAgentIdentity, type RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import { normalizeNimiRuntimeReasonCode } from './reason-messages';
 import {
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
   resolveNimiRuntimeAgentSubjectUserId,
@@ -41,7 +40,6 @@ export interface NimiRuntimeAgentMemorySurface {
 export interface NimiHostRuntimeAgentMemoryClient {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: {
     getAgentCanonicalMemoryBankStatus(
       request: GetAgentCanonicalMemoryBankStatusRequest,

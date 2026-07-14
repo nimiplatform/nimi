@@ -1433,1343 +1433,6 @@ func (ConversationAnchorStatus) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{24}
 }
 
-// K-AGCORE-151: closed source kinds accepted by the Runtime-owned challenge
-// and canonical chunked materialization ingress. Unknown numeric values fail
-// admission; they are never coerced to a source kind.
-type AgentSourceMaterializationSourceKind int32
-
-const (
-	AgentSourceMaterializationSourceKind_AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED     AgentSourceMaterializationSourceKind = 0
-	AgentSourceMaterializationSourceKind_AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER AgentSourceMaterializationSourceKind = 1
-	AgentSourceMaterializationSourceKind_AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA   AgentSourceMaterializationSourceKind = 2
-)
-
-// Enum value maps for AgentSourceMaterializationSourceKind.
-var (
-	AgentSourceMaterializationSourceKind_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER",
-		2: "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA",
-	}
-	AgentSourceMaterializationSourceKind_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED":     0,
-		"AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER": 1,
-		"AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA":   2,
-	}
-)
-
-func (x AgentSourceMaterializationSourceKind) Enum() *AgentSourceMaterializationSourceKind {
-	p := new(AgentSourceMaterializationSourceKind)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationSourceKind) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationSourceKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[25].Descriptor()
-}
-
-func (AgentSourceMaterializationSourceKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[25]
-}
-
-func (x AgentSourceMaterializationSourceKind) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationSourceKind.Descriptor instead.
-func (AgentSourceMaterializationSourceKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{25}
-}
-
-type AgentSourceMaterializationChallengeState int32
-
-const (
-	AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED AgentSourceMaterializationChallengeState = 0
-	AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED      AgentSourceMaterializationChallengeState = 1
-	AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED      AgentSourceMaterializationChallengeState = 2
-	AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED    AgentSourceMaterializationChallengeState = 3
-	AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED AgentSourceMaterializationChallengeState = 4
-	AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED     AgentSourceMaterializationChallengeState = 5
-)
-
-// Enum value maps for AgentSourceMaterializationChallengeState.
-var (
-	AgentSourceMaterializationChallengeState_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED",
-		2: "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED",
-		3: "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED",
-		4: "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED",
-		5: "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED",
-	}
-	AgentSourceMaterializationChallengeState_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED": 0,
-		"AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED":      1,
-		"AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED":      2,
-		"AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED":    3,
-		"AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED": 4,
-		"AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED":     5,
-	}
-)
-
-func (x AgentSourceMaterializationChallengeState) Enum() *AgentSourceMaterializationChallengeState {
-	p := new(AgentSourceMaterializationChallengeState)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationChallengeState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationChallengeState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[26].Descriptor()
-}
-
-func (AgentSourceMaterializationChallengeState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[26]
-}
-
-func (x AgentSourceMaterializationChallengeState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationChallengeState.Descriptor instead.
-func (AgentSourceMaterializationChallengeState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{26}
-}
-
-type AgentSourceMaterializationUploadState int32
-
-const (
-	AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED AgentSourceMaterializationUploadState = 0
-	AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN        AgentSourceMaterializationUploadState = 1
-	AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING  AgentSourceMaterializationUploadState = 2
-	AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED   AgentSourceMaterializationUploadState = 3
-	AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED      AgentSourceMaterializationUploadState = 4
-	AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED     AgentSourceMaterializationUploadState = 5
-	AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED     AgentSourceMaterializationUploadState = 6
-)
-
-// Enum value maps for AgentSourceMaterializationUploadState.
-var (
-	AgentSourceMaterializationUploadState_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN",
-		2: "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING",
-		3: "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED",
-		4: "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED",
-		5: "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED",
-		6: "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED",
-	}
-	AgentSourceMaterializationUploadState_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED": 0,
-		"AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN":        1,
-		"AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING":  2,
-		"AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED":   3,
-		"AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED":      4,
-		"AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED":     5,
-		"AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED":     6,
-	}
-)
-
-func (x AgentSourceMaterializationUploadState) Enum() *AgentSourceMaterializationUploadState {
-	p := new(AgentSourceMaterializationUploadState)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationUploadState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationUploadState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[27].Descriptor()
-}
-
-func (AgentSourceMaterializationUploadState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[27]
-}
-
-func (x AgentSourceMaterializationUploadState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationUploadState.Descriptor instead.
-func (AgentSourceMaterializationUploadState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{27}
-}
-
-type AgentSourceMaterializationComponentKind int32
-
-const (
-	AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED        AgentSourceMaterializationComponentKind = 0
-	AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER    AgentSourceMaterializationComponentKind = 1
-	AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA      AgentSourceMaterializationComponentKind = 2
-	AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE         AgentSourceMaterializationComponentKind = 3
-	AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY       AgentSourceMaterializationComponentKind = 4
-	AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP AgentSourceMaterializationComponentKind = 5
-	AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST  AgentSourceMaterializationComponentKind = 6
-)
-
-// Enum value maps for AgentSourceMaterializationComponentKind.
-var (
-	AgentSourceMaterializationComponentKind_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER",
-		2: "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA",
-		3: "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE",
-		4: "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY",
-		5: "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP",
-		6: "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST",
-	}
-	AgentSourceMaterializationComponentKind_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED":        0,
-		"AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER":    1,
-		"AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA":      2,
-		"AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE":         3,
-		"AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY":       4,
-		"AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP": 5,
-		"AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST":  6,
-	}
-)
-
-func (x AgentSourceMaterializationComponentKind) Enum() *AgentSourceMaterializationComponentKind {
-	p := new(AgentSourceMaterializationComponentKind)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationComponentKind) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationComponentKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[28].Descriptor()
-}
-
-func (AgentSourceMaterializationComponentKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[28]
-}
-
-func (x AgentSourceMaterializationComponentKind) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationComponentKind.Descriptor instead.
-func (AgentSourceMaterializationComponentKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{28}
-}
-
-type AgentSourceMaterializationProofAlgorithm int32
-
-const (
-	AgentSourceMaterializationProofAlgorithm_AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED AgentSourceMaterializationProofAlgorithm = 0
-	AgentSourceMaterializationProofAlgorithm_AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256       AgentSourceMaterializationProofAlgorithm = 1
-)
-
-// Enum value maps for AgentSourceMaterializationProofAlgorithm.
-var (
-	AgentSourceMaterializationProofAlgorithm_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256",
-	}
-	AgentSourceMaterializationProofAlgorithm_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED": 0,
-		"AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256":       1,
-	}
-)
-
-func (x AgentSourceMaterializationProofAlgorithm) Enum() *AgentSourceMaterializationProofAlgorithm {
-	p := new(AgentSourceMaterializationProofAlgorithm)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationProofAlgorithm) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationProofAlgorithm) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[29].Descriptor()
-}
-
-func (AgentSourceMaterializationProofAlgorithm) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[29]
-}
-
-func (x AgentSourceMaterializationProofAlgorithm) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationProofAlgorithm.Descriptor instead.
-func (AgentSourceMaterializationProofAlgorithm) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{29}
-}
-
-type AgentSourceMaterializationKeyUse int32
-
-const (
-	AgentSourceMaterializationKeyUse_AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED AgentSourceMaterializationKeyUse = 0
-	AgentSourceMaterializationKeyUse_AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG         AgentSourceMaterializationKeyUse = 1
-)
-
-// Enum value maps for AgentSourceMaterializationKeyUse.
-var (
-	AgentSourceMaterializationKeyUse_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG",
-	}
-	AgentSourceMaterializationKeyUse_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED": 0,
-		"AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG":         1,
-	}
-)
-
-func (x AgentSourceMaterializationKeyUse) Enum() *AgentSourceMaterializationKeyUse {
-	p := new(AgentSourceMaterializationKeyUse)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationKeyUse) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationKeyUse) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[30].Descriptor()
-}
-
-func (AgentSourceMaterializationKeyUse) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[30]
-}
-
-func (x AgentSourceMaterializationKeyUse) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationKeyUse.Descriptor instead.
-func (AgentSourceMaterializationKeyUse) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{30}
-}
-
-type AgentSourceMaterializationPacketSchemaVersion int32
-
-const (
-	AgentSourceMaterializationPacketSchemaVersion_AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED AgentSourceMaterializationPacketSchemaVersion = 0
-	AgentSourceMaterializationPacketSchemaVersion_AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2          AgentSourceMaterializationPacketSchemaVersion = 1
-)
-
-// Enum value maps for AgentSourceMaterializationPacketSchemaVersion.
-var (
-	AgentSourceMaterializationPacketSchemaVersion_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2",
-	}
-	AgentSourceMaterializationPacketSchemaVersion_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2":          1,
-	}
-)
-
-func (x AgentSourceMaterializationPacketSchemaVersion) Enum() *AgentSourceMaterializationPacketSchemaVersion {
-	p := new(AgentSourceMaterializationPacketSchemaVersion)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationPacketSchemaVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationPacketSchemaVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[31].Descriptor()
-}
-
-func (AgentSourceMaterializationPacketSchemaVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[31]
-}
-
-func (x AgentSourceMaterializationPacketSchemaVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationPacketSchemaVersion.Descriptor instead.
-func (AgentSourceMaterializationPacketSchemaVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{31}
-}
-
-type AgentSourceMaterializationBundleManifestSchemaVersion int32
-
-const (
-	AgentSourceMaterializationBundleManifestSchemaVersion_AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED AgentSourceMaterializationBundleManifestSchemaVersion = 0
-	AgentSourceMaterializationBundleManifestSchemaVersion_AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1          AgentSourceMaterializationBundleManifestSchemaVersion = 1
-)
-
-// Enum value maps for AgentSourceMaterializationBundleManifestSchemaVersion.
-var (
-	AgentSourceMaterializationBundleManifestSchemaVersion_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1",
-	}
-	AgentSourceMaterializationBundleManifestSchemaVersion_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1":          1,
-	}
-)
-
-func (x AgentSourceMaterializationBundleManifestSchemaVersion) Enum() *AgentSourceMaterializationBundleManifestSchemaVersion {
-	p := new(AgentSourceMaterializationBundleManifestSchemaVersion)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationBundleManifestSchemaVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationBundleManifestSchemaVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[32].Descriptor()
-}
-
-func (AgentSourceMaterializationBundleManifestSchemaVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[32]
-}
-
-func (x AgentSourceMaterializationBundleManifestSchemaVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationBundleManifestSchemaVersion.Descriptor instead.
-func (AgentSourceMaterializationBundleManifestSchemaVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{32}
-}
-
-type AgentSourceMaterializationPayloadAssemblyVersion int32
-
-const (
-	AgentSourceMaterializationPayloadAssemblyVersion_AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED AgentSourceMaterializationPayloadAssemblyVersion = 0
-	AgentSourceMaterializationPayloadAssemblyVersion_AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1          AgentSourceMaterializationPayloadAssemblyVersion = 1
-)
-
-// Enum value maps for AgentSourceMaterializationPayloadAssemblyVersion.
-var (
-	AgentSourceMaterializationPayloadAssemblyVersion_name = map[int32]string{
-		0: "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED",
-		1: "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1",
-	}
-	AgentSourceMaterializationPayloadAssemblyVersion_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED": 0,
-		"AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1":          1,
-	}
-)
-
-func (x AgentSourceMaterializationPayloadAssemblyVersion) Enum() *AgentSourceMaterializationPayloadAssemblyVersion {
-	p := new(AgentSourceMaterializationPayloadAssemblyVersion)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationPayloadAssemblyVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationPayloadAssemblyVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[33].Descriptor()
-}
-
-func (AgentSourceMaterializationPayloadAssemblyVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[33]
-}
-
-func (x AgentSourceMaterializationPayloadAssemblyVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationPayloadAssemblyVersion.Descriptor instead.
-func (AgentSourceMaterializationPayloadAssemblyVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{33}
-}
-
-type AgentSourceMaterializationReasonCode int32
-
-const (
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED                 AgentSourceMaterializationReasonCode = 0
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE                        AgentSourceMaterializationReasonCode = 1
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST             AgentSourceMaterializationReasonCode = 2
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH    AgentSourceMaterializationReasonCode = 3
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH     AgentSourceMaterializationReasonCode = 4
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND         AgentSourceMaterializationReasonCode = 5
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED           AgentSourceMaterializationReasonCode = 6
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT          AgentSourceMaterializationReasonCode = 7
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED    AgentSourceMaterializationReasonCode = 8
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED  AgentSourceMaterializationReasonCode = 9
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH           AgentSourceMaterializationReasonCode = 10
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED    AgentSourceMaterializationReasonCode = 11
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED AgentSourceMaterializationReasonCode = 12
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED     AgentSourceMaterializationReasonCode = 13
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED        AgentSourceMaterializationReasonCode = 14
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID            AgentSourceMaterializationReasonCode = 15
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID              AgentSourceMaterializationReasonCode = 16
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID               AgentSourceMaterializationReasonCode = 17
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND            AgentSourceMaterializationReasonCode = 18
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT       AgentSourceMaterializationReasonCode = 19
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT         AgentSourceMaterializationReasonCode = 20
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID    AgentSourceMaterializationReasonCode = 21
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH       AgentSourceMaterializationReasonCode = 22
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT              AgentSourceMaterializationReasonCode = 23
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS          AgentSourceMaterializationReasonCode = 24
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED           AgentSourceMaterializationReasonCode = 25
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT             AgentSourceMaterializationReasonCode = 26
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED            AgentSourceMaterializationReasonCode = 27
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED                     AgentSourceMaterializationReasonCode = 28
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED                     AgentSourceMaterializationReasonCode = 29
-	AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED          AgentSourceMaterializationReasonCode = 30
-)
-
-// Enum value maps for AgentSourceMaterializationReasonCode.
-var (
-	AgentSourceMaterializationReasonCode_name = map[int32]string{
-		0:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
-		1:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
-		2:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST",
-		3:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH",
-		4:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH",
-		5:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND",
-		6:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED",
-		7:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT",
-		8:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED",
-		9:  "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED",
-		10: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH",
-		11: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED",
-		12: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED",
-		13: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED",
-		14: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED",
-		15: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID",
-		16: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID",
-		17: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID",
-		18: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND",
-		19: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT",
-		20: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT",
-		21: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID",
-		22: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH",
-		23: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT",
-		24: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS",
-		25: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED",
-		26: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT",
-		27: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED",
-		28: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED",
-		29: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED",
-		30: "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED",
-	}
-	AgentSourceMaterializationReasonCode_value = map[string]int32{
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED":                 0,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE":                        1,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST":             2,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH":    3,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH":     4,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND":         5,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED":           6,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT":          7,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED":    8,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED":  9,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH":           10,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED":    11,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED": 12,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED":     13,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED":        14,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID":            15,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID":              16,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID":               17,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND":            18,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT":       19,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT":         20,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID":    21,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH":       22,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT":              23,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS":          24,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED":           25,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT":             26,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED":            27,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED":                     28,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED":                     29,
-		"AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED":          30,
-	}
-)
-
-func (x AgentSourceMaterializationReasonCode) Enum() *AgentSourceMaterializationReasonCode {
-	p := new(AgentSourceMaterializationReasonCode)
-	*p = x
-	return p
-}
-
-func (x AgentSourceMaterializationReasonCode) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentSourceMaterializationReasonCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[34].Descriptor()
-}
-
-func (AgentSourceMaterializationReasonCode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[34]
-}
-
-func (x AgentSourceMaterializationReasonCode) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentSourceMaterializationReasonCode.Descriptor instead.
-func (AgentSourceMaterializationReasonCode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{34}
-}
-
-type AgentLocalSourceContextState int32
-
-const (
-	AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED      AgentLocalSourceContextState = 0
-	AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED AgentLocalSourceContextState = 1
-	AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING       AgentLocalSourceContextState = 2
-	AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY            AgentLocalSourceContextState = 3
-	AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID          AgentLocalSourceContextState = 4
-	AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED          AgentLocalSourceContextState = 5
-)
-
-// Enum value maps for AgentLocalSourceContextState.
-var (
-	AgentLocalSourceContextState_name = map[int32]string{
-		0: "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED",
-		1: "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED",
-		2: "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING",
-		3: "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY",
-		4: "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID",
-		5: "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED",
-	}
-	AgentLocalSourceContextState_value = map[string]int32{
-		"AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED":      0,
-		"AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED": 1,
-		"AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING":       2,
-		"AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY":            3,
-		"AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID":          4,
-		"AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED":          5,
-	}
-)
-
-func (x AgentLocalSourceContextState) Enum() *AgentLocalSourceContextState {
-	p := new(AgentLocalSourceContextState)
-	*p = x
-	return p
-}
-
-func (x AgentLocalSourceContextState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentLocalSourceContextState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[35].Descriptor()
-}
-
-func (AgentLocalSourceContextState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[35]
-}
-
-func (x AgentLocalSourceContextState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentLocalSourceContextState.Descriptor instead.
-func (AgentLocalSourceContextState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{35}
-}
-
-type AgentLocalSourceCoverageSection int32
-
-const (
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED         AgentLocalSourceCoverageSection = 0
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY            AgentLocalSourceCoverageSection = 1
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION        AgentLocalSourceCoverageSection = 2
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT           AgentLocalSourceCoverageSection = 3
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY           AgentLocalSourceCoverageSection = 4
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY          AgentLocalSourceCoverageSection = 5
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE           AgentLocalSourceCoverageSection = 6
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS       AgentLocalSourceCoverageSection = 7
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES        AgentLocalSourceCoverageSection = 8
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE AgentLocalSourceCoverageSection = 9
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS              AgentLocalSourceCoverageSection = 10
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING           AgentLocalSourceCoverageSection = 11
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE       AgentLocalSourceCoverageSection = 12
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE     AgentLocalSourceCoverageSection = 13
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE          AgentLocalSourceCoverageSection = 14
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY        AgentLocalSourceCoverageSection = 15
-	AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE  AgentLocalSourceCoverageSection = 16
-)
-
-// Enum value maps for AgentLocalSourceCoverageSection.
-var (
-	AgentLocalSourceCoverageSection_name = map[int32]string{
-		0:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED",
-		1:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY",
-		2:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION",
-		3:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT",
-		4:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY",
-		5:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY",
-		6:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE",
-		7:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS",
-		8:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES",
-		9:  "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE",
-		10: "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS",
-		11: "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING",
-		12: "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE",
-		13: "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE",
-		14: "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE",
-		15: "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY",
-		16: "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE",
-	}
-	AgentLocalSourceCoverageSection_value = map[string]int32{
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED":         0,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY":            1,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION":        2,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT":           3,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY":           4,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY":          5,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE":           6,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS":       7,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES":        8,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE": 9,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS":              10,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING":           11,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE":       12,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE":     13,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE":          14,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY":        15,
-		"AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE":  16,
-	}
-)
-
-func (x AgentLocalSourceCoverageSection) Enum() *AgentLocalSourceCoverageSection {
-	p := new(AgentLocalSourceCoverageSection)
-	*p = x
-	return p
-}
-
-func (x AgentLocalSourceCoverageSection) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentLocalSourceCoverageSection) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[36].Descriptor()
-}
-
-func (AgentLocalSourceCoverageSection) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[36]
-}
-
-func (x AgentLocalSourceCoverageSection) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentLocalSourceCoverageSection.Descriptor instead.
-func (AgentLocalSourceCoverageSection) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{36}
-}
-
-type AgentLocalSourceCoverageState int32
-
-const (
-	AgentLocalSourceCoverageState_AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED      AgentLocalSourceCoverageState = 0
-	AgentLocalSourceCoverageState_AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE         AgentLocalSourceCoverageState = 1
-	AgentLocalSourceCoverageState_AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE   AgentLocalSourceCoverageState = 2
-	AgentLocalSourceCoverageState_AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED AgentLocalSourceCoverageState = 3
-	AgentLocalSourceCoverageState_AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID          AgentLocalSourceCoverageState = 4
-)
-
-// Enum value maps for AgentLocalSourceCoverageState.
-var (
-	AgentLocalSourceCoverageState_name = map[int32]string{
-		0: "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED",
-		1: "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE",
-		2: "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE",
-		3: "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED",
-		4: "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID",
-	}
-	AgentLocalSourceCoverageState_value = map[string]int32{
-		"AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED":      0,
-		"AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE":         1,
-		"AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE":   2,
-		"AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED": 3,
-		"AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID":          4,
-	}
-)
-
-func (x AgentLocalSourceCoverageState) Enum() *AgentLocalSourceCoverageState {
-	p := new(AgentLocalSourceCoverageState)
-	*p = x
-	return p
-}
-
-func (x AgentLocalSourceCoverageState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentLocalSourceCoverageState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[37].Descriptor()
-}
-
-func (AgentLocalSourceCoverageState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[37]
-}
-
-func (x AgentLocalSourceCoverageState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentLocalSourceCoverageState.Descriptor instead.
-func (AgentLocalSourceCoverageState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{37}
-}
-
-type AgentTurnContextState int32
-
-const (
-	AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_UNSPECIFIED               AgentTurnContextState = 0
-	AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED              AgentTurnContextState = 1
-	AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_READY                     AgentTurnContextState = 2
-	AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED AgentTurnContextState = 3
-	AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_INVALID                   AgentTurnContextState = 4
-)
-
-// Enum value maps for AgentTurnContextState.
-var (
-	AgentTurnContextState_name = map[int32]string{
-		0: "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED",
-		1: "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED",
-		2: "AGENT_TURN_CONTEXT_STATE_READY",
-		3: "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED",
-		4: "AGENT_TURN_CONTEXT_STATE_INVALID",
-	}
-	AgentTurnContextState_value = map[string]int32{
-		"AGENT_TURN_CONTEXT_STATE_UNSPECIFIED":               0,
-		"AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED":              1,
-		"AGENT_TURN_CONTEXT_STATE_READY":                     2,
-		"AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED": 3,
-		"AGENT_TURN_CONTEXT_STATE_INVALID":                   4,
-	}
-)
-
-func (x AgentTurnContextState) Enum() *AgentTurnContextState {
-	p := new(AgentTurnContextState)
-	*p = x
-	return p
-}
-
-func (x AgentTurnContextState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentTurnContextState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[38].Descriptor()
-}
-
-func (AgentTurnContextState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[38]
-}
-
-func (x AgentTurnContextState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentTurnContextState.Descriptor instead.
-func (AgentTurnContextState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{38}
-}
-
-type AgentTurnContextLaneId int32
-
-const (
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED          AgentTurnContextLaneId = 0
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY       AgentTurnContextLaneId = 1
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT      AgentTurnContextLaneId = 2
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY      AgentTurnContextLaneId = 3
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR      AgentTurnContextLaneId = 4
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT        AgentTurnContextLaneId = 5
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT AgentTurnContextLaneId = 6
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE     AgentTurnContextLaneId = 7
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY     AgentTurnContextLaneId = 8
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY AgentTurnContextLaneId = 9
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT   AgentTurnContextLaneId = 10
-	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN    AgentTurnContextLaneId = 11
-)
-
-// Enum value maps for AgentTurnContextLaneId.
-var (
-	AgentTurnContextLaneId_name = map[int32]string{
-		0:  "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED",
-		1:  "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY",
-		2:  "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT",
-		3:  "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY",
-		4:  "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR",
-		5:  "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT",
-		6:  "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT",
-		7:  "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE",
-		8:  "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY",
-		9:  "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY",
-		10: "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT",
-		11: "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
-	}
-	AgentTurnContextLaneId_value = map[string]int32{
-		"AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED":          0,
-		"AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY":       1,
-		"AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT":      2,
-		"AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY":      3,
-		"AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR":      4,
-		"AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT":        5,
-		"AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT": 6,
-		"AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE":     7,
-		"AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY":     8,
-		"AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY": 9,
-		"AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT":   10,
-		"AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN":    11,
-	}
-)
-
-func (x AgentTurnContextLaneId) Enum() *AgentTurnContextLaneId {
-	p := new(AgentTurnContextLaneId)
-	*p = x
-	return p
-}
-
-func (x AgentTurnContextLaneId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentTurnContextLaneId) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[39].Descriptor()
-}
-
-func (AgentTurnContextLaneId) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[39]
-}
-
-func (x AgentTurnContextLaneId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentTurnContextLaneId.Descriptor instead.
-func (AgentTurnContextLaneId) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{39}
-}
-
-type AgentTurnContextLaneState int32
-
-const (
-	AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED AgentTurnContextLaneState = 0
-	AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED    AgentTurnContextLaneState = 1
-	AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_EMPTY       AgentTurnContextLaneState = 2
-	AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_OMITTED     AgentTurnContextLaneState = 3
-	AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED   AgentTurnContextLaneState = 4
-	AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_INVALID     AgentTurnContextLaneState = 5
-)
-
-// Enum value maps for AgentTurnContextLaneState.
-var (
-	AgentTurnContextLaneState_name = map[int32]string{
-		0: "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED",
-		1: "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED",
-		2: "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY",
-		3: "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED",
-		4: "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED",
-		5: "AGENT_TURN_CONTEXT_LANE_STATE_INVALID",
-	}
-	AgentTurnContextLaneState_value = map[string]int32{
-		"AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED": 0,
-		"AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED":    1,
-		"AGENT_TURN_CONTEXT_LANE_STATE_EMPTY":       2,
-		"AGENT_TURN_CONTEXT_LANE_STATE_OMITTED":     3,
-		"AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED":   4,
-		"AGENT_TURN_CONTEXT_LANE_STATE_INVALID":     5,
-	}
-)
-
-func (x AgentTurnContextLaneState) Enum() *AgentTurnContextLaneState {
-	p := new(AgentTurnContextLaneState)
-	*p = x
-	return p
-}
-
-func (x AgentTurnContextLaneState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentTurnContextLaneState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[40].Descriptor()
-}
-
-func (AgentTurnContextLaneState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[40]
-}
-
-func (x AgentTurnContextLaneState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentTurnContextLaneState.Descriptor instead.
-func (AgentTurnContextLaneState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{40}
-}
-
-type AgentTurnContextTruncationReason int32
-
-const (
-	AgentTurnContextTruncationReason_AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED               AgentTurnContextTruncationReason = 0
-	AgentTurnContextTruncationReason_AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE                      AgentTurnContextTruncationReason = 1
-	AgentTurnContextTruncationReason_AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED    AgentTurnContextTruncationReason = 2
-	AgentTurnContextTruncationReason_AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED  AgentTurnContextTruncationReason = 3
-	AgentTurnContextTruncationReason_AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED AgentTurnContextTruncationReason = 4
-)
-
-// Enum value maps for AgentTurnContextTruncationReason.
-var (
-	AgentTurnContextTruncationReason_name = map[int32]string{
-		0: "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED",
-		1: "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE",
-		2: "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED",
-		3: "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED",
-		4: "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED",
-	}
-	AgentTurnContextTruncationReason_value = map[string]int32{
-		"AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED":               0,
-		"AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE":                      1,
-		"AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED":    2,
-		"AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED":  3,
-		"AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED": 4,
-	}
-)
-
-func (x AgentTurnContextTruncationReason) Enum() *AgentTurnContextTruncationReason {
-	p := new(AgentTurnContextTruncationReason)
-	*p = x
-	return p
-}
-
-func (x AgentTurnContextTruncationReason) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentTurnContextTruncationReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[41].Descriptor()
-}
-
-func (AgentTurnContextTruncationReason) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[41]
-}
-
-func (x AgentTurnContextTruncationReason) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentTurnContextTruncationReason.Descriptor instead.
-func (AgentTurnContextTruncationReason) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{41}
-}
-
-type AgentContextProjectionReasonCode int32
-
-const (
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED               AgentContextProjectionReasonCode = 0
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE                      AgentContextProjectionReasonCode = 1
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED   AgentContextProjectionReasonCode = 2
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING AgentContextProjectionReasonCode = 3
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID   AgentContextProjectionReasonCode = 4
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED      AgentContextProjectionReasonCode = 5
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED AgentContextProjectionReasonCode = 6
-	AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID  AgentContextProjectionReasonCode = 7
-)
-
-// Enum value maps for AgentContextProjectionReasonCode.
-var (
-	AgentContextProjectionReasonCode_name = map[int32]string{
-		0: "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED",
-		1: "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE",
-		2: "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED",
-		3: "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING",
-		4: "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID",
-		5: "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED",
-		6: "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED",
-		7: "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID",
-	}
-	AgentContextProjectionReasonCode_value = map[string]int32{
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED":               0,
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE":                      1,
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED":   2,
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING": 3,
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID":   4,
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED":      5,
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED": 6,
-		"AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID":  7,
-	}
-)
-
-func (x AgentContextProjectionReasonCode) Enum() *AgentContextProjectionReasonCode {
-	p := new(AgentContextProjectionReasonCode)
-	*p = x
-	return p
-}
-
-func (x AgentContextProjectionReasonCode) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentContextProjectionReasonCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[42].Descriptor()
-}
-
-func (AgentContextProjectionReasonCode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[42]
-}
-
-func (x AgentContextProjectionReasonCode) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentContextProjectionReasonCode.Descriptor instead.
-func (AgentContextProjectionReasonCode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{42}
-}
-
-type AgentLocalSourceContextSchemaVersion int32
-
-const (
-	AgentLocalSourceContextSchemaVersion_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED AgentLocalSourceContextSchemaVersion = 0
-	AgentLocalSourceContextSchemaVersion_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1          AgentLocalSourceContextSchemaVersion = 1
-)
-
-// Enum value maps for AgentLocalSourceContextSchemaVersion.
-var (
-	AgentLocalSourceContextSchemaVersion_name = map[int32]string{
-		0: "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1",
-	}
-	AgentLocalSourceContextSchemaVersion_value = map[string]int32{
-		"AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1":          1,
-	}
-)
-
-func (x AgentLocalSourceContextSchemaVersion) Enum() *AgentLocalSourceContextSchemaVersion {
-	p := new(AgentLocalSourceContextSchemaVersion)
-	*p = x
-	return p
-}
-
-func (x AgentLocalSourceContextSchemaVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentLocalSourceContextSchemaVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[43].Descriptor()
-}
-
-func (AgentLocalSourceContextSchemaVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[43]
-}
-
-func (x AgentLocalSourceContextSchemaVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentLocalSourceContextSchemaVersion.Descriptor instead.
-func (AgentLocalSourceContextSchemaVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{43}
-}
-
-type AgentLocalSourceSnapshotSchemaVersion int32
-
-const (
-	AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED AgentLocalSourceSnapshotSchemaVersion = 0
-	AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1          AgentLocalSourceSnapshotSchemaVersion = 1
-)
-
-// Enum value maps for AgentLocalSourceSnapshotSchemaVersion.
-var (
-	AgentLocalSourceSnapshotSchemaVersion_name = map[int32]string{
-		0: "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1",
-	}
-	AgentLocalSourceSnapshotSchemaVersion_value = map[string]int32{
-		"AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1":          1,
-	}
-)
-
-func (x AgentLocalSourceSnapshotSchemaVersion) Enum() *AgentLocalSourceSnapshotSchemaVersion {
-	p := new(AgentLocalSourceSnapshotSchemaVersion)
-	*p = x
-	return p
-}
-
-func (x AgentLocalSourceSnapshotSchemaVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentLocalSourceSnapshotSchemaVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[44].Descriptor()
-}
-
-func (AgentLocalSourceSnapshotSchemaVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[44]
-}
-
-func (x AgentLocalSourceSnapshotSchemaVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentLocalSourceSnapshotSchemaVersion.Descriptor instead.
-func (AgentLocalSourceSnapshotSchemaVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{44}
-}
-
-type AgentTurnContextSummarySchemaVersion int32
-
-const (
-	AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED AgentTurnContextSummarySchemaVersion = 0
-	AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1          AgentTurnContextSummarySchemaVersion = 1
-)
-
-// Enum value maps for AgentTurnContextSummarySchemaVersion.
-var (
-	AgentTurnContextSummarySchemaVersion_name = map[int32]string{
-		0: "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1",
-	}
-	AgentTurnContextSummarySchemaVersion_value = map[string]int32{
-		"AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1":          1,
-	}
-)
-
-func (x AgentTurnContextSummarySchemaVersion) Enum() *AgentTurnContextSummarySchemaVersion {
-	p := new(AgentTurnContextSummarySchemaVersion)
-	*p = x
-	return p
-}
-
-func (x AgentTurnContextSummarySchemaVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentTurnContextSummarySchemaVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[45].Descriptor()
-}
-
-func (AgentTurnContextSummarySchemaVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[45]
-}
-
-func (x AgentTurnContextSummarySchemaVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentTurnContextSummarySchemaVersion.Descriptor instead.
-func (AgentTurnContextSummarySchemaVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{45}
-}
-
-type AgentTurnContextManifestSchemaVersion int32
-
-const (
-	AgentTurnContextManifestSchemaVersion_AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED AgentTurnContextManifestSchemaVersion = 0
-	AgentTurnContextManifestSchemaVersion_AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1          AgentTurnContextManifestSchemaVersion = 1
-)
-
-// Enum value maps for AgentTurnContextManifestSchemaVersion.
-var (
-	AgentTurnContextManifestSchemaVersion_name = map[int32]string{
-		0: "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1",
-	}
-	AgentTurnContextManifestSchemaVersion_value = map[string]int32{
-		"AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1":          1,
-	}
-)
-
-func (x AgentTurnContextManifestSchemaVersion) Enum() *AgentTurnContextManifestSchemaVersion {
-	p := new(AgentTurnContextManifestSchemaVersion)
-	*p = x
-	return p
-}
-
-func (x AgentTurnContextManifestSchemaVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentTurnContextManifestSchemaVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[46].Descriptor()
-}
-
-func (AgentTurnContextManifestSchemaVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[46]
-}
-
-func (x AgentTurnContextManifestSchemaVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentTurnContextManifestSchemaVersion.Descriptor instead.
-func (AgentTurnContextManifestSchemaVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{46}
-}
-
-type AgentTurnContextCompilerSchemaVersion int32
-
-const (
-	AgentTurnContextCompilerSchemaVersion_AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED AgentTurnContextCompilerSchemaVersion = 0
-	AgentTurnContextCompilerSchemaVersion_AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1          AgentTurnContextCompilerSchemaVersion = 1
-)
-
-// Enum value maps for AgentTurnContextCompilerSchemaVersion.
-var (
-	AgentTurnContextCompilerSchemaVersion_name = map[int32]string{
-		0: "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1",
-	}
-	AgentTurnContextCompilerSchemaVersion_value = map[string]int32{
-		"AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1":          1,
-	}
-)
-
-func (x AgentTurnContextCompilerSchemaVersion) Enum() *AgentTurnContextCompilerSchemaVersion {
-	p := new(AgentTurnContextCompilerSchemaVersion)
-	*p = x
-	return p
-}
-
-func (x AgentTurnContextCompilerSchemaVersion) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AgentTurnContextCompilerSchemaVersion) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[47].Descriptor()
-}
-
-func (AgentTurnContextCompilerSchemaVersion) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[47]
-}
-
-func (x AgentTurnContextCompilerSchemaVersion) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AgentTurnContextCompilerSchemaVersion.Descriptor instead.
-func (AgentTurnContextCompilerSchemaVersion) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{47}
-}
-
 type AgentCanonicalMemoryBankMode int32
 
 const (
@@ -2806,11 +1469,11 @@ func (x AgentCanonicalMemoryBankMode) String() string {
 }
 
 func (AgentCanonicalMemoryBankMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[48].Descriptor()
+	return file_runtime_v1_agent_service_proto_enumTypes[25].Descriptor()
 }
 
 func (AgentCanonicalMemoryBankMode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[48]
+	return &file_runtime_v1_agent_service_proto_enumTypes[25]
 }
 
 func (x AgentCanonicalMemoryBankMode) Number() protoreflect.EnumNumber {
@@ -2819,7 +1482,7 @@ func (x AgentCanonicalMemoryBankMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AgentCanonicalMemoryBankMode.Descriptor instead.
 func (AgentCanonicalMemoryBankMode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{25}
 }
 
 type RuntimeAgentAIConfigReadinessState int32
@@ -2858,11 +1521,11 @@ func (x RuntimeAgentAIConfigReadinessState) String() string {
 }
 
 func (RuntimeAgentAIConfigReadinessState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_service_proto_enumTypes[49].Descriptor()
+	return file_runtime_v1_agent_service_proto_enumTypes[26].Descriptor()
 }
 
 func (RuntimeAgentAIConfigReadinessState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_service_proto_enumTypes[49]
+	return &file_runtime_v1_agent_service_proto_enumTypes[26]
 }
 
 func (x RuntimeAgentAIConfigReadinessState) Number() protoreflect.EnumNumber {
@@ -2871,2181 +1534,7 @@ func (x RuntimeAgentAIConfigReadinessState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RuntimeAgentAIConfigReadinessState.Descriptor instead.
 func (RuntimeAgentAIConfigReadinessState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{49}
-}
-
-type SourceMaterializationSourceRef struct {
-	state             protoimpl.MessageState               `protogen:"open.v1"`
-	Kind              AgentSourceMaterializationSourceKind `protobuf:"varint,1,opt,name=kind,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationSourceKind" json:"kind,omitempty"`
-	WorldId           string                               `protobuf:"bytes,2,opt,name=world_id,json=worldId,proto3" json:"world_id,omitempty"`
-	SourceId          string                               `protobuf:"bytes,3,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
-	SourceContentHash string                               `protobuf:"bytes,4,opt,name=source_content_hash,json=sourceContentHash,proto3" json:"source_content_hash,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *SourceMaterializationSourceRef) Reset() {
-	*x = SourceMaterializationSourceRef{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SourceMaterializationSourceRef) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SourceMaterializationSourceRef) ProtoMessage() {}
-
-func (x *SourceMaterializationSourceRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SourceMaterializationSourceRef.ProtoReflect.Descriptor instead.
-func (*SourceMaterializationSourceRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *SourceMaterializationSourceRef) GetKind() AgentSourceMaterializationSourceKind {
-	if x != nil {
-		return x.Kind
-	}
-	return AgentSourceMaterializationSourceKind_AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED
-}
-
-func (x *SourceMaterializationSourceRef) GetWorldId() string {
-	if x != nil {
-		return x.WorldId
-	}
-	return ""
-}
-
-func (x *SourceMaterializationSourceRef) GetSourceId() string {
-	if x != nil {
-		return x.SourceId
-	}
-	return ""
-}
-
-func (x *SourceMaterializationSourceRef) GetSourceContentHash() string {
-	if x != nil {
-		return x.SourceContentHash
-	}
-	return ""
-}
-
-type SourceMaterializationChallengeLimits struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	MaxBundleBytes    uint64                 `protobuf:"varint,1,opt,name=max_bundle_bytes,json=maxBundleBytes,proto3" json:"max_bundle_bytes,omitempty"`
-	MaxComponentCount uint32                 `protobuf:"varint,2,opt,name=max_component_count,json=maxComponentCount,proto3" json:"max_component_count,omitempty"`
-	MaxChunkBytes     uint64                 `protobuf:"varint,3,opt,name=max_chunk_bytes,json=maxChunkBytes,proto3" json:"max_chunk_bytes,omitempty"`
-	MaxChunks         uint32                 `protobuf:"varint,4,opt,name=max_chunks,json=maxChunks,proto3" json:"max_chunks,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *SourceMaterializationChallengeLimits) Reset() {
-	*x = SourceMaterializationChallengeLimits{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SourceMaterializationChallengeLimits) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SourceMaterializationChallengeLimits) ProtoMessage() {}
-
-func (x *SourceMaterializationChallengeLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SourceMaterializationChallengeLimits.ProtoReflect.Descriptor instead.
-func (*SourceMaterializationChallengeLimits) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *SourceMaterializationChallengeLimits) GetMaxBundleBytes() uint64 {
-	if x != nil {
-		return x.MaxBundleBytes
-	}
-	return 0
-}
-
-func (x *SourceMaterializationChallengeLimits) GetMaxComponentCount() uint32 {
-	if x != nil {
-		return x.MaxComponentCount
-	}
-	return 0
-}
-
-func (x *SourceMaterializationChallengeLimits) GetMaxChunkBytes() uint64 {
-	if x != nil {
-		return x.MaxChunkBytes
-	}
-	return 0
-}
-
-func (x *SourceMaterializationChallengeLimits) GetMaxChunks() uint32 {
-	if x != nil {
-		return x.MaxChunks
-	}
-	return 0
-}
-
-type CreateSourceMaterializationChallengeRequest struct {
-	state         protoimpl.MessageState          `protogen:"open.v1"`
-	Context       *AgentRequestContext            `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	RequestId     string                          `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	SourceRef     *SourceMaterializationSourceRef `protobuf:"bytes,3,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateSourceMaterializationChallengeRequest) Reset() {
-	*x = CreateSourceMaterializationChallengeRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateSourceMaterializationChallengeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateSourceMaterializationChallengeRequest) ProtoMessage() {}
-
-func (x *CreateSourceMaterializationChallengeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateSourceMaterializationChallengeRequest.ProtoReflect.Descriptor instead.
-func (*CreateSourceMaterializationChallengeRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CreateSourceMaterializationChallengeRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *CreateSourceMaterializationChallengeRequest) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *CreateSourceMaterializationChallengeRequest) GetSourceRef() *SourceMaterializationSourceRef {
-	if x != nil {
-		return x.SourceRef
-	}
-	return nil
-}
-
-type CreateSourceMaterializationChallengeResponse struct {
-	state                   protoimpl.MessageState                   `protogen:"open.v1"`
-	ChallengeId             string                                   `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challenge_id,omitempty"`
-	IntendedRuntimeAudience string                                   `protobuf:"bytes,2,opt,name=intended_runtime_audience,json=intendedRuntimeAudience,proto3" json:"intended_runtime_audience,omitempty"`
-	ChallengeDigest         string                                   `protobuf:"bytes,3,opt,name=challenge_digest,json=challengeDigest,proto3" json:"challenge_digest,omitempty"`
-	ExpiresAt               *timestamppb.Timestamp                   `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Limits                  *SourceMaterializationChallengeLimits    `protobuf:"bytes,5,opt,name=limits,proto3" json:"limits,omitempty"`
-	State                   AgentSourceMaterializationChallengeState `protobuf:"varint,6,opt,name=state,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationChallengeState" json:"state,omitempty"`
-	ReasonCode              AgentSourceMaterializationReasonCode     `protobuf:"varint,7,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationReasonCode" json:"reason_code,omitempty"`
-	SourceRef               *SourceMaterializationSourceRef          `protobuf:"bytes,8,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
-	MaterializerAccountId   string                                   `protobuf:"bytes,9,opt,name=materializer_account_id,json=materializerAccountId,proto3" json:"materializer_account_id,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) Reset() {
-	*x = CreateSourceMaterializationChallengeResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateSourceMaterializationChallengeResponse) ProtoMessage() {}
-
-func (x *CreateSourceMaterializationChallengeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateSourceMaterializationChallengeResponse.ProtoReflect.Descriptor instead.
-func (*CreateSourceMaterializationChallengeResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetChallengeId() string {
-	if x != nil {
-		return x.ChallengeId
-	}
-	return ""
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetIntendedRuntimeAudience() string {
-	if x != nil {
-		return x.IntendedRuntimeAudience
-	}
-	return ""
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetChallengeDigest() string {
-	if x != nil {
-		return x.ChallengeDigest
-	}
-	return ""
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetLimits() *SourceMaterializationChallengeLimits {
-	if x != nil {
-		return x.Limits
-	}
-	return nil
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetState() AgentSourceMaterializationChallengeState {
-	if x != nil {
-		return x.State
-	}
-	return AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetReasonCode() AgentSourceMaterializationReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetSourceRef() *SourceMaterializationSourceRef {
-	if x != nil {
-		return x.SourceRef
-	}
-	return nil
-}
-
-func (x *CreateSourceMaterializationChallengeResponse) GetMaterializerAccountId() string {
-	if x != nil {
-		return x.MaterializerAccountId
-	}
-	return ""
-}
-
-// Typed unsigned packet-v2 envelope. Semantic source/world/component bodies
-// are deliberately absent and enter Runtime only through Put chunk bytes.
-type SourceMaterializationPacketEnvelopeV2 struct {
-	state                   protoimpl.MessageState                        `protogen:"open.v1"`
-	PacketSchemaVersion     AgentSourceMaterializationPacketSchemaVersion `protobuf:"varint,1,opt,name=packet_schema_version,json=packetSchemaVersion,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion" json:"packet_schema_version,omitempty"`
-	PacketId                string                                        `protobuf:"bytes,2,opt,name=packet_id,json=packetId,proto3" json:"packet_id,omitempty"`
-	Issuer                  string                                        `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
-	KeyId                   string                                        `protobuf:"bytes,4,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
-	Algorithm               AgentSourceMaterializationProofAlgorithm      `protobuf:"varint,5,opt,name=algorithm,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm" json:"algorithm,omitempty"`
-	KeyUse                  AgentSourceMaterializationKeyUse              `protobuf:"varint,6,opt,name=key_use,json=keyUse,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationKeyUse" json:"key_use,omitempty"`
-	IssuedAt                *timestamppb.Timestamp                        `protobuf:"bytes,7,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
-	ExpiresAt               *timestamppb.Timestamp                        `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Nonce                   string                                        `protobuf:"bytes,9,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	IntendedRuntimeAudience string                                        `protobuf:"bytes,10,opt,name=intended_runtime_audience,json=intendedRuntimeAudience,proto3" json:"intended_runtime_audience,omitempty"`
-	ChallengeId             string                                        `protobuf:"bytes,11,opt,name=challenge_id,json=challengeId,proto3" json:"challenge_id,omitempty"`
-	ChallengeDigest         string                                        `protobuf:"bytes,12,opt,name=challenge_digest,json=challengeDigest,proto3" json:"challenge_digest,omitempty"`
-	ChallengeLimits         *SourceMaterializationChallengeLimits         `protobuf:"bytes,13,opt,name=challenge_limits,json=challengeLimits,proto3" json:"challenge_limits,omitempty"`
-	MaterializerAccountId   string                                        `protobuf:"bytes,14,opt,name=materializer_account_id,json=materializerAccountId,proto3" json:"materializer_account_id,omitempty"`
-	SourceRef               *SourceMaterializationSourceRef               `protobuf:"bytes,15,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
-	PayloadHash             string                                        `protobuf:"bytes,16,opt,name=payload_hash,json=payloadHash,proto3" json:"payload_hash,omitempty"`
-	BundleManifestHash      string                                        `protobuf:"bytes,17,opt,name=bundle_manifest_hash,json=bundleManifestHash,proto3" json:"bundle_manifest_hash,omitempty"`
-	PacketHash              string                                        `protobuf:"bytes,18,opt,name=packet_hash,json=packetHash,proto3" json:"packet_hash,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) Reset() {
-	*x = SourceMaterializationPacketEnvelopeV2{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SourceMaterializationPacketEnvelopeV2) ProtoMessage() {}
-
-func (x *SourceMaterializationPacketEnvelopeV2) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SourceMaterializationPacketEnvelopeV2.ProtoReflect.Descriptor instead.
-func (*SourceMaterializationPacketEnvelopeV2) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetPacketSchemaVersion() AgentSourceMaterializationPacketSchemaVersion {
-	if x != nil {
-		return x.PacketSchemaVersion
-	}
-	return AgentSourceMaterializationPacketSchemaVersion_AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetPacketId() string {
-	if x != nil {
-		return x.PacketId
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetIssuer() string {
-	if x != nil {
-		return x.Issuer
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetKeyId() string {
-	if x != nil {
-		return x.KeyId
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetAlgorithm() AgentSourceMaterializationProofAlgorithm {
-	if x != nil {
-		return x.Algorithm
-	}
-	return AgentSourceMaterializationProofAlgorithm_AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetKeyUse() AgentSourceMaterializationKeyUse {
-	if x != nil {
-		return x.KeyUse
-	}
-	return AgentSourceMaterializationKeyUse_AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetIssuedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.IssuedAt
-	}
-	return nil
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetNonce() string {
-	if x != nil {
-		return x.Nonce
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetIntendedRuntimeAudience() string {
-	if x != nil {
-		return x.IntendedRuntimeAudience
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetChallengeId() string {
-	if x != nil {
-		return x.ChallengeId
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetChallengeDigest() string {
-	if x != nil {
-		return x.ChallengeDigest
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetChallengeLimits() *SourceMaterializationChallengeLimits {
-	if x != nil {
-		return x.ChallengeLimits
-	}
-	return nil
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetMaterializerAccountId() string {
-	if x != nil {
-		return x.MaterializerAccountId
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetSourceRef() *SourceMaterializationSourceRef {
-	if x != nil {
-		return x.SourceRef
-	}
-	return nil
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetPayloadHash() string {
-	if x != nil {
-		return x.PayloadHash
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetBundleManifestHash() string {
-	if x != nil {
-		return x.BundleManifestHash
-	}
-	return ""
-}
-
-func (x *SourceMaterializationPacketEnvelopeV2) GetPacketHash() string {
-	if x != nil {
-		return x.PacketHash
-	}
-	return ""
-}
-
-type SourceMaterializationBundleComponentDescriptorV1 struct {
-	state               protoimpl.MessageState                  `protogen:"open.v1"`
-	ComponentId         string                                  `protobuf:"bytes,1,opt,name=component_id,json=componentId,proto3" json:"component_id,omitempty"`
-	Kind                AgentSourceMaterializationComponentKind `protobuf:"varint,2,opt,name=kind,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationComponentKind" json:"kind,omitempty"`
-	SchemaVersion       string                                  `protobuf:"bytes,3,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
-	Revision            uint64                                  `protobuf:"varint,4,opt,name=revision,proto3" json:"revision,omitempty"`
-	ContentHash         string                                  `protobuf:"bytes,5,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
-	CanonicalBytesHash  string                                  `protobuf:"bytes,6,opt,name=canonical_bytes_hash,json=canonicalBytesHash,proto3" json:"canonical_bytes_hash,omitempty"`
-	CanonicalByteLength uint64                                  `protobuf:"varint,7,opt,name=canonical_byte_length,json=canonicalByteLength,proto3" json:"canonical_byte_length,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) Reset() {
-	*x = SourceMaterializationBundleComponentDescriptorV1{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SourceMaterializationBundleComponentDescriptorV1) ProtoMessage() {}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SourceMaterializationBundleComponentDescriptorV1.ProtoReflect.Descriptor instead.
-func (*SourceMaterializationBundleComponentDescriptorV1) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) GetComponentId() string {
-	if x != nil {
-		return x.ComponentId
-	}
-	return ""
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) GetKind() AgentSourceMaterializationComponentKind {
-	if x != nil {
-		return x.Kind
-	}
-	return AgentSourceMaterializationComponentKind_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) GetSchemaVersion() string {
-	if x != nil {
-		return x.SchemaVersion
-	}
-	return ""
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) GetRevision() uint64 {
-	if x != nil {
-		return x.Revision
-	}
-	return 0
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) GetContentHash() string {
-	if x != nil {
-		return x.ContentHash
-	}
-	return ""
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) GetCanonicalBytesHash() string {
-	if x != nil {
-		return x.CanonicalBytesHash
-	}
-	return ""
-}
-
-func (x *SourceMaterializationBundleComponentDescriptorV1) GetCanonicalByteLength() uint64 {
-	if x != nil {
-		return x.CanonicalByteLength
-	}
-	return 0
-}
-
-// Realm packet-v2 chunk descriptors intentionally do not carry component_id;
-// component binding is proved by the ordered component ranges and the Put
-// request's explicit component identity.
-type SourceMaterializationBundleChunkDescriptorV1 struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	GlobalOrdinal   uint32                 `protobuf:"varint,1,opt,name=global_ordinal,json=globalOrdinal,proto3" json:"global_ordinal,omitempty"`
-	ComponentOffset uint64                 `protobuf:"varint,2,opt,name=component_offset,json=componentOffset,proto3" json:"component_offset,omitempty"`
-	Length          uint64                 `protobuf:"varint,3,opt,name=length,proto3" json:"length,omitempty"`
-	ChunkSha256     string                 `protobuf:"bytes,4,opt,name=chunk_sha256,json=chunkSha256,proto3" json:"chunk_sha256,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *SourceMaterializationBundleChunkDescriptorV1) Reset() {
-	*x = SourceMaterializationBundleChunkDescriptorV1{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SourceMaterializationBundleChunkDescriptorV1) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SourceMaterializationBundleChunkDescriptorV1) ProtoMessage() {}
-
-func (x *SourceMaterializationBundleChunkDescriptorV1) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SourceMaterializationBundleChunkDescriptorV1.ProtoReflect.Descriptor instead.
-func (*SourceMaterializationBundleChunkDescriptorV1) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *SourceMaterializationBundleChunkDescriptorV1) GetGlobalOrdinal() uint32 {
-	if x != nil {
-		return x.GlobalOrdinal
-	}
-	return 0
-}
-
-func (x *SourceMaterializationBundleChunkDescriptorV1) GetComponentOffset() uint64 {
-	if x != nil {
-		return x.ComponentOffset
-	}
-	return 0
-}
-
-func (x *SourceMaterializationBundleChunkDescriptorV1) GetLength() uint64 {
-	if x != nil {
-		return x.Length
-	}
-	return 0
-}
-
-func (x *SourceMaterializationBundleChunkDescriptorV1) GetChunkSha256() string {
-	if x != nil {
-		return x.ChunkSha256
-	}
-	return ""
-}
-
-type BundleTransportManifestV1 struct {
-	state                  protoimpl.MessageState                                `protogen:"open.v1"`
-	ManifestSchemaVersion  AgentSourceMaterializationBundleManifestSchemaVersion `protobuf:"varint,1,opt,name=manifest_schema_version,json=manifestSchemaVersion,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion" json:"manifest_schema_version,omitempty"`
-	PayloadAssemblyVersion AgentSourceMaterializationPayloadAssemblyVersion      `protobuf:"varint,2,opt,name=payload_assembly_version,json=payloadAssemblyVersion,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion" json:"payload_assembly_version,omitempty"`
-	PacketId               string                                                `protobuf:"bytes,3,opt,name=packet_id,json=packetId,proto3" json:"packet_id,omitempty"`
-	ChallengeDigest        string                                                `protobuf:"bytes,4,opt,name=challenge_digest,json=challengeDigest,proto3" json:"challenge_digest,omitempty"`
-	TotalCanonicalBytes    uint64                                                `protobuf:"varint,5,opt,name=total_canonical_bytes,json=totalCanonicalBytes,proto3" json:"total_canonical_bytes,omitempty"`
-	ComponentCount         uint32                                                `protobuf:"varint,6,opt,name=component_count,json=componentCount,proto3" json:"component_count,omitempty"`
-	ChunkCount             uint32                                                `protobuf:"varint,7,opt,name=chunk_count,json=chunkCount,proto3" json:"chunk_count,omitempty"`
-	Components             []*SourceMaterializationBundleComponentDescriptorV1   `protobuf:"bytes,8,rep,name=components,proto3" json:"components,omitempty"`
-	Chunks                 []*SourceMaterializationBundleChunkDescriptorV1       `protobuf:"bytes,9,rep,name=chunks,proto3" json:"chunks,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *BundleTransportManifestV1) Reset() {
-	*x = BundleTransportManifestV1{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BundleTransportManifestV1) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BundleTransportManifestV1) ProtoMessage() {}
-
-func (x *BundleTransportManifestV1) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BundleTransportManifestV1.ProtoReflect.Descriptor instead.
-func (*BundleTransportManifestV1) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *BundleTransportManifestV1) GetManifestSchemaVersion() AgentSourceMaterializationBundleManifestSchemaVersion {
-	if x != nil {
-		return x.ManifestSchemaVersion
-	}
-	return AgentSourceMaterializationBundleManifestSchemaVersion_AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED
-}
-
-func (x *BundleTransportManifestV1) GetPayloadAssemblyVersion() AgentSourceMaterializationPayloadAssemblyVersion {
-	if x != nil {
-		return x.PayloadAssemblyVersion
-	}
-	return AgentSourceMaterializationPayloadAssemblyVersion_AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED
-}
-
-func (x *BundleTransportManifestV1) GetPacketId() string {
-	if x != nil {
-		return x.PacketId
-	}
-	return ""
-}
-
-func (x *BundleTransportManifestV1) GetChallengeDigest() string {
-	if x != nil {
-		return x.ChallengeDigest
-	}
-	return ""
-}
-
-func (x *BundleTransportManifestV1) GetTotalCanonicalBytes() uint64 {
-	if x != nil {
-		return x.TotalCanonicalBytes
-	}
-	return 0
-}
-
-func (x *BundleTransportManifestV1) GetComponentCount() uint32 {
-	if x != nil {
-		return x.ComponentCount
-	}
-	return 0
-}
-
-func (x *BundleTransportManifestV1) GetChunkCount() uint32 {
-	if x != nil {
-		return x.ChunkCount
-	}
-	return 0
-}
-
-func (x *BundleTransportManifestV1) GetComponents() []*SourceMaterializationBundleComponentDescriptorV1 {
-	if x != nil {
-		return x.Components
-	}
-	return nil
-}
-
-func (x *BundleTransportManifestV1) GetChunks() []*SourceMaterializationBundleChunkDescriptorV1 {
-	if x != nil {
-		return x.Chunks
-	}
-	return nil
-}
-
-type SourceMaterializationBeginControl struct {
-	state                   protoimpl.MessageState                 `protogen:"open.v1"`
-	PacketEnvelope          *SourceMaterializationPacketEnvelopeV2 `protobuf:"bytes,1,opt,name=packet_envelope,json=packetEnvelope,proto3" json:"packet_envelope,omitempty"`
-	PacketProof             string                                 `protobuf:"bytes,2,opt,name=packet_proof,json=packetProof,proto3" json:"packet_proof,omitempty"`
-	BundleTransportManifest *BundleTransportManifestV1             `protobuf:"bytes,3,opt,name=bundle_transport_manifest,json=bundleTransportManifest,proto3" json:"bundle_transport_manifest,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
-}
-
-func (x *SourceMaterializationBeginControl) Reset() {
-	*x = SourceMaterializationBeginControl{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SourceMaterializationBeginControl) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SourceMaterializationBeginControl) ProtoMessage() {}
-
-func (x *SourceMaterializationBeginControl) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SourceMaterializationBeginControl.ProtoReflect.Descriptor instead.
-func (*SourceMaterializationBeginControl) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *SourceMaterializationBeginControl) GetPacketEnvelope() *SourceMaterializationPacketEnvelopeV2 {
-	if x != nil {
-		return x.PacketEnvelope
-	}
-	return nil
-}
-
-func (x *SourceMaterializationBeginControl) GetPacketProof() string {
-	if x != nil {
-		return x.PacketProof
-	}
-	return ""
-}
-
-func (x *SourceMaterializationBeginControl) GetBundleTransportManifest() *BundleTransportManifestV1 {
-	if x != nil {
-		return x.BundleTransportManifest
-	}
-	return nil
-}
-
-type BeginSourceMaterializationUploadRequest struct {
-	state          protoimpl.MessageState             `protogen:"open.v1"`
-	Context        *AgentRequestContext               `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	BeginRequestId string                             `protobuf:"bytes,2,opt,name=begin_request_id,json=beginRequestId,proto3" json:"begin_request_id,omitempty"`
-	Control        *SourceMaterializationBeginControl `protobuf:"bytes,3,opt,name=control,proto3" json:"control,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *BeginSourceMaterializationUploadRequest) Reset() {
-	*x = BeginSourceMaterializationUploadRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BeginSourceMaterializationUploadRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BeginSourceMaterializationUploadRequest) ProtoMessage() {}
-
-func (x *BeginSourceMaterializationUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BeginSourceMaterializationUploadRequest.ProtoReflect.Descriptor instead.
-func (*BeginSourceMaterializationUploadRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *BeginSourceMaterializationUploadRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *BeginSourceMaterializationUploadRequest) GetBeginRequestId() string {
-	if x != nil {
-		return x.BeginRequestId
-	}
-	return ""
-}
-
-func (x *BeginSourceMaterializationUploadRequest) GetControl() *SourceMaterializationBeginControl {
-	if x != nil {
-		return x.Control
-	}
-	return nil
-}
-
-type BeginSourceMaterializationUploadResponse struct {
-	state              protoimpl.MessageState                   `protogen:"open.v1"`
-	UploadId           string                                   `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	PacketHash         string                                   `protobuf:"bytes,2,opt,name=packet_hash,json=packetHash,proto3" json:"packet_hash,omitempty"`
-	BundleManifestHash string                                   `protobuf:"bytes,3,opt,name=bundle_manifest_hash,json=bundleManifestHash,proto3" json:"bundle_manifest_hash,omitempty"`
-	UploadState        AgentSourceMaterializationUploadState    `protobuf:"varint,4,opt,name=upload_state,json=uploadState,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationUploadState" json:"upload_state,omitempty"`
-	ChallengeState     AgentSourceMaterializationChallengeState `protobuf:"varint,5,opt,name=challenge_state,json=challengeState,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationChallengeState" json:"challenge_state,omitempty"`
-	ReasonCode         AgentSourceMaterializationReasonCode     `protobuf:"varint,6,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationReasonCode" json:"reason_code,omitempty"`
-	ExpiresAt          *timestamppb.Timestamp                   `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *BeginSourceMaterializationUploadResponse) Reset() {
-	*x = BeginSourceMaterializationUploadResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BeginSourceMaterializationUploadResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BeginSourceMaterializationUploadResponse) ProtoMessage() {}
-
-func (x *BeginSourceMaterializationUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BeginSourceMaterializationUploadResponse.ProtoReflect.Descriptor instead.
-func (*BeginSourceMaterializationUploadResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *BeginSourceMaterializationUploadResponse) GetUploadId() string {
-	if x != nil {
-		return x.UploadId
-	}
-	return ""
-}
-
-func (x *BeginSourceMaterializationUploadResponse) GetPacketHash() string {
-	if x != nil {
-		return x.PacketHash
-	}
-	return ""
-}
-
-func (x *BeginSourceMaterializationUploadResponse) GetBundleManifestHash() string {
-	if x != nil {
-		return x.BundleManifestHash
-	}
-	return ""
-}
-
-func (x *BeginSourceMaterializationUploadResponse) GetUploadState() AgentSourceMaterializationUploadState {
-	if x != nil {
-		return x.UploadState
-	}
-	return AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED
-}
-
-func (x *BeginSourceMaterializationUploadResponse) GetChallengeState() AgentSourceMaterializationChallengeState {
-	if x != nil {
-		return x.ChallengeState
-	}
-	return AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED
-}
-
-func (x *BeginSourceMaterializationUploadResponse) GetReasonCode() AgentSourceMaterializationReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED
-}
-
-func (x *BeginSourceMaterializationUploadResponse) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-type PutSourceMaterializationChunkRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Context            *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	PutRequestId       string                 `protobuf:"bytes,2,opt,name=put_request_id,json=putRequestId,proto3" json:"put_request_id,omitempty"`
-	UploadId           string                 `protobuf:"bytes,3,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	PacketHash         string                 `protobuf:"bytes,4,opt,name=packet_hash,json=packetHash,proto3" json:"packet_hash,omitempty"`
-	BundleManifestHash string                 `protobuf:"bytes,5,opt,name=bundle_manifest_hash,json=bundleManifestHash,proto3" json:"bundle_manifest_hash,omitempty"`
-	GlobalOrdinal      uint32                 `protobuf:"varint,6,opt,name=global_ordinal,json=globalOrdinal,proto3" json:"global_ordinal,omitempty"`
-	ComponentId        string                 `protobuf:"bytes,7,opt,name=component_id,json=componentId,proto3" json:"component_id,omitempty"`
-	ComponentOffset    uint64                 `protobuf:"varint,8,opt,name=component_offset,json=componentOffset,proto3" json:"component_offset,omitempty"`
-	ChunkSha256        string                 `protobuf:"bytes,9,opt,name=chunk_sha256,json=chunkSha256,proto3" json:"chunk_sha256,omitempty"`
-	Bytes              []byte                 `protobuf:"bytes,10,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *PutSourceMaterializationChunkRequest) Reset() {
-	*x = PutSourceMaterializationChunkRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PutSourceMaterializationChunkRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PutSourceMaterializationChunkRequest) ProtoMessage() {}
-
-func (x *PutSourceMaterializationChunkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PutSourceMaterializationChunkRequest.ProtoReflect.Descriptor instead.
-func (*PutSourceMaterializationChunkRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetPutRequestId() string {
-	if x != nil {
-		return x.PutRequestId
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetUploadId() string {
-	if x != nil {
-		return x.UploadId
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetPacketHash() string {
-	if x != nil {
-		return x.PacketHash
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetBundleManifestHash() string {
-	if x != nil {
-		return x.BundleManifestHash
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetGlobalOrdinal() uint32 {
-	if x != nil {
-		return x.GlobalOrdinal
-	}
-	return 0
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetComponentId() string {
-	if x != nil {
-		return x.ComponentId
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetComponentOffset() uint64 {
-	if x != nil {
-		return x.ComponentOffset
-	}
-	return 0
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetChunkSha256() string {
-	if x != nil {
-		return x.ChunkSha256
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkRequest) GetBytes() []byte {
-	if x != nil {
-		return x.Bytes
-	}
-	return nil
-}
-
-type PutSourceMaterializationChunkResponse struct {
-	state            protoimpl.MessageState                `protogen:"open.v1"`
-	UploadId         string                                `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	GlobalOrdinal    uint32                                `protobuf:"varint,2,opt,name=global_ordinal,json=globalOrdinal,proto3" json:"global_ordinal,omitempty"`
-	ComponentId      string                                `protobuf:"bytes,3,opt,name=component_id,json=componentId,proto3" json:"component_id,omitempty"`
-	IdempotentReplay bool                                  `protobuf:"varint,4,opt,name=idempotent_replay,json=idempotentReplay,proto3" json:"idempotent_replay,omitempty"`
-	UploadState      AgentSourceMaterializationUploadState `protobuf:"varint,5,opt,name=upload_state,json=uploadState,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationUploadState" json:"upload_state,omitempty"`
-	ReasonCode       AgentSourceMaterializationReasonCode  `protobuf:"varint,6,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationReasonCode" json:"reason_code,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *PutSourceMaterializationChunkResponse) Reset() {
-	*x = PutSourceMaterializationChunkResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PutSourceMaterializationChunkResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PutSourceMaterializationChunkResponse) ProtoMessage() {}
-
-func (x *PutSourceMaterializationChunkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PutSourceMaterializationChunkResponse.ProtoReflect.Descriptor instead.
-func (*PutSourceMaterializationChunkResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *PutSourceMaterializationChunkResponse) GetUploadId() string {
-	if x != nil {
-		return x.UploadId
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkResponse) GetGlobalOrdinal() uint32 {
-	if x != nil {
-		return x.GlobalOrdinal
-	}
-	return 0
-}
-
-func (x *PutSourceMaterializationChunkResponse) GetComponentId() string {
-	if x != nil {
-		return x.ComponentId
-	}
-	return ""
-}
-
-func (x *PutSourceMaterializationChunkResponse) GetIdempotentReplay() bool {
-	if x != nil {
-		return x.IdempotentReplay
-	}
-	return false
-}
-
-func (x *PutSourceMaterializationChunkResponse) GetUploadState() AgentSourceMaterializationUploadState {
-	if x != nil {
-		return x.UploadState
-	}
-	return AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED
-}
-
-func (x *PutSourceMaterializationChunkResponse) GetReasonCode() AgentSourceMaterializationReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED
-}
-
-type CommitSourceMaterializationRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Context            *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	CommitRequestId    string                 `protobuf:"bytes,2,opt,name=commit_request_id,json=commitRequestId,proto3" json:"commit_request_id,omitempty"`
-	UploadId           string                 `protobuf:"bytes,3,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	PacketHash         string                 `protobuf:"bytes,4,opt,name=packet_hash,json=packetHash,proto3" json:"packet_hash,omitempty"`
-	BundleManifestHash string                 `protobuf:"bytes,5,opt,name=bundle_manifest_hash,json=bundleManifestHash,proto3" json:"bundle_manifest_hash,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *CommitSourceMaterializationRequest) Reset() {
-	*x = CommitSourceMaterializationRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CommitSourceMaterializationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CommitSourceMaterializationRequest) ProtoMessage() {}
-
-func (x *CommitSourceMaterializationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CommitSourceMaterializationRequest.ProtoReflect.Descriptor instead.
-func (*CommitSourceMaterializationRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *CommitSourceMaterializationRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *CommitSourceMaterializationRequest) GetCommitRequestId() string {
-	if x != nil {
-		return x.CommitRequestId
-	}
-	return ""
-}
-
-func (x *CommitSourceMaterializationRequest) GetUploadId() string {
-	if x != nil {
-		return x.UploadId
-	}
-	return ""
-}
-
-func (x *CommitSourceMaterializationRequest) GetPacketHash() string {
-	if x != nil {
-		return x.PacketHash
-	}
-	return ""
-}
-
-func (x *CommitSourceMaterializationRequest) GetBundleManifestHash() string {
-	if x != nil {
-		return x.BundleManifestHash
-	}
-	return ""
-}
-
-type CommitSourceMaterializationResponse struct {
-	state               protoimpl.MessageState                   `protogen:"open.v1"`
-	UploadId            string                                   `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	LocalAgentRef       string                                   `protobuf:"bytes,2,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
-	UploadState         AgentSourceMaterializationUploadState    `protobuf:"varint,3,opt,name=upload_state,json=uploadState,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationUploadState" json:"upload_state,omitempty"`
-	ChallengeState      AgentSourceMaterializationChallengeState `protobuf:"varint,4,opt,name=challenge_state,json=challengeState,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationChallengeState" json:"challenge_state,omitempty"`
-	ReasonCode          AgentSourceMaterializationReasonCode     `protobuf:"varint,5,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationReasonCode" json:"reason_code,omitempty"`
-	SourceContextStatus *LocalAgentSourceContextStatus           `protobuf:"bytes,6,opt,name=source_context_status,json=sourceContextStatus,proto3" json:"source_context_status,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *CommitSourceMaterializationResponse) Reset() {
-	*x = CommitSourceMaterializationResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CommitSourceMaterializationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CommitSourceMaterializationResponse) ProtoMessage() {}
-
-func (x *CommitSourceMaterializationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CommitSourceMaterializationResponse.ProtoReflect.Descriptor instead.
-func (*CommitSourceMaterializationResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *CommitSourceMaterializationResponse) GetUploadId() string {
-	if x != nil {
-		return x.UploadId
-	}
-	return ""
-}
-
-func (x *CommitSourceMaterializationResponse) GetLocalAgentRef() string {
-	if x != nil {
-		return x.LocalAgentRef
-	}
-	return ""
-}
-
-func (x *CommitSourceMaterializationResponse) GetUploadState() AgentSourceMaterializationUploadState {
-	if x != nil {
-		return x.UploadState
-	}
-	return AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED
-}
-
-func (x *CommitSourceMaterializationResponse) GetChallengeState() AgentSourceMaterializationChallengeState {
-	if x != nil {
-		return x.ChallengeState
-	}
-	return AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED
-}
-
-func (x *CommitSourceMaterializationResponse) GetReasonCode() AgentSourceMaterializationReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED
-}
-
-func (x *CommitSourceMaterializationResponse) GetSourceContextStatus() *LocalAgentSourceContextStatus {
-	if x != nil {
-		return x.SourceContextStatus
-	}
-	return nil
-}
-
-type AbortSourceMaterializationUploadRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Context            *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	AbortRequestId     string                 `protobuf:"bytes,2,opt,name=abort_request_id,json=abortRequestId,proto3" json:"abort_request_id,omitempty"`
-	UploadId           string                 `protobuf:"bytes,3,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	PacketHash         string                 `protobuf:"bytes,4,opt,name=packet_hash,json=packetHash,proto3" json:"packet_hash,omitempty"`
-	BundleManifestHash string                 `protobuf:"bytes,5,opt,name=bundle_manifest_hash,json=bundleManifestHash,proto3" json:"bundle_manifest_hash,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *AbortSourceMaterializationUploadRequest) Reset() {
-	*x = AbortSourceMaterializationUploadRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AbortSourceMaterializationUploadRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AbortSourceMaterializationUploadRequest) ProtoMessage() {}
-
-func (x *AbortSourceMaterializationUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AbortSourceMaterializationUploadRequest.ProtoReflect.Descriptor instead.
-func (*AbortSourceMaterializationUploadRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *AbortSourceMaterializationUploadRequest) GetContext() *AgentRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *AbortSourceMaterializationUploadRequest) GetAbortRequestId() string {
-	if x != nil {
-		return x.AbortRequestId
-	}
-	return ""
-}
-
-func (x *AbortSourceMaterializationUploadRequest) GetUploadId() string {
-	if x != nil {
-		return x.UploadId
-	}
-	return ""
-}
-
-func (x *AbortSourceMaterializationUploadRequest) GetPacketHash() string {
-	if x != nil {
-		return x.PacketHash
-	}
-	return ""
-}
-
-func (x *AbortSourceMaterializationUploadRequest) GetBundleManifestHash() string {
-	if x != nil {
-		return x.BundleManifestHash
-	}
-	return ""
-}
-
-type AbortSourceMaterializationUploadResponse struct {
-	state            protoimpl.MessageState                   `protogen:"open.v1"`
-	UploadId         string                                   `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	UploadState      AgentSourceMaterializationUploadState    `protobuf:"varint,2,opt,name=upload_state,json=uploadState,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationUploadState" json:"upload_state,omitempty"`
-	ChallengeState   AgentSourceMaterializationChallengeState `protobuf:"varint,3,opt,name=challenge_state,json=challengeState,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationChallengeState" json:"challenge_state,omitempty"`
-	ReasonCode       AgentSourceMaterializationReasonCode     `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AgentSourceMaterializationReasonCode" json:"reason_code,omitempty"`
-	IdempotentReplay bool                                     `protobuf:"varint,5,opt,name=idempotent_replay,json=idempotentReplay,proto3" json:"idempotent_replay,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *AbortSourceMaterializationUploadResponse) Reset() {
-	*x = AbortSourceMaterializationUploadResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AbortSourceMaterializationUploadResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AbortSourceMaterializationUploadResponse) ProtoMessage() {}
-
-func (x *AbortSourceMaterializationUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AbortSourceMaterializationUploadResponse.ProtoReflect.Descriptor instead.
-func (*AbortSourceMaterializationUploadResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *AbortSourceMaterializationUploadResponse) GetUploadId() string {
-	if x != nil {
-		return x.UploadId
-	}
-	return ""
-}
-
-func (x *AbortSourceMaterializationUploadResponse) GetUploadState() AgentSourceMaterializationUploadState {
-	if x != nil {
-		return x.UploadState
-	}
-	return AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED
-}
-
-func (x *AbortSourceMaterializationUploadResponse) GetChallengeState() AgentSourceMaterializationChallengeState {
-	if x != nil {
-		return x.ChallengeState
-	}
-	return AgentSourceMaterializationChallengeState_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED
-}
-
-func (x *AbortSourceMaterializationUploadResponse) GetReasonCode() AgentSourceMaterializationReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED
-}
-
-func (x *AbortSourceMaterializationUploadResponse) GetIdempotentReplay() bool {
-	if x != nil {
-		return x.IdempotentReplay
-	}
-	return false
-}
-
-type LocalAgentSourceCoverageSectionStatus struct {
-	state         protoimpl.MessageState          `protogen:"open.v1"`
-	Section       AgentLocalSourceCoverageSection `protobuf:"varint,1,opt,name=section,proto3,enum=nimi.runtime.v1.AgentLocalSourceCoverageSection" json:"section,omitempty"`
-	State         AgentLocalSourceCoverageState   `protobuf:"varint,2,opt,name=state,proto3,enum=nimi.runtime.v1.AgentLocalSourceCoverageState" json:"state,omitempty"`
-	RequiredCount uint32                          `protobuf:"varint,3,opt,name=required_count,json=requiredCount,proto3" json:"required_count,omitempty"`
-	ResolvedCount uint32                          `protobuf:"varint,4,opt,name=resolved_count,json=resolvedCount,proto3" json:"resolved_count,omitempty"`
-	OmittedCount  uint32                          `protobuf:"varint,5,opt,name=omitted_count,json=omittedCount,proto3" json:"omitted_count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalAgentSourceCoverageSectionStatus) Reset() {
-	*x = LocalAgentSourceCoverageSectionStatus{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAgentSourceCoverageSectionStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAgentSourceCoverageSectionStatus) ProtoMessage() {}
-
-func (x *LocalAgentSourceCoverageSectionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAgentSourceCoverageSectionStatus.ProtoReflect.Descriptor instead.
-func (*LocalAgentSourceCoverageSectionStatus) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *LocalAgentSourceCoverageSectionStatus) GetSection() AgentLocalSourceCoverageSection {
-	if x != nil {
-		return x.Section
-	}
-	return AgentLocalSourceCoverageSection_AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED
-}
-
-func (x *LocalAgentSourceCoverageSectionStatus) GetState() AgentLocalSourceCoverageState {
-	if x != nil {
-		return x.State
-	}
-	return AgentLocalSourceCoverageState_AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED
-}
-
-func (x *LocalAgentSourceCoverageSectionStatus) GetRequiredCount() uint32 {
-	if x != nil {
-		return x.RequiredCount
-	}
-	return 0
-}
-
-func (x *LocalAgentSourceCoverageSectionStatus) GetResolvedCount() uint32 {
-	if x != nil {
-		return x.ResolvedCount
-	}
-	return 0
-}
-
-func (x *LocalAgentSourceCoverageSectionStatus) GetOmittedCount() uint32 {
-	if x != nil {
-		return x.OmittedCount
-	}
-	return 0
-}
-
-// K-AGCORE-158 bounded source/snapshot projection. It intentionally excludes
-// raw core/world/closure content, proof, chunks, prompts, transcript, memory,
-// and every free-form map.
-type LocalAgentSourceContextStatus struct {
-	state                      protoimpl.MessageState                   `protogen:"open.v1"`
-	SchemaVersion              AgentLocalSourceContextSchemaVersion     `protobuf:"varint,1,opt,name=schema_version,json=schemaVersion,proto3,enum=nimi.runtime.v1.AgentLocalSourceContextSchemaVersion" json:"schema_version,omitempty"`
-	Ready                      bool                                     `protobuf:"varint,2,opt,name=ready,proto3" json:"ready,omitempty"`
-	State                      AgentLocalSourceContextState             `protobuf:"varint,3,opt,name=state,proto3,enum=nimi.runtime.v1.AgentLocalSourceContextState" json:"state,omitempty"`
-	ReasonCode                 AgentContextProjectionReasonCode         `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AgentContextProjectionReasonCode" json:"reason_code,omitempty"`
-	LocalAgentRef              string                                   `protobuf:"bytes,5,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
-	SourceRef                  *SourceMaterializationSourceRef          `protobuf:"bytes,6,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
-	SourceSchemaVersion        string                                   `protobuf:"bytes,7,opt,name=source_schema_version,json=sourceSchemaVersion,proto3" json:"source_schema_version,omitempty"`
-	SnapshotSchemaVersion      AgentLocalSourceSnapshotSchemaVersion    `protobuf:"varint,8,opt,name=snapshot_schema_version,json=snapshotSchemaVersion,proto3,enum=nimi.runtime.v1.AgentLocalSourceSnapshotSchemaVersion" json:"snapshot_schema_version,omitempty"`
-	SnapshotHash               string                                   `protobuf:"bytes,9,opt,name=snapshot_hash,json=snapshotHash,proto3" json:"snapshot_hash,omitempty"`
-	CapturedAt                 *timestamppb.Timestamp                   `protobuf:"bytes,10,opt,name=captured_at,json=capturedAt,proto3" json:"captured_at,omitempty"`
-	WorldContentHash           string                                   `protobuf:"bytes,11,opt,name=world_content_hash,json=worldContentHash,proto3" json:"world_content_hash,omitempty"`
-	MaterializationContextHash string                                   `protobuf:"bytes,12,opt,name=materialization_context_hash,json=materializationContextHash,proto3" json:"materialization_context_hash,omitempty"`
-	CoverageSections           []*LocalAgentSourceCoverageSectionStatus `protobuf:"bytes,13,rep,name=coverage_sections,json=coverageSections,proto3" json:"coverage_sections,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
-}
-
-func (x *LocalAgentSourceContextStatus) Reset() {
-	*x = LocalAgentSourceContextStatus{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAgentSourceContextStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAgentSourceContextStatus) ProtoMessage() {}
-
-func (x *LocalAgentSourceContextStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAgentSourceContextStatus.ProtoReflect.Descriptor instead.
-func (*LocalAgentSourceContextStatus) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *LocalAgentSourceContextStatus) GetSchemaVersion() AgentLocalSourceContextSchemaVersion {
-	if x != nil {
-		return x.SchemaVersion
-	}
-	return AgentLocalSourceContextSchemaVersion_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED
-}
-
-func (x *LocalAgentSourceContextStatus) GetReady() bool {
-	if x != nil {
-		return x.Ready
-	}
-	return false
-}
-
-func (x *LocalAgentSourceContextStatus) GetState() AgentLocalSourceContextState {
-	if x != nil {
-		return x.State
-	}
-	return AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED
-}
-
-func (x *LocalAgentSourceContextStatus) GetReasonCode() AgentContextProjectionReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED
-}
-
-func (x *LocalAgentSourceContextStatus) GetLocalAgentRef() string {
-	if x != nil {
-		return x.LocalAgentRef
-	}
-	return ""
-}
-
-func (x *LocalAgentSourceContextStatus) GetSourceRef() *SourceMaterializationSourceRef {
-	if x != nil {
-		return x.SourceRef
-	}
-	return nil
-}
-
-func (x *LocalAgentSourceContextStatus) GetSourceSchemaVersion() string {
-	if x != nil {
-		return x.SourceSchemaVersion
-	}
-	return ""
-}
-
-func (x *LocalAgentSourceContextStatus) GetSnapshotSchemaVersion() AgentLocalSourceSnapshotSchemaVersion {
-	if x != nil {
-		return x.SnapshotSchemaVersion
-	}
-	return AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED
-}
-
-func (x *LocalAgentSourceContextStatus) GetSnapshotHash() string {
-	if x != nil {
-		return x.SnapshotHash
-	}
-	return ""
-}
-
-func (x *LocalAgentSourceContextStatus) GetCapturedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CapturedAt
-	}
-	return nil
-}
-
-func (x *LocalAgentSourceContextStatus) GetWorldContentHash() string {
-	if x != nil {
-		return x.WorldContentHash
-	}
-	return ""
-}
-
-func (x *LocalAgentSourceContextStatus) GetMaterializationContextHash() string {
-	if x != nil {
-		return x.MaterializationContextHash
-	}
-	return ""
-}
-
-func (x *LocalAgentSourceContextStatus) GetCoverageSections() []*LocalAgentSourceCoverageSectionStatus {
-	if x != nil {
-		return x.CoverageSections
-	}
-	return nil
-}
-
-type AgentTurnContextLaneSummary struct {
-	state              protoimpl.MessageState    `protogen:"open.v1"`
-	LaneId             AgentTurnContextLaneId    `protobuf:"varint,1,opt,name=lane_id,json=laneId,proto3,enum=nimi.runtime.v1.AgentTurnContextLaneId" json:"lane_id,omitempty"`
-	State              AgentTurnContextLaneState `protobuf:"varint,2,opt,name=state,proto3,enum=nimi.runtime.v1.AgentTurnContextLaneState" json:"state,omitempty"`
-	IncludedItemCount  uint32                    `protobuf:"varint,3,opt,name=included_item_count,json=includedItemCount,proto3" json:"included_item_count,omitempty"`
-	OmittedItemCount   uint32                    `protobuf:"varint,4,opt,name=omitted_item_count,json=omittedItemCount,proto3" json:"omitted_item_count,omitempty"`
-	TruncatedItemCount uint32                    `protobuf:"varint,5,opt,name=truncated_item_count,json=truncatedItemCount,proto3" json:"truncated_item_count,omitempty"`
-	AllocatedTokens    uint64                    `protobuf:"varint,6,opt,name=allocated_tokens,json=allocatedTokens,proto3" json:"allocated_tokens,omitempty"`
-	UsedTokens         uint64                    `protobuf:"varint,7,opt,name=used_tokens,json=usedTokens,proto3" json:"used_tokens,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *AgentTurnContextLaneSummary) Reset() {
-	*x = AgentTurnContextLaneSummary{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentTurnContextLaneSummary) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentTurnContextLaneSummary) ProtoMessage() {}
-
-func (x *AgentTurnContextLaneSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentTurnContextLaneSummary.ProtoReflect.Descriptor instead.
-func (*AgentTurnContextLaneSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *AgentTurnContextLaneSummary) GetLaneId() AgentTurnContextLaneId {
-	if x != nil {
-		return x.LaneId
-	}
-	return AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED
-}
-
-func (x *AgentTurnContextLaneSummary) GetState() AgentTurnContextLaneState {
-	if x != nil {
-		return x.State
-	}
-	return AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED
-}
-
-func (x *AgentTurnContextLaneSummary) GetIncludedItemCount() uint32 {
-	if x != nil {
-		return x.IncludedItemCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextLaneSummary) GetOmittedItemCount() uint32 {
-	if x != nil {
-		return x.OmittedItemCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextLaneSummary) GetTruncatedItemCount() uint32 {
-	if x != nil {
-		return x.TruncatedItemCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextLaneSummary) GetAllocatedTokens() uint64 {
-	if x != nil {
-		return x.AllocatedTokens
-	}
-	return 0
-}
-
-func (x *AgentTurnContextLaneSummary) GetUsedTokens() uint64 {
-	if x != nil {
-		return x.UsedTokens
-	}
-	return 0
-}
-
-type AgentTurnContextBudgetSummary struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	ContextWindowTokens   uint64                 `protobuf:"varint,1,opt,name=context_window_tokens,json=contextWindowTokens,proto3" json:"context_window_tokens,omitempty"`
-	ReservedOutputTokens  uint64                 `protobuf:"varint,2,opt,name=reserved_output_tokens,json=reservedOutputTokens,proto3" json:"reserved_output_tokens,omitempty"`
-	ReservedSafetyTokens  uint64                 `protobuf:"varint,3,opt,name=reserved_safety_tokens,json=reservedSafetyTokens,proto3" json:"reserved_safety_tokens,omitempty"`
-	ReservedAdapterTokens uint64                 `protobuf:"varint,4,opt,name=reserved_adapter_tokens,json=reservedAdapterTokens,proto3" json:"reserved_adapter_tokens,omitempty"`
-	InputBudgetTokens     uint64                 `protobuf:"varint,5,opt,name=input_budget_tokens,json=inputBudgetTokens,proto3" json:"input_budget_tokens,omitempty"`
-	UsedTokens            uint64                 `protobuf:"varint,6,opt,name=used_tokens,json=usedTokens,proto3" json:"used_tokens,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *AgentTurnContextBudgetSummary) Reset() {
-	*x = AgentTurnContextBudgetSummary{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentTurnContextBudgetSummary) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentTurnContextBudgetSummary) ProtoMessage() {}
-
-func (x *AgentTurnContextBudgetSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentTurnContextBudgetSummary.ProtoReflect.Descriptor instead.
-func (*AgentTurnContextBudgetSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *AgentTurnContextBudgetSummary) GetContextWindowTokens() uint64 {
-	if x != nil {
-		return x.ContextWindowTokens
-	}
-	return 0
-}
-
-func (x *AgentTurnContextBudgetSummary) GetReservedOutputTokens() uint64 {
-	if x != nil {
-		return x.ReservedOutputTokens
-	}
-	return 0
-}
-
-func (x *AgentTurnContextBudgetSummary) GetReservedSafetyTokens() uint64 {
-	if x != nil {
-		return x.ReservedSafetyTokens
-	}
-	return 0
-}
-
-func (x *AgentTurnContextBudgetSummary) GetReservedAdapterTokens() uint64 {
-	if x != nil {
-		return x.ReservedAdapterTokens
-	}
-	return 0
-}
-
-func (x *AgentTurnContextBudgetSummary) GetInputBudgetTokens() uint64 {
-	if x != nil {
-		return x.InputBudgetTokens
-	}
-	return 0
-}
-
-func (x *AgentTurnContextBudgetSummary) GetUsedTokens() uint64 {
-	if x != nil {
-		return x.UsedTokens
-	}
-	return 0
-}
-
-type AgentTurnContextTruncationSummary struct {
-	state              protoimpl.MessageState           `protogen:"open.v1"`
-	Reason             AgentTurnContextTruncationReason `protobuf:"varint,1,opt,name=reason,proto3,enum=nimi.runtime.v1.AgentTurnContextTruncationReason" json:"reason,omitempty"`
-	OmittedItemCount   uint32                           `protobuf:"varint,2,opt,name=omitted_item_count,json=omittedItemCount,proto3" json:"omitted_item_count,omitempty"`
-	TruncatedItemCount uint32                           `protobuf:"varint,3,opt,name=truncated_item_count,json=truncatedItemCount,proto3" json:"truncated_item_count,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *AgentTurnContextTruncationSummary) Reset() {
-	*x = AgentTurnContextTruncationSummary{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentTurnContextTruncationSummary) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentTurnContextTruncationSummary) ProtoMessage() {}
-
-func (x *AgentTurnContextTruncationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentTurnContextTruncationSummary.ProtoReflect.Descriptor instead.
-func (*AgentTurnContextTruncationSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *AgentTurnContextTruncationSummary) GetReason() AgentTurnContextTruncationReason {
-	if x != nil {
-		return x.Reason
-	}
-	return AgentTurnContextTruncationReason_AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED
-}
-
-func (x *AgentTurnContextTruncationSummary) GetOmittedItemCount() uint32 {
-	if x != nil {
-		return x.OmittedItemCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextTruncationSummary) GetTruncatedItemCount() uint32 {
-	if x != nil {
-		return x.TruncatedItemCount
-	}
-	return 0
-}
-
-// K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
-// provider payloads, credentials, and tool arguments/results are absent.
-type AgentTurnContextSummary struct {
-	state                      protoimpl.MessageState                `protogen:"open.v1"`
-	SchemaVersion              AgentTurnContextSummarySchemaVersion  `protobuf:"varint,1,opt,name=schema_version,json=schemaVersion,proto3,enum=nimi.runtime.v1.AgentTurnContextSummarySchemaVersion" json:"schema_version,omitempty"`
-	Ready                      bool                                  `protobuf:"varint,2,opt,name=ready,proto3" json:"ready,omitempty"`
-	State                      AgentTurnContextState                 `protobuf:"varint,3,opt,name=state,proto3,enum=nimi.runtime.v1.AgentTurnContextState" json:"state,omitempty"`
-	ReasonCode                 AgentContextProjectionReasonCode      `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.AgentContextProjectionReasonCode" json:"reason_code,omitempty"`
-	ManifestSchemaVersion      AgentTurnContextManifestSchemaVersion `protobuf:"varint,5,opt,name=manifest_schema_version,json=manifestSchemaVersion,proto3,enum=nimi.runtime.v1.AgentTurnContextManifestSchemaVersion" json:"manifest_schema_version,omitempty"`
-	CompilerSchemaVersion      AgentTurnContextCompilerSchemaVersion `protobuf:"varint,6,opt,name=compiler_schema_version,json=compilerSchemaVersion,proto3,enum=nimi.runtime.v1.AgentTurnContextCompilerSchemaVersion" json:"compiler_schema_version,omitempty"`
-	ManifestInstanceHash       string                                `protobuf:"bytes,7,opt,name=manifest_instance_hash,json=manifestInstanceHash,proto3" json:"manifest_instance_hash,omitempty"`
-	ContextContentHash         string                                `protobuf:"bytes,8,opt,name=context_content_hash,json=contextContentHash,proto3" json:"context_content_hash,omitempty"`
-	PromptHash                 string                                `protobuf:"bytes,9,opt,name=prompt_hash,json=promptHash,proto3" json:"prompt_hash,omitempty"`
-	SourceSnapshotHash         string                                `protobuf:"bytes,10,opt,name=source_snapshot_hash,json=sourceSnapshotHash,proto3" json:"source_snapshot_hash,omitempty"`
-	SourceRef                  *SourceMaterializationSourceRef       `protobuf:"bytes,11,opt,name=source_ref,json=sourceRef,proto3" json:"source_ref,omitempty"`
-	WorldContentHash           string                                `protobuf:"bytes,12,opt,name=world_content_hash,json=worldContentHash,proto3" json:"world_content_hash,omitempty"`
-	MaterializationContextHash string                                `protobuf:"bytes,13,opt,name=materialization_context_hash,json=materializationContextHash,proto3" json:"materialization_context_hash,omitempty"`
-	Lanes                      []*AgentTurnContextLaneSummary        `protobuf:"bytes,14,rep,name=lanes,proto3" json:"lanes,omitempty"`
-	Budget                     *AgentTurnContextBudgetSummary        `protobuf:"bytes,15,opt,name=budget,proto3" json:"budget,omitempty"`
-	Truncation                 []*AgentTurnContextTruncationSummary  `protobuf:"bytes,16,rep,name=truncation,proto3" json:"truncation,omitempty"`
-	TranscriptTurnCount        uint32                                `protobuf:"varint,17,opt,name=transcript_turn_count,json=transcriptTurnCount,proto3" json:"transcript_turn_count,omitempty"`
-	MemoryItemCount            uint32                                `protobuf:"varint,18,opt,name=memory_item_count,json=memoryItemCount,proto3" json:"memory_item_count,omitempty"`
-	MediaCount                 uint32                                `protobuf:"varint,19,opt,name=media_count,json=mediaCount,proto3" json:"media_count,omitempty"`
-	ToolCount                  uint32                                `protobuf:"varint,20,opt,name=tool_count,json=toolCount,proto3" json:"tool_count,omitempty"`
-	RouteDigest                string                                `protobuf:"bytes,21,opt,name=route_digest,json=routeDigest,proto3" json:"route_digest,omitempty"`
-	CatalogRevisionDigest      string                                `protobuf:"bytes,22,opt,name=catalog_revision_digest,json=catalogRevisionDigest,proto3" json:"catalog_revision_digest,omitempty"`
-	LocalAgentRef              string                                `protobuf:"bytes,23,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
-	ConversationAnchorId       string                                `protobuf:"bytes,24,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
-	TurnId                     string                                `protobuf:"bytes,25,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
-}
-
-func (x *AgentTurnContextSummary) Reset() {
-	*x = AgentTurnContextSummary{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AgentTurnContextSummary) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AgentTurnContextSummary) ProtoMessage() {}
-
-func (x *AgentTurnContextSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AgentTurnContextSummary.ProtoReflect.Descriptor instead.
-func (*AgentTurnContextSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *AgentTurnContextSummary) GetSchemaVersion() AgentTurnContextSummarySchemaVersion {
-	if x != nil {
-		return x.SchemaVersion
-	}
-	return AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED
-}
-
-func (x *AgentTurnContextSummary) GetReady() bool {
-	if x != nil {
-		return x.Ready
-	}
-	return false
-}
-
-func (x *AgentTurnContextSummary) GetState() AgentTurnContextState {
-	if x != nil {
-		return x.State
-	}
-	return AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_UNSPECIFIED
-}
-
-func (x *AgentTurnContextSummary) GetReasonCode() AgentContextProjectionReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED
-}
-
-func (x *AgentTurnContextSummary) GetManifestSchemaVersion() AgentTurnContextManifestSchemaVersion {
-	if x != nil {
-		return x.ManifestSchemaVersion
-	}
-	return AgentTurnContextManifestSchemaVersion_AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED
-}
-
-func (x *AgentTurnContextSummary) GetCompilerSchemaVersion() AgentTurnContextCompilerSchemaVersion {
-	if x != nil {
-		return x.CompilerSchemaVersion
-	}
-	return AgentTurnContextCompilerSchemaVersion_AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED
-}
-
-func (x *AgentTurnContextSummary) GetManifestInstanceHash() string {
-	if x != nil {
-		return x.ManifestInstanceHash
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetContextContentHash() string {
-	if x != nil {
-		return x.ContextContentHash
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetPromptHash() string {
-	if x != nil {
-		return x.PromptHash
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetSourceSnapshotHash() string {
-	if x != nil {
-		return x.SourceSnapshotHash
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetSourceRef() *SourceMaterializationSourceRef {
-	if x != nil {
-		return x.SourceRef
-	}
-	return nil
-}
-
-func (x *AgentTurnContextSummary) GetWorldContentHash() string {
-	if x != nil {
-		return x.WorldContentHash
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetMaterializationContextHash() string {
-	if x != nil {
-		return x.MaterializationContextHash
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetLanes() []*AgentTurnContextLaneSummary {
-	if x != nil {
-		return x.Lanes
-	}
-	return nil
-}
-
-func (x *AgentTurnContextSummary) GetBudget() *AgentTurnContextBudgetSummary {
-	if x != nil {
-		return x.Budget
-	}
-	return nil
-}
-
-func (x *AgentTurnContextSummary) GetTruncation() []*AgentTurnContextTruncationSummary {
-	if x != nil {
-		return x.Truncation
-	}
-	return nil
-}
-
-func (x *AgentTurnContextSummary) GetTranscriptTurnCount() uint32 {
-	if x != nil {
-		return x.TranscriptTurnCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextSummary) GetMemoryItemCount() uint32 {
-	if x != nil {
-		return x.MemoryItemCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextSummary) GetMediaCount() uint32 {
-	if x != nil {
-		return x.MediaCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextSummary) GetToolCount() uint32 {
-	if x != nil {
-		return x.ToolCount
-	}
-	return 0
-}
-
-func (x *AgentTurnContextSummary) GetRouteDigest() string {
-	if x != nil {
-		return x.RouteDigest
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetCatalogRevisionDigest() string {
-	if x != nil {
-		return x.CatalogRevisionDigest
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetLocalAgentRef() string {
-	if x != nil {
-		return x.LocalAgentRef
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetConversationAnchorId() string {
-	if x != nil {
-		return x.ConversationAnchorId
-	}
-	return ""
-}
-
-func (x *AgentTurnContextSummary) GetTurnId() string {
-	if x != nil {
-		return x.TurnId
-	}
-	return ""
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{26}
 }
 
 type AgentAutonomyConfig struct {
@@ -5062,7 +1551,7 @@ type AgentAutonomyConfig struct {
 
 func (x *AgentAutonomyConfig) Reset() {
 	*x = AgentAutonomyConfig{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[23]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5074,7 +1563,7 @@ func (x *AgentAutonomyConfig) String() string {
 func (*AgentAutonomyConfig) ProtoMessage() {}
 
 func (x *AgentAutonomyConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[23]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5087,7 +1576,7 @@ func (x *AgentAutonomyConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentAutonomyConfig.ProtoReflect.Descriptor instead.
 func (*AgentAutonomyConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *AgentAutonomyConfig) GetDailyTokenBudget() int64 {
@@ -5146,7 +1635,7 @@ type AgentAutonomyState struct {
 
 func (x *AgentAutonomyState) Reset() {
 	*x = AgentAutonomyState{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[24]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5158,7 +1647,7 @@ func (x *AgentAutonomyState) String() string {
 func (*AgentAutonomyState) ProtoMessage() {}
 
 func (x *AgentAutonomyState) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[24]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5171,7 +1660,7 @@ func (x *AgentAutonomyState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentAutonomyState.ProtoReflect.Descriptor instead.
 func (*AgentAutonomyState) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *AgentAutonomyState) GetEnabled() bool {
@@ -5237,7 +1726,7 @@ type AgentRecord struct {
 
 func (x *AgentRecord) Reset() {
 	*x = AgentRecord{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[25]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5249,7 +1738,7 @@ func (x *AgentRecord) String() string {
 func (*AgentRecord) ProtoMessage() {}
 
 func (x *AgentRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[25]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5262,7 +1751,7 @@ func (x *AgentRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRecord.ProtoReflect.Descriptor instead.
 func (*AgentRecord) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AgentRecord) GetAgentId() string {
@@ -5381,7 +1870,7 @@ type AgentStateProjection struct {
 
 func (x *AgentStateProjection) Reset() {
 	*x = AgentStateProjection{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[26]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5393,7 +1882,7 @@ func (x *AgentStateProjection) String() string {
 func (*AgentStateProjection) ProtoMessage() {}
 
 func (x *AgentStateProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[26]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5406,7 +1895,7 @@ func (x *AgentStateProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateProjection.ProtoReflect.Descriptor instead.
 func (*AgentStateProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AgentStateProjection) GetExecutionState() AgentExecutionState {
@@ -5474,7 +1963,7 @@ type AgentStateSetStatusText struct {
 
 func (x *AgentStateSetStatusText) Reset() {
 	*x = AgentStateSetStatusText{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[27]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5486,7 +1975,7 @@ func (x *AgentStateSetStatusText) String() string {
 func (*AgentStateSetStatusText) ProtoMessage() {}
 
 func (x *AgentStateSetStatusText) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[27]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5499,7 +1988,7 @@ func (x *AgentStateSetStatusText) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateSetStatusText.ProtoReflect.Descriptor instead.
 func (*AgentStateSetStatusText) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AgentStateSetStatusText) GetStatusText() string {
@@ -5518,7 +2007,7 @@ type AgentStateSetWorldContext struct {
 
 func (x *AgentStateSetWorldContext) Reset() {
 	*x = AgentStateSetWorldContext{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[28]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5530,7 +2019,7 @@ func (x *AgentStateSetWorldContext) String() string {
 func (*AgentStateSetWorldContext) ProtoMessage() {}
 
 func (x *AgentStateSetWorldContext) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[28]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5543,7 +2032,7 @@ func (x *AgentStateSetWorldContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateSetWorldContext.ProtoReflect.Descriptor instead.
 func (*AgentStateSetWorldContext) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AgentStateSetWorldContext) GetWorldId() string {
@@ -5561,7 +2050,7 @@ type AgentStateClearWorldContext struct {
 
 func (x *AgentStateClearWorldContext) Reset() {
 	*x = AgentStateClearWorldContext{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[29]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5573,7 +2062,7 @@ func (x *AgentStateClearWorldContext) String() string {
 func (*AgentStateClearWorldContext) ProtoMessage() {}
 
 func (x *AgentStateClearWorldContext) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[29]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5586,7 +2075,7 @@ func (x *AgentStateClearWorldContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateClearWorldContext.ProtoReflect.Descriptor instead.
 func (*AgentStateClearWorldContext) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{6}
 }
 
 type AgentStateSetDyadicContext struct {
@@ -5598,7 +2087,7 @@ type AgentStateSetDyadicContext struct {
 
 func (x *AgentStateSetDyadicContext) Reset() {
 	*x = AgentStateSetDyadicContext{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[30]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5610,7 +2099,7 @@ func (x *AgentStateSetDyadicContext) String() string {
 func (*AgentStateSetDyadicContext) ProtoMessage() {}
 
 func (x *AgentStateSetDyadicContext) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[30]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5623,7 +2112,7 @@ func (x *AgentStateSetDyadicContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateSetDyadicContext.ProtoReflect.Descriptor instead.
 func (*AgentStateSetDyadicContext) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AgentStateSetDyadicContext) GetUserId() string {
@@ -5641,7 +2130,7 @@ type AgentStateClearDyadicContext struct {
 
 func (x *AgentStateClearDyadicContext) Reset() {
 	*x = AgentStateClearDyadicContext{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[31]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5653,7 +2142,7 @@ func (x *AgentStateClearDyadicContext) String() string {
 func (*AgentStateClearDyadicContext) ProtoMessage() {}
 
 func (x *AgentStateClearDyadicContext) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[31]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5666,7 +2155,7 @@ func (x *AgentStateClearDyadicContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateClearDyadicContext.ProtoReflect.Descriptor instead.
 func (*AgentStateClearDyadicContext) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{8}
 }
 
 type AgentStatePutAttribute struct {
@@ -5679,7 +2168,7 @@ type AgentStatePutAttribute struct {
 
 func (x *AgentStatePutAttribute) Reset() {
 	*x = AgentStatePutAttribute{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[32]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5691,7 +2180,7 @@ func (x *AgentStatePutAttribute) String() string {
 func (*AgentStatePutAttribute) ProtoMessage() {}
 
 func (x *AgentStatePutAttribute) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[32]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5704,7 +2193,7 @@ func (x *AgentStatePutAttribute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStatePutAttribute.ProtoReflect.Descriptor instead.
 func (*AgentStatePutAttribute) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AgentStatePutAttribute) GetKey() string {
@@ -5730,7 +2219,7 @@ type AgentStateRemoveAttribute struct {
 
 func (x *AgentStateRemoveAttribute) Reset() {
 	*x = AgentStateRemoveAttribute{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[33]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5742,7 +2231,7 @@ func (x *AgentStateRemoveAttribute) String() string {
 func (*AgentStateRemoveAttribute) ProtoMessage() {}
 
 func (x *AgentStateRemoveAttribute) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[33]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5755,7 +2244,7 @@ func (x *AgentStateRemoveAttribute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateRemoveAttribute.ProtoReflect.Descriptor instead.
 func (*AgentStateRemoveAttribute) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AgentStateRemoveAttribute) GetKey() string {
@@ -5783,7 +2272,7 @@ type AgentStateMutation struct {
 
 func (x *AgentStateMutation) Reset() {
 	*x = AgentStateMutation{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[34]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5795,7 +2284,7 @@ func (x *AgentStateMutation) String() string {
 func (*AgentStateMutation) ProtoMessage() {}
 
 func (x *AgentStateMutation) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[34]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5808,7 +2297,7 @@ func (x *AgentStateMutation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateMutation.ProtoReflect.Descriptor instead.
 func (*AgentStateMutation) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AgentStateMutation) GetMutation() isAgentStateMutation_Mutation {
@@ -5941,7 +2430,7 @@ type HookTriggerTimeDetail struct {
 
 func (x *HookTriggerTimeDetail) Reset() {
 	*x = HookTriggerTimeDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[35]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5953,7 +2442,7 @@ func (x *HookTriggerTimeDetail) String() string {
 func (*HookTriggerTimeDetail) ProtoMessage() {}
 
 func (x *HookTriggerTimeDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[35]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5966,7 +2455,7 @@ func (x *HookTriggerTimeDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HookTriggerTimeDetail.ProtoReflect.Descriptor instead.
 func (*HookTriggerTimeDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *HookTriggerTimeDetail) GetDelay() *durationpb.Duration {
@@ -5985,7 +2474,7 @@ type HookTriggerEventUserIdleDetail struct {
 
 func (x *HookTriggerEventUserIdleDetail) Reset() {
 	*x = HookTriggerEventUserIdleDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[36]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5997,7 +2486,7 @@ func (x *HookTriggerEventUserIdleDetail) String() string {
 func (*HookTriggerEventUserIdleDetail) ProtoMessage() {}
 
 func (x *HookTriggerEventUserIdleDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[36]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6010,7 +2499,7 @@ func (x *HookTriggerEventUserIdleDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HookTriggerEventUserIdleDetail.ProtoReflect.Descriptor instead.
 func (*HookTriggerEventUserIdleDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *HookTriggerEventUserIdleDetail) GetIdleFor() *durationpb.Duration {
@@ -6028,7 +2517,7 @@ type HookTriggerEventChatEndedDetail struct {
 
 func (x *HookTriggerEventChatEndedDetail) Reset() {
 	*x = HookTriggerEventChatEndedDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[37]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6040,7 +2529,7 @@ func (x *HookTriggerEventChatEndedDetail) String() string {
 func (*HookTriggerEventChatEndedDetail) ProtoMessage() {}
 
 func (x *HookTriggerEventChatEndedDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[37]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6053,7 +2542,7 @@ func (x *HookTriggerEventChatEndedDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HookTriggerEventChatEndedDetail.ProtoReflect.Descriptor instead.
 func (*HookTriggerEventChatEndedDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{14}
 }
 
 type HookTriggerDetail struct {
@@ -6070,7 +2559,7 @@ type HookTriggerDetail struct {
 
 func (x *HookTriggerDetail) Reset() {
 	*x = HookTriggerDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[38]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6082,7 +2571,7 @@ func (x *HookTriggerDetail) String() string {
 func (*HookTriggerDetail) ProtoMessage() {}
 
 func (x *HookTriggerDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[38]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6095,7 +2584,7 @@ func (x *HookTriggerDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HookTriggerDetail.ProtoReflect.Descriptor instead.
 func (*HookTriggerDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *HookTriggerDetail) GetDetail() isHookTriggerDetail_Detail {
@@ -6180,7 +2669,7 @@ type HookIntent struct {
 
 func (x *HookIntent) Reset() {
 	*x = HookIntent{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[39]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6192,7 +2681,7 @@ func (x *HookIntent) String() string {
 func (*HookIntent) ProtoMessage() {}
 
 func (x *HookIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[39]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6205,7 +2694,7 @@ func (x *HookIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HookIntent.ProtoReflect.Descriptor instead.
 func (*HookIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *HookIntent) GetIntentId() string {
@@ -6309,7 +2798,7 @@ type HookExecutionOutcome struct {
 
 func (x *HookExecutionOutcome) Reset() {
 	*x = HookExecutionOutcome{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[40]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6321,7 +2810,7 @@ func (x *HookExecutionOutcome) String() string {
 func (*HookExecutionOutcome) ProtoMessage() {}
 
 func (x *HookExecutionOutcome) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[40]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6334,7 +2823,7 @@ func (x *HookExecutionOutcome) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HookExecutionOutcome.ProtoReflect.Descriptor instead.
 func (*HookExecutionOutcome) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *HookExecutionOutcome) GetIntent() *HookIntent {
@@ -6386,7 +2875,7 @@ type PendingHook struct {
 
 func (x *PendingHook) Reset() {
 	*x = PendingHook{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[41]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6398,7 +2887,7 @@ func (x *PendingHook) String() string {
 func (*PendingHook) ProtoMessage() {}
 
 func (x *PendingHook) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[41]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6411,7 +2900,7 @@ func (x *PendingHook) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PendingHook.ProtoReflect.Descriptor instead.
 func (*PendingHook) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *PendingHook) GetIntent() *HookIntent {
@@ -6449,7 +2938,7 @@ type CanonicalMemoryCandidate struct {
 
 func (x *CanonicalMemoryCandidate) Reset() {
 	*x = CanonicalMemoryCandidate{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[42]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6461,7 +2950,7 @@ func (x *CanonicalMemoryCandidate) String() string {
 func (*CanonicalMemoryCandidate) ProtoMessage() {}
 
 func (x *CanonicalMemoryCandidate) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[42]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6474,7 +2963,7 @@ func (x *CanonicalMemoryCandidate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CanonicalMemoryCandidate.ProtoReflect.Descriptor instead.
 func (*CanonicalMemoryCandidate) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CanonicalMemoryCandidate) GetCanonicalClass() MemoryCanonicalClass {
@@ -6532,7 +3021,7 @@ type CanonicalMemoryView struct {
 
 func (x *CanonicalMemoryView) Reset() {
 	*x = CanonicalMemoryView{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[43]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6544,7 +3033,7 @@ func (x *CanonicalMemoryView) String() string {
 func (*CanonicalMemoryView) ProtoMessage() {}
 
 func (x *CanonicalMemoryView) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[43]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6557,7 +3046,7 @@ func (x *CanonicalMemoryView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CanonicalMemoryView.ProtoReflect.Descriptor instead.
 func (*CanonicalMemoryView) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CanonicalMemoryView) GetCanonicalClass() MemoryCanonicalClass {
@@ -6606,7 +3095,7 @@ type CanonicalMemoryRejection struct {
 
 func (x *CanonicalMemoryRejection) Reset() {
 	*x = CanonicalMemoryRejection{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[44]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6618,7 +3107,7 @@ func (x *CanonicalMemoryRejection) String() string {
 func (*CanonicalMemoryRejection) ProtoMessage() {}
 
 func (x *CanonicalMemoryRejection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[44]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6631,7 +3120,7 @@ func (x *CanonicalMemoryRejection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CanonicalMemoryRejection.ProtoReflect.Descriptor instead.
 func (*CanonicalMemoryRejection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CanonicalMemoryRejection) GetSourceEventId() string {
@@ -6665,7 +3154,7 @@ type AgentLifecycleEventDetail struct {
 
 func (x *AgentLifecycleEventDetail) Reset() {
 	*x = AgentLifecycleEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[45]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6677,7 +3166,7 @@ func (x *AgentLifecycleEventDetail) String() string {
 func (*AgentLifecycleEventDetail) ProtoMessage() {}
 
 func (x *AgentLifecycleEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[45]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6690,7 +3179,7 @@ func (x *AgentLifecycleEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentLifecycleEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentLifecycleEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{45}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *AgentLifecycleEventDetail) GetPreviousStatus() AgentLifecycleStatus {
@@ -6729,7 +3218,7 @@ type AgentHookEventDetail struct {
 
 func (x *AgentHookEventDetail) Reset() {
 	*x = AgentHookEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[46]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6741,7 +3230,7 @@ func (x *AgentHookEventDetail) String() string {
 func (*AgentHookEventDetail) ProtoMessage() {}
 
 func (x *AgentHookEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[46]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6754,7 +3243,7 @@ func (x *AgentHookEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentHookEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentHookEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{46}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *AgentHookEventDetail) GetFamily() HookAdmissionState {
@@ -6809,7 +3298,7 @@ type AgentMemoryEventDetail struct {
 
 func (x *AgentMemoryEventDetail) Reset() {
 	*x = AgentMemoryEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[47]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6821,7 +3310,7 @@ func (x *AgentMemoryEventDetail) String() string {
 func (*AgentMemoryEventDetail) ProtoMessage() {}
 
 func (x *AgentMemoryEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[47]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6834,7 +3323,7 @@ func (x *AgentMemoryEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMemoryEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentMemoryEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{47}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *AgentMemoryEventDetail) GetAccepted() []*CanonicalMemoryView {
@@ -6862,7 +3351,7 @@ type AgentBudgetEventDetail struct {
 
 func (x *AgentBudgetEventDetail) Reset() {
 	*x = AgentBudgetEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[48]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6874,7 +3363,7 @@ func (x *AgentBudgetEventDetail) String() string {
 func (*AgentBudgetEventDetail) ProtoMessage() {}
 
 func (x *AgentBudgetEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[48]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6887,7 +3376,7 @@ func (x *AgentBudgetEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentBudgetEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentBudgetEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *AgentBudgetEventDetail) GetBudgetExhausted() bool {
@@ -6921,7 +3410,7 @@ type AgentReplicationEventDetail struct {
 
 func (x *AgentReplicationEventDetail) Reset() {
 	*x = AgentReplicationEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[49]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6933,7 +3422,7 @@ func (x *AgentReplicationEventDetail) String() string {
 func (*AgentReplicationEventDetail) ProtoMessage() {}
 
 func (x *AgentReplicationEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[49]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6946,7 +3435,7 @@ func (x *AgentReplicationEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentReplicationEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentReplicationEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{49}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AgentReplicationEventDetail) GetMemoryId() string {
@@ -6978,7 +3467,7 @@ type AgentPostureProjection struct {
 
 func (x *AgentPostureProjection) Reset() {
 	*x = AgentPostureProjection{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[50]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6990,7 +3479,7 @@ func (x *AgentPostureProjection) String() string {
 func (*AgentPostureProjection) ProtoMessage() {}
 
 func (x *AgentPostureProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[50]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7003,7 +3492,7 @@ func (x *AgentPostureProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentPostureProjection.ProtoReflect.Descriptor instead.
 func (*AgentPostureProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{50}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AgentPostureProjection) GetActionFamily() string {
@@ -7052,7 +3541,7 @@ type AgentStateEventDetail struct {
 
 func (x *AgentStateEventDetail) Reset() {
 	*x = AgentStateEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[51]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7064,7 +3553,7 @@ func (x *AgentStateEventDetail) String() string {
 func (*AgentStateEventDetail) ProtoMessage() {}
 
 func (x *AgentStateEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[51]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7077,7 +3566,7 @@ func (x *AgentStateEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStateEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentStateEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{51}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AgentStateEventDetail) GetFamily() AgentStateEventFamily {
@@ -7207,7 +3696,7 @@ type AgentProactiveEventDetail struct {
 
 func (x *AgentProactiveEventDetail) Reset() {
 	*x = AgentProactiveEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[52]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7219,7 +3708,7 @@ func (x *AgentProactiveEventDetail) String() string {
 func (*AgentProactiveEventDetail) ProtoMessage() {}
 
 func (x *AgentProactiveEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[52]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7232,7 +3721,7 @@ func (x *AgentProactiveEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentProactiveEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentProactiveEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{52}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AgentProactiveEventDetail) GetFamily() AgentProactiveEventFamily {
@@ -7396,7 +3885,7 @@ type AgentProactiveInterruptibilityProjection struct {
 
 func (x *AgentProactiveInterruptibilityProjection) Reset() {
 	*x = AgentProactiveInterruptibilityProjection{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[53]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7408,7 +3897,7 @@ func (x *AgentProactiveInterruptibilityProjection) String() string {
 func (*AgentProactiveInterruptibilityProjection) ProtoMessage() {}
 
 func (x *AgentProactiveInterruptibilityProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[53]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7421,7 +3910,7 @@ func (x *AgentProactiveInterruptibilityProjection) ProtoReflect() protoreflect.M
 
 // Deprecated: Use AgentProactiveInterruptibilityProjection.ProtoReflect.Descriptor instead.
 func (*AgentProactiveInterruptibilityProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{53}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AgentProactiveInterruptibilityProjection) GetProjectionId() string {
@@ -7528,7 +4017,7 @@ type AvatarDebugProbeRequestEnvelope struct {
 
 func (x *AvatarDebugProbeRequestEnvelope) Reset() {
 	*x = AvatarDebugProbeRequestEnvelope{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[54]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7540,7 +4029,7 @@ func (x *AvatarDebugProbeRequestEnvelope) String() string {
 func (*AvatarDebugProbeRequestEnvelope) ProtoMessage() {}
 
 func (x *AvatarDebugProbeRequestEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[54]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7553,7 +4042,7 @@ func (x *AvatarDebugProbeRequestEnvelope) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AvatarDebugProbeRequestEnvelope.ProtoReflect.Descriptor instead.
 func (*AvatarDebugProbeRequestEnvelope) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{54}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *AvatarDebugProbeRequestEnvelope) GetProbeId() string {
@@ -7657,7 +4146,7 @@ type AvatarDebugProbeResultEnvelope struct {
 
 func (x *AvatarDebugProbeResultEnvelope) Reset() {
 	*x = AvatarDebugProbeResultEnvelope{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[55]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7669,7 +4158,7 @@ func (x *AvatarDebugProbeResultEnvelope) String() string {
 func (*AvatarDebugProbeResultEnvelope) ProtoMessage() {}
 
 func (x *AvatarDebugProbeResultEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[55]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7682,7 +4171,7 @@ func (x *AvatarDebugProbeResultEnvelope) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AvatarDebugProbeResultEnvelope.ProtoReflect.Descriptor instead.
 func (*AvatarDebugProbeResultEnvelope) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{55}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *AvatarDebugProbeResultEnvelope) GetProbeId() string {
@@ -7761,7 +4250,7 @@ type AvatarDebugReplayRef struct {
 
 func (x *AvatarDebugReplayRef) Reset() {
 	*x = AvatarDebugReplayRef{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[56]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7773,7 +4262,7 @@ func (x *AvatarDebugReplayRef) String() string {
 func (*AvatarDebugReplayRef) ProtoMessage() {}
 
 func (x *AvatarDebugReplayRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[56]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7786,7 +4275,7 @@ func (x *AvatarDebugReplayRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AvatarDebugReplayRef.ProtoReflect.Descriptor instead.
 func (*AvatarDebugReplayRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{56}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *AvatarDebugReplayRef) GetProbeId() string {
@@ -7836,7 +4325,7 @@ type AgentAvatarDebugEventDetail struct {
 
 func (x *AgentAvatarDebugEventDetail) Reset() {
 	*x = AgentAvatarDebugEventDetail{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[57]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7848,7 +4337,7 @@ func (x *AgentAvatarDebugEventDetail) String() string {
 func (*AgentAvatarDebugEventDetail) ProtoMessage() {}
 
 func (x *AgentAvatarDebugEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[57]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7861,7 +4350,7 @@ func (x *AgentAvatarDebugEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentAvatarDebugEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentAvatarDebugEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{57}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *AgentAvatarDebugEventDetail) GetFamily() AvatarDebugEventFamily {
@@ -7919,7 +4408,7 @@ type AgentEvent struct {
 
 func (x *AgentEvent) Reset() {
 	*x = AgentEvent{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[58]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7931,7 +4420,7 @@ func (x *AgentEvent) String() string {
 func (*AgentEvent) ProtoMessage() {}
 
 func (x *AgentEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[58]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7944,7 +4433,7 @@ func (x *AgentEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentEvent.ProtoReflect.Descriptor instead.
 func (*AgentEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{58}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *AgentEvent) GetEventType() AgentEventType {
@@ -8159,7 +4648,7 @@ type InitializeAgentRequest struct {
 
 func (x *InitializeAgentRequest) Reset() {
 	*x = InitializeAgentRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[59]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8171,7 +4660,7 @@ func (x *InitializeAgentRequest) String() string {
 func (*InitializeAgentRequest) ProtoMessage() {}
 
 func (x *InitializeAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[59]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8184,7 +4673,7 @@ func (x *InitializeAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitializeAgentRequest.ProtoReflect.Descriptor instead.
 func (*InitializeAgentRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{59}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *InitializeAgentRequest) GetContext() *AgentRequestContext {
@@ -8260,7 +4749,7 @@ type InitializeAgentResponse struct {
 
 func (x *InitializeAgentResponse) Reset() {
 	*x = InitializeAgentResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[60]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8272,7 +4761,7 @@ func (x *InitializeAgentResponse) String() string {
 func (*InitializeAgentResponse) ProtoMessage() {}
 
 func (x *InitializeAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[60]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8285,7 +4774,7 @@ func (x *InitializeAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitializeAgentResponse.ProtoReflect.Descriptor instead.
 func (*InitializeAgentResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{60}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *InitializeAgentResponse) GetAgent() *AgentRecord {
@@ -8313,7 +4802,7 @@ type TerminateAgentRequest struct {
 
 func (x *TerminateAgentRequest) Reset() {
 	*x = TerminateAgentRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[61]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8325,7 +4814,7 @@ func (x *TerminateAgentRequest) String() string {
 func (*TerminateAgentRequest) ProtoMessage() {}
 
 func (x *TerminateAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[61]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8338,7 +4827,7 @@ func (x *TerminateAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateAgentRequest.ProtoReflect.Descriptor instead.
 func (*TerminateAgentRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{61}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *TerminateAgentRequest) GetContext() *AgentRequestContext {
@@ -8371,7 +4860,7 @@ type TerminateAgentResponse struct {
 
 func (x *TerminateAgentResponse) Reset() {
 	*x = TerminateAgentResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[62]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8383,7 +4872,7 @@ func (x *TerminateAgentResponse) String() string {
 func (*TerminateAgentResponse) ProtoMessage() {}
 
 func (x *TerminateAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[62]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8396,7 +4885,7 @@ func (x *TerminateAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateAgentResponse.ProtoReflect.Descriptor instead.
 func (*TerminateAgentResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{62}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *TerminateAgentResponse) GetAck() *Ack {
@@ -8416,7 +4905,7 @@ type GetAgentRequest struct {
 
 func (x *GetAgentRequest) Reset() {
 	*x = GetAgentRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[63]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8428,7 +4917,7 @@ func (x *GetAgentRequest) String() string {
 func (*GetAgentRequest) ProtoMessage() {}
 
 func (x *GetAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[63]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8441,7 +4930,7 @@ func (x *GetAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentRequest.ProtoReflect.Descriptor instead.
 func (*GetAgentRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{63}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetAgentRequest) GetContext() *AgentRequestContext {
@@ -8467,7 +4956,7 @@ type GetAgentResponse struct {
 
 func (x *GetAgentResponse) Reset() {
 	*x = GetAgentResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[64]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8479,7 +4968,7 @@ func (x *GetAgentResponse) String() string {
 func (*GetAgentResponse) ProtoMessage() {}
 
 func (x *GetAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[64]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8492,7 +4981,7 @@ func (x *GetAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{64}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetAgentResponse) GetAgent() *AgentRecord {
@@ -8515,7 +5004,7 @@ type ListAgentsRequest struct {
 
 func (x *ListAgentsRequest) Reset() {
 	*x = ListAgentsRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[65]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8527,7 +5016,7 @@ func (x *ListAgentsRequest) String() string {
 func (*ListAgentsRequest) ProtoMessage() {}
 
 func (x *ListAgentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[65]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8540,7 +5029,7 @@ func (x *ListAgentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentsRequest.ProtoReflect.Descriptor instead.
 func (*ListAgentsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{65}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ListAgentsRequest) GetContext() *AgentRequestContext {
@@ -8588,7 +5077,7 @@ type ListAgentsResponse struct {
 
 func (x *ListAgentsResponse) Reset() {
 	*x = ListAgentsResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[66]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8600,7 +5089,7 @@ func (x *ListAgentsResponse) String() string {
 func (*ListAgentsResponse) ProtoMessage() {}
 
 func (x *ListAgentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[66]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8613,7 +5102,7 @@ func (x *ListAgentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentsResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{66}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ListAgentsResponse) GetAgents() []*AgentRecord {
@@ -8640,7 +5129,7 @@ type GetAgentStateRequest struct {
 
 func (x *GetAgentStateRequest) Reset() {
 	*x = GetAgentStateRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[67]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8652,7 +5141,7 @@ func (x *GetAgentStateRequest) String() string {
 func (*GetAgentStateRequest) ProtoMessage() {}
 
 func (x *GetAgentStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[67]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8665,7 +5154,7 @@ func (x *GetAgentStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentStateRequest.ProtoReflect.Descriptor instead.
 func (*GetAgentStateRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{67}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetAgentStateRequest) GetContext() *AgentRequestContext {
@@ -8691,7 +5180,7 @@ type GetAgentStateResponse struct {
 
 func (x *GetAgentStateResponse) Reset() {
 	*x = GetAgentStateResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[68]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8703,7 +5192,7 @@ func (x *GetAgentStateResponse) String() string {
 func (*GetAgentStateResponse) ProtoMessage() {}
 
 func (x *GetAgentStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[68]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8716,7 +5205,7 @@ func (x *GetAgentStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentStateResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentStateResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{68}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetAgentStateResponse) GetState() *AgentStateProjection {
@@ -8737,7 +5226,7 @@ type UpdateAgentStateRequest struct {
 
 func (x *UpdateAgentStateRequest) Reset() {
 	*x = UpdateAgentStateRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[69]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8749,7 +5238,7 @@ func (x *UpdateAgentStateRequest) String() string {
 func (*UpdateAgentStateRequest) ProtoMessage() {}
 
 func (x *UpdateAgentStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[69]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8762,7 +5251,7 @@ func (x *UpdateAgentStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAgentStateRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAgentStateRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{69}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *UpdateAgentStateRequest) GetContext() *AgentRequestContext {
@@ -8795,7 +5284,7 @@ type UpdateAgentStateResponse struct {
 
 func (x *UpdateAgentStateResponse) Reset() {
 	*x = UpdateAgentStateResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[70]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8807,7 +5296,7 @@ func (x *UpdateAgentStateResponse) String() string {
 func (*UpdateAgentStateResponse) ProtoMessage() {}
 
 func (x *UpdateAgentStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[70]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8820,7 +5309,7 @@ func (x *UpdateAgentStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAgentStateResponse.ProtoReflect.Descriptor instead.
 func (*UpdateAgentStateResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{70}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *UpdateAgentStateResponse) GetState() *AgentStateProjection {
@@ -8840,7 +5329,7 @@ type EnableAutonomyRequest struct {
 
 func (x *EnableAutonomyRequest) Reset() {
 	*x = EnableAutonomyRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[71]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8852,7 +5341,7 @@ func (x *EnableAutonomyRequest) String() string {
 func (*EnableAutonomyRequest) ProtoMessage() {}
 
 func (x *EnableAutonomyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[71]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8865,7 +5354,7 @@ func (x *EnableAutonomyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableAutonomyRequest.ProtoReflect.Descriptor instead.
 func (*EnableAutonomyRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{71}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *EnableAutonomyRequest) GetContext() *AgentRequestContext {
@@ -8891,7 +5380,7 @@ type EnableAutonomyResponse struct {
 
 func (x *EnableAutonomyResponse) Reset() {
 	*x = EnableAutonomyResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[72]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8903,7 +5392,7 @@ func (x *EnableAutonomyResponse) String() string {
 func (*EnableAutonomyResponse) ProtoMessage() {}
 
 func (x *EnableAutonomyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[72]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8916,7 +5405,7 @@ func (x *EnableAutonomyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableAutonomyResponse.ProtoReflect.Descriptor instead.
 func (*EnableAutonomyResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{72}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *EnableAutonomyResponse) GetAutonomy() *AgentAutonomyState {
@@ -8937,7 +5426,7 @@ type DisableAutonomyRequest struct {
 
 func (x *DisableAutonomyRequest) Reset() {
 	*x = DisableAutonomyRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[73]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8949,7 +5438,7 @@ func (x *DisableAutonomyRequest) String() string {
 func (*DisableAutonomyRequest) ProtoMessage() {}
 
 func (x *DisableAutonomyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[73]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8962,7 +5451,7 @@ func (x *DisableAutonomyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableAutonomyRequest.ProtoReflect.Descriptor instead.
 func (*DisableAutonomyRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{73}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *DisableAutonomyRequest) GetContext() *AgentRequestContext {
@@ -8995,7 +5484,7 @@ type DisableAutonomyResponse struct {
 
 func (x *DisableAutonomyResponse) Reset() {
 	*x = DisableAutonomyResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[74]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9007,7 +5496,7 @@ func (x *DisableAutonomyResponse) String() string {
 func (*DisableAutonomyResponse) ProtoMessage() {}
 
 func (x *DisableAutonomyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[74]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9020,7 +5509,7 @@ func (x *DisableAutonomyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableAutonomyResponse.ProtoReflect.Descriptor instead.
 func (*DisableAutonomyResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{74}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *DisableAutonomyResponse) GetAutonomy() *AgentAutonomyState {
@@ -9041,7 +5530,7 @@ type SetAutonomyConfigRequest struct {
 
 func (x *SetAutonomyConfigRequest) Reset() {
 	*x = SetAutonomyConfigRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[75]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9053,7 +5542,7 @@ func (x *SetAutonomyConfigRequest) String() string {
 func (*SetAutonomyConfigRequest) ProtoMessage() {}
 
 func (x *SetAutonomyConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[75]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9066,7 +5555,7 @@ func (x *SetAutonomyConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutonomyConfigRequest.ProtoReflect.Descriptor instead.
 func (*SetAutonomyConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{75}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *SetAutonomyConfigRequest) GetContext() *AgentRequestContext {
@@ -9099,7 +5588,7 @@ type SetAutonomyConfigResponse struct {
 
 func (x *SetAutonomyConfigResponse) Reset() {
 	*x = SetAutonomyConfigResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9111,7 +5600,7 @@ func (x *SetAutonomyConfigResponse) String() string {
 func (*SetAutonomyConfigResponse) ProtoMessage() {}
 
 func (x *SetAutonomyConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9124,7 +5613,7 @@ func (x *SetAutonomyConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutonomyConfigResponse.ProtoReflect.Descriptor instead.
 func (*SetAutonomyConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{76}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *SetAutonomyConfigResponse) GetAutonomy() *AgentAutonomyState {
@@ -9151,7 +5640,7 @@ type SetAgentPresentationProfileRequest struct {
 
 func (x *SetAgentPresentationProfileRequest) Reset() {
 	*x = SetAgentPresentationProfileRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9163,7 +5652,7 @@ func (x *SetAgentPresentationProfileRequest) String() string {
 func (*SetAgentPresentationProfileRequest) ProtoMessage() {}
 
 func (x *SetAgentPresentationProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9176,7 +5665,7 @@ func (x *SetAgentPresentationProfileRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use SetAgentPresentationProfileRequest.ProtoReflect.Descriptor instead.
 func (*SetAgentPresentationProfileRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{77}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *SetAgentPresentationProfileRequest) GetContext() *AgentRequestContext {
@@ -9266,7 +5755,7 @@ type SetAgentPresentationProfileResponse struct {
 
 func (x *SetAgentPresentationProfileResponse) Reset() {
 	*x = SetAgentPresentationProfileResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9278,7 +5767,7 @@ func (x *SetAgentPresentationProfileResponse) String() string {
 func (*SetAgentPresentationProfileResponse) ProtoMessage() {}
 
 func (x *SetAgentPresentationProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9291,7 +5780,7 @@ func (x *SetAgentPresentationProfileResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use SetAgentPresentationProfileResponse.ProtoReflect.Descriptor instead.
 func (*SetAgentPresentationProfileResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{78}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *SetAgentPresentationProfileResponse) GetProfile() *AgentPresentationProfile {
@@ -9322,7 +5811,7 @@ type ListPendingHooksRequest struct {
 
 func (x *ListPendingHooksRequest) Reset() {
 	*x = ListPendingHooksRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9334,7 +5823,7 @@ func (x *ListPendingHooksRequest) String() string {
 func (*ListPendingHooksRequest) ProtoMessage() {}
 
 func (x *ListPendingHooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9347,7 +5836,7 @@ func (x *ListPendingHooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPendingHooksRequest.ProtoReflect.Descriptor instead.
 func (*ListPendingHooksRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{79}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListPendingHooksRequest) GetContext() *AgentRequestContext {
@@ -9402,7 +5891,7 @@ type ListPendingHooksResponse struct {
 
 func (x *ListPendingHooksResponse) Reset() {
 	*x = ListPendingHooksResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9414,7 +5903,7 @@ func (x *ListPendingHooksResponse) String() string {
 func (*ListPendingHooksResponse) ProtoMessage() {}
 
 func (x *ListPendingHooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9427,7 +5916,7 @@ func (x *ListPendingHooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPendingHooksResponse.ProtoReflect.Descriptor instead.
 func (*ListPendingHooksResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{80}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ListPendingHooksResponse) GetHooks() []*PendingHook {
@@ -9456,7 +5945,7 @@ type CancelHookRequest struct {
 
 func (x *CancelHookRequest) Reset() {
 	*x = CancelHookRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9468,7 +5957,7 @@ func (x *CancelHookRequest) String() string {
 func (*CancelHookRequest) ProtoMessage() {}
 
 func (x *CancelHookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9481,7 +5970,7 @@ func (x *CancelHookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelHookRequest.ProtoReflect.Descriptor instead.
 func (*CancelHookRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{81}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *CancelHookRequest) GetContext() *AgentRequestContext {
@@ -9521,7 +6010,7 @@ type CancelHookResponse struct {
 
 func (x *CancelHookResponse) Reset() {
 	*x = CancelHookResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9533,7 +6022,7 @@ func (x *CancelHookResponse) String() string {
 func (*CancelHookResponse) ProtoMessage() {}
 
 func (x *CancelHookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9546,7 +6035,7 @@ func (x *CancelHookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelHookResponse.ProtoReflect.Descriptor instead.
 func (*CancelHookResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{82}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *CancelHookResponse) GetOutcome() *HookExecutionOutcome {
@@ -9571,7 +6060,7 @@ type QueryAgentMemoryRequest struct {
 
 func (x *QueryAgentMemoryRequest) Reset() {
 	*x = QueryAgentMemoryRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9583,7 +6072,7 @@ func (x *QueryAgentMemoryRequest) String() string {
 func (*QueryAgentMemoryRequest) ProtoMessage() {}
 
 func (x *QueryAgentMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9596,7 +6085,7 @@ func (x *QueryAgentMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryAgentMemoryRequest.ProtoReflect.Descriptor instead.
 func (*QueryAgentMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{83}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *QueryAgentMemoryRequest) GetContext() *AgentRequestContext {
@@ -9658,7 +6147,7 @@ type QueryAgentMemoryResponse struct {
 
 func (x *QueryAgentMemoryResponse) Reset() {
 	*x = QueryAgentMemoryResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9670,7 +6159,7 @@ func (x *QueryAgentMemoryResponse) String() string {
 func (*QueryAgentMemoryResponse) ProtoMessage() {}
 
 func (x *QueryAgentMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9683,7 +6172,7 @@ func (x *QueryAgentMemoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryAgentMemoryResponse.ProtoReflect.Descriptor instead.
 func (*QueryAgentMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{84}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *QueryAgentMemoryResponse) GetMemories() []*CanonicalMemoryView {
@@ -9711,7 +6200,7 @@ type WriteAgentMemoryRequest struct {
 
 func (x *WriteAgentMemoryRequest) Reset() {
 	*x = WriteAgentMemoryRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9723,7 +6212,7 @@ func (x *WriteAgentMemoryRequest) String() string {
 func (*WriteAgentMemoryRequest) ProtoMessage() {}
 
 func (x *WriteAgentMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9736,7 +6225,7 @@ func (x *WriteAgentMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteAgentMemoryRequest.ProtoReflect.Descriptor instead.
 func (*WriteAgentMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{85}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *WriteAgentMemoryRequest) GetContext() *AgentRequestContext {
@@ -9770,7 +6259,7 @@ type WriteAgentMemoryResponse struct {
 
 func (x *WriteAgentMemoryResponse) Reset() {
 	*x = WriteAgentMemoryResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9782,7 +6271,7 @@ func (x *WriteAgentMemoryResponse) String() string {
 func (*WriteAgentMemoryResponse) ProtoMessage() {}
 
 func (x *WriteAgentMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9795,7 +6284,7 @@ func (x *WriteAgentMemoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteAgentMemoryResponse.ProtoReflect.Descriptor instead.
 func (*WriteAgentMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{86}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *WriteAgentMemoryResponse) GetAccepted() []*CanonicalMemoryView {
@@ -9829,7 +6318,7 @@ type AgentCanonicalMemoryBankStatus struct {
 
 func (x *AgentCanonicalMemoryBankStatus) Reset() {
 	*x = AgentCanonicalMemoryBankStatus{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9841,7 +6330,7 @@ func (x *AgentCanonicalMemoryBankStatus) String() string {
 func (*AgentCanonicalMemoryBankStatus) ProtoMessage() {}
 
 func (x *AgentCanonicalMemoryBankStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9854,7 +6343,7 @@ func (x *AgentCanonicalMemoryBankStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentCanonicalMemoryBankStatus.ProtoReflect.Descriptor instead.
 func (*AgentCanonicalMemoryBankStatus) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{87}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *AgentCanonicalMemoryBankStatus) GetMode() AgentCanonicalMemoryBankMode {
@@ -9930,7 +6419,7 @@ type GetAgentCanonicalMemoryBankStatusRequest struct {
 
 func (x *GetAgentCanonicalMemoryBankStatusRequest) Reset() {
 	*x = GetAgentCanonicalMemoryBankStatusRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9942,7 +6431,7 @@ func (x *GetAgentCanonicalMemoryBankStatusRequest) String() string {
 func (*GetAgentCanonicalMemoryBankStatusRequest) ProtoMessage() {}
 
 func (x *GetAgentCanonicalMemoryBankStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9955,7 +6444,7 @@ func (x *GetAgentCanonicalMemoryBankStatusRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use GetAgentCanonicalMemoryBankStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetAgentCanonicalMemoryBankStatusRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{88}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetAgentCanonicalMemoryBankStatusRequest) GetContext() *AgentRequestContext {
@@ -9981,7 +6470,7 @@ type GetAgentCanonicalMemoryBankStatusResponse struct {
 
 func (x *GetAgentCanonicalMemoryBankStatusResponse) Reset() {
 	*x = GetAgentCanonicalMemoryBankStatusResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9993,7 +6482,7 @@ func (x *GetAgentCanonicalMemoryBankStatusResponse) String() string {
 func (*GetAgentCanonicalMemoryBankStatusResponse) ProtoMessage() {}
 
 func (x *GetAgentCanonicalMemoryBankStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10006,7 +6495,7 @@ func (x *GetAgentCanonicalMemoryBankStatusResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use GetAgentCanonicalMemoryBankStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentCanonicalMemoryBankStatusResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{89}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *GetAgentCanonicalMemoryBankStatusResponse) GetStatus() *AgentCanonicalMemoryBankStatus {
@@ -10026,7 +6515,7 @@ type RequestAgentCanonicalMemoryBankBindRequest struct {
 
 func (x *RequestAgentCanonicalMemoryBankBindRequest) Reset() {
 	*x = RequestAgentCanonicalMemoryBankBindRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10038,7 +6527,7 @@ func (x *RequestAgentCanonicalMemoryBankBindRequest) String() string {
 func (*RequestAgentCanonicalMemoryBankBindRequest) ProtoMessage() {}
 
 func (x *RequestAgentCanonicalMemoryBankBindRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10051,7 +6540,7 @@ func (x *RequestAgentCanonicalMemoryBankBindRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use RequestAgentCanonicalMemoryBankBindRequest.ProtoReflect.Descriptor instead.
 func (*RequestAgentCanonicalMemoryBankBindRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{90}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *RequestAgentCanonicalMemoryBankBindRequest) GetContext() *AgentRequestContext {
@@ -10079,7 +6568,7 @@ type RequestAgentCanonicalMemoryBankBindResponse struct {
 
 func (x *RequestAgentCanonicalMemoryBankBindResponse) Reset() {
 	*x = RequestAgentCanonicalMemoryBankBindResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10091,7 +6580,7 @@ func (x *RequestAgentCanonicalMemoryBankBindResponse) String() string {
 func (*RequestAgentCanonicalMemoryBankBindResponse) ProtoMessage() {}
 
 func (x *RequestAgentCanonicalMemoryBankBindResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10104,7 +6593,7 @@ func (x *RequestAgentCanonicalMemoryBankBindResponse) ProtoReflect() protoreflec
 
 // Deprecated: Use RequestAgentCanonicalMemoryBankBindResponse.ProtoReflect.Descriptor instead.
 func (*RequestAgentCanonicalMemoryBankBindResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{91}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *RequestAgentCanonicalMemoryBankBindResponse) GetStatus() *AgentCanonicalMemoryBankStatus {
@@ -10145,7 +6634,7 @@ type AgentCanonicalMemoryReviewStatus struct {
 
 func (x *AgentCanonicalMemoryReviewStatus) Reset() {
 	*x = AgentCanonicalMemoryReviewStatus{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10157,7 +6646,7 @@ func (x *AgentCanonicalMemoryReviewStatus) String() string {
 func (*AgentCanonicalMemoryReviewStatus) ProtoMessage() {}
 
 func (x *AgentCanonicalMemoryReviewStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10170,7 +6659,7 @@ func (x *AgentCanonicalMemoryReviewStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentCanonicalMemoryReviewStatus.ProtoReflect.Descriptor instead.
 func (*AgentCanonicalMemoryReviewStatus) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{92}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *AgentCanonicalMemoryReviewStatus) GetBank() *MemoryBankLocator {
@@ -10247,7 +6736,7 @@ type GetAgentCanonicalMemoryReviewStatusRequest struct {
 
 func (x *GetAgentCanonicalMemoryReviewStatusRequest) Reset() {
 	*x = GetAgentCanonicalMemoryReviewStatusRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10259,7 +6748,7 @@ func (x *GetAgentCanonicalMemoryReviewStatusRequest) String() string {
 func (*GetAgentCanonicalMemoryReviewStatusRequest) ProtoMessage() {}
 
 func (x *GetAgentCanonicalMemoryReviewStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10272,7 +6761,7 @@ func (x *GetAgentCanonicalMemoryReviewStatusRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use GetAgentCanonicalMemoryReviewStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetAgentCanonicalMemoryReviewStatusRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{93}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *GetAgentCanonicalMemoryReviewStatusRequest) GetContext() *AgentRequestContext {
@@ -10305,7 +6794,7 @@ type GetAgentCanonicalMemoryReviewStatusResponse struct {
 
 func (x *GetAgentCanonicalMemoryReviewStatusResponse) Reset() {
 	*x = GetAgentCanonicalMemoryReviewStatusResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10317,7 +6806,7 @@ func (x *GetAgentCanonicalMemoryReviewStatusResponse) String() string {
 func (*GetAgentCanonicalMemoryReviewStatusResponse) ProtoMessage() {}
 
 func (x *GetAgentCanonicalMemoryReviewStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10330,7 +6819,7 @@ func (x *GetAgentCanonicalMemoryReviewStatusResponse) ProtoReflect() protoreflec
 
 // Deprecated: Use GetAgentCanonicalMemoryReviewStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentCanonicalMemoryReviewStatusResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{94}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *GetAgentCanonicalMemoryReviewStatusResponse) GetStatus() *AgentCanonicalMemoryReviewStatus {
@@ -10352,7 +6841,7 @@ type SubscribeAgentEventsRequest struct {
 
 func (x *SubscribeAgentEventsRequest) Reset() {
 	*x = SubscribeAgentEventsRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10364,7 +6853,7 @@ func (x *SubscribeAgentEventsRequest) String() string {
 func (*SubscribeAgentEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeAgentEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10377,7 +6866,7 @@ func (x *SubscribeAgentEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeAgentEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeAgentEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{95}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *SubscribeAgentEventsRequest) GetContext() *AgentRequestContext {
@@ -10420,7 +6909,7 @@ type SubscribeAgentVoiceStreamRequest struct {
 
 func (x *SubscribeAgentVoiceStreamRequest) Reset() {
 	*x = SubscribeAgentVoiceStreamRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10432,7 +6921,7 @@ func (x *SubscribeAgentVoiceStreamRequest) String() string {
 func (*SubscribeAgentVoiceStreamRequest) ProtoMessage() {}
 
 func (x *SubscribeAgentVoiceStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10445,7 +6934,7 @@ func (x *SubscribeAgentVoiceStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeAgentVoiceStreamRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeAgentVoiceStreamRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{96}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *SubscribeAgentVoiceStreamRequest) GetContext() *AgentRequestContext {
@@ -10489,7 +6978,7 @@ type InterruptAgentVoicePlaybackRequest struct {
 
 func (x *InterruptAgentVoicePlaybackRequest) Reset() {
 	*x = InterruptAgentVoicePlaybackRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10501,7 +6990,7 @@ func (x *InterruptAgentVoicePlaybackRequest) String() string {
 func (*InterruptAgentVoicePlaybackRequest) ProtoMessage() {}
 
 func (x *InterruptAgentVoicePlaybackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10514,7 +7003,7 @@ func (x *InterruptAgentVoicePlaybackRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use InterruptAgentVoicePlaybackRequest.ProtoReflect.Descriptor instead.
 func (*InterruptAgentVoicePlaybackRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{97}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *InterruptAgentVoicePlaybackRequest) GetContext() *AgentRequestContext {
@@ -10564,7 +7053,7 @@ type InterruptAgentVoicePlaybackResponse struct {
 
 func (x *InterruptAgentVoicePlaybackResponse) Reset() {
 	*x = InterruptAgentVoicePlaybackResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10576,7 +7065,7 @@ func (x *InterruptAgentVoicePlaybackResponse) String() string {
 func (*InterruptAgentVoicePlaybackResponse) ProtoMessage() {}
 
 func (x *InterruptAgentVoicePlaybackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10589,7 +7078,7 @@ func (x *InterruptAgentVoicePlaybackResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use InterruptAgentVoicePlaybackResponse.ProtoReflect.Descriptor instead.
 func (*InterruptAgentVoicePlaybackResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{98}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *InterruptAgentVoicePlaybackResponse) GetVoiceStreamId() string {
@@ -10642,7 +7131,7 @@ type AgentVoiceStreamEvent struct {
 
 func (x *AgentVoiceStreamEvent) Reset() {
 	*x = AgentVoiceStreamEvent{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10654,7 +7143,7 @@ func (x *AgentVoiceStreamEvent) String() string {
 func (*AgentVoiceStreamEvent) ProtoMessage() {}
 
 func (x *AgentVoiceStreamEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10667,7 +7156,7 @@ func (x *AgentVoiceStreamEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentVoiceStreamEvent.ProtoReflect.Descriptor instead.
 func (*AgentVoiceStreamEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{99}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *AgentVoiceStreamEvent) GetVoiceStreamId() string {
@@ -10793,7 +7282,7 @@ type ConversationAnchor struct {
 
 func (x *ConversationAnchor) Reset() {
 	*x = ConversationAnchor{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10805,7 +7294,7 @@ func (x *ConversationAnchor) String() string {
 func (*ConversationAnchor) ProtoMessage() {}
 
 func (x *ConversationAnchor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10818,7 +7307,7 @@ func (x *ConversationAnchor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationAnchor.ProtoReflect.Descriptor instead.
 func (*ConversationAnchor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{100}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *ConversationAnchor) GetConversationAnchorId() string {
@@ -10918,7 +7407,7 @@ type ConversationAnchorSnapshot struct {
 
 func (x *ConversationAnchorSnapshot) Reset() {
 	*x = ConversationAnchorSnapshot{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10930,7 +7419,7 @@ func (x *ConversationAnchorSnapshot) String() string {
 func (*ConversationAnchorSnapshot) ProtoMessage() {}
 
 func (x *ConversationAnchorSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10943,7 +7432,7 @@ func (x *ConversationAnchorSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationAnchorSnapshot.ProtoReflect.Descriptor instead.
 func (*ConversationAnchorSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{101}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *ConversationAnchorSnapshot) GetAnchor() *ConversationAnchor {
@@ -10996,7 +7485,7 @@ type OpenConversationAnchorRequest struct {
 
 func (x *OpenConversationAnchorRequest) Reset() {
 	*x = OpenConversationAnchorRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11008,7 +7497,7 @@ func (x *OpenConversationAnchorRequest) String() string {
 func (*OpenConversationAnchorRequest) ProtoMessage() {}
 
 func (x *OpenConversationAnchorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11021,7 +7510,7 @@ func (x *OpenConversationAnchorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenConversationAnchorRequest.ProtoReflect.Descriptor instead.
 func (*OpenConversationAnchorRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{102}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *OpenConversationAnchorRequest) GetContext() *AgentRequestContext {
@@ -11082,7 +7571,7 @@ type OpenConversationAnchorResponse struct {
 
 func (x *OpenConversationAnchorResponse) Reset() {
 	*x = OpenConversationAnchorResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11094,7 +7583,7 @@ func (x *OpenConversationAnchorResponse) String() string {
 func (*OpenConversationAnchorResponse) ProtoMessage() {}
 
 func (x *OpenConversationAnchorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11107,7 +7596,7 @@ func (x *OpenConversationAnchorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenConversationAnchorResponse.ProtoReflect.Descriptor instead.
 func (*OpenConversationAnchorResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{103}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *OpenConversationAnchorResponse) GetSnapshot() *ConversationAnchorSnapshot {
@@ -11128,7 +7617,7 @@ type GetConversationAnchorSnapshotRequest struct {
 
 func (x *GetConversationAnchorSnapshotRequest) Reset() {
 	*x = GetConversationAnchorSnapshotRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11140,7 +7629,7 @@ func (x *GetConversationAnchorSnapshotRequest) String() string {
 func (*GetConversationAnchorSnapshotRequest) ProtoMessage() {}
 
 func (x *GetConversationAnchorSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11153,7 +7642,7 @@ func (x *GetConversationAnchorSnapshotRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetConversationAnchorSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetConversationAnchorSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{104}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *GetConversationAnchorSnapshotRequest) GetContext() *AgentRequestContext {
@@ -11186,7 +7675,7 @@ type GetConversationAnchorSnapshotResponse struct {
 
 func (x *GetConversationAnchorSnapshotResponse) Reset() {
 	*x = GetConversationAnchorSnapshotResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11198,7 +7687,7 @@ func (x *GetConversationAnchorSnapshotResponse) String() string {
 func (*GetConversationAnchorSnapshotResponse) ProtoMessage() {}
 
 func (x *GetConversationAnchorSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11211,7 +7700,7 @@ func (x *GetConversationAnchorSnapshotResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use GetConversationAnchorSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetConversationAnchorSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{105}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *GetConversationAnchorSnapshotResponse) GetSnapshot() *ConversationAnchorSnapshot {
@@ -11244,7 +7733,7 @@ type AvatarLiveInstanceBinding struct {
 
 func (x *AvatarLiveInstanceBinding) Reset() {
 	*x = AvatarLiveInstanceBinding{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11256,7 +7745,7 @@ func (x *AvatarLiveInstanceBinding) String() string {
 func (*AvatarLiveInstanceBinding) ProtoMessage() {}
 
 func (x *AvatarLiveInstanceBinding) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11269,7 +7758,7 @@ func (x *AvatarLiveInstanceBinding) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AvatarLiveInstanceBinding.ProtoReflect.Descriptor instead.
 func (*AvatarLiveInstanceBinding) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{106}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *AvatarLiveInstanceBinding) GetAvatarInstanceId() string {
@@ -11353,7 +7842,7 @@ type RegisterAvatarLiveInstanceBindingRequest struct {
 
 func (x *RegisterAvatarLiveInstanceBindingRequest) Reset() {
 	*x = RegisterAvatarLiveInstanceBindingRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11365,7 +7854,7 @@ func (x *RegisterAvatarLiveInstanceBindingRequest) String() string {
 func (*RegisterAvatarLiveInstanceBindingRequest) ProtoMessage() {}
 
 func (x *RegisterAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11378,7 +7867,7 @@ func (x *RegisterAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use RegisterAvatarLiveInstanceBindingRequest.ProtoReflect.Descriptor instead.
 func (*RegisterAvatarLiveInstanceBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{107}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *RegisterAvatarLiveInstanceBindingRequest) GetContext() *AgentRequestContext {
@@ -11412,7 +7901,7 @@ type RegisterAvatarLiveInstanceBindingResponse struct {
 
 func (x *RegisterAvatarLiveInstanceBindingResponse) Reset() {
 	*x = RegisterAvatarLiveInstanceBindingResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11424,7 +7913,7 @@ func (x *RegisterAvatarLiveInstanceBindingResponse) String() string {
 func (*RegisterAvatarLiveInstanceBindingResponse) ProtoMessage() {}
 
 func (x *RegisterAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11437,7 +7926,7 @@ func (x *RegisterAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use RegisterAvatarLiveInstanceBindingResponse.ProtoReflect.Descriptor instead.
 func (*RegisterAvatarLiveInstanceBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{108}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *RegisterAvatarLiveInstanceBindingResponse) GetBinding() *AvatarLiveInstanceBinding {
@@ -11464,7 +7953,7 @@ type ResolveAvatarLiveInstanceBindingRequest struct {
 
 func (x *ResolveAvatarLiveInstanceBindingRequest) Reset() {
 	*x = ResolveAvatarLiveInstanceBindingRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11476,7 +7965,7 @@ func (x *ResolveAvatarLiveInstanceBindingRequest) String() string {
 func (*ResolveAvatarLiveInstanceBindingRequest) ProtoMessage() {}
 
 func (x *ResolveAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11489,7 +7978,7 @@ func (x *ResolveAvatarLiveInstanceBindingRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use ResolveAvatarLiveInstanceBindingRequest.ProtoReflect.Descriptor instead.
 func (*ResolveAvatarLiveInstanceBindingRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{109}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *ResolveAvatarLiveInstanceBindingRequest) GetContext() *AgentRequestContext {
@@ -11516,7 +8005,7 @@ type ResolveAvatarLiveInstanceBindingResponse struct {
 
 func (x *ResolveAvatarLiveInstanceBindingResponse) Reset() {
 	*x = ResolveAvatarLiveInstanceBindingResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11528,7 +8017,7 @@ func (x *ResolveAvatarLiveInstanceBindingResponse) String() string {
 func (*ResolveAvatarLiveInstanceBindingResponse) ProtoMessage() {}
 
 func (x *ResolveAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11541,7 +8030,7 @@ func (x *ResolveAvatarLiveInstanceBindingResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use ResolveAvatarLiveInstanceBindingResponse.ProtoReflect.Descriptor instead.
 func (*ResolveAvatarLiveInstanceBindingResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{110}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *ResolveAvatarLiveInstanceBindingResponse) GetBinding() *AvatarLiveInstanceBinding {
@@ -11571,7 +8060,7 @@ type GetPublicChatSessionSnapshotRequest struct {
 
 func (x *GetPublicChatSessionSnapshotRequest) Reset() {
 	*x = GetPublicChatSessionSnapshotRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11583,7 +8072,7 @@ func (x *GetPublicChatSessionSnapshotRequest) String() string {
 func (*GetPublicChatSessionSnapshotRequest) ProtoMessage() {}
 
 func (x *GetPublicChatSessionSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11596,7 +8085,7 @@ func (x *GetPublicChatSessionSnapshotRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetPublicChatSessionSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetPublicChatSessionSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{111}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *GetPublicChatSessionSnapshotRequest) GetContext() *AgentRequestContext {
@@ -11643,7 +8132,7 @@ type GetPublicChatSessionSnapshotResponse struct {
 
 func (x *GetPublicChatSessionSnapshotResponse) Reset() {
 	*x = GetPublicChatSessionSnapshotResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11655,7 +8144,7 @@ func (x *GetPublicChatSessionSnapshotResponse) String() string {
 func (*GetPublicChatSessionSnapshotResponse) ProtoMessage() {}
 
 func (x *GetPublicChatSessionSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11668,7 +8157,7 @@ func (x *GetPublicChatSessionSnapshotResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetPublicChatSessionSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetPublicChatSessionSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{112}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *GetPublicChatSessionSnapshotResponse) GetSnapshot() *structpb.Struct {
@@ -11695,7 +8184,7 @@ type AgentConversationSummary struct {
 
 func (x *AgentConversationSummary) Reset() {
 	*x = AgentConversationSummary{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11707,7 +8196,7 @@ func (x *AgentConversationSummary) String() string {
 func (*AgentConversationSummary) ProtoMessage() {}
 
 func (x *AgentConversationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11720,7 +8209,7 @@ func (x *AgentConversationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentConversationSummary.ProtoReflect.Descriptor instead.
 func (*AgentConversationSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{113}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *AgentConversationSummary) GetAnchor() *ConversationAnchor {
@@ -11799,7 +8288,7 @@ type ListAgentConversationSummariesRequest struct {
 
 func (x *ListAgentConversationSummariesRequest) Reset() {
 	*x = ListAgentConversationSummariesRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[114]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11811,7 +8300,7 @@ func (x *ListAgentConversationSummariesRequest) String() string {
 func (*ListAgentConversationSummariesRequest) ProtoMessage() {}
 
 func (x *ListAgentConversationSummariesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[114]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11824,7 +8313,7 @@ func (x *ListAgentConversationSummariesRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ListAgentConversationSummariesRequest.ProtoReflect.Descriptor instead.
 func (*ListAgentConversationSummariesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{114}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *ListAgentConversationSummariesRequest) GetContext() *AgentRequestContext {
@@ -11872,7 +8361,7 @@ type ListAgentConversationSummariesResponse struct {
 
 func (x *ListAgentConversationSummariesResponse) Reset() {
 	*x = ListAgentConversationSummariesResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[115]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11884,7 +8373,7 @@ func (x *ListAgentConversationSummariesResponse) String() string {
 func (*ListAgentConversationSummariesResponse) ProtoMessage() {}
 
 func (x *ListAgentConversationSummariesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[115]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11897,7 +8386,7 @@ func (x *ListAgentConversationSummariesResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use ListAgentConversationSummariesResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentConversationSummariesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{115}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *ListAgentConversationSummariesResponse) GetSummaries() []*AgentConversationSummary {
@@ -11925,7 +8414,7 @@ type GetAvatarDebugSnapshotRequest struct {
 
 func (x *GetAvatarDebugSnapshotRequest) Reset() {
 	*x = GetAvatarDebugSnapshotRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[116]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11937,7 +8426,7 @@ func (x *GetAvatarDebugSnapshotRequest) String() string {
 func (*GetAvatarDebugSnapshotRequest) ProtoMessage() {}
 
 func (x *GetAvatarDebugSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[116]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11950,7 +8439,7 @@ func (x *GetAvatarDebugSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{116}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *GetAvatarDebugSnapshotRequest) GetContext() *AgentRequestContext {
@@ -11987,7 +8476,7 @@ type GetAvatarDebugSnapshotResponse struct {
 
 func (x *GetAvatarDebugSnapshotResponse) Reset() {
 	*x = GetAvatarDebugSnapshotResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[117]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11999,7 +8488,7 @@ func (x *GetAvatarDebugSnapshotResponse) String() string {
 func (*GetAvatarDebugSnapshotResponse) ProtoMessage() {}
 
 func (x *GetAvatarDebugSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[117]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12012,7 +8501,7 @@ func (x *GetAvatarDebugSnapshotResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{117}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *GetAvatarDebugSnapshotResponse) GetAgentId() string {
@@ -12068,7 +8557,7 @@ type RequestAvatarDebugProbeRequest struct {
 
 func (x *RequestAvatarDebugProbeRequest) Reset() {
 	*x = RequestAvatarDebugProbeRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[118]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12080,7 +8569,7 @@ func (x *RequestAvatarDebugProbeRequest) String() string {
 func (*RequestAvatarDebugProbeRequest) ProtoMessage() {}
 
 func (x *RequestAvatarDebugProbeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[118]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12093,7 +8582,7 @@ func (x *RequestAvatarDebugProbeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestAvatarDebugProbeRequest.ProtoReflect.Descriptor instead.
 func (*RequestAvatarDebugProbeRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{118}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *RequestAvatarDebugProbeRequest) GetContext() *AgentRequestContext {
@@ -12177,7 +8666,7 @@ type RequestAvatarDebugProbeResponse struct {
 
 func (x *RequestAvatarDebugProbeResponse) Reset() {
 	*x = RequestAvatarDebugProbeResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[119]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12189,7 +8678,7 @@ func (x *RequestAvatarDebugProbeResponse) String() string {
 func (*RequestAvatarDebugProbeResponse) ProtoMessage() {}
 
 func (x *RequestAvatarDebugProbeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[119]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12202,7 +8691,7 @@ func (x *RequestAvatarDebugProbeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestAvatarDebugProbeResponse.ProtoReflect.Descriptor instead.
 func (*RequestAvatarDebugProbeResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{119}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *RequestAvatarDebugProbeResponse) GetRequest() *AvatarDebugProbeRequestEnvelope {
@@ -12238,7 +8727,7 @@ type SubmitAvatarDebugProbeResultRequest struct {
 
 func (x *SubmitAvatarDebugProbeResultRequest) Reset() {
 	*x = SubmitAvatarDebugProbeResultRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[120]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12250,7 +8739,7 @@ func (x *SubmitAvatarDebugProbeResultRequest) String() string {
 func (*SubmitAvatarDebugProbeResultRequest) ProtoMessage() {}
 
 func (x *SubmitAvatarDebugProbeResultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[120]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12263,7 +8752,7 @@ func (x *SubmitAvatarDebugProbeResultRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use SubmitAvatarDebugProbeResultRequest.ProtoReflect.Descriptor instead.
 func (*SubmitAvatarDebugProbeResultRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{120}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *SubmitAvatarDebugProbeResultRequest) GetContext() *AgentRequestContext {
@@ -12303,7 +8792,7 @@ type SubmitAvatarDebugProbeResultResponse struct {
 
 func (x *SubmitAvatarDebugProbeResultResponse) Reset() {
 	*x = SubmitAvatarDebugProbeResultResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[121]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12315,7 +8804,7 @@ func (x *SubmitAvatarDebugProbeResultResponse) String() string {
 func (*SubmitAvatarDebugProbeResultResponse) ProtoMessage() {}
 
 func (x *SubmitAvatarDebugProbeResultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[121]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12328,7 +8817,7 @@ func (x *SubmitAvatarDebugProbeResultResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use SubmitAvatarDebugProbeResultResponse.ProtoReflect.Descriptor instead.
 func (*SubmitAvatarDebugProbeResultResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{121}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *SubmitAvatarDebugProbeResultResponse) GetResult() *AvatarDebugProbeResultEnvelope {
@@ -12350,7 +8839,7 @@ type ListAvatarDebugProbeResultsRequest struct {
 
 func (x *ListAvatarDebugProbeResultsRequest) Reset() {
 	*x = ListAvatarDebugProbeResultsRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[122]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12362,7 +8851,7 @@ func (x *ListAvatarDebugProbeResultsRequest) String() string {
 func (*ListAvatarDebugProbeResultsRequest) ProtoMessage() {}
 
 func (x *ListAvatarDebugProbeResultsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[122]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12375,7 +8864,7 @@ func (x *ListAvatarDebugProbeResultsRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListAvatarDebugProbeResultsRequest.ProtoReflect.Descriptor instead.
 func (*ListAvatarDebugProbeResultsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{122}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *ListAvatarDebugProbeResultsRequest) GetContext() *AgentRequestContext {
@@ -12415,7 +8904,7 @@ type ListAvatarDebugProbeResultsResponse struct {
 
 func (x *ListAvatarDebugProbeResultsResponse) Reset() {
 	*x = ListAvatarDebugProbeResultsResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[123]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12427,7 +8916,7 @@ func (x *ListAvatarDebugProbeResultsResponse) String() string {
 func (*ListAvatarDebugProbeResultsResponse) ProtoMessage() {}
 
 func (x *ListAvatarDebugProbeResultsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[123]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12440,7 +8929,7 @@ func (x *ListAvatarDebugProbeResultsResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListAvatarDebugProbeResultsResponse.ProtoReflect.Descriptor instead.
 func (*ListAvatarDebugProbeResultsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{123}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *ListAvatarDebugProbeResultsResponse) GetProbeResults() []*AvatarDebugProbeResultEnvelope {
@@ -12462,7 +8951,7 @@ type GetAvatarDebugReplayRequest struct {
 
 func (x *GetAvatarDebugReplayRequest) Reset() {
 	*x = GetAvatarDebugReplayRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[124]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12474,7 +8963,7 @@ func (x *GetAvatarDebugReplayRequest) String() string {
 func (*GetAvatarDebugReplayRequest) ProtoMessage() {}
 
 func (x *GetAvatarDebugReplayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[124]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12487,7 +8976,7 @@ func (x *GetAvatarDebugReplayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugReplayRequest.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugReplayRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{124}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *GetAvatarDebugReplayRequest) GetContext() *AgentRequestContext {
@@ -12529,7 +9018,7 @@ type GetAvatarDebugReplayResponse struct {
 
 func (x *GetAvatarDebugReplayResponse) Reset() {
 	*x = GetAvatarDebugReplayResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[125]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12541,7 +9030,7 @@ func (x *GetAvatarDebugReplayResponse) String() string {
 func (*GetAvatarDebugReplayResponse) ProtoMessage() {}
 
 func (x *GetAvatarDebugReplayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[125]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12554,7 +9043,7 @@ func (x *GetAvatarDebugReplayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAvatarDebugReplayResponse.ProtoReflect.Descriptor instead.
 func (*GetAvatarDebugReplayResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{125}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *GetAvatarDebugReplayResponse) GetRequest() *AvatarDebugProbeRequestEnvelope {
@@ -12598,7 +9087,7 @@ type RuntimeAgentAIConfigIntent struct {
 
 func (x *RuntimeAgentAIConfigIntent) Reset() {
 	*x = RuntimeAgentAIConfigIntent{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[126]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12610,7 +9099,7 @@ func (x *RuntimeAgentAIConfigIntent) String() string {
 func (*RuntimeAgentAIConfigIntent) ProtoMessage() {}
 
 func (x *RuntimeAgentAIConfigIntent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[126]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12623,7 +9112,7 @@ func (x *RuntimeAgentAIConfigIntent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeAgentAIConfigIntent.ProtoReflect.Descriptor instead.
 func (*RuntimeAgentAIConfigIntent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{126}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *RuntimeAgentAIConfigIntent) GetCapability() string {
@@ -12688,7 +9177,7 @@ type RuntimeAgentAIConfig struct {
 
 func (x *RuntimeAgentAIConfig) Reset() {
 	*x = RuntimeAgentAIConfig{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[127]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12700,7 +9189,7 @@ func (x *RuntimeAgentAIConfig) String() string {
 func (*RuntimeAgentAIConfig) ProtoMessage() {}
 
 func (x *RuntimeAgentAIConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[127]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12713,7 +9202,7 @@ func (x *RuntimeAgentAIConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeAgentAIConfig.ProtoReflect.Descriptor instead.
 func (*RuntimeAgentAIConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{127}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *RuntimeAgentAIConfig) GetAgentInstanceId() string {
@@ -12763,7 +9252,7 @@ type RuntimeAgentAIConfigCapabilityReadiness struct {
 
 func (x *RuntimeAgentAIConfigCapabilityReadiness) Reset() {
 	*x = RuntimeAgentAIConfigCapabilityReadiness{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[128]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12775,7 +9264,7 @@ func (x *RuntimeAgentAIConfigCapabilityReadiness) String() string {
 func (*RuntimeAgentAIConfigCapabilityReadiness) ProtoMessage() {}
 
 func (x *RuntimeAgentAIConfigCapabilityReadiness) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[128]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12788,7 +9277,7 @@ func (x *RuntimeAgentAIConfigCapabilityReadiness) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use RuntimeAgentAIConfigCapabilityReadiness.ProtoReflect.Descriptor instead.
 func (*RuntimeAgentAIConfigCapabilityReadiness) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{128}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *RuntimeAgentAIConfigCapabilityReadiness) GetCapability() string {
@@ -12830,7 +9319,7 @@ type RuntimeAgentAIConfigReadinessSnapshot struct {
 
 func (x *RuntimeAgentAIConfigReadinessSnapshot) Reset() {
 	*x = RuntimeAgentAIConfigReadinessSnapshot{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[129]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12842,7 +9331,7 @@ func (x *RuntimeAgentAIConfigReadinessSnapshot) String() string {
 func (*RuntimeAgentAIConfigReadinessSnapshot) ProtoMessage() {}
 
 func (x *RuntimeAgentAIConfigReadinessSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[129]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12855,7 +9344,7 @@ func (x *RuntimeAgentAIConfigReadinessSnapshot) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use RuntimeAgentAIConfigReadinessSnapshot.ProtoReflect.Descriptor instead.
 func (*RuntimeAgentAIConfigReadinessSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{129}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *RuntimeAgentAIConfigReadinessSnapshot) GetAgentInstanceId() string {
@@ -12888,7 +9377,7 @@ type GetRuntimeAgentAIConfigRequest struct {
 
 func (x *GetRuntimeAgentAIConfigRequest) Reset() {
 	*x = GetRuntimeAgentAIConfigRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[130]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12900,7 +9389,7 @@ func (x *GetRuntimeAgentAIConfigRequest) String() string {
 func (*GetRuntimeAgentAIConfigRequest) ProtoMessage() {}
 
 func (x *GetRuntimeAgentAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[130]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12913,7 +9402,7 @@ func (x *GetRuntimeAgentAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRuntimeAgentAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetRuntimeAgentAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{130}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *GetRuntimeAgentAIConfigRequest) GetContext() *AgentRequestContext {
@@ -12932,7 +9421,7 @@ type GetRuntimeAgentAIConfigResponse struct {
 
 func (x *GetRuntimeAgentAIConfigResponse) Reset() {
 	*x = GetRuntimeAgentAIConfigResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[131]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12944,7 +9433,7 @@ func (x *GetRuntimeAgentAIConfigResponse) String() string {
 func (*GetRuntimeAgentAIConfigResponse) ProtoMessage() {}
 
 func (x *GetRuntimeAgentAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[131]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12957,7 +9446,7 @@ func (x *GetRuntimeAgentAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRuntimeAgentAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetRuntimeAgentAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{131}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *GetRuntimeAgentAIConfigResponse) GetConfig() *RuntimeAgentAIConfig {
@@ -12978,7 +9467,7 @@ type UpsertRuntimeAgentAIConfigRequest struct {
 
 func (x *UpsertRuntimeAgentAIConfigRequest) Reset() {
 	*x = UpsertRuntimeAgentAIConfigRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[132]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12990,7 +9479,7 @@ func (x *UpsertRuntimeAgentAIConfigRequest) String() string {
 func (*UpsertRuntimeAgentAIConfigRequest) ProtoMessage() {}
 
 func (x *UpsertRuntimeAgentAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[132]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13003,7 +9492,7 @@ func (x *UpsertRuntimeAgentAIConfigRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use UpsertRuntimeAgentAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpsertRuntimeAgentAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{132}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *UpsertRuntimeAgentAIConfigRequest) GetContext() *AgentRequestContext {
@@ -13036,7 +9525,7 @@ type UpsertRuntimeAgentAIConfigResponse struct {
 
 func (x *UpsertRuntimeAgentAIConfigResponse) Reset() {
 	*x = UpsertRuntimeAgentAIConfigResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[133]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13048,7 +9537,7 @@ func (x *UpsertRuntimeAgentAIConfigResponse) String() string {
 func (*UpsertRuntimeAgentAIConfigResponse) ProtoMessage() {}
 
 func (x *UpsertRuntimeAgentAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[133]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13061,7 +9550,7 @@ func (x *UpsertRuntimeAgentAIConfigResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use UpsertRuntimeAgentAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*UpsertRuntimeAgentAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{133}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *UpsertRuntimeAgentAIConfigResponse) GetConfig() *RuntimeAgentAIConfig {
@@ -13080,7 +9569,7 @@ type GetRuntimeAgentAIConfigReadinessRequest struct {
 
 func (x *GetRuntimeAgentAIConfigReadinessRequest) Reset() {
 	*x = GetRuntimeAgentAIConfigReadinessRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[134]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13092,7 +9581,7 @@ func (x *GetRuntimeAgentAIConfigReadinessRequest) String() string {
 func (*GetRuntimeAgentAIConfigReadinessRequest) ProtoMessage() {}
 
 func (x *GetRuntimeAgentAIConfigReadinessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[134]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13105,7 +9594,7 @@ func (x *GetRuntimeAgentAIConfigReadinessRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use GetRuntimeAgentAIConfigReadinessRequest.ProtoReflect.Descriptor instead.
 func (*GetRuntimeAgentAIConfigReadinessRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{134}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *GetRuntimeAgentAIConfigReadinessRequest) GetContext() *AgentRequestContext {
@@ -13124,7 +9613,7 @@ type GetRuntimeAgentAIConfigReadinessResponse struct {
 
 func (x *GetRuntimeAgentAIConfigReadinessResponse) Reset() {
 	*x = GetRuntimeAgentAIConfigReadinessResponse{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[135]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13136,7 +9625,7 @@ func (x *GetRuntimeAgentAIConfigReadinessResponse) String() string {
 func (*GetRuntimeAgentAIConfigReadinessResponse) ProtoMessage() {}
 
 func (x *GetRuntimeAgentAIConfigReadinessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[135]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13149,7 +9638,7 @@ func (x *GetRuntimeAgentAIConfigReadinessResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use GetRuntimeAgentAIConfigReadinessResponse.ProtoReflect.Descriptor instead.
 func (*GetRuntimeAgentAIConfigReadinessResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{135}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *GetRuntimeAgentAIConfigReadinessResponse) GetSnapshot() *RuntimeAgentAIConfigReadinessSnapshot {
@@ -13168,7 +9657,7 @@ type SubscribeRuntimeAgentAIConfigReadinessRequest struct {
 
 func (x *SubscribeRuntimeAgentAIConfigReadinessRequest) Reset() {
 	*x = SubscribeRuntimeAgentAIConfigReadinessRequest{}
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[136]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13180,7 +9669,7 @@ func (x *SubscribeRuntimeAgentAIConfigReadinessRequest) String() string {
 func (*SubscribeRuntimeAgentAIConfigReadinessRequest) ProtoMessage() {}
 
 func (x *SubscribeRuntimeAgentAIConfigReadinessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_service_proto_msgTypes[136]
+	mi := &file_runtime_v1_agent_service_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13193,7 +9682,7 @@ func (x *SubscribeRuntimeAgentAIConfigReadinessRequest) ProtoReflect() protorefl
 
 // Deprecated: Use SubscribeRuntimeAgentAIConfigReadinessRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeRuntimeAgentAIConfigReadinessRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{136}
+	return file_runtime_v1_agent_service_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *SubscribeRuntimeAgentAIConfigReadinessRequest) GetContext() *AgentRequestContext {
@@ -13207,234 +9696,7 @@ var File_runtime_v1_agent_service_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1eruntime/v1/agent_service.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\x1a runtime/v1/agent_companion.proto\x1a.runtime/v1/agent_group_message_candidate.proto\x1a$runtime/v1/agent_participation.proto\x1a#runtime/v1/agent_presentation.proto\x1a\x13runtime/v1/ai.proto\x1a\x17runtime/v1/common.proto\x1a\"runtime/v1/delegated_control.proto\x1a\x17runtime/v1/memory.proto\x1a(runtime/v1/runtime_target_identity.proto\x1a\x16runtime/v1/voice.proto\"\xd3\x01\n" +
-	"\x1eSourceMaterializationSourceRef\x12I\n" +
-	"\x04kind\x18\x01 \x01(\x0e25.nimi.runtime.v1.AgentSourceMaterializationSourceKindR\x04kind\x12\x19\n" +
-	"\bworld_id\x18\x02 \x01(\tR\aworldId\x12\x1b\n" +
-	"\tsource_id\x18\x03 \x01(\tR\bsourceId\x12.\n" +
-	"\x13source_content_hash\x18\x04 \x01(\tR\x11sourceContentHash\"\xc7\x01\n" +
-	"$SourceMaterializationChallengeLimits\x12(\n" +
-	"\x10max_bundle_bytes\x18\x01 \x01(\x04R\x0emaxBundleBytes\x12.\n" +
-	"\x13max_component_count\x18\x02 \x01(\rR\x11maxComponentCount\x12&\n" +
-	"\x0fmax_chunk_bytes\x18\x03 \x01(\x04R\rmaxChunkBytes\x12\x1d\n" +
-	"\n" +
-	"max_chunks\x18\x04 \x01(\rR\tmaxChunks\"\xdc\x01\n" +
-	"+CreateSourceMaterializationChallengeRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x02 \x01(\tR\trequestId\x12N\n" +
-	"\n" +
-	"source_ref\x18\x03 \x01(\v2/.nimi.runtime.v1.SourceMaterializationSourceRefR\tsourceRef\"\xf3\x04\n" +
-	",CreateSourceMaterializationChallengeResponse\x12!\n" +
-	"\fchallenge_id\x18\x01 \x01(\tR\vchallengeId\x12:\n" +
-	"\x19intended_runtime_audience\x18\x02 \x01(\tR\x17intendedRuntimeAudience\x12)\n" +
-	"\x10challenge_digest\x18\x03 \x01(\tR\x0fchallengeDigest\x129\n" +
-	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12M\n" +
-	"\x06limits\x18\x05 \x01(\v25.nimi.runtime.v1.SourceMaterializationChallengeLimitsR\x06limits\x12O\n" +
-	"\x05state\x18\x06 \x01(\x0e29.nimi.runtime.v1.AgentSourceMaterializationChallengeStateR\x05state\x12V\n" +
-	"\vreason_code\x18\a \x01(\x0e25.nimi.runtime.v1.AgentSourceMaterializationReasonCodeR\n" +
-	"reasonCode\x12N\n" +
-	"\n" +
-	"source_ref\x18\b \x01(\v2/.nimi.runtime.v1.SourceMaterializationSourceRefR\tsourceRef\x126\n" +
-	"\x17materializer_account_id\x18\t \x01(\tR\x15materializerAccountId\"\x80\b\n" +
-	"%SourceMaterializationPacketEnvelopeV2\x12r\n" +
-	"\x15packet_schema_version\x18\x01 \x01(\x0e2>.nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersionR\x13packetSchemaVersion\x12\x1b\n" +
-	"\tpacket_id\x18\x02 \x01(\tR\bpacketId\x12\x16\n" +
-	"\x06issuer\x18\x03 \x01(\tR\x06issuer\x12\x15\n" +
-	"\x06key_id\x18\x04 \x01(\tR\x05keyId\x12W\n" +
-	"\talgorithm\x18\x05 \x01(\x0e29.nimi.runtime.v1.AgentSourceMaterializationProofAlgorithmR\talgorithm\x12J\n" +
-	"\akey_use\x18\x06 \x01(\x0e21.nimi.runtime.v1.AgentSourceMaterializationKeyUseR\x06keyUse\x127\n" +
-	"\tissued_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\bissuedAt\x129\n" +
-	"\n" +
-	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x14\n" +
-	"\x05nonce\x18\t \x01(\tR\x05nonce\x12:\n" +
-	"\x19intended_runtime_audience\x18\n" +
-	" \x01(\tR\x17intendedRuntimeAudience\x12!\n" +
-	"\fchallenge_id\x18\v \x01(\tR\vchallengeId\x12)\n" +
-	"\x10challenge_digest\x18\f \x01(\tR\x0fchallengeDigest\x12`\n" +
-	"\x10challenge_limits\x18\r \x01(\v25.nimi.runtime.v1.SourceMaterializationChallengeLimitsR\x0fchallengeLimits\x126\n" +
-	"\x17materializer_account_id\x18\x0e \x01(\tR\x15materializerAccountId\x12N\n" +
-	"\n" +
-	"source_ref\x18\x0f \x01(\v2/.nimi.runtime.v1.SourceMaterializationSourceRefR\tsourceRef\x12!\n" +
-	"\fpayload_hash\x18\x10 \x01(\tR\vpayloadHash\x120\n" +
-	"\x14bundle_manifest_hash\x18\x11 \x01(\tR\x12bundleManifestHash\x12\x1f\n" +
-	"\vpacket_hash\x18\x12 \x01(\tR\n" +
-	"packetHash\"\xef\x02\n" +
-	"0SourceMaterializationBundleComponentDescriptorV1\x12!\n" +
-	"\fcomponent_id\x18\x01 \x01(\tR\vcomponentId\x12L\n" +
-	"\x04kind\x18\x02 \x01(\x0e28.nimi.runtime.v1.AgentSourceMaterializationComponentKindR\x04kind\x12%\n" +
-	"\x0eschema_version\x18\x03 \x01(\tR\rschemaVersion\x12\x1a\n" +
-	"\brevision\x18\x04 \x01(\x04R\brevision\x12!\n" +
-	"\fcontent_hash\x18\x05 \x01(\tR\vcontentHash\x120\n" +
-	"\x14canonical_bytes_hash\x18\x06 \x01(\tR\x12canonicalBytesHash\x122\n" +
-	"\x15canonical_byte_length\x18\a \x01(\x04R\x13canonicalByteLength\"\xbb\x01\n" +
-	",SourceMaterializationBundleChunkDescriptorV1\x12%\n" +
-	"\x0eglobal_ordinal\x18\x01 \x01(\rR\rglobalOrdinal\x12)\n" +
-	"\x10component_offset\x18\x02 \x01(\x04R\x0fcomponentOffset\x12\x16\n" +
-	"\x06length\x18\x03 \x01(\x04R\x06length\x12!\n" +
-	"\fchunk_sha256\x18\x04 \x01(\tR\vchunkSha256\"\x98\x05\n" +
-	"\x19BundleTransportManifestV1\x12~\n" +
-	"\x17manifest_schema_version\x18\x01 \x01(\x0e2F.nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersionR\x15manifestSchemaVersion\x12{\n" +
-	"\x18payload_assembly_version\x18\x02 \x01(\x0e2A.nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersionR\x16payloadAssemblyVersion\x12\x1b\n" +
-	"\tpacket_id\x18\x03 \x01(\tR\bpacketId\x12)\n" +
-	"\x10challenge_digest\x18\x04 \x01(\tR\x0fchallengeDigest\x122\n" +
-	"\x15total_canonical_bytes\x18\x05 \x01(\x04R\x13totalCanonicalBytes\x12'\n" +
-	"\x0fcomponent_count\x18\x06 \x01(\rR\x0ecomponentCount\x12\x1f\n" +
-	"\vchunk_count\x18\a \x01(\rR\n" +
-	"chunkCount\x12a\n" +
-	"\n" +
-	"components\x18\b \x03(\v2A.nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1R\n" +
-	"components\x12U\n" +
-	"\x06chunks\x18\t \x03(\v2=.nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1R\x06chunks\"\x8f\x02\n" +
-	"!SourceMaterializationBeginControl\x12_\n" +
-	"\x0fpacket_envelope\x18\x01 \x01(\v26.nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2R\x0epacketEnvelope\x12!\n" +
-	"\fpacket_proof\x18\x02 \x01(\tR\vpacketProof\x12f\n" +
-	"\x19bundle_transport_manifest\x18\x03 \x01(\v2*.nimi.runtime.v1.BundleTransportManifestV1R\x17bundleTransportManifest\"\xe1\x01\n" +
-	"'BeginSourceMaterializationUploadRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12(\n" +
-	"\x10begin_request_id\x18\x02 \x01(\tR\x0ebeginRequestId\x12L\n" +
-	"\acontrol\x18\x03 \x01(\v22.nimi.runtime.v1.SourceMaterializationBeginControlR\acontrol\"\xec\x03\n" +
-	"(BeginSourceMaterializationUploadResponse\x12\x1b\n" +
-	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12\x1f\n" +
-	"\vpacket_hash\x18\x02 \x01(\tR\n" +
-	"packetHash\x120\n" +
-	"\x14bundle_manifest_hash\x18\x03 \x01(\tR\x12bundleManifestHash\x12Y\n" +
-	"\fupload_state\x18\x04 \x01(\x0e26.nimi.runtime.v1.AgentSourceMaterializationUploadStateR\vuploadState\x12b\n" +
-	"\x0fchallenge_state\x18\x05 \x01(\x0e29.nimi.runtime.v1.AgentSourceMaterializationChallengeStateR\x0echallengeState\x12V\n" +
-	"\vreason_code\x18\x06 \x01(\x0e25.nimi.runtime.v1.AgentSourceMaterializationReasonCodeR\n" +
-	"reasonCode\x129\n" +
-	"\n" +
-	"expires_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"\xaa\x03\n" +
-	"$PutSourceMaterializationChunkRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12$\n" +
-	"\x0eput_request_id\x18\x02 \x01(\tR\fputRequestId\x12\x1b\n" +
-	"\tupload_id\x18\x03 \x01(\tR\buploadId\x12\x1f\n" +
-	"\vpacket_hash\x18\x04 \x01(\tR\n" +
-	"packetHash\x120\n" +
-	"\x14bundle_manifest_hash\x18\x05 \x01(\tR\x12bundleManifestHash\x12%\n" +
-	"\x0eglobal_ordinal\x18\x06 \x01(\rR\rglobalOrdinal\x12!\n" +
-	"\fcomponent_id\x18\a \x01(\tR\vcomponentId\x12)\n" +
-	"\x10component_offset\x18\b \x01(\x04R\x0fcomponentOffset\x12!\n" +
-	"\fchunk_sha256\x18\t \x01(\tR\vchunkSha256\x12\x14\n" +
-	"\x05bytes\x18\n" +
-	" \x01(\fR\x05bytes\"\xee\x02\n" +
-	"%PutSourceMaterializationChunkResponse\x12\x1b\n" +
-	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12%\n" +
-	"\x0eglobal_ordinal\x18\x02 \x01(\rR\rglobalOrdinal\x12!\n" +
-	"\fcomponent_id\x18\x03 \x01(\tR\vcomponentId\x12+\n" +
-	"\x11idempotent_replay\x18\x04 \x01(\bR\x10idempotentReplay\x12Y\n" +
-	"\fupload_state\x18\x05 \x01(\x0e26.nimi.runtime.v1.AgentSourceMaterializationUploadStateR\vuploadState\x12V\n" +
-	"\vreason_code\x18\x06 \x01(\x0e25.nimi.runtime.v1.AgentSourceMaterializationReasonCodeR\n" +
-	"reasonCode\"\x80\x02\n" +
-	"\"CommitSourceMaterializationRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12*\n" +
-	"\x11commit_request_id\x18\x02 \x01(\tR\x0fcommitRequestId\x12\x1b\n" +
-	"\tupload_id\x18\x03 \x01(\tR\buploadId\x12\x1f\n" +
-	"\vpacket_hash\x18\x04 \x01(\tR\n" +
-	"packetHash\x120\n" +
-	"\x14bundle_manifest_hash\x18\x05 \x01(\tR\x12bundleManifestHash\"\xe5\x03\n" +
-	"#CommitSourceMaterializationResponse\x12\x1b\n" +
-	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12&\n" +
-	"\x0flocal_agent_ref\x18\x02 \x01(\tR\rlocalAgentRef\x12Y\n" +
-	"\fupload_state\x18\x03 \x01(\x0e26.nimi.runtime.v1.AgentSourceMaterializationUploadStateR\vuploadState\x12b\n" +
-	"\x0fchallenge_state\x18\x04 \x01(\x0e29.nimi.runtime.v1.AgentSourceMaterializationChallengeStateR\x0echallengeState\x12V\n" +
-	"\vreason_code\x18\x05 \x01(\x0e25.nimi.runtime.v1.AgentSourceMaterializationReasonCodeR\n" +
-	"reasonCode\x12b\n" +
-	"\x15source_context_status\x18\x06 \x01(\v2..nimi.runtime.v1.LocalAgentSourceContextStatusR\x13sourceContextStatus\"\x83\x02\n" +
-	"'AbortSourceMaterializationUploadRequest\x12>\n" +
-	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12(\n" +
-	"\x10abort_request_id\x18\x02 \x01(\tR\x0eabortRequestId\x12\x1b\n" +
-	"\tupload_id\x18\x03 \x01(\tR\buploadId\x12\x1f\n" +
-	"\vpacket_hash\x18\x04 \x01(\tR\n" +
-	"packetHash\x120\n" +
-	"\x14bundle_manifest_hash\x18\x05 \x01(\tR\x12bundleManifestHash\"\x8b\x03\n" +
-	"(AbortSourceMaterializationUploadResponse\x12\x1b\n" +
-	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12Y\n" +
-	"\fupload_state\x18\x02 \x01(\x0e26.nimi.runtime.v1.AgentSourceMaterializationUploadStateR\vuploadState\x12b\n" +
-	"\x0fchallenge_state\x18\x03 \x01(\x0e29.nimi.runtime.v1.AgentSourceMaterializationChallengeStateR\x0echallengeState\x12V\n" +
-	"\vreason_code\x18\x04 \x01(\x0e25.nimi.runtime.v1.AgentSourceMaterializationReasonCodeR\n" +
-	"reasonCode\x12+\n" +
-	"\x11idempotent_replay\x18\x05 \x01(\bR\x10idempotentReplay\"\xac\x02\n" +
-	"%LocalAgentSourceCoverageSectionStatus\x12J\n" +
-	"\asection\x18\x01 \x01(\x0e20.nimi.runtime.v1.AgentLocalSourceCoverageSectionR\asection\x12D\n" +
-	"\x05state\x18\x02 \x01(\x0e2..nimi.runtime.v1.AgentLocalSourceCoverageStateR\x05state\x12%\n" +
-	"\x0erequired_count\x18\x03 \x01(\rR\rrequiredCount\x12%\n" +
-	"\x0eresolved_count\x18\x04 \x01(\rR\rresolvedCount\x12#\n" +
-	"\romitted_count\x18\x05 \x01(\rR\fomittedCount\"\xff\x06\n" +
-	"\x1dLocalAgentSourceContextStatus\x12\\\n" +
-	"\x0eschema_version\x18\x01 \x01(\x0e25.nimi.runtime.v1.AgentLocalSourceContextSchemaVersionR\rschemaVersion\x12\x14\n" +
-	"\x05ready\x18\x02 \x01(\bR\x05ready\x12C\n" +
-	"\x05state\x18\x03 \x01(\x0e2-.nimi.runtime.v1.AgentLocalSourceContextStateR\x05state\x12R\n" +
-	"\vreason_code\x18\x04 \x01(\x0e21.nimi.runtime.v1.AgentContextProjectionReasonCodeR\n" +
-	"reasonCode\x12&\n" +
-	"\x0flocal_agent_ref\x18\x05 \x01(\tR\rlocalAgentRef\x12N\n" +
-	"\n" +
-	"source_ref\x18\x06 \x01(\v2/.nimi.runtime.v1.SourceMaterializationSourceRefR\tsourceRef\x122\n" +
-	"\x15source_schema_version\x18\a \x01(\tR\x13sourceSchemaVersion\x12n\n" +
-	"\x17snapshot_schema_version\x18\b \x01(\x0e26.nimi.runtime.v1.AgentLocalSourceSnapshotSchemaVersionR\x15snapshotSchemaVersion\x12#\n" +
-	"\rsnapshot_hash\x18\t \x01(\tR\fsnapshotHash\x12;\n" +
-	"\vcaptured_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"capturedAt\x12,\n" +
-	"\x12world_content_hash\x18\v \x01(\tR\x10worldContentHash\x12@\n" +
-	"\x1cmaterialization_context_hash\x18\f \x01(\tR\x1amaterializationContextHash\x12c\n" +
-	"\x11coverage_sections\x18\r \x03(\v26.nimi.runtime.v1.LocalAgentSourceCoverageSectionStatusR\x10coverageSections\"\xfd\x02\n" +
-	"\x1bAgentTurnContextLaneSummary\x12@\n" +
-	"\alane_id\x18\x01 \x01(\x0e2'.nimi.runtime.v1.AgentTurnContextLaneIdR\x06laneId\x12@\n" +
-	"\x05state\x18\x02 \x01(\x0e2*.nimi.runtime.v1.AgentTurnContextLaneStateR\x05state\x12.\n" +
-	"\x13included_item_count\x18\x03 \x01(\rR\x11includedItemCount\x12,\n" +
-	"\x12omitted_item_count\x18\x04 \x01(\rR\x10omittedItemCount\x120\n" +
-	"\x14truncated_item_count\x18\x05 \x01(\rR\x12truncatedItemCount\x12)\n" +
-	"\x10allocated_tokens\x18\x06 \x01(\x04R\x0fallocatedTokens\x12\x1f\n" +
-	"\vused_tokens\x18\a \x01(\x04R\n" +
-	"usedTokens\"\xc8\x02\n" +
-	"\x1dAgentTurnContextBudgetSummary\x122\n" +
-	"\x15context_window_tokens\x18\x01 \x01(\x04R\x13contextWindowTokens\x124\n" +
-	"\x16reserved_output_tokens\x18\x02 \x01(\x04R\x14reservedOutputTokens\x124\n" +
-	"\x16reserved_safety_tokens\x18\x03 \x01(\x04R\x14reservedSafetyTokens\x126\n" +
-	"\x17reserved_adapter_tokens\x18\x04 \x01(\x04R\x15reservedAdapterTokens\x12.\n" +
-	"\x13input_budget_tokens\x18\x05 \x01(\x04R\x11inputBudgetTokens\x12\x1f\n" +
-	"\vused_tokens\x18\x06 \x01(\x04R\n" +
-	"usedTokens\"\xce\x01\n" +
-	"!AgentTurnContextTruncationSummary\x12I\n" +
-	"\x06reason\x18\x01 \x01(\x0e21.nimi.runtime.v1.AgentTurnContextTruncationReasonR\x06reason\x12,\n" +
-	"\x12omitted_item_count\x18\x02 \x01(\rR\x10omittedItemCount\x120\n" +
-	"\x14truncated_item_count\x18\x03 \x01(\rR\x12truncatedItemCount\"\xcc\v\n" +
-	"\x17AgentTurnContextSummary\x12\\\n" +
-	"\x0eschema_version\x18\x01 \x01(\x0e25.nimi.runtime.v1.AgentTurnContextSummarySchemaVersionR\rschemaVersion\x12\x14\n" +
-	"\x05ready\x18\x02 \x01(\bR\x05ready\x12<\n" +
-	"\x05state\x18\x03 \x01(\x0e2&.nimi.runtime.v1.AgentTurnContextStateR\x05state\x12R\n" +
-	"\vreason_code\x18\x04 \x01(\x0e21.nimi.runtime.v1.AgentContextProjectionReasonCodeR\n" +
-	"reasonCode\x12n\n" +
-	"\x17manifest_schema_version\x18\x05 \x01(\x0e26.nimi.runtime.v1.AgentTurnContextManifestSchemaVersionR\x15manifestSchemaVersion\x12n\n" +
-	"\x17compiler_schema_version\x18\x06 \x01(\x0e26.nimi.runtime.v1.AgentTurnContextCompilerSchemaVersionR\x15compilerSchemaVersion\x124\n" +
-	"\x16manifest_instance_hash\x18\a \x01(\tR\x14manifestInstanceHash\x120\n" +
-	"\x14context_content_hash\x18\b \x01(\tR\x12contextContentHash\x12\x1f\n" +
-	"\vprompt_hash\x18\t \x01(\tR\n" +
-	"promptHash\x120\n" +
-	"\x14source_snapshot_hash\x18\n" +
-	" \x01(\tR\x12sourceSnapshotHash\x12N\n" +
-	"\n" +
-	"source_ref\x18\v \x01(\v2/.nimi.runtime.v1.SourceMaterializationSourceRefR\tsourceRef\x12,\n" +
-	"\x12world_content_hash\x18\f \x01(\tR\x10worldContentHash\x12@\n" +
-	"\x1cmaterialization_context_hash\x18\r \x01(\tR\x1amaterializationContextHash\x12B\n" +
-	"\x05lanes\x18\x0e \x03(\v2,.nimi.runtime.v1.AgentTurnContextLaneSummaryR\x05lanes\x12F\n" +
-	"\x06budget\x18\x0f \x01(\v2..nimi.runtime.v1.AgentTurnContextBudgetSummaryR\x06budget\x12R\n" +
-	"\n" +
-	"truncation\x18\x10 \x03(\v22.nimi.runtime.v1.AgentTurnContextTruncationSummaryR\n" +
-	"truncation\x122\n" +
-	"\x15transcript_turn_count\x18\x11 \x01(\rR\x13transcriptTurnCount\x12*\n" +
-	"\x11memory_item_count\x18\x12 \x01(\rR\x0fmemoryItemCount\x12\x1f\n" +
-	"\vmedia_count\x18\x13 \x01(\rR\n" +
-	"mediaCount\x12\x1d\n" +
-	"\n" +
-	"tool_count\x18\x14 \x01(\rR\ttoolCount\x12!\n" +
-	"\froute_digest\x18\x15 \x01(\tR\vrouteDigest\x126\n" +
-	"\x17catalog_revision_digest\x18\x16 \x01(\tR\x15catalogRevisionDigest\x12&\n" +
-	"\x0flocal_agent_ref\x18\x17 \x01(\tR\rlocalAgentRef\x124\n" +
-	"\x16conversation_anchor_id\x18\x18 \x01(\tR\x14conversationAnchorId\x12\x17\n" +
-	"\aturn_id\x18\x19 \x01(\tR\x06turnId\"\xeb\x02\n" +
+	"\x1eruntime/v1/agent_service.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\x1a runtime/v1/agent_companion.proto\x1a.runtime/v1/agent_group_message_candidate.proto\x1a$runtime/v1/agent_participation.proto\x1a#runtime/v1/agent_presentation.proto\x1a-runtime/v1/agent_source_materialization.proto\x1a\x13runtime/v1/ai.proto\x1a\x17runtime/v1/common.proto\x1a\"runtime/v1/delegated_control.proto\x1a\x17runtime/v1/memory.proto\x1a(runtime/v1/runtime_target_identity.proto\x1a\x16runtime/v1/voice.proto\"\xeb\x02\n" +
 	"\x13AgentAutonomyConfig\x12,\n" +
 	"\x12daily_token_budget\x18\x01 \x01(\x03R\x10dailyTokenBudget\x12-\n" +
 	"\x13max_tokens_per_hook\x18\x02 \x01(\x03R\x10maxTokensPerHook\x12E\n" +
@@ -14262,171 +10524,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\x18ConversationAnchorStatus\x12*\n" +
 	"&CONVERSATION_ANCHOR_STATUS_UNSPECIFIED\x10\x00\x12%\n" +
 	"!CONVERSATION_ANCHOR_STATUS_ACTIVE\x10\x01\x12%\n" +
-	"!CONVERSATION_ANCHOR_STATUS_CLOSED\x10\x02*\xda\x01\n" +
-	"$AgentSourceMaterializationSourceKind\x128\n" +
-	"4AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED\x10\x00\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER\x10\x01\x12:\n" +
-	"6AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA\x10\x02*\x8d\x03\n" +
-	"(AgentSourceMaterializationChallengeState\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED\x10\x00\x127\n" +
-	"3AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED\x10\x01\x127\n" +
-	"3AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED\x10\x02\x129\n" +
-	"5AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED\x10\x03\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED\x10\x04\x128\n" +
-	"4AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED\x10\x05*\xad\x03\n" +
-	"%AgentSourceMaterializationUploadState\x129\n" +
-	"5AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED\x10\x00\x122\n" +
-	".AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN\x10\x01\x128\n" +
-	"4AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING\x10\x02\x127\n" +
-	"3AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED\x10\x03\x124\n" +
-	"0AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED\x10\x04\x125\n" +
-	"1AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED\x10\x05\x125\n" +
-	"1AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED\x10\x06*\xe7\x03\n" +
-	"'AgentSourceMaterializationComponentKind\x12;\n" +
-	"7AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED\x10\x00\x12?\n" +
-	";AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER\x10\x01\x12=\n" +
-	"9AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA\x10\x02\x12:\n" +
-	"6AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE\x10\x03\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY\x10\x04\x12B\n" +
-	">AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP\x10\x05\x12A\n" +
-	"=AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST\x10\x06*\xa0\x01\n" +
-	"(AgentSourceMaterializationProofAlgorithm\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED\x10\x00\x126\n" +
-	"2AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256\x10\x01*\x86\x01\n" +
-	" AgentSourceMaterializationKeyUse\x124\n" +
-	"0AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED\x10\x00\x12,\n" +
-	"(AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG\x10\x01*\xae\x01\n" +
-	"-AgentSourceMaterializationPacketSchemaVersion\x12B\n" +
-	">AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x129\n" +
-	"5AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2\x10\x01*\xc8\x01\n" +
-	"5AgentSourceMaterializationBundleManifestSchemaVersion\x12K\n" +
-	"GAGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x12B\n" +
-	">AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1\x10\x01*\xb7\x01\n" +
-	"0AgentSourceMaterializationPayloadAssemblyVersion\x12E\n" +
-	"AAGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED\x10\x00\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1\x10\x01*\xfb\x0f\n" +
-	"$AgentSourceMaterializationReasonCode\x128\n" +
-	"4AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED\x10\x00\x121\n" +
-	"-AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE\x10\x01\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST\x10\x02\x12E\n" +
-	"AAGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH\x10\x03\x12D\n" +
-	"@AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH\x10\x04\x12@\n" +
-	"<AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND\x10\x05\x12>\n" +
-	":AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED\x10\x06\x12?\n" +
-	";AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT\x10\a\x12E\n" +
-	"AAGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED\x10\b\x12G\n" +
-	"CAGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED\x10\t\x12>\n" +
-	":AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH\x10\n" +
-	"\x12E\n" +
-	"AAGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED\x10\v\x12H\n" +
-	"DAGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED\x10\f\x12D\n" +
-	"@AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED\x10\r\x12A\n" +
-	"=AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED\x10\x0e\x12=\n" +
-	"9AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID\x10\x0f\x12;\n" +
-	"7AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID\x10\x10\x12:\n" +
-	"6AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID\x10\x11\x12=\n" +
-	"9AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND\x10\x12\x12B\n" +
-	">AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT\x10\x13\x12@\n" +
-	"<AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT\x10\x14\x12E\n" +
-	"AAGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID\x10\x15\x12B\n" +
-	">AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH\x10\x16\x12;\n" +
-	"7AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT\x10\x17\x12?\n" +
-	";AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS\x10\x18\x12>\n" +
-	":AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED\x10\x19\x12<\n" +
-	"8AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT\x10\x1a\x12=\n" +
-	"9AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED\x10\x1b\x124\n" +
-	"0AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED\x10\x1c\x124\n" +
-	"0AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED\x10\x1d\x12?\n" +
-	";AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED\x10\x1e*\xc0\x02\n" +
-	"\x1cAgentLocalSourceContextState\x120\n" +
-	",AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED\x10\x00\x125\n" +
-	"1AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED\x10\x01\x12/\n" +
-	"+AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING\x10\x02\x12*\n" +
-	"&AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY\x10\x03\x12,\n" +
-	"(AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID\x10\x04\x12,\n" +
-	"(AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED\x10\x05*\xae\a\n" +
-	"\x1fAgentLocalSourceCoverageSection\x123\n" +
-	"/AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED\x10\x00\x120\n" +
-	",AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY\x10\x01\x124\n" +
-	"0AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION\x10\x02\x121\n" +
-	"-AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT\x10\x03\x121\n" +
-	"-AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY\x10\x04\x122\n" +
-	".AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY\x10\x05\x121\n" +
-	"-AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE\x10\x06\x125\n" +
-	"1AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS\x10\a\x124\n" +
-	"0AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES\x10\b\x12;\n" +
-	"7AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE\x10\t\x12.\n" +
-	"*AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS\x10\n" +
-	"\x121\n" +
-	"-AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING\x10\v\x125\n" +
-	"1AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE\x10\f\x127\n" +
-	"3AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE\x10\r\x122\n" +
-	".AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE\x10\x0e\x124\n" +
-	"0AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY\x10\x0f\x12:\n" +
-	"6AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE\x10\x10*\x9f\x02\n" +
-	"\x1dAgentLocalSourceCoverageState\x121\n" +
-	"-AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED\x10\x00\x12.\n" +
-	"*AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE\x10\x01\x124\n" +
-	"0AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE\x10\x02\x126\n" +
-	"2AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED\x10\x03\x12-\n" +
-	")AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID\x10\x04*\xee\x01\n" +
-	"\x15AgentTurnContextState\x12(\n" +
-	"$AGENT_TURN_CONTEXT_STATE_UNSPECIFIED\x10\x00\x12)\n" +
-	"%AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED\x10\x01\x12\"\n" +
-	"\x1eAGENT_TURN_CONTEXT_STATE_READY\x10\x02\x126\n" +
-	"2AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED\x10\x03\x12$\n" +
-	" AGENT_TURN_CONTEXT_STATE_INVALID\x10\x04*\xe2\x04\n" +
-	"\x16AgentTurnContextLaneId\x12*\n" +
-	"&AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED\x10\x00\x12-\n" +
-	")AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY\x10\x01\x12.\n" +
-	"*AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT\x10\x02\x12.\n" +
-	"*AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY\x10\x03\x12.\n" +
-	"*AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR\x10\x04\x12,\n" +
-	"(AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT\x10\x05\x123\n" +
-	"/AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT\x10\x06\x12/\n" +
-	"+AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE\x10\a\x12/\n" +
-	"+AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY\x10\b\x123\n" +
-	"/AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY\x10\t\x121\n" +
-	"-AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT\x10\n" +
-	"\x120\n" +
-	",AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN\x10\v*\xa2\x02\n" +
-	"\x19AgentTurnContextLaneState\x12-\n" +
-	")AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED\x10\x00\x12*\n" +
-	"&AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED\x10\x01\x12'\n" +
-	"#AGENT_TURN_CONTEXT_LANE_STATE_EMPTY\x10\x02\x12)\n" +
-	"%AGENT_TURN_CONTEXT_LANE_STATE_OMITTED\x10\x03\x12+\n" +
-	"'AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED\x10\x04\x12)\n" +
-	"%AGENT_TURN_CONTEXT_LANE_STATE_INVALID\x10\x05*\xcf\x02\n" +
-	" AgentTurnContextTruncationReason\x124\n" +
-	"0AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED\x10\x00\x12-\n" +
-	")AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE\x10\x01\x12?\n" +
-	";AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED\x10\x02\x12A\n" +
-	"=AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED\x10\x03\x12B\n" +
-	">AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED\x10\x04*\x95\x04\n" +
-	" AgentContextProjectionReasonCode\x124\n" +
-	"0AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED\x10\x00\x12-\n" +
-	")AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE\x10\x01\x12@\n" +
-	"<AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED\x10\x02\x12B\n" +
-	">AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING\x10\x03\x12@\n" +
-	"<AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID\x10\x04\x12=\n" +
-	"9AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED\x10\x05\x12B\n" +
-	">AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED\x10\x06\x12A\n" +
-	"=AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID\x10\a*\x93\x01\n" +
-	"$AgentLocalSourceContextSchemaVersion\x129\n" +
-	"5AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x120\n" +
-	",AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1\x10\x01*\x96\x01\n" +
-	"%AgentLocalSourceSnapshotSchemaVersion\x12:\n" +
-	"6AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x121\n" +
-	"-AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1\x10\x01*\x93\x01\n" +
-	"$AgentTurnContextSummarySchemaVersion\x129\n" +
-	"5AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x120\n" +
-	",AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1\x10\x01*\x96\x01\n" +
-	"%AgentTurnContextManifestSchemaVersion\x12:\n" +
-	"6AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x121\n" +
-	"-AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1\x10\x01*\x96\x01\n" +
-	"%AgentTurnContextCompilerSchemaVersion\x12:\n" +
-	"6AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x121\n" +
-	"-AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1\x10\x01*\xe0\x01\n" +
+	"!CONVERSATION_ANCHOR_STATUS_CLOSED\x10\x02*\xe0\x01\n" +
 	"\x1cAgentCanonicalMemoryBankMode\x120\n" +
 	",AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED\x10\x00\x12-\n" +
 	")AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE\x10\x01\x12-\n" +
@@ -14517,703 +10615,608 @@ func file_runtime_v1_agent_service_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_agent_service_proto_rawDescData
 }
 
-var file_runtime_v1_agent_service_proto_enumTypes = make([]protoimpl.EnumInfo, 50)
-var file_runtime_v1_agent_service_proto_msgTypes = make([]protoimpl.MessageInfo, 138)
+var file_runtime_v1_agent_service_proto_enumTypes = make([]protoimpl.EnumInfo, 27)
+var file_runtime_v1_agent_service_proto_msgTypes = make([]protoimpl.MessageInfo, 115)
 var file_runtime_v1_agent_service_proto_goTypes = []any{
-	(AgentLifecycleStatus)(0),                                  // 0: nimi.runtime.v1.AgentLifecycleStatus
-	(AgentExecutionState)(0),                                   // 1: nimi.runtime.v1.AgentExecutionState
-	(AgentTrackType)(0),                                        // 2: nimi.runtime.v1.AgentTrackType
-	(HookTriggerFamily)(0),                                     // 3: nimi.runtime.v1.HookTriggerFamily
-	(HookEffect)(0),                                            // 4: nimi.runtime.v1.HookEffect
-	(HookAdmissionState)(0),                                    // 5: nimi.runtime.v1.HookAdmissionState
-	(AgentEventType)(0),                                        // 6: nimi.runtime.v1.AgentEventType
-	(AgentStateEventFamily)(0),                                 // 7: nimi.runtime.v1.AgentStateEventFamily
-	(AgentProactiveEventFamily)(0),                             // 8: nimi.runtime.v1.AgentProactiveEventFamily
-	(AgentProactiveTriggerSource)(0),                           // 9: nimi.runtime.v1.AgentProactiveTriggerSource
-	(AgentProactiveEffectClass)(0),                             // 10: nimi.runtime.v1.AgentProactiveEffectClass
-	(AgentProactiveDeliveryChannel)(0),                         // 11: nimi.runtime.v1.AgentProactiveDeliveryChannel
-	(AgentProactiveOptInState)(0),                              // 12: nimi.runtime.v1.AgentProactiveOptInState
-	(AgentProactiveQuietHoursState)(0),                         // 13: nimi.runtime.v1.AgentProactiveQuietHoursState
-	(AgentProactiveFrequencyCapState)(0),                       // 14: nimi.runtime.v1.AgentProactiveFrequencyCapState
-	(AgentProactiveSuppressionReason)(0),                       // 15: nimi.runtime.v1.AgentProactiveSuppressionReason
-	(AvatarDebugProbeKind)(0),                                  // 16: nimi.runtime.v1.AvatarDebugProbeKind
-	(AvatarDebugProbeStatus)(0),                                // 17: nimi.runtime.v1.AvatarDebugProbeStatus
-	(AvatarDebugRequestedBy)(0),                                // 18: nimi.runtime.v1.AvatarDebugRequestedBy
-	(AvatarDebugEventFamily)(0),                                // 19: nimi.runtime.v1.AvatarDebugEventFamily
-	(AvatarDebugReplayRedactionState)(0),                       // 20: nimi.runtime.v1.AvatarDebugReplayRedactionState
-	(AvatarDebugReplayVisibility)(0),                           // 21: nimi.runtime.v1.AvatarDebugReplayVisibility
-	(AgentAutonomyMode)(0),                                     // 22: nimi.runtime.v1.AgentAutonomyMode
-	(AgentCanonicalMemoryReviewReadiness)(0),                   // 23: nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness
-	(ConversationAnchorStatus)(0),                              // 24: nimi.runtime.v1.ConversationAnchorStatus
-	(AgentSourceMaterializationSourceKind)(0),                  // 25: nimi.runtime.v1.AgentSourceMaterializationSourceKind
-	(AgentSourceMaterializationChallengeState)(0),              // 26: nimi.runtime.v1.AgentSourceMaterializationChallengeState
-	(AgentSourceMaterializationUploadState)(0),                 // 27: nimi.runtime.v1.AgentSourceMaterializationUploadState
-	(AgentSourceMaterializationComponentKind)(0),               // 28: nimi.runtime.v1.AgentSourceMaterializationComponentKind
-	(AgentSourceMaterializationProofAlgorithm)(0),              // 29: nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm
-	(AgentSourceMaterializationKeyUse)(0),                      // 30: nimi.runtime.v1.AgentSourceMaterializationKeyUse
-	(AgentSourceMaterializationPacketSchemaVersion)(0),         // 31: nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion
-	(AgentSourceMaterializationBundleManifestSchemaVersion)(0), // 32: nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion
-	(AgentSourceMaterializationPayloadAssemblyVersion)(0),      // 33: nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion
-	(AgentSourceMaterializationReasonCode)(0),                  // 34: nimi.runtime.v1.AgentSourceMaterializationReasonCode
-	(AgentLocalSourceContextState)(0),                          // 35: nimi.runtime.v1.AgentLocalSourceContextState
-	(AgentLocalSourceCoverageSection)(0),                       // 36: nimi.runtime.v1.AgentLocalSourceCoverageSection
-	(AgentLocalSourceCoverageState)(0),                         // 37: nimi.runtime.v1.AgentLocalSourceCoverageState
-	(AgentTurnContextState)(0),                                 // 38: nimi.runtime.v1.AgentTurnContextState
-	(AgentTurnContextLaneId)(0),                                // 39: nimi.runtime.v1.AgentTurnContextLaneId
-	(AgentTurnContextLaneState)(0),                             // 40: nimi.runtime.v1.AgentTurnContextLaneState
-	(AgentTurnContextTruncationReason)(0),                      // 41: nimi.runtime.v1.AgentTurnContextTruncationReason
-	(AgentContextProjectionReasonCode)(0),                      // 42: nimi.runtime.v1.AgentContextProjectionReasonCode
-	(AgentLocalSourceContextSchemaVersion)(0),                  // 43: nimi.runtime.v1.AgentLocalSourceContextSchemaVersion
-	(AgentLocalSourceSnapshotSchemaVersion)(0),                 // 44: nimi.runtime.v1.AgentLocalSourceSnapshotSchemaVersion
-	(AgentTurnContextSummarySchemaVersion)(0),                  // 45: nimi.runtime.v1.AgentTurnContextSummarySchemaVersion
-	(AgentTurnContextManifestSchemaVersion)(0),                 // 46: nimi.runtime.v1.AgentTurnContextManifestSchemaVersion
-	(AgentTurnContextCompilerSchemaVersion)(0),                 // 47: nimi.runtime.v1.AgentTurnContextCompilerSchemaVersion
-	(AgentCanonicalMemoryBankMode)(0),                          // 48: nimi.runtime.v1.AgentCanonicalMemoryBankMode
-	(RuntimeAgentAIConfigReadinessState)(0),                    // 49: nimi.runtime.v1.RuntimeAgentAIConfigReadinessState
-	(*SourceMaterializationSourceRef)(nil),                     // 50: nimi.runtime.v1.SourceMaterializationSourceRef
-	(*SourceMaterializationChallengeLimits)(nil),               // 51: nimi.runtime.v1.SourceMaterializationChallengeLimits
-	(*CreateSourceMaterializationChallengeRequest)(nil),        // 52: nimi.runtime.v1.CreateSourceMaterializationChallengeRequest
-	(*CreateSourceMaterializationChallengeResponse)(nil),       // 53: nimi.runtime.v1.CreateSourceMaterializationChallengeResponse
-	(*SourceMaterializationPacketEnvelopeV2)(nil),              // 54: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2
-	(*SourceMaterializationBundleComponentDescriptorV1)(nil),   // 55: nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1
-	(*SourceMaterializationBundleChunkDescriptorV1)(nil),       // 56: nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1
-	(*BundleTransportManifestV1)(nil),                          // 57: nimi.runtime.v1.BundleTransportManifestV1
-	(*SourceMaterializationBeginControl)(nil),                  // 58: nimi.runtime.v1.SourceMaterializationBeginControl
-	(*BeginSourceMaterializationUploadRequest)(nil),            // 59: nimi.runtime.v1.BeginSourceMaterializationUploadRequest
-	(*BeginSourceMaterializationUploadResponse)(nil),           // 60: nimi.runtime.v1.BeginSourceMaterializationUploadResponse
-	(*PutSourceMaterializationChunkRequest)(nil),               // 61: nimi.runtime.v1.PutSourceMaterializationChunkRequest
-	(*PutSourceMaterializationChunkResponse)(nil),              // 62: nimi.runtime.v1.PutSourceMaterializationChunkResponse
-	(*CommitSourceMaterializationRequest)(nil),                 // 63: nimi.runtime.v1.CommitSourceMaterializationRequest
-	(*CommitSourceMaterializationResponse)(nil),                // 64: nimi.runtime.v1.CommitSourceMaterializationResponse
-	(*AbortSourceMaterializationUploadRequest)(nil),            // 65: nimi.runtime.v1.AbortSourceMaterializationUploadRequest
-	(*AbortSourceMaterializationUploadResponse)(nil),           // 66: nimi.runtime.v1.AbortSourceMaterializationUploadResponse
-	(*LocalAgentSourceCoverageSectionStatus)(nil),              // 67: nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus
-	(*LocalAgentSourceContextStatus)(nil),                      // 68: nimi.runtime.v1.LocalAgentSourceContextStatus
-	(*AgentTurnContextLaneSummary)(nil),                        // 69: nimi.runtime.v1.AgentTurnContextLaneSummary
-	(*AgentTurnContextBudgetSummary)(nil),                      // 70: nimi.runtime.v1.AgentTurnContextBudgetSummary
-	(*AgentTurnContextTruncationSummary)(nil),                  // 71: nimi.runtime.v1.AgentTurnContextTruncationSummary
-	(*AgentTurnContextSummary)(nil),                            // 72: nimi.runtime.v1.AgentTurnContextSummary
-	(*AgentAutonomyConfig)(nil),                                // 73: nimi.runtime.v1.AgentAutonomyConfig
-	(*AgentAutonomyState)(nil),                                 // 74: nimi.runtime.v1.AgentAutonomyState
-	(*AgentRecord)(nil),                                        // 75: nimi.runtime.v1.AgentRecord
-	(*AgentStateProjection)(nil),                               // 76: nimi.runtime.v1.AgentStateProjection
-	(*AgentStateSetStatusText)(nil),                            // 77: nimi.runtime.v1.AgentStateSetStatusText
-	(*AgentStateSetWorldContext)(nil),                          // 78: nimi.runtime.v1.AgentStateSetWorldContext
-	(*AgentStateClearWorldContext)(nil),                        // 79: nimi.runtime.v1.AgentStateClearWorldContext
-	(*AgentStateSetDyadicContext)(nil),                         // 80: nimi.runtime.v1.AgentStateSetDyadicContext
-	(*AgentStateClearDyadicContext)(nil),                       // 81: nimi.runtime.v1.AgentStateClearDyadicContext
-	(*AgentStatePutAttribute)(nil),                             // 82: nimi.runtime.v1.AgentStatePutAttribute
-	(*AgentStateRemoveAttribute)(nil),                          // 83: nimi.runtime.v1.AgentStateRemoveAttribute
-	(*AgentStateMutation)(nil),                                 // 84: nimi.runtime.v1.AgentStateMutation
-	(*HookTriggerTimeDetail)(nil),                              // 85: nimi.runtime.v1.HookTriggerTimeDetail
-	(*HookTriggerEventUserIdleDetail)(nil),                     // 86: nimi.runtime.v1.HookTriggerEventUserIdleDetail
-	(*HookTriggerEventChatEndedDetail)(nil),                    // 87: nimi.runtime.v1.HookTriggerEventChatEndedDetail
-	(*HookTriggerDetail)(nil),                                  // 88: nimi.runtime.v1.HookTriggerDetail
-	(*HookIntent)(nil),                                         // 89: nimi.runtime.v1.HookIntent
-	(*HookExecutionOutcome)(nil),                               // 90: nimi.runtime.v1.HookExecutionOutcome
-	(*PendingHook)(nil),                                        // 91: nimi.runtime.v1.PendingHook
-	(*CanonicalMemoryCandidate)(nil),                           // 92: nimi.runtime.v1.CanonicalMemoryCandidate
-	(*CanonicalMemoryView)(nil),                                // 93: nimi.runtime.v1.CanonicalMemoryView
-	(*CanonicalMemoryRejection)(nil),                           // 94: nimi.runtime.v1.CanonicalMemoryRejection
-	(*AgentLifecycleEventDetail)(nil),                          // 95: nimi.runtime.v1.AgentLifecycleEventDetail
-	(*AgentHookEventDetail)(nil),                               // 96: nimi.runtime.v1.AgentHookEventDetail
-	(*AgentMemoryEventDetail)(nil),                             // 97: nimi.runtime.v1.AgentMemoryEventDetail
-	(*AgentBudgetEventDetail)(nil),                             // 98: nimi.runtime.v1.AgentBudgetEventDetail
-	(*AgentReplicationEventDetail)(nil),                        // 99: nimi.runtime.v1.AgentReplicationEventDetail
-	(*AgentPostureProjection)(nil),                             // 100: nimi.runtime.v1.AgentPostureProjection
-	(*AgentStateEventDetail)(nil),                              // 101: nimi.runtime.v1.AgentStateEventDetail
-	(*AgentProactiveEventDetail)(nil),                          // 102: nimi.runtime.v1.AgentProactiveEventDetail
-	(*AgentProactiveInterruptibilityProjection)(nil),           // 103: nimi.runtime.v1.AgentProactiveInterruptibilityProjection
-	(*AvatarDebugProbeRequestEnvelope)(nil),                    // 104: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
-	(*AvatarDebugProbeResultEnvelope)(nil),                     // 105: nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	(*AvatarDebugReplayRef)(nil),                               // 106: nimi.runtime.v1.AvatarDebugReplayRef
-	(*AgentAvatarDebugEventDetail)(nil),                        // 107: nimi.runtime.v1.AgentAvatarDebugEventDetail
-	(*AgentEvent)(nil),                                         // 108: nimi.runtime.v1.AgentEvent
-	(*InitializeAgentRequest)(nil),                             // 109: nimi.runtime.v1.InitializeAgentRequest
-	(*InitializeAgentResponse)(nil),                            // 110: nimi.runtime.v1.InitializeAgentResponse
-	(*TerminateAgentRequest)(nil),                              // 111: nimi.runtime.v1.TerminateAgentRequest
-	(*TerminateAgentResponse)(nil),                             // 112: nimi.runtime.v1.TerminateAgentResponse
-	(*GetAgentRequest)(nil),                                    // 113: nimi.runtime.v1.GetAgentRequest
-	(*GetAgentResponse)(nil),                                   // 114: nimi.runtime.v1.GetAgentResponse
-	(*ListAgentsRequest)(nil),                                  // 115: nimi.runtime.v1.ListAgentsRequest
-	(*ListAgentsResponse)(nil),                                 // 116: nimi.runtime.v1.ListAgentsResponse
-	(*GetAgentStateRequest)(nil),                               // 117: nimi.runtime.v1.GetAgentStateRequest
-	(*GetAgentStateResponse)(nil),                              // 118: nimi.runtime.v1.GetAgentStateResponse
-	(*UpdateAgentStateRequest)(nil),                            // 119: nimi.runtime.v1.UpdateAgentStateRequest
-	(*UpdateAgentStateResponse)(nil),                           // 120: nimi.runtime.v1.UpdateAgentStateResponse
-	(*EnableAutonomyRequest)(nil),                              // 121: nimi.runtime.v1.EnableAutonomyRequest
-	(*EnableAutonomyResponse)(nil),                             // 122: nimi.runtime.v1.EnableAutonomyResponse
-	(*DisableAutonomyRequest)(nil),                             // 123: nimi.runtime.v1.DisableAutonomyRequest
-	(*DisableAutonomyResponse)(nil),                            // 124: nimi.runtime.v1.DisableAutonomyResponse
-	(*SetAutonomyConfigRequest)(nil),                           // 125: nimi.runtime.v1.SetAutonomyConfigRequest
-	(*SetAutonomyConfigResponse)(nil),                          // 126: nimi.runtime.v1.SetAutonomyConfigResponse
-	(*SetAgentPresentationProfileRequest)(nil),                 // 127: nimi.runtime.v1.SetAgentPresentationProfileRequest
-	(*SetAgentPresentationProfileResponse)(nil),                // 128: nimi.runtime.v1.SetAgentPresentationProfileResponse
-	(*ListPendingHooksRequest)(nil),                            // 129: nimi.runtime.v1.ListPendingHooksRequest
-	(*ListPendingHooksResponse)(nil),                           // 130: nimi.runtime.v1.ListPendingHooksResponse
-	(*CancelHookRequest)(nil),                                  // 131: nimi.runtime.v1.CancelHookRequest
-	(*CancelHookResponse)(nil),                                 // 132: nimi.runtime.v1.CancelHookResponse
-	(*QueryAgentMemoryRequest)(nil),                            // 133: nimi.runtime.v1.QueryAgentMemoryRequest
-	(*QueryAgentMemoryResponse)(nil),                           // 134: nimi.runtime.v1.QueryAgentMemoryResponse
-	(*WriteAgentMemoryRequest)(nil),                            // 135: nimi.runtime.v1.WriteAgentMemoryRequest
-	(*WriteAgentMemoryResponse)(nil),                           // 136: nimi.runtime.v1.WriteAgentMemoryResponse
-	(*AgentCanonicalMemoryBankStatus)(nil),                     // 137: nimi.runtime.v1.AgentCanonicalMemoryBankStatus
-	(*GetAgentCanonicalMemoryBankStatusRequest)(nil),           // 138: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
-	(*GetAgentCanonicalMemoryBankStatusResponse)(nil),          // 139: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
-	(*RequestAgentCanonicalMemoryBankBindRequest)(nil),         // 140: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
-	(*RequestAgentCanonicalMemoryBankBindResponse)(nil),        // 141: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
-	(*AgentCanonicalMemoryReviewStatus)(nil),                   // 142: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus
-	(*GetAgentCanonicalMemoryReviewStatusRequest)(nil),         // 143: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
-	(*GetAgentCanonicalMemoryReviewStatusResponse)(nil),        // 144: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
-	(*SubscribeAgentEventsRequest)(nil),                        // 145: nimi.runtime.v1.SubscribeAgentEventsRequest
-	(*SubscribeAgentVoiceStreamRequest)(nil),                   // 146: nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
-	(*InterruptAgentVoicePlaybackRequest)(nil),                 // 147: nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
-	(*InterruptAgentVoicePlaybackResponse)(nil),                // 148: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
-	(*AgentVoiceStreamEvent)(nil),                              // 149: nimi.runtime.v1.AgentVoiceStreamEvent
-	(*ConversationAnchor)(nil),                                 // 150: nimi.runtime.v1.ConversationAnchor
-	(*ConversationAnchorSnapshot)(nil),                         // 151: nimi.runtime.v1.ConversationAnchorSnapshot
-	(*OpenConversationAnchorRequest)(nil),                      // 152: nimi.runtime.v1.OpenConversationAnchorRequest
-	(*OpenConversationAnchorResponse)(nil),                     // 153: nimi.runtime.v1.OpenConversationAnchorResponse
-	(*GetConversationAnchorSnapshotRequest)(nil),               // 154: nimi.runtime.v1.GetConversationAnchorSnapshotRequest
-	(*GetConversationAnchorSnapshotResponse)(nil),              // 155: nimi.runtime.v1.GetConversationAnchorSnapshotResponse
-	(*AvatarLiveInstanceBinding)(nil),                          // 156: nimi.runtime.v1.AvatarLiveInstanceBinding
-	(*RegisterAvatarLiveInstanceBindingRequest)(nil),           // 157: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
-	(*RegisterAvatarLiveInstanceBindingResponse)(nil),          // 158: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
-	(*ResolveAvatarLiveInstanceBindingRequest)(nil),            // 159: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
-	(*ResolveAvatarLiveInstanceBindingResponse)(nil),           // 160: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
-	(*GetPublicChatSessionSnapshotRequest)(nil),                // 161: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
-	(*GetPublicChatSessionSnapshotResponse)(nil),               // 162: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
-	(*AgentConversationSummary)(nil),                           // 163: nimi.runtime.v1.AgentConversationSummary
-	(*ListAgentConversationSummariesRequest)(nil),              // 164: nimi.runtime.v1.ListAgentConversationSummariesRequest
-	(*ListAgentConversationSummariesResponse)(nil),             // 165: nimi.runtime.v1.ListAgentConversationSummariesResponse
-	(*GetAvatarDebugSnapshotRequest)(nil),                      // 166: nimi.runtime.v1.GetAvatarDebugSnapshotRequest
-	(*GetAvatarDebugSnapshotResponse)(nil),                     // 167: nimi.runtime.v1.GetAvatarDebugSnapshotResponse
-	(*RequestAvatarDebugProbeRequest)(nil),                     // 168: nimi.runtime.v1.RequestAvatarDebugProbeRequest
-	(*RequestAvatarDebugProbeResponse)(nil),                    // 169: nimi.runtime.v1.RequestAvatarDebugProbeResponse
-	(*SubmitAvatarDebugProbeResultRequest)(nil),                // 170: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
-	(*SubmitAvatarDebugProbeResultResponse)(nil),               // 171: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
-	(*ListAvatarDebugProbeResultsRequest)(nil),                 // 172: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
-	(*ListAvatarDebugProbeResultsResponse)(nil),                // 173: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
-	(*GetAvatarDebugReplayRequest)(nil),                        // 174: nimi.runtime.v1.GetAvatarDebugReplayRequest
-	(*GetAvatarDebugReplayResponse)(nil),                       // 175: nimi.runtime.v1.GetAvatarDebugReplayResponse
-	(*RuntimeAgentAIConfigIntent)(nil),                         // 176: nimi.runtime.v1.RuntimeAgentAIConfigIntent
-	(*RuntimeAgentAIConfig)(nil),                               // 177: nimi.runtime.v1.RuntimeAgentAIConfig
-	(*RuntimeAgentAIConfigCapabilityReadiness)(nil),            // 178: nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness
-	(*RuntimeAgentAIConfigReadinessSnapshot)(nil),              // 179: nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
-	(*GetRuntimeAgentAIConfigRequest)(nil),                     // 180: nimi.runtime.v1.GetRuntimeAgentAIConfigRequest
-	(*GetRuntimeAgentAIConfigResponse)(nil),                    // 181: nimi.runtime.v1.GetRuntimeAgentAIConfigResponse
-	(*UpsertRuntimeAgentAIConfigRequest)(nil),                  // 182: nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest
-	(*UpsertRuntimeAgentAIConfigResponse)(nil),                 // 183: nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse
-	(*GetRuntimeAgentAIConfigReadinessRequest)(nil),            // 184: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest
-	(*GetRuntimeAgentAIConfigReadinessResponse)(nil),           // 185: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse
-	(*SubscribeRuntimeAgentAIConfigReadinessRequest)(nil),      // 186: nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest
-	nil,                                                   // 187: nimi.runtime.v1.AgentStateProjection.AttributesEntry
-	(*AgentRequestContext)(nil),                           // 188: nimi.runtime.v1.AgentRequestContext
-	(*timestamppb.Timestamp)(nil),                         // 189: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),                           // 190: google.protobuf.Duration
-	(*structpb.Struct)(nil),                               // 191: google.protobuf.Struct
-	(*AgentPresentationProfile)(nil),                      // 192: nimi.runtime.v1.AgentPresentationProfile
-	(ReasonCode)(0),                                       // 193: nimi.runtime.v1.ReasonCode
-	(MemoryCanonicalClass)(0),                             // 194: nimi.runtime.v1.MemoryCanonicalClass
-	(*MemoryBankLocator)(nil),                             // 195: nimi.runtime.v1.MemoryBankLocator
-	(*MemoryRecordInput)(nil),                             // 196: nimi.runtime.v1.MemoryRecordInput
-	(*MemoryRecord)(nil),                                  // 197: nimi.runtime.v1.MemoryRecord
-	(*MemoryReplicationState)(nil),                        // 198: nimi.runtime.v1.MemoryReplicationState
-	(*ScopedRuntimeBindingAttachment)(nil),                // 199: nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	(*AgentPresentationEventDetail)(nil),                  // 200: nimi.runtime.v1.AgentPresentationEventDetail
-	(*Ack)(nil),                                           // 201: nimi.runtime.v1.Ack
-	(*ClearAgentPresentationProfile)(nil),                 // 202: nimi.runtime.v1.ClearAgentPresentationProfile
-	(*AgentPresentationProfilePatch)(nil),                 // 203: nimi.runtime.v1.AgentPresentationProfilePatch
-	(MemoryRecordKind)(0),                                 // 204: nimi.runtime.v1.MemoryRecordKind
-	(*NarrativeRecallHit)(nil),                            // 205: nimi.runtime.v1.NarrativeRecallHit
-	(*MemoryEmbeddingProfile)(nil),                        // 206: nimi.runtime.v1.MemoryEmbeddingProfile
-	(VoiceOutputMode)(0),                                  // 207: nimi.runtime.v1.VoiceOutputMode
-	(VoicePlaybackState)(0),                               // 208: nimi.runtime.v1.VoicePlaybackState
-	(RoutePolicy)(0),                                      // 209: nimi.runtime.v1.RoutePolicy
-	(*RuntimeDurableTargetRef)(nil),                       // 210: nimi.runtime.v1.RuntimeDurableTargetRef
-	(*GetCompanionParticipationProjectionRequest)(nil),    // 211: nimi.runtime.v1.GetCompanionParticipationProjectionRequest
-	(*RequestCompanionParticipationRequest)(nil),          // 212: nimi.runtime.v1.RequestCompanionParticipationRequest
-	(*CancelCompanionParticipationRequest)(nil),           // 213: nimi.runtime.v1.CancelCompanionParticipationRequest
-	(*OpenCompanionParticipationReplayRequest)(nil),       // 214: nimi.runtime.v1.OpenCompanionParticipationReplayRequest
-	(*CreateRealmGroupMessageCandidateRequest)(nil),       // 215: nimi.runtime.v1.CreateRealmGroupMessageCandidateRequest
-	(*GetRealmGroupMessageCandidateEvidenceRequest)(nil),  // 216: nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceRequest
-	(*ListDelegatedProviderProfilesRequest)(nil),          // 217: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
-	(*UpsertDelegatedProviderProfileRequest)(nil),         // 218: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
-	(*SetDelegatedProviderStateRequest)(nil),              // 219: nimi.runtime.v1.SetDelegatedProviderStateRequest
-	(*ListDelegatedApprovalRequestsRequest)(nil),          // 220: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	(*SubmitDelegatedApprovalDecisionRequest)(nil),        // 221: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	(*ListDelegatedDiagnosticsRequest)(nil),               // 222: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	(*GetDelegatedReplayTraceRequest)(nil),                // 223: nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),     // 224: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	(*ExecuteDelegatedCapabilityRequest)(nil),             // 225: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
-	(*ResumeDelegatedCapabilityRequest)(nil),              // 226: nimi.runtime.v1.ResumeDelegatedCapabilityRequest
-	(*DescribeParticipationProfilesRequest)(nil),          // 227: nimi.runtime.v1.DescribeParticipationProfilesRequest
-	(*DescribeParticipationContextBlocksRequest)(nil),     // 228: nimi.runtime.v1.DescribeParticipationContextBlocksRequest
-	(*ValidateParticipationRequest)(nil),                  // 229: nimi.runtime.v1.ValidateParticipationRequest
-	(*ExecuteParticipationRequest)(nil),                   // 230: nimi.runtime.v1.ExecuteParticipationRequest
-	(*GetParticipationCandidateRequest)(nil),              // 231: nimi.runtime.v1.GetParticipationCandidateRequest
-	(*GetParticipationVerdictsRequest)(nil),               // 232: nimi.runtime.v1.GetParticipationVerdictsRequest
-	(*ListParticipationAuditEventsRequest)(nil),           // 233: nimi.runtime.v1.ListParticipationAuditEventsRequest
-	(*GetParticipationReplayRequest)(nil),                 // 234: nimi.runtime.v1.GetParticipationReplayRequest
-	(*GetCompanionParticipationProjectionResponse)(nil),   // 235: nimi.runtime.v1.GetCompanionParticipationProjectionResponse
-	(*RequestCompanionParticipationResponse)(nil),         // 236: nimi.runtime.v1.RequestCompanionParticipationResponse
-	(*CancelCompanionParticipationResponse)(nil),          // 237: nimi.runtime.v1.CancelCompanionParticipationResponse
-	(*OpenCompanionParticipationReplayResponse)(nil),      // 238: nimi.runtime.v1.OpenCompanionParticipationReplayResponse
-	(*CreateRealmGroupMessageCandidateResponse)(nil),      // 239: nimi.runtime.v1.CreateRealmGroupMessageCandidateResponse
-	(*GetRealmGroupMessageCandidateEvidenceResponse)(nil), // 240: nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceResponse
-	(*ListDelegatedProviderProfilesResponse)(nil),         // 241: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	(*UpsertDelegatedProviderProfileResponse)(nil),        // 242: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
-	(*SetDelegatedProviderStateResponse)(nil),             // 243: nimi.runtime.v1.SetDelegatedProviderStateResponse
-	(*ListDelegatedApprovalRequestsResponse)(nil),         // 244: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	(*SubmitDelegatedApprovalDecisionResponse)(nil),       // 245: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	(*ListDelegatedDiagnosticsResponse)(nil),              // 246: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	(*GetDelegatedReplayTraceResponse)(nil),               // 247: nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	(*GetDelegatedControlSurfaceSnapshotResponse)(nil),    // 248: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	(*ExecuteDelegatedCapabilityResponse)(nil),            // 249: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
-	(*ResumeDelegatedCapabilityResponse)(nil),             // 250: nimi.runtime.v1.ResumeDelegatedCapabilityResponse
-	(*DescribeParticipationProfilesResponse)(nil),         // 251: nimi.runtime.v1.DescribeParticipationProfilesResponse
-	(*DescribeParticipationContextBlocksResponse)(nil),    // 252: nimi.runtime.v1.DescribeParticipationContextBlocksResponse
-	(*ValidateParticipationResponse)(nil),                 // 253: nimi.runtime.v1.ValidateParticipationResponse
-	(*ExecuteParticipationResponse)(nil),                  // 254: nimi.runtime.v1.ExecuteParticipationResponse
-	(*GetParticipationCandidateResponse)(nil),             // 255: nimi.runtime.v1.GetParticipationCandidateResponse
-	(*GetParticipationVerdictsResponse)(nil),              // 256: nimi.runtime.v1.GetParticipationVerdictsResponse
-	(*ListParticipationAuditEventsResponse)(nil),          // 257: nimi.runtime.v1.ListParticipationAuditEventsResponse
-	(*GetParticipationReplayResponse)(nil),                // 258: nimi.runtime.v1.GetParticipationReplayResponse
+	(AgentLifecycleStatus)(0),                             // 0: nimi.runtime.v1.AgentLifecycleStatus
+	(AgentExecutionState)(0),                              // 1: nimi.runtime.v1.AgentExecutionState
+	(AgentTrackType)(0),                                   // 2: nimi.runtime.v1.AgentTrackType
+	(HookTriggerFamily)(0),                                // 3: nimi.runtime.v1.HookTriggerFamily
+	(HookEffect)(0),                                       // 4: nimi.runtime.v1.HookEffect
+	(HookAdmissionState)(0),                               // 5: nimi.runtime.v1.HookAdmissionState
+	(AgentEventType)(0),                                   // 6: nimi.runtime.v1.AgentEventType
+	(AgentStateEventFamily)(0),                            // 7: nimi.runtime.v1.AgentStateEventFamily
+	(AgentProactiveEventFamily)(0),                        // 8: nimi.runtime.v1.AgentProactiveEventFamily
+	(AgentProactiveTriggerSource)(0),                      // 9: nimi.runtime.v1.AgentProactiveTriggerSource
+	(AgentProactiveEffectClass)(0),                        // 10: nimi.runtime.v1.AgentProactiveEffectClass
+	(AgentProactiveDeliveryChannel)(0),                    // 11: nimi.runtime.v1.AgentProactiveDeliveryChannel
+	(AgentProactiveOptInState)(0),                         // 12: nimi.runtime.v1.AgentProactiveOptInState
+	(AgentProactiveQuietHoursState)(0),                    // 13: nimi.runtime.v1.AgentProactiveQuietHoursState
+	(AgentProactiveFrequencyCapState)(0),                  // 14: nimi.runtime.v1.AgentProactiveFrequencyCapState
+	(AgentProactiveSuppressionReason)(0),                  // 15: nimi.runtime.v1.AgentProactiveSuppressionReason
+	(AvatarDebugProbeKind)(0),                             // 16: nimi.runtime.v1.AvatarDebugProbeKind
+	(AvatarDebugProbeStatus)(0),                           // 17: nimi.runtime.v1.AvatarDebugProbeStatus
+	(AvatarDebugRequestedBy)(0),                           // 18: nimi.runtime.v1.AvatarDebugRequestedBy
+	(AvatarDebugEventFamily)(0),                           // 19: nimi.runtime.v1.AvatarDebugEventFamily
+	(AvatarDebugReplayRedactionState)(0),                  // 20: nimi.runtime.v1.AvatarDebugReplayRedactionState
+	(AvatarDebugReplayVisibility)(0),                      // 21: nimi.runtime.v1.AvatarDebugReplayVisibility
+	(AgentAutonomyMode)(0),                                // 22: nimi.runtime.v1.AgentAutonomyMode
+	(AgentCanonicalMemoryReviewReadiness)(0),              // 23: nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness
+	(ConversationAnchorStatus)(0),                         // 24: nimi.runtime.v1.ConversationAnchorStatus
+	(AgentCanonicalMemoryBankMode)(0),                     // 25: nimi.runtime.v1.AgentCanonicalMemoryBankMode
+	(RuntimeAgentAIConfigReadinessState)(0),               // 26: nimi.runtime.v1.RuntimeAgentAIConfigReadinessState
+	(*AgentAutonomyConfig)(nil),                           // 27: nimi.runtime.v1.AgentAutonomyConfig
+	(*AgentAutonomyState)(nil),                            // 28: nimi.runtime.v1.AgentAutonomyState
+	(*AgentRecord)(nil),                                   // 29: nimi.runtime.v1.AgentRecord
+	(*AgentStateProjection)(nil),                          // 30: nimi.runtime.v1.AgentStateProjection
+	(*AgentStateSetStatusText)(nil),                       // 31: nimi.runtime.v1.AgentStateSetStatusText
+	(*AgentStateSetWorldContext)(nil),                     // 32: nimi.runtime.v1.AgentStateSetWorldContext
+	(*AgentStateClearWorldContext)(nil),                   // 33: nimi.runtime.v1.AgentStateClearWorldContext
+	(*AgentStateSetDyadicContext)(nil),                    // 34: nimi.runtime.v1.AgentStateSetDyadicContext
+	(*AgentStateClearDyadicContext)(nil),                  // 35: nimi.runtime.v1.AgentStateClearDyadicContext
+	(*AgentStatePutAttribute)(nil),                        // 36: nimi.runtime.v1.AgentStatePutAttribute
+	(*AgentStateRemoveAttribute)(nil),                     // 37: nimi.runtime.v1.AgentStateRemoveAttribute
+	(*AgentStateMutation)(nil),                            // 38: nimi.runtime.v1.AgentStateMutation
+	(*HookTriggerTimeDetail)(nil),                         // 39: nimi.runtime.v1.HookTriggerTimeDetail
+	(*HookTriggerEventUserIdleDetail)(nil),                // 40: nimi.runtime.v1.HookTriggerEventUserIdleDetail
+	(*HookTriggerEventChatEndedDetail)(nil),               // 41: nimi.runtime.v1.HookTriggerEventChatEndedDetail
+	(*HookTriggerDetail)(nil),                             // 42: nimi.runtime.v1.HookTriggerDetail
+	(*HookIntent)(nil),                                    // 43: nimi.runtime.v1.HookIntent
+	(*HookExecutionOutcome)(nil),                          // 44: nimi.runtime.v1.HookExecutionOutcome
+	(*PendingHook)(nil),                                   // 45: nimi.runtime.v1.PendingHook
+	(*CanonicalMemoryCandidate)(nil),                      // 46: nimi.runtime.v1.CanonicalMemoryCandidate
+	(*CanonicalMemoryView)(nil),                           // 47: nimi.runtime.v1.CanonicalMemoryView
+	(*CanonicalMemoryRejection)(nil),                      // 48: nimi.runtime.v1.CanonicalMemoryRejection
+	(*AgentLifecycleEventDetail)(nil),                     // 49: nimi.runtime.v1.AgentLifecycleEventDetail
+	(*AgentHookEventDetail)(nil),                          // 50: nimi.runtime.v1.AgentHookEventDetail
+	(*AgentMemoryEventDetail)(nil),                        // 51: nimi.runtime.v1.AgentMemoryEventDetail
+	(*AgentBudgetEventDetail)(nil),                        // 52: nimi.runtime.v1.AgentBudgetEventDetail
+	(*AgentReplicationEventDetail)(nil),                   // 53: nimi.runtime.v1.AgentReplicationEventDetail
+	(*AgentPostureProjection)(nil),                        // 54: nimi.runtime.v1.AgentPostureProjection
+	(*AgentStateEventDetail)(nil),                         // 55: nimi.runtime.v1.AgentStateEventDetail
+	(*AgentProactiveEventDetail)(nil),                     // 56: nimi.runtime.v1.AgentProactiveEventDetail
+	(*AgentProactiveInterruptibilityProjection)(nil),      // 57: nimi.runtime.v1.AgentProactiveInterruptibilityProjection
+	(*AvatarDebugProbeRequestEnvelope)(nil),               // 58: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+	(*AvatarDebugProbeResultEnvelope)(nil),                // 59: nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	(*AvatarDebugReplayRef)(nil),                          // 60: nimi.runtime.v1.AvatarDebugReplayRef
+	(*AgentAvatarDebugEventDetail)(nil),                   // 61: nimi.runtime.v1.AgentAvatarDebugEventDetail
+	(*AgentEvent)(nil),                                    // 62: nimi.runtime.v1.AgentEvent
+	(*InitializeAgentRequest)(nil),                        // 63: nimi.runtime.v1.InitializeAgentRequest
+	(*InitializeAgentResponse)(nil),                       // 64: nimi.runtime.v1.InitializeAgentResponse
+	(*TerminateAgentRequest)(nil),                         // 65: nimi.runtime.v1.TerminateAgentRequest
+	(*TerminateAgentResponse)(nil),                        // 66: nimi.runtime.v1.TerminateAgentResponse
+	(*GetAgentRequest)(nil),                               // 67: nimi.runtime.v1.GetAgentRequest
+	(*GetAgentResponse)(nil),                              // 68: nimi.runtime.v1.GetAgentResponse
+	(*ListAgentsRequest)(nil),                             // 69: nimi.runtime.v1.ListAgentsRequest
+	(*ListAgentsResponse)(nil),                            // 70: nimi.runtime.v1.ListAgentsResponse
+	(*GetAgentStateRequest)(nil),                          // 71: nimi.runtime.v1.GetAgentStateRequest
+	(*GetAgentStateResponse)(nil),                         // 72: nimi.runtime.v1.GetAgentStateResponse
+	(*UpdateAgentStateRequest)(nil),                       // 73: nimi.runtime.v1.UpdateAgentStateRequest
+	(*UpdateAgentStateResponse)(nil),                      // 74: nimi.runtime.v1.UpdateAgentStateResponse
+	(*EnableAutonomyRequest)(nil),                         // 75: nimi.runtime.v1.EnableAutonomyRequest
+	(*EnableAutonomyResponse)(nil),                        // 76: nimi.runtime.v1.EnableAutonomyResponse
+	(*DisableAutonomyRequest)(nil),                        // 77: nimi.runtime.v1.DisableAutonomyRequest
+	(*DisableAutonomyResponse)(nil),                       // 78: nimi.runtime.v1.DisableAutonomyResponse
+	(*SetAutonomyConfigRequest)(nil),                      // 79: nimi.runtime.v1.SetAutonomyConfigRequest
+	(*SetAutonomyConfigResponse)(nil),                     // 80: nimi.runtime.v1.SetAutonomyConfigResponse
+	(*SetAgentPresentationProfileRequest)(nil),            // 81: nimi.runtime.v1.SetAgentPresentationProfileRequest
+	(*SetAgentPresentationProfileResponse)(nil),           // 82: nimi.runtime.v1.SetAgentPresentationProfileResponse
+	(*ListPendingHooksRequest)(nil),                       // 83: nimi.runtime.v1.ListPendingHooksRequest
+	(*ListPendingHooksResponse)(nil),                      // 84: nimi.runtime.v1.ListPendingHooksResponse
+	(*CancelHookRequest)(nil),                             // 85: nimi.runtime.v1.CancelHookRequest
+	(*CancelHookResponse)(nil),                            // 86: nimi.runtime.v1.CancelHookResponse
+	(*QueryAgentMemoryRequest)(nil),                       // 87: nimi.runtime.v1.QueryAgentMemoryRequest
+	(*QueryAgentMemoryResponse)(nil),                      // 88: nimi.runtime.v1.QueryAgentMemoryResponse
+	(*WriteAgentMemoryRequest)(nil),                       // 89: nimi.runtime.v1.WriteAgentMemoryRequest
+	(*WriteAgentMemoryResponse)(nil),                      // 90: nimi.runtime.v1.WriteAgentMemoryResponse
+	(*AgentCanonicalMemoryBankStatus)(nil),                // 91: nimi.runtime.v1.AgentCanonicalMemoryBankStatus
+	(*GetAgentCanonicalMemoryBankStatusRequest)(nil),      // 92: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
+	(*GetAgentCanonicalMemoryBankStatusResponse)(nil),     // 93: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
+	(*RequestAgentCanonicalMemoryBankBindRequest)(nil),    // 94: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
+	(*RequestAgentCanonicalMemoryBankBindResponse)(nil),   // 95: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
+	(*AgentCanonicalMemoryReviewStatus)(nil),              // 96: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus
+	(*GetAgentCanonicalMemoryReviewStatusRequest)(nil),    // 97: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
+	(*GetAgentCanonicalMemoryReviewStatusResponse)(nil),   // 98: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
+	(*SubscribeAgentEventsRequest)(nil),                   // 99: nimi.runtime.v1.SubscribeAgentEventsRequest
+	(*SubscribeAgentVoiceStreamRequest)(nil),              // 100: nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
+	(*InterruptAgentVoicePlaybackRequest)(nil),            // 101: nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
+	(*InterruptAgentVoicePlaybackResponse)(nil),           // 102: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
+	(*AgentVoiceStreamEvent)(nil),                         // 103: nimi.runtime.v1.AgentVoiceStreamEvent
+	(*ConversationAnchor)(nil),                            // 104: nimi.runtime.v1.ConversationAnchor
+	(*ConversationAnchorSnapshot)(nil),                    // 105: nimi.runtime.v1.ConversationAnchorSnapshot
+	(*OpenConversationAnchorRequest)(nil),                 // 106: nimi.runtime.v1.OpenConversationAnchorRequest
+	(*OpenConversationAnchorResponse)(nil),                // 107: nimi.runtime.v1.OpenConversationAnchorResponse
+	(*GetConversationAnchorSnapshotRequest)(nil),          // 108: nimi.runtime.v1.GetConversationAnchorSnapshotRequest
+	(*GetConversationAnchorSnapshotResponse)(nil),         // 109: nimi.runtime.v1.GetConversationAnchorSnapshotResponse
+	(*AvatarLiveInstanceBinding)(nil),                     // 110: nimi.runtime.v1.AvatarLiveInstanceBinding
+	(*RegisterAvatarLiveInstanceBindingRequest)(nil),      // 111: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
+	(*RegisterAvatarLiveInstanceBindingResponse)(nil),     // 112: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
+	(*ResolveAvatarLiveInstanceBindingRequest)(nil),       // 113: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
+	(*ResolveAvatarLiveInstanceBindingResponse)(nil),      // 114: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
+	(*GetPublicChatSessionSnapshotRequest)(nil),           // 115: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
+	(*GetPublicChatSessionSnapshotResponse)(nil),          // 116: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
+	(*AgentConversationSummary)(nil),                      // 117: nimi.runtime.v1.AgentConversationSummary
+	(*ListAgentConversationSummariesRequest)(nil),         // 118: nimi.runtime.v1.ListAgentConversationSummariesRequest
+	(*ListAgentConversationSummariesResponse)(nil),        // 119: nimi.runtime.v1.ListAgentConversationSummariesResponse
+	(*GetAvatarDebugSnapshotRequest)(nil),                 // 120: nimi.runtime.v1.GetAvatarDebugSnapshotRequest
+	(*GetAvatarDebugSnapshotResponse)(nil),                // 121: nimi.runtime.v1.GetAvatarDebugSnapshotResponse
+	(*RequestAvatarDebugProbeRequest)(nil),                // 122: nimi.runtime.v1.RequestAvatarDebugProbeRequest
+	(*RequestAvatarDebugProbeResponse)(nil),               // 123: nimi.runtime.v1.RequestAvatarDebugProbeResponse
+	(*SubmitAvatarDebugProbeResultRequest)(nil),           // 124: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
+	(*SubmitAvatarDebugProbeResultResponse)(nil),          // 125: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
+	(*ListAvatarDebugProbeResultsRequest)(nil),            // 126: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
+	(*ListAvatarDebugProbeResultsResponse)(nil),           // 127: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
+	(*GetAvatarDebugReplayRequest)(nil),                   // 128: nimi.runtime.v1.GetAvatarDebugReplayRequest
+	(*GetAvatarDebugReplayResponse)(nil),                  // 129: nimi.runtime.v1.GetAvatarDebugReplayResponse
+	(*RuntimeAgentAIConfigIntent)(nil),                    // 130: nimi.runtime.v1.RuntimeAgentAIConfigIntent
+	(*RuntimeAgentAIConfig)(nil),                          // 131: nimi.runtime.v1.RuntimeAgentAIConfig
+	(*RuntimeAgentAIConfigCapabilityReadiness)(nil),       // 132: nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness
+	(*RuntimeAgentAIConfigReadinessSnapshot)(nil),         // 133: nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
+	(*GetRuntimeAgentAIConfigRequest)(nil),                // 134: nimi.runtime.v1.GetRuntimeAgentAIConfigRequest
+	(*GetRuntimeAgentAIConfigResponse)(nil),               // 135: nimi.runtime.v1.GetRuntimeAgentAIConfigResponse
+	(*UpsertRuntimeAgentAIConfigRequest)(nil),             // 136: nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest
+	(*UpsertRuntimeAgentAIConfigResponse)(nil),            // 137: nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse
+	(*GetRuntimeAgentAIConfigReadinessRequest)(nil),       // 138: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest
+	(*GetRuntimeAgentAIConfigReadinessResponse)(nil),      // 139: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse
+	(*SubscribeRuntimeAgentAIConfigReadinessRequest)(nil), // 140: nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest
+	nil,                                                   // 141: nimi.runtime.v1.AgentStateProjection.AttributesEntry
+	(*durationpb.Duration)(nil),                           // 142: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),                         // 143: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),                               // 144: google.protobuf.Struct
+	(*AgentPresentationProfile)(nil),                      // 145: nimi.runtime.v1.AgentPresentationProfile
+	(*LocalAgentSourceContextStatus)(nil),                 // 146: nimi.runtime.v1.LocalAgentSourceContextStatus
+	(ReasonCode)(0),                                       // 147: nimi.runtime.v1.ReasonCode
+	(MemoryCanonicalClass)(0),                             // 148: nimi.runtime.v1.MemoryCanonicalClass
+	(*MemoryBankLocator)(nil),                             // 149: nimi.runtime.v1.MemoryBankLocator
+	(*MemoryRecordInput)(nil),                             // 150: nimi.runtime.v1.MemoryRecordInput
+	(*MemoryRecord)(nil),                                  // 151: nimi.runtime.v1.MemoryRecord
+	(*MemoryReplicationState)(nil),                        // 152: nimi.runtime.v1.MemoryReplicationState
+	(*ScopedRuntimeBindingAttachment)(nil),                // 153: nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	(*AgentPresentationEventDetail)(nil),                  // 154: nimi.runtime.v1.AgentPresentationEventDetail
+	(*AgentRequestContext)(nil),                           // 155: nimi.runtime.v1.AgentRequestContext
+	(*Ack)(nil),                                           // 156: nimi.runtime.v1.Ack
+	(*ClearAgentPresentationProfile)(nil),                 // 157: nimi.runtime.v1.ClearAgentPresentationProfile
+	(*AgentPresentationProfilePatch)(nil),                 // 158: nimi.runtime.v1.AgentPresentationProfilePatch
+	(MemoryRecordKind)(0),                                 // 159: nimi.runtime.v1.MemoryRecordKind
+	(*NarrativeRecallHit)(nil),                            // 160: nimi.runtime.v1.NarrativeRecallHit
+	(*MemoryEmbeddingProfile)(nil),                        // 161: nimi.runtime.v1.MemoryEmbeddingProfile
+	(VoiceOutputMode)(0),                                  // 162: nimi.runtime.v1.VoiceOutputMode
+	(VoicePlaybackState)(0),                               // 163: nimi.runtime.v1.VoicePlaybackState
+	(*AgentTurnContextSummary)(nil),                       // 164: nimi.runtime.v1.AgentTurnContextSummary
+	(RoutePolicy)(0),                                      // 165: nimi.runtime.v1.RoutePolicy
+	(*RuntimeDurableTargetRef)(nil),                       // 166: nimi.runtime.v1.RuntimeDurableTargetRef
+	(*CreateSourceMaterializationChallengeRequest)(nil),   // 167: nimi.runtime.v1.CreateSourceMaterializationChallengeRequest
+	(*BeginSourceMaterializationUploadRequest)(nil),       // 168: nimi.runtime.v1.BeginSourceMaterializationUploadRequest
+	(*PutSourceMaterializationChunkRequest)(nil),          // 169: nimi.runtime.v1.PutSourceMaterializationChunkRequest
+	(*CommitSourceMaterializationRequest)(nil),            // 170: nimi.runtime.v1.CommitSourceMaterializationRequest
+	(*AbortSourceMaterializationUploadRequest)(nil),       // 171: nimi.runtime.v1.AbortSourceMaterializationUploadRequest
+	(*GetCompanionParticipationProjectionRequest)(nil),    // 172: nimi.runtime.v1.GetCompanionParticipationProjectionRequest
+	(*RequestCompanionParticipationRequest)(nil),          // 173: nimi.runtime.v1.RequestCompanionParticipationRequest
+	(*CancelCompanionParticipationRequest)(nil),           // 174: nimi.runtime.v1.CancelCompanionParticipationRequest
+	(*OpenCompanionParticipationReplayRequest)(nil),       // 175: nimi.runtime.v1.OpenCompanionParticipationReplayRequest
+	(*CreateRealmGroupMessageCandidateRequest)(nil),       // 176: nimi.runtime.v1.CreateRealmGroupMessageCandidateRequest
+	(*GetRealmGroupMessageCandidateEvidenceRequest)(nil),  // 177: nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceRequest
+	(*ListDelegatedProviderProfilesRequest)(nil),          // 178: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
+	(*UpsertDelegatedProviderProfileRequest)(nil),         // 179: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
+	(*SetDelegatedProviderStateRequest)(nil),              // 180: nimi.runtime.v1.SetDelegatedProviderStateRequest
+	(*ListDelegatedApprovalRequestsRequest)(nil),          // 181: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	(*SubmitDelegatedApprovalDecisionRequest)(nil),        // 182: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	(*ListDelegatedDiagnosticsRequest)(nil),               // 183: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	(*GetDelegatedReplayTraceRequest)(nil),                // 184: nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),     // 185: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	(*ExecuteDelegatedCapabilityRequest)(nil),             // 186: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
+	(*ResumeDelegatedCapabilityRequest)(nil),              // 187: nimi.runtime.v1.ResumeDelegatedCapabilityRequest
+	(*DescribeParticipationProfilesRequest)(nil),          // 188: nimi.runtime.v1.DescribeParticipationProfilesRequest
+	(*DescribeParticipationContextBlocksRequest)(nil),     // 189: nimi.runtime.v1.DescribeParticipationContextBlocksRequest
+	(*ValidateParticipationRequest)(nil),                  // 190: nimi.runtime.v1.ValidateParticipationRequest
+	(*ExecuteParticipationRequest)(nil),                   // 191: nimi.runtime.v1.ExecuteParticipationRequest
+	(*GetParticipationCandidateRequest)(nil),              // 192: nimi.runtime.v1.GetParticipationCandidateRequest
+	(*GetParticipationVerdictsRequest)(nil),               // 193: nimi.runtime.v1.GetParticipationVerdictsRequest
+	(*ListParticipationAuditEventsRequest)(nil),           // 194: nimi.runtime.v1.ListParticipationAuditEventsRequest
+	(*GetParticipationReplayRequest)(nil),                 // 195: nimi.runtime.v1.GetParticipationReplayRequest
+	(*CreateSourceMaterializationChallengeResponse)(nil),  // 196: nimi.runtime.v1.CreateSourceMaterializationChallengeResponse
+	(*BeginSourceMaterializationUploadResponse)(nil),      // 197: nimi.runtime.v1.BeginSourceMaterializationUploadResponse
+	(*PutSourceMaterializationChunkResponse)(nil),         // 198: nimi.runtime.v1.PutSourceMaterializationChunkResponse
+	(*CommitSourceMaterializationResponse)(nil),           // 199: nimi.runtime.v1.CommitSourceMaterializationResponse
+	(*AbortSourceMaterializationUploadResponse)(nil),      // 200: nimi.runtime.v1.AbortSourceMaterializationUploadResponse
+	(*GetCompanionParticipationProjectionResponse)(nil),   // 201: nimi.runtime.v1.GetCompanionParticipationProjectionResponse
+	(*RequestCompanionParticipationResponse)(nil),         // 202: nimi.runtime.v1.RequestCompanionParticipationResponse
+	(*CancelCompanionParticipationResponse)(nil),          // 203: nimi.runtime.v1.CancelCompanionParticipationResponse
+	(*OpenCompanionParticipationReplayResponse)(nil),      // 204: nimi.runtime.v1.OpenCompanionParticipationReplayResponse
+	(*CreateRealmGroupMessageCandidateResponse)(nil),      // 205: nimi.runtime.v1.CreateRealmGroupMessageCandidateResponse
+	(*GetRealmGroupMessageCandidateEvidenceResponse)(nil), // 206: nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceResponse
+	(*ListDelegatedProviderProfilesResponse)(nil),         // 207: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
+	(*UpsertDelegatedProviderProfileResponse)(nil),        // 208: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
+	(*SetDelegatedProviderStateResponse)(nil),             // 209: nimi.runtime.v1.SetDelegatedProviderStateResponse
+	(*ListDelegatedApprovalRequestsResponse)(nil),         // 210: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	(*SubmitDelegatedApprovalDecisionResponse)(nil),       // 211: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	(*ListDelegatedDiagnosticsResponse)(nil),              // 212: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	(*GetDelegatedReplayTraceResponse)(nil),               // 213: nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	(*GetDelegatedControlSurfaceSnapshotResponse)(nil),    // 214: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	(*ExecuteDelegatedCapabilityResponse)(nil),            // 215: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
+	(*ResumeDelegatedCapabilityResponse)(nil),             // 216: nimi.runtime.v1.ResumeDelegatedCapabilityResponse
+	(*DescribeParticipationProfilesResponse)(nil),         // 217: nimi.runtime.v1.DescribeParticipationProfilesResponse
+	(*DescribeParticipationContextBlocksResponse)(nil),    // 218: nimi.runtime.v1.DescribeParticipationContextBlocksResponse
+	(*ValidateParticipationResponse)(nil),                 // 219: nimi.runtime.v1.ValidateParticipationResponse
+	(*ExecuteParticipationResponse)(nil),                  // 220: nimi.runtime.v1.ExecuteParticipationResponse
+	(*GetParticipationCandidateResponse)(nil),             // 221: nimi.runtime.v1.GetParticipationCandidateResponse
+	(*GetParticipationVerdictsResponse)(nil),              // 222: nimi.runtime.v1.GetParticipationVerdictsResponse
+	(*ListParticipationAuditEventsResponse)(nil),          // 223: nimi.runtime.v1.ListParticipationAuditEventsResponse
+	(*GetParticipationReplayResponse)(nil),                // 224: nimi.runtime.v1.GetParticipationReplayResponse
 }
 var file_runtime_v1_agent_service_proto_depIdxs = []int32{
-	25,  // 0: nimi.runtime.v1.SourceMaterializationSourceRef.kind:type_name -> nimi.runtime.v1.AgentSourceMaterializationSourceKind
-	188, // 1: nimi.runtime.v1.CreateSourceMaterializationChallengeRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	50,  // 2: nimi.runtime.v1.CreateSourceMaterializationChallengeRequest.source_ref:type_name -> nimi.runtime.v1.SourceMaterializationSourceRef
-	189, // 3: nimi.runtime.v1.CreateSourceMaterializationChallengeResponse.expires_at:type_name -> google.protobuf.Timestamp
-	51,  // 4: nimi.runtime.v1.CreateSourceMaterializationChallengeResponse.limits:type_name -> nimi.runtime.v1.SourceMaterializationChallengeLimits
-	26,  // 5: nimi.runtime.v1.CreateSourceMaterializationChallengeResponse.state:type_name -> nimi.runtime.v1.AgentSourceMaterializationChallengeState
-	34,  // 6: nimi.runtime.v1.CreateSourceMaterializationChallengeResponse.reason_code:type_name -> nimi.runtime.v1.AgentSourceMaterializationReasonCode
-	50,  // 7: nimi.runtime.v1.CreateSourceMaterializationChallengeResponse.source_ref:type_name -> nimi.runtime.v1.SourceMaterializationSourceRef
-	31,  // 8: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2.packet_schema_version:type_name -> nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion
-	29,  // 9: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2.algorithm:type_name -> nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm
-	30,  // 10: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2.key_use:type_name -> nimi.runtime.v1.AgentSourceMaterializationKeyUse
-	189, // 11: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2.issued_at:type_name -> google.protobuf.Timestamp
-	189, // 12: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2.expires_at:type_name -> google.protobuf.Timestamp
-	51,  // 13: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2.challenge_limits:type_name -> nimi.runtime.v1.SourceMaterializationChallengeLimits
-	50,  // 14: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2.source_ref:type_name -> nimi.runtime.v1.SourceMaterializationSourceRef
-	28,  // 15: nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1.kind:type_name -> nimi.runtime.v1.AgentSourceMaterializationComponentKind
-	32,  // 16: nimi.runtime.v1.BundleTransportManifestV1.manifest_schema_version:type_name -> nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion
-	33,  // 17: nimi.runtime.v1.BundleTransportManifestV1.payload_assembly_version:type_name -> nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion
-	55,  // 18: nimi.runtime.v1.BundleTransportManifestV1.components:type_name -> nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1
-	56,  // 19: nimi.runtime.v1.BundleTransportManifestV1.chunks:type_name -> nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1
-	54,  // 20: nimi.runtime.v1.SourceMaterializationBeginControl.packet_envelope:type_name -> nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2
-	57,  // 21: nimi.runtime.v1.SourceMaterializationBeginControl.bundle_transport_manifest:type_name -> nimi.runtime.v1.BundleTransportManifestV1
-	188, // 22: nimi.runtime.v1.BeginSourceMaterializationUploadRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	58,  // 23: nimi.runtime.v1.BeginSourceMaterializationUploadRequest.control:type_name -> nimi.runtime.v1.SourceMaterializationBeginControl
-	27,  // 24: nimi.runtime.v1.BeginSourceMaterializationUploadResponse.upload_state:type_name -> nimi.runtime.v1.AgentSourceMaterializationUploadState
-	26,  // 25: nimi.runtime.v1.BeginSourceMaterializationUploadResponse.challenge_state:type_name -> nimi.runtime.v1.AgentSourceMaterializationChallengeState
-	34,  // 26: nimi.runtime.v1.BeginSourceMaterializationUploadResponse.reason_code:type_name -> nimi.runtime.v1.AgentSourceMaterializationReasonCode
-	189, // 27: nimi.runtime.v1.BeginSourceMaterializationUploadResponse.expires_at:type_name -> google.protobuf.Timestamp
-	188, // 28: nimi.runtime.v1.PutSourceMaterializationChunkRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	27,  // 29: nimi.runtime.v1.PutSourceMaterializationChunkResponse.upload_state:type_name -> nimi.runtime.v1.AgentSourceMaterializationUploadState
-	34,  // 30: nimi.runtime.v1.PutSourceMaterializationChunkResponse.reason_code:type_name -> nimi.runtime.v1.AgentSourceMaterializationReasonCode
-	188, // 31: nimi.runtime.v1.CommitSourceMaterializationRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	27,  // 32: nimi.runtime.v1.CommitSourceMaterializationResponse.upload_state:type_name -> nimi.runtime.v1.AgentSourceMaterializationUploadState
-	26,  // 33: nimi.runtime.v1.CommitSourceMaterializationResponse.challenge_state:type_name -> nimi.runtime.v1.AgentSourceMaterializationChallengeState
-	34,  // 34: nimi.runtime.v1.CommitSourceMaterializationResponse.reason_code:type_name -> nimi.runtime.v1.AgentSourceMaterializationReasonCode
-	68,  // 35: nimi.runtime.v1.CommitSourceMaterializationResponse.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
-	188, // 36: nimi.runtime.v1.AbortSourceMaterializationUploadRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	27,  // 37: nimi.runtime.v1.AbortSourceMaterializationUploadResponse.upload_state:type_name -> nimi.runtime.v1.AgentSourceMaterializationUploadState
-	26,  // 38: nimi.runtime.v1.AbortSourceMaterializationUploadResponse.challenge_state:type_name -> nimi.runtime.v1.AgentSourceMaterializationChallengeState
-	34,  // 39: nimi.runtime.v1.AbortSourceMaterializationUploadResponse.reason_code:type_name -> nimi.runtime.v1.AgentSourceMaterializationReasonCode
-	36,  // 40: nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus.section:type_name -> nimi.runtime.v1.AgentLocalSourceCoverageSection
-	37,  // 41: nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus.state:type_name -> nimi.runtime.v1.AgentLocalSourceCoverageState
-	43,  // 42: nimi.runtime.v1.LocalAgentSourceContextStatus.schema_version:type_name -> nimi.runtime.v1.AgentLocalSourceContextSchemaVersion
-	35,  // 43: nimi.runtime.v1.LocalAgentSourceContextStatus.state:type_name -> nimi.runtime.v1.AgentLocalSourceContextState
-	42,  // 44: nimi.runtime.v1.LocalAgentSourceContextStatus.reason_code:type_name -> nimi.runtime.v1.AgentContextProjectionReasonCode
-	50,  // 45: nimi.runtime.v1.LocalAgentSourceContextStatus.source_ref:type_name -> nimi.runtime.v1.SourceMaterializationSourceRef
-	44,  // 46: nimi.runtime.v1.LocalAgentSourceContextStatus.snapshot_schema_version:type_name -> nimi.runtime.v1.AgentLocalSourceSnapshotSchemaVersion
-	189, // 47: nimi.runtime.v1.LocalAgentSourceContextStatus.captured_at:type_name -> google.protobuf.Timestamp
-	67,  // 48: nimi.runtime.v1.LocalAgentSourceContextStatus.coverage_sections:type_name -> nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus
-	39,  // 49: nimi.runtime.v1.AgentTurnContextLaneSummary.lane_id:type_name -> nimi.runtime.v1.AgentTurnContextLaneId
-	40,  // 50: nimi.runtime.v1.AgentTurnContextLaneSummary.state:type_name -> nimi.runtime.v1.AgentTurnContextLaneState
-	41,  // 51: nimi.runtime.v1.AgentTurnContextTruncationSummary.reason:type_name -> nimi.runtime.v1.AgentTurnContextTruncationReason
-	45,  // 52: nimi.runtime.v1.AgentTurnContextSummary.schema_version:type_name -> nimi.runtime.v1.AgentTurnContextSummarySchemaVersion
-	38,  // 53: nimi.runtime.v1.AgentTurnContextSummary.state:type_name -> nimi.runtime.v1.AgentTurnContextState
-	42,  // 54: nimi.runtime.v1.AgentTurnContextSummary.reason_code:type_name -> nimi.runtime.v1.AgentContextProjectionReasonCode
-	46,  // 55: nimi.runtime.v1.AgentTurnContextSummary.manifest_schema_version:type_name -> nimi.runtime.v1.AgentTurnContextManifestSchemaVersion
-	47,  // 56: nimi.runtime.v1.AgentTurnContextSummary.compiler_schema_version:type_name -> nimi.runtime.v1.AgentTurnContextCompilerSchemaVersion
-	50,  // 57: nimi.runtime.v1.AgentTurnContextSummary.source_ref:type_name -> nimi.runtime.v1.SourceMaterializationSourceRef
-	69,  // 58: nimi.runtime.v1.AgentTurnContextSummary.lanes:type_name -> nimi.runtime.v1.AgentTurnContextLaneSummary
-	70,  // 59: nimi.runtime.v1.AgentTurnContextSummary.budget:type_name -> nimi.runtime.v1.AgentTurnContextBudgetSummary
-	71,  // 60: nimi.runtime.v1.AgentTurnContextSummary.truncation:type_name -> nimi.runtime.v1.AgentTurnContextTruncationSummary
-	190, // 61: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
-	189, // 62: nimi.runtime.v1.AgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
-	22,  // 63: nimi.runtime.v1.AgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
-	191, // 64: nimi.runtime.v1.AgentAutonomyConfig.extensions:type_name -> google.protobuf.Struct
-	73,  // 65: nimi.runtime.v1.AgentAutonomyState.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
-	189, // 66: nimi.runtime.v1.AgentAutonomyState.window_started_at:type_name -> google.protobuf.Timestamp
-	189, // 67: nimi.runtime.v1.AgentAutonomyState.suspended_until:type_name -> google.protobuf.Timestamp
-	0,   // 68: nimi.runtime.v1.AgentRecord.lifecycle_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	74,  // 69: nimi.runtime.v1.AgentRecord.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	191, // 70: nimi.runtime.v1.AgentRecord.metadata:type_name -> google.protobuf.Struct
-	189, // 71: nimi.runtime.v1.AgentRecord.created_at:type_name -> google.protobuf.Timestamp
-	189, // 72: nimi.runtime.v1.AgentRecord.updated_at:type_name -> google.protobuf.Timestamp
-	192, // 73: nimi.runtime.v1.AgentRecord.presentation_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	68,  // 74: nimi.runtime.v1.AgentRecord.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
-	1,   // 75: nimi.runtime.v1.AgentStateProjection.execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
-	187, // 76: nimi.runtime.v1.AgentStateProjection.attributes:type_name -> nimi.runtime.v1.AgentStateProjection.AttributesEntry
-	189, // 77: nimi.runtime.v1.AgentStateProjection.updated_at:type_name -> google.protobuf.Timestamp
-	103, // 78: nimi.runtime.v1.AgentStateProjection.proactive_interruptibility:type_name -> nimi.runtime.v1.AgentProactiveInterruptibilityProjection
-	77,  // 79: nimi.runtime.v1.AgentStateMutation.set_status_text:type_name -> nimi.runtime.v1.AgentStateSetStatusText
-	78,  // 80: nimi.runtime.v1.AgentStateMutation.set_world_context:type_name -> nimi.runtime.v1.AgentStateSetWorldContext
-	79,  // 81: nimi.runtime.v1.AgentStateMutation.clear_world_context:type_name -> nimi.runtime.v1.AgentStateClearWorldContext
-	80,  // 82: nimi.runtime.v1.AgentStateMutation.set_dyadic_context:type_name -> nimi.runtime.v1.AgentStateSetDyadicContext
-	81,  // 83: nimi.runtime.v1.AgentStateMutation.clear_dyadic_context:type_name -> nimi.runtime.v1.AgentStateClearDyadicContext
-	82,  // 84: nimi.runtime.v1.AgentStateMutation.put_attribute:type_name -> nimi.runtime.v1.AgentStatePutAttribute
-	83,  // 85: nimi.runtime.v1.AgentStateMutation.remove_attribute:type_name -> nimi.runtime.v1.AgentStateRemoveAttribute
-	190, // 86: nimi.runtime.v1.HookTriggerTimeDetail.delay:type_name -> google.protobuf.Duration
-	190, // 87: nimi.runtime.v1.HookTriggerEventUserIdleDetail.idle_for:type_name -> google.protobuf.Duration
-	85,  // 88: nimi.runtime.v1.HookTriggerDetail.time:type_name -> nimi.runtime.v1.HookTriggerTimeDetail
-	86,  // 89: nimi.runtime.v1.HookTriggerDetail.event_user_idle:type_name -> nimi.runtime.v1.HookTriggerEventUserIdleDetail
-	87,  // 90: nimi.runtime.v1.HookTriggerDetail.event_chat_ended:type_name -> nimi.runtime.v1.HookTriggerEventChatEndedDetail
-	3,   // 91: nimi.runtime.v1.HookIntent.trigger_family:type_name -> nimi.runtime.v1.HookTriggerFamily
-	88,  // 92: nimi.runtime.v1.HookIntent.trigger_detail:type_name -> nimi.runtime.v1.HookTriggerDetail
-	4,   // 93: nimi.runtime.v1.HookIntent.effect:type_name -> nimi.runtime.v1.HookEffect
-	5,   // 94: nimi.runtime.v1.HookIntent.admission_state:type_name -> nimi.runtime.v1.HookAdmissionState
-	189, // 95: nimi.runtime.v1.HookIntent.not_before:type_name -> google.protobuf.Timestamp
-	189, // 96: nimi.runtime.v1.HookIntent.expires_at:type_name -> google.protobuf.Timestamp
-	89,  // 97: nimi.runtime.v1.HookExecutionOutcome.intent:type_name -> nimi.runtime.v1.HookIntent
-	189, // 98: nimi.runtime.v1.HookExecutionOutcome.observed_at:type_name -> google.protobuf.Timestamp
-	193, // 99: nimi.runtime.v1.HookExecutionOutcome.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	89,  // 100: nimi.runtime.v1.PendingHook.intent:type_name -> nimi.runtime.v1.HookIntent
-	189, // 101: nimi.runtime.v1.PendingHook.scheduled_for:type_name -> google.protobuf.Timestamp
-	189, // 102: nimi.runtime.v1.PendingHook.admitted_at:type_name -> google.protobuf.Timestamp
-	194, // 103: nimi.runtime.v1.CanonicalMemoryCandidate.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	195, // 104: nimi.runtime.v1.CanonicalMemoryCandidate.target_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	196, // 105: nimi.runtime.v1.CanonicalMemoryCandidate.record:type_name -> nimi.runtime.v1.MemoryRecordInput
-	191, // 106: nimi.runtime.v1.CanonicalMemoryCandidate.extensions:type_name -> google.protobuf.Struct
-	194, // 107: nimi.runtime.v1.CanonicalMemoryView.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	195, // 108: nimi.runtime.v1.CanonicalMemoryView.source_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	197, // 109: nimi.runtime.v1.CanonicalMemoryView.record:type_name -> nimi.runtime.v1.MemoryRecord
-	193, // 110: nimi.runtime.v1.CanonicalMemoryRejection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,   // 111: nimi.runtime.v1.AgentLifecycleEventDetail.previous_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	0,   // 112: nimi.runtime.v1.AgentLifecycleEventDetail.current_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	5,   // 113: nimi.runtime.v1.AgentHookEventDetail.family:type_name -> nimi.runtime.v1.HookAdmissionState
-	89,  // 114: nimi.runtime.v1.AgentHookEventDetail.intent:type_name -> nimi.runtime.v1.HookIntent
-	189, // 115: nimi.runtime.v1.AgentHookEventDetail.observed_at:type_name -> google.protobuf.Timestamp
-	193, // 116: nimi.runtime.v1.AgentHookEventDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	93,  // 117: nimi.runtime.v1.AgentMemoryEventDetail.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	94,  // 118: nimi.runtime.v1.AgentMemoryEventDetail.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
-	189, // 119: nimi.runtime.v1.AgentBudgetEventDetail.window_started_at:type_name -> google.protobuf.Timestamp
-	198, // 120: nimi.runtime.v1.AgentReplicationEventDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	7,   // 121: nimi.runtime.v1.AgentStateEventDetail.family:type_name -> nimi.runtime.v1.AgentStateEventFamily
-	1,   // 122: nimi.runtime.v1.AgentStateEventDetail.current_execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
-	1,   // 123: nimi.runtime.v1.AgentStateEventDetail.previous_execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
-	100, // 124: nimi.runtime.v1.AgentStateEventDetail.current_posture:type_name -> nimi.runtime.v1.AgentPostureProjection
-	100, // 125: nimi.runtime.v1.AgentStateEventDetail.previous_posture:type_name -> nimi.runtime.v1.AgentPostureProjection
-	8,   // 126: nimi.runtime.v1.AgentProactiveEventDetail.family:type_name -> nimi.runtime.v1.AgentProactiveEventFamily
-	9,   // 127: nimi.runtime.v1.AgentProactiveEventDetail.trigger_source:type_name -> nimi.runtime.v1.AgentProactiveTriggerSource
-	10,  // 128: nimi.runtime.v1.AgentProactiveEventDetail.effect_class:type_name -> nimi.runtime.v1.AgentProactiveEffectClass
-	11,  // 129: nimi.runtime.v1.AgentProactiveEventDetail.delivery_channel:type_name -> nimi.runtime.v1.AgentProactiveDeliveryChannel
-	22,  // 130: nimi.runtime.v1.AgentProactiveEventDetail.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
-	12,  // 131: nimi.runtime.v1.AgentProactiveEventDetail.opt_in_state:type_name -> nimi.runtime.v1.AgentProactiveOptInState
-	13,  // 132: nimi.runtime.v1.AgentProactiveEventDetail.quiet_hours:type_name -> nimi.runtime.v1.AgentProactiveQuietHoursState
-	14,  // 133: nimi.runtime.v1.AgentProactiveEventDetail.frequency_cap:type_name -> nimi.runtime.v1.AgentProactiveFrequencyCapState
-	15,  // 134: nimi.runtime.v1.AgentProactiveEventDetail.suppression_reason:type_name -> nimi.runtime.v1.AgentProactiveSuppressionReason
-	189, // 135: nimi.runtime.v1.AgentProactiveEventDetail.observed_at:type_name -> google.protobuf.Timestamp
-	22,  // 136: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
-	12,  // 137: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.opt_in_state:type_name -> nimi.runtime.v1.AgentProactiveOptInState
-	11,  // 138: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.delivery_channel:type_name -> nimi.runtime.v1.AgentProactiveDeliveryChannel
-	13,  // 139: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.quiet_hours:type_name -> nimi.runtime.v1.AgentProactiveQuietHoursState
-	14,  // 140: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.frequency_cap:type_name -> nimi.runtime.v1.AgentProactiveFrequencyCapState
-	102, // 141: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.suggested_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
-	102, // 142: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.last_delivered_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
-	102, // 143: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.last_suppressed_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
-	16,  // 144: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
-	189, // 145: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.requested_at:type_name -> google.protobuf.Timestamp
-	18,  // 146: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.requested_by:type_name -> nimi.runtime.v1.AvatarDebugRequestedBy
-	199, // 147: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	16,  // 148: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
-	17,  // 149: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.status:type_name -> nimi.runtime.v1.AvatarDebugProbeStatus
-	189, // 150: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.observed_at:type_name -> google.protobuf.Timestamp
-	20,  // 151: nimi.runtime.v1.AvatarDebugReplayRef.redaction_state:type_name -> nimi.runtime.v1.AvatarDebugReplayRedactionState
-	21,  // 152: nimi.runtime.v1.AvatarDebugReplayRef.visibility:type_name -> nimi.runtime.v1.AvatarDebugReplayVisibility
-	189, // 153: nimi.runtime.v1.AvatarDebugReplayRef.linked_at:type_name -> google.protobuf.Timestamp
-	19,  // 154: nimi.runtime.v1.AgentAvatarDebugEventDetail.family:type_name -> nimi.runtime.v1.AvatarDebugEventFamily
-	104, // 155: nimi.runtime.v1.AgentAvatarDebugEventDetail.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
-	105, // 156: nimi.runtime.v1.AgentAvatarDebugEventDetail.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	106, // 157: nimi.runtime.v1.AgentAvatarDebugEventDetail.replay:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
-	6,   // 158: nimi.runtime.v1.AgentEvent.event_type:type_name -> nimi.runtime.v1.AgentEventType
-	189, // 159: nimi.runtime.v1.AgentEvent.timestamp:type_name -> google.protobuf.Timestamp
-	95,  // 160: nimi.runtime.v1.AgentEvent.lifecycle:type_name -> nimi.runtime.v1.AgentLifecycleEventDetail
-	96,  // 161: nimi.runtime.v1.AgentEvent.hook:type_name -> nimi.runtime.v1.AgentHookEventDetail
-	97,  // 162: nimi.runtime.v1.AgentEvent.memory:type_name -> nimi.runtime.v1.AgentMemoryEventDetail
-	98,  // 163: nimi.runtime.v1.AgentEvent.budget:type_name -> nimi.runtime.v1.AgentBudgetEventDetail
-	99,  // 164: nimi.runtime.v1.AgentEvent.replication:type_name -> nimi.runtime.v1.AgentReplicationEventDetail
-	101, // 165: nimi.runtime.v1.AgentEvent.state:type_name -> nimi.runtime.v1.AgentStateEventDetail
-	200, // 166: nimi.runtime.v1.AgentEvent.presentation:type_name -> nimi.runtime.v1.AgentPresentationEventDetail
-	107, // 167: nimi.runtime.v1.AgentEvent.avatar_debug:type_name -> nimi.runtime.v1.AgentAvatarDebugEventDetail
-	102, // 168: nimi.runtime.v1.AgentEvent.proactive:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
-	188, // 169: nimi.runtime.v1.InitializeAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	73,  // 170: nimi.runtime.v1.InitializeAgentRequest.autonomy_config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
-	191, // 171: nimi.runtime.v1.InitializeAgentRequest.metadata:type_name -> google.protobuf.Struct
-	75,  // 172: nimi.runtime.v1.InitializeAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
-	76,  // 173: nimi.runtime.v1.InitializeAgentResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	188, // 174: nimi.runtime.v1.TerminateAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	201, // 175: nimi.runtime.v1.TerminateAgentResponse.ack:type_name -> nimi.runtime.v1.Ack
-	188, // 176: nimi.runtime.v1.GetAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	75,  // 177: nimi.runtime.v1.GetAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
-	188, // 178: nimi.runtime.v1.ListAgentsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	0,   // 179: nimi.runtime.v1.ListAgentsRequest.lifecycle_filter:type_name -> nimi.runtime.v1.AgentLifecycleStatus
-	75,  // 180: nimi.runtime.v1.ListAgentsResponse.agents:type_name -> nimi.runtime.v1.AgentRecord
-	188, // 181: nimi.runtime.v1.GetAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	76,  // 182: nimi.runtime.v1.GetAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	188, // 183: nimi.runtime.v1.UpdateAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	84,  // 184: nimi.runtime.v1.UpdateAgentStateRequest.mutations:type_name -> nimi.runtime.v1.AgentStateMutation
-	76,  // 185: nimi.runtime.v1.UpdateAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
-	188, // 186: nimi.runtime.v1.EnableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	74,  // 187: nimi.runtime.v1.EnableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	188, // 188: nimi.runtime.v1.DisableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	74,  // 189: nimi.runtime.v1.DisableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	188, // 190: nimi.runtime.v1.SetAutonomyConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	73,  // 191: nimi.runtime.v1.SetAutonomyConfigRequest.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
-	74,  // 192: nimi.runtime.v1.SetAutonomyConfigResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
-	188, // 193: nimi.runtime.v1.SetAgentPresentationProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	192, // 194: nimi.runtime.v1.SetAgentPresentationProfileRequest.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	202, // 195: nimi.runtime.v1.SetAgentPresentationProfileRequest.clear:type_name -> nimi.runtime.v1.ClearAgentPresentationProfile
-	203, // 196: nimi.runtime.v1.SetAgentPresentationProfileRequest.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
-	192, // 197: nimi.runtime.v1.SetAgentPresentationProfileResponse.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	188, // 198: nimi.runtime.v1.ListPendingHooksRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	3,   // 199: nimi.runtime.v1.ListPendingHooksRequest.trigger_family_filter:type_name -> nimi.runtime.v1.HookTriggerFamily
-	5,   // 200: nimi.runtime.v1.ListPendingHooksRequest.admission_state_filter:type_name -> nimi.runtime.v1.HookAdmissionState
-	91,  // 201: nimi.runtime.v1.ListPendingHooksResponse.hooks:type_name -> nimi.runtime.v1.PendingHook
-	188, // 202: nimi.runtime.v1.CancelHookRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	90,  // 203: nimi.runtime.v1.CancelHookResponse.outcome:type_name -> nimi.runtime.v1.HookExecutionOutcome
-	188, // 204: nimi.runtime.v1.QueryAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	194, // 205: nimi.runtime.v1.QueryAgentMemoryRequest.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	204, // 206: nimi.runtime.v1.QueryAgentMemoryRequest.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	93,  // 207: nimi.runtime.v1.QueryAgentMemoryResponse.memories:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	205, // 208: nimi.runtime.v1.QueryAgentMemoryResponse.narratives:type_name -> nimi.runtime.v1.NarrativeRecallHit
-	188, // 209: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	92,  // 210: nimi.runtime.v1.WriteAgentMemoryRequest.candidates:type_name -> nimi.runtime.v1.CanonicalMemoryCandidate
-	93,  // 211: nimi.runtime.v1.WriteAgentMemoryResponse.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	94,  // 212: nimi.runtime.v1.WriteAgentMemoryResponse.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
-	48,  // 213: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.mode:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankMode
-	206, // 214: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	193, // 215: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	188, // 216: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	137, // 217: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankStatus
-	188, // 218: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	137, // 219: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankStatus
-	193, // 220: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	195, // 221: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	23,  // 222: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.readiness:type_name -> nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness
-	189, // 223: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.last_completed_at:type_name -> google.protobuf.Timestamp
-	189, // 224: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.next_eligible_at:type_name -> google.protobuf.Timestamp
-	188, // 225: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	195, // 226: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	142, // 227: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryReviewStatus
-	188, // 228: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	6,   // 229: nimi.runtime.v1.SubscribeAgentEventsRequest.event_filters:type_name -> nimi.runtime.v1.AgentEventType
-	188, // 230: nimi.runtime.v1.SubscribeAgentVoiceStreamRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	188, // 231: nimi.runtime.v1.InterruptAgentVoicePlaybackRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	207, // 232: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
-	208, // 233: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
-	207, // 234: nimi.runtime.v1.AgentVoiceStreamEvent.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
-	208, // 235: nimi.runtime.v1.AgentVoiceStreamEvent.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
-	24,  // 236: nimi.runtime.v1.ConversationAnchor.status:type_name -> nimi.runtime.v1.ConversationAnchorStatus
-	189, // 237: nimi.runtime.v1.ConversationAnchor.created_at:type_name -> google.protobuf.Timestamp
-	189, // 238: nimi.runtime.v1.ConversationAnchor.updated_at:type_name -> google.protobuf.Timestamp
-	191, // 239: nimi.runtime.v1.ConversationAnchor.metadata:type_name -> google.protobuf.Struct
-	150, // 240: nimi.runtime.v1.ConversationAnchorSnapshot.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
-	68,  // 241: nimi.runtime.v1.ConversationAnchorSnapshot.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
-	72,  // 242: nimi.runtime.v1.ConversationAnchorSnapshot.turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
-	188, // 243: nimi.runtime.v1.OpenConversationAnchorRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	191, // 244: nimi.runtime.v1.OpenConversationAnchorRequest.metadata:type_name -> google.protobuf.Struct
-	151, // 245: nimi.runtime.v1.OpenConversationAnchorResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	188, // 246: nimi.runtime.v1.GetConversationAnchorSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	151, // 247: nimi.runtime.v1.GetConversationAnchorSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	189, // 248: nimi.runtime.v1.AvatarLiveInstanceBinding.registered_at:type_name -> google.protobuf.Timestamp
-	189, // 249: nimi.runtime.v1.AvatarLiveInstanceBinding.updated_at:type_name -> google.protobuf.Timestamp
-	188, // 250: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	156, // 251: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
-	151, // 252: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	188, // 253: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	156, // 254: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
-	151, // 255: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
-	188, // 256: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	191, // 257: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse.snapshot:type_name -> google.protobuf.Struct
-	150, // 258: nimi.runtime.v1.AgentConversationSummary.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
-	189, // 259: nimi.runtime.v1.AgentConversationSummary.updated_at:type_name -> google.protobuf.Timestamp
-	68,  // 260: nimi.runtime.v1.AgentConversationSummary.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
-	72,  // 261: nimi.runtime.v1.AgentConversationSummary.last_turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
-	188, // 262: nimi.runtime.v1.ListAgentConversationSummariesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	24,  // 263: nimi.runtime.v1.ListAgentConversationSummariesRequest.status_filter:type_name -> nimi.runtime.v1.ConversationAnchorStatus
-	163, // 264: nimi.runtime.v1.ListAgentConversationSummariesResponse.summaries:type_name -> nimi.runtime.v1.AgentConversationSummary
-	188, // 265: nimi.runtime.v1.GetAvatarDebugSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	105, // 266: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	106, // 267: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.replay_refs:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
-	189, // 268: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.observed_at:type_name -> google.protobuf.Timestamp
-	188, // 269: nimi.runtime.v1.RequestAvatarDebugProbeRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	16,  // 270: nimi.runtime.v1.RequestAvatarDebugProbeRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
-	18,  // 271: nimi.runtime.v1.RequestAvatarDebugProbeRequest.requested_by:type_name -> nimi.runtime.v1.AvatarDebugRequestedBy
-	104, // 272: nimi.runtime.v1.RequestAvatarDebugProbeResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
-	105, // 273: nimi.runtime.v1.RequestAvatarDebugProbeResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	106, // 274: nimi.runtime.v1.RequestAvatarDebugProbeResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
-	188, // 275: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	105, // 276: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	105, // 277: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	188, // 278: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	16,  // 279: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
-	105, // 280: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	188, // 281: nimi.runtime.v1.GetAvatarDebugReplayRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	104, // 282: nimi.runtime.v1.GetAvatarDebugReplayResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
-	105, // 283: nimi.runtime.v1.GetAvatarDebugReplayResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
-	106, // 284: nimi.runtime.v1.GetAvatarDebugReplayResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
-	209, // 285: nimi.runtime.v1.RuntimeAgentAIConfigIntent.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	210, // 286: nimi.runtime.v1.RuntimeAgentAIConfigIntent.target_ref:type_name -> nimi.runtime.v1.RuntimeDurableTargetRef
-	176, // 287: nimi.runtime.v1.RuntimeAgentAIConfig.intents:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigIntent
-	189, // 288: nimi.runtime.v1.RuntimeAgentAIConfig.updated_at:type_name -> google.protobuf.Timestamp
-	49,  // 289: nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness.state:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigReadinessState
-	189, // 290: nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness.probed_at:type_name -> google.protobuf.Timestamp
-	178, // 291: nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot.capabilities:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness
-	188, // 292: nimi.runtime.v1.GetRuntimeAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	177, // 293: nimi.runtime.v1.GetRuntimeAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.RuntimeAgentAIConfig
-	188, // 294: nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	176, // 295: nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest.intents:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigIntent
-	177, // 296: nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.RuntimeAgentAIConfig
-	188, // 297: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	179, // 298: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse.snapshot:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
-	188, // 299: nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	52,  // 300: nimi.runtime.v1.RuntimeAgentService.CreateSourceMaterializationChallenge:input_type -> nimi.runtime.v1.CreateSourceMaterializationChallengeRequest
-	59,  // 301: nimi.runtime.v1.RuntimeAgentService.BeginSourceMaterializationUpload:input_type -> nimi.runtime.v1.BeginSourceMaterializationUploadRequest
-	61,  // 302: nimi.runtime.v1.RuntimeAgentService.PutSourceMaterializationChunk:input_type -> nimi.runtime.v1.PutSourceMaterializationChunkRequest
-	63,  // 303: nimi.runtime.v1.RuntimeAgentService.CommitSourceMaterialization:input_type -> nimi.runtime.v1.CommitSourceMaterializationRequest
-	65,  // 304: nimi.runtime.v1.RuntimeAgentService.AbortSourceMaterializationUpload:input_type -> nimi.runtime.v1.AbortSourceMaterializationUploadRequest
-	109, // 305: nimi.runtime.v1.RuntimeAgentService.InitializeAgent:input_type -> nimi.runtime.v1.InitializeAgentRequest
-	111, // 306: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
-	113, // 307: nimi.runtime.v1.RuntimeAgentService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
-	115, // 308: nimi.runtime.v1.RuntimeAgentService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
-	152, // 309: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:input_type -> nimi.runtime.v1.OpenConversationAnchorRequest
-	154, // 310: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:input_type -> nimi.runtime.v1.GetConversationAnchorSnapshotRequest
-	157, // 311: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
-	159, // 312: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
-	161, // 313: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:input_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
-	164, // 314: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:input_type -> nimi.runtime.v1.ListAgentConversationSummariesRequest
-	211, // 315: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:input_type -> nimi.runtime.v1.GetCompanionParticipationProjectionRequest
-	212, // 316: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:input_type -> nimi.runtime.v1.RequestCompanionParticipationRequest
-	213, // 317: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:input_type -> nimi.runtime.v1.CancelCompanionParticipationRequest
-	214, // 318: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:input_type -> nimi.runtime.v1.OpenCompanionParticipationReplayRequest
-	215, // 319: nimi.runtime.v1.RuntimeAgentService.CreateRealmGroupMessageCandidate:input_type -> nimi.runtime.v1.CreateRealmGroupMessageCandidateRequest
-	216, // 320: nimi.runtime.v1.RuntimeAgentService.GetRealmGroupMessageCandidateEvidence:input_type -> nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceRequest
-	166, // 321: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:input_type -> nimi.runtime.v1.GetAvatarDebugSnapshotRequest
-	168, // 322: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:input_type -> nimi.runtime.v1.RequestAvatarDebugProbeRequest
-	170, // 323: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:input_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
-	172, // 324: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:input_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
-	174, // 325: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:input_type -> nimi.runtime.v1.GetAvatarDebugReplayRequest
-	117, // 326: nimi.runtime.v1.RuntimeAgentService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
-	119, // 327: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
-	127, // 328: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:input_type -> nimi.runtime.v1.SetAgentPresentationProfileRequest
-	121, // 329: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
-	123, // 330: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
-	125, // 331: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
-	129, // 332: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
-	131, // 333: nimi.runtime.v1.RuntimeAgentService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
-	217, // 334: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:input_type -> nimi.runtime.v1.ListDelegatedProviderProfilesRequest
-	218, // 335: nimi.runtime.v1.RuntimeAgentService.UpsertDelegatedProviderProfile:input_type -> nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
-	219, // 336: nimi.runtime.v1.RuntimeAgentService.SetDelegatedProviderState:input_type -> nimi.runtime.v1.SetDelegatedProviderStateRequest
-	220, // 337: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:input_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	221, // 338: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:input_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	222, // 339: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:input_type -> nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	223, // 340: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:input_type -> nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	224, // 341: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:input_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	225, // 342: nimi.runtime.v1.RuntimeAgentService.ExecuteDelegatedCapability:input_type -> nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
-	226, // 343: nimi.runtime.v1.RuntimeAgentService.ResumeDelegatedCapability:input_type -> nimi.runtime.v1.ResumeDelegatedCapabilityRequest
-	133, // 344: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
-	135, // 345: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
-	138, // 346: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
-	140, // 347: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:input_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
-	143, // 348: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
-	227, // 349: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationProfiles:input_type -> nimi.runtime.v1.DescribeParticipationProfilesRequest
-	228, // 350: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationContextBlocks:input_type -> nimi.runtime.v1.DescribeParticipationContextBlocksRequest
-	229, // 351: nimi.runtime.v1.RuntimeAgentService.ValidateParticipation:input_type -> nimi.runtime.v1.ValidateParticipationRequest
-	230, // 352: nimi.runtime.v1.RuntimeAgentService.ExecuteParticipation:input_type -> nimi.runtime.v1.ExecuteParticipationRequest
-	231, // 353: nimi.runtime.v1.RuntimeAgentService.GetParticipationCandidate:input_type -> nimi.runtime.v1.GetParticipationCandidateRequest
-	232, // 354: nimi.runtime.v1.RuntimeAgentService.GetParticipationVerdicts:input_type -> nimi.runtime.v1.GetParticipationVerdictsRequest
-	233, // 355: nimi.runtime.v1.RuntimeAgentService.ListParticipationAuditEvents:input_type -> nimi.runtime.v1.ListParticipationAuditEventsRequest
-	234, // 356: nimi.runtime.v1.RuntimeAgentService.GetParticipationReplay:input_type -> nimi.runtime.v1.GetParticipationReplayRequest
-	145, // 357: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
-	146, // 358: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:input_type -> nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
-	147, // 359: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:input_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
-	180, // 360: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfig:input_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigRequest
-	182, // 361: nimi.runtime.v1.RuntimeAgentService.UpsertRuntimeAgentAIConfig:input_type -> nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest
-	184, // 362: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfigReadiness:input_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest
-	186, // 363: nimi.runtime.v1.RuntimeAgentService.SubscribeRuntimeAgentAIConfigReadiness:input_type -> nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest
-	53,  // 364: nimi.runtime.v1.RuntimeAgentService.CreateSourceMaterializationChallenge:output_type -> nimi.runtime.v1.CreateSourceMaterializationChallengeResponse
-	60,  // 365: nimi.runtime.v1.RuntimeAgentService.BeginSourceMaterializationUpload:output_type -> nimi.runtime.v1.BeginSourceMaterializationUploadResponse
-	62,  // 366: nimi.runtime.v1.RuntimeAgentService.PutSourceMaterializationChunk:output_type -> nimi.runtime.v1.PutSourceMaterializationChunkResponse
-	64,  // 367: nimi.runtime.v1.RuntimeAgentService.CommitSourceMaterialization:output_type -> nimi.runtime.v1.CommitSourceMaterializationResponse
-	66,  // 368: nimi.runtime.v1.RuntimeAgentService.AbortSourceMaterializationUpload:output_type -> nimi.runtime.v1.AbortSourceMaterializationUploadResponse
-	110, // 369: nimi.runtime.v1.RuntimeAgentService.InitializeAgent:output_type -> nimi.runtime.v1.InitializeAgentResponse
-	112, // 370: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
-	114, // 371: nimi.runtime.v1.RuntimeAgentService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
-	116, // 372: nimi.runtime.v1.RuntimeAgentService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
-	153, // 373: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:output_type -> nimi.runtime.v1.OpenConversationAnchorResponse
-	155, // 374: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:output_type -> nimi.runtime.v1.GetConversationAnchorSnapshotResponse
-	158, // 375: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
-	160, // 376: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
-	162, // 377: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:output_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
-	165, // 378: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:output_type -> nimi.runtime.v1.ListAgentConversationSummariesResponse
-	235, // 379: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:output_type -> nimi.runtime.v1.GetCompanionParticipationProjectionResponse
-	236, // 380: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:output_type -> nimi.runtime.v1.RequestCompanionParticipationResponse
-	237, // 381: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:output_type -> nimi.runtime.v1.CancelCompanionParticipationResponse
-	238, // 382: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:output_type -> nimi.runtime.v1.OpenCompanionParticipationReplayResponse
-	239, // 383: nimi.runtime.v1.RuntimeAgentService.CreateRealmGroupMessageCandidate:output_type -> nimi.runtime.v1.CreateRealmGroupMessageCandidateResponse
-	240, // 384: nimi.runtime.v1.RuntimeAgentService.GetRealmGroupMessageCandidateEvidence:output_type -> nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceResponse
-	167, // 385: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:output_type -> nimi.runtime.v1.GetAvatarDebugSnapshotResponse
-	169, // 386: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:output_type -> nimi.runtime.v1.RequestAvatarDebugProbeResponse
-	171, // 387: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:output_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
-	173, // 388: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:output_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
-	175, // 389: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:output_type -> nimi.runtime.v1.GetAvatarDebugReplayResponse
-	118, // 390: nimi.runtime.v1.RuntimeAgentService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
-	120, // 391: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
-	128, // 392: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:output_type -> nimi.runtime.v1.SetAgentPresentationProfileResponse
-	122, // 393: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
-	124, // 394: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
-	126, // 395: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
-	130, // 396: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
-	132, // 397: nimi.runtime.v1.RuntimeAgentService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
-	241, // 398: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:output_type -> nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	242, // 399: nimi.runtime.v1.RuntimeAgentService.UpsertDelegatedProviderProfile:output_type -> nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
-	243, // 400: nimi.runtime.v1.RuntimeAgentService.SetDelegatedProviderState:output_type -> nimi.runtime.v1.SetDelegatedProviderStateResponse
-	244, // 401: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:output_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	245, // 402: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:output_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	246, // 403: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:output_type -> nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	247, // 404: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:output_type -> nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	248, // 405: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:output_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	249, // 406: nimi.runtime.v1.RuntimeAgentService.ExecuteDelegatedCapability:output_type -> nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
-	250, // 407: nimi.runtime.v1.RuntimeAgentService.ResumeDelegatedCapability:output_type -> nimi.runtime.v1.ResumeDelegatedCapabilityResponse
-	134, // 408: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
-	136, // 409: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
-	139, // 410: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
-	141, // 411: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:output_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
-	144, // 412: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
-	251, // 413: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationProfiles:output_type -> nimi.runtime.v1.DescribeParticipationProfilesResponse
-	252, // 414: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationContextBlocks:output_type -> nimi.runtime.v1.DescribeParticipationContextBlocksResponse
-	253, // 415: nimi.runtime.v1.RuntimeAgentService.ValidateParticipation:output_type -> nimi.runtime.v1.ValidateParticipationResponse
-	254, // 416: nimi.runtime.v1.RuntimeAgentService.ExecuteParticipation:output_type -> nimi.runtime.v1.ExecuteParticipationResponse
-	255, // 417: nimi.runtime.v1.RuntimeAgentService.GetParticipationCandidate:output_type -> nimi.runtime.v1.GetParticipationCandidateResponse
-	256, // 418: nimi.runtime.v1.RuntimeAgentService.GetParticipationVerdicts:output_type -> nimi.runtime.v1.GetParticipationVerdictsResponse
-	257, // 419: nimi.runtime.v1.RuntimeAgentService.ListParticipationAuditEvents:output_type -> nimi.runtime.v1.ListParticipationAuditEventsResponse
-	258, // 420: nimi.runtime.v1.RuntimeAgentService.GetParticipationReplay:output_type -> nimi.runtime.v1.GetParticipationReplayResponse
-	108, // 421: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
-	149, // 422: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:output_type -> nimi.runtime.v1.AgentVoiceStreamEvent
-	148, // 423: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:output_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
-	181, // 424: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfig:output_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigResponse
-	183, // 425: nimi.runtime.v1.RuntimeAgentService.UpsertRuntimeAgentAIConfig:output_type -> nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse
-	185, // 426: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfigReadiness:output_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse
-	179, // 427: nimi.runtime.v1.RuntimeAgentService.SubscribeRuntimeAgentAIConfigReadiness:output_type -> nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
-	364, // [364:428] is the sub-list for method output_type
-	300, // [300:364] is the sub-list for method input_type
-	300, // [300:300] is the sub-list for extension type_name
-	300, // [300:300] is the sub-list for extension extendee
-	0,   // [0:300] is the sub-list for field type_name
+	142, // 0: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
+	143, // 1: nimi.runtime.v1.AgentAutonomyConfig.suspend_until:type_name -> google.protobuf.Timestamp
+	22,  // 2: nimi.runtime.v1.AgentAutonomyConfig.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
+	144, // 3: nimi.runtime.v1.AgentAutonomyConfig.extensions:type_name -> google.protobuf.Struct
+	27,  // 4: nimi.runtime.v1.AgentAutonomyState.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
+	143, // 5: nimi.runtime.v1.AgentAutonomyState.window_started_at:type_name -> google.protobuf.Timestamp
+	143, // 6: nimi.runtime.v1.AgentAutonomyState.suspended_until:type_name -> google.protobuf.Timestamp
+	0,   // 7: nimi.runtime.v1.AgentRecord.lifecycle_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	28,  // 8: nimi.runtime.v1.AgentRecord.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	144, // 9: nimi.runtime.v1.AgentRecord.metadata:type_name -> google.protobuf.Struct
+	143, // 10: nimi.runtime.v1.AgentRecord.created_at:type_name -> google.protobuf.Timestamp
+	143, // 11: nimi.runtime.v1.AgentRecord.updated_at:type_name -> google.protobuf.Timestamp
+	145, // 12: nimi.runtime.v1.AgentRecord.presentation_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	146, // 13: nimi.runtime.v1.AgentRecord.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
+	1,   // 14: nimi.runtime.v1.AgentStateProjection.execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
+	141, // 15: nimi.runtime.v1.AgentStateProjection.attributes:type_name -> nimi.runtime.v1.AgentStateProjection.AttributesEntry
+	143, // 16: nimi.runtime.v1.AgentStateProjection.updated_at:type_name -> google.protobuf.Timestamp
+	57,  // 17: nimi.runtime.v1.AgentStateProjection.proactive_interruptibility:type_name -> nimi.runtime.v1.AgentProactiveInterruptibilityProjection
+	31,  // 18: nimi.runtime.v1.AgentStateMutation.set_status_text:type_name -> nimi.runtime.v1.AgentStateSetStatusText
+	32,  // 19: nimi.runtime.v1.AgentStateMutation.set_world_context:type_name -> nimi.runtime.v1.AgentStateSetWorldContext
+	33,  // 20: nimi.runtime.v1.AgentStateMutation.clear_world_context:type_name -> nimi.runtime.v1.AgentStateClearWorldContext
+	34,  // 21: nimi.runtime.v1.AgentStateMutation.set_dyadic_context:type_name -> nimi.runtime.v1.AgentStateSetDyadicContext
+	35,  // 22: nimi.runtime.v1.AgentStateMutation.clear_dyadic_context:type_name -> nimi.runtime.v1.AgentStateClearDyadicContext
+	36,  // 23: nimi.runtime.v1.AgentStateMutation.put_attribute:type_name -> nimi.runtime.v1.AgentStatePutAttribute
+	37,  // 24: nimi.runtime.v1.AgentStateMutation.remove_attribute:type_name -> nimi.runtime.v1.AgentStateRemoveAttribute
+	142, // 25: nimi.runtime.v1.HookTriggerTimeDetail.delay:type_name -> google.protobuf.Duration
+	142, // 26: nimi.runtime.v1.HookTriggerEventUserIdleDetail.idle_for:type_name -> google.protobuf.Duration
+	39,  // 27: nimi.runtime.v1.HookTriggerDetail.time:type_name -> nimi.runtime.v1.HookTriggerTimeDetail
+	40,  // 28: nimi.runtime.v1.HookTriggerDetail.event_user_idle:type_name -> nimi.runtime.v1.HookTriggerEventUserIdleDetail
+	41,  // 29: nimi.runtime.v1.HookTriggerDetail.event_chat_ended:type_name -> nimi.runtime.v1.HookTriggerEventChatEndedDetail
+	3,   // 30: nimi.runtime.v1.HookIntent.trigger_family:type_name -> nimi.runtime.v1.HookTriggerFamily
+	42,  // 31: nimi.runtime.v1.HookIntent.trigger_detail:type_name -> nimi.runtime.v1.HookTriggerDetail
+	4,   // 32: nimi.runtime.v1.HookIntent.effect:type_name -> nimi.runtime.v1.HookEffect
+	5,   // 33: nimi.runtime.v1.HookIntent.admission_state:type_name -> nimi.runtime.v1.HookAdmissionState
+	143, // 34: nimi.runtime.v1.HookIntent.not_before:type_name -> google.protobuf.Timestamp
+	143, // 35: nimi.runtime.v1.HookIntent.expires_at:type_name -> google.protobuf.Timestamp
+	43,  // 36: nimi.runtime.v1.HookExecutionOutcome.intent:type_name -> nimi.runtime.v1.HookIntent
+	143, // 37: nimi.runtime.v1.HookExecutionOutcome.observed_at:type_name -> google.protobuf.Timestamp
+	147, // 38: nimi.runtime.v1.HookExecutionOutcome.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43,  // 39: nimi.runtime.v1.PendingHook.intent:type_name -> nimi.runtime.v1.HookIntent
+	143, // 40: nimi.runtime.v1.PendingHook.scheduled_for:type_name -> google.protobuf.Timestamp
+	143, // 41: nimi.runtime.v1.PendingHook.admitted_at:type_name -> google.protobuf.Timestamp
+	148, // 42: nimi.runtime.v1.CanonicalMemoryCandidate.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	149, // 43: nimi.runtime.v1.CanonicalMemoryCandidate.target_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	150, // 44: nimi.runtime.v1.CanonicalMemoryCandidate.record:type_name -> nimi.runtime.v1.MemoryRecordInput
+	144, // 45: nimi.runtime.v1.CanonicalMemoryCandidate.extensions:type_name -> google.protobuf.Struct
+	148, // 46: nimi.runtime.v1.CanonicalMemoryView.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	149, // 47: nimi.runtime.v1.CanonicalMemoryView.source_bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	151, // 48: nimi.runtime.v1.CanonicalMemoryView.record:type_name -> nimi.runtime.v1.MemoryRecord
+	147, // 49: nimi.runtime.v1.CanonicalMemoryRejection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,   // 50: nimi.runtime.v1.AgentLifecycleEventDetail.previous_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	0,   // 51: nimi.runtime.v1.AgentLifecycleEventDetail.current_status:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	5,   // 52: nimi.runtime.v1.AgentHookEventDetail.family:type_name -> nimi.runtime.v1.HookAdmissionState
+	43,  // 53: nimi.runtime.v1.AgentHookEventDetail.intent:type_name -> nimi.runtime.v1.HookIntent
+	143, // 54: nimi.runtime.v1.AgentHookEventDetail.observed_at:type_name -> google.protobuf.Timestamp
+	147, // 55: nimi.runtime.v1.AgentHookEventDetail.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	47,  // 56: nimi.runtime.v1.AgentMemoryEventDetail.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
+	48,  // 57: nimi.runtime.v1.AgentMemoryEventDetail.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
+	143, // 58: nimi.runtime.v1.AgentBudgetEventDetail.window_started_at:type_name -> google.protobuf.Timestamp
+	152, // 59: nimi.runtime.v1.AgentReplicationEventDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
+	7,   // 60: nimi.runtime.v1.AgentStateEventDetail.family:type_name -> nimi.runtime.v1.AgentStateEventFamily
+	1,   // 61: nimi.runtime.v1.AgentStateEventDetail.current_execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
+	1,   // 62: nimi.runtime.v1.AgentStateEventDetail.previous_execution_state:type_name -> nimi.runtime.v1.AgentExecutionState
+	54,  // 63: nimi.runtime.v1.AgentStateEventDetail.current_posture:type_name -> nimi.runtime.v1.AgentPostureProjection
+	54,  // 64: nimi.runtime.v1.AgentStateEventDetail.previous_posture:type_name -> nimi.runtime.v1.AgentPostureProjection
+	8,   // 65: nimi.runtime.v1.AgentProactiveEventDetail.family:type_name -> nimi.runtime.v1.AgentProactiveEventFamily
+	9,   // 66: nimi.runtime.v1.AgentProactiveEventDetail.trigger_source:type_name -> nimi.runtime.v1.AgentProactiveTriggerSource
+	10,  // 67: nimi.runtime.v1.AgentProactiveEventDetail.effect_class:type_name -> nimi.runtime.v1.AgentProactiveEffectClass
+	11,  // 68: nimi.runtime.v1.AgentProactiveEventDetail.delivery_channel:type_name -> nimi.runtime.v1.AgentProactiveDeliveryChannel
+	22,  // 69: nimi.runtime.v1.AgentProactiveEventDetail.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
+	12,  // 70: nimi.runtime.v1.AgentProactiveEventDetail.opt_in_state:type_name -> nimi.runtime.v1.AgentProactiveOptInState
+	13,  // 71: nimi.runtime.v1.AgentProactiveEventDetail.quiet_hours:type_name -> nimi.runtime.v1.AgentProactiveQuietHoursState
+	14,  // 72: nimi.runtime.v1.AgentProactiveEventDetail.frequency_cap:type_name -> nimi.runtime.v1.AgentProactiveFrequencyCapState
+	15,  // 73: nimi.runtime.v1.AgentProactiveEventDetail.suppression_reason:type_name -> nimi.runtime.v1.AgentProactiveSuppressionReason
+	143, // 74: nimi.runtime.v1.AgentProactiveEventDetail.observed_at:type_name -> google.protobuf.Timestamp
+	22,  // 75: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.mode:type_name -> nimi.runtime.v1.AgentAutonomyMode
+	12,  // 76: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.opt_in_state:type_name -> nimi.runtime.v1.AgentProactiveOptInState
+	11,  // 77: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.delivery_channel:type_name -> nimi.runtime.v1.AgentProactiveDeliveryChannel
+	13,  // 78: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.quiet_hours:type_name -> nimi.runtime.v1.AgentProactiveQuietHoursState
+	14,  // 79: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.frequency_cap:type_name -> nimi.runtime.v1.AgentProactiveFrequencyCapState
+	56,  // 80: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.suggested_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
+	56,  // 81: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.last_delivered_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
+	56,  // 82: nimi.runtime.v1.AgentProactiveInterruptibilityProjection.last_suppressed_event:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
+	16,  // 83: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
+	143, // 84: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.requested_at:type_name -> google.protobuf.Timestamp
+	18,  // 85: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.requested_by:type_name -> nimi.runtime.v1.AvatarDebugRequestedBy
+	153, // 86: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	16,  // 87: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
+	17,  // 88: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.status:type_name -> nimi.runtime.v1.AvatarDebugProbeStatus
+	143, // 89: nimi.runtime.v1.AvatarDebugProbeResultEnvelope.observed_at:type_name -> google.protobuf.Timestamp
+	20,  // 90: nimi.runtime.v1.AvatarDebugReplayRef.redaction_state:type_name -> nimi.runtime.v1.AvatarDebugReplayRedactionState
+	21,  // 91: nimi.runtime.v1.AvatarDebugReplayRef.visibility:type_name -> nimi.runtime.v1.AvatarDebugReplayVisibility
+	143, // 92: nimi.runtime.v1.AvatarDebugReplayRef.linked_at:type_name -> google.protobuf.Timestamp
+	19,  // 93: nimi.runtime.v1.AgentAvatarDebugEventDetail.family:type_name -> nimi.runtime.v1.AvatarDebugEventFamily
+	58,  // 94: nimi.runtime.v1.AgentAvatarDebugEventDetail.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+	59,  // 95: nimi.runtime.v1.AgentAvatarDebugEventDetail.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	60,  // 96: nimi.runtime.v1.AgentAvatarDebugEventDetail.replay:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
+	6,   // 97: nimi.runtime.v1.AgentEvent.event_type:type_name -> nimi.runtime.v1.AgentEventType
+	143, // 98: nimi.runtime.v1.AgentEvent.timestamp:type_name -> google.protobuf.Timestamp
+	49,  // 99: nimi.runtime.v1.AgentEvent.lifecycle:type_name -> nimi.runtime.v1.AgentLifecycleEventDetail
+	50,  // 100: nimi.runtime.v1.AgentEvent.hook:type_name -> nimi.runtime.v1.AgentHookEventDetail
+	51,  // 101: nimi.runtime.v1.AgentEvent.memory:type_name -> nimi.runtime.v1.AgentMemoryEventDetail
+	52,  // 102: nimi.runtime.v1.AgentEvent.budget:type_name -> nimi.runtime.v1.AgentBudgetEventDetail
+	53,  // 103: nimi.runtime.v1.AgentEvent.replication:type_name -> nimi.runtime.v1.AgentReplicationEventDetail
+	55,  // 104: nimi.runtime.v1.AgentEvent.state:type_name -> nimi.runtime.v1.AgentStateEventDetail
+	154, // 105: nimi.runtime.v1.AgentEvent.presentation:type_name -> nimi.runtime.v1.AgentPresentationEventDetail
+	61,  // 106: nimi.runtime.v1.AgentEvent.avatar_debug:type_name -> nimi.runtime.v1.AgentAvatarDebugEventDetail
+	56,  // 107: nimi.runtime.v1.AgentEvent.proactive:type_name -> nimi.runtime.v1.AgentProactiveEventDetail
+	155, // 108: nimi.runtime.v1.InitializeAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	27,  // 109: nimi.runtime.v1.InitializeAgentRequest.autonomy_config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
+	144, // 110: nimi.runtime.v1.InitializeAgentRequest.metadata:type_name -> google.protobuf.Struct
+	29,  // 111: nimi.runtime.v1.InitializeAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
+	30,  // 112: nimi.runtime.v1.InitializeAgentResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
+	155, // 113: nimi.runtime.v1.TerminateAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	156, // 114: nimi.runtime.v1.TerminateAgentResponse.ack:type_name -> nimi.runtime.v1.Ack
+	155, // 115: nimi.runtime.v1.GetAgentRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	29,  // 116: nimi.runtime.v1.GetAgentResponse.agent:type_name -> nimi.runtime.v1.AgentRecord
+	155, // 117: nimi.runtime.v1.ListAgentsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	0,   // 118: nimi.runtime.v1.ListAgentsRequest.lifecycle_filter:type_name -> nimi.runtime.v1.AgentLifecycleStatus
+	29,  // 119: nimi.runtime.v1.ListAgentsResponse.agents:type_name -> nimi.runtime.v1.AgentRecord
+	155, // 120: nimi.runtime.v1.GetAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	30,  // 121: nimi.runtime.v1.GetAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
+	155, // 122: nimi.runtime.v1.UpdateAgentStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	38,  // 123: nimi.runtime.v1.UpdateAgentStateRequest.mutations:type_name -> nimi.runtime.v1.AgentStateMutation
+	30,  // 124: nimi.runtime.v1.UpdateAgentStateResponse.state:type_name -> nimi.runtime.v1.AgentStateProjection
+	155, // 125: nimi.runtime.v1.EnableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	28,  // 126: nimi.runtime.v1.EnableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	155, // 127: nimi.runtime.v1.DisableAutonomyRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	28,  // 128: nimi.runtime.v1.DisableAutonomyResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	155, // 129: nimi.runtime.v1.SetAutonomyConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	27,  // 130: nimi.runtime.v1.SetAutonomyConfigRequest.config:type_name -> nimi.runtime.v1.AgentAutonomyConfig
+	28,  // 131: nimi.runtime.v1.SetAutonomyConfigResponse.autonomy:type_name -> nimi.runtime.v1.AgentAutonomyState
+	155, // 132: nimi.runtime.v1.SetAgentPresentationProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	145, // 133: nimi.runtime.v1.SetAgentPresentationProfileRequest.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	157, // 134: nimi.runtime.v1.SetAgentPresentationProfileRequest.clear:type_name -> nimi.runtime.v1.ClearAgentPresentationProfile
+	158, // 135: nimi.runtime.v1.SetAgentPresentationProfileRequest.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
+	145, // 136: nimi.runtime.v1.SetAgentPresentationProfileResponse.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
+	155, // 137: nimi.runtime.v1.ListPendingHooksRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	3,   // 138: nimi.runtime.v1.ListPendingHooksRequest.trigger_family_filter:type_name -> nimi.runtime.v1.HookTriggerFamily
+	5,   // 139: nimi.runtime.v1.ListPendingHooksRequest.admission_state_filter:type_name -> nimi.runtime.v1.HookAdmissionState
+	45,  // 140: nimi.runtime.v1.ListPendingHooksResponse.hooks:type_name -> nimi.runtime.v1.PendingHook
+	155, // 141: nimi.runtime.v1.CancelHookRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	44,  // 142: nimi.runtime.v1.CancelHookResponse.outcome:type_name -> nimi.runtime.v1.HookExecutionOutcome
+	155, // 143: nimi.runtime.v1.QueryAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	148, // 144: nimi.runtime.v1.QueryAgentMemoryRequest.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	159, // 145: nimi.runtime.v1.QueryAgentMemoryRequest.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	47,  // 146: nimi.runtime.v1.QueryAgentMemoryResponse.memories:type_name -> nimi.runtime.v1.CanonicalMemoryView
+	160, // 147: nimi.runtime.v1.QueryAgentMemoryResponse.narratives:type_name -> nimi.runtime.v1.NarrativeRecallHit
+	155, // 148: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	46,  // 149: nimi.runtime.v1.WriteAgentMemoryRequest.candidates:type_name -> nimi.runtime.v1.CanonicalMemoryCandidate
+	47,  // 150: nimi.runtime.v1.WriteAgentMemoryResponse.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
+	48,  // 151: nimi.runtime.v1.WriteAgentMemoryResponse.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
+	25,  // 152: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.mode:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankMode
+	161, // 153: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	147, // 154: nimi.runtime.v1.AgentCanonicalMemoryBankStatus.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	155, // 155: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	91,  // 156: nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankStatus
+	155, // 157: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	91,  // 158: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryBankStatus
+	147, // 159: nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	149, // 160: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	23,  // 161: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.readiness:type_name -> nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness
+	143, // 162: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.last_completed_at:type_name -> google.protobuf.Timestamp
+	143, // 163: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus.next_eligible_at:type_name -> google.protobuf.Timestamp
+	155, // 164: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	149, // 165: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	96,  // 166: nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse.status:type_name -> nimi.runtime.v1.AgentCanonicalMemoryReviewStatus
+	155, // 167: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	6,   // 168: nimi.runtime.v1.SubscribeAgentEventsRequest.event_filters:type_name -> nimi.runtime.v1.AgentEventType
+	155, // 169: nimi.runtime.v1.SubscribeAgentVoiceStreamRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	155, // 170: nimi.runtime.v1.InterruptAgentVoicePlaybackRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	162, // 171: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
+	163, // 172: nimi.runtime.v1.InterruptAgentVoicePlaybackResponse.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
+	162, // 173: nimi.runtime.v1.AgentVoiceStreamEvent.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
+	163, // 174: nimi.runtime.v1.AgentVoiceStreamEvent.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
+	24,  // 175: nimi.runtime.v1.ConversationAnchor.status:type_name -> nimi.runtime.v1.ConversationAnchorStatus
+	143, // 176: nimi.runtime.v1.ConversationAnchor.created_at:type_name -> google.protobuf.Timestamp
+	143, // 177: nimi.runtime.v1.ConversationAnchor.updated_at:type_name -> google.protobuf.Timestamp
+	144, // 178: nimi.runtime.v1.ConversationAnchor.metadata:type_name -> google.protobuf.Struct
+	104, // 179: nimi.runtime.v1.ConversationAnchorSnapshot.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
+	146, // 180: nimi.runtime.v1.ConversationAnchorSnapshot.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
+	164, // 181: nimi.runtime.v1.ConversationAnchorSnapshot.turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
+	155, // 182: nimi.runtime.v1.OpenConversationAnchorRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	144, // 183: nimi.runtime.v1.OpenConversationAnchorRequest.metadata:type_name -> google.protobuf.Struct
+	105, // 184: nimi.runtime.v1.OpenConversationAnchorResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	155, // 185: nimi.runtime.v1.GetConversationAnchorSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	105, // 186: nimi.runtime.v1.GetConversationAnchorSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	143, // 187: nimi.runtime.v1.AvatarLiveInstanceBinding.registered_at:type_name -> google.protobuf.Timestamp
+	143, // 188: nimi.runtime.v1.AvatarLiveInstanceBinding.updated_at:type_name -> google.protobuf.Timestamp
+	155, // 189: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	110, // 190: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
+	105, // 191: nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	155, // 192: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	110, // 193: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.binding:type_name -> nimi.runtime.v1.AvatarLiveInstanceBinding
+	105, // 194: nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse.snapshot:type_name -> nimi.runtime.v1.ConversationAnchorSnapshot
+	155, // 195: nimi.runtime.v1.GetPublicChatSessionSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	144, // 196: nimi.runtime.v1.GetPublicChatSessionSnapshotResponse.snapshot:type_name -> google.protobuf.Struct
+	104, // 197: nimi.runtime.v1.AgentConversationSummary.anchor:type_name -> nimi.runtime.v1.ConversationAnchor
+	143, // 198: nimi.runtime.v1.AgentConversationSummary.updated_at:type_name -> google.protobuf.Timestamp
+	146, // 199: nimi.runtime.v1.AgentConversationSummary.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
+	164, // 200: nimi.runtime.v1.AgentConversationSummary.last_turn_context_summary:type_name -> nimi.runtime.v1.AgentTurnContextSummary
+	155, // 201: nimi.runtime.v1.ListAgentConversationSummariesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	24,  // 202: nimi.runtime.v1.ListAgentConversationSummariesRequest.status_filter:type_name -> nimi.runtime.v1.ConversationAnchorStatus
+	117, // 203: nimi.runtime.v1.ListAgentConversationSummariesResponse.summaries:type_name -> nimi.runtime.v1.AgentConversationSummary
+	155, // 204: nimi.runtime.v1.GetAvatarDebugSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	59,  // 205: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	60,  // 206: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.replay_refs:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
+	143, // 207: nimi.runtime.v1.GetAvatarDebugSnapshotResponse.observed_at:type_name -> google.protobuf.Timestamp
+	155, // 208: nimi.runtime.v1.RequestAvatarDebugProbeRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	16,  // 209: nimi.runtime.v1.RequestAvatarDebugProbeRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
+	18,  // 210: nimi.runtime.v1.RequestAvatarDebugProbeRequest.requested_by:type_name -> nimi.runtime.v1.AvatarDebugRequestedBy
+	58,  // 211: nimi.runtime.v1.RequestAvatarDebugProbeResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+	59,  // 212: nimi.runtime.v1.RequestAvatarDebugProbeResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	60,  // 213: nimi.runtime.v1.RequestAvatarDebugProbeResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
+	155, // 214: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	59,  // 215: nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	59,  // 216: nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	155, // 217: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	16,  // 218: nimi.runtime.v1.ListAvatarDebugProbeResultsRequest.probe_kind:type_name -> nimi.runtime.v1.AvatarDebugProbeKind
+	59,  // 219: nimi.runtime.v1.ListAvatarDebugProbeResultsResponse.probe_results:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	155, // 220: nimi.runtime.v1.GetAvatarDebugReplayRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	58,  // 221: nimi.runtime.v1.GetAvatarDebugReplayResponse.request:type_name -> nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+	59,  // 222: nimi.runtime.v1.GetAvatarDebugReplayResponse.result:type_name -> nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+	60,  // 223: nimi.runtime.v1.GetAvatarDebugReplayResponse.replay_ref:type_name -> nimi.runtime.v1.AvatarDebugReplayRef
+	165, // 224: nimi.runtime.v1.RuntimeAgentAIConfigIntent.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	166, // 225: nimi.runtime.v1.RuntimeAgentAIConfigIntent.target_ref:type_name -> nimi.runtime.v1.RuntimeDurableTargetRef
+	130, // 226: nimi.runtime.v1.RuntimeAgentAIConfig.intents:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigIntent
+	143, // 227: nimi.runtime.v1.RuntimeAgentAIConfig.updated_at:type_name -> google.protobuf.Timestamp
+	26,  // 228: nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness.state:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigReadinessState
+	143, // 229: nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness.probed_at:type_name -> google.protobuf.Timestamp
+	132, // 230: nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot.capabilities:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness
+	155, // 231: nimi.runtime.v1.GetRuntimeAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	131, // 232: nimi.runtime.v1.GetRuntimeAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.RuntimeAgentAIConfig
+	155, // 233: nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	130, // 234: nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest.intents:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigIntent
+	131, // 235: nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse.config:type_name -> nimi.runtime.v1.RuntimeAgentAIConfig
+	155, // 236: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	133, // 237: nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse.snapshot:type_name -> nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
+	155, // 238: nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	167, // 239: nimi.runtime.v1.RuntimeAgentService.CreateSourceMaterializationChallenge:input_type -> nimi.runtime.v1.CreateSourceMaterializationChallengeRequest
+	168, // 240: nimi.runtime.v1.RuntimeAgentService.BeginSourceMaterializationUpload:input_type -> nimi.runtime.v1.BeginSourceMaterializationUploadRequest
+	169, // 241: nimi.runtime.v1.RuntimeAgentService.PutSourceMaterializationChunk:input_type -> nimi.runtime.v1.PutSourceMaterializationChunkRequest
+	170, // 242: nimi.runtime.v1.RuntimeAgentService.CommitSourceMaterialization:input_type -> nimi.runtime.v1.CommitSourceMaterializationRequest
+	171, // 243: nimi.runtime.v1.RuntimeAgentService.AbortSourceMaterializationUpload:input_type -> nimi.runtime.v1.AbortSourceMaterializationUploadRequest
+	63,  // 244: nimi.runtime.v1.RuntimeAgentService.InitializeAgent:input_type -> nimi.runtime.v1.InitializeAgentRequest
+	65,  // 245: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
+	67,  // 246: nimi.runtime.v1.RuntimeAgentService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
+	69,  // 247: nimi.runtime.v1.RuntimeAgentService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
+	106, // 248: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:input_type -> nimi.runtime.v1.OpenConversationAnchorRequest
+	108, // 249: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:input_type -> nimi.runtime.v1.GetConversationAnchorSnapshotRequest
+	111, // 250: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
+	113, // 251: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
+	115, // 252: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:input_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
+	118, // 253: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:input_type -> nimi.runtime.v1.ListAgentConversationSummariesRequest
+	172, // 254: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:input_type -> nimi.runtime.v1.GetCompanionParticipationProjectionRequest
+	173, // 255: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:input_type -> nimi.runtime.v1.RequestCompanionParticipationRequest
+	174, // 256: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:input_type -> nimi.runtime.v1.CancelCompanionParticipationRequest
+	175, // 257: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:input_type -> nimi.runtime.v1.OpenCompanionParticipationReplayRequest
+	176, // 258: nimi.runtime.v1.RuntimeAgentService.CreateRealmGroupMessageCandidate:input_type -> nimi.runtime.v1.CreateRealmGroupMessageCandidateRequest
+	177, // 259: nimi.runtime.v1.RuntimeAgentService.GetRealmGroupMessageCandidateEvidence:input_type -> nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceRequest
+	120, // 260: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:input_type -> nimi.runtime.v1.GetAvatarDebugSnapshotRequest
+	122, // 261: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:input_type -> nimi.runtime.v1.RequestAvatarDebugProbeRequest
+	124, // 262: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:input_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
+	126, // 263: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:input_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
+	128, // 264: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:input_type -> nimi.runtime.v1.GetAvatarDebugReplayRequest
+	71,  // 265: nimi.runtime.v1.RuntimeAgentService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
+	73,  // 266: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
+	81,  // 267: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:input_type -> nimi.runtime.v1.SetAgentPresentationProfileRequest
+	75,  // 268: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
+	77,  // 269: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
+	79,  // 270: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
+	83,  // 271: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
+	85,  // 272: nimi.runtime.v1.RuntimeAgentService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
+	178, // 273: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:input_type -> nimi.runtime.v1.ListDelegatedProviderProfilesRequest
+	179, // 274: nimi.runtime.v1.RuntimeAgentService.UpsertDelegatedProviderProfile:input_type -> nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
+	180, // 275: nimi.runtime.v1.RuntimeAgentService.SetDelegatedProviderState:input_type -> nimi.runtime.v1.SetDelegatedProviderStateRequest
+	181, // 276: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:input_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	182, // 277: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:input_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	183, // 278: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:input_type -> nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	184, // 279: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:input_type -> nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	185, // 280: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:input_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	186, // 281: nimi.runtime.v1.RuntimeAgentService.ExecuteDelegatedCapability:input_type -> nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
+	187, // 282: nimi.runtime.v1.RuntimeAgentService.ResumeDelegatedCapability:input_type -> nimi.runtime.v1.ResumeDelegatedCapabilityRequest
+	87,  // 283: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
+	89,  // 284: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
+	92,  // 285: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
+	94,  // 286: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:input_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
+	97,  // 287: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:input_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
+	188, // 288: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationProfiles:input_type -> nimi.runtime.v1.DescribeParticipationProfilesRequest
+	189, // 289: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationContextBlocks:input_type -> nimi.runtime.v1.DescribeParticipationContextBlocksRequest
+	190, // 290: nimi.runtime.v1.RuntimeAgentService.ValidateParticipation:input_type -> nimi.runtime.v1.ValidateParticipationRequest
+	191, // 291: nimi.runtime.v1.RuntimeAgentService.ExecuteParticipation:input_type -> nimi.runtime.v1.ExecuteParticipationRequest
+	192, // 292: nimi.runtime.v1.RuntimeAgentService.GetParticipationCandidate:input_type -> nimi.runtime.v1.GetParticipationCandidateRequest
+	193, // 293: nimi.runtime.v1.RuntimeAgentService.GetParticipationVerdicts:input_type -> nimi.runtime.v1.GetParticipationVerdictsRequest
+	194, // 294: nimi.runtime.v1.RuntimeAgentService.ListParticipationAuditEvents:input_type -> nimi.runtime.v1.ListParticipationAuditEventsRequest
+	195, // 295: nimi.runtime.v1.RuntimeAgentService.GetParticipationReplay:input_type -> nimi.runtime.v1.GetParticipationReplayRequest
+	99,  // 296: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
+	100, // 297: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:input_type -> nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
+	101, // 298: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:input_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
+	134, // 299: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfig:input_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigRequest
+	136, // 300: nimi.runtime.v1.RuntimeAgentService.UpsertRuntimeAgentAIConfig:input_type -> nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest
+	138, // 301: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfigReadiness:input_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest
+	140, // 302: nimi.runtime.v1.RuntimeAgentService.SubscribeRuntimeAgentAIConfigReadiness:input_type -> nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest
+	196, // 303: nimi.runtime.v1.RuntimeAgentService.CreateSourceMaterializationChallenge:output_type -> nimi.runtime.v1.CreateSourceMaterializationChallengeResponse
+	197, // 304: nimi.runtime.v1.RuntimeAgentService.BeginSourceMaterializationUpload:output_type -> nimi.runtime.v1.BeginSourceMaterializationUploadResponse
+	198, // 305: nimi.runtime.v1.RuntimeAgentService.PutSourceMaterializationChunk:output_type -> nimi.runtime.v1.PutSourceMaterializationChunkResponse
+	199, // 306: nimi.runtime.v1.RuntimeAgentService.CommitSourceMaterialization:output_type -> nimi.runtime.v1.CommitSourceMaterializationResponse
+	200, // 307: nimi.runtime.v1.RuntimeAgentService.AbortSourceMaterializationUpload:output_type -> nimi.runtime.v1.AbortSourceMaterializationUploadResponse
+	64,  // 308: nimi.runtime.v1.RuntimeAgentService.InitializeAgent:output_type -> nimi.runtime.v1.InitializeAgentResponse
+	66,  // 309: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
+	68,  // 310: nimi.runtime.v1.RuntimeAgentService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
+	70,  // 311: nimi.runtime.v1.RuntimeAgentService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
+	107, // 312: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:output_type -> nimi.runtime.v1.OpenConversationAnchorResponse
+	109, // 313: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:output_type -> nimi.runtime.v1.GetConversationAnchorSnapshotResponse
+	112, // 314: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
+	114, // 315: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
+	116, // 316: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:output_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
+	119, // 317: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:output_type -> nimi.runtime.v1.ListAgentConversationSummariesResponse
+	201, // 318: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:output_type -> nimi.runtime.v1.GetCompanionParticipationProjectionResponse
+	202, // 319: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:output_type -> nimi.runtime.v1.RequestCompanionParticipationResponse
+	203, // 320: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:output_type -> nimi.runtime.v1.CancelCompanionParticipationResponse
+	204, // 321: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:output_type -> nimi.runtime.v1.OpenCompanionParticipationReplayResponse
+	205, // 322: nimi.runtime.v1.RuntimeAgentService.CreateRealmGroupMessageCandidate:output_type -> nimi.runtime.v1.CreateRealmGroupMessageCandidateResponse
+	206, // 323: nimi.runtime.v1.RuntimeAgentService.GetRealmGroupMessageCandidateEvidence:output_type -> nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceResponse
+	121, // 324: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:output_type -> nimi.runtime.v1.GetAvatarDebugSnapshotResponse
+	123, // 325: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:output_type -> nimi.runtime.v1.RequestAvatarDebugProbeResponse
+	125, // 326: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:output_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
+	127, // 327: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:output_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
+	129, // 328: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:output_type -> nimi.runtime.v1.GetAvatarDebugReplayResponse
+	72,  // 329: nimi.runtime.v1.RuntimeAgentService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
+	74,  // 330: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
+	82,  // 331: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:output_type -> nimi.runtime.v1.SetAgentPresentationProfileResponse
+	76,  // 332: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
+	78,  // 333: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
+	80,  // 334: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
+	84,  // 335: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
+	86,  // 336: nimi.runtime.v1.RuntimeAgentService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
+	207, // 337: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:output_type -> nimi.runtime.v1.ListDelegatedProviderProfilesResponse
+	208, // 338: nimi.runtime.v1.RuntimeAgentService.UpsertDelegatedProviderProfile:output_type -> nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
+	209, // 339: nimi.runtime.v1.RuntimeAgentService.SetDelegatedProviderState:output_type -> nimi.runtime.v1.SetDelegatedProviderStateResponse
+	210, // 340: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:output_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	211, // 341: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:output_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	212, // 342: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:output_type -> nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	213, // 343: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:output_type -> nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	214, // 344: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:output_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	215, // 345: nimi.runtime.v1.RuntimeAgentService.ExecuteDelegatedCapability:output_type -> nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
+	216, // 346: nimi.runtime.v1.RuntimeAgentService.ResumeDelegatedCapability:output_type -> nimi.runtime.v1.ResumeDelegatedCapabilityResponse
+	88,  // 347: nimi.runtime.v1.RuntimeAgentService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
+	90,  // 348: nimi.runtime.v1.RuntimeAgentService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
+	93,  // 349: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryBankStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
+	95,  // 350: nimi.runtime.v1.RuntimeAgentService.RequestAgentCanonicalMemoryBankBind:output_type -> nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
+	98,  // 351: nimi.runtime.v1.RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus:output_type -> nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
+	217, // 352: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationProfiles:output_type -> nimi.runtime.v1.DescribeParticipationProfilesResponse
+	218, // 353: nimi.runtime.v1.RuntimeAgentService.DescribeParticipationContextBlocks:output_type -> nimi.runtime.v1.DescribeParticipationContextBlocksResponse
+	219, // 354: nimi.runtime.v1.RuntimeAgentService.ValidateParticipation:output_type -> nimi.runtime.v1.ValidateParticipationResponse
+	220, // 355: nimi.runtime.v1.RuntimeAgentService.ExecuteParticipation:output_type -> nimi.runtime.v1.ExecuteParticipationResponse
+	221, // 356: nimi.runtime.v1.RuntimeAgentService.GetParticipationCandidate:output_type -> nimi.runtime.v1.GetParticipationCandidateResponse
+	222, // 357: nimi.runtime.v1.RuntimeAgentService.GetParticipationVerdicts:output_type -> nimi.runtime.v1.GetParticipationVerdictsResponse
+	223, // 358: nimi.runtime.v1.RuntimeAgentService.ListParticipationAuditEvents:output_type -> nimi.runtime.v1.ListParticipationAuditEventsResponse
+	224, // 359: nimi.runtime.v1.RuntimeAgentService.GetParticipationReplay:output_type -> nimi.runtime.v1.GetParticipationReplayResponse
+	62,  // 360: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
+	103, // 361: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:output_type -> nimi.runtime.v1.AgentVoiceStreamEvent
+	102, // 362: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:output_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
+	135, // 363: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfig:output_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigResponse
+	137, // 364: nimi.runtime.v1.RuntimeAgentService.UpsertRuntimeAgentAIConfig:output_type -> nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse
+	139, // 365: nimi.runtime.v1.RuntimeAgentService.GetRuntimeAgentAIConfigReadiness:output_type -> nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse
+	133, // 366: nimi.runtime.v1.RuntimeAgentService.SubscribeRuntimeAgentAIConfigReadiness:output_type -> nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
+	303, // [303:367] is the sub-list for method output_type
+	239, // [239:303] is the sub-list for method input_type
+	239, // [239:239] is the sub-list for extension type_name
+	239, // [239:239] is the sub-list for extension extendee
+	0,   // [0:239] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_service_proto_init() }
@@ -15226,13 +11229,14 @@ func file_runtime_v1_agent_service_proto_init() {
 	file_runtime_v1_agent_group_message_candidate_proto_init()
 	file_runtime_v1_agent_participation_proto_init()
 	file_runtime_v1_agent_presentation_proto_init()
+	file_runtime_v1_agent_source_materialization_proto_init()
 	file_runtime_v1_ai_proto_init()
 	file_runtime_v1_common_proto_init()
 	file_runtime_v1_delegated_control_proto_init()
 	file_runtime_v1_memory_proto_init()
 	file_runtime_v1_runtime_target_identity_proto_init()
 	file_runtime_v1_voice_proto_init()
-	file_runtime_v1_agent_service_proto_msgTypes[34].OneofWrappers = []any{
+	file_runtime_v1_agent_service_proto_msgTypes[11].OneofWrappers = []any{
 		(*AgentStateMutation_SetStatusText)(nil),
 		(*AgentStateMutation_SetWorldContext)(nil),
 		(*AgentStateMutation_ClearWorldContext)(nil),
@@ -15241,12 +11245,12 @@ func file_runtime_v1_agent_service_proto_init() {
 		(*AgentStateMutation_PutAttribute)(nil),
 		(*AgentStateMutation_RemoveAttribute)(nil),
 	}
-	file_runtime_v1_agent_service_proto_msgTypes[38].OneofWrappers = []any{
+	file_runtime_v1_agent_service_proto_msgTypes[15].OneofWrappers = []any{
 		(*HookTriggerDetail_Time)(nil),
 		(*HookTriggerDetail_EventUserIdle)(nil),
 		(*HookTriggerDetail_EventChatEnded)(nil),
 	}
-	file_runtime_v1_agent_service_proto_msgTypes[58].OneofWrappers = []any{
+	file_runtime_v1_agent_service_proto_msgTypes[35].OneofWrappers = []any{
 		(*AgentEvent_Lifecycle)(nil),
 		(*AgentEvent_Hook)(nil),
 		(*AgentEvent_Memory)(nil),
@@ -15257,8 +11261,8 @@ func file_runtime_v1_agent_service_proto_init() {
 		(*AgentEvent_AvatarDebug)(nil),
 		(*AgentEvent_Proactive)(nil),
 	}
-	file_runtime_v1_agent_service_proto_msgTypes[65].OneofWrappers = []any{}
-	file_runtime_v1_agent_service_proto_msgTypes[77].OneofWrappers = []any{
+	file_runtime_v1_agent_service_proto_msgTypes[42].OneofWrappers = []any{}
+	file_runtime_v1_agent_service_proto_msgTypes[54].OneofWrappers = []any{
 		(*SetAgentPresentationProfileRequest_Profile)(nil),
 		(*SetAgentPresentationProfileRequest_Clear)(nil),
 		(*SetAgentPresentationProfileRequest_Patch)(nil),
@@ -15268,8 +11272,8 @@ func file_runtime_v1_agent_service_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_service_proto_rawDesc), len(file_runtime_v1_agent_service_proto_rawDesc)),
-			NumEnums:      50,
-			NumMessages:   138,
+			NumEnums:      27,
+			NumMessages:   115,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

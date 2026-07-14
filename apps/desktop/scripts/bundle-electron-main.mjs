@@ -14,6 +14,7 @@ await build({
   external: [
     'electron',
     '@nimiplatform/*',
+    'yaml',
   ],
   logLevel: 'silent',
 });

@@ -91,7 +91,7 @@ test('desktop renderer daemon status uses the host-neutral shell status surface'
   );
 });
 
-test('desktop Runtime session carries protected execution and Runtime Agent access metadata', () => {
+test('desktop Runtime session uses the host carrier without renderer-held authorization material', () => {
   const desktopSessionSource = readFileSync(
     new URL('../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts', import.meta.url),
     'utf8',
@@ -104,17 +104,23 @@ test('desktop Runtime session carries protected execution and Runtime Agent acce
   assert.match(runtimeAccountContractSource, /'runtime\.agent\.turn\.write'/);
   assert.match(desktopSessionSource, /withDesktopRuntimeProtectedScopes/);
   assert.match(desktopSessionSource, /assertDesktopProtectedScopes\(requestedScopes\)/);
-  assert.match(desktopSessionSource, /capabilities: \[\.{3}DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES\]/);
-  assert.match(desktopSessionSource, /accountRuntime\.grants\.authorizeExternalPrincipal\(/);
+  assert.doesNotMatch(desktopSessionSource, /createNimiRuntimeFullAppRegistration|registerApp\(/);
   assert.match(desktopSessionSource, /from ['"]\.\.\/\.\.\/\.\.\/shared\/runtime-account-contract/u);
-  assert.match(desktopSessionSource, /scopeCatalogVersion: DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION/);
-  assert.doesNotMatch(desktopSessionSource, /function buildDesktopRuntimeProtectedScopeSignature/u);
-  assert.match(desktopSessionSource, /consentVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION/);
-  assert.match(desktopSessionSource, /policyVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION/);
-  assert.match(desktopSessionSource, /createNimiClientId\(`desktop-runtime-protected-access-\$\{DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE\}`\)/);
-  assert.match(desktopSessionSource, /'x-nimi-access-token-id': tokenId/);
-  assert.match(desktopSessionSource, /'x-nimi-access-token-secret': secret/);
+  assert.match(desktopSessionSource, /session\.runtimeTransport\.type === 'electron-ipc'/);
+  assert.match(desktopSessionSource, /return \{\};/);
+  assert.match(desktopSessionSource, /SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED/);
+  const protectedCarrierSection = desktopSessionSource.slice(
+    desktopSessionSource.indexOf('async function getDesktopRuntimeProtectedAccessCallOptions'),
+    desktopSessionSource.indexOf('export function installRealmProjectionSession'),
+  );
+  assert.doesNotMatch(protectedCarrierSection, /accountRuntime\.grants\./);
+  assert.doesNotMatch(protectedCarrierSection, /x-nimi-access-token|tokenId|tokenSecret|sessionProof|bearer/i);
+  assert.doesNotMatch(desktopSessionSource, /buildDesktopRuntimeProtectedScopeSignature|DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE/u);
   assert.doesNotMatch(desktopSessionSource, /createNimiRuntimeAppSessionMetadataProvider/);
+  assert.doesNotMatch(
+    desktopSessionSource,
+    /readonly\s+(?:accessToken|refreshToken)|authorization:\s*`Bearer|loginNimiRealmAuthPassword|createRealmFetchTransport/i,
+  );
 });
 
 test('retired desktop bootstrap auth helper is deleted', () => {

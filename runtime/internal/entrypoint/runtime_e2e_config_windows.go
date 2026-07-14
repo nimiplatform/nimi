@@ -67,7 +67,7 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 	return cfg, nil
 }
 
-func prepareWindowsRuntimeFixture(ctx context.Context, state *protectedlocal.WindowsRuntimeSecurityState) error {
+func prepareWindowsRuntimeFixture(ctx context.Context, state *protectedlocal.WindowsRuntimeSecurityState, _ config.Config) error {
 	if state == nil || !protectedlocal.WindowsRuntimeIsNonProductFixture() {
 		return fmt.Errorf("Windows E2E Runtime requires the fixed non-product security profile")
 	}

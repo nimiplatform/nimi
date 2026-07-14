@@ -3,7 +3,9 @@ import test from 'node:test';
 
 import {
   NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
+  NimiFirstRunMaterializationStartError,
   aggregateNimiFirstRunMaterializationDownloadProgress,
+  cancelNimiFirstRunMaterializationJob,
   repairableNimiFirstRunMaterializationDependencies,
   repairNimiFirstRunMaterializationDependency,
   resolveNimiFirstRunMaterializationProjection,
@@ -102,6 +104,80 @@ test('First-run materialization starts startable dependencies through core Runti
   assert.equal(projection.status, 'in_progress');
   assert.equal(projection.reason, 'runtime_materialization_jobs_started');
   assert.equal(projection.productState, 'local_ai_profile_selected_assets_missing');
+});
+
+test('First-run materialization waits for every concurrent start and exposes partial failure with the latest projection', async () => {
+  const started: string[] = [];
+  let releaseFirst!: () => void;
+  const firstPending = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const runtime = materializationRuntime({
+    dependencies: [
+      dependency({ dependencyFamily: 'python.tool.uv', dependencyId: 'uv' }),
+      dependency({ dependencyFamily: 'python.runtime', dependencyId: 'cpython' }),
+    ],
+    jobsForEnvironment() {
+      return started.includes('python.tool.uv')
+        ? [job({ dependencyFamily: 'python.tool.uv', dependencyId: 'uv', state: 'queued' })]
+        : [];
+    },
+    async onStart(input) {
+      started.push(input.dependencyFamily);
+      if (input.dependencyFamily === 'python.tool.uv') await firstPending;
+      else throw new Error('runtime-start-rejected');
+    },
+  });
+
+  const pending = startNimiFirstRunMaterialization({
+    profile: {
+      localComputePackRefs: ['local-speech'],
+      dependencyFamilyRefs: ['python.tool.uv', 'python.runtime'],
+      materializationConfirmationRequired: true,
+    },
+    runtime,
+    confirmed: true,
+  });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(started, ['python.tool.uv', 'python.runtime'], 'independent Runtime starts must be concurrent');
+  releaseFirst();
+
+  await assert.rejects(pending, (error: unknown) => {
+    assert.ok(error instanceof NimiFirstRunMaterializationStartError);
+    assert.equal(error.failures.length, 1);
+    assert.equal(error.failures[0]?.dependency.dependencyFamily, 'python.runtime');
+    assert.equal(error.projection.status, 'needs_confirmation');
+    assert.equal(error.projection.dependencies.find((item) => item.dependency.dependencyFamily === 'python.tool.uv')?.job?.state, 'queued');
+    return true;
+  });
+});
+
+test('First-run materialization cancellation uses the core Runtime write and returns the cancelled projection', async () => {
+  const cancelCalls: unknown[] = [];
+  let cancelled = false;
+  const runtime = materializationRuntime({
+    dependencies: [dependency()],
+    jobsForEnvironment() {
+      return [job({ state: cancelled ? 'cancelled' : 'downloading', retryable: true })];
+    },
+    onCancel(input, options) {
+      cancelCalls.push({ input, options });
+      cancelled = true;
+    },
+  });
+
+  const projection = await cancelNimiFirstRunMaterializationJob({
+    profile: {
+      localComputePackRefs: ['qwen-small'],
+      dependencyFamilyRefs: ['ollama'],
+      materializationConfirmationRequired: true,
+    },
+    runtime,
+    jobId: 'job-1',
+  });
+
+  assert.deepEqual(cancelCalls, [{ input: { jobId: 'job-1' }, options: { caller: 'core' } }]);
+  assert.equal(projection.status, 'cancelled');
 });
 
 test('First-run materialization restarts stale ready jobs whose selected source no longer proves readiness', async () => {
@@ -405,7 +481,11 @@ function materializationRuntime(input: {
   readonly onStart?: (
     input: Parameters<NimiFirstRunMaterializationRuntime['startEnvironmentDependencyJob']>[0],
     options: Parameters<NimiFirstRunMaterializationRuntime['startEnvironmentDependencyJob']>[1],
-  ) => void;
+  ) => void | Promise<void>;
+  readonly onCancel?: (
+    input: Parameters<NimiFirstRunMaterializationRuntime['cancelEnvironmentDependencyJob']>[0],
+    options: Parameters<NimiFirstRunMaterializationRuntime['cancelEnvironmentDependencyJob']>[1],
+  ) => void | Promise<void>;
   readonly onRepair?: (
     input: Parameters<NimiFirstRunMaterializationRuntime['repairEnvironmentDependency']>[0],
     options: Parameters<NimiFirstRunMaterializationRuntime['repairEnvironmentDependency']>[1],
@@ -429,7 +509,7 @@ function materializationRuntime(input: {
       return input.jobsForEnvironment?.(environmentKey) ?? input.jobs ?? [];
     },
     async startEnvironmentDependencyJob(startInput, options) {
-      input.onStart?.(startInput, options);
+      await input.onStart?.(startInput, options);
       return job({
         jobId: 'started',
         dependencyFamily: startInput.dependencyFamily,
@@ -437,7 +517,8 @@ function materializationRuntime(input: {
         state: 'queued',
       });
     },
-    async cancelEnvironmentDependencyJob() {
+    async cancelEnvironmentDependencyJob(cancelInput, options) {
+      await input.onCancel?.(cancelInput, options);
       return job({ jobId: 'cancelled', state: 'cancelled' });
     },
     async retryEnvironmentDependencyJob(retryInput, options) {

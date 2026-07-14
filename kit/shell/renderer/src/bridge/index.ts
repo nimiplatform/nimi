@@ -33,11 +33,22 @@ export {
   setDaemonConfig,
 } from './runtime-daemon.js';
 export {
+  beginRuntimeAccountLogin,
+  completeRuntimeAccountLogin,
   getRuntimeAccountSessionStatus,
+  getRuntimeAccountSessionStatusResponse,
+  invokeRuntimeAccountRealmUnary,
+  logoutRuntimeAccount,
+  parseDesktopAccountBeginLoginResponse,
+  parseDesktopAccountRealmUnaryResponse,
   parseDesktopAccountSessionStatus,
+  switchRuntimeAccount,
 } from './runtime-account.js';
 export type {
+  DesktopAccountBeginLoginInput,
+  DesktopAccountCompleteLoginInput,
   DesktopAccountProjection,
+  DesktopAccountRealmUnaryInput,
   DesktopAccountSessionState,
   DesktopAccountSessionStatus,
 } from './runtime-account.js';
@@ -88,8 +99,15 @@ export type {
   FloatingWindowConstrainResult,
 } from './floating-window.js';
 export {
-  createInstalledNimiAppStandardShellSurface,
-} from './installed-app.js';
+  createNimiLocalAppStandardShellSurface,
+  getNimiLocalAppAgentConversationSnapshot,
+  getNimiLocalAppPermissionPosture,
+  getNimiLocalAppSessionStatus,
+  openNimiLocalAppAgentConversation,
+  readNimiLocalAppRuntimeArtifactBytes,
+  sendNimiLocalAppAgentTurn,
+  subscribeNimiLocalAppAgentTurn,
+} from './local-app.js';
 export {
   openDesktopIntent,
 } from './desktop-open.js';
@@ -144,11 +162,17 @@ export type {
   AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
-  InstalledNimiAppArtifactBytes,
-  InstalledNimiAppStorageRemoveJsonResult,
-  InstalledNimiAppStandardShellSurface,
-  NimiAppHostBootstrapStatus,
-} from './installed-app.js';
+  NimiLocalAppAgentGetConversationSnapshotInput,
+  NimiLocalAppAgentOpenConversationInput,
+  NimiLocalAppAgentSendTurnInput,
+  NimiLocalAppAgentSubscribeTurnInput,
+  NimiLocalAppAgentTurnCarrierEvent,
+  NimiLocalAppAgentTurnEventPage,
+  NimiLocalAppArtifactBytes,
+  NimiLocalAppPermissionPostureInput,
+  NimiLocalAppSessionStatus,
+  NimiLocalAppStandardShellSurface,
+} from './local-app.js';
 export type {
   JsonPrimitive,
   JsonValue,

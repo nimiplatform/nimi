@@ -15,7 +15,6 @@ Files:
 - `runtime/v1/auth.proto`
 - `runtime/v1/audit.proto`
 - `runtime/v1/connector.proto`
-- `runtime/v1/grant.proto`
 - `runtime/v1/knowledge.proto`
 - `runtime/v1/local_runtime.proto`
 - `runtime/v1/model.proto`

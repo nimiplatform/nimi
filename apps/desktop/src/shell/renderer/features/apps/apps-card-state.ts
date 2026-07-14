@@ -1,269 +1,126 @@
-// Apps card-state derivation (T4-W4).
+// Desktop Apps read-only state projection.
 //
-// The 11 canonical product card states are NOT a one-to-one projection of the
-// SDK `AppLaunchReadiness` floor. Current authority is
-// `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` D-HOME-005 plus
-// `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` P-NAPP-008:
-// the product state *refines* the 7-value readiness floor with package
-// progress, update compatibility, and error details — those signals live in
-// the runtime-owned `NimiRuntimeAppInstallJob` projection, not in the readiness
-// floor. Four states (`installing`, `update_available`, `install_failed`,
-// `uninstalling`) are unreachable from readiness alone.
-//
-// This module is the single derivation seam: it composes the
-// `AppLaunchReadiness` floor WITH the live `NimiRuntimeAppInstallJob` for the same
-// app. It is a pure function over already-typed projections — it never reads
-// app-local spec files, never owns a parallel job/registry truth, and never
-// collapses a distinct failure into a generic bucket (`P-NAPP-008`).
-//
-// Authority:
-//   - D-HOME-005 canonical Apps card states
-//   - P-NAPP-008 (no collapsed `unavailable` card)
-//   - K-APP-011..K-APP-016 (NimiRuntimeAppInstallJob lifecycle)
+// 0K deliberately separates inventory presence, access posture, and immutable
+// package readiness. Keeping those dimensions distinct prevents the renderer
+// from turning catalog/account visibility into install or launch truth.
 
-import type { AppLaunchReadiness, NimiAppStatus } from '@nimiplatform/sdk/app';
 import type {
-  NimiRuntimeAppInstallJob,
-  NimiRuntimeAppLifecycleJobKind,
-} from './apps-lifecycle-bridge.js';
+  NimiAppInventoryEntry,
+  NimiAppInventorySourceStatus,
+  NimiAppOpenReadiness,
+} from '@nimiplatform/sdk/app';
 
-/**
- * The 11 canonical product card states from D-HOME-005. This is the exact,
- * complete set — there is no 12th state. The historical
- * `status_unavailable` value in `apps-panel-projection.ts` is a separate
- * `status()`-failure bucket scheduled for the W5 hard-cut and is intentionally
- * NOT a member of this canonical set.
- */
-export const CANONICAL_APP_CARD_STATES = [
-  'not_installed_installable',
-  'installing',
-  'installed_ready',
-  'update_available',
-  'update_required',
-  'permission_required',
-  'repair_required',
-  'unsupported_on_this_device',
-  'blocked_by_policy',
-  'install_failed',
-  'uninstalling',
+export const APP_INVENTORY_PRESENCE_STATES = [
+  'catalog_only',
+  'account_visible',
+  'local_record_active',
+  'local_record_dormant',
+  'local_record_removed',
 ] as const;
 
-export type CanonicalAppCardState = typeof CANONICAL_APP_CARD_STATES[number];
+export type AppInventoryPresenceState = typeof APP_INVENTORY_PRESENCE_STATES[number];
 
-/**
- * The visual posture for each canonical card state from the D-HOME-005 card
- * state table.
- */
-export type AppCardPosture =
-  | 'greyed-selectable'
-  | 'progress'
-  | 'normal'
-  | 'normal-badge'
-  | 'warning'
-  | 'disabled'
-  | 'error';
+export const APP_ACCESS_STATES = [
+  'ready',
+  'sign_in_required',
+  'permission_required',
+  'package_unavailable',
+  'local_record_dormant',
+  'blocked_by_policy',
+  'unsupported',
+] as const;
 
-const CARD_POSTURE: Record<CanonicalAppCardState, AppCardPosture> = {
-  not_installed_installable: 'greyed-selectable',
-  installing: 'progress',
-  installed_ready: 'normal',
-  update_available: 'normal-badge',
-  update_required: 'warning',
-  permission_required: 'warning',
-  repair_required: 'warning',
-  unsupported_on_this_device: 'disabled',
-  blocked_by_policy: 'disabled',
-  install_failed: 'error',
-  uninstalling: 'progress',
-};
+export type AppAccessState = typeof APP_ACCESS_STATES[number];
 
-export function postureForCardState(state: CanonicalAppCardState): AppCardPosture {
-  return CARD_POSTURE[state];
+export type AppImmutablePackageState = 'immutable_package_unavailable';
+
+const INVENTORY_SOURCE_KEYS: ReadonlyArray<keyof NimiAppInventoryEntry['sources']> = [
+  'catalog',
+  'account',
+  'localRecord',
+  'packageReadiness',
+];
+
+export interface AppCardState {
+  readonly inventory: AppInventoryPresenceState;
+  readonly access: AppAccessState;
+  readonly immutablePackage: AppImmutablePackageState;
+  readonly packageProjectionStatus: NimiAppInventorySourceStatus;
+  readonly degradedSources: ReadonlyArray<keyof NimiAppInventoryEntry['sources']>;
 }
 
-/**
- * The live lifecycle job picked for an app's card-state derivation. The Apps
- * panel may hold several historical jobs per app; the derivation only ever
- * considers the single most-recent job (the live truth), passed here already
- * selected so this module stays a pure function.
- */
-export type AppCardJobInput = NimiRuntimeAppInstallJob | undefined;
+export type AppCardPosture = 'normal' | 'warning' | 'disabled';
 
-/**
- * The composed inputs for one app's card state. `readiness` is the SDK floor;
- * `status` carries the version signals; `job` is the live `NimiRuntimeAppInstallJob`
- * (already narrowed to the most recent job for this app).
- */
-export interface AppCardStateInput {
-  readonly readiness: AppLaunchReadiness;
-  readonly status: NimiAppStatus;
-  readonly job: AppCardJobInput;
+export function deriveAppCardState(entry: NimiAppInventoryEntry): AppCardState {
+  return {
+    inventory: deriveInventoryPresence(entry),
+    access: deriveAccessState(entry.openReadiness),
+    immutablePackage: 'immutable_package_unavailable',
+    packageProjectionStatus: entry.sources.packageReadiness.status,
+    degradedSources: INVENTORY_SOURCE_KEYS.filter((key) => entry.sources[key].status === 'degraded'),
+  };
 }
 
-/**
- * Derive the canonical product card state by composing the readiness floor
- * with the live `NimiRuntimeAppInstallJob`.
- *
- * Derivation order (the live job wins over the floor while it is in flight or
- * terminal-failed, because the floor cannot represent progress/error):
- *
- *  1. A live in-flight job pins the card to a progress state by `kind`:
- *     `install` -> `installing`, `update`/`repair` -> `installing` posture
- *     is not used; an in-flight `update` keeps `update_required` semantics is
- *     wrong — D-HOME-005 gives `installing` only the install kind a Progress
- *     card. `update`/`repair` in-flight reuse the `installing`
- *     Progress posture under their own product state below.
- *  2. A terminal `failed` install/update/repair job -> `install_failed`.
- *  3. A terminal `cancelled` job is not a card state on its own — the floor
- *     re-resolves it (a cancelled install falls back to
- *     `not_installed_installable`).
- *  4. With no in-flight job, the readiness floor maps 1:1, except `ready`
- *     which is refined to `update_available` when `status` reports a
- *     different non-empty `availableVersion`.
- */
-export function deriveAppCardState(input: AppCardStateInput): CanonicalAppCardState {
-  const { readiness, status, job } = input;
-
-  // (1)/(2) The live job overrides the floor: progress and terminal-failure
-  // states have no readiness-floor representation.
-  if (job) {
-    const jobState = liveJobCardState(job);
-    if (jobState) {
-      return jobState;
-    }
-  }
-
-  // (4) No live job overriding the card: map the readiness floor, refining
-  // `ready` to `update_available` when a newer compatible version is offered.
-  return mapReadinessFloor(readiness, status);
-}
-
-/**
- * Map a live `NimiRuntimeAppInstallJob` to its product card state, or `undefined`
- * when the job does not override the readiness floor (a terminal-success or
- * terminal-cancelled job lets the floor re-resolve).
- */
-function liveJobCardState(job: NimiRuntimeAppInstallJob): CanonicalAppCardState | undefined {
-  switch (job.state) {
-    case 'queued':
-    case 'in_progress':
-      return inFlightCardState(job.kind);
-    case 'failed':
-      // A failed install/update/repair is a recoverable error card. The job
-      // carries the typed `reasonCode`; the card surface renders Retry.
-      return 'install_failed';
-    case 'installed':
-    case 'cancelled':
-    case 'uninstalled':
-      // Terminal success / cancellation: the readiness floor is now the
-      // authority. (`uninstalled` -> floor resolves `not_installed_installable`;
-      // `installed` -> floor resolves `installed_ready`/`update_available`.)
-      return undefined;
+export function postureForAppCardState(state: AppCardState): AppCardPosture {
+  switch (state.access) {
+    case 'ready':
+      return state.inventory === 'local_record_active' ? 'normal' : 'disabled';
+    case 'sign_in_required':
+    case 'permission_required':
+    case 'local_record_dormant':
+      return 'warning';
+    case 'package_unavailable':
+    case 'blocked_by_policy':
+    case 'unsupported':
+      return 'disabled';
     default: {
-      // Exhaustiveness guard — a new job state must be handled explicitly,
-      // never silently collapsed.
-      const exhaustive: never = job.state;
-      throw new Error(`unhandled NimiRuntimeAppInstallJob state: ${String(exhaustive)}`);
+      const exhaustive: never = state.access;
+      return exhaustive;
     }
   }
 }
 
-/**
- * The Progress card state for an in-flight (`queued`/`in_progress`) job.
- * `install` and `update`/`repair` all surface as `installing` (D-HOME-005's
- * single Progress-with-phase card for forward lifecycle work); `uninstall`
- * surfaces as the distinct `uninstalling` Progress card.
- */
-function inFlightCardState(kind: NimiRuntimeAppLifecycleJobKind): CanonicalAppCardState {
-  switch (kind) {
-    case 'install':
-    case 'update':
-    case 'repair':
-      return 'installing';
-    case 'uninstall':
-      return 'uninstalling';
-    default: {
-      const exhaustive: never = kind;
-      throw new Error(`unhandled NimiRuntimeAppLifecycleJobKind: ${String(exhaustive)}`);
+function deriveInventoryPresence(entry: NimiAppInventoryEntry): AppInventoryPresenceState {
+  const localRecord = entry.sources.localRecord.value;
+  if (entry.sources.localRecord.status === 'present' && localRecord) {
+    switch (localRecord.recordState) {
+      case 'active':
+        return 'local_record_active';
+      case 'dormant':
+        return 'local_record_dormant';
+      case 'removed':
+        return 'local_record_removed';
+      default: {
+        const exhaustive: never = localRecord.recordState;
+        return exhaustive;
+      }
     }
   }
+  if (entry.sources.account.status === 'present') {
+    return 'account_visible';
+  }
+  return 'catalog_only';
 }
 
-/**
- * Map the SDK `AppLaunchReadiness` floor to a card state, refining `ready`
- * into `update_available` when `status` advertises a different non-empty
- * `availableVersion`. Every floor value maps explicitly — the switch is
- * exhaustive so an added floor value fails the type-check rather than
- * silently collapsing.
- */
-function mapReadinessFloor(
-  readiness: AppLaunchReadiness,
-  status: NimiAppStatus,
-): CanonicalAppCardState {
+function deriveAccessState(readiness: NimiAppOpenReadiness): AppAccessState {
   switch (readiness) {
     case 'ready':
-      return hasNonBreakingUpdate(status) ? 'update_available' : 'installed_ready';
-    case 'install-required':
-      return 'not_installed_installable';
-    case 'update-required':
-      return 'update_required';
-    case 'repair-required':
-      return 'repair_required';
+      return 'ready';
+    case 'sign-in-required':
+      return 'sign_in_required';
     case 'permission-required':
       return 'permission_required';
+    case 'package-unavailable':
+      return 'package_unavailable';
+    case 'local-record-dormant':
+      return 'local_record_dormant';
     case 'blocked-by-master-gate':
       return 'blocked_by_policy';
     case 'unsupported':
-      return 'unsupported_on_this_device';
+      return 'unsupported';
     default: {
       const exhaustive: never = readiness;
-      throw new Error(`unhandled AppLaunchReadiness: ${String(exhaustive)}`);
+      return exhaustive;
     }
   }
-}
-
-/**
- * A non-breaking update is available when the status projection reports an
- * `availableVersion` that is present, non-empty, and different from the
- * `installedVersion`. The readiness floor stays `ready` for a non-breaking
- * update (a breaking/required update is `update-required` instead), so this
- * is the only signal that distinguishes `update_available` from
- * `installed_ready`.
- */
-function hasNonBreakingUpdate(status: NimiAppStatus): boolean {
-  const available = typeof status.availableVersion === 'string' ? status.availableVersion.trim() : '';
-  const installed = typeof status.installedVersion === 'string' ? status.installedVersion.trim() : '';
-  return available.length > 0 && available !== installed;
-}
-
-/**
- * Select the single most-recent lifecycle job for an app from the typed job
- * list. The runtime is the job-truth owner; this is a deterministic pick over
- * the typed projection, not a renderer-local job store.
- *
- * Ordering: by `updatedAt` (ISO-8601, lexicographically sortable) descending,
- * with `createdAt` as the tiebreaker, then `jobId` as a final stable
- * tiebreaker. A job with neither timestamp sorts last.
- */
-export function selectLatestJobForApp(
-  appId: string,
-  jobs: readonly NimiRuntimeAppInstallJob[],
-): NimiRuntimeAppInstallJob | undefined {
-  const normalizedAppId = appId.trim();
-  const candidates = jobs.filter((job) => job.appId === normalizedAppId);
-  if (candidates.length === 0) {
-    return undefined;
-  }
-  return [...candidates].sort(compareJobRecency)[0];
-}
-
-function compareJobRecency(a: NimiRuntimeAppInstallJob, b: NimiRuntimeAppInstallJob): number {
-  const aKey = a.updatedAt ?? a.createdAt ?? '';
-  const bKey = b.updatedAt ?? b.createdAt ?? '';
-  if (aKey !== bKey) {
-    // Descending — most recent first. An empty key sorts last.
-    return aKey < bKey ? 1 : -1;
-  }
-  // Stable tiebreaker so the pick is deterministic when timestamps collide.
-  return a.jobId < b.jobId ? 1 : a.jobId > b.jobId ? -1 : 0;
 }

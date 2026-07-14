@@ -31,7 +31,7 @@ $StateRoot = Join-Path $env:ProgramData $(if ($VirtualAccount) { 'Nimi\Runtime\E
 $DiagnosticsRoot = Join-Path $env:ProgramData $(if ($VirtualAccount) { 'Nimi\Runtime\E2E-Virtual-Diagnostics' } else { 'Nimi\Runtime\E2E-Diagnostics' })
 $PeerRejectionPath = Join-Path $DiagnosticsRoot 'last-peer-rejection.json'
 $DesktopPipeName = if ($VirtualAccount) { 'nimi-runtime-e2e-virtual-protected-v1' } else { 'nimi-runtime-e2e-protected-v1' }
-$InstalledPipeName = if ($VirtualAccount) { 'nimi-runtime-e2e-virtual-installed-v1' } else { 'nimi-runtime-e2e-installed-v1' }
+$LocalAppPipeName = if ($VirtualAccount) { 'nimi-runtime-e2e-virtual-local-app-v1' } else { 'nimi-runtime-e2e-local-app-v1' }
 $script:ForcedStaleStopRecovery = $false
 $RuntimeStartupStages = @{
   42240 = 'unclassified'
@@ -350,7 +350,7 @@ function Wait-ProtectedPipes {
   $deadline = (Get-Date).AddSeconds(15)
   while ((Get-Date) -lt $deadline) {
     $pipeNames = @(Get-ChildItem -LiteralPath '\\.\pipe\' -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
-    if ($pipeNames -contains $DesktopPipeName -and $pipeNames -contains $InstalledPipeName) { return }
+    if ($pipeNames -contains $DesktopPipeName -and $pipeNames -contains $LocalAppPipeName) { return }
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($null -eq $service -or [string] $service.Status -eq 'Stopped') {
       throw "$ServiceName stopped before its protected pipes became available.`n$(Get-ServiceFailureDetail)"
@@ -675,7 +675,7 @@ function Install-Fixture {
       -not $status.binaryPathMatches -or
       -not $status.serviceAccountMatches -or
       -not $status.desktopPipePresent -or
-      -not $status.installedPipePresent -or
+      -not $status.localAppPipePresent -or
       $status.signatureStatus -ne 'Valid' -or
       $status.state -ne 'running') {
     throw "$ServiceName failed protected fixture post-install validation."
@@ -742,7 +742,7 @@ function Get-FixtureStatus {
     serviceSidMatches = $null -ne $resolvedSid -and $resolvedSid -eq $ExpectedServiceSid
     restrictedSid = $sidType -match 'RESTRICTED'
     desktopPipePresent = $pipeNames -contains $DesktopPipeName
-    installedPipePresent = $pipeNames -contains $InstalledPipeName
+    localAppPipePresent = $pipeNames -contains $LocalAppPipeName
     stateRoot = $StateRoot
     stateRootExists = Test-Path -LiteralPath $StateRoot -PathType Container
     partOfDomain = [bool] $computerSystem.PartOfDomain

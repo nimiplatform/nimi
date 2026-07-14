@@ -19,7 +19,9 @@ export const AUTHORITY_PATHS = Object.freeze({
   grant: '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml',
   presence: '.nimi/spec/runtime/kernel/tables/local-app-presence-protocol.yaml',
   identityPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+  localPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
   artifactPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
+  rpcMethods: '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml',
   trust: '.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml',
   sdkGroups: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
 });
@@ -54,6 +56,30 @@ const PACKAGE_METHODS = Object.freeze([
 ]);
 
 const PACKAGE_DENY_METHODS = new Set(PACKAGE_METHODS.filter((name) => name !== 'GetAppPackageReadiness'));
+
+const DESKTOP_PRODUCT_CONTROL_METHODS = Object.freeze([
+  'CollectDeviceProfile',
+  'ResolveLocalEnvironmentPlan',
+  'ListLocalEnvironmentDependencyJobs',
+  'StartLocalEnvironmentDependencyJob',
+  'CancelLocalEnvironmentDependencyJob',
+  'RetryLocalEnvironmentDependencyJob',
+  'RepairLocalEnvironmentDependency',
+  'ResolveRuntimeBaselineReadiness',
+  'MintRuntimeBaselineReadiness',
+  'ResolveFirstRunExecutionEvidence',
+  'MintFirstRunExecutionEvidence',
+  'GetProductControlRecord',
+  'GetProductControlSelectedDataRoot',
+  'EnsureProductControlRecordCreated',
+  'SelectProductControlDataRoot',
+  'SetProductControlFirstRunInstallLevel',
+  'CompleteProductControlFirstRunDeviceEnvironmentScan',
+  'AdmitProductControlReadyForUse',
+  'RecordProductControlAccountDefaultProfileEvidence',
+  'RecordProductControlFirstRunLocalAiReadyEvidence',
+  'ReconcileProductControlFirstRunSetupState',
+].map((method) => `/nimi.runtime.v1.RuntimeLocalService/${method}`));
 
 const RETIRED_PUBLIC_VOCABULARY = Object.freeze([
   'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP',
@@ -344,7 +370,9 @@ function validatePackageSeam(bundle, issues) {
 function validateTransport(bundle, issues) {
   const matrix = parseYaml(bundle, AUTHORITY_PATHS.transport, issues);
   const identity = parseYaml(bundle, AUTHORITY_PATHS.identityPosture, issues);
+  const local = parseYaml(bundle, AUTHORITY_PATHS.localPosture, issues);
   const artifact = parseYaml(bundle, AUTHORITY_PATHS.artifactPosture, issues);
+  const rpcMethods = parseYaml(bundle, AUTHORITY_PATHS.rpcMethods, issues);
   if (!equalArray(matrix?.transport_classes, EXPECTED_TRANSPORTS)) {
     issues.push(issue(
       'FINAL_TRANSPORT_CLASSES_REQUIRED',
@@ -413,6 +441,47 @@ function validateTransport(bundle, issues) {
       || !equalArray(postureTransports, transports)
       || !equalArray(postureRoles, roles)
     ) invalidRoute = true;
+  }
+
+  const expectedDesktopProductControlIds = [...DESKTOP_PRODUCT_CONTROL_METHODS].sort();
+  const desktopProductControlRows = (matrix?.methods ?? [])
+    .filter((row) => row?.operation_class === 'desktop_product_control');
+  const actualDesktopProductControlIds = desktopProductControlRows
+    .map((row) => String(row?.method_id || ''))
+    .sort();
+  const localPostureByMethod = rowsBy(local?.methods, 'method_id');
+  const runtimeLocalService = (rpcMethods?.services ?? [])
+    .find((service) => service?.name === 'RuntimeLocalService');
+  const rpcMethodByName = rowsBy(runtimeLocalService?.methods, 'name');
+  let desktopProductControlInvalid = !equalArray(
+    actualDesktopProductControlIds,
+    expectedDesktopProductControlIds,
+  );
+  for (const methodId of DESKTOP_PRODUCT_CONTROL_METHODS) {
+    const route = desktopProductControlRows.find((row) => row?.method_id === methodId);
+    const posture = localPostureByMethod.get(methodId);
+    const methodName = methodId.slice(methodId.lastIndexOf('/') + 1);
+    const rpcMethod = rpcMethodByName.get(methodName);
+    if (
+      !route
+      || !equalArray(route.allowed_transport_classes, ['desktop_control'])
+      || !equalArray(route.required_origin_roles, ['verified_desktop_process'])
+      || route.request_may_select_role !== false
+      || route.portable_session_allowed !== false
+      || route.public_tcp_disposition !== 'deny'
+      || route.source_rule !== 'K-RPC-004'
+      || posture?.posture !== 'protected_origin_required'
+      || !hasEvery(posture?.kernel_refs, ['K-RPC-004'])
+      || rpcMethod?.type !== 'unary'
+      || rpcMethod?.protected_transport_ref !== methodId
+    ) desktopProductControlInvalid = true;
+  }
+  if (desktopProductControlInvalid) {
+    issues.push(issue(
+      'DESKTOP_PRODUCT_CONTROL_ROUTE_CONVERGENCE_REQUIRED',
+      AUTHORITY_PATHS.transport,
+      'All and only the frozen K-RPC-004 desktop product-control methods must converge across transport, auth posture, and RPC inventory on the verified Desktop protected carrier.',
+    ));
   }
   const admittedTransports = new Set(EXPECTED_TRANSPORTS);
   const admittedRoles = new Set(EXPECTED_ROLES);

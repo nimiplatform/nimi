@@ -99,8 +99,10 @@ enum AccountCallerMode {
   reserved "ACCOUNT_CALLER_MODE_MOD";
   ACCOUNT_CALLER_MODE_WEB_CLOUD = 5;
   ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL = 6;
-  ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP = 7;
-  ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP = 8;
+  reserved 7, 8;
+  reserved "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP";
+  reserved "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP";
+  ACCOUNT_CALLER_MODE_LOCAL_APP = 9;
 }
 
 enum ScopedAppBindingState {
@@ -398,6 +400,69 @@ message RevokeWorkspaceBindingResponse {
   bool production_inert = 5;
 }
 
+enum LocalAppGrantState {
+  LOCAL_APP_GRANT_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_GRANT_STATE_NO_GRANT = 1;
+  LOCAL_APP_GRANT_STATE_PENDING = 2;
+  LOCAL_APP_GRANT_STATE_GRANTED = 3;
+  LOCAL_APP_GRANT_STATE_DENIED = 4;
+  LOCAL_APP_GRANT_STATE_EXPIRED = 5;
+  LOCAL_APP_GRANT_STATE_REVOKED = 6;
+  LOCAL_APP_GRANT_STATE_SUPERSEDED = 7;
+}
+
+message LocalAppGrantProjection {
+  LocalAppGrantState state = 1;
+  string operation_id = 2;
+  string resource_ref = 3;
+  bytes request_id = 4;
+  bytes grant_id = 5;
+  uint64 grant_generation = 6;
+  uint64 grant_revision = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  ReasonCode reason_code = 9;
+  // Present only on the verified Desktop local_app_control projection. The
+  // local-app carrier never receives this host-private decision correlation.
+  bytes presence_challenge_id = 10;
+}
+
+message GetLocalAppGrantStatusRequest {
+  string operation_id = 1;
+  string resource_ref = 2;
+}
+
+message GetLocalAppGrantStatusResponse {
+  LocalAppGrantProjection projection = 1;
+}
+
+message RequestLocalAppGrantRequest {
+  string operation_id = 1;
+  string resource_ref = 2;
+  string purpose = 3;
+}
+
+message RequestLocalAppGrantResponse {
+  LocalAppGrantProjection projection = 1;
+}
+
+message DecideLocalAppGrantRequest {
+  bytes request_id = 1;
+  bool approved = 2;
+  bytes presence_challenge_id = 3;
+}
+
+message DecideLocalAppGrantResponse {
+  LocalAppGrantProjection projection = 1;
+}
+
+message RevokeLocalAppGrantRequest {
+  bytes grant_id = 1;
+}
+
+message RevokeLocalAppGrantResponse {
+  LocalAppGrantProjection projection = 1;
+}
+
 service RuntimeAccountService {
   rpc GetAccountSessionStatus(GetAccountSessionStatusRequest) returns (GetAccountSessionStatusResponse);
   rpc SubscribeAccountSessionEvents(SubscribeAccountSessionEventsRequest) returns (stream AccountSessionEvent);
@@ -411,4 +476,8 @@ service RuntimeAccountService {
   rpc RevokeScopedAppBinding(RevokeScopedAppBindingRequest) returns (RevokeScopedAppBindingResponse);
   rpc IssueWorkspaceBinding(IssueWorkspaceBindingRequest) returns (IssueWorkspaceBindingResponse);
   rpc RevokeWorkspaceBinding(RevokeWorkspaceBindingRequest) returns (RevokeWorkspaceBindingResponse);
+  rpc GetLocalAppGrantStatus(GetLocalAppGrantStatusRequest) returns (GetLocalAppGrantStatusResponse);
+  rpc RequestLocalAppGrant(RequestLocalAppGrantRequest) returns (RequestLocalAppGrantResponse);
+  rpc DecideLocalAppGrant(DecideLocalAppGrantRequest) returns (DecideLocalAppGrantResponse);
+  rpc RevokeLocalAppGrant(RevokeLocalAppGrantRequest) returns (RevokeLocalAppGrantResponse);
 }

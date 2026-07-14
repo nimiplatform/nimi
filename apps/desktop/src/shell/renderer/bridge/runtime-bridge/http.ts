@@ -8,7 +8,6 @@ type ProxyHttpPayload = {
   url: string;
   method?: string;
   headers?: HeadersInit;
-  authorization?: string;
   body?: string;
   connectorAuthProfileId?: string;
   connectorAuthPurpose?: 'device_authorization' | 'device_token';
@@ -74,27 +73,18 @@ function sanitizeHeaders(headers: HeadersInit | undefined): Record<string, strin
   return Object.fromEntries(entries);
 }
 
-function splitAuthorization(headers: HeadersInit | undefined, authorization?: string): {
-  headers: Record<string, string>;
-  authorization?: string;
-} {
+function sanitizeRendererHeaders(headers: HeadersInit | undefined): Record<string, string> {
   const normalizedHeaders = sanitizeHeaders(headers);
-  let resolvedAuthorization = typeof authorization === 'string' ? authorization.trim() : '';
-
-  for (const [key, value] of Object.entries(normalizedHeaders)) {
+  for (const key of Object.keys(normalizedHeaders)) {
     if (key.trim().toLowerCase() !== 'authorization') {
       continue;
     }
-    if (!resolvedAuthorization) {
-      resolvedAuthorization = String(value || '').trim();
-    }
-    delete normalizedHeaders[key];
+    throw createDesktopBridgeError(
+      'DESKTOP_HTTP_RENDERER_AUTHORIZATION_FORBIDDEN',
+      'Desktop renderer HTTP requests cannot carry Authorization credentials.',
+    );
   }
-
-  return {
-    headers: normalizedHeaders,
-    authorization: resolvedAuthorization || undefined,
-  };
+  return normalizedHeaders;
 }
 
 function isIpv4Host(hostname: string): boolean {
@@ -199,18 +189,12 @@ async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpRe
   if (!isSameOriginRequest && !isLoopbackToLoopbackRequest) {
     throw new Error(`Web fallback 仅允许同源或显式 loopback 请求：${url.origin}`);
   }
-  const { headers, authorization } = splitAuthorization(payload.headers, payload.authorization);
+  const headers = sanitizeRendererHeaders(payload.headers);
 
   const init: RequestInit = {
     method,
     headers,
   };
-  if (authorization) {
-    const headerBag = new Headers(init.headers);
-    headerBag.set('authorization', authorization);
-    init.headers = headerBag;
-  }
-
   if (typeof payload.body === 'string' && method !== 'GET' && method !== 'HEAD') {
     init.body = payload.body;
   }
@@ -238,12 +222,11 @@ export async function proxyHttp(payload: ProxyHttpPayload): Promise<ProxyHttpRes
   }
 
   const diagnosticSessionId = resolveRendererSessionTraceId();
-  const { headers, authorization } = splitAuthorization(payload.headers, payload.authorization);
+  const headers = sanitizeRendererHeaders(payload.headers);
   return invokeChecked('http_request', {
     payload: {
       ...payload,
       headers,
-      authorization,
       diagnosticSessionId,
     },
   }, parseProxyHttpResult);

@@ -13,3 +13,343 @@ required_blocks:
   - Authority Alignment
   - Evidence Sufficiency
   - Disposition
+
+# Repository-owned static close evidence contract. This extends, and does not
+# replace, the retained nimicoding acceptance projection above. It validates
+# immutable candidate/evidence facts only; the external AI host remains the
+# exclusive owner of workflow, continuation, and completion decisions.
+repository_static_close_manifest:
+  id: nimi.repository.static-close-manifest.v1
+  kind: static-close-manifest
+  repository_role: static_candidate_and_evidence_validation_only
+  host_control_boundary: external_ai_host_exclusive
+  close_level_profiles:
+    dev_kernel_checkpoint:
+      category: checkpoint
+      checker: scripts/check-dev-kernel-checkpoint-acceptance.mjs
+    windows_platform_reference_close:
+      category: platform
+      parent_level: dev_kernel_checkpoint
+    app_migration_close:
+      category: app
+      parent_level: windows_platform_reference_close
+    ecosystem_hardcut_close:
+      category: ecosystem
+      parent_level: windows_platform_reference_close
+  top_level_required_keys:
+    - schemaId
+    - manifestVersion
+    - closeLevel
+    - releasePosture
+    - productClosePromotion
+    - candidateBindingSha256
+    - candidate
+    - packageIdentity
+    - signingIdentity
+    - developmentServiceSignature
+    - evidence
+    - acceptanceRows
+  candidate_binding:
+    algorithm: sha256
+    canonicalization: recursively_sorted_json_keys_utf8
+    payload_keys:
+      - closeLevel
+      - releasePosture
+      - productClosePromotion
+      - candidate
+      - packageIdentity
+      - signingIdentity
+      - developmentServiceSignature
+  dev_kernel_checkpoint:
+    release_posture: non_release
+    product_close_promotion: non_promotable_to_product_close
+    package_identity:
+      applicability: not_applicable
+      reason_required: true
+    signing_identity:
+      applicability: not_applicable
+      reason_required: true
+    required_build_components:
+      - runtime
+      - sdk
+      - kit
+      - desktop
+      - zhiyu
+      - app-tools
+    required_artifact_ids:
+      - runtime-service-binary
+      - proto-generated
+      - sdk-distribution
+      - kit-distribution
+      - desktop-shell
+      - zhiyu-electron
+      - app-tools
+    exact_required_rows:
+      - A-01
+      - A-03
+      - A-04
+      - A-05
+      - A-06
+      - A-09
+      - C-03
+      - C-04
+      - C-06
+      - C-08
+      - C-09
+      - D-01
+      - D-02
+      - D-03
+      - D-04
+      - D-05
+      - D-06
+      - D-08
+      - D-09
+      - E-01a
+      - E-03
+      - E-04a
+      - E-05
+      - E-07
+      - E-08
+      - E-09
+      - F-01
+      - F-02
+      - F-03a
+      - F-04a
+      - F-06a
+      - H-01
+      - H-02
+      - H-03
+      - H-04
+      - H-05
+    evidence_record:
+      schema_id: nimi.repository.candidate-evidence.v2
+      exact_keys:
+        - schemaId
+        - evidenceId
+        - candidateBindingSha256
+        - evidenceKind
+        - claims
+        - executionBinding
+        - artifactRefs
+      evidence_kind_enum:
+        - authority_convergence
+        - owner_gate
+        - runtime_trace
+        - security_negative
+        - developer_mode_journey
+        - local_agent_journey
+        - real_shell_audit
+        - privacy_audit
+        - close_reconciliation
+      execution_binding:
+        algorithm: sha256
+        canonical_payload_keys:
+          - candidateBindingSha256
+          - journeyTrialId
+          - sourceStateDigest
+        exact_keys:
+          - executionSetId
+          - journeyTrialId
+          - sourceStateDigest
+        shared_across_all_required_execution_claims: true
+        note: Immutable execution correlation only; this is evidence data, not host workflow state.
+      claim_exact_keys:
+        - rowId
+        - claimId
+      artifact_ref_exact_keys:
+        - role
+        - ref
+        - sha256
+      artifact_role_enum:
+        - observation
+        - execution_observation
+        - runner_result
+        - runner_artifact_manifest
+      execution_observation:
+        schema_id: nimi.repository.execution-observation.v1
+        exact_keys:
+          - schemaId
+          - executionSetId
+          - journeyTrialId
+          - sourceStateDigest
+          - outcome
+        required_outcome: passed
+    runner_profiles:
+      dev_kernel_core_v2:
+        result_schema_id: nimi.local-agent-product-journey-result/v2
+        artifact_manifest_schema_id: nimi.local-agent-product-artifact-manifest/v2
+        journey_id: dev-kernel-core
+        tier: L2
+        batch: core
+        exact_process_starts:
+          provider: 1
+          realm: 1
+          runtime: 1
+          desktop: 1
+          zhiyu: 1
+        exact_required_checkpoints:
+          - fixed-service-ready
+          - production-account-login
+          - developer-mode-enabled
+          - run-once-project-admitted
+          - zero-grant-session
+          - operation-denied-before-grant
+          - selected-operation-granted
+          - selected-runtime-agent-operation
+          - process-mismatch-denied
+          - grant-revoked-next-operation-denied
+          - remembered-project-admitted
+          - runtime-agent-conversation
+          - edit-build-process-replaced
+          - conversation-resumed-after-process-replacement
+          - mode-off-dormant
+          - remembered-project-reactivated
+          - fixed-service-restarted
+          - conversation-resumed-after-runtime-restart
+          - account-switch-invalidated
+          - project-revoked-next-operation-denied
+          - desktop-real-shell-acceptance
+          - zhiyu-real-shell-acceptance
+          - protected-carrier-privacy-closeout
+        required_artifact_ids:
+          - dev-kernel-journey-summary
+          - fixed-service-summary
+          - provider-capture-summary
+          - real-shell-dom-console-a11y
+          - process-summary
+          - journey-environment
+          - journey-checkpoint-proof
+        minimum_shell_screenshot_artifacts: 2
+    row_evidence_policy:
+      A-01:
+        required_claims:
+          - { claim_id: authority.truth_map_converged, allowed_evidence_kinds: [authority_convergence], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: authority.projections_converged, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+      A-03:
+        required_claims:
+          - { claim_id: authority.runtime_credential_custody, allowed_evidence_kinds: [authority_convergence], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: security.owner_bypass_denied, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
+      A-04:
+        required_claims:
+          - { claim_id: runtime.stores_and_decisions_separated, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: runtime.local_development_trace_observed, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      A-05:
+        required_claims:
+          - { claim_id: wire.retired_public_vocabulary_absent, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+      A-06:
+        required_claims:
+          - { claim_id: authority.single_pc_scope_preserved, allowed_evidence_kinds: [authority_convergence], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: security.no_sync_or_outbound_authority_observed, allowed_evidence_kinds: [privacy_audit], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      A-09:
+        required_claims:
+          - { claim_id: authority.bundled_exclusion_preserved, allowed_evidence_kinds: [authority_convergence], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: runtime.zhiyu_bundled_and_dev_identity_isolated, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      C-03:
+        required_claims:
+          - { claim_id: security.launcher_and_lease_not_durable_identity, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
+      C-04:
+        required_claims:
+          - { claim_id: security.self_asserted_identity_inputs_denied, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
+      C-06:
+        required_claims:
+          - { claim_id: runtime.restart_rotates_process_and_session, allowed_evidence_kinds: [developer_mode_journey, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      C-08:
+        required_claims:
+          - { claim_id: security.no_app_held_account_or_provider_credential, allowed_evidence_kinds: [privacy_audit, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      C-09:
+        required_claims:
+          - { claim_id: runtime.zero_grant_session_then_separate_grant, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      D-01:
+        required_claims:
+          - { claim_id: developer_mode.single_mode_and_trust_set_schema, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: developer_mode.single_control_observed, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      D-02:
+        required_claims:
+          - { claim_id: developer_mode.production_account_run_once_operation, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      D-03:
+        required_claims:
+          - { claim_id: developer_mode.remembered_project_lifecycle, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      D-04:
+        required_claims:
+          - { claim_id: security.project_identity_and_capability_mutations_denied, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
+      D-05:
+        required_claims:
+          - { claim_id: developer_mode.boundary_invalidation_sequence, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      D-06:
+        required_claims:
+          - { claim_id: developer_mode.edit_build_process_session_rotation, allowed_evidence_kinds: [developer_mode_journey, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      D-08:
+        required_claims:
+          - { claim_id: security.nondelegable_platform_authority_denied, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
+      D-09:
+        required_claims:
+          - { claim_id: ui.native_windows_risk_disclosure_observed, allowed_evidence_kinds: [real_shell_audit], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      E-01a:
+        required_claims:
+          - { claim_id: runtime.dev_approval_zero_grant_then_grant, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      E-03:
+        required_claims:
+          - { claim_id: runtime.reversible_operation_repeated_under_grant, allowed_evidence_kinds: [runtime_trace], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      E-04a:
+        required_claims:
+          - { claim_id: developer_mode.reactivation_presence_lifecycle, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      E-05:
+        required_claims:
+          - { claim_id: runtime.presence_binding_atomic_consumption, allowed_evidence_kinds: [owner_gate, security_negative], execution_binding: required, runner_profile: null }
+      E-07:
+        required_claims:
+          - { claim_id: security.dev_persistent_autostart_denied, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
+      E-08:
+        required_claims:
+          - { claim_id: runtime.representative_operations_shared_coordinator, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      E-09:
+        required_claims:
+          - { claim_id: authority.provider_selection_owner_supplied, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: runtime.provider_selection_real_invocation, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      F-01:
+        required_claims:
+          - { claim_id: surface.final_host_neutral_carrier, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: surface.real_local_development_carrier, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      F-02:
+        required_claims:
+          - { claim_id: authority.shared_owner_surfaces_reused, allowed_evidence_kinds: [authority_convergence, owner_gate], execution_binding: forbidden, runner_profile: null }
+      F-03a:
+        required_claims:
+          - { claim_id: surface.generic_app_tools_dev_integration, allowed_evidence_kinds: [runtime_trace], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      F-04a:
+        required_claims:
+          - { claim_id: journey.dev_kernel_core_real_shell_passed, allowed_evidence_kinds: [local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      F-06a:
+        required_claims:
+          - { claim_id: authority.zhiyu_shared_surface_dependency, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: runtime.zhiyu_dev_identity_trace, allowed_evidence_kinds: [local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      H-01:
+        required_claims:
+          - { claim_id: close.predecessor_evidence_not_reused, allowed_evidence_kinds: [close_reconciliation], execution_binding: forbidden, runner_profile: null }
+      H-02:
+        required_claims:
+          - { claim_id: close.static_schema_checker_and_fixtures, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
+      H-03:
+        required_claims:
+          - { claim_id: privacy.checkpoint_evidence_zero_findings, allowed_evidence_kinds: [privacy_audit], execution_binding: forbidden, runner_profile: null }
+      H-04:
+        required_claims:
+          - { claim_id: close.gates_and_product_observation_reconciled, allowed_evidence_kinds: [close_reconciliation], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+      H-05:
+        required_claims:
+          - { claim_id: close.required_rows_all_pass, allowed_evidence_kinds: [close_reconciliation], execution_binding: forbidden, runner_profile: null }
+          - { claim_id: close.no_open_severity_1_or_2, allowed_evidence_kinds: [close_reconciliation], execution_binding: forbidden, runner_profile: null }
+  semantic_constraints:
+    - every_required_row_must_be_pass_with_candidate_bound_evidence_refs_and_hashes
+    - every_required_row_claim_must_use_its_allowed_evidence_kind_and_declared_execution_binding
+    - one_generic_closeout_record_cannot_cover_all_required_rows
+    - all_execution_claims_share_one_recomputed_execution_set_journey_trial_and_source_state_digest
+    - dev_kernel_core_journey_claim_recursively_validates_v2_result_artifact_manifest_privacy_and_file_hashes
+    - synthetic_checker_fixtures_are_explicitly_non_admissible_as_checkpoint_evidence
+    - no_required_row_may_be_waived_or_omitted
+    - repo_heads_dirty_diff_runtime_service_build_config_principal_and_artifact_hashes_are_candidate_bound
+    - package_and_package_signing_identity_are_explicitly_not_applicable_for_dev_only_checkpoint
+    - development_windows_service_signature_is_recorded_separately_from_package_signing_identity
+    - evidence_must_not_contain_secrets_tokens_private_keys_absolute_user_paths_or_old_wave_refs
+    - manifest_must_not_contain_task_status_manager_worker_dispatch_continuation_or_other_workflow_fields
+    - validation_does_not_create_advance_or_complete_workflow_state

@@ -29,7 +29,7 @@ func isDesktopCoreLifecycleController(ctx context.Context) bool {
 func (s *Service) requireAppLifecycleSession(ctx context.Context, appID string) error {
 	if connection, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
 		origin := connection.Origin()
-		if origin.TransportClass == protectedlocal.TransportDesktopControl && origin.HasRole(protectedlocal.RoleDesktopLifecycleHost) {
+		if origin.TransportClass == protectedlocal.TransportDesktopControl && origin.HasRole(protectedlocal.RoleLocalAppControl) {
 			return nil
 		}
 	}

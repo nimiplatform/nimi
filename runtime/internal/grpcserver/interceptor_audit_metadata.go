@@ -276,8 +276,6 @@ func methodDescriptor(fullMethod string) (string, string, string) {
 		domain = "runtime.model"
 	case strings.Contains(service, "RuntimeLocalService"):
 		domain = "runtime.local_runtime"
-	case strings.Contains(service, "RuntimeGrantService"):
-		domain = "runtime.grant"
 	case strings.Contains(service, "RuntimeAuthService"):
 		domain = "runtime.auth"
 	case strings.Contains(service, "RuntimeAccountService"):

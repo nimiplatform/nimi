@@ -89,7 +89,17 @@ console.log('desktop open parser golden vectors passed');
 
 function run(label, command, args) {
   console.log(`[desktop-open-parser-golden-vectors] ${label}`);
-  const result = spawnSync(command, args, { stdio: 'inherit' });
+  const useWindowsCommandHost = process.platform === 'win32' && command === 'pnpm';
+  const executable = useWindowsCommandHost
+    ? (process.env.ComSpec || 'cmd.exe')
+    : (process.platform === 'win32' && command === 'cargo' ? 'cargo.exe' : command);
+  const commandArgs = useWindowsCommandHost
+    ? ['/d', '/s', '/c', command, ...args]
+    : args;
+  const result = spawnSync(executable, commandArgs, { stdio: 'inherit' });
+  if (result.error) {
+    console.error(result.error.message);
+  }
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }

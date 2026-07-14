@@ -383,8 +383,6 @@ func runRuntimeAI(args []string) error {
 	}
 
 	switch args[0] {
-	case "replay":
-		return runRuntimeAIReplay(args[1:])
 	case "provider-raw":
 		return runRuntimeAIProviderRaw(args[1:])
 	case "text-generate":

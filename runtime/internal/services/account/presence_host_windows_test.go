@@ -27,4 +27,17 @@ func TestWindowsHostPresenceProviderUsesHelloPinVerifier(t *testing.T) {
 	if !strings.Contains(text, "UserConsentVerifier") {
 		t.Fatalf("windows presence provider must call Windows Hello/PIN UserConsentVerifier")
 	}
+	for _, required := range []string{
+		"WTSGetActiveConsoleSessionId",
+		"WTSQueryUserToken",
+		"CreateProcessAsUser",
+		`winsta0\default`,
+	} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("windows service presence provider must bind the interactive session through %q", required)
+		}
+	}
+	if strings.Contains(text, "exec.CommandContext") {
+		t.Fatalf("windows service presence must not launch the verifier inside service Session 0")
+	}
 }

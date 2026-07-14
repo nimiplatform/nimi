@@ -44,16 +44,6 @@ pub fn local_first_party_runtime_account_caller(app_id: &str) -> Result<AccountC
     )
 }
 
-pub fn local_developer_runtime_account_caller(app_id: &str) -> Result<AccountCaller, String> {
-    runtime_account_caller(
-        app_id,
-        None,
-        "local-developer-device",
-        "local-developer",
-        AccountCallerMode::LocalDeveloperApp,
-    )
-}
-
 pub fn desktop_shell_runtime_account_caller(app_id: &str) -> Result<AccountCaller, String> {
     runtime_account_caller(
         app_id,
@@ -66,10 +56,7 @@ pub fn desktop_shell_runtime_account_caller(app_id: &str) -> Result<AccountCalle
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        desktop_shell_runtime_account_caller, local_developer_runtime_account_caller,
-        local_first_party_runtime_account_caller,
-    };
+    use super::{desktop_shell_runtime_account_caller, local_first_party_runtime_account_caller};
     use crate::runtime_bridge::generated::AccountCallerMode;
 
     #[test]
@@ -90,14 +77,5 @@ mod tests {
         assert_eq!(caller.app_instance_id, "app.example.local-first-party");
         assert_eq!(caller.device_id, "local-first-party-device");
         assert_eq!(caller.mode, AccountCallerMode::LocalFirstPartyApp as i32);
-    }
-
-    #[test]
-    fn builds_local_developer_account_caller() {
-        let caller = local_developer_runtime_account_caller("nimi.tester").expect("caller");
-
-        assert_eq!(caller.app_instance_id, "nimi.tester.local-developer");
-        assert_eq!(caller.device_id, "local-developer-device");
-        assert_eq!(caller.mode, AccountCallerMode::LocalDeveloperApp as i32);
     }
 }

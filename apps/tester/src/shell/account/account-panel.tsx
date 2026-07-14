@@ -12,8 +12,8 @@ type NimiLabAccountMenuProps = {
 
 function toAccountStatusMessage(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : String(error || '');
-  if (message.includes('protected app session')) {
-    return 'Nimi Lab account projection requires a verified Desktop-installed session.';
+  if (message.includes('protected local-app session')) {
+    return 'Nimi Lab requires a verified Desktop-supervised local-app session.';
   }
   return message || fallback;
 }
@@ -21,18 +21,20 @@ function toAccountStatusMessage(error: unknown, fallback: string): string {
 export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [appHostReady, setAppHostReady] = useState(false);
+  const [localAppSessionReady, setLocalAppSessionReady] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const refreshAccountUser = useCallback(async () => {
     const projection = await getRuntimePlatformProjection();
     if (projection.status !== 'ready') {
-      throw new Error(projection.message || 'Runtime account projection unavailable.');
+      throw new Error(projection.message || 'Protected local-app session unavailable.');
     }
-    setAppHostReady(true);
-    setStatusMessage('Account identity remains protected by Nimi Desktop; this app receives no account token or subject identifier.');
-    return projection.appHost;
+    setLocalAppSessionReady(true);
+    setStatusMessage(projection.localAppSession.operationAllowed
+      ? 'The protected local-app session has an operation grant; account identity and grant authority remain in Nimi Desktop.'
+      : 'The protected identity session has zero grants. This app receives no account token, subject identifier, or implied operation authorization.');
+    return projection.localAppSession;
   }, []);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
     setLoadingUser(true);
     void refreshAccountUser().catch((error) => {
       if (!active) return;
-      setStatusMessage(toAccountStatusMessage(error, 'Runtime account projection unavailable.'));
+      setStatusMessage(toAccountStatusMessage(error, 'Protected local-app session unavailable.'));
     }).finally(() => {
       if (active) setLoadingUser(false);
     });
@@ -65,12 +67,12 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
     };
   }, [open]);
 
-  const displayName = appHostReady ? 'Nimi Desktop app host' : (loadingUser ? 'Checking app host' : 'App host unavailable');
+  const displayName = localAppSessionReady ? 'Nimi protected local app' : (loadingUser ? 'Checking local-app session' : 'Local-app session unavailable');
   const fallback = 'N';
   const items = [
     {
       id: 'desktop-account-owner',
-      label: appHostReady ? 'Account protected by Nimi Desktop' : 'Open Nimi Desktop',
+      label: localAppSessionReady ? 'Identity protected by Nimi Desktop' : 'Open Nimi Desktop',
       icon: <LogIn size={18} strokeWidth={1.8} aria-hidden="true" />,
       disabled: true,
     },
@@ -99,7 +101,7 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
           aria-haspopup="menu"
           onClick={() => setOpen((value) => !value)}
           className={open ? 'lab-account-menu__trigger lab-account-menu__trigger--open' : 'lab-account-menu__trigger'}
-          icon={appHostReady ? <span className="lab-account-menu__avatar-glyph" aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
+          icon={localAppSessionReady ? <span className="lab-account-menu__avatar-glyph" aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
         />
       </Tooltip>
       {open ? (

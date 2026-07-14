@@ -34,7 +34,7 @@ import {
 } from './kit-component-gallery-demos.js';
 import { DATA_RECIPES } from './kit-component-gallery-data-recipes.js';
 
-// UI Recipes - an industrial Nimi Kit component library for third-party Nimi App
+// UI Recipes - an industrial Nimi Kit component library for a Nimi local app
 // developers. Two panes: an ontology/coverage taxonomy (left) and a live
 // workbench canvas with inline recipe evidence (right). It performs NO runtime
 // work - this is component documentation, rendered from the canonical kit surface.

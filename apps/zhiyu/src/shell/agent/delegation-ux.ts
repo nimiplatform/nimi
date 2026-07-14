@@ -223,7 +223,6 @@ async function resolveDelegationSurface(
     getRuntime: () => ({
       appId: APP_ID,
       auth: runtime.auth,
-      appAuth: runtime.grants,
       agent: runtime.agents,
     }),
     getSubjectUserId: () => identity.ownerUserId,

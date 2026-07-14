@@ -33,7 +33,6 @@ const checks = [
     pattern: 'Promise<any>',
     paths: [
       'apps/desktop/src/shell/renderer/infra/sdk',
-      'apps/desktop/src/shell/renderer/infra/realm/realm-platform-session.ts',
     ],
   },
   {
@@ -57,9 +56,9 @@ const checks = [
     description: 'desktop runtime-config bridge projection surfaces must not fall back to raw record contracts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as',
     paths: [
-      'apps/desktop/src/shell/renderer/features/runtime-config/runtime-bridge-config.ts',
       'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-derived.ts',
-      'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-controller-bridge-sync.ts',
+      'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-controller.ts',
+      'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-controller-daemon.ts',
       'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-controller-utils.ts',
     ],
   },

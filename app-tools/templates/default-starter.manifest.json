@@ -92,7 +92,7 @@
       "class": "scaffold-managed glue"
     },
     {
-      "path": "src/shell/auth/installed-app-bootstrap.ts",
+      "path": "src/shell/auth/local-app-client.ts",
       "class": "scaffold-managed glue"
     },
     {

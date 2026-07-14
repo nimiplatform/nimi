@@ -9,17 +9,16 @@ const root = path.resolve(import.meta.dirname, '..');
 const tauriCli = path.join(root, 'node_modules', '@tauri-apps', 'cli', 'tauri.js');
 const timeoutMs = Number.parseInt(process.env.NIMI_TESTER_TAURI_ACCEPTANCE_TIMEOUT_MS || '90000', 10);
 const commandMatrix = [
-  { id: 'app-host.bootstrap.native-unavailable', command: 'app_host_bootstrap', expectError: true },
-  { id: 'artifacts.readRuntimeBytes.native-unavailable', command: 'artifacts_read_runtime_bytes', expectError: true },
-  { id: 'ai-config.set.negative', command: 'ai_config_set', expectError: true },
-  { id: 'ai-config.get.negative', command: 'ai_config_get', expectError: true },
-  { id: 'config.get.negative', command: 'runtime_bridge_config_get', expectError: true },
-  { id: 'standard-storage.runHistory.write.negative', command: 'storage_write_json', expectError: true },
-  { id: 'standard-storage.runHistory.read.negative', command: 'storage_read_json', expectError: true },
-  { id: 'runtime-lifecycle.status.negative', command: 'runtime_bridge_status', expectError: true },
-  { id: 'runtime-defaults.get.negative', command: 'runtime_defaults', expectError: true },
-  { id: 'auth.sessionLoad.negative', command: 'auth_session_load', expectError: true },
-  { id: 'local-agent.identity.negative', command: 'local_agent_identity', expectError: true },
+  { id: 'local-app.session-status.native-unavailable', command: 'local_app_session_status', expectError: true },
+  { id: 'local-app.permission-posture.native-unavailable', command: 'local_app_permission_posture', expectError: true },
+  { id: 'local-app.permission-request.native-unavailable', command: 'local_app_permission_request', expectError: true },
+  { id: 'local-app.artifact-read.native-unavailable', command: 'local_app_artifacts_read_runtime_bytes', expectError: true },
+  { id: 'local-app.agent-open.native-unavailable', command: 'local_app_agent_open_conversation', expectError: true },
+  { id: 'local-app.agent-send.native-unavailable', command: 'local_app_agent_send_turn', expectError: true },
+  { id: 'local-app.agent-subscribe.native-unavailable', command: 'local_app_agent_subscribe_turn', expectError: true },
+  { id: 'local-app.agent-snapshot.native-unavailable', command: 'local_app_agent_get_conversation_snapshot', expectError: true },
+  { id: 'ai-config.unadmitted.negative', command: 'ai_config_get', expectError: true },
+  { id: 'standard-storage.unadmitted.negative', command: 'storage_read_json', expectError: true },
   { id: 'unsupported-standard-command.negative', command: 'unsupported-standard-command', expectError: true },
 ];
 

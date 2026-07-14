@@ -4,9 +4,11 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, WAIT_TIMEOUT};
+#[cfg(feature = "windows-e2e-fixture")]
+use windows_sys::Win32::System::Threading::GetExitCodeProcess;
 use windows_sys::Win32::System::Threading::{
-    CreateProcessW, GetExitCodeProcess, ResumeThread, TerminateProcess, WaitForSingleObject,
-    CREATE_SUSPENDED, PROCESS_INFORMATION, STARTUPINFOW,
+    CreateProcessW, ResumeThread, TerminateProcess, WaitForSingleObject, CREATE_SUSPENDED,
+    PROCESS_INFORMATION, STARTUPINFOW,
 };
 
 use crate::{NimiHostError, NimiHostErrorReasonCode};
@@ -124,9 +126,7 @@ impl SupervisedDevelopmentProcess {
             return;
         }
         #[cfg(feature = "windows-e2e-fixture")]
-        eprintln!(
-            "[protected-local local-development windows-e2e-fixture] stage=host-terminate"
-        );
+        eprintln!("[protected-local local-development windows-e2e-fixture] stage=host-terminate");
         // SAFETY: process is the exact retained child handle, so PID reuse
         // cannot redirect termination to another process.
         unsafe {

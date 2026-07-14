@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{env, path::Path, path::PathBuf};
@@ -21,8 +21,8 @@ pub(crate) use nimi_shell_tauri::capabilities::runtime_defaults::RuntimeDefaults
 
 #[cfg(test)]
 use defaults_and_commands::{
-    allow_http_request_origin_with_history, is_authorized_http_origin_allowed, runtime_defaults,
-    HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
+    allow_http_request_origin_with_history, runtime_defaults, HTTP_REQUEST_RATE_LIMIT_BURST,
+    HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use env_http::{
     allowed_http_origins, http_send_failure_error, is_connector_auth_acquisition_request_allowed,
@@ -50,13 +50,12 @@ struct SystemResourceSnapshot {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 struct HttpRequestPayload {
     url: String,
     method: Option<String>,
     headers: Option<HashMap<String, String>>,
-    #[serde(default)]
-    authorization: Option<String>,
     body: Option<String>,
     #[serde(default)]
     diagnostic_session_id: Option<String>,

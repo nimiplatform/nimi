@@ -38,15 +38,22 @@ pub(super) fn verify_runtime_peer_code_signing(
 ) -> Result<VerifiedRuntimePeer, ProtectedCarrierError> {
     let expected = EXPECTED_SIGNER_CERT_SHA256
         .filter(|value| valid_sha256(value))
-        .ok_or_else(untrusted)?;
+        .ok_or_else(|| {
+            diagnose_peer_trust("expected-signer-missing");
+            untrusted()
+        })?;
     let process = open_runtime_process(process_id)?;
+    diagnose_peer_trust("process-opened");
     let path = runtime_process_path(&process)?;
+    diagnose_peer_trust("process-path-resolved");
     let file = OpenOptions::new()
         .read(true)
         .share_mode(FILE_SHARE_READ)
         .open(path)
         .map_err(|_| untrusted())?;
+    diagnose_peer_trust("executable-opened");
     verify_authenticode_on_open_file(&file, expected)?;
+    diagnose_peer_trust("authenticode-verified");
     Ok(VerifiedRuntimePeer {
         _process: process,
         _executable: file,
@@ -136,11 +143,15 @@ fn verify_authenticode_on_open_file(
             (&mut trust_data as *mut WINTRUST_DATA).cast::<c_void>(),
         )
     };
+    if status != 0 {
+        diagnose_peer_trust(&format!("winverifytrust-status-{status}"));
+    }
     let result = if status == 0 {
         verified_leaf_cert_sha256(&trust_data).and_then(|observed| {
             if constant_time_eq_hex(&observed, expected_signer_cert_sha256) {
                 Ok(())
             } else {
+                diagnose_peer_trust("signer-certificate-mismatch");
                 Err(untrusted())
             }
         })
@@ -157,6 +168,14 @@ fn verify_authenticode_on_open_file(
         );
     }
     result
+}
+
+fn diagnose_peer_trust(stage: &str) {
+    if std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+    {
+        eprintln!("[protected-local peer-trust] stage={stage}");
+    }
 }
 
 fn verified_leaf_cert_sha256(trust_data: &WINTRUST_DATA) -> Result<String, ProtectedCarrierError> {

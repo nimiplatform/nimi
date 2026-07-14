@@ -1,0 +1,118 @@
+version: 1
+inventory_id: kit_test_inventory
+owner: platform
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: kit_test_inventory_shard_04
+tests:
+  - path: kit/shell/capabilities/test/local-app-carrier-behavior.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-041
+      - P-KIT-044
+  - path: kit/shell/electron/test/electron-local-app-carrier-behavior.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-041
+      - P-KIT-044
+  - path: kit/shell/electron/test/electron-local-app-commands.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-041
+      - P-KIT-044
+  - path: kit/shell/electron/test/electron-local-app-host.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-041
+      - P-KIT-044
+  - path: kit/shell/electron/test/electron-preload-authority-hardcut.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-041
+      - P-KIT-044
+  - path: kit/shell/renderer/test/local-app-bridge.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-042
+      - P-KIT-044
+  - path: kit/shell/renderer/test/runtime-account.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-042
+      - P-KIT-041
+  - path: kit/shell/electron/test/electron-desktop-control-host.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, P-KIT-041, P-KIT-044]
+  - path: kit/shell/electron/test/electron-protected-desktop-hosts.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, P-KIT-041, P-KIT-044]

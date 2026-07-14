@@ -5,26 +5,125 @@ use prost_types::Timestamp;
 use tonic::transport::Channel;
 use url::Url;
 
+use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::runtime_development_service_client::RuntimeDevelopmentServiceClient;
 use crate::generated::{
-    BindLocalDevelopmentHostProcessRequest, DecideLocalDevelopmentProjectRequest,
+    BindLocalAppProcessRequest, DecideLocalDevelopmentProjectRequest,
     EndLocalDevelopmentRunRequest, EvaluateLocalDevelopmentProjectRequest,
-    EvaluateLocalDevelopmentProjectResponse, ListLocalDevelopmentAuthorizationsRequest,
-    LocalDevelopmentAuthorizationProjection, LocalDevelopmentProjectProjection,
-    PrepareLocalDevelopmentLaunchRequest, RevokeLocalDevelopmentAuthorizationRequest,
+    EvaluateLocalDevelopmentProjectResponse, GetDeveloperModeStatusRequest,
+    ListLocalDevelopmentAuthorizationsRequest, LocalDevelopmentAuthorizationProjection,
+    LocalDevelopmentProjectProjection, PrepareLocalAppLaunchRequest,
+    ReactivateLocalDevelopmentProjectRequest, RevokeLocalDevelopmentAuthorizationRequest,
+    SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
 use crate::windows_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
-    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest as NativeEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest as NativeEvaluationRequest,
-    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthorization,
+    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    LocalDevelopmentEndRunRequest as NativeEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest as NativeEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentReactivationRequest,
     LocalDevelopmentShellKind, NimiHostError, NimiHostErrorReasonCode,
     LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 
 const ACTION_EXECUTED: i32 = 1;
+
+pub(crate) async fn get_developer_mode_status(
+    channel: Channel,
+) -> Result<DeveloperModeStatus, NimiHostError> {
+    let response = RuntimeDevelopmentServiceClient::new(channel)
+        .get_developer_mode_status(GetDeveloperModeStatusRequest {})
+        .await
+        .map_err(host_error_from_status)?
+        .into_inner();
+    developer_mode_projection(
+        response.state,
+        response.revision,
+        response.account_generation,
+        response.reason_code,
+    )
+}
+
+pub(crate) async fn set_developer_mode(
+    channel: Channel,
+    enabled: bool,
+) -> Result<DeveloperModeStatus, NimiHostError> {
+    let response = RuntimeDevelopmentServiceClient::new(channel)
+        .set_developer_mode(SetDeveloperModeRequest { enabled })
+        .await
+        .map_err(host_error_from_status)?
+        .into_inner();
+    let projection = developer_mode_projection(
+        response.state,
+        response.revision,
+        response.account_generation,
+        response.reason_code,
+    )?;
+    if (projection.state == DeveloperModeState::Enabled) != enabled {
+        return Err(untrusted());
+    }
+    Ok(projection)
+}
+
+fn developer_mode_projection(
+    state: i32,
+    revision: u64,
+    account_generation: u64,
+    reason_code: i32,
+) -> Result<DeveloperModeStatus, NimiHostError> {
+    let state = match state {
+        1 => DeveloperModeState::Disabled,
+        2 => DeveloperModeState::Enabled,
+        3 => DeveloperModeState::Unavailable,
+        _ => return Err(untrusted()),
+    };
+    if state == DeveloperModeState::Unavailable {
+        if reason_code == ACTION_EXECUTED {
+            return Err(untrusted());
+        }
+    } else if reason_code != ACTION_EXECUTED
+        || revision == 0
+        || (state == DeveloperModeState::Enabled && account_generation == 0)
+    {
+        return Err(untrusted());
+    }
+    Ok(DeveloperModeStatus {
+        state,
+        revision,
+        account_generation,
+    })
+}
+
+#[cfg(test)]
+mod developer_mode_projection_tests {
+    use super::*;
+
+    #[test]
+    fn initial_disabled_mode_allows_an_unbound_account_generation() {
+        let projection = developer_mode_projection(1, 1, 0, ACTION_EXECUTED)
+            .expect("initial disabled Developer Mode should be readable");
+        assert_eq!(projection.state, DeveloperModeState::Disabled);
+        assert_eq!(projection.revision, 1);
+        assert_eq!(projection.account_generation, 0);
+    }
+
+    #[test]
+    fn enabled_mode_requires_an_authenticated_account_generation() {
+        assert!(developer_mode_projection(2, 1, 0, ACTION_EXECUTED).is_err());
+        let projection = developer_mode_projection(2, 2, 7, ACTION_EXECUTED)
+            .expect("enabled Developer Mode should retain its account binding");
+        assert_eq!(projection.state, DeveloperModeState::Enabled);
+        assert_eq!(projection.account_generation, 7);
+    }
+
+    #[test]
+    fn actionable_mode_states_require_revision_and_action_evidence() {
+        assert!(developer_mode_projection(1, 0, 0, ACTION_EXECUTED).is_err());
+        assert!(developer_mode_projection(1, 1, 0, 0).is_err());
+    }
+}
 
 #[cfg(feature = "windows-e2e-fixture")]
 fn report_windows_e2e_evaluation_response(response: &EvaluateLocalDevelopmentProjectResponse) {
@@ -101,7 +200,16 @@ pub(crate) async fn evaluate_project(
         .transpose()
         .map_err(|error| projection_error("evaluation-authorization", error))?;
     if response.confirmation_required {
-        if evaluation_id.is_none() || evaluation_expires_at_unix_ms.is_none() {
+        let dormant_reactivation = state == LocalDevelopmentAuthorizationState::Dormant
+            && evaluation_id.is_none()
+            && evaluation_expires_at_unix_ms.is_none()
+            && authorization
+                .as_ref()
+                .is_some_and(|value| value.state == LocalDevelopmentAuthorizationState::Dormant);
+        let fresh_decision = evaluation_id.is_some()
+            && evaluation_expires_at_unix_ms.is_some()
+            && authorization.is_none();
+        if !dormant_reactivation && !fresh_decision {
             return Err(projection_error(
                 "evaluation-confirmation-shape",
                 untrusted(),
@@ -132,6 +240,7 @@ pub(crate) async fn decide_project(
         .decide_local_development_project(DecideLocalDevelopmentProjectRequest {
             evaluation_id: request.evaluation_id.to_vec(),
             decision: request.decision.proto_value(),
+            risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
         })
         .await
         .map_err(host_error_from_status)?
@@ -146,6 +255,36 @@ pub(crate) async fn decide_project(
         return Err(untrusted());
     }
     authorization_projection(response.authorization.ok_or_else(untrusted)?)
+}
+
+pub(crate) async fn reactivate_project(
+    channel: Channel,
+    request: LocalDevelopmentReactivationRequest,
+) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
+    validate_identifier(request.authorization_id)?;
+    if !request.risk_disclosure_acknowledged {
+        return Err(NimiHostError::new(
+            NimiHostErrorReasonCode::LocalDevelopmentAuthorizationRequired,
+            false,
+        ));
+    }
+    let response = RuntimeDevelopmentServiceClient::new(channel)
+        .reactivate_local_development_project(ReactivateLocalDevelopmentProjectRequest {
+            authorization_id: request.authorization_id.to_vec(),
+            risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
+        })
+        .await
+        .map_err(host_error_from_status)?
+        .into_inner();
+    require_success_reason(response.reason_code)?;
+    let authorization = authorization_projection(response.authorization.ok_or_else(untrusted)?)?;
+    if authorization.authorization_id != request.authorization_id
+        || authorization.state != LocalDevelopmentAuthorizationState::Active
+        || authorization.persistence != LocalDevelopmentDecision::AllowRememberProject
+    {
+        return Err(untrusted());
+    }
+    Ok(authorization)
 }
 
 pub(crate) async fn list_authorizations(
@@ -204,19 +343,16 @@ pub(crate) async fn launch_host(
         error
     })?;
     report_windows_e2e_projection_stage("launch-working-directory-validated");
-    let renderer_origin =
+    let _renderer_origin =
         controlled_renderer_origin(&request.renderer_origin).map_err(|error| {
             report_windows_e2e_projection_stage("launch-renderer-origin-rejected");
             error
         })?;
     report_windows_e2e_projection_stage("launch-prepare-request");
-    let response = RuntimeDevelopmentServiceClient::new(channel.clone())
-        .prepare_local_development_launch(PrepareLocalDevelopmentLaunchRequest {
-            authorization_id: request.authorization_id.to_vec(),
+    let response = RuntimeAppServiceClient::new(channel.clone())
+        .prepare_local_app_launch(PrepareLocalAppLaunchRequest {
+            local_app_handle: request.authorization_id.to_vec(),
             supervisor_run_id: request.supervisor_run_id.to_vec(),
-            shell_kind: request.shell_kind.proto_value(),
-            host_executable_path: path_text(&host_executable_path)?,
-            renderer_origin,
         })
         .await
         .map_err(host_error_from_status)?
@@ -230,8 +366,8 @@ pub(crate) async fn launch_host(
         &working_directory,
     )?;
     report_windows_e2e_projection_stage("launch-process-created-suspended");
-    let bound = RuntimeDevelopmentServiceClient::new(channel)
-        .bind_local_development_host_process(BindLocalDevelopmentHostProcessRequest {
+    let bound = RuntimeAppServiceClient::new(channel)
+        .bind_local_app_process(BindLocalAppProcessRequest {
             launch_id: launch_id.to_vec(),
             child_process_id: process.id(),
         })
@@ -393,6 +529,7 @@ fn authorization_state(value: i32) -> Result<LocalDevelopmentAuthorizationState,
         3 => Ok(LocalDevelopmentAuthorizationState::ReapprovalRequired),
         4 => Ok(LocalDevelopmentAuthorizationState::Denied),
         5 => Ok(LocalDevelopmentAuthorizationState::Revoked),
+        6 => Ok(LocalDevelopmentAuthorizationState::Dormant),
         _ => Err(untrusted()),
     }
 }

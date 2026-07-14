@@ -5,14 +5,15 @@ package account
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"os/exec"
+	"io"
+	"os"
 	"strings"
-	"syscall"
 	"unicode/utf16"
+	"unsafe"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"golang.org/x/sys/windows"
 )
 
 const (
@@ -28,46 +29,164 @@ func newPlatformHostPresenceProvider() hostPresenceProvider {
 }
 
 func (windowsHostPresenceProvider) RequestHostPresence(ctx context.Context, request hostPresenceRequest) (hostPresenceResult, error) {
-	output, err := requestWindowsHelloPresence(ctx, windowsPresencePromptMessage(request))
+	output, exitCode, err := requestWindowsHelloPresence(ctx, windowsPresencePromptMessage(request))
 	method := runtimev1.PresenceVerificationMethod_PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL
 	if err == nil && strings.EqualFold(strings.TrimSpace(output), "Verified") {
 		return hostPresenceResult{Outcome: hostPresenceVerified, Method: method}, nil
 	}
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		switch exitErr.ExitCode() {
-		case windowsHelloExitRejected:
-			return hostPresenceResult{Outcome: hostPresenceRejected, Method: method}, nil
-		case windowsHelloExitUnavailable:
-			return hostPresenceResult{Outcome: hostPresenceUnavailable}, nil
-		}
+	switch exitCode {
+	case windowsHelloExitRejected:
+		return hostPresenceResult{Outcome: hostPresenceRejected, Method: method}, nil
+	case windowsHelloExitUnavailable:
+		return hostPresenceResult{Outcome: hostPresenceUnavailable}, nil
 	}
-	if errors.Is(ctx.Err(), context.Canceled) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+	if ctx.Err() != nil {
 		return hostPresenceResult{Outcome: hostPresenceRejected, Method: method}, nil
 	}
 	return hostPresenceResult{Outcome: hostPresenceUnavailable}, err
 }
 
-func requestWindowsHelloPresence(ctx context.Context, prompt string) (string, error) {
-	script := windowsHelloPresenceScript()
-	cmd := exec.CommandContext(ctx,
-		"powershell.exe",
+func requestWindowsHelloPresence(ctx context.Context, prompt string) (string, uint32, error) {
+	sessionID := windows.WTSGetActiveConsoleSessionId()
+	if sessionID == ^uint32(0) {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("no active interactive Windows session")
+	}
+
+	var userToken windows.Token
+	if err := windows.WTSQueryUserToken(sessionID, &userToken); err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("query active Windows session token: %w", err)
+	}
+	defer userToken.Close()
+
+	var environment *uint16
+	if err := windows.CreateEnvironmentBlock(&environment, userToken, false); err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("create active-session environment: %w", err)
+	}
+	defer windows.DestroyEnvironmentBlock(environment)
+
+	pipeSecurity := windows.SecurityAttributes{
+		Length:        uint32(unsafe.Sizeof(windows.SecurityAttributes{})),
+		InheritHandle: 1,
+	}
+	var readHandle windows.Handle
+	var writeHandle windows.Handle
+	if err := windows.CreatePipe(&readHandle, &writeHandle, &pipeSecurity, 0); err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("create presence result pipe: %w", err)
+	}
+	readFile := os.NewFile(uintptr(readHandle), "nimi-presence-result")
+	if readFile == nil {
+		_ = windows.CloseHandle(readHandle)
+		_ = windows.CloseHandle(writeHandle)
+		return "", windowsHelloExitUnavailable, fmt.Errorf("open presence result pipe")
+	}
+	defer readFile.Close()
+	defer func() {
+		if writeHandle != 0 {
+			_ = windows.CloseHandle(writeHandle)
+		}
+	}()
+	if err := windows.SetHandleInformation(readHandle, windows.HANDLE_FLAG_INHERIT, 0); err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("protect presence result pipe: %w", err)
+	}
+
+	systemDirectory, err := windows.GetSystemDirectory()
+	if err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("resolve Windows system directory: %w", err)
+	}
+	powershellPath := systemDirectory + `\WindowsPowerShell\v1.0\powershell.exe`
+	applicationName, err := windows.UTF16PtrFromString(powershellPath)
+	if err != nil {
+		return "", windowsHelloExitUnavailable, err
+	}
+	commandLine, err := windows.UTF16PtrFromString(windows.ComposeCommandLine([]string{
+		powershellPath,
 		"-NoProfile",
 		"-NonInteractive",
 		"-ExecutionPolicy",
 		"Bypass",
 		"-STA",
 		"-EncodedCommand",
-		encodePowerShellCommand(script),
-	)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	cmd.Env = append(cmd.Environ(), "NIMI_PRESENCE_PROMPT="+prompt)
-	output, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(output)), err
+		encodePowerShellCommand(windowsHelloPresenceScript(prompt)),
+	}))
+	if err != nil {
+		return "", windowsHelloExitUnavailable, err
+	}
+	desktop, err := windows.UTF16PtrFromString(`winsta0\default`)
+	if err != nil {
+		return "", windowsHelloExitUnavailable, err
+	}
+	startup := windows.StartupInfo{
+		Cb:         uint32(unsafe.Sizeof(windows.StartupInfo{})),
+		Desktop:    desktop,
+		Flags:      windows.STARTF_USESTDHANDLES | windows.STARTF_USESHOWWINDOW,
+		ShowWindow: windows.SW_HIDE,
+		StdInput:   windows.InvalidHandle,
+		StdOutput:  writeHandle,
+		StdErr:     writeHandle,
+	}
+	var process windows.ProcessInformation
+	if err := windows.CreateProcessAsUser(
+		userToken,
+		applicationName,
+		commandLine,
+		nil,
+		nil,
+		true,
+		windows.CREATE_UNICODE_ENVIRONMENT,
+		environment,
+		nil,
+		&startup,
+		&process,
+	); err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("start presence verifier in active Windows session: %w", err)
+	}
+	_ = windows.CloseHandle(process.Thread)
+	defer windows.CloseHandle(process.Process)
+	_ = windows.CloseHandle(writeHandle)
+	writeHandle = 0
+
+	outputResult := make(chan struct {
+		bytes []byte
+		err   error
+	}, 1)
+	go func() {
+		bytes, readErr := io.ReadAll(io.LimitReader(readFile, 64*1024))
+		outputResult <- struct {
+			bytes []byte
+			err   error
+		}{bytes: bytes, err: readErr}
+	}()
+	waitResult := make(chan error, 1)
+	go func() {
+		_, waitErr := windows.WaitForSingleObject(process.Process, windows.INFINITE)
+		waitResult <- waitErr
+	}()
+
+	select {
+	case waitErr := <-waitResult:
+		if waitErr != nil {
+			return "", windowsHelloExitUnavailable, fmt.Errorf("wait for presence verifier: %w", waitErr)
+		}
+	case <-ctx.Done():
+		_ = windows.TerminateProcess(process.Process, windowsHelloExitRejected)
+		<-waitResult
+		return "", windowsHelloExitRejected, ctx.Err()
+	}
+
+	output := <-outputResult
+	if output.err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("read presence verifier result: %w", output.err)
+	}
+	var exitCode uint32
+	if err := windows.GetExitCodeProcess(process.Process, &exitCode); err != nil {
+		return "", windowsHelloExitUnavailable, fmt.Errorf("read presence verifier exit code: %w", err)
+	}
+	return strings.TrimSpace(string(output.bytes)), exitCode, nil
 }
 
-func windowsHelloPresenceScript() string {
-	return `
+func windowsHelloPresenceScript(prompt string) string {
+	promptBase64 := base64.StdEncoding.EncodeToString([]byte(prompt))
+	return fmt.Sprintf(`
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $verifierType = [Windows.Security.Credentials.UI.UserConsentVerifier,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
@@ -97,7 +216,7 @@ if ($availability.ToString() -ne 'Available') {
   exit 20
 }
 
-$prompt = [Environment]::GetEnvironmentVariable('NIMI_PRESENCE_PROMPT')
+$prompt = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('%s'))
 if ([string]::IsNullOrWhiteSpace($prompt)) {
   $prompt = 'Confirm this is you before showing protected Nimi information.'
 }
@@ -110,7 +229,7 @@ switch ($result.ToString()) {
   'RetriesExhausted' { exit 10 }
   default { exit 20 }
 }
-`
+`, promptBase64)
 }
 
 func encodePowerShellCommand(script string) string {

@@ -135,18 +135,6 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/desktop/test/apps-ai-profile-repair-surface.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
   - path: apps/desktop/test/apps-bridge-projection-bridge.test.ts
     owner: desktop
     classification: behavior_unit
@@ -169,10 +157,10 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/desktop/test/apps-lifecycle-bridge.test.ts
+  - path: apps/desktop/test/apps-immutable-package-unavailable.test.ts
     owner: desktop
-    classification: behavior_unit
-    tier: T4
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
@@ -180,17 +168,7 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/desktop/test/apps-local-app-picker-bridge.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
+    sentinel_purpose: forbidden_api
   - path: apps/desktop/test/apps-panel-controller.test.ts
     owner: desktop
     classification: behavior_unit
@@ -203,18 +181,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: apps/desktop/test/apps-panel-ordinary-visible-projection.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/apps-t4-w5-acceptance.test.ts
     owner: desktop
     classification: behavior_unit
     tier: T4

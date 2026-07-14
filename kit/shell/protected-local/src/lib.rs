@@ -3,20 +3,25 @@
 mod adapters;
 mod carrier;
 mod desktop_account;
+mod desktop_product_control;
 mod grpc_status;
 mod local_development;
 mod reason;
 mod service;
+#[allow(dead_code)]
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }
 #[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+mod windows_data_root;
+#[cfg(target_os = "windows")]
 mod windows_desktop_account;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
-mod windows_installed_launch;
+mod windows_local_app;
 #[cfg(target_os = "windows")]
-mod windows_installed_session;
+mod windows_local_app_grant_control;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_local_development;
@@ -31,28 +36,45 @@ mod windows_service_control;
 mod windows_supervised_process;
 
 pub use adapters::{
-    LinuxAppHostCarrier, LinuxUnixSocketCarrier, MacOsAppHostCarrier, MacOsPrivilegedXpcCarrier,
-    WindowsAppHostCarrier, WindowsNamedPipeCarrier,
+    LinuxLocalAppCarrier, LinuxUnixSocketCarrier, MacOsLocalAppCarrier, MacOsPrivilegedXpcCarrier,
+    WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
 pub use carrier::{
-    AppHostArtifactBytes, AppHostArtifactReadError, AppHostArtifactReadReasonCode,
-    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, NimiAppHostCarrier, NimiAppHostSession,
-    NimiDesktopControl, NimiProtectedLocalHostCarrier,
+    LocalAppAgentConversationSnapshotRequest, LocalAppAgentOpenConversationRequest,
+    LocalAppAgentProjection, LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest,
+    LocalAppArtifactBytes, LocalAppArtifactReadRequest, LocalAppGrantControlDecisionRequest,
+    LocalAppGrantControlPending, LocalAppGrantControlProjection, LocalAppGrantControlState,
+    LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
+    LocalAppPermissionRequest, LocalAppPermissionState, LocalAppReasonCode, LocalAppSessionState,
+    LocalAppSessionStatus, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
+    NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
-    DesktopAccountProjection, DesktopAccountSessionState, DesktopAccountSessionStatus,
-    DesktopAccountSessionStatusRequest,
+    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionState,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
+};
+pub use desktop_product_control::{
+    DesktopProductControlError, DesktopProductControlMethod, DesktopProductControlRequest,
+    DesktopProductControlResponse,
 };
 pub use local_development::{
-    AppHostBootstrapState, AppHostBootstrapStatus, AppHostTrustClass,
-    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentShellKind,
-    NimiHostError, NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
+    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthorization,
+    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
+    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind, NimiHostError,
+    NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{
     FixedRuntimeServiceControl, RuntimeServiceAction, RuntimeServiceActionOutcome,
     RuntimeServiceState, RuntimeServiceStatus,
+};
+#[cfg(target_os = "windows")]
+pub use windows_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};
+#[cfg(target_os = "windows")]
+pub use windows_service_control::{
+    invalidate_verified_desktop_runtime_channel, open_verified_desktop_runtime_channel,
 };

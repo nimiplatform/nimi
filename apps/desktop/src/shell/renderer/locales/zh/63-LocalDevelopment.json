@@ -4,6 +4,7 @@
     "title": "允许此开发项目吗？",
     "subtitle": "Nimi Desktop 将监督构建、开发服务器和原生宿主进程。",
     "warning": "仅批准你正在开发且信任的项目。此开发授权不能转化为商店上架或生产发布。",
+    "nativeRiskAcknowledgement": "我了解此项目可以使用我的 Windows 用户权限构建并运行原生代码；我已检查并信任这个确切的项目目录。",
     "queue": "当前有 {{count}} 个开发请求等待处理。"
   },
   "field": {
@@ -40,6 +41,7 @@
     "deny": "拒绝",
     "allowOnce": "仅本次运行",
     "remember": "记住此项目",
+    "reactivate": "重新启用项目",
     "refresh": "刷新",
     "revoke": "撤销授权",
     "confirmRevoke": "立即撤销",

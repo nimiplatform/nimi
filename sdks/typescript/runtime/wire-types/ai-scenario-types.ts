@@ -292,49 +292,55 @@ export type {
 };
 
 import type {
-  BindLocalDevelopmentHostProcessRequest,
-  BindLocalDevelopmentHostProcessResponse,
   DecideLocalDevelopmentProjectRequest,
   DecideLocalDevelopmentProjectResponse,
   EndLocalDevelopmentRunRequest,
   EndLocalDevelopmentRunResponse,
   EvaluateLocalDevelopmentProjectRequest,
   EvaluateLocalDevelopmentProjectResponse,
-  GetLocalDevelopmentSessionStatusRequest,
-  GetLocalDevelopmentSessionStatusResponse,
+  GetDeveloperModeStatusRequest,
+  GetDeveloperModeStatusResponse,
   ListLocalDevelopmentAuthorizationsRequest,
   ListLocalDevelopmentAuthorizationsResponse,
   LocalDevelopmentAuthorizationProjection,
   LocalDevelopmentProjectProjection,
-  OpenLocalDevelopmentAppSessionRequest,
-  OpenLocalDevelopmentAppSessionResponse,
-  PrepareLocalDevelopmentLaunchRequest,
-  PrepareLocalDevelopmentLaunchResponse,
+  ReactivateLocalDevelopmentProjectRequest,
+  ReactivateLocalDevelopmentProjectResponse,
   RevokeLocalDevelopmentAuthorizationRequest,
   RevokeLocalDevelopmentAuthorizationResponse,
+  SetDeveloperModeRequest,
+  SetDeveloperModeResponse,
 } from "../../core-generated/runtime-protobuf/runtime/v1/development";
 
 export type {
-  BindLocalDevelopmentHostProcessRequest,
-  BindLocalDevelopmentHostProcessResponse,
   DecideLocalDevelopmentProjectRequest,
   DecideLocalDevelopmentProjectResponse,
   EndLocalDevelopmentRunRequest,
   EndLocalDevelopmentRunResponse,
   EvaluateLocalDevelopmentProjectRequest,
   EvaluateLocalDevelopmentProjectResponse,
-  GetLocalDevelopmentSessionStatusRequest,
-  GetLocalDevelopmentSessionStatusResponse,
+  GetDeveloperModeStatusRequest,
+  GetDeveloperModeStatusResponse,
   ListLocalDevelopmentAuthorizationsRequest,
   ListLocalDevelopmentAuthorizationsResponse,
   LocalDevelopmentAuthorizationProjection,
   LocalDevelopmentProjectProjection,
-  OpenLocalDevelopmentAppSessionRequest,
-  OpenLocalDevelopmentAppSessionResponse,
-  PrepareLocalDevelopmentLaunchRequest,
-  PrepareLocalDevelopmentLaunchResponse,
+  ReactivateLocalDevelopmentProjectRequest,
+  ReactivateLocalDevelopmentProjectResponse,
   RevokeLocalDevelopmentAuthorizationRequest,
   RevokeLocalDevelopmentAuthorizationResponse,
+  SetDeveloperModeRequest,
+  SetDeveloperModeResponse,
+};
+
+import type {
+  RequestRuntimeRestartRequest,
+  RequestRuntimeRestartResponse,
+} from "../../core-generated/runtime-protobuf/runtime/v1/runtime_service_control";
+
+export type {
+  RequestRuntimeRestartRequest,
+  RequestRuntimeRestartResponse,
 };
 
 import type {

@@ -63,7 +63,6 @@ import {
 } from './runtime-agent-memory';
 import {
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -108,8 +107,6 @@ import type { NimiJsonObject } from '../core/contracts';
 export interface NimiRuntimeAgentClientRuntime {
   readonly appId?: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth?: NimiRuntimeAgentAppAuthClient;
-  readonly grants?: NimiRuntimeAgentAppAuthClient;
   readonly agent?: NimiRuntimeAgentClientAgentModule;
   readonly agents?: NimiRuntimeAgentClientAgentModule;
   readonly appMessages: NimiRuntimeAgentClientAppMessagesModule;
@@ -244,7 +241,6 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     runtime: {
       appId: runtime.appId,
       auth: runtime.auth,
-      appAuth: runtime.appAuth,
       agents: {
         getPublicChatSessionSnapshot: runtime.agent.getPublicChatSessionSnapshot,
         subscribeAgentEvents: runtime.agent.subscribeAgentEvents,
@@ -258,7 +254,6 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     getRuntime: () => ({
       appId: runtime.appId,
       auth: runtime.auth,
-      appAuth: runtime.appAuth,
       agent: runtime.agent,
     }),
     getSubjectUserId: options.getSubjectUserId,
@@ -268,7 +263,6 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     getRuntime: () => ({
       appId: runtime.appId,
       auth: runtime.auth,
-      appAuth: runtime.appAuth,
       agent: runtime.agent,
     }),
     getSubjectUserId: options.getSubjectUserId,
@@ -278,7 +272,6 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     runtime: {
       appId: runtime.appId,
       auth: runtime.auth,
-      appAuth: runtime.appAuth,
       agent: runtime.agent,
     },
     getSubjectUserId: options.getSubjectUserId,
@@ -288,7 +281,6 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     getRuntime: () => ({
       appId: runtime.appId,
       auth: runtime.auth,
-      appAuth: runtime.appAuth,
       agent: runtime.agent,
     }),
     getSubjectUserId: options.getSubjectUserId,
@@ -434,18 +426,9 @@ function normalizeRuntime(runtime: NimiRuntimeAgentClientRuntime, appIdOverride:
       'provide_runtime_agents_module',
     );
   }
-  const appAuth = runtime.appAuth;
-  if (!appAuth) {
-    runtimeAgentClientError(
-      'Nimi runtime agent client requires a Runtime-owned appAuth carrier projection.',
-      'SDK_RUNTIME_AGENT_AUTH_REQUIRED',
-      'use_runtime_owned_scoped_carrier',
-    );
-  }
   return {
     appId,
     auth: runtime.auth,
-    appAuth,
     agent,
     appMessages: runtime.appMessages,
   };

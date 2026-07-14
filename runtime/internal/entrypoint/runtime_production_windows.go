@@ -48,6 +48,7 @@ const (
 	windowsRuntimeServiceStopTimeout        = 25 * time.Second
 	windowsRuntimeServiceStopCheckpointTick = 2 * time.Second
 	windowsRuntimeServiceStopTimeoutCode    = 0xA5F0
+	windowsRuntimeServiceRestartExitCode    = 0xA5F1
 )
 
 type windowsRuntimeStartupStage uint32
@@ -61,7 +62,7 @@ const (
 	windowsRuntimeStartupStateRoot
 	windowsRuntimeStartupSecurityState
 	windowsRuntimeStartupDesktopListener
-	windowsRuntimeStartupInstalledListener
+	windowsRuntimeStartupLocalAppListener
 	windowsRuntimeStartupFixtureCustody
 	windowsRuntimeStartupConfiguration
 	windowsRuntimeStartupDaemon
@@ -109,14 +110,23 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 	statuses <- svc.Status{State: svc.StartPending}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	restartRequested := make(chan struct{}, 1)
+	requestRestart := func() bool {
+		select {
+		case restartRequested <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	}
 
-	runtimeDaemon, desktopListener, installedListener, err := service.open(ctx)
+	runtimeDaemon, desktopListener, localAppListener, err := service.open(ctx, requestRestart)
 	if err != nil {
 		return true, windowsStartupExitCode(err)
 	}
 
 	done := make(chan error, 1)
-	go func() { done <- runtimeDaemon.RunProtectedWithInstalled(ctx, desktopListener, installedListener) }()
+	go func() { done <- runtimeDaemon.RunProtectedWithLocalApp(ctx, desktopListener, localAppListener) }()
 	statuses <- svc.Status{State: svc.Running, Accepts: svc.AcceptStop | svc.AcceptShutdown}
 
 	for {
@@ -127,9 +137,17 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 				statuses <- request.CurrentStatus
 			case svc.Stop, svc.Shutdown:
 				statuses <- windowsRuntimeStopPendingStatus(1, windowsRuntimeServiceStopTimeout)
-				initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, installedListener, desktopListener)
+				initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, localAppListener, desktopListener)
 				return waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
 			}
+		case <-restartRequested:
+			statuses <- windowsRuntimeStopPendingStatus(1, windowsRuntimeServiceStopTimeout)
+			initiateWindowsRuntimeServiceStop(cancel, runtimeDaemon, localAppListener, desktopListener)
+			_, _ = waitForWindowsRuntimeServiceStop(done, statuses, windowsRuntimeServiceStopTimeout, windowsRuntimeServiceStopCheckpointTick)
+			// A non-zero service-specific exit delegates replacement to the
+			// installer's fixed SCM recovery policy. Desktop never performs a
+			// direct stop/start sequence.
+			return true, windowsRuntimeServiceRestartExitCode
 		case err := <-done:
 			if err != nil {
 				return false, 1
@@ -186,7 +204,7 @@ func windowsRuntimeStopPendingStatus(checkpoint uint32, timeout time.Duration) s
 	return svc.Status{State: svc.StopPending, CheckPoint: checkpoint, WaitHint: uint32(waitHint)}
 }
 
-func (service *windowsRuntimeService) open(ctx context.Context) (*daemon.Daemon, net.Listener, net.Listener, error) {
+func (service *windowsRuntimeService) open(ctx context.Context, requestRestart func() bool) (*daemon.Daemon, net.Listener, net.Listener, error) {
 	principal, err := protectedlocal.ValidateWindowsProductionPrincipal(ctx)
 	if err != nil {
 		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupPrincipal, err)
@@ -216,31 +234,31 @@ func (service *windowsRuntimeService) open(ctx context.Context) (*daemon.Daemon,
 		_ = securityState.Close()
 		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupDesktopListener, err)
 	}
-	installedListener, err := protectedlocal.OpenWindowsVerifiedInstalledListener(ctx, securityState, verifier)
+	localAppListener, err := protectedlocal.OpenWindowsVerifiedLocalAppListener(ctx, securityState)
 	if err != nil {
 		_ = desktopListener.Close()
 		_ = securityState.Close()
-		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupInstalledListener, err)
-	}
-	if err := prepareWindowsRuntimeFixture(ctx, securityState); err != nil {
-		_ = installedListener.Close()
-		_ = desktopListener.Close()
-		_ = securityState.Close()
-		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupFixtureCustody, err)
+		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupLocalAppListener, err)
 	}
 	cfg, err := loadWindowsProtectedRuntimeConfig(root.Path())
 	if err != nil {
-		_ = installedListener.Close()
+		_ = localAppListener.Close()
 		_ = desktopListener.Close()
 		_ = securityState.Close()
 		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupConfiguration, err)
 	}
+	if err := prepareWindowsRuntimeFixture(ctx, securityState, cfg); err != nil {
+		_ = localAppListener.Close()
+		_ = desktopListener.Close()
+		_ = securityState.Close()
+		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupFixtureCustody, err)
+	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	runtimeDaemon, err := daemon.NewProtectedFromWindowsSecurityState(cfg, logger, service.version, securityState)
+	runtimeDaemon, err := daemon.NewProtectedFromWindowsSecurityState(cfg, logger, service.version, securityState, requestRestart)
 	if err != nil {
-		_ = installedListener.Close()
+		_ = localAppListener.Close()
 		_ = desktopListener.Close()
 		return nil, nil, nil, windowsStartupFailure(windowsRuntimeStartupDaemon, err)
 	}
-	return runtimeDaemon, desktopListener, installedListener, nil
+	return runtimeDaemon, desktopListener, localAppListener, nil
 }

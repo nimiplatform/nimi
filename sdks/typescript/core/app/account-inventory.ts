@@ -8,9 +8,9 @@ export type NimiAppAccountInventoryState =
   | 'revoked';
 
 export type NimiAppAccountInstallState =
-  | 'not-installed'
-  | 'installed'
-  | 'adopted-local'
+  | 'not-present'
+  | 'local-record-active'
+  | 'local-record-dormant'
   | 'removed';
 
 export interface NimiAppAccountInventoryRow {
@@ -47,9 +47,9 @@ const NIMI_APP_ACCOUNT_INVENTORY_STATES = new Set<NimiAppAccountInventoryState>(
 ]);
 
 const NIMI_APP_ACCOUNT_INSTALL_STATES = new Set<NimiAppAccountInstallState>([
-  'not-installed',
-  'installed',
-  'adopted-local',
+  'not-present',
+  'local-record-active',
+  'local-record-dormant',
   'removed',
 ]);
 

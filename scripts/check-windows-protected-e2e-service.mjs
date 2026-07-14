@@ -45,7 +45,7 @@ if (status.startMode !== 'Manual' || status.serviceAccountMatches !== true) fail
 if (status.serviceSidMatches !== true || status.restrictedSid !== true) failures.push('restricted service SID');
 if (status.binaryPathMatches !== true || status.signatureStatus !== 'Valid') failures.push('signed Runtime binary');
 if (status.stateRootExists !== true) failures.push('protected state root');
-if (status.desktopPipePresent !== true || status.installedPipePresent !== true) failures.push('protected native listeners');
+if (status.desktopPipePresent !== true || status.localAppPipePresent !== true) failures.push('protected native listeners');
 if (failures.length > 0) {
   throw new Error(`Windows protected E2E service gate failed: ${failures.join(', ')}\n${JSON.stringify(status)}`);
 }

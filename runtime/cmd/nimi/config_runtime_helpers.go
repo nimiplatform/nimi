@@ -106,19 +106,6 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 		}
 		pruneEmptyAuthConfig(&merged)
 	}
-	if raw.Auth != nil && raw.Auth.DeveloperRegistration != nil {
-		if merged.Auth == nil {
-			merged.Auth = &config.FileConfigAuth{}
-		}
-		enabled := raw.Auth.DeveloperRegistration.Enabled
-		if enabled != nil {
-			enabledCopy := *enabled
-			merged.Auth.DeveloperRegistration = &config.FileConfigDeveloperRegistration{
-				Enabled: &enabledCopy,
-			}
-		}
-		pruneEmptyAuthConfig(&merged)
-	}
 	if raw.Providers != nil {
 		mergedProviders := map[string]config.RuntimeFileTarget{}
 		for k, v := range raw.Providers {
@@ -148,14 +135,6 @@ func cloneFileConfig(fileCfg config.FileConfig) config.FileConfig {
 		if fileCfg.Auth.Account != nil {
 			accountCopy := *fileCfg.Auth.Account
 			cloned.Auth.Account = &accountCopy
-		}
-		if fileCfg.Auth.DeveloperRegistration != nil {
-			developerRegistrationCopy := *fileCfg.Auth.DeveloperRegistration
-			cloned.Auth.DeveloperRegistration = &developerRegistrationCopy
-			if fileCfg.Auth.DeveloperRegistration.Enabled != nil {
-				enabledCopy := *fileCfg.Auth.DeveloperRegistration.Enabled
-				cloned.Auth.DeveloperRegistration.Enabled = &enabledCopy
-			}
 		}
 	}
 	if fileCfg.Providers != nil {

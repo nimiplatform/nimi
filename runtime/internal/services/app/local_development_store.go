@@ -22,6 +22,7 @@ import (
 
 const (
 	localDevelopmentAuthorizationActive  = "active"
+	localDevelopmentAuthorizationDormant = "dormant"
 	localDevelopmentAuthorizationDenied  = "denied"
 	localDevelopmentAuthorizationRevoked = "revoked"
 	localDevelopmentEvaluationTTL        = 5 * time.Minute
@@ -131,11 +132,17 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			manifest_path TEXT NOT NULL, shell_kind INTEGER NOT NULL,
 			account_id TEXT NOT NULL, approved_account_generation INTEGER NOT NULL CHECK(approved_account_generation > 0),
 			capabilities_json TEXT NOT NULL, capability_fingerprint BLOB NOT NULL CHECK(length(capability_fingerprint) = 32),
-			decision INTEGER NOT NULL, state TEXT NOT NULL CHECK(state IN ('active','denied','revoked')),
+			decision INTEGER NOT NULL, state TEXT NOT NULL CHECK(state IN ('active','dormant','denied','revoked')),
 			authorization_generation INTEGER NOT NULL CHECK(authorization_generation > 0),
 			approved_unix_nano INTEGER NOT NULL, updated_unix_nano INTEGER NOT NULL
 		)`},
 		{query: `CREATE INDEX IF NOT EXISTS local_development_authorization_project ON local_development_authorization(project_root, app_id, updated_unix_nano DESC)`},
+		{query: `CREATE TABLE IF NOT EXISTS local_development_mode (
+			singleton INTEGER PRIMARY KEY CHECK(singleton = 1), enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),
+			revision INTEGER NOT NULL CHECK(revision > 0), account_id TEXT NOT NULL,
+			account_generation INTEGER NOT NULL CHECK(account_generation >= 0), updated_unix_nano INTEGER NOT NULL
+		)`},
+		{query: `INSERT OR IGNORE INTO local_development_mode(singleton, enabled, revision, account_id, account_generation, updated_unix_nano) VALUES (1, 0, 1, '', 0, ?)`, args: []any{now}},
 		{query: `CREATE TABLE IF NOT EXISTS local_development_launch (
 			launch_id BLOB PRIMARY KEY CHECK(length(launch_id) = 32),
 			authorization_id BLOB NOT NULL REFERENCES local_development_authorization(authorization_id),
@@ -144,6 +151,10 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			shell_kind INTEGER NOT NULL, account_id TEXT NOT NULL,
 			account_generation INTEGER NOT NULL CHECK(account_generation > 0),
 			capability_fingerprint BLOB NOT NULL CHECK(length(capability_fingerprint) = 32),
+			local_app_principal_id TEXT NOT NULL, local_app_record_id TEXT NOT NULL,
+			provenance_revision INTEGER NOT NULL CHECK(provenance_revision > 0),
+			project_generation INTEGER NOT NULL CHECK(project_generation > 0),
+			payload_digest TEXT NOT NULL, expected_host_digest BLOB NOT NULL CHECK(length(expected_host_digest) = 32),
 			host_executable_path TEXT NOT NULL, renderer_origin TEXT NOT NULL,
 			runtime_boot_epoch BLOB NOT NULL CHECK(length(runtime_boot_epoch) = 32),
 			status TEXT NOT NULL CHECK(status IN ('pending','process_bound','consumed','revoked','expired')),
@@ -160,6 +171,9 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			app_id TEXT NOT NULL, project_root TEXT NOT NULL,
 			account_id TEXT NOT NULL, account_generation INTEGER NOT NULL CHECK(account_generation > 0),
 			capability_fingerprint BLOB NOT NULL CHECK(length(capability_fingerprint) = 32),
+			local_app_principal_id TEXT NOT NULL, local_app_record_id TEXT NOT NULL,
+			provenance_revision INTEGER NOT NULL CHECK(provenance_revision > 0),
+			project_generation INTEGER NOT NULL CHECK(project_generation > 0), payload_digest TEXT NOT NULL,
 			runtime_boot_epoch BLOB NOT NULL CHECK(length(runtime_boot_epoch) = 32),
 			process_json TEXT NOT NULL, issued_unix_nano INTEGER NOT NULL,
 			expires_unix_nano INTEGER NOT NULL, revoked_unix_nano INTEGER
@@ -203,6 +217,12 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 	if found && active.State == localDevelopmentAuthorizationActive && localDevelopmentAuthorizationMatches(active, project, runID) {
 		active.Project.AccountGeneration = project.AccountGeneration
 		return localDevelopmentEvaluation{Project: project, RunID: runID, State: runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE, Authorization: active}, nil
+	}
+	if found && active.State == localDevelopmentAuthorizationDormant &&
+		active.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT &&
+		localDevelopmentProjectsMatch(active.Project, project) {
+		active.Project.AccountGeneration = project.AccountGeneration
+		return localDevelopmentEvaluation{Project: project, RunID: runID, State: runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT, Authorization: active}, nil
 	}
 
 	evaluationID, err := store.readIdentifier()
@@ -376,10 +396,16 @@ func (store *localDevelopmentStore) RevokeAccountAuthority(ctx context.Context, 
 	}
 	defer tx.Rollback()
 	now := store.now().UTC().UnixNano()
+	if _, err := tx.ExecContext(ctx, `UPDATE local_development_mode SET enabled = 0, revision = revision + 1, updated_unix_nano = ? WHERE singleton = 1 AND enabled = 1 AND account_id = ?`, now, normalized); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_evaluation SET state = 'expired' WHERE account_id = ? AND state = 'pending'`, normalized); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE account_id = ? AND state = 'active'`, now, normalized); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'dormant', updated_unix_nano = ? WHERE account_id = ? AND state = 'active' AND decision = ?`, now, normalized, int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT)); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE account_id = ? AND state = 'active' AND decision = ?`, now, normalized, int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE)); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE account_id = ? AND status IN ('pending','process_bound')`, now, normalized); err != nil {

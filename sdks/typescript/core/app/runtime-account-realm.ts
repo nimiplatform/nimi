@@ -106,7 +106,6 @@ function runtimeEnumName(enumType: Record<number, string>, value: number): strin
 function assertRuntimeMediatedRealmCallerMode(caller: NimiRuntimeAccountCaller): void {
   if (
     caller.mode !== AccountCallerMode.LOCAL_FIRST_PARTY_APP
-    && caller.mode !== AccountCallerMode.LOCAL_DEVELOPER_APP
     && caller.mode !== AccountCallerMode.DESKTOP_SHELL
   ) {
     throw createNimiError({

@@ -119,7 +119,7 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 // service capability into the only custody/session bindings accepted by the
 // protected Runtime. It never accepts a state root, account partition, secret
 // store, or session authority from configuration or a caller-provided path.
-func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger, version string, state *protectedlocal.WindowsRuntimeSecurityState) (*Daemon, error) {
+func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger, version string, state *protectedlocal.WindowsRuntimeSecurityState, requestRestart func() bool) (*Daemon, error) {
 	if state == nil {
 		return nil, fmt.Errorf("verified Windows Runtime security state is required")
 	}
@@ -132,9 +132,12 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	stateRoot := strings.TrimSpace(state.ServiceStatePath())
 	secrets := state.BinarySecrets()
 	sessions := state.DesktopSessions()
-	intents := state.LifecycleIntents()
-	if stateRoot == "" || state.Ledger() == nil || secrets == nil || sessions == nil || intents == nil {
+	if stateRoot == "" || state.Ledger() == nil || secrets == nil || sessions == nil {
 		return fail(fmt.Errorf("complete verified Windows Runtime security state is required"))
+	}
+	serviceDataRoot, err := resolveProtectedServiceDataRoot(stateRoot, cfg.LocalStatePath)
+	if err != nil {
+		return fail(err)
 	}
 	accountPartition := strings.TrimSpace(state.DesktopIdentity().AccountPartition())
 	if accountPartition == "" {
@@ -148,11 +151,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if err != nil {
 		return fail(fmt.Errorf("adapt Windows protected connector custody: %w", err))
 	}
-	installedProcessVerifier, err := installedProcessVerifierForWindowsState(state)
-	if err != nil {
-		return fail(fmt.Errorf("construct Windows installed process verifier: %w", err))
-	}
-	localDevelopmentVerifier, err := localDevelopmentProcessVerifierForWindowsState(state)
+	localDevelopmentVerifier, err := protectedlocal.NewWindowsLocalDevelopmentProcessVerifier(state.DesktopIdentity())
 	if err != nil {
 		return fail(fmt.Errorf("construct Windows local-development process verifier: %w", err))
 	}
@@ -162,20 +161,37 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot:         stateRoot,
+			ServiceStateRoot:         serviceDataRoot,
 			PlatformAppRegistryPath:  platformAppRegistryPath,
 			PlatformBundledAppsRoot:  platformBundledAppsRoot,
 			AccountCustody:           accountCustody,
 			AccountPartition:         accountPartition,
+			AccountRealmBaseURL:      cfg.AccountRealmBaseURL,
+			AccountAuthorizationURL:  cfg.AccountAuthorizationURL,
+			AccountTokenURL:          cfg.AccountTokenURL,
+			LocalOSUserSID:           state.DesktopIdentity().UserSID(),
 			ConnectorSecrets:         connectorSecrets,
 			DesktopSessions:          sessions,
-			LifecycleIntents:         intents,
-			InstalledProcessVerifier: installedProcessVerifier,
-			InstalledLaunches:        state.InstalledLaunches(),
+			LocalAppLaunches:         state.LocalAppLaunches(),
 			LocalDevelopmentVerifier: localDevelopmentVerifier,
+			RuntimeRestartRequester:  requestRestart,
 		},
 		Close: state.Close,
 	})
+}
+
+func resolveProtectedServiceDataRoot(securityStateRoot, localStatePath string) (string, error) {
+	securityStateRoot = filepath.Clean(strings.TrimSpace(securityStateRoot))
+	localStatePath = filepath.Clean(strings.TrimSpace(localStatePath))
+	if !filepath.IsAbs(securityStateRoot) || !filepath.IsAbs(localStatePath) {
+		return "", fmt.Errorf("protected Runtime data paths must be absolute")
+	}
+	dataRoot := filepath.Dir(filepath.Dir(localStatePath))
+	relative, err := filepath.Rel(securityStateRoot, dataRoot)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("protected Runtime data root escapes the verified service root")
+	}
+	return dataRoot, nil
 }
 
 type grpcServerConstructor func(config.Config, *health.State, *slog.Logger, string) (*grpcserver.Server, error)
@@ -258,24 +274,24 @@ func (d *Daemon) RunProtected(ctx context.Context, listener net.Listener) error 
 	}, func() { _ = listener.Close() }, "verified-native-desktop")
 }
 
-// RunProtectedWithInstalled starts both independently verified native
+// RunProtectedWithLocalApp starts both independently verified native
 // transports. Production Windows entrypoints use this path; platforms without
-// an admitted installed carrier remain on RunProtected and fail installed RPCs
+// an admitted local-app carrier remain on RunProtected and fail local-app RPCs
 // closed.
-func (d *Daemon) RunProtectedWithInstalled(ctx context.Context, desktopListener, installedListener net.Listener) error {
+func (d *Daemon) RunProtectedWithLocalApp(ctx context.Context, desktopListener, localAppListener net.Listener) error {
 	if d == nil {
 		return fmt.Errorf("Runtime daemon is required")
 	}
-	if !d.protected || desktopListener == nil || installedListener == nil {
-		return fmt.Errorf("%s: protected Runtime requires verified Desktop and installed listeners", protectedlocal.ReasonProtectedLocalTransportUnsupported)
+	if !d.protected || desktopListener == nil || localAppListener == nil {
+		return fmt.Errorf("%s: protected Runtime requires verified Desktop and local-app listeners", protectedlocal.ReasonProtectedLocalTransportUnsupported)
 	}
 	return d.run(ctx, 2, func(errCh chan<- error) {
 		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(desktopListener) }()
-		go func() { errCh <- d.grpc.ServeVerifiedNativeInstalled(installedListener) }()
+		go func() { errCh <- d.grpc.ServeVerifiedNativeLocalApp(localAppListener) }()
 	}, func() {
-		_ = installedListener.Close()
+		_ = localAppListener.Close()
 		_ = desktopListener.Close()
-	}, "verified-native-desktop-and-installed")
+	}, "verified-native-desktop-and-local-app")
 }
 
 func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonServerStarter, stopServers daemonServerStopper, transport string) error {
@@ -761,148 +777,5 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	}
 	if firstFailure != "" {
 		d.setDegradedStatus(fmt.Sprintf("engine bootstrap failed (%s)", firstFailure))
-	}
-}
-func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error {
-	var cfg engine.EngineConfig
-	switch kind {
-	case engine.EngineLlama:
-		cfg = engine.DefaultLlamaConfig()
-	case engine.EngineMedia:
-		cfg = engine.DefaultMediaConfig()
-	case engine.EngineSpeech:
-		cfg = engine.DefaultSpeechConfig()
-		cfg.ModelsPath = d.cfg.LocalModelsPath
-	case engineSidecar:
-		return fmt.Errorf("engine %s is not yet supported for supervised lifecycle", kind)
-	default:
-		return fmt.Errorf("unsupported engine kind: %s", kind)
-	}
-	if version != "" {
-		cfg.Version = version
-	}
-	if port > 0 {
-		cfg.Port = port
-	}
-	if kind == engine.EngineMedia {
-		cfg.MediaMode = engine.MediaModePipelineSupervised
-		if d.resolvedImageMatrix != nil {
-			selection := *d.resolvedImageMatrix
-			if resolvedMode, err := engine.MediaModeFromSelection(selection); err == nil {
-				cfg.MediaMode = resolvedMode
-				cfg.ImageSupervisedSelection = &selection
-			}
-		}
-	}
-	cfg, err := d.engineMgr.EnsureEngine(ctx, cfg)
-	if err != nil {
-		d.logger.Error("ensure engine failed",
-			"engine", kind,
-			"error", err,
-		)
-		return fmt.Errorf("ensure %s: %w", kind, err)
-	}
-	if err := d.engineMgr.StartEngine(ctx, cfg); err != nil {
-		d.logger.Error("start engine failed",
-			"engine", kind,
-			"error", err,
-		)
-		return fmt.Errorf("start %s: %w", kind, err)
-	}
-	d.injectEngineEndpointEnv(kind, envKey, "bootstrap")
-	return nil
-}
-func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, source string) {
-	if d.engineMgr == nil || strings.TrimSpace(envKey) == "" {
-		return
-	}
-	endpoint, err := d.engineMgr.EngineEndpoint(kind)
-	if err != nil {
-		d.logger.Warn("resolve engine endpoint failed",
-			"engine", kind,
-			"source", source,
-			"error", err,
-		)
-		return
-	}
-	trimmed := strings.TrimSuffix(strings.TrimSpace(endpoint), "/")
-	if trimmed == "" {
-		return
-	}
-	resolved := trimmed + "/v1"
-	if err := runtimeSetenv(envKey, resolved); err != nil {
-		d.logger.Warn("set engine endpoint env failed",
-			"engine", kind,
-			"source", source,
-			"env", envKey,
-			"error", err,
-		)
-		return
-	}
-	if aiSvc := d.grpc.AIService(); aiSvc != nil {
-		if providerID, apiKeyEnv, ok := localProviderEnvBinding(kind); ok {
-			aiSvc.SetLocalProviderEndpoint(providerID, resolved, runtimeGetenv(apiKeyEnv))
-		}
-	}
-	d.logger.Info("engine endpoint env injected",
-		"engine", kind,
-		"source", source,
-		"endpoint", trimmed,
-		"env", envKey,
-	)
-}
-func (d *Daemon) onEngineStateChange(engineName string, status string, detail string) {
-	snapshot := d.state.Snapshot()
-	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
-		return
-	}
-	if strings.EqualFold(strings.TrimSpace(engineName), string(engineManagedImageBackend)) {
-		if svc := d.grpc.LocalService(); svc != nil {
-			switch strings.ToLower(strings.TrimSpace(status)) {
-			case "healthy":
-				svc.SetManagedImageBackendHealth(true, detail)
-			case "unhealthy":
-				svc.SetManagedImageBackendHealth(false, detail)
-			}
-		}
-	}
-	switch status {
-	case "unhealthy":
-		d.setDegradedStatus(fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
-		reasonKey := resolveInternalReasonKey(detail)
-		appendEngineCrashAudit(d.auditStore, engineName, detail, d.resolvedImageMatrix, reasonKey)
-		if kind, ok := engineKindForName(engineName); ok {
-			if providerName, ok := providerTargetNameForEngine(kind); ok {
-				hint := fmt.Sprintf("engine unhealthy (%s: %s)", engineName, detail)
-				if attr := imageAttributionDetail(d.resolvedImageMatrix); attr != "" && isImageRelatedEngine(kind) {
-					hint = fmt.Sprintf("%s [%s internal_reason_key=%s]", hint, attr, reasonKey)
-				}
-				d.setProviderFailureHint(providerName, hint)
-			}
-		}
-	case "healthy":
-		recoveringSameEngine := snapshot.Status == health.StatusDegraded &&
-			engineUnhealthyReasonMatches(snapshot.Reason, engineName)
-		if !recoveringSameEngine {
-			return
-		}
-		if kind, ok := engineKindForName(engineName); ok {
-			if isImageRelatedEngine(kind) {
-				appendRepairResolvedAudit(d.auditStore, engineName, detail, d.resolvedImageMatrix)
-			}
-		}
-		if kind, envKey, ok := engineEnvKey(engineName); ok {
-			d.injectEngineEndpointEnv(kind, envKey, "recovered")
-		}
-		if svc := d.grpc.LocalService(); svc != nil {
-			svc.MarkManagedEngineUsed(engineName, "engine_recovered")
-		}
-		if kind, ok := engineKindForName(engineName); ok {
-			if providerName, ok := providerTargetNameForEngine(kind); ok {
-				d.clearProviderFailureHint(providerName)
-			}
-		}
-		d.state.SetStatus(health.StatusReady, "ready")
-		d.grpc.SyncServingState()
 	}
 }

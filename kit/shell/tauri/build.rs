@@ -38,8 +38,8 @@ fn generate_runtime_proto_client() {
     let proto_files = [
         "runtime/v1/common.proto",
         "runtime/v1/auth.proto",
+        "runtime/v1/runtime_service_control.proto",
         "runtime/v1/account.proto",
-        "runtime/v1/grant.proto",
         "runtime/v1/ai.proto",
         "runtime/v1/local_runtime_asset_catalog.proto",
         "runtime/v1/local_runtime_device_environment.proto",

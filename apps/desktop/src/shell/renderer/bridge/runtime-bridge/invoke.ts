@@ -1,8 +1,8 @@
 import type { NimiError } from '@nimiplatform/sdk/types';
 import {
   getShellBridgeUserMessageProjection,
-  hasTauriInvoke,
-  invokeTauri,
+  hasShellHostInvoke,
+  invokeShell,
   toShellBridgeNimiError,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { i18n } from '@renderer/i18n';
@@ -72,13 +72,13 @@ function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
   };
 }
 
-type TauriInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
+type ShellInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
 
-function resolveTauriInvoke(): TauriInvokeFn {
-  if (!hasTauriInvoke()) {
+function resolveShellInvoke(): ShellInvokeFn {
+  if (!hasShellHostInvoke()) {
     throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
-  return invokeTauri;
+  return invokeShell;
 }
 
 function createSecureInvokeId(command: string): string {
@@ -97,10 +97,10 @@ function createSecureInvokeId(command: string): string {
 
 export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
   const startedAt = performance.now();
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
-  const tauriInvoke = resolveTauriInvoke();
+  const shellInvoke = resolveShellInvoke();
   const invokeId = createSecureInvokeId(command);
   const sessionTraceId = resolveRendererSessionTraceId();
   const payloadSummary = summarizeInvokePayload(command, payload);
@@ -118,7 +118,7 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
   };
   void emitRendererLog(commandLog);
   try {
-    const result = await tauriInvoke(command, payload);
+    const result = await shellInvoke(command, payload);
     const costMs = Number((performance.now() - startedAt).toFixed(2));
     void emitRendererLog({
       level: 'debug',

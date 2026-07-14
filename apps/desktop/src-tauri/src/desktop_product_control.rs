@@ -33,6 +33,20 @@ const DESKTOP_RUNTIME_APP_ID: &str = "nimi.desktop";
 const PRODUCT_CONTROL_CALLER_KIND: &str = "desktop-core";
 const PRODUCT_CONTROL_CALLER_ID: &str = "desktop.product-control";
 const PRODUCT_CONTROL_SURFACE_ID: &str = "desktop.product-control";
+const PRODUCT_CONTROL_TRANSPORT_TIMEOUT_GRACE_MS: u64 = 5_000;
+
+fn product_control_debug_enabled() -> bool {
+    matches!(
+        std::env::var("NIMI_VERBOSE_RENDERER_LOGS").ok().as_deref(),
+        Some("1" | "true" | "TRUE" | "yes" | "YES" | "on" | "ON")
+    )
+}
+
+fn log_product_control_stage(stage: &str) {
+    if product_control_debug_enabled() {
+        eprintln!("[desktop-product-control] stage={stage}");
+    }
+}
 
 pub(crate) fn product_control_runtime_bridge_metadata(
 ) -> crate::runtime_bridge::RuntimeBridgeMetadata {
@@ -53,14 +67,29 @@ async fn invoke_product_control_projection_json<Request>(
 where
     Request: prost::Message + Default,
 {
+    let invoke = crate::runtime_bridge::invoke_unary_typed_with_metadata(
+        method_id,
+        request,
+        product_control_runtime_bridge_metadata(),
+        timeout_ms,
+    );
     let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
-        crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            method_id,
-            request,
-            product_control_runtime_bridge_metadata(),
-            timeout_ms,
-        )
-        .await?;
+        if let Some(timeout_ms) = timeout_ms {
+            tokio::time::timeout(
+                std::time::Duration::from_millis(
+                    timeout_ms.saturating_add(PRODUCT_CONTROL_TRANSPORT_TIMEOUT_GRACE_MS),
+                ),
+                invoke,
+            )
+            .await
+            .map_err(|_| {
+                format!(
+                    "Runtime product-control transport exceeded {timeout_ms}ms request deadline"
+                )
+            })??
+        } else {
+            invoke.await?
+        };
     serde_json::from_str::<ProductControlRecordProjection>(&response.json)
         .map_err(|error| format!("Runtime product-control projection decode failed: {error}"))
 }
@@ -73,14 +102,29 @@ async fn invoke_product_control_selected_data_root_json<Request>(
 where
     Request: prost::Message + Default,
 {
+    let invoke = crate::runtime_bridge::invoke_unary_typed_with_metadata(
+        method_id,
+        request,
+        product_control_runtime_bridge_metadata(),
+        timeout_ms,
+    );
     let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
-        crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            method_id,
-            request,
-            product_control_runtime_bridge_metadata(),
-            timeout_ms,
-        )
-        .await?;
+        if let Some(timeout_ms) = timeout_ms {
+            tokio::time::timeout(
+                std::time::Duration::from_millis(
+                    timeout_ms.saturating_add(PRODUCT_CONTROL_TRANSPORT_TIMEOUT_GRACE_MS),
+                ),
+                invoke,
+            )
+            .await
+            .map_err(|_| {
+                format!(
+                    "Runtime product-control transport exceeded {timeout_ms}ms request deadline"
+                )
+            })??
+        } else {
+            invoke.await?
+        };
     serde_json::from_str::<ProductControlSelectedDataRootProjection>(&response.json).map_err(
         |error| format!("Runtime product-control selected-data-root decode failed: {error}"),
     )
@@ -139,14 +183,18 @@ pub async fn product_control_record_ensure_created(
 pub async fn product_control_record_select_data_root(
     payload: ProductDataRootSelectPayload,
 ) -> Result<ProductControlRecordProjection, String> {
-    invoke_product_control_projection_json(
+    let data_root = payload.data_root.trim().to_string();
+    log_product_control_stage("select-data-root-runtime-start");
+    let projection = invoke_product_control_projection_json(
         nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
         crate::runtime_bridge::generated::SelectProductControlDataRootRequest {
-            data_root: payload.data_root,
+            data_root,
         },
         Some(30_000),
     )
-    .await
+    .await?;
+    log_product_control_stage("select-data-root-runtime-ready");
+    Ok(projection)
 }
 
 /// Resolves the OS-conventional default `nimi_data` directory the first-run

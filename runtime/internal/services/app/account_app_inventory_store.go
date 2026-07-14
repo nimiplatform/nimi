@@ -22,7 +22,6 @@ const (
 
 	accountAppInstallStateNotInstalled = "not-installed"
 	accountAppInstallStateInstalled    = "installed"
-	accountAppInstallStateAdoptedLocal = "adopted-local"
 	accountAppInstallStateRemoved      = "removed"
 
 	accountAppDataPolicyKeepOnUninstall   = "keep_on_uninstall"
@@ -35,7 +34,6 @@ const (
 	accountAppInventoryMutationInstalled accountAppInventoryMutation = iota
 	accountAppInventoryMutationUninstalled
 	accountAppInventoryMutationRemoved
-	accountAppInventoryMutationAdoptedLocal
 )
 
 type accountAppInventoryStore struct {
@@ -175,8 +173,6 @@ func (s *accountAppInventoryStore) applyMutation(accountID string, appID string,
 		existing.InstallState = accountAppInstallStateNotInstalled
 	case accountAppInventoryMutationRemoved:
 		existing.InstallState = accountAppInstallStateRemoved
-	case accountAppInventoryMutationAdoptedLocal:
-		existing.InstallState = accountAppInstallStateAdoptedLocal
 	default:
 		return accountAppInventoryRecord{}, errors.New("unknown account app-inventory mutation")
 	}
@@ -216,7 +212,7 @@ func (s *accountAppInventoryStore) readOptional(accountID string) (accountAppInv
 	}
 	var record accountAppInventoryRecord
 	if err := readRequiredJSON(path, &record); err != nil {
-		if strings.Contains(err.Error(), "is missing; OpenApp fails closed") {
+		if strings.Contains(err.Error(), "is missing; Runtime projection fails closed") {
 			return accountAppInventoryRecord{}, false, nil
 		}
 		return accountAppInventoryRecord{}, false, err
@@ -321,7 +317,6 @@ func installStateKnown(state string) bool {
 	switch strings.TrimSpace(state) {
 	case accountAppInstallStateNotInstalled,
 		accountAppInstallStateInstalled,
-		accountAppInstallStateAdoptedLocal,
 		accountAppInstallStateRemoved:
 		return true
 	default:

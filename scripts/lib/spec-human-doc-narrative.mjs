@@ -15,7 +15,7 @@ export function appendSpecHumanDocNarrative(d) {
 
 ## 2. 认证体系
 
-Nimi Runtime 的认证分为四个层次：**Token 验证**（AuthN）、**访问控制**（AuthZ）、**会话管理**（AuthService）和**授权签发**（GrantService）。这四层严格分工，各有明确的输入输出边界。
+Nimi Runtime 的认证与本地应用授权分为四个层次：**Token 验证**（AuthN）、**访问控制**（AuthZ）、**会话管理**（AuthService）和**local-app grant 控制**（RuntimeAccountService + Runtime-private evaluator）。四层严格分工；不存在公共 GrantService 或可携带 local-app credential。
 
 ### 2.1 Token 验证（AuthN）
 
@@ -68,17 +68,17 @@ AuthZ 在 AuthN 通过后执行，负责判断"这个用户能不能访问这个
   d.rule('K-AUTHSVC-004');
   d.rule('K-AUTHSVC-005');
 
-  d.text(`### 2.4 授权签发（GrantService）
+  d.text(`### 2.4 Local-app Grant
 
-\`RuntimeGrantService\` 负责授权签发、访问校验和委托链管理。可以理解为"谁有权做什么"的决策中心。`);
+公共 \`RuntimeGrantService\` 已硬切删除。local-app grant 由 \`RuntimeAccountService\` 的受保护本地方法承载；Runtime 私有 evaluator 每次按当前 principal、record、process、session、account、grant 与 owner policy 决策，不签发可携带 credential。`);
   d.blank();
   d.rule('K-GRANT-001');
   d.rule('K-GRANT-002');
 
-  d.text(`授权支持委托链（delegation chain）：一个 token 可以签发子 token，但子 token 的权限必须是父 token 权限的子集，且有深度限制。`);
+  d.text(`Local-app identity session 可以在 zero-grant 状态建立；grant 独立请求、审批、撤销，并且不能折叠进 session、AccountCaller、app_id 或 renderer-held bearer。`);
   d.blank();
-  d.rule('K-GRANT-005');
-  d.rule('K-GRANT-006');
+  d.rule('K-GRANT-003');
+  d.rule('K-GRANT-014');
 
   d.text(`---
 

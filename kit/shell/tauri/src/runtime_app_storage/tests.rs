@@ -188,8 +188,8 @@ fn get_app_storage_binding_uses_trusted_host_metadata() {
                     metadata: Some(RuntimeBridgeMetadata {
                         app_id: Some("nimi.parentos".to_string()),
                         participant_id: Some("nimi.parentos".to_string()),
-                        caller_kind: Some("local-developer-app".to_string()),
-                        caller_id: Some("nimi.parentos.local-developer".to_string()),
+                        caller_kind: Some("local-first-party-app".to_string()),
+                        caller_id: Some("nimi.parentos.local-first-party".to_string()),
                         ..RuntimeBridgeMetadata::default()
                     }),
                     authorization: None,
@@ -208,7 +208,7 @@ fn get_app_storage_binding_uses_trusted_host_metadata() {
             assert_eq!(metadata.app_id.as_deref(), Some("nimi.parentos"));
             assert_eq!(
                 metadata.caller_id.as_deref(),
-                Some("nimi.parentos.local-developer")
+                Some("nimi.parentos.local-first-party")
             );
             assert_eq!(
                 payload

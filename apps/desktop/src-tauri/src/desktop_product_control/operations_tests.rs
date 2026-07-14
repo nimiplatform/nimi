@@ -20,7 +20,6 @@ fn product_control_account_registration_uses_same_admitted_desktop_caller() {
     assert_eq!(request.device_id, "desktop-shell");
     assert_eq!(request.app_version, "1");
     assert!(request.capabilities.is_empty());
-    assert!(!request.developer_registration);
 
     let mode = request.mode_manifest.expect("mode manifest");
     assert_eq!(

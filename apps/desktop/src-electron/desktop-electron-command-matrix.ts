@@ -1,7 +1,3 @@
-export const DESKTOP_ELECTRON_PRODUCT_CONTROL_CALLER_KIND = 'desktop-core';
-export const DESKTOP_ELECTRON_PRODUCT_CONTROL_CALLER_ID = 'desktop.product-control';
-export const DESKTOP_ELECTRON_PRODUCT_CONTROL_SURFACE_ID = 'desktop.product-control';
-
 export type DesktopElectronCommandMatrixStatus =
   | 'standard-shell-covered'
   | 'electron-covered'
@@ -16,16 +12,31 @@ export type DesktopElectronCommandMatrixEntry = {
 };
 
 export const DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS = [
+  '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile',
+  '/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan',
+  '/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs',
+  '/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob',
+  '/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob',
+  '/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob',
+  '/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency',
+  '/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness',
+  '/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness',
+  '/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence',
+  '/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence',
   '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
   '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot',
   '/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated',
   '/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot',
   '/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel',
   '/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan',
+  '/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse',
+  '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence',
+  '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence',
   '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState',
 ] as const;
 
 export const DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_COMMANDS = [
+  'product_control_default_data_root_directory',
   'product_control_record_get',
   'product_control_selected_data_root_get',
   'product_control_record_ensure_created',
@@ -35,8 +46,7 @@ export const DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_COMMANDS = [
   'product_control_record_reconcile_first_run_setup_state',
 ] as const;
 
-export const DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS = [
-  'product_control_default_data_root_directory',
+export const DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS = [
   'product_control_record_ensure_account_default_profile',
   'product_control_record_prepare_first_run_local_ai_ready',
   'product_control_record_admit_ready_for_use',
@@ -44,10 +54,26 @@ export const DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS = [
   'built_in_ai_config_for_scope_init',
 ] as const;
 
+export const DESKTOP_ELECTRON_LOCAL_DEVELOPMENT_COMMANDS = [
+  'local_development_pending_approvals',
+  'local_development_decide',
+  'local_development_authorizations_list',
+  'local_development_runs_list',
+  'local_development_authorization_revoke',
+  'local_app_grant_pending_list',
+  'local_app_grant_decide',
+  'local_app_grant_list',
+  'local_app_grant_revoke',
+] as const;
+
+const DESKTOP_ELECTRON_PROTECTED_CONTROL_COMMANDS = [
+  'developer_mode_status',
+  'developer_mode_set',
+] as const;
+
 const DESKTOP_ELECTRON_STANDARD_SHELL_COMMANDS = [
   'runtime_defaults',
   'open_external_url',
-  'oauth_token_exchange',
   'oauth_listen_for_code',
   'runtime_bridge_unary',
   'runtime_bridge_stream_open',
@@ -55,6 +81,12 @@ const DESKTOP_ELECTRON_STANDARD_SHELL_COMMANDS = [
   'runtime_bridge_status',
   'runtime_bridge_start',
   'runtime_bridge_restart',
+  'runtime_account_session_status',
+  'runtime_account_begin_login',
+  'runtime_account_complete_login',
+  'runtime_account_invoke_realm_unary',
+  'runtime_account_logout',
+  'runtime_account_switch_account',
   'log_renderer_event',
   'diagnostics_renderer_entry_probe',
   'data_path_resolve',
@@ -147,12 +179,22 @@ export const DESKTOP_ELECTRON_COMMAND_MATRIX = [
   ...entries(
     DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_COMMANDS,
     'electron-covered',
-    'Covered by Desktop Electron RuntimeLocalService product-control gRPC bridge methods.',
+    'Covered by the exact Kit Electron protected Desktop carrier; public gRPC is not used.',
   ),
   ...entries(
-    DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS,
-    'intentional-tauri-only',
-    'Desktop first-run repair/admission command remains Tauri-only in this Tauri-first batch.',
+    DESKTOP_ELECTRON_PROTECTED_CONTROL_COMMANDS,
+    'electron-covered',
+    'Covered by the exact Kit Electron protected Desktop native carrier.',
+  ),
+  ...entries(
+    DESKTOP_ELECTRON_LOCAL_DEVELOPMENT_COMMANDS,
+    'electron-covered',
+    'Covered by the Electron main-process supervisor and exact Kit protected native carrier; private Runtime identifiers never reach the renderer.',
+  ),
+  ...entries(
+    DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS,
+    'electron-covered',
+    'Covered by the Electron main-process coordinator, protected Runtime carrier, and shared Desktop native evidence core.',
   ),
   ...entries(
     DESKTOP_ELECTRON_NA_COMMANDS,

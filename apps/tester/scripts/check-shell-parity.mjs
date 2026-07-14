@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -14,8 +14,17 @@ function readRepo(relativePath) {
   return readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
-function requireText(source, text, label) {
-  if (!source.includes(text)) throw new Error(`${label} missing ${text}`);
+function sourceTree(relativePath) {
+  const absolute = path.join(root, relativePath);
+  return readdirSync(absolute, { withFileTypes: true }).flatMap((entry) => {
+    const child = path.join(relativePath, entry.name);
+    if (entry.isDirectory()) return sourceTree(child);
+    return /\.(?:ts|tsx|cts|rs)$/u.test(entry.name) ? [read(child)] : [];
+  }).join('\n');
+}
+
+function requireText(source, value, label) {
+  if (!source.includes(value)) throw new Error(`${label} missing ${value}`);
 }
 
 function forbid(source, pattern, label) {
@@ -29,9 +38,11 @@ function validateShellParity() {
   const tauriMain = read('src-tauri/src/main.rs');
   const tauriProduct = tauriMain.split('#[cfg(test)]')[0];
   const runtimePlatform = read('src/shell/auth/runtime-platform.ts');
+  const localAppClient = read('src/shell/local-app-runtime-platform.ts');
   const electronAppBridge = readRepo('kit/shell/electron/src/main/app-bridge.ts');
   const tauriRegistration = readRepo('kit/shell/tauri/src/command_registration.rs');
-  const rendererBridge = readRepo('kit/shell/renderer/src/bridge/installed-app.ts');
+  const rendererBridge = readRepo('kit/shell/renderer/src/bridge/local-app.ts');
+  const productionSources = [sourceTree('src'), sourceTree('src-electron'), tauriProduct].join('\n');
 
   if (packageJson.scripts.dev !== 'nimi-app dev --shell tauri') {
     throw new Error('Tester pnpm dev must enter the official Tauri launcher');
@@ -43,30 +54,47 @@ function validateShellParity() {
     throw new Error('Tester Electron development must enter the official launcher');
   }
 
-  requireText(electronMain, 'registerNimiElectronAppBridge', 'Electron app host');
-  requireText(electronPreload, 'installNimiElectronRuntimeBridge', 'Electron preload transport');
-  forbid(electronMain, /registerNimiElectronRuntimeBridge|[r]untimeEndpoint|NIMI_RUNTIME_GRPC_ADDR|createGrpcClient/, 'Electron generic Runtime bridge');
+  requireText(electronMain, 'registerNimiElectronAppBridge', 'Electron local-app host');
+  requireText(electronPreload, 'installNimiElectronRuntimeBridge', 'Electron preload carrier');
+  forbid(electronMain, /registerNimiElectronRuntimeBridge|[r]untimeEndpoint|NIMI_RUNTIME_GRPC_ADDR|createGrpcClient/u, 'Electron generic Runtime bridge');
 
-  requireText(tauriProduct, 'nimi_shell_tauri_installed_app_standard_shell_handler![', 'Tauri app host');
-  forbid(tauriProduct, /nimi_shell_tauri_runtime_bridge_handler|runtime_bridge_unary/, 'Tauri generic Runtime bridge');
+  requireText(tauriProduct, 'nimi_shell_tauri_local_app_standard_shell_handler![', 'Tauri local-app host');
+  requireText(tauriProduct, 'RuntimeBridgeLocalAppHost::platform_default()', 'Tauri protected carrier state');
+  forbid(tauriProduct, /nimi_shell_tauri_runtime_bridge_handler|runtime_bridge_unary/u, 'Tauri generic Runtime bridge');
 
-  requireText(runtimePlatform, 'testerInstalledAppBootstrap.appHost.bootstrap()', 'Renderer app-host bootstrap');
-  requireText(runtimePlatform, 'artifacts.readRuntimeBytes(status.bootstrapArtifactId)', 'Renderer protected artifact proof');
-  forbid(runtimePlatform, /readonly client:|readonly auth:|new Runtime|createNimiClient/, 'Renderer generic authority');
+  requireText(localAppClient, 'createNimiAppRuntimePlatformClient', 'Renderer SDK client');
+  requireText(localAppClient, 'createNimiLocalAppStandardShellSurface', 'Renderer Kit carrier');
+  requireText(runtimePlatform, 'testerLocalAppRuntimePlatform.auth.status()', 'Renderer auth projection');
+  requireText(runtimePlatform, 'operationAllowed', 'Renderer zero-grant distinction');
+  forbid(runtimePlatform, /readonly client:|new Runtime|createNimiClient|[r]untimeEndpoint/u, 'Renderer generic authority');
 
-  requireText(electronAppBridge, "const APP_HOST_PROTECTED_LOCAL_ENDPOINT_SENTINEL = 'app-host-protected-local-only'", 'Electron protected-local carrier');
-  requireText(electronAppBridge, 'electron-app-host-ordinary-grpc-forbidden', 'Electron direct gRPC denial');
-  const installedMacro = tauriRegistration.match(/macro_rules! nimi_shell_tauri_installed_app_standard_shell_handler[\s\S]*?\n}\n/);
-  if (!installedMacro) throw new Error('Tauri installed app handler macro missing');
-  requireText(installedMacro[0], 'app_host_bootstrap', 'Tauri app-host bootstrap');
-  requireText(installedMacro[0], 'artifacts_read_runtime_bytes', 'Tauri protected artifact operation');
-  forbid(installedMacro[0], /runtime_bridge_|oauth_|account|realm|agent|media|realtime/, 'Tauri installed app protected surface');
-  requireText(rendererBridge, "const APP_HOST_BOOTSTRAP_COMMAND = 'nimi.app-host.bootstrap'", 'Renderer typed app-host command');
+  requireText(electronAppBridge, "const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only'", 'Electron protected-local carrier');
+  requireText(electronAppBridge, 'electron-local-app-ordinary-grpc-forbidden', 'Electron direct gRPC denial');
+  const localAppMacro = tauriRegistration.match(/macro_rules! nimi_shell_tauri_local_app_standard_shell_handler[\s\S]*?\n\}\n/u);
+  if (!localAppMacro) throw new Error('Tauri local-app handler macro missing');
+  for (const operation of [
+    'local_app_session_status',
+    'local_app_permission_posture',
+    'local_app_permission_request',
+    'local_app_artifacts_read_runtime_bytes',
+    'local_app_agent_open_conversation',
+    'local_app_agent_send_turn',
+    'local_app_agent_subscribe_turn',
+    'local_app_agent_get_conversation_snapshot',
+  ]) {
+    requireText(localAppMacro[0], operation, 'Tauri local-app operation set');
+  }
+  requireText(rendererBridge, "NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus']", 'Renderer local-app status command');
+  requireText(rendererBridge, "NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes']", 'Renderer local-app artifact command');
+
+  // Explicit negative fixture: retired installed/developer vocabulary may not
+  // appear in Tester production sources after the atomic local-app hardcut.
+  forbid(productionSources, /createInstalledNimiApp|third-party-nimi-app|nimi_shell_tauri_installed_app_standard_shell_handler|installed-app-bootstrap/iu, 'Tester production hardcut');
 }
 
 try {
   validateShellParity();
-  process.stdout.write('[tester-shell-parity] app-host parity passed\n');
+  process.stdout.write('[tester-shell-parity] local-app carrier parity passed\n');
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error || 'unknown error');
   process.stderr.write(`[tester-shell-parity] failed: ${message}\n`);

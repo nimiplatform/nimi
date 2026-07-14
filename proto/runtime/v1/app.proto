@@ -39,6 +39,12 @@ message SubscribeAppMessagesRequest {
   string cursor = 3;
   repeated string from_app_ids = 4;
   ScopedRuntimeBindingAttachment scoped_binding = 5;
+  // Local-app carrier selector only. These fields never establish caller,
+  // Agent ownership, conversation ownership, grant, or session authority;
+  // Runtime accepts them only on the verified local_app_host transport and
+  // revalidates them in the operation owner.
+  string local_agent_ref = 6;
+  string conversation_anchor_id = 7;
 }
 
 message AppMessageEvent {
@@ -55,13 +61,17 @@ message AppMessageEvent {
   google.protobuf.Timestamp timestamp = 11;
 }
 
-// === Nimi App Install/Uninstall Lifecycle (K-APP-011..K-APP-014) ===
+// === Frozen immutable-package wire seam (K-APP-011..K-APP-016) ===
+// Frozen seam constraints:
+// These messages and enum slots reserve the 0K public schema only. They do
+// not admit an install, uninstall, update, repair, lifecycle-intent, job, or
+// event producer. Every corresponding RPC is deny-all and returns typed
+// LOCAL_APP_OPERATION_UNAVAILABLE until a future 0P/P authority revision
+// admits positive package behavior. Presence in this file is never evidence
+// of package, release, readiness, promotion, or lifecycle truth.
 
-// AppInstallJobPhase is the typed install/update pipeline phase. It surfaces
-// the concrete step so the product Apps card can show "download / verify /
-// materialize / unpack / swap / evidence" instead of a generic spinner. It is
-// never inferred from transfer/process/file state. The same phase shape covers
-// install, update, and healthRepair jobs (K-APP-015 / K-APP-016).
+// AppInstallJobPhase reserves the future immutable-package pipeline vocabulary.
+// No value is positively emitted in 0K.
 enum AppInstallJobPhase {
   APP_INSTALL_JOB_PHASE_UNSPECIFIED = 0;
   APP_INSTALL_JOB_PHASE_QUEUED = 1;
@@ -86,9 +96,8 @@ enum AppInstallJobPhase {
   APP_INSTALL_JOB_PHASE_UNINSTALLED = 12;
 }
 
-// AppInstallJobState is the typed terminal/in-flight job state. It aligns with
-// the Platform P-NAPP-008 fail-closed projection: a failed install/update
-// never projects as success and always leaves a recoverable state.
+// AppInstallJobState reserves future immutable-package job states. No value is
+// positively emitted in 0K.
 enum AppInstallJobState {
   APP_INSTALL_JOB_STATE_UNSPECIFIED = 0;
   APP_INSTALL_JOB_STATE_QUEUED = 1;
@@ -106,10 +115,8 @@ enum AppInstallJobState {
   APP_INSTALL_JOB_STATE_UNINSTALLED = 6;
 }
 
-// AppLifecycleJobKind distinguishes the lifecycle operation that produced a
-// job. Install, update, healthRepair, and uninstall jobs share the
-// AppInstallJob shape but carry a distinct kind so the consumer never infers
-// intent from phase.
+// AppLifecycleJobKind reserves future immutable-package operation kinds. No
+// lifecycle job exists in 0K.
 enum AppLifecycleJobKind {
   APP_LIFECYCLE_JOB_KIND_UNSPECIFIED = 0;
   APP_LIFECYCLE_JOB_KIND_INSTALL = 1;
@@ -124,8 +131,8 @@ enum AppLifecycleJobKind {
   APP_LIFECYCLE_JOB_KIND_UNINSTALL = 4;
 }
 
-// AppHealthRepairAction is the typed health/repair action token. It admits
-// only the four S-APP-002 tokens; no other action is accepted.
+// AppHealthRepairAction is a frozen future wire vocabulary. No repair action
+// is admitted in 0K.
 enum AppHealthRepairAction {
   APP_HEALTH_REPAIR_ACTION_UNSPECIFIED = 0;
   APP_HEALTH_REPAIR_ACTION_CANCEL = 1;
@@ -134,22 +141,19 @@ enum AppHealthRepairAction {
   APP_HEALTH_REPAIR_ACTION_REINSTALL = 4;
 }
 
-// AppLifecycleIntentAction is the closed action vocabulary owned by
-// K-APP-026. A single prepare/status protocol covers every lifecycle mutation;
-// callers cannot introduce action-specific confirmation RPCs.
+// AppLifecycleIntentAction is a frozen future wire vocabulary. 0K has no
+// lifecycle intent producer or consumer.
 enum AppLifecycleIntentAction {
   APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED = 0;
   APP_LIFECYCLE_INTENT_ACTION_INSTALL = 1;
   APP_LIFECYCLE_INTENT_ACTION_UNINSTALL = 2;
   APP_LIFECYCLE_INTENT_ACTION_UPDATE = 3;
   APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR = 4;
-  APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP = 5;
-  APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION = 6;
-  APP_LIFECYCLE_INTENT_ACTION_OPEN_APP = 7;
+  reserved 5, 6, 7;
 }
 
-// AppLifecycleIntentStatus is the durable reconciliation vocabulary. An
-// intent id or status is correlation-only and never authorizes a mutation.
+// AppLifecycleIntentStatus reserves a future reconciliation vocabulary. 0K
+// has no durable lifecycle intent state; an id could never authorize a call.
 enum AppLifecycleIntentStatus {
   APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED = 0;
   APP_LIFECYCLE_INTENT_STATUS_PREPARED = 1;
@@ -161,18 +165,16 @@ enum AppLifecycleIntentStatus {
   APP_LIFECYCLE_INTENT_STATUS_EXPIRED = 7;
 }
 
-// AppLifecycleDestructiveOptions is the closed set of option values that can
-// alter the canonical impact for today's lifecycle methods. Runtime resolves
-// and revalidates their concrete target before it issues an intent.
+// AppLifecycleDestructiveOptions reserves future immutable-package impact
+// fields. Runtime does not resolve or issue such an intent in 0K.
 message AppLifecycleDestructiveOptions {
   bool delete_durable_data = 1;
   AppHealthRepairAction health_repair_action = 2;
   string target_job_id = 3;
 }
 
-// AppLifecycleCanonicalImpact is the typed input to RFC8785 JSON
-// canonicalization and SHA-256 digesting. account_generation remains inside
-// Runtime/protected transport and is never projected into renderer IPC.
+// AppLifecycleCanonicalImpact reserves a future canonical-impact shape. No
+// canonical package impact is produced or projected in 0K.
 message AppLifecycleCanonicalImpact {
   uint32 schema_version = 1;
   AppLifecycleIntentAction action = 2;
@@ -180,7 +182,7 @@ message AppLifecycleCanonicalImpact {
   uint64 account_generation = 4;
   string release_ref = 5;
   string artifact_digest = 6;
-  uint64 adoption_generation = 7;
+  reserved 7;
   AppLifecycleDestructiveOptions destructive_options = 8;
   repeated string impact_flags = 9;
   uint32 display_contract_version = 10;
@@ -191,7 +193,7 @@ message PrepareAppLifecycleIntentRequest {
   string app_id = 2;
   string expected_release_ref = 3;
   string expected_artifact_digest = 4;
-  uint64 expected_adoption_generation = 5;
+  reserved 5;
   AppLifecycleDestructiveOptions destructive_options = 6;
 }
 
@@ -218,18 +220,16 @@ message GetAppLifecycleIntentStatusResponse {
   bool retryability = 6;
 }
 
-// AppInstallSourceKind distinguishes a bundled first-party install (no network
-// download; materialized from the atomic Nimi release bundle) from an external
-// immutable artifact install (HTTPS download + sha256 verification).
+// AppInstallSourceKind reserves future immutable-package provenance mapping.
+// It does not admit a bundled or external install in 0K.
 enum AppInstallSourceKind {
   APP_INSTALL_SOURCE_KIND_UNSPECIFIED = 0;
   APP_INSTALL_SOURCE_KIND_BUNDLED = 1;
   APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT = 2;
 }
 
-// AppInstallStorageProjection mirrors the Runtime-owned app storage roots
-// (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
-// selected nimi_data directory.
+// AppInstallStorageProjection reserves future immutable-materialization roots.
+// It is never positively populated in 0K.
 message AppInstallStorageProjection {
   string app_root = 1;
   string release_root = 2;
@@ -238,9 +238,8 @@ message AppInstallStorageProjection {
   string temp_root = 5;
 }
 
-// AppStorageState is the current app-scoped storage truth state. It is
-// separate from install job state: a dev/runtime-registered app can have
-// admitted data/cache/tmp roots before it has an active installed release.
+// AppStorageState describes app-private storage independently of the frozen
+// package seam. Local-app data/cache/tmp may be READY without a release.
 enum AppStorageState {
   APP_STORAGE_STATE_UNSPECIFIED = 0;
   APP_STORAGE_STATE_READY = 1;
@@ -249,10 +248,9 @@ enum AppStorageState {
   APP_STORAGE_STATE_STORAGE_UNAVAILABLE = 4;
 }
 
-// AppPackageReadinessState is the Runtime-owned package readiness projection.
-// It is separate from storage truth: it reads the active release pointer and
-// install evidence to decide whether the currently materialized package is
-// launchable, needs install/update/repair, or is blocked fail-closed.
+// AppPackageReadinessState is the frozen package-readiness vocabulary. 0K
+// emits only BLOCKED with LOCAL_APP_OPERATION_UNAVAILABLE and never reads an
+// active release pointer or install evidence.
 enum AppPackageReadinessState {
   APP_PACKAGE_READINESS_STATE_UNSPECIFIED = 0;
   APP_PACKAGE_READINESS_STATE_READY = 1;
@@ -262,10 +260,10 @@ enum AppPackageReadinessState {
   APP_PACKAGE_READINESS_STATE_BLOCKED = 5;
 }
 
-// AppStorageProjection is the stable Runtime-owned app storage truth surface
-// for app consumers (P-NAPP-015 / S-APP-011). data/cache/tmp are app-scoped
-// absolute roots under selected nimi_data. active_release_root is populated
-// only when an installed active release pointer resolves.
+// AppStorageProjection is the stable Runtime-owned app-private storage truth
+// surface (K-APP-022). data/cache/tmp are principal-partitioned roots under the
+// selected nimi_data root. In 0K active_release_root and active_version remain
+// empty because no immutable materialization is admitted.
 message AppStorageProjection {
   string app_id = 1;
   AppStorageState state = 2;
@@ -280,9 +278,10 @@ message AppStorageProjection {
   string detail = 11;
 }
 
-// AppPackageReadinessProjection is the Runtime-owned package readiness surface
-// for app consumers. It projects active release + install evidence truth only;
-// registry admission and permission gates stay in Platform/SDK projections.
+// AppPackageReadinessProjection is the frozen opaque package seam. In 0K it
+// contains only BLOCKED, LOCAL_APP_OPERATION_UNAVAILABLE, and
+// immutable_profile_unavailable; all identity, descriptor, version, digest,
+// verification, and storage-policy fields remain empty.
 message AppPackageReadinessProjection {
   string app_id = 1;
   string release_descriptor_ref = 2;
@@ -297,11 +296,8 @@ message AppPackageReadinessProjection {
   string detail = 11;
 }
 
-// AppInstallJob is the typed install job projection. It mirrors the
-// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
-// resolved descriptor identity, a fail-closed failure detail, and a
-// retryable flag so a failed install can be retried or its partial files
-// removed without ever projecting as success.
+// AppInstallJob reserves a future immutable-package job projection. No job id,
+// descriptor, digest, storage, retry, or terminal success is emitted in 0K.
 message AppInstallJob {
   string job_id = 1;
   string app_id = 2;
@@ -331,11 +327,9 @@ message AppInstallJob {
 }
 
 message InstallAppRequest {
-  // app_id resolves an admitted Nimi App registry row and its bound release
-  // descriptor.
+  // Reserved future package selector; it has no authority in 0K.
   string app_id = 1;
-  // confirmed records that the user confirmed the install requirement preview
-  // (size, data roots, AI/profile requirements, permissions).
+  // Reserved future confirmation slot; it cannot admit an install in 0K.
   bool confirmed = 2;
   string lifecycle_intent_id = 3;
   string displayed_impact_digest = 4;
@@ -354,10 +348,8 @@ message GetAppInstallJobResponse {
 }
 
 message GetAppStorageRequest {
-  // app_id resolves the app-scoped storage roots. For ordinary installed apps
-  // it resolves against the admitted descriptor/active release. For a
-  // runtime-registered developer app, it still returns data/cache/tmp under
-  // the selected nimi_data root without projecting an installed release.
+  // app_id is correlation-only and must match the verified principal/record
+  // binding. Runtime never uses it as authority or an app-id fallback.
   string app_id = 1;
 }
 
@@ -377,14 +369,14 @@ enum AccountAppInventoryState {
   ACCOUNT_APP_INVENTORY_STATE_REVOKED = 5;
 }
 
-// AccountAppInstallState is the account inventory's local materialization
-// overlay. Runtime install/uninstall/adoption lifecycles mutate this field;
-// they do not create account entitlement truth.
+// AccountAppInstallState is a frozen future local-materialization overlay.
+// Runtime has no positive materialization writer in 0K and never derives
+// entitlement from this field.
 enum AccountAppInstallState {
   ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED = 0;
   ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED = 1;
   ACCOUNT_APP_INSTALL_STATE_INSTALLED = 2;
-  ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL = 3;
+  reserved 3;
   ACCOUNT_APP_INSTALL_STATE_REMOVED = 4;
 }
 
@@ -422,79 +414,10 @@ message GetAccountAppInventoryResponse {
   string detail = 4;
 }
 
-// LocalAppAdoptionState is Runtime-owned local external app adoption state. It
-// is written only by the explicit AdoptLocalApp lifecycle and never by source
-// scanning or Desktop renderer state.
-enum LocalAppAdoptionState {
-  LOCAL_APP_ADOPTION_STATE_UNSPECIFIED = 0;
-  LOCAL_APP_ADOPTION_STATE_ADOPTED = 1;
-  LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED = 2;
-  LOCAL_APP_ADOPTION_STATE_REMOVED = 3;
-}
-
-// LocalAppAdoptionTrust is the local trust posture. Local adoption is not public
-// Platform admission and must not be projected as ordinary catalog truth.
-enum LocalAppAdoptionTrust {
-  LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED = 0;
-  LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL = 1;
-  LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL = 2;
-}
-
-message LocalAppAdoption {
-  string app_id = 1;
-  string root_path = 2;
-  string manifest_path = 3;
-  string display_name = 4;
-  string version = 5;
-  string entry_ref = 6;
-  string permission_scope_ref = 7;
-  string storage_policy_ref = 8;
-  LocalAppAdoptionState state = 9;
-  LocalAppAdoptionTrust trust = 10;
-  string adopted_at = 11;
-  string updated_at = 12;
-  ReasonCode reason_code = 13;
-  string detail = 14;
-}
-
-message AdoptLocalAppRequest {
-  string root_path = 1;
-  string expected_app_id = 2;
-  string lifecycle_intent_id = 3;
-  string displayed_impact_digest = 4;
-}
-
-message AdoptLocalAppResponse {
-  LocalAppAdoption adoption = 1;
-  ReasonCode reason_code = 2;
-  string detail = 3;
-}
-
-message ListLocalAppAdoptionsRequest {
-}
-
-message ListLocalAppAdoptionsResponse {
-  repeated LocalAppAdoption adoptions = 1;
-  ReasonCode reason_code = 2;
-  string detail = 3;
-}
-
-message RemoveLocalAppAdoptionRequest {
-  string app_id = 1;
-  bool delete_durable_data_confirmed = 2;
-  string lifecycle_intent_id = 3;
-  string displayed_impact_digest = 4;
-}
-
-message RemoveLocalAppAdoptionResponse {
-  LocalAppAdoption adoption = 1;
-  ReasonCode reason_code = 2;
-  string detail = 3;
-}
-
 message GetAppPackageReadinessRequest {
-  // app_id resolves the admitted app's release descriptor, active release
-  // pointer, and install evidence. It never scans from an app-local source.
+  // Reserved selector slot. 0K callers send it empty; Runtime ignores it and
+  // returns one global typed-unavailable projection without reading package
+  // files, descriptors, active-release pointers, or install evidence.
   string app_id = 1;
 }
 
@@ -503,8 +426,7 @@ message GetAppPackageReadinessResponse {
 }
 
 message ListAppInstallJobsRequest {
-  // app_id filters jobs to a single app. Empty fails closed; global install-job
-  // enumeration is not admitted for Apps inventory projection.
+  // Reserved future selector. No local or global job enumeration exists in 0K.
   string app_id = 1;
 }
 
@@ -513,14 +435,12 @@ message ListAppInstallJobsResponse {
 }
 
 message WatchAppInstallJobEventsRequest {
-  // job_id scopes the stream to one Runtime-emitted lifecycle job. Empty fails
-  // closed; global job event streams are not admitted.
+  // Reserved future selector. No job event stream exists in 0K.
   string job_id = 1;
 }
 
-// AppInstallJobEvent is one typed progress frame for a Watch stream. The
-// snapshot field carries the full typed job projection at the time of the
-// event so the consumer never reconstructs state from partial deltas.
+// AppInstallJobEvent reserves a future progress-frame shape. No frame is
+// emitted in 0K.
 message AppInstallJobEvent {
   uint64 sequence = 1;
   AppInstallJob job = 2;
@@ -529,19 +449,16 @@ message AppInstallJobEvent {
 
 message UninstallAppRequest {
   string app_id = 1;
-  // delete_durable_data, when true, additionally removes the durable app data
-  // root. It requires destructive_data_delete_confirmed.
+  // Reserved future destructive option; ignored because the RPC is deny-all.
   bool delete_durable_data = 2;
-  // destructive_data_delete_confirmed records explicit user confirmation of
-  // the separate destructive "Delete app data" flow with impact preview.
+  // Reserved future confirmation slot; it cannot authorize deletion in 0K.
   bool destructive_data_delete_confirmed = 3;
   string lifecycle_intent_id = 4;
   string displayed_impact_digest = 5;
 }
 
-// AppUninstallResult is the typed uninstall projection. Uninstall removes
-// release payloads by default and keeps durable data unless destructive
-// deletion was explicitly confirmed.
+// AppUninstallResult reserves a future immutable-package removal projection.
+// It is never positively returned in 0K.
 message AppUninstallResult {
   string app_id = 1;
   bool release_removed = 2;
@@ -551,203 +468,72 @@ message AppUninstallResult {
 }
 
 message UninstallAppResponse {
-  // result is the typed uninstall projection carrying the K-APP-014
-  // durable-data retention semantics (release_removed / durable_data_removed).
+  // Reserved future result; absent in 0K typed-unavailable responses.
   AppUninstallResult result = 1;
-  // job is the watchable uninstall lifecycle job (K-APP-017,
-  // AppLifecycleJobKind=APP_LIFECYCLE_JOB_KIND_UNINSTALL). It is the single
-  // live-job truth source for the `uninstalling` Apps card state and can be
-  // followed via WatchAppInstallJobEvents. A failed uninstall is recorded as a
-  // recoverable job and is never projected as success.
+  // Reserved future job; no uninstall job exists in 0K.
   AppInstallJob job = 2;
 }
 
 // === Nimi App Update Lifecycle (K-APP-015) ===
 
 message UpdateAppRequest {
-  // app_id resolves an admitted Nimi App registry row whose bound release
-  // descriptor advanced past the currently installed version.
+  // Reserved future package selector; it has no authority in 0K.
   string app_id = 1;
-  // confirmed records that the user confirmed the update impact preview
-  // (version, size, breaking-vs-non-breaking impact). It is required for a
-  // required (breaking) update and ignored for a non-breaking update.
+  // Reserved future confirmation slot; it cannot admit an update in 0K.
   bool confirmed = 2;
   string lifecycle_intent_id = 3;
   string displayed_impact_digest = 4;
 }
 
 message UpdateAppResponse {
-  // job is the typed update job projection. It reuses the AppInstallJob shape
-  // with kind=APP_LIFECYCLE_JOB_KIND_UPDATE.
+  // Reserved future job; no update job exists in 0K.
   AppInstallJob job = 1;
 }
 
 // === Nimi App Health / Repair Lifecycle (K-APP-016) ===
 
 message HealthRepairAppRequest {
-  // app_id resolves the admitted Nimi App registry row whose lifecycle job is
-  // being repaired.
+  // Reserved future package selector; it has no authority in 0K.
   string app_id = 1;
-  // action is the typed repair action. Only the four admitted tokens are
-  // accepted; any other value fails closed.
+  // Reserved future repair action; no action is admitted in 0K.
   AppHealthRepairAction action = 2;
-  // job_id optionally targets a specific lifecycle job for cancel/retry. When
-  // empty, cancel/retry resolve the most recent recoverable job for the app.
+  // Reserved future job selector; no recoverable job exists in 0K.
   string job_id = 3;
   string lifecycle_intent_id = 4;
   string displayed_impact_digest = 5;
 }
 
 message HealthRepairAppResponse {
-  // job is the typed lifecycle job projection produced by the repair action.
-  // cancel returns the cancelled job; retry/repair/reinstall return the new
-  // in-flight job. A failed repair is never projected as success.
+  // Reserved future job; no repair job exists in 0K.
   AppInstallJob job = 1;
 }
 
-// === Nimi App Open / Launch Flow (K-APP-017) ===
+// === Shared local-app protected launch (K-APP-017 / K-PLOCAL-008) ===
 
-// AppOpenScopeRef is the explicit canonical app-launch AIConfig scope a
-// caller must carry to open a Nimi App (K-APP-017 / P-AISC-007). It is the
-// app-shape AIScopeRef: kind is always `app`; owner_id is the admitted Nimi
-// App registry app_id and must equal the app_id being opened; surface_id is
-// optional and only set when the app's manifest declares a stable AI feature
-// surface. OpenApp never infers this scope — a missing or mismatched
-// AppOpenScopeRef fails closed.
-message AppOpenScopeRef {
-  // kind is the AIScopeRef kind discriminator. For OpenApp it is fixed to the
-  // literal string `app`; any other value fails closed.
-  string kind = 1;
-  // owner_id is the admitted Nimi App registry app_id (dot-separated app
-  // identity, e.g. `nimi.avatar`). It must equal OpenAppRequest.app_id.
-  string owner_id = 2;
-  // surface_id is the optional stable app-declared AI feature surface id.
-  // Empty means the canonical app-level AI scope.
-  string surface_id = 3;
+message PrepareLocalAppLaunchRequest {
+  // Runtime-generated management handle. For local_development it resolves an
+  // active authorization; immutable profiles remain typed unavailable in 0K.
+  // It is not a principal id, app id, account selector, path, or credential.
+  bytes local_app_handle = 1;
+  // Required only for a live local_development supervisor run.
+  bytes supervisor_run_id = 2;
 }
 
-// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
-// concrete checkpoint the launch is at so a failed Open names the exact step
-// rather than a generic failure. It is never inferred.
-enum AppOpenFlowStep {
-  APP_OPEN_FLOW_STEP_UNSPECIFIED = 0;
-  // RESOLVE_REGISTRY resolves the admitted Nimi App registry row.
-  APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY = 1;
-  // VERIFY_PACKAGE verifies the materialized release package + install
-  // evidence (active release pointer, digest-verified payload).
-  APP_OPEN_FLOW_STEP_VERIFY_PACKAGE = 2;
-  // VERIFY_LIBRARY verifies the account app-inventory state for the app.
-  APP_OPEN_FLOW_STEP_VERIFY_LIBRARY = 3;
-  // VERIFY_APP_DATA verifies the durable app-data root state.
-  APP_OPEN_FLOW_STEP_VERIFY_APP_DATA = 4;
-  // VERIFY_PERMISSIONS verifies the app permissions are granted or
-  // promptable.
-  APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS = 5;
-  // ENSURE_AICONFIG ensures the app-scope AIConfig exists (first-launch
-  // initialization per S-AICONF-009).
-  APP_OPEN_FLOW_STEP_ENSURE_AICONFIG = 6;
-  // VALIDATE_MANIFEST validates the app manifest requirements.
-  APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST = 7;
-  // LAUNCH is the terminal launch step: the runtime-owned app launch
-  // supervision admits the app process/surface.
-  APP_OPEN_FLOW_STEP_LAUNCH = 8;
+message PrepareLocalAppLaunchResponse {
+  bytes launch_id = 1;
+  google.protobuf.Timestamp bind_deadline = 2;
+  ReasonCode reason_code = 3;
 }
 
-// AppOpenState is the typed terminal Open-flow state. A blocked or failed
-// Open never projects as launched.
-enum AppOpenState {
-  APP_OPEN_STATE_UNSPECIFIED = 0;
-  // APP_OPEN_STATE_LAUNCHED means the Open flow completed and the app launch
-  // was admitted.
-  APP_OPEN_STATE_LAUNCHED = 1;
-  // APP_OPEN_STATE_BLOCKED means a verify step fail-closed before launch
-  // (package/library/app-data/permission/AIConfig/manifest). It carries the
-  // distinct typed reason_code; it is never collapsed into a generic value.
-  APP_OPEN_STATE_BLOCKED = 2;
-  // Runtime created a short-lived launch record, but no verified child has
-  // consumed it yet. This is never projected as launched=true.
-  APP_OPEN_STATE_LAUNCH_PREPARED = 3;
-}
-
-message OpenAppRequest {
-  // app_id resolves an admitted Nimi App registry row
-  // (admission_status=admitted) and a track-discriminated launch path.
-  string app_id = 1;
-  // scope is the explicit canonical app-launch AIConfig scope. It is
-  // mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
-  AppOpenScopeRef scope = 2;
-  string lifecycle_intent_id = 3;
-  string displayed_impact_digest = 4;
-}
-
-// AppOpenProjection is the typed Open-flow projection. It reports the
-// terminal state, the step the flow reached, the resolved launch scope, and a
-// fail-closed reason_code on every blocked branch.
-message AppOpenProjection {
-  string app_id = 1;
-  AppOpenState state = 2;
-  // reached_step is the last Open-flow step the launch executed. On a blocked
-  // open it names the exact step that fail-closed.
-  AppOpenFlowStep reached_step = 3;
-  // launched is true only when state is APP_OPEN_STATE_LAUNCHED. It is never
-  // inferred from process liveness or file existence.
-  bool launched = 4;
-  // active_version is the active release version the launch resolved. Empty
-  // when the open blocked before package verification.
-  string active_version = 5;
-  // scope echoes the resolved app-launch AIConfig scope. On a launched open
-  // the Open flow has validated this scope as the canonical app-shape
-  // AIScopeRef (P-AISC-007); the per-app first-launch AIConfig initialization
-  // (S-AICONF-009) is finalized by the SDK/desktop AIConfig surface against
-  // this validated scope — the AIConfig store is not Runtime-owned.
-  AppOpenScopeRef scope = 6;
-  // reason_code is the typed fail-closed reason on a blocked open, or
-  // ACTION_EXECUTED on a launched open. It is never collapsed into a generic
-  // value.
-  ReasonCode reason_code = 7;
-  string detail = 8;
-  // release_descriptor_ref is Runtime-attested descriptor identity used for
-  // the installed launch. It is empty for blocked local-adoption projections;
-  // adoption inventory alone cannot satisfy either production installed or
-  // P-NAPP-035 local-development launch authority.
-  string release_descriptor_ref = 9;
-  string descriptor_class = 10;
-  string admission_track = 11;
-  string source_kind = 12;
-  string ordinary_visibility = 13;
-  string digest_verification_state = 14;
-  string runtime_entry_ref = 15;
-  // active_release_root is the verified installed release root Desktop can
-  // host without recomputing descriptor paths. Future opaque launch URI
-  // support must use a new field, not overload this path.
-  string active_release_root = 16;
-  AppInstallStorageProjection storage = 17;
-  string shell_capability_set_ref = 18;
-  // caller_mode is the installed-app posture string. The AccountCallerMode enum
-  // authority lands in Task 6; this field carries the OpenApp launch-resolution
-  // string without reusing external-principal posture.
-  string caller_mode = 19;
-  // Non-authorizing 32-byte correlation id. The host-only verified process
-  // binding is established separately over protected Desktop control.
-  bytes launch_id = 20;
-  bool product_readiness_claim_allowed = 21;
-}
-
-message OpenAppResponse {
-  AppOpenProjection projection = 1;
-}
-
-// Desktop sends only selectors observed from its suspended exact-executable
-// launch. Runtime independently opens and verifies the process before binding
-// it to the launch record; neither field is authority by itself.
-message BindInstalledLaunchProcessRequest {
+message BindLocalAppProcessRequest {
   bytes launch_id = 1;
   uint32 child_process_id = 2;
 }
 
-message BindInstalledLaunchProcessResponse {
+message BindLocalAppProcessResponse {
   bytes launch_id = 1;
   google.protobuf.Timestamp bind_deadline = 2;
+  ReasonCode reason_code = 3;
 }
 
 service RuntimeAppService {
@@ -757,26 +543,21 @@ service RuntimeAppService {
   rpc PrepareAppLifecycleIntent(PrepareAppLifecycleIntentRequest) returns (PrepareAppLifecycleIntentResponse);
   rpc GetAppLifecycleIntentStatus(GetAppLifecycleIntentStatusRequest) returns (GetAppLifecycleIntentStatusResponse);
 
-  // Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+  // Frozen immutable-package seam. Mutation/job methods below are deny-all in
+  // 0K; GetAppPackageReadiness is callable only for typed unavailable.
   rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
   rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
   rpc GetAppStorage(GetAppStorageRequest) returns (GetAppStorageResponse);
   rpc GetAccountAppInventory(GetAccountAppInventoryRequest) returns (GetAccountAppInventoryResponse);
-  rpc AdoptLocalApp(AdoptLocalAppRequest) returns (AdoptLocalAppResponse);
-  rpc ListLocalAppAdoptions(ListLocalAppAdoptionsRequest) returns (ListLocalAppAdoptionsResponse);
-  rpc RemoveLocalAppAdoption(RemoveLocalAppAdoptionRequest) returns (RemoveLocalAppAdoptionResponse);
   rpc GetAppPackageReadiness(GetAppPackageReadinessRequest) returns (GetAppPackageReadinessResponse);
   rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
   rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
   rpc WatchAppInstallJobEvents(WatchAppInstallJobEventsRequest) returns (stream AppInstallJobEvent);
 
-  // Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+  // Frozen immutable update/repair seam; deny-all in 0K.
   rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse);
   rpc HealthRepairApp(HealthRepairAppRequest) returns (HealthRepairAppResponse);
 
-  // Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
-  // entry for launching a Nimi App; it requires an explicit app-shape
-  // AIScopeRef and never infers launch scope.
-  rpc OpenApp(OpenAppRequest) returns (OpenAppResponse);
-  rpc BindInstalledLaunchProcess(BindInstalledLaunchProcessRequest) returns (BindInstalledLaunchProcessResponse);
+  rpc PrepareLocalAppLaunch(PrepareLocalAppLaunchRequest) returns (PrepareLocalAppLaunchResponse);
+  rpc BindLocalAppProcess(BindLocalAppProcessRequest) returns (BindLocalAppProcessResponse);
 }

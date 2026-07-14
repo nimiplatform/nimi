@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   createNimiBindingOnlyAvatarRuntimeAccountCaller,
-  createNimiDeveloperRegisteredRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
   resolveNimiSDKSharedAuthRuntimeCallerMode,
@@ -56,24 +55,6 @@ test('Runtime account caller projection builds an explicit binding-only Avatar i
   );
 });
 
-test('Runtime account caller projection builds explicit developer-registered local identity', () => {
-  assert.deepEqual(
-    createNimiDeveloperRegisteredRuntimeAccountCaller({
-      appId: 'nimi.tester',
-      appInstanceId: 'nimi.tester.local-developer',
-      deviceId: 'tester-local-developer-device',
-      scopes: [' runtime.account ', '', 'runtime.account'],
-    }),
-    {
-      appId: 'nimi.tester',
-      appInstanceId: 'nimi.tester.local-developer',
-      deviceId: 'tester-local-developer-device',
-      mode: AccountCallerMode.LOCAL_DEVELOPER_APP,
-      scopes: ['runtime.account'],
-    },
-  );
-});
-
 test('Runtime account caller projection supports desktop shell caller identity', () => {
   assert.deepEqual(
     createNimiDesktopShellRuntimeAccountCaller({
@@ -108,19 +89,11 @@ test('Runtime account caller projection fails closed on missing identity', () =>
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',
   );
-  assert.throws(
-    () => createNimiDeveloperRegisteredRuntimeAccountCaller({
-      appId: 'nimi.tester',
-      appInstanceId: 'nimi.tester.local-developer',
-      deviceId: '',
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',
-  );
 });
 
 test('SDK shared-auth app modes map exactly to Runtime caller modes', () => {
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('first-party-local-app'), AccountCallerMode.LOCAL_FIRST_PARTY_APP);
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('developer-registered-local-app'), AccountCallerMode.LOCAL_DEVELOPER_APP);
+  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('local-app'), null);
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('third-party-nimi-app'), null);
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('desktop-account-ux'), AccountCallerMode.DESKTOP_SHELL);
   assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('binding-only-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);

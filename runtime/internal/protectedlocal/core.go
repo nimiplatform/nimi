@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -41,10 +42,10 @@ func readIdentifier(random io.Reader) (Identifier, error) {
 type TransportClass string
 
 const (
-	TransportPublicTCP       TransportClass = "public_tcp"
-	TransportDesktopControl  TransportClass = "desktop_control"
-	TransportLaunchBootstrap TransportClass = "launch_bootstrap"
-	TransportInstalledHost   TransportClass = "installed_host"
+	TransportPublicTCP         TransportClass = "public_tcp"
+	TransportDesktopControl    TransportClass = "desktop_control"
+	TransportLocalAppBootstrap TransportClass = "local_app_bootstrap"
+	TransportLocalAppHost      TransportClass = "local_app_host"
 )
 
 type OriginRole string
@@ -53,7 +54,9 @@ const (
 	RoleBindingOnly            OriginRole = "binding_only"
 	RoleVerifiedDesktopProcess OriginRole = "verified_desktop_process"
 	RoleDesktopAccountHost     OriginRole = "desktop_account_host"
-	RoleDesktopLifecycleHost   OriginRole = "desktop_lifecycle_host"
+	RoleLocalAppControl        OriginRole = "local_app_control"
+	RoleLocalAppProcess        OriginRole = "local_app_process"
+	RoleLocalAppSession        OriginRole = "local_app_session"
 )
 
 type OperatingSystem string
@@ -256,7 +259,7 @@ func EstablishDesktopConnection(ctx context.Context, verifier DesktopPeerVerifie
 			roles: map[OriginRole]struct{}{
 				RoleVerifiedDesktopProcess: {},
 				RoleDesktopAccountHost:     {},
-				RoleDesktopLifecycleHost:   {},
+				RoleLocalAppControl:        {},
 			},
 			connectionID: connectionID,
 			processHash:  peers.Client.digest(),
@@ -527,6 +530,49 @@ func (manager *DesktopSessionManager) AuthorizeContext(ctx context.Context, role
 		return fail(ReasonProtectedOriginRoleMismatch, false, "reconnect_desktop", fmt.Errorf("authorize desktop session: session is not authoritative"))
 	}
 	return nil
+}
+
+// LocalAppControlSessionRef returns one opaque boot-scoped reference only for
+// the exact live Desktop connection/session that currently owns
+// local_app_control. It is never reconstructed from metadata or request data.
+func (manager *DesktopSessionManager) LocalAppControlSessionRef(ctx context.Context) (string, error) {
+	if err := manager.AuthorizeContext(ctx, RoleLocalAppControl); err != nil {
+		return "", err
+	}
+	connection, ok := DesktopConnectionFromContext(ctx)
+	if !ok || connection == nil {
+		return "", fail(ReasonProtectedOriginRoleMismatch, false, "reconnect_desktop", fmt.Errorf("local-app control connection is unavailable"))
+	}
+	authority := connection.desktopSessionAuthority()
+	if authority == nil || authority.sessionID == (Identifier{}) {
+		return "", fail(ReasonProtectedOriginRoleMismatch, false, "reconnect_desktop", fmt.Errorf("local-app control session is unavailable"))
+	}
+	return "desktop-control-v1_" + base64.RawURLEncoding.EncodeToString(authority.sessionID[:]), nil
+}
+
+// SoleLocalAppControlSessionRef resolves the one authoritative live Desktop
+// control session for host-private challenge delivery. Zero or multiple live
+// sessions fail closed; no arbitrary "first" session is selected.
+func (manager *DesktopSessionManager) SoleLocalAppControlSessionRef() (string, error) {
+	if manager == nil {
+		return "", fail(ReasonProtectedLocalLedgerUnavailable, false, "restart_runtime_service", fmt.Errorf("desktop session manager is unavailable"))
+	}
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	var selected *desktopSessionAuthority
+	for _, authority := range manager.sessions {
+		if authority == nil || authority.revoked.Load() || authority.connection == nil || !authority.connection.live.Load() || !authority.connection.origin.HasRole(RoleLocalAppControl) {
+			continue
+		}
+		if selected != nil && selected != authority {
+			return "", fail(ReasonProtectedOriginRoleMismatch, false, "close_extra_desktop_sessions", fmt.Errorf("multiple live local-app control sessions"))
+		}
+		selected = authority
+	}
+	if selected == nil || selected.sessionID == (Identifier{}) {
+		return "", fail(ReasonProtectedOriginRoleMismatch, true, "open_desktop_session", fmt.Errorf("no live local-app control session"))
+	}
+	return "desktop-control-v1_" + base64.RawURLEncoding.EncodeToString(selected.sessionID[:]), nil
 }
 
 func (connection *Connection) bindDesktopSession(authority *desktopSessionAuthority) bool {

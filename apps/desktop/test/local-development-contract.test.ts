@@ -55,6 +55,22 @@ test('Desktop owns Tauri build and launch without a project-visible runner secre
   assert.equal(readRepo('app-tools/package.json').includes('nimi-tauri-dev-runner'), false);
 });
 
+test('Desktop Electron owns presence, rebuild, protected launch, health refresh, and cleanup', () => {
+  const supervisor = read('src-electron/local-development-host.ts');
+  const plan = read('src-electron/local-development-plan.ts');
+  assert.match(supervisor, /createServer/);
+  assert.match(supervisor, /presence\.v1\.json/);
+  assert.match(supervisor, /runPackageScript\(run, 'build:electron'\)/);
+  assert.match(supervisor, /createNimiElectronLocalDevelopmentControl/);
+  assert.match(supervisor, /this\.control\.launch/);
+  assert.match(supervisor, /this\.control\.hostRunning/);
+  assert.match(supervisor, /this\.control\.terminateHost/);
+  assert.match(supervisor, /watch\(path\.join\(run\.plan\.projectRoot, 'src-electron'\)/);
+  assert.doesNotMatch(supervisor, /sessionProof|sessionSecret|accessToken|refreshToken|authorization:\s*Bearer/u);
+  assert.match(plan, /nimi-app dev --shell electron/);
+  assert.match(plan, /vite --host 127\.0\.0\.1 --port/);
+});
+
 test('Desktop cancellation preempts builds and renderer readiness before host launch', () => {
   const supervisor = read('src-tauri/src/desktop_local_development/supervisor.rs');
   const runtime = read('src-tauri/src/desktop_local_development/mod.rs');

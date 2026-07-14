@@ -4,25 +4,23 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/appinstallgateway"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
-	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
@@ -31,12 +29,12 @@ import (
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	externalagentservice "github.com/nimiplatform/nimi/runtime/internal/services/externalagent"
-	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	runtimecontrolservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimecontrol"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
@@ -50,7 +48,7 @@ type Server struct {
 	logger                *slog.Logger
 	grpcServer            *grpc.Server
 	protectedServer       *grpc.Server
-	installedServer       *grpc.Server
+	localAppServer        *grpc.Server
 	healthServer          *grpcHealth.Server
 	rpcRegistry           *activeRPCRegistry
 	aiHealth              *providerhealth.Tracker
@@ -63,8 +61,8 @@ type Server struct {
 	memoryService         *memoryservice.Service
 	cognitionService      *cognitionservice.Service
 	agentService          *runtimeagentservice.Service
-	installedLaunchStore  *authservice.InstalledLaunchStore
 	localDevelopmentStore interface{ Close() error }
+	localAppKernel        *localappkernel.Kernel
 }
 
 const (
@@ -142,15 +140,15 @@ type ProtectedServiceBindings struct {
 	PlatformBundledAppsRoot  string
 	AccountCustody           accountservice.Custody
 	AccountPartition         string
+	LocalOSUserSID           string
 	AccountRealmBaseURL      string
 	AccountAuthorizationURL  string
 	AccountTokenURL          string
 	ConnectorSecrets         connectorservice.SecretStore
 	DesktopSessions          *protectedlocal.DesktopSessionManager
-	LifecycleIntents         *protectedlocal.LifecycleIntentManager
-	InstalledProcessVerifier protectedlocal.InstalledProcessVerifier
-	InstalledLaunches        *protectedlocal.InstalledLaunchRegistry
+	LocalAppLaunches         *protectedlocal.LocalAppLaunchRegistry
 	LocalDevelopmentVerifier protectedlocal.LocalDevelopmentProcessVerifier
+	RuntimeRestartRequester  runtimecontrolservice.RestartRequester
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -162,8 +160,8 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if !filepath.IsAbs(stateRoot) || stateRoot == filepath.VolumeName(stateRoot)+string(filepath.Separator) {
 		return nil, fmt.Errorf("protected service state root must be an absolute non-root path")
 	}
-	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LifecycleIntents == nil {
-		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, and lifecycle intent authority are required")
+	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || strings.TrimSpace(bindings.LocalOSUserSID) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LocalAppLaunches == nil || bindings.LocalDevelopmentVerifier == nil || bindings.RuntimeRestartRequester == nil {
+		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, local-app launches, and local-development verifier are required")
 	}
 	registryPath, err := normalizeOptionalProtectedResourcePath("Platform app registry", bindings.PlatformAppRegistryPath)
 	if err != nil {
@@ -175,9 +173,6 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	}
 	if err := bindings.DesktopSessions.ValidateBootScoped(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate protected Desktop session authority: %w", err)
-	}
-	if err := bindings.LifecycleIntents.ValidateBootScoped(context.Background(), bindings.DesktopSessions); err != nil {
-		return nil, fmt.Errorf("validate protected lifecycle intent authority: %w", err)
 	}
 	bindings.ServiceStateRoot = stateRoot
 	bindings.PlatformAppRegistryPath = registryPath
@@ -211,42 +206,49 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("configure idempotency store: %w", err)
 	}
 	appRegistry := appregistry.New()
-	var installedLaunchStore *authservice.InstalledLaunchStore
-	var installedLaunchRegistry *protectedlocal.InstalledLaunchRegistry
 	var localDevelopmentStore *appservice.LocalDevelopmentStore
+	var localAppKernel *localappkernel.Kernel
 	if protected != nil {
-		installedLaunchStore, err = authservice.OpenInstalledLaunchStore(
-			filepath.Join(protected.ServiceStateRoot, "installed-launch.db"),
-			protected.DesktopSessions.BootEpoch(),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("open installed launch store: %w", err)
-		}
-		installedLaunchRegistry = protected.InstalledLaunches
 		developmentStore, developmentErr := appservice.OpenLocalDevelopmentStore(
 			filepath.Join(protected.ServiceStateRoot, "local-development.db"),
 			protected.DesktopSessions.BootEpoch(),
 		)
 		if developmentErr != nil {
-			_ = installedLaunchStore.Close()
 			return nil, fmt.Errorf("open local-development store: %w", developmentErr)
 		}
 		localDevelopmentStore = developmentStore
-	}
-	keepInstalledLaunchStore := false
-	defer func() {
-		if !keepInstalledLaunchStore && installedLaunchStore != nil {
-			_ = installedLaunchStore.Close()
+		verifiedSID, sidErr := localappkernel.ValidateVerifiedInteractiveUserSID(protected.LocalOSUserSID)
+		if sidErr != nil {
+			return nil, fmt.Errorf("validate protected interactive-user SID: %w", sidErr)
 		}
-		if !keepInstalledLaunchStore && localDevelopmentStore != nil {
+		kernel, kernelErr := localappkernel.OpenSQLite(
+			context.Background(),
+			filepath.Join(protected.ServiceStateRoot, "local-app-kernel.db"),
+			verifiedSID,
+			localappkernel.Options{},
+		)
+		if kernelErr != nil {
+			return nil, fmt.Errorf("open local-app kernel: %w", kernelErr)
+		}
+		localAppKernel = kernel
+	}
+	keepLocalDevelopmentStore := false
+	defer func() {
+		if !keepLocalDevelopmentStore && localDevelopmentStore != nil {
 			_ = localDevelopmentStore.Close()
 		}
+		if !keepLocalDevelopmentStore && localAppKernel != nil {
+			_ = localAppKernel.Close()
+		}
 	}()
-	nimiAppRegistry, nimiAppReleases, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
+	nimiAppRegistry, _, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
 	if err != nil {
 		return nil, err
 	}
 	registryPath := modelregistry.ResolvePersistencePath()
+	if protected != nil {
+		registryPath = filepath.Join(protected.ServiceStateRoot, "runtime", "model-registry.json")
+	}
 	modelRegistry, err := modelregistry.NewFromFile(registryPath)
 	if err != nil {
 		return nil, fmt.Errorf("load model registry: %w", err)
@@ -259,29 +261,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 
 	h := grpcHealth.NewServer()
 	capabilityAuthorizer := protectedCapabilityAuthorizer(protectedCarrierOnlyCapabilityAuthorizer{})
-	var grantSvc *grantservice.Service
-	if protected == nil {
-		scopeCatalog := scopecatalog.New(func(operation string, version string, code runtimev1.ReasonCode) {
-			appendAuditEvent(auditStore, auditEventInput{
-				Domain:              "runtime.scope",
-				Operation:           operation,
-				ReasonCode:          code,
-				ScopeCatalogVersion: version,
-				CallerKind:          runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
-				CallerID:            "scope-catalog",
-			})
-		})
-		grantSvc = grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog,
-			grantservice.WithAuditStore(auditStore),
-			grantservice.WithTTLBounds(cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds),
-			grantservice.WithMaxDelegationDepth(cfg.MaxDelegationDepth),
-		)
-		capabilityAuthorizer = grantSvc
-	}
 	authOptions := make([]authservice.Option, 0, 1)
 	if protected != nil {
 		authOptions = append(authOptions, authservice.WithDesktopSessionManager(protected.DesktopSessions))
-		authOptions = append(authOptions, authservice.WithInstalledLaunchStore(installedLaunchStore))
 	}
 	authSvc := authservice.NewWithDependencies(
 		logger, appRegistry, auditStore,
@@ -290,23 +272,29 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	)
 	authSvc.SetNimiAppRegistryCatalog(nimiAppRegistry)
 	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
-	authSvc.SetDeveloperRegistrationEnabled(cfg.AuthDeveloperRegistrationEnabled)
 	var protectedGRPCServer *grpc.Server
-	var installedGRPCServer *grpc.Server
+	var localAppGRPCServer *grpc.Server
 	accountSvc := accountservice.New(logger)
 	if protected != nil {
+		localAppGrantControl := newLocalAppGrantControlBridge(protected.DesktopSessions)
 		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
-			RealmBaseURL:        protected.AccountRealmBaseURL,
-			AuthorizationURL:    protected.AccountAuthorizationURL,
-			TokenURL:            protected.AccountTokenURL,
-			CustodyPartition:    protected.AccountPartition,
-			Custody:             protected.AccountCustody,
-			AppRegistry:         appRegistry,
-			AppSessionValidator: authSvc,
+			RealmBaseURL:         protected.AccountRealmBaseURL,
+			AuthorizationURL:     protected.AccountAuthorizationURL,
+			TokenURL:             protected.AccountTokenURL,
+			CustodyPartition:     protected.AccountPartition,
+			Custody:              protected.AccountCustody,
+			AppRegistry:          appRegistry,
+			AppSessionValidator:  authSvc,
+			LocalAppKernel:       localAppKernel,
+			LocalAppGrantControl: localAppGrantControl,
+			AuditStore:           auditStore,
 		})
 	}
 	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
-	accountSvc.SetInstalledSessionResolver(authSvc)
+	runtimeControlSvc := runtimecontrolservice.New(nil, nil)
+	if protected != nil {
+		runtimeControlSvc = runtimecontrolservice.New(protected.DesktopSessions, protected.RuntimeRestartRequester)
+	}
 
 	// AuthN validator — JWKS mode (K-AUTHN-004). revocationUrl shares the
 	// bearer JWT restart config group with issuer/audience/jwksUrl, so the full
@@ -392,6 +380,20 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err := localSvc.SetProductVersion(version); err != nil {
 		return nil, fmt.Errorf("init local service product version: %w", err)
 	}
+	if protected != nil {
+		if err := localSvc.SetProductControlRoot(protected.ServiceStateRoot); err != nil {
+			return nil, fmt.Errorf("bind protected product-control root: %w", err)
+		}
+		if cfg.NonReleaseDevKernelCheckpoint != nil {
+			proposal, err := resolveProtectedProductControlDataRootProposal(protected.LocalOSUserSID, cfg.NonReleaseDevKernelCheckpoint)
+			if err != nil {
+				return nil, fmt.Errorf("resolve non-release Product Control data-root proposal: %w", err)
+			}
+			if err := localSvc.SetProductControlDataRootProposal(proposal); err != nil {
+				return nil, fmt.Errorf("bind non-release Product Control data-root proposal: %w", err)
+			}
+		}
+	}
 	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	modelSvc.SetLocalModelLister(localSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
@@ -447,6 +449,28 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	if acceptance := cfg.NonReleaseDevKernelCheckpoint; acceptance != nil {
+		if protected == nil {
+			agentSvc.Close()
+			_ = memorySvc.Close()
+			return nil, fmt.Errorf("dev-kernel checkpoint seed requires the fixed protected service")
+		}
+		seededAgent, seedErr := agentSvc.EnsureDevKernelCheckpointSeed(context.Background(), runtimeagentservice.DevKernelCheckpointSeed{
+			OwnerUserID:      acceptance.PrimaryAccountID,
+			LocalAgentRef:    acceptance.LocalAgentRef,
+			RuntimeSourceRef: acceptance.RuntimeSourceRef,
+			DisplayName:      acceptance.AgentDisplayName,
+		})
+		if seedErr != nil {
+			agentSvc.Close()
+			_ = memorySvc.Close()
+			return nil, fmt.Errorf("seed non-release dev-kernel RuntimeAgent: %w", seedErr)
+		}
+		logger.Info("non-release dev-kernel RuntimeAgent seed ready",
+			"local_agent_ref", seededAgent.GetLocalAgentRef(),
+			"owner_user_id", seededAgent.GetOwnerUserId(),
+		)
+	}
 	memorySvc.SetRuntimeEmbeddingIntentResolver(agentSvc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(agentSvc.AuthorizeMemoryEmbeddingTarget)
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
@@ -569,56 +593,37 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init cognition service: %w", err)
 	}
 
-	if grantSvc != nil {
-		runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
-	}
 	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalagentservice.New(logger))
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
+	runtimev1.RegisterRuntimeServiceControlServiceServer(g, runtimeControlSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
-	appInstallRuntime, err := appservice.NewInstallRuntime(
-		nimiAppRegistry,
-		nimiAppReleases,
-		cfg.DataRootRef,
-		cfg.AppBundledArtifactsRoot,
-		appinstallgateway.NewHTTPSDownloader(),
-		appinstallgateway.NewArchiveUnpacker(),
-	)
-	if err != nil {
-		_ = memorySvc.Close()
-		localSvc.Close()
-		return nil, fmt.Errorf("init Nimi App install runtime: %w", err)
-	}
-	openReadiness := appservice.NewAccountProjectionOpenAppReadinessVerifier(
-		accountSvc,
-		appservice.WithOpenAppReadinessCatalog(nimiAppRegistry),
-		appservice.WithOpenAppReadinessInstallRuntime(appInstallRuntime),
-	)
-	accountSvc.SetInstalledOperationPolicySource(openReadiness)
 	appOptions := []appservice.Option{
 		appservice.WithSessionValidator(authSvc),
 		appservice.WithScopedBindingValidator(accountSvc),
+		appservice.WithLocalAppConversationScopeValidator(agentSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
-		appservice.WithInstallRuntime(appInstallRuntime),
-		appservice.WithRuntimeAppRegistry(appRegistry),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
-		appservice.WithOpenAppReadinessVerifier(openReadiness),
 	}
 	if protected != nil {
 		appOptions = append(appOptions,
-			appservice.WithLifecycleIntentManager(protected.LifecycleIntents),
-			appservice.WithInstalledLaunchStore(installedLaunchStore),
-			appservice.WithInstalledLaunchProcessBinding(installedLaunchRegistry, protected.InstalledProcessVerifier),
-			appservice.WithLocalDevelopmentAuthority(localDevelopmentStore, installedLaunchRegistry, protected.LocalDevelopmentVerifier, artifactStore),
+			appservice.WithLocalDevelopmentAuthority(localDevelopmentStore, protected.LocalAppLaunches, protected.LocalDevelopmentVerifier, artifactStore),
+			appservice.WithLocalAppKernel(localAppKernel),
 		)
 	}
 	appSvc := appservice.New(logger, appOptions...)
-	accountSvc.SetInstalledSessionResolver(installedSessionResolverChain{authSvc, appSvc})
-	accountSvc.SetAccountAuthorityRevoker(appSvc)
-	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithInstalledOperationAuthorizer(accountSvc))
 	if protected != nil {
-		protectedGRPCServer = newProtectedDesktopRPCServer(authSvc, accountSvc, appSvc, appSvc, protected.DesktopSessions)
-		installedGRPCServer = newProtectedInstalledRPCServer(authSvc, appSvc, artifactSvc)
+		if err := appSvc.ReconcileLocalDevelopmentKernel(context.Background()); err != nil {
+			return nil, fmt.Errorf("reconcile local-development authority with local-app kernel: %w", err)
+		}
+	}
+	authSvc.SetLocalAppSessionOpener(appSvc)
+	accountSvc.SetLocalAppSessionResolver(appSvc)
+	accountSvc.SetAccountAuthorityRevoker(appSvc)
+	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithLocalAppOperationAuthorizer(accountSvc))
+	if protected != nil {
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, localSvc, appSvc, appSvc, protected.DesktopSessions)
+		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, appSvc, artifactSvc, agentSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
@@ -639,7 +644,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		logger:                logger,
 		grpcServer:            g,
 		protectedServer:       protectedGRPCServer,
-		installedServer:       installedGRPCServer,
+		localAppServer:        localAppGRPCServer,
 		healthServer:          h,
 		rpcRegistry:           rpcRegistry,
 		aiHealth:              aiHealth,
@@ -652,11 +657,11 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		memoryService:         memorySvc,
 		cognitionService:      cognitionSvc,
 		agentService:          agentSvc,
-		installedLaunchStore:  installedLaunchStore,
 		localDevelopmentStore: localDevelopmentStore,
+		localAppKernel:        localAppKernel,
 	}
 	s.SyncServingState()
-	keepInstalledLaunchStore = true
+	keepLocalDevelopmentStore = true
 	return s, nil
 }
 
@@ -696,135 +701,4 @@ func (s *Server) CognitionService() *cognitionservice.Service {
 
 func (s *Server) AgentService() *runtimeagentservice.Service {
 	return s.agentService
-}
-
-func (s *Server) Serve() error {
-	listener, err := net.Listen("tcp", s.addr)
-	if err != nil {
-		return fmt.Errorf("listen grpc %s: %w", s.addr, err)
-	}
-
-	s.logger.Info("grpc server listening", "addr", s.addr)
-	if err := s.grpcServer.Serve(listener); err != nil {
-		return fmt.Errorf("serve grpc: %w", err)
-	}
-	return nil
-}
-
-// ServeProtected serves the dedicated native Desktop control transport. The
-// listener must yield only connections wrapped after OS peer verification.
-func (s *Server) ServeProtected(listener net.Listener) error {
-	if s == nil || s.protectedServer == nil {
-		return fmt.Errorf("protected Desktop gRPC server is unavailable")
-	}
-	if listener == nil {
-		return fmt.Errorf("protected Desktop listener is required")
-	}
-	if err := s.protectedServer.Serve(listener); err != nil {
-		return fmt.Errorf("serve protected Desktop gRPC: %w", err)
-	}
-	return nil
-}
-
-// ServeVerifiedNativeDesktop serves protected Desktop gRPC only after the
-// native listener has minted an opaque OS-verified connection carrier.
-func (s *Server) ServeVerifiedNativeDesktop(listener net.Listener) error {
-	if listener == nil {
-		return fmt.Errorf("verified native Desktop listener is required")
-	}
-	return s.ServeProtected(&nativeVerifiedDesktopListener{Listener: listener})
-}
-
-func (s *Server) ServeVerifiedNativeInstalled(listener net.Listener) error {
-	if s == nil || s.installedServer == nil {
-		return fmt.Errorf("protected installed gRPC server is unavailable")
-	}
-	if listener == nil {
-		return fmt.Errorf("verified native installed listener is required")
-	}
-	if err := s.installedServer.Serve(&nativeVerifiedInstalledListener{Listener: listener}); err != nil {
-		return fmt.Errorf("serve protected installed gRPC: %w", err)
-	}
-	return nil
-}
-
-type StopResult struct {
-	Shutdown ShutdownSummary
-}
-
-func (s *Server) BeginShutdown() []activeRPCSnapshot {
-	if s.rpcRegistry == nil {
-		return []activeRPCSnapshot{}
-	}
-	return s.rpcRegistry.BeginShutdown()
-}
-
-func (s *Server) Stop(ctx context.Context) StopResult {
-	defer func() {
-		if s.installedLaunchStore != nil {
-			_ = s.installedLaunchStore.Close()
-		}
-		if s.localDevelopmentStore != nil {
-			_ = s.localDevelopmentStore.Close()
-		}
-	}()
-	if s.rpcRegistry != nil {
-		s.rpcRegistry.BeginShutdown()
-	}
-	done := make(chan struct{})
-	go func() {
-		if s.protectedServer != nil {
-			s.protectedServer.GracefulStop()
-		}
-		if s.installedServer != nil {
-			s.installedServer.GracefulStop()
-		}
-		s.grpcServer.GracefulStop()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		if s.rpcRegistry == nil {
-			return StopResult{}
-		}
-		return StopResult{Shutdown: s.rpcRegistry.CompleteShutdown(false)}
-	case <-ctx.Done():
-		if s.protectedServer != nil {
-			s.protectedServer.Stop()
-		}
-		if s.installedServer != nil {
-			s.installedServer.Stop()
-		}
-		s.grpcServer.Stop()
-		if s.rpcRegistry == nil {
-			return StopResult{}
-		}
-		return StopResult{Shutdown: s.rpcRegistry.CompleteShutdown(true)}
-	}
-}
-
-// SyncServingState maps runtime health status to grpc health checks.
-func (s *Server) SyncServingState() {
-	snapshot := s.state.Snapshot()
-	servingStatus := healthpb.HealthCheckResponse_NOT_SERVING
-	if snapshot.Status.Ready() {
-		servingStatus = healthpb.HealthCheckResponse_SERVING
-	}
-
-	s.healthServer.SetServingStatus("", servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAuditService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAiService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAiRealtimeService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeWorkflowService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeModelService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAgentService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeGrantService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeExternalAgentService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAccountService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeConnectorService_ServiceDesc.ServiceName, servingStatus)
 }

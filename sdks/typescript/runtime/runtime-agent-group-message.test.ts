@@ -25,7 +25,6 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async createRealmGroupMessageCandidate(request) {
           createCalls.push(request);
@@ -157,14 +156,6 @@ function protectedAuth() {
   return {
     async registerApp() {
       return { accepted: true };
-    },
-  };
-}
-
-function protectedAppAuth() {
-  return {
-    async authorizeExternalPrincipal() {
-      return { tokenId: 'token-1', secret: 'secret-1' };
     },
   };
 }

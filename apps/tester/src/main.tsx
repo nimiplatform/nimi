@@ -13,11 +13,9 @@ import {
 import './styles.css';
 import './shell/auth/auth-i18n.js';
 
-// Platform bootstrap (Kit-owned): install the scoped runtime-transport bridge
-// (invoke + event listen) before any runtime/platform client is constructed, so
-// SDK/Kit runtime streaming (chat.stream) can subscribe to bridge events. No-op
-// outside the Tauri webview. The app does not know the hook details — that
-// contract lives in @nimiplatform/kit.
+// Platform bootstrap (Kit-owned): install the shell invoke/listen bridge before
+// the fixed local-app SDK client is constructed. The renderer receives only the
+// typed local-app command set, never transport or session authority material.
 installTesterShellAcceptanceProblemCapture();
 installNimiShellRuntimeBridge();
 installTesterElectronSdkAcceptanceProbe();

@@ -5,7 +5,6 @@ export enum AccountAppInstallState {
   UNSPECIFIED = 0,
   NOT_INSTALLED = 1,
   INSTALLED = 2,
-  ADOPTED_LOCAL = 3,
   REMOVED = 4,
 }
 
@@ -25,8 +24,7 @@ export enum AccountCallerMode {
   DESKTOP_LAUNCHED_AVATAR = 3,
   WEB_CLOUD = 5,
   EXTERNAL_PRINCIPAL = 6,
-  LOCAL_DEVELOPER_APP = 7,
-  DESKTOP_LAUNCHED_NIMI_APP = 8,
+  LOCAL_APP = 9,
 }
 
 export enum AccountEventType {
@@ -96,76 +94,6 @@ export enum AccountSessionState {
   UNAVAILABLE = 9,
 }
 
-export enum AppHealthRepairAction {
-  UNSPECIFIED = 0,
-  CANCEL = 1,
-  RETRY = 2,
-  REPAIR = 3,
-  REINSTALL = 4,
-}
-
-export enum AppInstallJobPhase {
-  UNSPECIFIED = 0,
-  QUEUED = 1,
-  RESOLVE_DESCRIPTOR = 2,
-  DOWNLOAD = 3,
-  VERIFY = 4,
-  MATERIALIZE = 5,
-  UNPACK = 6,
-  EVIDENCE = 7,
-  INSTALLED = 8,
-  FAILED = 9,
-  SWAP = 10,
-  CANCELLED = 11,
-  UNINSTALLED = 12,
-}
-
-export enum AppInstallJobState {
-  UNSPECIFIED = 0,
-  QUEUED = 1,
-  IN_PROGRESS = 2,
-  INSTALLED = 3,
-  FAILED = 4,
-  CANCELLED = 5,
-  UNINSTALLED = 6,
-}
-
-export enum AppInstallSourceKind {
-  UNSPECIFIED = 0,
-  BUNDLED = 1,
-  EXTERNAL_ARTIFACT = 2,
-}
-
-export enum AppLifecycleIntentAction {
-  UNSPECIFIED = 0,
-  INSTALL = 1,
-  UNINSTALL = 2,
-  UPDATE = 3,
-  HEALTH_REPAIR = 4,
-  ADOPT_LOCAL_APP = 5,
-  REMOVE_LOCAL_APP_ADOPTION = 6,
-  OPEN_APP = 7,
-}
-
-export enum AppLifecycleIntentStatus {
-  UNSPECIFIED = 0,
-  PREPARED = 1,
-  CONSUMED = 2,
-  SIDE_EFFECT_STARTED = 3,
-  SUCCEEDED = 4,
-  FAILED = 5,
-  CANCELLED = 6,
-  EXPIRED = 7,
-}
-
-export enum AppLifecycleJobKind {
-  UNSPECIFIED = 0,
-  INSTALL = 1,
-  UPDATE = 2,
-  REPAIR = 3,
-  UNINSTALL = 4,
-}
-
 export enum AppMessageEventType {
   APP_MESSAGE_EVENT_TYPE_UNSPECIFIED = 0,
   APP_MESSAGE_EVENT_RECEIVED = 1,
@@ -180,47 +108,12 @@ export enum AppMode {
   FULL = 3,
 }
 
-export enum AppOpenFlowStep {
-  UNSPECIFIED = 0,
-  RESOLVE_REGISTRY = 1,
-  VERIFY_PACKAGE = 2,
-  VERIFY_LIBRARY = 3,
-  VERIFY_APP_DATA = 4,
-  VERIFY_PERMISSIONS = 5,
-  ENSURE_AICONFIG = 6,
-  VALIDATE_MANIFEST = 7,
-  LAUNCH = 8,
-}
-
-export enum AppOpenState {
-  UNSPECIFIED = 0,
-  LAUNCHED = 1,
-  BLOCKED = 2,
-  LAUNCH_PREPARED = 3,
-}
-
-export enum AppPackageReadinessState {
-  UNSPECIFIED = 0,
-  READY = 1,
-  INSTALL_REQUIRED = 2,
-  UPDATE_REQUIRED = 3,
-  REPAIR_REQUIRED = 4,
-  BLOCKED = 5,
-}
-
 export enum AppStorageState {
   UNSPECIFIED = 0,
   READY = 1,
   INSTALL_REQUIRED = 2,
   REPAIR_REQUIRED = 3,
   STORAGE_UNAVAILABLE = 4,
-}
-
-export enum AuthorizationPreset {
-  UNSPECIFIED = 0,
-  READ_ONLY = 1,
-  FULL = 2,
-  DELEGATE = 3,
 }
 
 export enum CallerKind {

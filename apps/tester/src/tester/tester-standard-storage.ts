@@ -1,34 +1,24 @@
-import {
-  createInstalledNimiAppStandardShellSurface,
-  extractShellBridgeErrorCode,
-  toShellBridgeNimiError,
-  type JsonValue,
-} from '@nimiplatform/kit/shell/renderer/bridge';
+import { createNimiError } from '@nimiplatform/sdk/types';
+import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 
-const standardShellSurface = createInstalledNimiAppStandardShellSurface();
+export const TESTER_STANDARD_STORAGE_UNAVAILABLE_REASON_CODE = 'TESTER_LOCAL_APP_STORAGE_UNAVAILABLE';
 
-/**
- * Standard-storage `not-found` reason code emitted by the kit shell hosts when a
- * relative JSON path has never been written. Callers translate this into an
- * app-owned default (empty history) instead of surfacing a hard failure.
- */
-const STORAGE_NOT_FOUND_CODE = 'not-found';
-
-export async function readTesterStandardStorageJson(relativePath: string): Promise<JsonValue | undefined> {
-  try {
-    return await standardShellSurface.storage.readJson(relativePath);
-  } catch (error) {
-    const normalized = toShellBridgeNimiError(error);
-    if (
-      normalized.code === STORAGE_NOT_FOUND_CODE
-      || extractShellBridgeErrorCode(normalized.message) === STORAGE_NOT_FOUND_CODE
-    ) {
-      return undefined;
-    }
-    throw normalized;
-  }
+function storageUnavailable(operation: 'read' | 'write', relativePath: string): never {
+  throw createNimiError({
+    message: 'Standard app storage is not admitted by the 0K local-app carrier.',
+    code: 'capability-unavailable',
+    reasonCode: TESTER_STANDARD_STORAGE_UNAVAILABLE_REASON_CODE,
+    actionHint: 'await_local_app_storage_operation_admission',
+    retryable: false,
+    source: 'sdk',
+    details: { operation, relativePath },
+  });
 }
 
-export async function writeTesterStandardStorageJson(relativePath: string, value: JsonValue): Promise<void> {
-  await standardShellSurface.storage.writeJson(relativePath, value);
+export async function readTesterStandardStorageJson(relativePath: string): Promise<JsonValue | undefined> {
+  return storageUnavailable('read', relativePath);
+}
+
+export async function writeTesterStandardStorageJson(relativePath: string, _value: JsonValue): Promise<void> {
+  storageUnavailable('write', relativePath);
 }

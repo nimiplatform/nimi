@@ -236,22 +236,6 @@ export const NIMI_APP_REGISTRY_ROWS = [
     "admissionStatus": "admitted"
   },
   {
-    "appId": "community.nimi.fixture.platform-proof",
-    "appKind": "nimi-app",
-    "displayName": "Platform Proof Fixture",
-    "publisher": "nimiplatform-fixtures",
-    "trustTier": "nimi-community",
-    "ordinaryVisibility": "developer-only",
-    "aiProfileSelectionRef": "local-standard",
-    "capabilitySet": [
-      "text.generate"
-    ],
-    "releaseDescriptorRef": "community.nimi.fixture.platform-proof.0.1.0-sandbox",
-    "installStoragePolicyRef": "nimi-data-app-roots",
-    "sourceRule": "P-NAPP-033",
-    "admissionStatus": "admitted"
-  },
-  {
     "appId": "nimi.realm-persona-studio",
     "appKind": "nimi-app",
     "displayName": "Realm Persona Studio",
@@ -393,28 +377,6 @@ export const NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "mutableSourceAllowed": false,
     "installDigestVerificationRequired": "inherited_from_atomic_bundle",
     "sourceRule": "P-NAPP-014"
-  },
-  {
-    "descriptorId": "community.nimi.fixture.platform-proof.0.1.0-sandbox",
-    "appId": "community.nimi.fixture.platform-proof",
-    "version": "0.1.0-sandbox",
-    "descriptorClass": "external-immutable-artifact",
-    "sourceKind": "admission-sandbox-https-artifact",
-    "sourceRef": "https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar",
-    "artifactLocator": "https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar",
-    "digestAlgorithm": "sha256",
-    "sha256": "2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863",
-    "size": "1503232",
-    "provenanceRef": "ci-provenance/platform-proof/0.1.0-sandbox/sha256-2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863",
-    "packageKind": "nimi-app",
-    "entryRef": "dist/index.html",
-    "sandboxRef": "installed-nimi-app-standard-shell-v1",
-    "permissionsRef": "community.nimi.fixture.platform-proof.permission_scope_ref",
-    "storagePolicyRef": "nimi-data-app-roots",
-    "admissionPath": "admission-sandbox-ci",
-    "mutableSourceAllowed": false,
-    "installDigestVerificationRequired": "required",
-    "sourceRule": "P-NAPP-033"
   }
 ] as const satisfies readonly NimiAppReleaseDescriptorRow[];
 

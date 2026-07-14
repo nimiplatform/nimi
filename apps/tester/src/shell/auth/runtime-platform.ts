@@ -1,26 +1,17 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { appId } from './app-identity.js';
-import { testerInstalledAppBootstrap } from '../installed-app-bootstrap.js';
+import type { NimiAppAuthProjection, NimiAppLocalSessionProjection } from '@nimiplatform/sdk/app';
+import { testerLocalAppRuntimePlatform } from '../local-app-runtime-platform.js';
 
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 
 export const runtimeAccountLoginEnabled = false;
 
-export type RuntimeAuthMode = 'third-party-nimi-app';
+export type RuntimeAuthMode = 'local-app';
 
 export type RuntimePlatformReadyProjection = {
   readonly status: 'ready';
   readonly mode: RuntimeAuthMode;
-  readonly appHost: {
-    readonly state: 'ready';
-    readonly trustClass: 'production-installed' | 'local-development';
-    readonly appId: string;
-    readonly bootstrapArtifactId?: string;
-    readonly bootstrapArtifact?: {
-      readonly mimeType: string;
-      readonly sizeBytes: number;
-    };
-  };
+  readonly localAppSession: NimiAppLocalSessionProjection;
 };
 
 export type RuntimePlatformUnavailableProjection = {
@@ -42,40 +33,37 @@ export function clearRuntimePlatformProjection(): void {
 }
 
 export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjection> {
-  runtimeProjection ??= resolveAppHostProjection();
+  runtimeProjection ??= resolveLocalAppProjection();
   return runtimeProjection;
 }
 
-async function resolveAppHostProjection(): Promise<RuntimePlatformProjection> {
+async function resolveLocalAppProjection(): Promise<RuntimePlatformProjection> {
   try {
-    const status = await testerInstalledAppBootstrap.appHost.bootstrap();
-    if (status.appId !== appId) {
-      throw new Error('The protected app-host identity does not match nimi.app.yaml.');
+    const status = await testerLocalAppRuntimePlatform.auth.status();
+    if (!status.sessionBound) {
+      return unavailableFromAuth(status);
     }
-    const bootstrapArtifact = status.bootstrapArtifactId
-      ? await testerInstalledAppBootstrap.artifacts.readRuntimeBytes(status.bootstrapArtifactId)
-      : undefined;
+    if (status.operationAllowed !== (status.state === 'session-bound-granted')) {
+      throw new Error('The local-app session projection contains inconsistent grant state.');
+    }
     return {
       status: 'ready',
-      mode: 'third-party-nimi-app',
-      appHost: {
-        state: 'ready',
-        trustClass: status.trustClass,
-        appId: status.appId,
-        ...(status.bootstrapArtifactId ? { bootstrapArtifactId: status.bootstrapArtifactId } : {}),
-        ...(bootstrapArtifact
-          ? {
-              bootstrapArtifact: {
-                mimeType: bootstrapArtifact.mimeType,
-                sizeBytes: bootstrapArtifact.sizeBytes,
-              },
-            }
-          : {}),
-      },
+      mode: 'local-app',
+      localAppSession: status,
     };
   } catch (error) {
     return unavailableFromError(error);
   }
+}
+
+function unavailableFromAuth(status: NimiAppAuthProjection): RuntimePlatformUnavailableProjection {
+  return {
+    status: status.state === 'unavailable' ? 'unavailable' : 'action-required',
+    mode: 'local-app',
+    reasonCode: status.reasonCode,
+    actionHint: status.actionHint,
+    message: messageForState(status.state, status.reasonCode),
+  };
 }
 
 function unavailableFromError(error: unknown): RuntimePlatformUnavailableProjection {
@@ -84,17 +72,50 @@ function unavailableFromError(error: unknown): RuntimePlatformUnavailableProject
     : ReasonCode.RUNTIME_UNAVAILABLE;
   return {
     status: 'action-required',
-    mode: 'third-party-nimi-app',
+    mode: 'local-app',
     reasonCode,
     actionHint: actionHintFor(reasonCode),
     message: messageFor(reasonCode),
   };
 }
 
+function messageForState(state: NimiAppAuthProjection['state'], reasonCode: string): string {
+  switch (state) {
+    case 'action-required':
+      return 'This local development project needs approval in Nimi Desktop.';
+    case 'revoked':
+      return 'This local-app authorization was revoked in Nimi Desktop.';
+    case 'project-changed':
+      return 'The project identity no longer matches the admitted local development project.';
+    case 'process-replaced':
+      return 'This process was replaced; restart the app through the verified Desktop supervisor.';
+    case 'account-changed':
+      return 'The Nimi account changed; authorize this project for the current account.';
+    case 'runtime-restarted':
+      return 'Runtime restarted; reopen the protected local-app session.';
+    default:
+      return messageFor(reasonCode);
+  }
+}
+
 function messageFor(reasonCode: string): string {
   switch (reasonCode) {
     case 'runtime-service-unavailable':
       return 'Nimi Desktop could not reach its protected Runtime service.';
+    case 'runtime-service-untrusted':
+      return 'This process is not connected through the trusted Nimi Desktop local-app carrier.';
+    case 'runtime-unauthenticated':
+      return 'The protected local-app session must be reopened through Nimi Desktop.';
+    case 'process-replaced':
+      return 'This process no longer matches the admitted local-app process.';
+    case 'account-changed':
+      return 'The active Nimi account changed; the local-app session must be authorized again.';
+    case 'runtime-restarted':
+      return 'Runtime restarted; reopen the protected local-app session.';
+    case 'revoked':
+      return 'This local-app authorization was revoked.';
+    case 'project-changed':
+      return 'The local development project no longer matches its admitted identity.';
     case 'local-development-authorization-required':
     case 'local-development-reapproval-required':
       return 'This development project needs your approval in Nimi Desktop.';
@@ -103,21 +124,33 @@ function messageFor(reasonCode: string): string {
     case 'local-development-project-changed':
       return 'The project identity no longer matches the approved development project.';
     default:
-      return 'The protected Nimi app host is unavailable.';
+      return 'The protected Nimi local-app carrier is unavailable.';
   }
 }
 
 function actionHintFor(reasonCode: string): string {
   switch (reasonCode) {
+    case 'runtime-service-untrusted':
+    case 'process-replaced':
+      return 'restart_through_verified_desktop_supervisor';
+    case 'runtime-unauthenticated':
+    case 'runtime-restarted':
+      return 'reopen_local_app_session';
+    case 'account-changed':
+      return 'reauthorize_for_current_account';
+    case 'revoked':
+      return 'request_local_app_operation_grant';
+    case 'project-changed':
+      return 'readmit_local_development_project';
     case 'local-development-authorization-required':
     case 'local-development-reapproval-required':
-      return 'approve_project_in_nimi_desktop';
+      return 'complete_local_app_authorization';
     case 'local-development-session-revoked':
-      return 'restart_official_nimi_app_dev_command';
+      return 'request_local_app_operation_grant';
     case 'local-development-project-changed':
-      return 'restore_authorized_project_identity';
+      return 'readmit_local_development_project';
     default:
-      return 'open_nimi_desktop_and_retry';
+      return 'start_fixed_runtime_service';
   }
 }
 

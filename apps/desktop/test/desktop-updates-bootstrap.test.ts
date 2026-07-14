@@ -61,7 +61,6 @@ test('automatic update checks require autoUpdate to be enabled', () => {
     hardwareAcceleration: true,
     reduceAnimations: false,
     autoUpdate: false,
-    developerMode: false,
   };
 
   assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible', true), false);
@@ -72,7 +71,6 @@ test('automatic update checks do not run while document is hidden', () => {
     hardwareAcceleration: true,
     reduceAnimations: false,
     autoUpdate: true,
-    developerMode: false,
   };
 
   assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'hidden', true), false);
@@ -84,7 +82,6 @@ test('automatic update checks require updater availability', () => {
     hardwareAcceleration: true,
     reduceAnimations: false,
     autoUpdate: true,
-    developerMode: false,
   };
 
   assert.equal(shouldRunAutomaticUpdateCheck(preferences, 'visible', false), false);
@@ -101,7 +98,6 @@ test('performance preference subscribers receive persisted autoUpdate changes', 
     hardwareAcceleration: true,
     reduceAnimations: false,
     autoUpdate: false,
-    developerMode: true,
   });
 
   unsubscribe();
@@ -111,6 +107,5 @@ test('performance preference subscribers receive persisted autoUpdate changes', 
     hardwareAcceleration: true,
     reduceAnimations: false,
     autoUpdate: false,
-    developerMode: true,
   });
 });

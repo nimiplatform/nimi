@@ -4,1035 +4,196 @@ import test from 'node:test';
 import {
   AccountAppInstallState,
   AccountAppInventoryState,
-  LocalAppAdoptionState,
-  LocalAppAdoptionTrust,
-  AppHealthRepairAction,
-  AppInstallJobPhase,
-  AppInstallJobState,
-  AppInstallSourceKind,
-  AppLifecycleJobKind,
-  AppOpenFlowStep,
-  AppOpenState,
   AppPackageReadinessState,
   AppStorageState,
-  ReasonCode as RuntimeGeneratedReasonCode,
-  type AdoptLocalAppRequest,
-  type AppInstallJob,
-  type AppInstallJobEvent,
+  ReasonCode as RuntimeReasonCode,
   type GetAccountAppInventoryRequest,
-  type GetAppInstallJobRequest,
   type GetAppPackageReadinessRequest,
   type GetAppStorageRequest,
-  type HealthRepairAppRequest,
-  type InstallAppRequest,
-  type ListAppInstallJobsRequest,
-  type ListLocalAppAdoptionsRequest,
-  type OpenAppRequest,
-  type RemoveLocalAppAdoptionRequest,
-  type RuntimeTypedCallOptions,
-  type UninstallAppRequest,
-  type UpdateAppRequest,
-  type WatchAppInstallJobEventsRequest,
 } from '../core-generated/runtime-typed-client';
-import { CoreClient, type CoreTransport } from '../core-client';
-import { ReasonCode as SdkReasonCode } from '../types';
-import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
+import type { CoreStreamRequest, CoreTransport, CoreUnaryRequest } from '../types';
 import {
   Runtime,
   createNimiRuntimeAppLifecycleClient,
-  decodeNimiRuntimeAppInstallJob,
-  decodeNimiRuntimeAppJobEvent,
-  decodeNimiRuntimeAppOpenProjection,
   decodeNimiRuntimeAppPackageReadinessProjection,
-  decodeNimiRuntimeAppStorageProjection,
-  decodeNimiRuntimeAppUninstallResult,
   type NimiRuntimeAppLifecycleGeneratedClient,
 } from './index';
 
-const lifecycleIntentBinding = Object.freeze({
-  lifecycleIntentId: 'intent-1',
-  displayedImpactDigest: 'impact-digest-1',
-});
-
-function storageRoot() {
+function opaqueUnavailableProjection() {
   return {
-    appRoot: '/nimi/apps/nimi.notes',
-    releaseRoot: '/nimi/apps/nimi.notes/releases/1.0.0',
-    durableDataRoot: '/nimi/data/nimi.notes',
-    cacheRoot: '/nimi/cache/nimi.notes',
-    tempRoot: '/nimi/tmp/nimi.notes',
-  };
-}
-
-function generatedJob(overrides: Partial<AppInstallJob> = {}): AppInstallJob {
-  return {
-    jobId: 'job-1',
-    appId: 'nimi.notes',
-    releaseDescriptorRef: 'release:nimi.notes@1.0.0',
-    installedVersion: '1.0.0',
-    state: AppInstallJobState.IN_PROGRESS,
-    phase: AppInstallJobPhase.DOWNLOAD,
-    sourceKind: AppInstallSourceKind.BUNDLED,
+    appId: '',
+    releaseDescriptorRef: '',
+    storagePolicyRef: '',
+    expectedVersion: '',
+    activeVersion: '',
+    installedVersion: '',
     sha256: '',
-    artifactBytes: '42',
-    storage: storageRoot(),
-    reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-    failureDetail: '',
-    retryable: false,
-    createdAt: '2026-06-05T01:00:00.000Z',
-    updatedAt: '2026-06-05T01:01:00.000Z',
-    kind: AppLifecycleJobKind.INSTALL,
-    previousVersion: '',
-    ...overrides,
+    verificationState: '',
+    state: AppPackageReadinessState.BLOCKED,
+    reasonCode: RuntimeReasonCode.LOCAL_APP_OPERATION_UNAVAILABLE,
+    detail: 'immutable_profile_unavailable',
   };
 }
 
-function generatedLocalAdoption(overrides: Partial<{
-  appId: string;
-  rootPath: string;
-  manifestPath: string;
-  displayName: string;
-  version: string;
-  entryRef: string;
-  permissionScopeRef: string;
-  storagePolicyRef: string;
-  state: LocalAppAdoptionState;
-  trust: LocalAppAdoptionTrust;
-  adoptedAt: string;
-  updatedAt: string;
-  reasonCode: RuntimeGeneratedReasonCode;
-  detail: string;
-}> = {}) {
-  const rootPath = overrides.rootPath || '/Users/test/local-notes';
-  return {
-    appId: 'local.notes',
-    rootPath,
-    manifestPath: `${rootPath}/nimi.app.yaml`,
-    displayName: 'Local Notes',
-    version: '1.0.0',
-    entryRef: 'app://local.notes/main',
-    permissionScopeRef: 'permission-scope:local.notes',
-    storagePolicyRef: 'storage-policy:local.notes',
-    state: LocalAppAdoptionState.ADOPTED,
-    trust: LocalAppAdoptionTrust.EXPLICIT_LOCAL,
-    adoptedAt: '2026-06-05T01:00:00.000Z',
-    updatedAt: '2026-06-05T01:00:00.000Z',
-    reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-    detail: '',
-    ...overrides,
-  };
-}
-
-function createClientStub(overrides: Partial<NimiRuntimeAppLifecycleGeneratedClient> = {}) {
-  const accountInventoryCalls: Array<{ request: GetAccountAppInventoryRequest; options?: RuntimeTypedCallOptions }> = [];
-  const adoptLocalCalls: Array<{ request: AdoptLocalAppRequest; options?: RuntimeTypedCallOptions }> = [];
-  const listLocalAdoptionCalls: Array<{ request: ListLocalAppAdoptionsRequest; options?: RuntimeTypedCallOptions }> = [];
-  const removeLocalAdoptionCalls: Array<{
-    request: RemoveLocalAppAdoptionRequest;
-    options?: RuntimeTypedCallOptions;
-  }> = [];
-  const installCalls: Array<{ request: InstallAppRequest; options?: RuntimeTypedCallOptions }> = [];
-  const uninstallCalls: Array<{ request: UninstallAppRequest; options?: RuntimeTypedCallOptions }> = [];
-  const storageCalls: Array<{ request: GetAppStorageRequest; options?: RuntimeTypedCallOptions }> = [];
-  const readinessCalls: Array<{ request: GetAppPackageReadinessRequest; options?: RuntimeTypedCallOptions }> = [];
-  const getJobCalls: Array<{ request: GetAppInstallJobRequest; options?: RuntimeTypedCallOptions }> = [];
-  const listJobCalls: Array<{ request: ListAppInstallJobsRequest; options?: RuntimeTypedCallOptions }> = [];
-  const watchJobCalls: Array<{ request: WatchAppInstallJobEventsRequest; options?: RuntimeTypedCallOptions }> = [];
-  const updateCalls: Array<{ request: UpdateAppRequest; options?: RuntimeTypedCallOptions }> = [];
-  const healthRepairCalls: HealthRepairAppRequest[] = [];
-  const openCalls: OpenAppRequest[] = [];
+function createClientStub() {
+  const accountCalls: GetAccountAppInventoryRequest[] = [];
+  const storageCalls: GetAppStorageRequest[] = [];
+  const readinessCalls: GetAppPackageReadinessRequest[] = [];
   const client: NimiRuntimeAppLifecycleGeneratedClient = {
-    async getAccountAppInventory(request, options) {
-      accountInventoryCalls.push({ request, options });
+    async getAccountAppInventory(request) {
+      accountCalls.push(request);
       return {
         exists: true,
         record: {
           schemaVersion: 2,
-          accountId: 'acct_1',
-          updatedAt: '2026-06-05T01:00:00.000Z',
+          accountId: 'account-1',
+          updatedAt: '2026-07-13T00:00:00.000Z',
           apps: [{
             appId: 'nimi.notes',
             accountState: AccountAppInventoryState.VERIFIED,
             installState: AccountAppInstallState.NOT_INSTALLED,
             lastOpenedAt: '',
-            dataPolicy: 'keep_on_uninstall',
-            verifiedAt: '2026-06-04T00:00:00.000Z',
-            source: 'account',
+            dataPolicy: 'principal-retained',
+            verifiedAt: '',
+            source: 'runtime-account',
             detail: '',
           }],
         },
-        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
         detail: '',
       };
     },
-    async adoptLocalApp(request, options) {
-      adoptLocalCalls.push({ request, options });
-      return {
-        adoption: generatedLocalAdoption({
-          appId: request.expectedAppId || 'local.notes',
-          rootPath: request.rootPath,
-        }),
-        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        detail: '',
-      };
-    },
-    async listLocalAppAdoptions(request, options) {
-      listLocalAdoptionCalls.push({ request, options });
-      return {
-        adoptions: [generatedLocalAdoption()],
-        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        detail: '',
-      };
-    },
-    async removeLocalAppAdoption(request, options) {
-      removeLocalAdoptionCalls.push({ request, options });
-      return {
-        adoption: generatedLocalAdoption({
-          appId: request.appId,
-          state: LocalAppAdoptionState.REMOVED,
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        }),
-        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        detail: '',
-      };
-    },
-    async installApp(request, options) {
-      installCalls.push({ request, options });
-      return { job: generatedJob() };
-    },
-    async uninstallApp(request, options) {
-      uninstallCalls.push({ request, options });
-      return {
-        result: {
-          appId: request.appId,
-          releaseRemoved: true,
-          durableDataRemoved: Boolean(request.deleteDurableData),
-          storage: storageRoot(),
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-        },
-        job: generatedJob({
-          state: AppInstallJobState.UNINSTALLED,
-          phase: AppInstallJobPhase.UNINSTALLED,
-          kind: AppLifecycleJobKind.UNINSTALL,
-        }),
-      };
-    },
-    async getAppStorage(request, options) {
-      storageCalls.push({ request, options });
+    async getAppStorage(request) {
+      storageCalls.push(request);
       return {
         projection: {
           appId: request.appId,
           state: AppStorageState.READY,
-          appRoot: '/nimi/apps/nimi.notes',
-          activeReleaseRoot: '/nimi/apps/nimi.notes/releases/1.0.0',
-          durableDataRoot: '/nimi/data/nimi.notes',
-          cacheRoot: '/nimi/cache/nimi.notes',
-          tempRoot: '/nimi/tmp/nimi.notes',
-          activeVersion: '1.0.0',
-          storagePolicyRef: 'policy:nimi.notes',
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+          appRoot: '/runtime/private/app',
+          activeReleaseRoot: '',
+          durableDataRoot: '/runtime/private/data',
+          cacheRoot: '/runtime/private/cache',
+          tempRoot: '/runtime/private/temp',
+          activeVersion: '',
+          storagePolicyRef: 'principal-private',
+          reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
           detail: '',
         },
       };
     },
-    async getAppPackageReadiness(request, options) {
-      readinessCalls.push({ request, options });
-      return {
-        projection: {
-          appId: request.appId,
-          releaseDescriptorRef: 'release:nimi.notes@1.0.0',
-          storagePolicyRef: 'policy:nimi.notes',
-          expectedVersion: '1.0.0',
-          activeVersion: '1.0.0',
-          installedVersion: '1.0.0',
-          sha256: 'abc',
-          verificationState: 'verified',
-          state: AppPackageReadinessState.READY,
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-          detail: '',
-        },
-      };
+    async getAppPackageReadiness(request) {
+      readinessCalls.push(request);
+      return { projection: opaqueUnavailableProjection() };
     },
-    async getAppInstallJob(request, options) {
-      getJobCalls.push({ request, options });
-      return { job: generatedJob({ jobId: request.jobId }) };
-    },
-    async listAppInstallJobs(request, options) {
-      listJobCalls.push({ request, options });
-      return { jobs: [generatedJob({ appId: request.appId || 'nimi.notes' })] };
-    },
-    watchAppInstallJobEvents(request, options) {
-      watchJobCalls.push({ request, options });
-      return (async function* (): AsyncIterable<AppInstallJobEvent> {
-        yield {
-          sequence: '7',
-          job: generatedJob({ jobId: request.jobId || 'job-1' }),
-          timestamp: { seconds: '1780617661', nanos: 123_000_000 },
-        };
-      })();
-    },
-    async updateApp(request, options) {
-      updateCalls.push({ request, options });
-      return {
-        job: generatedJob({
-          appId: request.appId,
-          kind: AppLifecycleJobKind.UPDATE,
-          phase: AppInstallJobPhase.SWAP,
-          previousVersion: '0.9.0',
-        }),
-      };
-    },
-    async healthRepairApp(request) {
-      healthRepairCalls.push(request);
-      return {
-        job: generatedJob({
-          appId: request.appId,
-          jobId: request.jobId || 'repair-job',
-          kind: AppLifecycleJobKind.REPAIR,
-        }),
-      };
-    },
-    async openApp(request) {
-      openCalls.push(request);
-      return {
-        projection: {
-          appId: request.appId,
-          state: AppOpenState.LAUNCHED,
-          reachedStep: AppOpenFlowStep.LAUNCH,
-          launched: true,
-          activeVersion: '1.0.0',
-          scope: request.scope,
-          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-          detail: '',
-        },
-      };
-    },
-    ...overrides,
   };
-  return {
-    client,
-    accountInventoryCalls,
-    adoptLocalCalls,
-    listLocalAdoptionCalls,
-    removeLocalAdoptionCalls,
-    installCalls,
-    uninstallCalls,
-    storageCalls,
-    readinessCalls,
-    getJobCalls,
-    listJobCalls,
-    watchJobCalls,
-    updateCalls,
-    healthRepairCalls,
-    openCalls,
-  };
+  return { client, accountCalls, storageCalls, readinessCalls };
 }
 
-test('Nimi Runtime app lifecycle client decodes generated jobs to canonical strings', async () => {
-  const { client, installCalls } = createClientStub();
-  const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
-  const job = await lifecycle.install(
-    { appId: ' nimi.notes ', confirmed: true, ...lifecycleIntentBinding },
-    { timeoutMs: 123, metadata: { callerId: 'test' } },
-  );
-
-  assert.equal(job.appId, 'nimi.notes');
-  assert.equal(job.state, 'in_progress');
-  assert.equal(job.phase, 'download');
-  assert.equal(job.kind, 'install');
-  assert.equal(job.sourceKind, 'bundled');
-  assert.equal(job.reasonCode, 'ACTION_EXECUTED');
-  assert.equal(job.artifactBytes, 42);
-  assert.deepEqual(installCalls, [{
-    request: { appId: 'nimi.notes', confirmed: true, ...lifecycleIntentBinding },
-    options: { timeoutMs: 123, metadata: { callerId: 'test' } },
-  }]);
-});
-
-test('Nimi Runtime app lifecycle mutations reject missing protected intent inputs before transport', async () => {
-  const { client, installCalls } = createClientStub();
+test('Runtime app lifecycle facade exposes only 0K read projections', async () => {
+  const { client, accountCalls, storageCalls, readinessCalls } = createClientStub();
   const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
 
-  await assert.rejects(
-    lifecycle.install({ appId: 'nimi.notes', confirmed: true } as never),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode
-      === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_INTENT_ID_REQUIRED,
-  );
-  await assert.rejects(
-    lifecycle.install({
-      appId: 'nimi.notes',
-      confirmed: true,
-      lifecycleIntentId: 'intent-1',
-      displayedImpactDigest: '   ',
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode
-      === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_IMPACT_DIGEST_REQUIRED,
-  );
-  assert.deepEqual(installCalls, []);
-});
+  const account = await lifecycle.accountInventory();
+  assert.equal(account.record?.apps[0]?.installState, 'not-present');
+  assert.deepEqual(accountCalls, [{}]);
 
-test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', async () => {
-  const {
-    client,
-    accountInventoryCalls,
-    adoptLocalCalls,
-    listLocalAdoptionCalls,
-    removeLocalAdoptionCalls,
-    uninstallCalls,
-    storageCalls,
-    readinessCalls,
-    getJobCalls,
-    listJobCalls,
-    watchJobCalls,
-    updateCalls,
-  } = createClientStub();
-  const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
-  const options = { timeoutMs: 250, metadata: { callerId: 'lifecycle-test' } };
-
-  const accountInventory = await lifecycle.accountInventory(options);
-  assert.equal(accountInventory.exists, true);
-  assert.equal(accountInventory.record?.schemaVersion, 2);
-  assert.equal(accountInventory.record?.apps[0]?.accountState, 'verified');
-  assert.equal(accountInventory.record?.apps[0]?.installState, 'not-installed');
-  assert.deepEqual(accountInventoryCalls, [{ request: {}, options }]);
-
-  const localAdoption = await lifecycle.adoptLocal({
-    rootPath: ' /Users/test/local-notes ',
-    expectedAppId: ' local.notes ',
-    ...lifecycleIntentBinding,
-  }, options);
-  assert.equal(localAdoption.appId, 'local.notes');
-  assert.equal(localAdoption.trust, 'explicit-local');
-  assert.deepEqual(adoptLocalCalls, [{
-    request: { rootPath: '/Users/test/local-notes', expectedAppId: 'local.notes', ...lifecycleIntentBinding },
-    options,
-  }]);
-
-  const localAdoptions = await lifecycle.listLocalAdoptions(options);
-  assert.equal(localAdoptions[0]?.appId, 'local.notes');
-  assert.deepEqual(listLocalAdoptionCalls, [{ request: {}, options }]);
-
-  const removedAdoption = await lifecycle.removeLocalAdoption({
-    appId: ' local.notes ',
-    deleteDurableDataConfirmed: true,
-    ...lifecycleIntentBinding,
-  }, options);
-  assert.equal(removedAdoption.state, 'removed');
-  assert.deepEqual(removeLocalAdoptionCalls, [{
-    request: { appId: 'local.notes', deleteDurableDataConfirmed: true, ...lifecycleIntentBinding },
-    options,
-  }]);
-
-  const uninstall = await lifecycle.uninstall({
-    appId: ' nimi.notes ',
-    deleteDurableData: true,
-    destructiveDataDeleteConfirmed: true,
-    ...lifecycleIntentBinding,
-  }, options);
-  assert.equal(uninstall.appId, 'nimi.notes');
-  assert.equal(uninstall.releaseRemoved, true);
-  assert.equal(uninstall.durableDataRemoved, true);
-  assert.equal(uninstall.job.kind, 'uninstall');
-  assert.deepEqual(uninstallCalls, [{
-    request: {
-      appId: 'nimi.notes',
-      deleteDurableData: true,
-      destructiveDataDeleteConfirmed: true,
-      ...lifecycleIntentBinding,
-    },
-    options,
-  }]);
-
-  const storage = await lifecycle.storage({ appId: ' nimi.notes ' }, options);
+  const storage = await lifecycle.storage({ appId: ' nimi.notes ' });
   assert.equal(storage.appId, 'nimi.notes');
-  assert.equal(storage.state, 'ready');
-  assert.deepEqual(storageCalls, [{ request: { appId: 'nimi.notes' }, options }]);
+  assert.deepEqual(storageCalls, [{ appId: 'nimi.notes' }]);
 
-  const readiness = await lifecycle.packageReadiness({ appId: ' nimi.notes ' }, options);
-  assert.equal(readiness.state, 'ready');
-  assert.deepEqual(readinessCalls, [{ request: { appId: 'nimi.notes' }, options }]);
-
-  const job = await lifecycle.getJob({ jobId: ' job-2 ' }, options);
-  assert.equal(job.jobId, 'job-2');
-  assert.deepEqual(getJobCalls, [{ request: { jobId: 'job-2' }, options }]);
-
-  const scopedJobs = await lifecycle.listJobs({ appId: ' nimi.notes ' }, options);
-  assert.equal(scopedJobs[0]?.appId, 'nimi.notes');
-  assert.deepEqual(listJobCalls, [{ request: { appId: 'nimi.notes' }, options }]);
-
-  const update = await lifecycle.update({
-    appId: ' nimi.notes ',
-    confirmed: false,
-    ...lifecycleIntentBinding,
-  }, options);
-  assert.equal(update.kind, 'update');
-  assert.equal(update.previousVersion, '0.9.0');
-  assert.deepEqual(updateCalls, [{
-    request: { appId: 'nimi.notes', confirmed: false, ...lifecycleIntentBinding },
-    options,
-  }]);
-
-  const events = [];
-  for await (const event of lifecycle.watchJobEvents({ jobId: ' job-1 ' }, options)) {
-    events.push(event.job.jobId);
-  }
-  assert.deepEqual(events, ['job-1']);
-  assert.deepEqual(watchJobCalls, [{ request: { jobId: 'job-1' }, options }]);
-
-  await assert.rejects(
-    lifecycle.listJobs(undefined as never, options),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_APP_ID_REQUIRED,
-  );
-  await assert.rejects(
-    async () => {
-      for await (const _ of lifecycle.watchJobEvents(undefined as never, options)) {
-        // no-op
-      }
-    },
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_JOB_ID_REQUIRED,
-  );
-});
-
-test('Nimi Runtime app lifecycle client maps repair action and validates open scope', async () => {
-  const { client, healthRepairCalls, openCalls } = createClientStub();
-  const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
-
-  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'cancel', ...lifecycleIntentBinding });
-  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'retry', ...lifecycleIntentBinding });
-  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'repair', ...lifecycleIntentBinding });
-  await lifecycle.healthRepair({
-    appId: 'nimi.notes',
-    action: 'reinstall',
-    jobId: 'job-1',
-    ...lifecycleIntentBinding,
+  const readiness = await lifecycle.packageReadiness();
+  assert.deepEqual(readiness, {
+    state: 'unavailable',
+    reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE',
+    detail: 'immutable_profile_unavailable',
   });
-  assert.deepEqual(healthRepairCalls.map((call) => call.action), [
-    AppHealthRepairAction.CANCEL,
-    AppHealthRepairAction.RETRY,
-    AppHealthRepairAction.REPAIR,
-    AppHealthRepairAction.REINSTALL,
-  ]);
-  assert.equal(healthRepairCalls[3]?.jobId, 'job-1');
+  assert.deepEqual(readinessCalls, [{ appId: '' }]);
 
-  const openProjection = await lifecycle.open({
-    appId: 'nimi.notes',
-    scope: { kind: 'app', ownerId: 'nimi.notes', surfaceId: 'compose' },
-    ...lifecycleIntentBinding,
-  });
-  assert.equal(openProjection.state, 'launched');
-  assert.deepEqual(openProjection.scope, { kind: 'app', ownerId: 'nimi.notes', surfaceId: 'compose' });
-  assert.equal(openCalls[0]?.scope?.kind, 'app');
-  assert.equal(openCalls[0]?.scope?.ownerId, 'nimi.notes');
-
-  await assert.rejects(
-    lifecycle.open({
-      appId: 'nimi.notes',
-      scope: { kind: 'app', ownerId: 'other.app' },
-      ...lifecycleIntentBinding,
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
-  );
-  await assert.rejects(
-    lifecycle.healthRepair({ appId: 'nimi.notes', action: 'unknown' as never, ...lifecycleIntentBinding }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_REPAIR_ACTION_INVALID,
-  );
-  await assert.rejects(
-    lifecycle.open({ appId: 'nimi.notes', scope: undefined as never, ...lifecycleIntentBinding }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
-  );
+  for (const retired of [
+    'install',
+    'uninstall',
+    'getJob',
+    'listJobs',
+    'watchJobEvents',
+    'update',
+    'healthRepair',
+  ]) {
+    assert.equal(retired in lifecycle, false);
+  }
 });
 
-test('Nimi Runtime app lifecycle stream decodes sequence and timestamp', async () => {
-  const { client } = createClientStub();
-  const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
-  const frames = [];
-
-  for await (const frame of lifecycle.watchJobEvents({ jobId: 'job-stream' })) {
-    frames.push(frame);
-  }
-
-  assert.equal(frames.length, 1);
-  assert.equal(frames[0]?.sequence, 7);
-  assert.equal(frames[0]?.job.jobId, 'job-stream');
-  assert.equal(frames[0]?.timestamp, '2026-06-05T00:01:01.123Z');
-});
-
-test('Nimi Runtime app lifecycle decoder fails closed on missing terminal reason', () => {
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({
-      state: AppInstallJobState.FAILED,
-      phase: AppInstallJobPhase.FAILED,
-      reasonCode: RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED,
-    })),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
-  );
-});
-
-test('Nimi Runtime app lifecycle decoder covers generated enum matrices', () => {
-  const phaseCases: Array<[AppInstallJobPhase, string]> = [
-    [AppInstallJobPhase.QUEUED, 'queued'],
-    [AppInstallJobPhase.RESOLVE_DESCRIPTOR, 'resolve_descriptor'],
-    [AppInstallJobPhase.DOWNLOAD, 'download'],
-    [AppInstallJobPhase.VERIFY, 'verify'],
-    [AppInstallJobPhase.MATERIALIZE, 'materialize'],
-    [AppInstallJobPhase.UNPACK, 'unpack'],
-    [AppInstallJobPhase.EVIDENCE, 'evidence'],
-    [AppInstallJobPhase.INSTALLED, 'installed'],
-    [AppInstallJobPhase.SWAP, 'swap'],
-    [AppInstallJobPhase.FAILED, 'failed'],
-    [AppInstallJobPhase.CANCELLED, 'cancelled'],
-    [AppInstallJobPhase.UNINSTALLED, 'uninstalled'],
-  ];
-  for (const [phase, expected] of phaseCases) {
-    assert.equal(decodeNimiRuntimeAppInstallJob(generatedJob({ phase })).phase, expected);
-  }
-
-  const stateCases: Array<[AppInstallJobState, string]> = [
-    [AppInstallJobState.QUEUED, 'queued'],
-    [AppInstallJobState.IN_PROGRESS, 'in_progress'],
-    [AppInstallJobState.INSTALLED, 'installed'],
-    [AppInstallJobState.FAILED, 'failed'],
-    [AppInstallJobState.CANCELLED, 'cancelled'],
-    [AppInstallJobState.UNINSTALLED, 'uninstalled'],
-  ];
-  for (const [state, expected] of stateCases) {
-    assert.equal(decodeNimiRuntimeAppInstallJob(generatedJob({ state })).state, expected);
-  }
-
-  const kindCases: Array<[AppLifecycleJobKind, string]> = [
-    [AppLifecycleJobKind.INSTALL, 'install'],
-    [AppLifecycleJobKind.UPDATE, 'update'],
-    [AppLifecycleJobKind.REPAIR, 'repair'],
-    [AppLifecycleJobKind.UNINSTALL, 'uninstall'],
-  ];
-  for (const [kind, expected] of kindCases) {
-    assert.equal(decodeNimiRuntimeAppInstallJob(generatedJob({ kind })).kind, expected);
-  }
-
-  assert.equal(
-    decodeNimiRuntimeAppInstallJob(generatedJob({ sourceKind: AppInstallSourceKind.EXTERNAL_ARTIFACT })).sourceKind,
-    'external_artifact',
-  );
-  const detailed = decodeNimiRuntimeAppInstallJob(generatedJob({
-    previousVersion: '0.9.0',
-    sha256: 'sha-256',
-    failureDetail: 'checksum mismatch',
-    retryable: true,
-  }));
-  assert.equal(detailed.previousVersion, '0.9.0');
-  assert.equal(detailed.sha256, 'sha-256');
-  assert.equal(detailed.failureDetail, 'checksum mismatch');
-  assert.equal(detailed.retryable, true);
-});
-
-test('Nimi Runtime app lifecycle projection decoders normalize storage readiness and open matrices', () => {
-  const storageStates: Array<[AppStorageState, string, RuntimeGeneratedReasonCode]> = [
-    [AppStorageState.READY, 'ready', RuntimeGeneratedReasonCode.ACTION_EXECUTED],
-    [AppStorageState.INSTALL_REQUIRED, 'install_required', RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED],
-    [AppStorageState.REPAIR_REQUIRED, 'repair_required', RuntimeGeneratedReasonCode.APP_NOT_REGISTERED],
-    [AppStorageState.STORAGE_UNAVAILABLE, 'storage_unavailable', RuntimeGeneratedReasonCode.PROTOCOL_ENVELOPE_INVALID],
-  ];
-  for (const [state, expected, reasonCode] of storageStates) {
-    const projection = decodeNimiRuntimeAppStorageProjection({
-      appId: 'nimi.notes',
-      state,
-      appRoot: '/apps/nimi.notes',
-      activeReleaseRoot: state === AppStorageState.INSTALL_REQUIRED ? '' : '/apps/nimi.notes/releases/1.0.0',
-      durableDataRoot: '/data/nimi.notes',
-      cacheRoot: '/cache/nimi.notes',
-      tempRoot: '/tmp/nimi.notes',
-      activeVersion: state === AppStorageState.INSTALL_REQUIRED ? '' : '1.0.0',
-      storagePolicyRef: 'policy:nimi.notes',
-      reasonCode,
-      detail: state === AppStorageState.READY ? '' : 'not ready',
-    });
-    assert.equal(projection.state, expected);
-    if (state === AppStorageState.INSTALL_REQUIRED) {
-      assert.equal('activeReleaseRoot' in projection, false);
-      assert.equal('activeVersion' in projection, false);
-    }
-  }
-
-  const readinessStates: Array<[AppPackageReadinessState, string, RuntimeGeneratedReasonCode]> = [
-    [AppPackageReadinessState.READY, 'ready', RuntimeGeneratedReasonCode.ACTION_EXECUTED],
-    [AppPackageReadinessState.INSTALL_REQUIRED, 'install_required', RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED],
-    [AppPackageReadinessState.UPDATE_REQUIRED, 'update_required', RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED],
-    [AppPackageReadinessState.REPAIR_REQUIRED, 'repair_required', RuntimeGeneratedReasonCode.APP_NOT_REGISTERED],
-    [AppPackageReadinessState.BLOCKED, 'blocked', RuntimeGeneratedReasonCode.PRINCIPAL_UNAUTHORIZED],
-  ];
-  for (const [state, expected, reasonCode] of readinessStates) {
-    const projection = decodeNimiRuntimeAppPackageReadinessProjection({
-      appId: 'nimi.notes',
-      releaseDescriptorRef: 'release:nimi.notes@1.0.0',
-      storagePolicyRef: 'policy:nimi.notes',
-      expectedVersion: '1.0.0',
-      activeVersion: state === AppPackageReadinessState.INSTALL_REQUIRED ? '' : '1.0.0',
-      installedVersion: state === AppPackageReadinessState.INSTALL_REQUIRED ? '' : '1.0.0',
-      sha256: state === AppPackageReadinessState.READY ? 'sha-256' : '',
-      verificationState: state === AppPackageReadinessState.READY ? 'verified' : '',
-      state,
-      reasonCode,
-      detail: state === AppPackageReadinessState.READY ? '' : 'not ready',
-    });
-    assert.equal(projection.state, expected);
-  }
-
-  const openSteps: Array<[AppOpenFlowStep, string]> = [
-    [AppOpenFlowStep.RESOLVE_REGISTRY, 'resolve_registry'],
-    [AppOpenFlowStep.VERIFY_PACKAGE, 'verify_package'],
-    [AppOpenFlowStep.VERIFY_LIBRARY, 'verify_library'],
-    [AppOpenFlowStep.VERIFY_APP_DATA, 'verify_app_data'],
-    [AppOpenFlowStep.VERIFY_PERMISSIONS, 'verify_permissions'],
-    [AppOpenFlowStep.ENSURE_AICONFIG, 'ensure_aiconfig'],
-    [AppOpenFlowStep.VALIDATE_MANIFEST, 'validate_manifest'],
-    [AppOpenFlowStep.LAUNCH, 'launch'],
-  ];
-  for (const [reachedStep, expected] of openSteps) {
-    const projection = decodeNimiRuntimeAppOpenProjection({
-      appId: 'nimi.notes',
-      state: AppOpenState.BLOCKED,
-      reachedStep,
-      launched: false,
-      activeVersion: '',
-      scope: undefined,
-      reasonCode: RuntimeGeneratedReasonCode.PRINCIPAL_UNAUTHORIZED,
-      detail: 'blocked before launch',
-    });
-    assert.equal(projection.reachedStep, expected);
-    assert.equal(projection.state, 'blocked');
-    assert.equal(projection.launched, false);
-  }
-
-  const sandboxLaunch = decodeNimiRuntimeAppOpenProjection({
-    appId: 'community.nimi.fixture.platform-proof',
-    state: AppOpenState.LAUNCHED,
-    reachedStep: AppOpenFlowStep.LAUNCH,
-    launched: true,
-    activeVersion: '0.1.0-sandbox',
-    scope: { kind: 'app', ownerId: 'community.nimi.fixture.platform-proof', surfaceId: '' },
-    reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-    detail: '',
-    releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-    descriptorClass: 'external-immutable-artifact',
-    admissionTrack: 'admission-sandbox-ci',
-    sourceKind: 'admission-sandbox-https-artifact',
-    ordinaryVisibility: 'developer-only',
-    digestVerificationState: 'digest-verified',
-    runtimeEntryRef: 'dist/index.html',
-    activeReleaseRoot: '/nimi/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox',
-    storage: {
-      appRoot: '/nimi/apps/community.nimi.fixture.platform-proof',
-      releaseRoot: '/nimi/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox',
-      durableDataRoot: '/nimi/apps/community.nimi.fixture.platform-proof/data',
-      cacheRoot: '/nimi/apps/community.nimi.fixture.platform-proof/cache',
-      tempRoot: '/nimi/apps/community.nimi.fixture.platform-proof/tmp',
-    },
-    shellCapabilitySetRef: 'installed-nimi-app-standard-shell-v1',
-    callerMode: 'desktop-launched-nimi-app',
-    launchId: Uint8Array.from({ length: 32 }, (_, index) => index + 1),
-    productReadinessClaimAllowed: false,
-  });
-  assert.equal(sandboxLaunch.releaseDescriptorRef, 'community.nimi.fixture.platform-proof.0.1.0-sandbox');
-  assert.equal(sandboxLaunch.admissionTrack, 'admission-sandbox-ci');
-  assert.equal(sandboxLaunch.productReadinessClaimAllowed, false);
-  assert.deepEqual(
-    sandboxLaunch.launchId,
-    Uint8Array.from({ length: 32 }, (_, index) => index + 1),
-  );
-  assert.equal(sandboxLaunch.storage?.releaseRoot, sandboxLaunch.activeReleaseRoot);
-
-  const preparedLaunch = decodeNimiRuntimeAppOpenProjection({
-    ...{
-      appId: 'nimi.notes',
-      state: AppOpenState.LAUNCH_PREPARED,
-      reachedStep: AppOpenFlowStep.LAUNCH,
-      launched: false,
-      scope: { kind: 'app', ownerId: 'nimi.notes', surfaceId: '' },
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-      launchId: Uint8Array.from({ length: 32 }, (_, index) => 32 - index),
-    },
-  } as Parameters<typeof decodeNimiRuntimeAppOpenProjection>[0]);
-  assert.equal(preparedLaunch.state, 'launch_prepared');
-  assert.equal(preparedLaunch.launched, false);
-  assert.equal(preparedLaunch.launchId?.length, 32);
-});
-
-test('Nimi Runtime app lifecycle decoders fail closed on malformed Runtime projections', () => {
+test('package readiness decoder rejects positive or selector-bearing projections', () => {
   const decodeFailure = (error: unknown) =>
-    (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED;
+    (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED';
 
-  assert.throws(() => decodeNimiRuntimeAppInstallJob(undefined), decodeFailure);
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({ artifactBytes: '-1' })),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({ storage: undefined })),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({ phase: -1 as AppInstallJobPhase })),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({ state: -1 as AppInstallJobState })),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({ kind: -1 as AppLifecycleJobKind })),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({ sourceKind: -1 as AppInstallSourceKind })),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppInstallJob(generatedJob({ reasonCode: 99_999 as RuntimeGeneratedReasonCode })),
-    decodeFailure,
-  );
-
-  assert.throws(() => decodeNimiRuntimeAppUninstallResult(undefined, generatedJob()), decodeFailure);
-  assert.throws(
-    () => decodeNimiRuntimeAppUninstallResult({
-      appId: 'nimi.notes',
-      releaseRemoved: true,
-      durableDataRemoved: false,
-      storage: undefined,
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-    }, generatedJob()),
-    decodeFailure,
-  );
-
-  assert.throws(() => decodeNimiRuntimeAppStorageProjection(undefined), decodeFailure);
-  assert.throws(
-    () => decodeNimiRuntimeAppStorageProjection({
-      appId: 'nimi.notes',
-      state: AppStorageState.REPAIR_REQUIRED,
-      appRoot: '/apps/nimi.notes',
-      activeReleaseRoot: '',
-      durableDataRoot: '/data/nimi.notes',
-      cacheRoot: '/cache/nimi.notes',
-      tempRoot: '/tmp/nimi.notes',
-      activeVersion: '',
-      storagePolicyRef: 'policy:nimi.notes',
-      reasonCode: RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED,
-      detail: '',
-    }),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppStorageProjection({
-      appId: 'nimi.notes',
-      state: -1 as AppStorageState,
-      appRoot: '/apps/nimi.notes',
-      activeReleaseRoot: '',
-      durableDataRoot: '/data/nimi.notes',
-      cacheRoot: '/cache/nimi.notes',
-      tempRoot: '/tmp/nimi.notes',
-      activeVersion: '',
-      storagePolicyRef: 'policy:nimi.notes',
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-      detail: '',
-    }),
-    decodeFailure,
-  );
-
-  assert.throws(() => decodeNimiRuntimeAppPackageReadinessProjection(undefined), decodeFailure);
   assert.throws(
     () => decodeNimiRuntimeAppPackageReadinessProjection({
-      appId: 'nimi.notes',
-      releaseDescriptorRef: 'release:nimi.notes@1.0.0',
-      storagePolicyRef: 'policy:nimi.notes',
-      expectedVersion: '1.0.0',
-      activeVersion: '',
-      installedVersion: '',
-      sha256: '',
-      verificationState: '',
-      state: -1 as AppPackageReadinessState,
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-      detail: '',
-    }),
-    decodeFailure,
-  );
-
-  assert.throws(() => decodeNimiRuntimeAppOpenProjection(undefined), decodeFailure);
-  assert.throws(
-    () => decodeNimiRuntimeAppOpenProjection({
-      appId: 'nimi.notes',
-      state: AppOpenState.LAUNCHED,
-      reachedStep: AppOpenFlowStep.LAUNCH,
-      launched: false,
-      activeVersion: '1.0.0',
-      scope: { kind: 'app', ownerId: 'nimi.notes' },
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-      detail: '',
+      ...opaqueUnavailableProjection(),
+      state: AppPackageReadinessState.READY,
     }),
     decodeFailure,
   );
   assert.throws(
-    () => decodeNimiRuntimeAppOpenProjection({
-      appId: 'nimi.notes',
-      state: AppOpenState.BLOCKED,
-      reachedStep: AppOpenFlowStep.VERIFY_PACKAGE,
-      launched: true,
-      activeVersion: '',
-      scope: undefined,
-      reasonCode: RuntimeGeneratedReasonCode.PRINCIPAL_UNAUTHORIZED,
-      detail: '',
+    () => decodeNimiRuntimeAppPackageReadinessProjection({
+      ...opaqueUnavailableProjection(),
+      appId: 'caller-selected',
     }),
     decodeFailure,
   );
   assert.throws(
-    () => decodeNimiRuntimeAppOpenProjection({
-      appId: 'nimi.notes',
-      state: AppOpenState.LAUNCHED,
-      reachedStep: AppOpenFlowStep.LAUNCH,
-      launched: true,
-      activeVersion: '1.0.0',
-      scope: undefined,
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-      detail: '',
+    () => decodeNimiRuntimeAppPackageReadinessProjection({
+      ...opaqueUnavailableProjection(),
+      releaseDescriptorRef: 'release:nimi.notes',
     }),
     decodeFailure,
   );
   assert.throws(
-    () => decodeNimiRuntimeAppOpenProjection({
-      appId: 'nimi.notes',
-      state: AppOpenState.LAUNCHED,
-      reachedStep: AppOpenFlowStep.LAUNCH,
-      launched: true,
-      activeVersion: '1.0.0',
-      scope: { kind: 'app', ownerId: 'other.app' },
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-      detail: '',
+    () => decodeNimiRuntimeAppPackageReadinessProjection({
+      ...opaqueUnavailableProjection(),
+      reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
     }),
     decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppOpenProjection({
-      appId: 'nimi.notes',
-      state: -1 as AppOpenState,
-      reachedStep: AppOpenFlowStep.LAUNCH,
-      launched: false,
-      activeVersion: '',
-      scope: undefined,
-      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
-      detail: '',
-    }),
-    decodeFailure,
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAppOpenProjection({
-      appId: 'nimi.notes',
-      state: AppOpenState.BLOCKED,
-      reachedStep: -1 as AppOpenFlowStep,
-      launched: false,
-      activeVersion: '',
-      scope: undefined,
-      reasonCode: RuntimeGeneratedReasonCode.PRINCIPAL_UNAUTHORIZED,
-      detail: '',
-    }),
-    decodeFailure,
-  );
-
-  assert.throws(
-    () => decodeNimiRuntimeAppJobEvent({ sequence: '-1', job: generatedJob() }),
-    decodeFailure,
-  );
-});
-
-test('Nimi Runtime app lifecycle readiness and open projections fail closed on missing blocked reason', async () => {
-  const lifecycle = createNimiRuntimeAppLifecycleClient({
-    client: createClientStub({
-      async getAppPackageReadiness() {
-        return {
-          projection: {
-            appId: 'nimi.notes',
-            releaseDescriptorRef: 'release:nimi.notes@1.0.0',
-            storagePolicyRef: 'policy:nimi.notes',
-            expectedVersion: '1.0.0',
-            activeVersion: '',
-            installedVersion: '',
-            sha256: '',
-            verificationState: '',
-            state: AppPackageReadinessState.BLOCKED,
-            reasonCode: RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED,
-            detail: '',
-          },
-        };
-      },
-      async openApp(request) {
-        return {
-          projection: {
-            appId: request.appId,
-            state: AppOpenState.BLOCKED,
-            reachedStep: AppOpenFlowStep.VERIFY_PACKAGE,
-            launched: false,
-            activeVersion: '',
-            scope: request.scope,
-            reasonCode: RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED,
-            detail: '',
-          },
-        };
-      },
-    }).client,
-  });
-
-  await assert.rejects(
-    lifecycle.packageReadiness({ appId: 'nimi.notes' }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
-  );
-  await assert.rejects(
-    lifecycle.open({
-      appId: 'nimi.notes',
-      scope: { kind: 'app', ownerId: 'nimi.notes' },
-      ...lifecycleIntentBinding,
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
   );
 });
 
 class AppLifecycleFacadeTransport implements CoreTransport {
   readonly unaryCalls: CoreUnaryRequest[] = [];
-  readonly streamCalls: CoreStreamRequest[] = [];
 
   async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
     this.unaryCalls.push(request);
-    if (request.methodId === '/nimi.runtime.v1.RuntimeAppService/InstallApp') {
-      return { job: generatedJob() } as Response;
+    if (request.methodId === '/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness') {
+      return { projection: opaqueUnavailableProjection() } as Response;
     }
     throw new Error(`unexpected unary ${request.methodId}`);
   }
 
-  async *serverStream<Response>(request: CoreStreamRequest): AsyncIterable<Response> {
-    this.streamCalls.push(request);
-    if (request.methodId === '/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents') {
-      yield { sequence: '1', job: generatedJob() } as Response;
-      return;
-    }
-    throw new Error(`unexpected stream ${request.methodId}`);
+  async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+    throw new Error('unexpected stream');
   }
 }
 
-test('Runtime facade exposes canonical appLifecycle client over generated RuntimeAppService', async () => {
+test('Runtime facade sends selector-free readiness and blocks package lifecycle methods', async () => {
   const transport = new AppLifecycleFacadeTransport();
-  const runtime = new Runtime({
-    transport,
-    appId: 'nimi.desktop',
-  });
+  const runtime = new Runtime({ transport, appId: 'nimi.desktop' });
 
-  const job = await runtime.appLifecycle.install({
-    appId: 'nimi.notes',
-    confirmed: true,
-    ...lifecycleIntentBinding,
-  });
-  assert.equal(job.kind, 'install');
-  assert.equal(transport.unaryCalls[0]?.methodId, '/nimi.runtime.v1.RuntimeAppService/InstallApp');
+  assert.equal((await runtime.appLifecycle.packageReadiness()).state, 'unavailable');
+  assert.deepEqual(transport.unaryCalls[0]?.body, { appId: '' });
 
-  const events = [];
-  for await (const event of runtime.appLifecycle.watchJobEvents({ jobId: 'job-1' })) {
-    events.push(event.sequence);
+  for (const method of [
+    'prepareAppLifecycleIntent',
+    'getAppLifecycleIntentStatus',
+    'installApp',
+    'uninstallApp',
+    'getAppInstallJob',
+    'listAppInstallJobs',
+    'watchAppInstallJobEvents',
+    'updateApp',
+    'healthRepairApp',
+  ] as const) {
+    await assert.rejects(
+      (runtime.generated[method] as (...args: unknown[]) => Promise<unknown>)({}),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode
+        === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
+    );
   }
-  assert.deepEqual(events, [1]);
-  assert.equal(transport.streamCalls[0]?.methodId, '/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents');
 });

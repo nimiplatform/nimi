@@ -28,7 +28,6 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
     getRuntime: () => ({
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agent: {
         async getAgent() {
           throw new Error('listLocalAgents must not require caller localAgentRef');
@@ -141,14 +140,6 @@ function protectedAuth() {
   return {
     async registerApp() {
       return { accepted: true };
-    },
-  };
-}
-
-function protectedAppAuth() {
-  return {
-    async authorizeExternalPrincipal() {
-      return { tokenId: 'token-1', secret: 'secret-1' };
     },
   };
 }

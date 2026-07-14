@@ -60,8 +60,21 @@ fn create_directory_symlink(target: &Path, link: &Path) {
 
 #[cfg(windows)]
 fn create_directory_symlink(target: &Path, link: &Path) {
-    std::os::windows::fs::symlink_dir(target, link)
-        .expect("create managed directory symlink fixture");
+    // Windows file/directory symlinks require Developer Mode or elevation.
+    // `mklink /J` creates an unprivileged NTFS directory reparse point and
+    // exercises the same canonical-custody escape without weakening the test.
+    let status = std::process::Command::new("cmd")
+        .args(["/d", "/c", "mklink", "/J"])
+        .arg(link)
+        .arg(target)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .expect("create managed directory junction fixture");
+    assert!(
+        status.success(),
+        "create managed directory junction fixture"
+    );
 }
 
 #[test]

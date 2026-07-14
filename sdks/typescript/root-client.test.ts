@@ -160,9 +160,9 @@ test('NimiClient hard-cuts generic agent surface from root client', () => {
   const rootSurface = client as unknown as Record<string, unknown>;
 
   assert.equal(rootSurface.agent, undefined);
-  assert.throws(
-    () => client.localAgent.createRuntimeClient({ getSubjectUserId: () => 'user-1' }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_AUTH_REQUIRED',
+  assert.equal(
+    typeof client.localAgent.createRuntimeClient({ getSubjectUserId: () => 'user-1' }).sendTurn,
+    'function',
   );
   assert.equal(typeof client.localAgent.createMemoryContextProvider, 'function');
   assert.equal(typeof client.localAgent.createKnowledgeContextProvider, 'function');

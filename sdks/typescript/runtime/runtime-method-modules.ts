@@ -19,8 +19,6 @@ export const RUNTIME_ACCOUNT_METHODS = [
   'switchAccount',
   'issueScopedAppBinding',
   'revokeScopedAppBinding',
-  'issueWorkspaceBinding',
-  'revokeWorkspaceBinding',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_AGENT_METHODS = [
@@ -144,14 +142,6 @@ export const RUNTIME_AUTH_METHODS = [
   'revokeExternalPrincipalSession',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
-export const RUNTIME_GRANT_METHODS = [
-  'authorizeExternalPrincipal',
-  'validateAppAccessToken',
-  'revokeAppAccessToken',
-  'issueDelegatedAccessToken',
-  'listTokenChain',
-] as const satisfies readonly RuntimeTypedMethodName[];
-
 export const RUNTIME_EXTERNAL_AGENT_METHODS = [
   'getExternalAgentGatewayStatus',
   'issueExternalAgentToken',
@@ -265,29 +255,27 @@ export const RUNTIME_APP_MESSAGE_METHODS = [
 
 export const RUNTIME_APP_LIFECYCLE_METHODS = [
   'getAccountAppInventory',
-  'adoptLocalApp',
-  'listLocalAppAdoptions',
-  'removeLocalAppAdoption',
-  'installApp',
-  'uninstallApp',
   'getAppStorage',
   'getAppPackageReadiness',
+] as const satisfies readonly RuntimeTypedMethodName[];
+
+const RUNTIME_BLOCKED_APP_LIFECYCLE_METHODS = [
+  'prepareAppLifecycleIntent',
+  'getAppLifecycleIntentStatus',
+  'installApp',
+  'uninstallApp',
   'getAppInstallJob',
   'listAppInstallJobs',
   'watchAppInstallJobEvents',
   'updateApp',
   'healthRepairApp',
-  'openApp',
-] as const satisfies readonly RuntimeTypedMethodName[];
-
-const RUNTIME_PROTECTED_APP_LIFECYCLE_METHODS = [
-  'prepareAppLifecycleIntent',
-  'getAppLifecycleIntentStatus',
+  'prepareLocalAppLaunch',
+  'bindLocalAppProcess',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_APP_LIFECYCLE_METHOD_SET = new Set<string>([
   ...RUNTIME_APP_LIFECYCLE_METHODS,
-  ...RUNTIME_PROTECTED_APP_LIFECYCLE_METHODS,
+  ...RUNTIME_BLOCKED_APP_LIFECYCLE_METHODS,
 ]);
 
 export const RUNTIME_ARTIFACT_METHODS = [
@@ -302,7 +290,6 @@ export type RuntimeSchedulingModule = RuntimeMethodModule<typeof RUNTIME_SCHEDUL
 export type RuntimeRealtimeModule = RuntimeMethodModule<typeof RUNTIME_REALTIME_METHODS>;
 export type RuntimeConnectorModule = RuntimeMethodModule<typeof RUNTIME_CONNECTOR_METHODS>;
 export type RuntimeAuthModule = RuntimeMethodModule<typeof RUNTIME_AUTH_METHODS>;
-export type RuntimeGrantModule = RuntimeMethodModule<typeof RUNTIME_GRANT_METHODS>;
 export type RuntimeExternalAgentModule = RuntimeMethodModule<typeof RUNTIME_EXTERNAL_AGENT_METHODS>;
 export type RuntimeAuditModule = RuntimeMethodModule<typeof RUNTIME_AUDIT_METHODS>;
 export type RuntimeKnowledgeModule = RuntimeMethodModule<typeof RUNTIME_KNOWLEDGE_METHODS>;

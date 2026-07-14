@@ -1,11 +1,10 @@
 import { useEffect, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ConfirmDialog, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchSettingsOpenSection } from '@renderer/features/settings/settings-storage';
 import { useAppsPanelController } from './apps-panel-controller.js';
-import { AppsAIProfileSection } from './apps-ai-profile-section.js';
 import { AppsDetailView } from './apps-detail-view.js';
 import { AppsPanelView } from './apps-panel-view.js';
 
@@ -36,15 +35,10 @@ export function AppsPanel(): ReactElement {
   const {
     projection,
     detailAppId,
-    pendingConfirm,
     actionError,
-    actionErrorAppId,
-    busyAppId,
     runCardAction,
-    confirmPending,
-    dismissPending,
+    retryProjection,
     closeDetail,
-    connectLocalApp,
   } = controller;
 
   useEffect(() => {
@@ -76,13 +70,16 @@ export function AppsPanel(): ReactElement {
             <AppsPanelView
               projection={projection}
               onCardAction={runCardAction}
-              onConnectLocalApp={connectLocalApp}
+              onOpenDeveloperMode={() => {
+                dispatchSettingsOpenSection('performance');
+                setActiveTab('settings');
+              }}
               onManageAccount={() => {
                 dispatchSettingsOpenSection('profile');
                 setActiveTab('settings');
               }}
+              onRetry={retryProjection}
               accountName={accountName}
-              busyAppId={busyAppId}
               actionError={actionError}
             />
           ) : (
@@ -93,31 +90,12 @@ export function AppsPanel(): ReactElement {
 
       <AppsDetailView
         entry={detailEntry}
-        aiProfileSection={detailEntry ? (
-          <AppsAIProfileSection
-            entry={detailEntry}
-            actionError={actionErrorAppId === detailEntry.app.appId ? actionError : null}
-          />
-        ) : null}
         onCardAction={runCardAction}
         onClose={() => {
           setAppsDetailAppId(null);
           closeDetail();
         }}
       />
-
-      {pendingConfirm ? (
-        <ConfirmDialog
-          open
-          title={t('Apps.confirm.deleteAppData.title')}
-          message={t('Apps.confirm.deleteAppData.message', { app: pendingConfirm.displayName })}
-          confirmLabel={t('Apps.confirm.deleteAppData.confirm')}
-          cancelLabel={t('Apps.action.cancel')}
-          confirmTone="danger"
-          onConfirm={confirmPending}
-          onClose={dismissPending}
-        />
-      ) : null}
     </div>
   );
 }

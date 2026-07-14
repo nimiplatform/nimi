@@ -310,6 +310,7 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
     exists: false,
     state: 'config_missing',
     record: null,
+    dataRootProposal: null,
     error: 'offline',
   });
   assert.deepEqual(projectUnavailableNimiProductControlSelectedDataRoot('offline'), {
@@ -319,7 +320,10 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
     dataRoot: null,
     error: 'offline',
   });
-  assert.equal(parseNimiProductControlRecordProjection(JSON.parse(productControlEnvelope('ready_for_use').json)).state, 'ready_for_use');
+  const parsedRecord = parseNimiProductControlRecordProjection(JSON.parse(productControlEnvelope('ready_for_use').json));
+  assert.equal(parsedRecord.state, 'ready_for_use');
+  assert.equal(parsedRecord.dataRootProposal?.authority, 'runtime_protected_product_control');
+  assert.equal(parsedRecord.dataRootProposal?.profile, 'dev_kernel_checkpoint');
   assert.equal(parseNimiProductControlSelectedDataRootProjection(JSON.parse(selectedDataRootEnvelope('ready_for_use').json)).dataRoot?.status, 'selected');
   assert.equal(parseNimiProductControlProjectionJson(productControlEnvelope('ready_for_use')).state, 'ready_for_use');
   assert.equal(parseNimiProductControlSelectedDataRootProjectionJson(selectedDataRootEnvelope('ready_for_use')).state, 'ready_for_use');
@@ -356,6 +360,21 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
   assert.throws(
     () => parseNimiProductControlRecordProjection(null),
     hasReasonCode('SDK_PRODUCT_CONTROL_PAYLOAD_INVALID'),
+  );
+  assert.throws(
+    () => parseNimiProductControlRecordProjection({
+      path: '/tester/nimi.json',
+      exists: false,
+      state: 'config_missing',
+      record: null,
+      dataRootProposal: {
+        path: '/renderer/supplied',
+        authority: 'renderer',
+        profile: 'dev_kernel_checkpoint',
+      },
+      error: null,
+    }),
+    hasReasonCode('SDK_PRODUCT_CONTROL_DATA_ROOT_PROPOSAL_INVALID'),
   );
 });
 
@@ -474,6 +493,11 @@ function productControlEnvelope(state: NimiProductControlState) {
       path: '/tester/.nimi/nimi.json',
       exists: true,
       state,
+      dataRootProposal: {
+        path: '/tester/checkpoint/Nimi',
+        authority: 'runtime_protected_product_control',
+        profile: 'dev_kernel_checkpoint',
+      },
       record: {
         schemaVersion: 1,
         installId: 'tester-install',

@@ -110,7 +110,6 @@ Registered public runtime gRPC services currently include:
 - `RuntimeLocalService` — local execution, supervision, provider health
 - `RuntimeAgentService` — live agent execution, hook lifecycle, canonical review
 - `RuntimeConnectorService` — provider connector lifecycle, credential hosting
-- `RuntimeGrantService` — permission and grant management
 - `RuntimeAuthService` — authentication and token management
 - `RuntimeCognitionService` — runtime-facing memory and knowledge bank/page surface
 - `RuntimeAppService` — app messaging and registration

@@ -165,12 +165,12 @@ export function LocalDevelopmentAuthorizations() {
                       <Button tone="ghost" size="sm" onClick={() => setConfirmSelector('')} disabled={Boolean(busySelector)}>
                         {t('LocalDevelopment.action.cancel')}
                       </Button>
-                      <Button tone="danger" size="sm" loading={busySelector === row.selector} onClick={() => { void revoke(row.selector); }}>
+                      <Button data-testid={`local-development-revoke-confirm:${row.selector}`} tone="danger" size="sm" loading={busySelector === row.selector} onClick={() => { void revoke(row.selector); }}>
                         {t('LocalDevelopment.action.confirmRevoke')}
                       </Button>
                     </>
                   ) : (
-                    <Button tone="danger" size="sm" onClick={() => setConfirmSelector(row.selector)}>
+                    <Button data-testid={`local-development-revoke:${row.selector}`} tone="danger" size="sm" onClick={() => setConfirmSelector(row.selector)}>
                       {t('LocalDevelopment.action.revoke')}
                     </Button>
                   )}

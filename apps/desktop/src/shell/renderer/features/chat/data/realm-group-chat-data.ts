@@ -212,11 +212,11 @@ export async function commitRealmGroupSourceMessageCandidateHandoff(
       return {
         appId: getDesktopAppId(),
         auth: accountRuntime.auth,
-        appAuth: accountRuntime.grants,
         agent: getDesktopRuntime().agents,
       };
     },
     getSubjectUserId: () => currentUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
   });
 
   try {

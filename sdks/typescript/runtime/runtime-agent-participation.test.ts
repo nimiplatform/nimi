@@ -23,7 +23,6 @@ function createHarness() {
   const runtime = {
     appId: 'test-app',
     auth: { registerApp: () => Promise.reject(new Error('unused')) },
-    appAuth: { authorizeExternalPrincipal: () => Promise.reject(new Error('unused')) },
     agent: {
       describeParticipationProfiles: record('describeParticipationProfiles'),
       describeParticipationContextBlocks: record('describeParticipationContextBlocks'),

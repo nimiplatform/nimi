@@ -106,5 +106,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['**/test/**/*.test.ts', '**/test/**/*.test.tsx'],
+    // The full Windows shard runs 140+ files concurrently. Content-admission
+    // tests complete in well under a second in isolation, but can spend more
+    // than Vitest's 5s default waiting for filesystem workers under shard
+    // contention. Keep their assertions strict while bounding that scheduler
+    // delay explicitly.
+    testTimeout: process.platform === 'win32' ? 15_000 : 5_000,
   },
 });

@@ -243,3 +243,23 @@ func TestLoadRejectsNonLoopbackHTTPJWKSURL(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestLoadRejectsRetiredDeveloperRegistrationConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "auth": {
+    "developerRegistration": {
+      "enabled": true
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	_, err := LoadFileConfig(configPath)
+	if err == nil || !strings.Contains(err.Error(), "auth.developerRegistration is retired") {
+		t.Fatalf("retired developer-registration config must fail closed, got %v", err)
+	}
+}

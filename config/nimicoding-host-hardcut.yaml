@@ -238,6 +238,7 @@ entrypoint_scan:
     - .test.mjs
   excluded_path_segments:
     - testdata
+    - worktrees
   forbidden_substrings:
     - topic-runner
     - inline manager-worker

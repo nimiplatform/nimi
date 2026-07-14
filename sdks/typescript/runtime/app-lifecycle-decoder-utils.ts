@@ -1,10 +1,7 @@
 import {
   ReasonCode as RuntimeGeneratedReasonCode,
-  type AppInstallStorageProjection,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
-import type { NimiRuntimeAppInstallStorage } from './app-lifecycle-types';
-import type { NimiRuntimeAppLifecycleIntentBinding } from './app-lifecycle-types';
 
 export function decodeNimiRuntimeReasonCode(value: RuntimeGeneratedReasonCode): string | undefined {
   if (!Number.isInteger(value) || value === RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED) {
@@ -19,47 +16,6 @@ export function decodeNimiRuntimeReasonCode(value: RuntimeGeneratedReasonCode): 
   return name;
 }
 
-export function decodeNimiRuntimeAppInstallStorage(
-  storage: AppInstallStorageProjection | undefined,
-): NimiRuntimeAppInstallStorage {
-  if (!storage) {
-    return decodeNimiRuntimeAppLifecycleError('runtime app lifecycle projection is missing storage roots');
-  }
-  return {
-    appRoot: requireNimiRuntimeAppLifecycleProjectionText(storage.appRoot, 'runtime app install storage appRoot'),
-    releaseRoot: requireNimiRuntimeAppLifecycleProjectionText(
-      storage.releaseRoot,
-      'runtime app install storage releaseRoot',
-    ),
-    durableDataRoot: requireNimiRuntimeAppLifecycleProjectionText(
-      storage.durableDataRoot,
-      'runtime app install storage durableDataRoot',
-    ),
-    cacheRoot: requireNimiRuntimeAppLifecycleProjectionText(storage.cacheRoot, 'runtime app install storage cacheRoot'),
-    tempRoot: requireNimiRuntimeAppLifecycleProjectionText(storage.tempRoot, 'runtime app install storage tempRoot'),
-  };
-}
-
-export function decodeNimiRuntimeAppArtifactBytes(value: unknown): number {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    return decodeNimiRuntimeAppLifecycleError(
-      `runtime app install job has invalid artifact bytes: ${String(value)}`,
-    );
-  }
-  return parsed;
-}
-
-export function decodeNimiRuntimeAppJobEventSequence(value: unknown): number {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    return decodeNimiRuntimeAppLifecycleError(
-      `runtime app install job event has an invalid sequence: ${String(value)}`,
-    );
-  }
-  return parsed;
-}
-
 export function requireNimiRuntimeAppId(value: unknown): string {
   const appId = normalizeNimiRuntimeAppLifecycleText(value);
   if (!appId) {
@@ -71,56 +27,6 @@ export function requireNimiRuntimeAppId(value: unknown): string {
     });
   }
   return appId;
-}
-
-export function requireNimiRuntimeAppLifecycleRootPath(value: unknown): string {
-  const normalized = normalizeNimiRuntimeAppLifecycleText(value);
-  if (!normalized) {
-    throw createNimiError({
-      message: 'runtime.appLifecycle.adoptLocal requires a non-empty rootPath',
-      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_ROOT_PATH_REQUIRED,
-      actionHint: 'pass_local_app_root_path_selected_by_user',
-      source: 'sdk',
-    });
-  }
-  return normalized;
-}
-
-export function requireNimiRuntimeAppLifecycleJobId(value: unknown): string {
-  const jobId = normalizeNimiRuntimeAppLifecycleText(value);
-  if (!jobId) {
-    throw createNimiError({
-      message: 'runtime.appLifecycle requires a non-empty jobId',
-      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_JOB_ID_REQUIRED,
-      actionHint: 'pass_runtime_emitted_job_id',
-      source: 'sdk',
-    });
-  }
-  return jobId;
-}
-
-export function requireNimiRuntimeAppLifecycleIntentBinding(
-  value: Partial<NimiRuntimeAppLifecycleIntentBinding> | null | undefined,
-): NimiRuntimeAppLifecycleIntentBinding {
-  const lifecycleIntentId = normalizeNimiRuntimeAppLifecycleText(value?.lifecycleIntentId);
-  if (!lifecycleIntentId) {
-    throw createNimiError({
-      message: 'runtime.appLifecycle mutation requires a Runtime-issued lifecycleIntentId',
-      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_INTENT_ID_REQUIRED,
-      actionHint: 'prepare_lifecycle_intent_over_protected_desktop_transport',
-      source: 'sdk',
-    });
-  }
-  const displayedImpactDigest = normalizeNimiRuntimeAppLifecycleText(value?.displayedImpactDigest);
-  if (!displayedImpactDigest) {
-    throw createNimiError({
-      message: 'runtime.appLifecycle mutation requires the displayed impact digest',
-      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_IMPACT_DIGEST_REQUIRED,
-      actionHint: 'pass_exact_displayed_lifecycle_impact_digest',
-      source: 'sdk',
-    });
-  }
-  return { lifecycleIntentId, displayedImpactDigest };
 }
 
 export function requireNimiRuntimeAppLifecycleProjectionText(value: unknown, field: string): string {

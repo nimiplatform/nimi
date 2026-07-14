@@ -234,11 +234,32 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
 
 export function parseNimiProductControlRecordProjection(value: unknown): NimiProductControlRecordProjection {
   const record = asRecord(value, 'product_control_record_get');
+  const proposal = record.dataRootProposal == null
+    ? null
+    : asRecord(record.dataRootProposal, 'product control dataRootProposal');
+  if (proposal && (
+    normalizeText(proposal.path).length === 0
+    || proposal.authority !== 'runtime_protected_product_control'
+    || proposal.profile !== 'dev_kernel_checkpoint'
+  )) {
+    throw productControlError({
+      reasonCode: 'SDK_PRODUCT_CONTROL_DATA_ROOT_PROPOSAL_INVALID',
+      message: 'Runtime product-control data-root proposal is invalid.',
+      actionHint: 'inspect_runtime_product_control_response',
+    });
+  }
   return {
     path: String(record.path || ''),
     exists: record.exists === true,
     state: parseNimiProductControlState(record.state),
     record: parseNimiProductControlRecord(record.record),
+    dataRootProposal: proposal
+      ? {
+        path: normalizeText(proposal.path),
+        authority: 'runtime_protected_product_control',
+        profile: 'dev_kernel_checkpoint',
+      }
+      : null,
     error: parseOptionalString(record.error),
   };
 }
@@ -304,6 +325,7 @@ export function projectUnavailableNimiProductControlRecord(
     exists: false,
     state: 'config_missing',
     record: null,
+    dataRootProposal: null,
     error,
   };
 }

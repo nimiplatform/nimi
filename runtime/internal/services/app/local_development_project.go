@@ -16,6 +16,7 @@ var localDevelopmentCanonicalScopes = map[string]struct{}{
 	"memory.read.bounded": {}, "memory.write.admitted": {}, "knowledge.read.bounded": {}, "knowledge.write.admitted": {},
 	"notification.send": {}, "notification.subscribe": {}, "file.read.scoped": {}, "file.write.scoped": {},
 	"device.use.scoped": {}, "audit.read.scoped": {}, "ai_profile.selection.consume": {},
+	"runtime.agent.turn.read": {}, "runtime.agent.turn.write": {},
 }
 
 var localDevelopmentQualifierScopeRules = map[string]map[string]struct{}{

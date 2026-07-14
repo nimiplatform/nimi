@@ -15,7 +15,3 @@ func VerifyWindowsProductionPipeServer(context.Context, uintptr, WindowsExecutab
 func (*WindowsDesktopPipeConnection) VerifyClientProcess(context.Context, WindowsExecutableTrustVerifier) (ProcessTuple, DesktopProcessLiveness, error) {
 	return ProcessTuple{}, nil, windowsUnsupported("verify Windows desktop process")
 }
-
-func NewWindowsInstalledProcessVerifier(WindowsDesktopIdentity, WindowsExecutableTrustVerifier) (InstalledProcessVerifier, error) {
-	return nil, windowsUnsupported("create Windows installed process verifier")
-}

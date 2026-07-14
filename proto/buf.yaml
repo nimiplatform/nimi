@@ -12,6 +12,7 @@ lint:
       - runtime/v1/agent_group_message_candidate.proto
       - runtime/v1/agent_participation.proto
       - runtime/v1/agent_presentation.proto
+      - runtime/v1/agent_source_materialization.proto
       - runtime/v1/ai.proto
       - runtime/v1/ai_realtime.proto
       - runtime/v1/ai_scheduling.proto
@@ -24,8 +25,8 @@ lint:
       - runtime/v1/common.proto
       - runtime/v1/connector.proto
       - runtime/v1/delegated_control.proto
+      - runtime/v1/development.proto
       - runtime/v1/external_agent.proto
-      - runtime/v1/grant.proto
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
       - runtime/v1/local_runtime_asset_catalog.proto
@@ -35,6 +36,7 @@ lint:
       - runtime/v1/local_runtime_engine.proto
       - runtime/v1/memory.proto
       - runtime/v1/model.proto
+      - runtime/v1/runtime_service_control.proto
       - runtime/v1/runtime_target_identity.proto
       - runtime/v1/voice.proto
       - runtime/v1/workflow.proto
@@ -54,7 +56,6 @@ lint:
       - runtime/v1/auth.proto
       - runtime/v1/cognition.proto
       - runtime/v1/external_agent.proto
-      - runtime/v1/grant.proto
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
       - runtime/v1/memory.proto
@@ -66,7 +67,6 @@ lint:
       - runtime/v1/auth.proto
       - runtime/v1/cognition.proto
       - runtime/v1/external_agent.proto
-      - runtime/v1/grant.proto
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
       - runtime/v1/memory.proto

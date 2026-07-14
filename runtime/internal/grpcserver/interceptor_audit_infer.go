@@ -57,11 +57,6 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 		return reasonCodeFromAppInstallJob(value.GetJob())
 	case *runtimev1.HealthRepairAppResponse:
 		return reasonCodeFromAppInstallJob(value.GetJob())
-	case *runtimev1.OpenAppResponse:
-		if value.GetProjection() != nil {
-			return value.GetProjection().GetReasonCode(), true
-		}
-		return runtimev1.ReasonCode_ACTION_EXECUTED, false
 	case *runtimev1.SubmitWorkflowResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.GetWorkflowResponse:
@@ -69,8 +64,6 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 	case *runtimev1.PullModelResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.CheckModelHealthResponse:
-		return value.GetReasonCode(), true
-	case *runtimev1.ValidateAppAccessTokenResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.OpenSessionResponse:
 		return value.GetReasonCode(), true

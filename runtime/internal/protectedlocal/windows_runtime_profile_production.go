@@ -12,7 +12,7 @@ func activeWindowsRuntimeProfile() windowsRuntimeProfile {
 		serviceHostSID:        WindowsServiceHostSID,
 		custodyDescriptor:     windowsDPAPINGLocalUserDescriptor,
 		desktopPipeName:       WindowsProductionDesktopPipeName,
-		installedPipeName:     WindowsProductionInstalledPipeName,
+		localAppPipeName:      WindowsProductionLocalAppPipeName,
 		runtimeTrustSetID:     WindowsRuntimeProductionTrustSetID,
 		desktopTrustSetID:     WindowsDesktopProductionTrustSetID,
 		runtimeExecutableName: "nimi.exe",

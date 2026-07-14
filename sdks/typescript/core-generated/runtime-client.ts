@@ -31,12 +31,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CompleteLoginResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
+    "service": "RuntimeAccountService",
+    "method": "DecideLocalAppGrant",
+    "kind": "unary",
+    "requestType": "DecideLocalAppGrantRequest",
+    "responseType": "DecideLocalAppGrantResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "service": "RuntimeAccountService",
     "method": "GetAccountSessionStatus",
     "kind": "unary",
     "requestType": "GetAccountSessionStatusRequest",
     "responseType": "GetAccountSessionStatusResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
+    "service": "RuntimeAccountService",
+    "method": "GetLocalAppGrantStatus",
+    "kind": "unary",
+    "requestType": "GetLocalAppGrantStatusRequest",
+    "responseType": "GetLocalAppGrantStatusResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
@@ -71,12 +87,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LogoutResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant",
+    "service": "RuntimeAccountService",
+    "method": "RequestLocalAppGrant",
+    "kind": "unary",
+    "requestType": "RequestLocalAppGrantRequest",
+    "responseType": "RequestLocalAppGrantResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
     "service": "RuntimeAccountService",
     "method": "RequestPresenceVerification",
     "kind": "unary",
     "requestType": "RequestPresenceVerificationRequest",
     "responseType": "RequestPresenceVerificationResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
+    "service": "RuntimeAccountService",
+    "method": "RevokeLocalAppGrant",
+    "kind": "unary",
+    "requestType": "RevokeLocalAppGrantRequest",
+    "responseType": "RevokeLocalAppGrantResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
@@ -767,20 +799,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UploadArtifactResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "service": "RuntimeAppService",
-    "method": "AdoptLocalApp",
+    "method": "BindLocalAppProcess",
     "kind": "unary",
-    "requestType": "AdoptLocalAppRequest",
-    "responseType": "AdoptLocalAppResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
-    "service": "RuntimeAppService",
-    "method": "BindInstalledLaunchProcess",
-    "kind": "unary",
-    "requestType": "BindInstalledLaunchProcessRequest",
-    "responseType": "BindInstalledLaunchProcessResponse"
+    "requestType": "BindLocalAppProcessRequest",
+    "responseType": "BindLocalAppProcessResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
@@ -847,22 +871,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAppInstallJobsResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
-    "service": "RuntimeAppService",
-    "method": "ListLocalAppAdoptions",
-    "kind": "unary",
-    "requestType": "ListLocalAppAdoptionsRequest",
-    "responseType": "ListLocalAppAdoptionsResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/OpenApp",
-    "service": "RuntimeAppService",
-    "method": "OpenApp",
-    "kind": "unary",
-    "requestType": "OpenAppRequest",
-    "responseType": "OpenAppResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
     "service": "RuntimeAppService",
     "method": "PrepareAppLifecycleIntent",
@@ -871,12 +879,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PrepareAppLifecycleIntentResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
     "service": "RuntimeAppService",
-    "method": "RemoveLocalAppAdoption",
+    "method": "PrepareLocalAppLaunch",
     "kind": "unary",
-    "requestType": "RemoveLocalAppAdoptionRequest",
-    "responseType": "RemoveLocalAppAdoptionResponse"
+    "requestType": "PrepareLocalAppLaunchRequest",
+    "responseType": "PrepareLocalAppLaunchResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
@@ -991,14 +999,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RuntimeHealthEvent"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession",
-    "service": "RuntimeAuthService",
-    "method": "OpenDesktopLaunchedAppSession",
-    "kind": "unary",
-    "requestType": "OpenDesktopLaunchedAppSessionRequest",
-    "responseType": "OpenDesktopLaunchedAppSessionResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
     "service": "RuntimeAuthService",
     "method": "OpenDesktopSession",
@@ -1013,6 +1013,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "OpenExternalPrincipalSessionRequest",
     "responseType": "OpenExternalPrincipalSessionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession",
+    "service": "RuntimeAuthService",
+    "method": "OpenLocalAppSession",
+    "kind": "unary",
+    "requestType": "OpenLocalAppSessionRequest",
+    "responseType": "OpenLocalAppSessionResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
@@ -1415,14 +1423,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpsertModelCatalogProviderResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
-    "service": "RuntimeDevelopmentService",
-    "method": "BindLocalDevelopmentHostProcess",
-    "kind": "unary",
-    "requestType": "BindLocalDevelopmentHostProcessRequest",
-    "responseType": "BindLocalDevelopmentHostProcessResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
     "service": "RuntimeDevelopmentService",
     "method": "DecideLocalDevelopmentProject",
@@ -1447,12 +1447,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "EvaluateLocalDevelopmentProjectResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus",
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
     "service": "RuntimeDevelopmentService",
-    "method": "GetLocalDevelopmentSessionStatus",
+    "method": "GetDeveloperModeStatus",
     "kind": "unary",
-    "requestType": "GetLocalDevelopmentSessionStatusRequest",
-    "responseType": "GetLocalDevelopmentSessionStatusResponse"
+    "requestType": "GetDeveloperModeStatusRequest",
+    "responseType": "GetDeveloperModeStatusResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
@@ -1463,20 +1463,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalDevelopmentAuthorizationsResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession",
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
     "service": "RuntimeDevelopmentService",
-    "method": "OpenLocalDevelopmentAppSession",
+    "method": "ReactivateLocalDevelopmentProject",
     "kind": "unary",
-    "requestType": "OpenLocalDevelopmentAppSessionRequest",
-    "responseType": "OpenLocalDevelopmentAppSessionResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
-    "service": "RuntimeDevelopmentService",
-    "method": "PrepareLocalDevelopmentLaunch",
-    "kind": "unary",
-    "requestType": "PrepareLocalDevelopmentLaunchRequest",
-    "responseType": "PrepareLocalDevelopmentLaunchResponse"
+    "requestType": "ReactivateLocalDevelopmentProjectRequest",
+    "responseType": "ReactivateLocalDevelopmentProjectResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
@@ -1485,6 +1477,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RevokeLocalDevelopmentAuthorizationRequest",
     "responseType": "RevokeLocalDevelopmentAuthorizationResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
+    "service": "RuntimeDevelopmentService",
+    "method": "SetDeveloperMode",
+    "kind": "unary",
+    "requestType": "SetDeveloperModeRequest",
+    "responseType": "SetDeveloperModeResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
@@ -1517,46 +1517,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ExternalAgentRevokeTokenRequest",
     "responseType": "Ack"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
-    "service": "RuntimeGrantService",
-    "method": "AuthorizeExternalPrincipal",
-    "kind": "unary",
-    "requestType": "AuthorizeExternalPrincipalRequest",
-    "responseType": "AuthorizeExternalPrincipalResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken",
-    "service": "RuntimeGrantService",
-    "method": "IssueDelegatedAccessToken",
-    "kind": "unary",
-    "requestType": "IssueDelegatedAccessTokenRequest",
-    "responseType": "IssueDelegatedAccessTokenResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeGrantService/ListTokenChain",
-    "service": "RuntimeGrantService",
-    "method": "ListTokenChain",
-    "kind": "unary",
-    "requestType": "ListTokenChainRequest",
-    "responseType": "ListTokenChainResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
-    "service": "RuntimeGrantService",
-    "method": "RevokeAppAccessToken",
-    "kind": "unary",
-    "requestType": "RevokeAppAccessTokenRequest",
-    "responseType": "Ack"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken",
-    "service": "RuntimeGrantService",
-    "method": "ValidateAppAccessToken",
-    "kind": "unary",
-    "requestType": "ValidateAppAccessTokenRequest",
-    "responseType": "ValidateAppAccessTokenResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
@@ -2125,6 +2085,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RemoveModelRequest",
     "responseType": "Ack"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
+    "service": "RuntimeServiceControlService",
+    "method": "RequestRuntimeRestart",
+    "kind": "unary",
+    "requestType": "RequestRuntimeRestartRequest",
+    "responseType": "RequestRuntimeRestartResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",

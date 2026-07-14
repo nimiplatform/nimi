@@ -17,7 +17,6 @@ import { buildRuntimeAgentRequestContext, isRuntimeLocalAgentRef } from './agent
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -82,7 +81,6 @@ export interface NimiRuntimeRealmGroupMessageCandidateSurface {
 export interface NimiHostRuntimeRealmGroupMessageCandidateClient {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: {
     createRealmGroupMessageCandidate(
       request: CreateRealmGroupMessageCandidateRequest,

@@ -15,7 +15,6 @@ import {
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -81,7 +80,6 @@ export interface NimiRuntimeAgentPresentationProfileMutationResult {
 export interface NimiHostRuntimeAgentPresentationProfileClient {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: {
     setAgentPresentationProfile(
       request: SetAgentPresentationProfileRequest,

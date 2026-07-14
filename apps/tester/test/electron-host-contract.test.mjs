@@ -61,36 +61,33 @@ test('Electron development is supervised by Desktop and not by app-owned scripts
 test('Electron host uses canonical tester app identity for Runtime calls', () => {
   const mainSource = read('src-electron/main.ts');
   const sdkAcceptanceSource = read('src/shell/auth/electron-sdk-acceptance.ts');
+  const localAppClientSource = read('src/shell/local-app-runtime-platform.ts');
   const acceptanceSource = read('test/electron-acceptance.mjs');
 
   assert.match(mainSource, /const APP_ID = 'nimi\.tester'/);
-  assert.match(sdkAcceptanceSource, /appId:\s*'nimi\.tester'/);
+  assert.match(sdkAcceptanceSource, /testerLocalAppRuntimePlatform/);
+  assert.doesNotMatch(localAppClientSource, /(?:appId|sessionId|grantId)\s*[:=]/);
   assert.doesNotMatch(mainSource, /com\.nimiplatform\.tester/);
   assert.doesNotMatch(sdkAcceptanceSource, /com\.nimiplatform\.tester/);
   assert.doesNotMatch(acceptanceSource, /com\.nimiplatform\.tester/);
 });
 
-test('Electron installed host does not synthesize Runtime account authority', () => {
+test('Electron local-app host does not synthesize Runtime account authority', () => {
   assert.equal(existsSync(path.join(root, 'src-electron/runtime-auth.ts')), false);
   const mainSource = read('src-electron/main.ts');
-  const kitHostAuthSource = readRepo('kit/shell/electron/src/main/runtime-account-auth.ts');
   const rendererAuthSource = read('src/shell/auth/runtime-platform.ts');
 
   assert.doesNotMatch(mainSource, /trustedRuntimeMetadataProvider|createTesterElectronTrustedRuntimeMetadataProvider/);
-  assert.match(kitHostAuthSource, /return protectedCarrierRequiredProvider\(\);/);
-  assert.doesNotMatch(kitHostAuthSource, /protectedAccessToken|protectedAccessInflightKey|x-nimi-access-token/);
+  assert.equal(existsSync(path.join(repoRoot, 'kit/shell/electron/src/main/runtime-account-auth.ts')), false);
   assert.doesNotMatch(rendererAuthSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
   assert.doesNotMatch(rendererAuthSource, /local-developer|developerRegistration|getRuntimeAccountCaller/);
-  assert.match(rendererAuthSource, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
-  assert.match(rendererAuthSource, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+  assert.match(rendererAuthSource, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+  assert.match(rendererAuthSource, /operationAllowed/);
   assert.doesNotMatch(rendererAuthSource, /readonly client:|readonly auth:/);
 });
 
-test('Tester and Kit Electron carriers retain no portable protected-access cache', () => {
-  for (const source of [
-    readRepo('kit/shell/electron/src/main/runtime-account-auth.ts'),
-    read('src/shell/auth/runtime-platform.ts'),
-  ]) {
+test('Tester renderer carrier retains no portable protected-access cache', () => {
+  for (const source of [read('src/shell/auth/runtime-platform.ts')]) {
     assert.doesNotMatch(source, /protectedAccessInflightKey|protectedAccessCache|authorizeExternalPrincipal/);
     assert.doesNotMatch(source, /x-nimi-access-token-(?:id|secret)|tokenId|secret/);
   }

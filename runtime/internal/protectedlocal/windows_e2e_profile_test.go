@@ -14,7 +14,7 @@ func TestWindowsE2ERuntimeProfileIsSeparateAndClosed(t *testing.T) {
 		if profile.serviceName != WindowsE2EServiceName || profile.serviceAccount != WindowsE2EServiceAccount ||
 			profile.serviceSID != WindowsE2EServiceSID || profile.serviceHostAccount != WindowsServiceHostAccount ||
 			profile.serviceHostSID != WindowsServiceHostSID || profile.desktopPipeName != WindowsE2EDesktopPipeName ||
-			profile.installedPipeName != WindowsE2EInstalledPipeName || profile.runtimeTrustSetID != WindowsRuntimeE2ETrustSetID ||
+			profile.localAppPipeName != WindowsE2ELocalAppPipeName || profile.runtimeTrustSetID != WindowsRuntimeE2ETrustSetID ||
 			profile.desktopTrustSetID != WindowsDesktopE2ETrustSetID {
 			t.Fatalf("active LocalSystem E2E profile = %+v", profile)
 		}
@@ -22,7 +22,7 @@ func TestWindowsE2ERuntimeProfileIsSeparateAndClosed(t *testing.T) {
 		if profile.serviceName != WindowsE2EVirtualServiceName || profile.serviceAccount != WindowsE2EVirtualServiceAccount ||
 			profile.serviceSID != WindowsE2EVirtualServiceSID || profile.serviceHostAccount != WindowsE2EVirtualServiceAccount ||
 			profile.serviceHostSID != WindowsE2EVirtualServiceSID || profile.desktopPipeName != WindowsE2EVirtualDesktopPipeName ||
-			profile.installedPipeName != WindowsE2EVirtualInstalledPipeName || profile.runtimeTrustSetID != WindowsRuntimeE2EVirtualTrustSetID ||
+			profile.localAppPipeName != WindowsE2EVirtualLocalAppPipeName || profile.runtimeTrustSetID != WindowsRuntimeE2EVirtualTrustSetID ||
 			profile.desktopTrustSetID != WindowsDesktopE2EVirtualTrustSetID {
 			t.Fatalf("active virtual-account E2E profile = %+v", profile)
 		}
@@ -35,7 +35,7 @@ func TestWindowsE2ERuntimeProfileIsSeparateAndClosed(t *testing.T) {
 	if profile.serviceName == WindowsProductionServiceName ||
 		profile.serviceSID == WindowsProductionServiceSID ||
 		profile.desktopPipeName == WindowsProductionDesktopPipeName ||
-		profile.installedPipeName == WindowsProductionInstalledPipeName {
+		profile.localAppPipeName == WindowsProductionLocalAppPipeName {
 		t.Fatal("E2E profile collided with production authority")
 	}
 }
@@ -45,9 +45,9 @@ func TestWindowsE2EPrincipalComparisonVariantsCannotShareServiceStateOrPipes(t *
 		WindowsE2EServiceName, WindowsE2EVirtualServiceName,
 		WindowsE2EServiceSID, WindowsE2EVirtualServiceSID,
 		WindowsE2EDesktopPipeName, WindowsE2EVirtualDesktopPipeName,
-		WindowsE2EInstalledPipeName, WindowsE2EVirtualInstalledPipeName,
+		WindowsE2ELocalAppPipeName, WindowsE2EVirtualLocalAppPipeName,
 		WindowsProductionServiceName, WindowsProductionServiceSID,
-		WindowsProductionDesktopPipeName, WindowsProductionInstalledPipeName,
+		WindowsProductionDesktopPipeName, WindowsProductionLocalAppPipeName,
 	}
 	seen := make(map[string]struct{}, len(values))
 	for _, value := range values {

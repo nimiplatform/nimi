@@ -66,12 +66,14 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
   return {
     status: 'unavailable',
     mode: projection.mode,
-    detail: 'Protected app host is ready. This app authorization admits artifacts.readRuntimeBytes only; Runtime health, account, Realm, AI, realtime, lifecycle, and media operations remain blocked.',
+    detail: projection.localAppSession.operationAllowed
+      ? 'The local-app identity session is operation-granted. Only the eight typed local-app carrier operations are admitted; generic Runtime health, account, Realm, AIConfig, storage, lifecycle, and media surfaces remain blocked.'
+      : 'The local-app identity session is bound with zero grants. Identity does not authorize any operation; request and receive a separate operation grant in Nimi Desktop.',
     healthJson: compactJson({
-      appHost: projection.appHost.state,
-      trustClass: projection.appHost.trustClass,
-      appId: projection.appHost.appId,
-      bootstrapArtifact: projection.appHost.bootstrapArtifact,
+      sessionState: projection.localAppSession.state,
+      sessionBound: projection.localAppSession.sessionBound,
+      operationAllowed: projection.localAppSession.operationAllowed,
+      reasonCode: projection.localAppSession.reasonCode,
     }),
   };
 }
@@ -85,6 +87,6 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   return capabilityUnavailable(
     capability,
     'sdk-method-unavailable',
-    'This local-development authorization admits artifacts.readRuntimeBytes only. AI and media execution remain fail-closed.',
+    'This local-app carrier does not admit generic AI or media execution. Only its eight typed operations are available, and every protected operation still requires a separate grant.',
   );
 }

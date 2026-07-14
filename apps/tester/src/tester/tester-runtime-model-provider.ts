@@ -40,7 +40,7 @@ async function loadTesterRuntimeRouteOptionsFromProjection(
   if (projection.status !== 'ready') {
     throw new Error(projection.message || 'Runtime unavailable; model catalog failed closed.');
   }
-  throw new Error('Runtime model catalog is not admitted for this app-host authorization.');
+  throw new Error('Runtime model catalog is not admitted by the local-app carrier.');
 }
 
 export function createTesterRuntimeModelPickerProvider(

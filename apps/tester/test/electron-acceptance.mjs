@@ -14,6 +14,15 @@ const root = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(root, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiElectronSdkAcceptance=1`;
+const localAppNegativeMatrix = [
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], payload: {} },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionPosture'], payload: { payload: { operationId: 'runtime_agent.conversation.turn.send', resourceRef: 'agent:tester/conversation:acceptance' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], payload: { payload: { operationId: 'runtime_agent.conversation.turn.send', resourceRef: 'agent:tester/conversation:acceptance', purpose: 'Plain Electron negative acceptance' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation'], payload: { payload: { agentId: 'tester', requestedAnchorDisposition: 'create-or-resume' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', clientTurnId: 'turn', userText: 'hello' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', cursor: '' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor' } } },
+];
 
 test('Electron acceptance matrix maps every standard shell command to e2e or host-unit coverage', async () => {
   const acceptanceSource = await readFile(new URL('./electron-acceptance.mjs', import.meta.url), 'utf8');
@@ -30,6 +39,9 @@ test('Electron acceptance matrix maps every standard shell command to e2e or hos
     'electron-shell-preload.test.ts',
     'electron-shell-runtime-hardening.test.ts',
     'electron-shell-source-boundaries.test.ts',
+    'electron-local-app-carrier-behavior.test.ts',
+    'electron-local-app-commands.test.ts',
+    'electron-local-app-host.test.ts',
   ];
   const electronHostUnitSource = (await Promise.all(electronHostUnitFiles.map((file) =>
     readFile(path.join(repoRoot, 'kit', 'shell', 'electron', 'test', file), 'utf8')
@@ -48,7 +60,7 @@ test('Electron acceptance matrix maps every standard shell command to e2e or hos
   }
 });
 
-test('plain Electron boots the narrowed renderer but cannot acquire protected app-host authority', { timeout: 90_000 }, async () => {
+test('plain Electron boots the narrowed renderer but cannot acquire protected local-app authority', { timeout: 90_000 }, async () => {
   await withTempDir('acceptance', async (tmpRoot) => {
   const app = await electron.launch({
     args: [mainEntry],
@@ -84,49 +96,51 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected ap
 
     const artifactUnavailable = await captureInvokeError(
       page,
-      NIMI_STANDARD_SHELL_COMMANDS['artifacts.readRuntimeBytes'],
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes'],
       { payload: { artifactId: 'runtime-artifact-acceptance' } },
     );
-    assert.equal(artifactUnavailable.code, 'runtime-service-unavailable');
-    assert.equal(artifactUnavailable.reasonCode, 'runtime-service-unavailable');
-    assert.equal(artifactUnavailable.source, 'electron');
+    assertUnsupervisedLocalAppDenied(artifactUnavailable);
+    const carrierReasonCode = artifactUnavailable.reasonCode;
+    for (const row of localAppNegativeMatrix) {
+      const denied = await captureInvokeError(page, row.command, row.payload);
+      assertUnsupervisedLocalAppDenied(denied);
+    }
 
     await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__));
     const sdkAcceptanceKeys = await page.evaluate(() =>
       Object.keys(globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__).sort(),
     );
     assert.deepEqual(sdkAcceptanceKeys, [
-      'installedArtifactRead',
-      'installedProjection',
-      'runtimeReady',
+      'localAppArtifactRead',
+      'localAppAuthStatus',
+      'localAppProjection',
     ]);
-    const sdkRuntimeReady = await page.evaluate(() =>
-      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
+    const localAppAuthStatus = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppAuthStatus(),
     );
-    assert.equal(sdkRuntimeReady.transport, 'electron-ipc');
-    assert.equal(sdkRuntimeReady.ok, false);
-    assert.equal(sdkRuntimeReady.code, 'capability-unavailable');
-    assert.equal(sdkRuntimeReady.reasonCode, 'electron-standard-capability-not-in-host-set');
-    assert.equal(sdkRuntimeReady.actionHint, 'use_command_admitted_by_electron_standard_shell_capability_set');
-    const installedProjection = await page.evaluate(() =>
-      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.installedProjection(),
+    assert.equal(localAppAuthStatus.transport, 'electron-ipc');
+    assert.equal(localAppAuthStatus.ok, false);
+    assert.equal(localAppAuthStatus.code, carrierReasonCode);
+    assert.equal(localAppAuthStatus.reasonCode, carrierReasonCode);
+    const localAppProjection = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppProjection(),
     );
-    assert.equal(installedProjection.transport, 'electron-ipc');
-    assert.equal(installedProjection.ok, true);
-    assert.equal(installedProjection.status, 'action-required');
-    assert.deepEqual(installedProjection.reason, {
-      mode: 'third-party-nimi-app',
-      reasonCode: 'runtime-service-unavailable',
-      actionHint: 'open_nimi_desktop_and_retry',
+    assert.equal(localAppProjection.transport, 'electron-ipc');
+    assert.equal(localAppProjection.ok, true);
+    assert.equal(localAppProjection.status, 'action-required');
+    assert.deepEqual(localAppProjection.reason, {
+      mode: 'local-app',
+      reasonCode: carrierReasonCode,
+      actionHint: expectedCarrierActionHint(carrierReasonCode),
     });
-    const sdkInstalledArtifact = await page.evaluate(() =>
-      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.installedArtifactRead(),
+    const sdkLocalAppArtifact = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppArtifactRead(),
     );
-    assert.equal(sdkInstalledArtifact.transport, 'electron-ipc');
-    assert.equal(sdkInstalledArtifact.ok, false);
-    assert.equal(sdkInstalledArtifact.code, 'runtime-service-unavailable');
-    assert.equal(sdkInstalledArtifact.reasonCode, 'runtime-service-unavailable');
-    assert.equal(sdkInstalledArtifact.source, 'electron');
+    assert.equal(sdkLocalAppArtifact.transport, 'electron-ipc');
+    assert.equal(sdkLocalAppArtifact.ok, false);
+    assert.equal(sdkLocalAppArtifact.code, carrierReasonCode);
+    assert.equal(sdkLocalAppArtifact.reasonCode, carrierReasonCode);
+    assert.equal(sdkLocalAppArtifact.source, artifactUnavailable.source);
 
     for (const commandKey of [
       'runtime-lifecycle.status',
@@ -140,7 +154,7 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected ap
       'config.get',
       'config.set',
     ]) {
-      await assertInstalledCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
+      await assertLocalAppCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
     }
 
     for (const [commandKey, payload] of [
@@ -161,14 +175,20 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected ap
       ['ai-profile.get', {}],
       ['platform-projection.get', {}],
     ]) {
-      await assertInstalledCapabilityForbidden(
+      await assertLocalAppCapabilityForbidden(
         page,
         NIMI_STANDARD_SHELL_COMMANDS[commandKey],
         commandKey,
         payload,
       );
     }
-    await assertInstalledCapabilityForbidden(
+    await assertLocalAppCapabilityForbidden(
+      page,
+      NIMI_STANDARD_SHELL_COMMANDS['artifacts.readRuntimeBytes'],
+      'artifacts.readRuntimeBytes',
+      { payload: { artifactId: 'legacy-unadmitted-artifact' } },
+    );
+    await assertLocalAppCapabilityForbidden(
       page,
       NIMI_STANDARD_SHELL_COMMANDS['floating-window.setIgnoreCursorEvents'],
       'floating-window.setIgnoreCursorEvents',
@@ -203,7 +223,7 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected ap
     await retryButton.click();
     await page.waitForFunction(() => document.body?.innerText.includes('Nimi Desktop connection required'));
     const visibleCopy = await page.locator('body').innerText();
-    assert.match(visibleCopy, /Open Nimi Desktop, confirm Runtime is available, then retry\./);
+    assert.match(visibleCopy, expectedVisibleCarrierAction(carrierReasonCode));
     assert.doesNotMatch(visibleCopy, /open_nimi_desktop_and_retry/);
     const shellProblems = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_SHELL_ACCEPTANCE_PROBLEMS__ ?? [],
@@ -261,12 +281,34 @@ async function captureInvokeError(page, command, payload) {
   return errorPayload;
 }
 
-async function assertInstalledCapabilityForbidden(page, command, label, payload = {}) {
+function assertUnsupervisedLocalAppDenied(error) {
+  assert.ok([
+    'runtime-service-unavailable',
+    'runtime-service-untrusted',
+    'runtime-unauthenticated',
+  ].includes(error.reasonCode), `unexpected unsupervised carrier reason: ${error.reasonCode}`);
+  assert.equal(error.code, error.reasonCode);
+  assert.ok(['electron', 'runtime'].includes(error.source), `unexpected carrier error source: ${error.source}`);
+}
+
+function expectedCarrierActionHint(reasonCode) {
+  if (reasonCode === 'runtime-service-untrusted') return 'restart_through_verified_desktop_supervisor';
+  if (reasonCode === 'runtime-unauthenticated') return 'reopen_local_app_session';
+  return 'start_fixed_runtime_service';
+}
+
+function expectedVisibleCarrierAction(reasonCode) {
+  if (reasonCode === 'runtime-service-untrusted') return /Close this process and relaunch the project through Nimi Desktop\./;
+  if (reasonCode === 'runtime-unauthenticated') return /Reopen the protected local-app session through Nimi Desktop\./;
+  return /Open Nimi Desktop, confirm Runtime is available, then retry\./;
+}
+
+async function assertLocalAppCapabilityForbidden(page, command, label, payload = {}) {
   const error = await captureInvokeError(page, command, payload);
   assert.equal(error.code, 'capability-unavailable', label);
   assert.equal(error.reasonCode, 'electron-standard-capability-not-in-host-set', label);
   assert.equal(error.source, 'electron', label);
-  assert.match(error.message, /installed-nimi-app-standard-shell-v1/, label);
+  assert.match(error.message, /local-app-standard-shell-v1/, label);
 }
 
 async function withTempDir(prefix, run) {

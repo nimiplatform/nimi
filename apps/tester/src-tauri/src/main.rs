@@ -3,8 +3,6 @@ mod world_tour;
 
 use acceptance::tester_renderer_entry_probe_script;
 
-use nimi_shell_tauri::capabilities::data::StandardAppStorageRootSlot;
-
 const ACCEPTANCE_PROBE_PATH_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_PROBE_PATH";
 const ACCEPTANCE_SCENARIO_ID_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_SCENARIO_ID";
 
@@ -66,23 +64,15 @@ fn write_acceptance_probe_event(kind: &str, payload: serde_json::Value) -> Resul
         .map_err(|error| format!("write Tauri acceptance probe event: {error}"))
 }
 
-/// Keeps app-owned World Tour storage fail-closed until a future operation
-/// admission supplies Runtime-attested roots through a Kit-owned carrier.
-fn install_standard_app_storage_slot(app: &tauri::App<tauri::Wry>) {
+fn install_local_app_runtime_host(app: &tauri::App<tauri::Wry>) {
     use tauri::Manager;
-    app.manage(StandardAppStorageRootSlot::empty());
-}
-
-fn install_installed_runtime_host(app: &tauri::App<tauri::Wry>) {
-    use tauri::Manager;
-    app.manage(nimi_shell_tauri::capabilities::runtime::RuntimeBridgeAppHost::platform_default());
+    app.manage(nimi_shell_tauri::capabilities::runtime::RuntimeBridgeLocalAppHost::platform_default());
 }
 
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            install_standard_app_storage_slot(app);
-            install_installed_runtime_host(app);
+            install_local_app_runtime_host(app);
             Ok(())
         })
         .on_page_load(|webview, payload| {
@@ -94,7 +84,7 @@ fn main() {
             }
         })
         .invoke_handler(
-            nimi_shell_tauri::nimi_shell_tauri_installed_app_standard_shell_handler![
+            nimi_shell_tauri::nimi_shell_tauri_local_app_standard_shell_handler![
                 tester_renderer_probe_ping,
                 tester_renderer_probe_report_write,
                 tester_renderer_probe_context_get,
@@ -207,22 +197,22 @@ mod tests {
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("ai_config_set")));
+                        == Some("local_app_session_status")));
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("ai_config_get")));
+                        == Some("local_app_permission_posture")));
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("storage_write_json")));
+                        == Some("local_app_permission_request")));
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("storage_read_json")));
+                        == Some("local_app_artifacts_read_runtime_bytes")));
                 assert!(command_checks.iter().any(|row| {
                     row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("runtime_defaults")
+                        == Some("storage_read_json")
                         && row.get("expectError").and_then(serde_json::Value::as_bool) == Some(true)
                 }));
                 assert!(command_checks.iter().any(|row| row

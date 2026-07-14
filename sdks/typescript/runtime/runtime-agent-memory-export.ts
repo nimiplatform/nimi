@@ -21,7 +21,6 @@ import {
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -122,7 +121,6 @@ export interface NimiRuntimeAgentMemoryExportEnvelope {
 export interface NimiHostRuntimeAgentMemoryExportClient {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: {
     getAgentState(request: GetAgentStateRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentStateResponse>;
     queryAgentMemory(request: QueryAgentMemoryRequest, options?: RuntimeTypedCallOptions): Promise<QueryAgentMemoryResponse>;

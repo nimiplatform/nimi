@@ -1,0 +1,410 @@
+import {
+  createNimiElectronDesktopAccountHost,
+  createNimiElectronDesktopControlHost,
+  type NimiElectronDesktopAccountHost,
+  type NimiElectronDesktopControlHost,
+} from '@nimiplatform/kit/shell/electron/main';
+import { verifyNimiFirstRunFactoryAiProfile } from '@nimiplatform/kit/shell/capabilities';
+import { getRuntimeWireCodec } from '@nimiplatform/sdk/runtime/generated';
+import {
+  parseNimiProductControlRecordProjection,
+  type NimiProductControlRecord,
+  type NimiProductControlRecordProjection,
+} from '@nimiplatform/sdk/runtime';
+import {
+  createDesktopProductControlEvidence,
+  type DesktopProductControlEvidence,
+} from './product-control-evidence.js';
+
+const COMMANDS = [
+  'product_control_record_ensure_account_default_profile',
+  'product_control_record_prepare_first_run_local_ai_ready',
+  'product_control_record_admit_ready_for_use',
+  'account_default_profile_for_scope_init',
+  'built_in_ai_config_for_scope_init',
+] as const;
+
+const METHOD = {
+  collectDeviceProfile: '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile',
+  getRecord: '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
+  resolveBaseline: '/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness',
+  mintBaseline: '/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness',
+  resolveExecution: '/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence',
+  mintExecution: '/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence',
+  recordAccount: '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence',
+  recordLocalAi: '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence',
+  admitReady: '/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse',
+} as const;
+
+type ProductCommand = typeof COMMANDS[number];
+
+export type DesktopElectronProductControlHost = {
+  readonly commandHandlers: Readonly<Record<ProductCommand, (context: {
+    readonly command: string;
+    readonly payload: Readonly<Record<string, unknown>>;
+  }) => Promise<unknown>>>;
+};
+
+export function createDesktopElectronProductControlHost(input: {
+  readonly control?: NimiElectronDesktopControlHost;
+  readonly account?: NimiElectronDesktopAccountHost;
+  readonly evidence?: DesktopProductControlEvidence;
+} = {}): DesktopElectronProductControlHost {
+  const host = new ElectronProductControlHost(
+    input.control ?? createNimiElectronDesktopControlHost(),
+    input.account ?? createNimiElectronDesktopAccountHost(),
+    input.evidence ?? createDesktopProductControlEvidence(),
+  );
+  return {
+    commandHandlers: Object.fromEntries(COMMANDS.map((command) => [
+      command,
+      (context: { readonly command: string; readonly payload: Readonly<Record<string, unknown>> }) => (
+        host.invoke(command, context.payload)
+      ),
+    ])) as DesktopElectronProductControlHost['commandHandlers'],
+  };
+}
+class ElectronProductControlHost {
+  constructor(
+    private readonly control: NimiElectronDesktopControlHost,
+    private readonly account: NimiElectronDesktopAccountHost,
+    private readonly evidence: DesktopProductControlEvidence,
+  ) {}
+
+  async invoke(command: ProductCommand, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
+    if (command === 'product_control_record_ensure_account_default_profile') {
+      requireEmptyPayload(payload);
+      return this.ensureAccountDefaultProfile();
+    }
+    if (command === 'product_control_record_prepare_first_run_local_ai_ready') {
+      requireEmptyPayload(payload);
+      return this.prepareLocalAiReady();
+    }
+    if (command === 'product_control_record_admit_ready_for_use') {
+      requireEmptyPayload(payload);
+      return this.admitReadyForUse();
+    }
+    if (command === 'account_default_profile_for_scope_init') {
+      requireEmptyPayload(payload);
+      return this.accountProfileForScopeInit();
+    }
+    const nested = exactPayload(payload, ['surfaceId']);
+    const surfaceId = boundedText(nested.surfaceId);
+    if (surfaceId !== 'nimi' && surfaceId !== 'agent') throw new Error('built-in-ai-config-surface-invalid');
+    return this.builtInAiConfigForScopeInit(surfaceId);
+  }
+
+  private async ensureAccountDefaultProfile(): Promise<NimiProductControlRecordProjection> {
+    const projection = await this.record();
+    const record = requireRecord(projection, 'Account Default Profile');
+    const firstRun = requireFirstRun(record);
+    const dataRoot = requireDataRoot(record);
+    const accountId = await this.authenticatedAccountId();
+    const installLevel = requireInstallLevel(firstRun);
+    const alias = requireAiProfileAlias(firstRun);
+    verifyNimiFirstRunFactoryAiProfile(alias, installLevel);
+    const evidence = this.evidence.ensureAccountDefaultProfile({
+      dataRoot,
+      accountId,
+      aiProfileAlias: alias,
+      installLevel,
+    });
+    return this.projection(METHOD.recordAccount, {
+      accountDefaultProfileEvidenceJson: JSON.stringify(evidence),
+    }, 10_000);
+  }
+
+  private async prepareLocalAiReady(): Promise<NimiProductControlRecordProjection> {
+    await this.ensureAccountDefaultProfile();
+    const record = requireRecord(await this.record(), 'local AI finalization');
+    const firstRun = requireFirstRun(record);
+    const dataRoot = requireDataRoot(record);
+    const accountId = await this.authenticatedAccountId();
+    const installLevel = requireInstallLevel(firstRun);
+    const alias = requireAiProfileAlias(firstRun);
+    const factory = verifyNimiFirstRunFactoryAiProfile(alias, installLevel);
+    const profileResponse = asRecord(await this.unary(METHOD.collectDeviceProfile, { extraPorts: [] }, 10_000));
+    const hostProfile = asRecord(profileResponse.profile);
+    const selectedFactoryRef = `aiprofile/nimi.first-run.local-factory.${installLevel}@1`;
+
+    const baseline = await this.resolveOrMintBaseline({
+      existingRef: optionalText(firstRun.runtimeBaselineRef),
+      selectedFactoryRef,
+      installLevel,
+      dataRoot,
+      hostProfile,
+    });
+    const runtimeBaselineRef = boundedText(baseline.runtimeBaselineRef);
+    const execution = await this.resolveOrMintExecution({
+      existingRef: optionalText(firstRun.executionEvidenceRef),
+      runtimeBaselineRef,
+      selectedFactoryRef,
+      installLevel,
+      dataRoot,
+      hostProfile,
+      recommendedCapabilities: installLevel === 'recommended'
+        ? factory.capabilitySet.filter((capability) => ![
+          'text.generate', 'audio.transcribe', 'audio.synthesize',
+        ].includes(capability))
+        : [],
+    });
+    const executionEvidenceRef = boundedText(execution.executionEvidenceRef);
+    const builtInEvidence = this.evidence.ensureBuiltInAiConfigEvidenceSet({
+      dataRoot,
+      accountId,
+      aiProfileAlias: alias,
+      installLevel,
+      executionEvidence: execution,
+    });
+    return this.projection(METHOD.recordLocalAi, {
+      runtimeBaselineRef,
+      builtInAiConfigEvidenceJson: JSON.stringify(builtInEvidence),
+      executionEvidenceRef,
+    }, 30_000);
+  }
+
+  private async accountProfileForScopeInit(): Promise<unknown> {
+    const record = requireRecord(await this.record(), 'Account Default Profile scope init');
+    return this.evidence.readAccountDefaultProfile({
+      dataRoot: requireDataRoot(record),
+      accountId: await this.authenticatedAccountId(),
+    });
+  }
+
+  private async builtInAiConfigForScopeInit(surfaceId: 'nimi' | 'agent'): Promise<unknown> {
+    const record = requireRecord(await this.record(), 'built-in AIConfig scope init');
+    const firstRun = requireFirstRun(record);
+    const dataRoot = requireDataRoot(record);
+    const installLevel = requireInstallLevel(firstRun);
+    const execution = await this.resolveExecution(record, dataRoot, installLevel);
+    try {
+      return this.evidence.readBuiltInAiConfigForScopeInit({
+        dataRoot,
+        accountId: await this.authenticatedAccountId(),
+        aiProfileAlias: requireAiProfileAlias(firstRun),
+        installLevel,
+        executionEvidence: execution,
+        surfaceId,
+        builtInAiConfigRefs: firstRun.builtInAiConfigRefs,
+      });
+    } catch {
+      await this.prepareLocalAiReady();
+      const refreshed = requireRecord(await this.record(), 'built-in AIConfig scope init repair');
+      const refreshedFirstRun = requireFirstRun(refreshed);
+      const refreshedExecution = await this.resolveExecution(refreshed, requireDataRoot(refreshed), requireInstallLevel(refreshedFirstRun));
+      return this.evidence.readBuiltInAiConfigForScopeInit({
+        dataRoot: requireDataRoot(refreshed),
+        accountId: await this.authenticatedAccountId(),
+        aiProfileAlias: requireAiProfileAlias(refreshedFirstRun),
+        installLevel: requireInstallLevel(refreshedFirstRun),
+        executionEvidence: refreshedExecution,
+        surfaceId,
+        builtInAiConfigRefs: refreshedFirstRun.builtInAiConfigRefs,
+      });
+    }
+  }
+
+  private async admitReadyForUse(): Promise<NimiProductControlRecordProjection> {
+    const record = requireRecord(await this.record(), 'ready admission');
+    const firstRun = requireFirstRun(record);
+    const dataRoot = requireDataRoot(record);
+    const accountId = await this.authenticatedAccountId();
+    const installLevel = requireInstallLevel(firstRun);
+    const alias = requireAiProfileAlias(firstRun);
+    const accountDefaultProfileRef = requiredText(firstRun.accountDefaultProfileRef, 'accountDefaultProfileRef');
+    const execution = await this.resolveExecution(record, dataRoot, installLevel);
+    const accountEvidence = this.evidence.verifyAccountDefaultProfile({
+      dataRoot,
+      accountId,
+      accountDefaultProfileRef,
+    });
+    const builtInEvidence = this.evidence.verifyBuiltInAiConfigEvidenceSet({
+      dataRoot,
+      accountId,
+      aiProfileAlias: alias,
+      installLevel,
+      executionEvidence: execution,
+      builtInAiConfigRefs: firstRun.builtInAiConfigRefs,
+    });
+    return this.projection(METHOD.admitReady, {
+      accountDefaultProfileEvidenceJson: JSON.stringify(accountEvidence),
+      builtInAiConfigEvidenceJson: JSON.stringify(builtInEvidence),
+    }, 30_000);
+  }
+
+  private async resolveOrMintBaseline(input: {
+    readonly existingRef: string;
+    readonly selectedFactoryRef: string;
+    readonly installLevel: string;
+    readonly dataRoot: string;
+    readonly hostProfile: Readonly<Record<string, unknown>>;
+  }): Promise<Record<string, unknown>> {
+    if (input.existingRef) {
+      const response = asRecord(await this.unary(METHOD.resolveBaseline, {
+        runtimeBaselineRef: input.existingRef,
+        hostProfile: input.hostProfile,
+      }, 60_000));
+      if (response.state === 'ready') return asRecord(response.ref);
+      if (response.reasonCode !== 'RUNTIME_BASELINE_READINESS_REF_BINDING_MISMATCH') {
+        throw new Error(`runtime-baseline-not-ready:${boundedText(response.reasonCode)}`);
+      }
+    }
+    const response = asRecord(await this.unary(METHOD.mintBaseline, {
+      selectedLocalFactoryAiProfileRef: input.selectedFactoryRef,
+      installLevel: input.installLevel,
+      runtimeDataRootOrDataRootRef: input.dataRoot,
+      hostProfile: input.hostProfile,
+      baselineConsumers: [],
+    }, 60_000));
+    if (response.state !== 'ready') throw new Error(`runtime-baseline-not-ready:${boundedText(response.reasonCode)}`);
+    return asRecord(response.ref);
+  }
+
+  private async resolveOrMintExecution(input: {
+    readonly existingRef: string;
+    readonly runtimeBaselineRef: string;
+    readonly selectedFactoryRef: string;
+    readonly installLevel: string;
+    readonly dataRoot: string;
+    readonly hostProfile: Readonly<Record<string, unknown>>;
+    readonly recommendedCapabilities: readonly string[];
+  }): Promise<Record<string, unknown>> {
+    if (input.existingRef) {
+      const response = asRecord(await this.unary(METHOD.resolveExecution, {
+        executionEvidenceRef: input.existingRef,
+        expectedRuntimeBaselineRef: input.runtimeBaselineRef,
+        expectedDataRootRef: input.dataRoot,
+        expectedInstallLevel: input.installLevel,
+        hostProfile: input.hostProfile,
+      }, 60_000));
+      if (response.state === 'local_ai_ready') return asRecord(response.ref);
+      if (![
+        'FIRST_RUN_EXECUTION_EVIDENCE_REF_BINDING_MISMATCH',
+        'FIRST_RUN_EXECUTION_EVIDENCE_BASELINE_NOT_READY',
+      ].includes(String(response.reasonCode))) {
+        throw new Error(`first-run-execution-not-ready:${boundedText(response.reasonCode)}`);
+      }
+    }
+    const response = asRecord(await this.unary(METHOD.mintExecution, {
+      runtimeBaselineRef: input.runtimeBaselineRef,
+      selectedLocalFactoryAiProfileRef: input.selectedFactoryRef,
+      installLevel: input.installLevel,
+      dataRootRef: input.dataRoot,
+      hostProfile: input.hostProfile,
+      recommendedCapabilities: input.recommendedCapabilities,
+      submitSchedulingEvaluated: false,
+    }, 120_000));
+    if (response.state !== 'local_ai_ready') {
+      throw new Error(`first-run-execution-not-ready:${boundedText(response.reasonCode)}`);
+    }
+    return asRecord(response.ref);
+  }
+
+  private async resolveExecution(
+    record: NimiProductControlRecord,
+    dataRoot: string,
+    installLevel: string,
+  ): Promise<Record<string, unknown>> {
+    const firstRun = requireFirstRun(record);
+    const response = asRecord(await this.unary(METHOD.resolveExecution, {
+      executionEvidenceRef: requiredText(firstRun.executionEvidenceRef, 'executionEvidenceRef'),
+      expectedRuntimeBaselineRef: requiredText(firstRun.runtimeBaselineRef, 'runtimeBaselineRef'),
+      expectedDataRootRef: dataRoot,
+      expectedInstallLevel: installLevel,
+    }, 60_000));
+    if (response.state !== 'local_ai_ready') {
+      throw new Error(`first-run-execution-not-ready:${boundedText(response.reasonCode)}`);
+    }
+    return asRecord(response.ref);
+  }
+
+  private async authenticatedAccountId(): Promise<string> {
+    const response = asRecord(await this.account.invoke('runtime_account_session_status', {}));
+    if (response.state !== 'authenticated') throw new Error('authenticated-runtime-account-required');
+    return boundedText(asRecord(response.accountProjection).accountId);
+  }
+
+  private async record(): Promise<NimiProductControlRecordProjection> {
+    return this.projection(METHOD.getRecord, {}, 10_000);
+  }
+
+  private async projection(methodId: string, request: Readonly<Record<string, unknown>>, timeoutMs: number) {
+    const response = asRecord(await this.unary(methodId, request, timeoutMs));
+    const json = boundedText(response.json, 2_000_000);
+    return parseNimiProductControlRecordProjection(JSON.parse(json) as unknown);
+  }
+
+  private async unary(methodId: string, request: Readonly<Record<string, unknown>>, timeoutMs: number): Promise<unknown> {
+    const codec = getRuntimeWireCodec(methodId);
+    const response = await this.control.productControlUnary({
+      methodId,
+      requestBytes: codec.encodeRequest(request),
+      timeoutMs,
+    });
+    return codec.decodeResponse(response);
+  }
+}
+
+function requireRecord(projection: NimiProductControlRecordProjection, action: string): NimiProductControlRecord {
+  if (!projection.record) throw new Error(projection.error || `product-control-record-required:${action}`);
+  return projection.record;
+}
+
+function requireFirstRun(record: NimiProductControlRecord): NimiProductControlRecord['firstRun'] {
+  if (!record.firstRun || !Array.isArray(record.firstRun.builtInAiConfigRefs)) {
+    throw new Error('product-control-first-run-invalid');
+  }
+  return record.firstRun;
+}
+
+function requireDataRoot(record: NimiProductControlRecord): string {
+  return requiredText(record.dataRoot?.path, 'selected nimi_data');
+}
+
+function requireInstallLevel(firstRun: NimiProductControlRecord['firstRun']): 'minimal' | 'recommended' {
+  if (firstRun.installLevel !== 'minimal' && firstRun.installLevel !== 'recommended') {
+    throw new Error('first-run-install-level-required');
+  }
+  return firstRun.installLevel;
+}
+
+function requireAiProfileAlias(firstRun: NimiProductControlRecord['firstRun']): string {
+  return requiredText(firstRun.aiProfileAlias, 'aiProfileAlias');
+}
+
+function requiredText(value: unknown, label: string): string {
+  const text = optionalText(value);
+  if (!text) throw new Error(`${label}-required`);
+  return text;
+}
+
+function optionalText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function boundedText(value: unknown, max = 16_384): string {
+  if (typeof value !== 'string' || value.trim() !== value || !value || value.length > max) {
+    throw new Error('runtime-product-control-response-invalid');
+  }
+  return value;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('runtime-product-control-response-invalid');
+  }
+  return value as Record<string, unknown>;
+}
+
+function requireEmptyPayload(payload: Readonly<Record<string, unknown>>): void {
+  if (Object.keys(payload).length !== 0) throw new Error('desktop-product-control-payload-invalid');
+}
+
+function exactPayload(payload: Readonly<Record<string, unknown>>, keys: readonly string[]): Record<string, unknown> {
+  if (Object.keys(payload).join('|') !== 'payload') throw new Error('desktop-product-control-payload-invalid');
+  const nested = asRecord(payload.payload);
+  if (Object.keys(nested).sort().join('|') !== [...keys].sort().join('|')) {
+    throw new Error('desktop-product-control-payload-invalid');
+  }
+  return nested;
+}

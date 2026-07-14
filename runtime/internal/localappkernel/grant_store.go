@@ -202,6 +202,24 @@ func (store *GrantStore) GetCurrent(ctx context.Context, accountID string, princ
 	return grant, err
 }
 
+// GetCurrentByID resolves an opaque grant only inside the current account and
+// active principal partition. It is used by protected Desktop revoke and has
+// no app-id, capability, or resource fallback.
+func (store *GrantStore) GetCurrentByID(ctx context.Context, accountID string, grantID string) (Grant, error) {
+	if store == nil || store.kernel == nil {
+		return Grant{}, fmt.Errorf("%w: grant store", ErrInvalidArgument)
+	}
+	for name, value := range map[string]string{"account_id": accountID, "grant_id": grantID} {
+		if err := requireExactText(name, value); err != nil {
+			return Grant{}, err
+		}
+	}
+	return scanGrant(store.kernel.db.QueryRowContext(ctx, grantSelect+` JOIN local_app_principals p
+		ON p.local_os_user_anchor = g.local_os_user_anchor AND p.local_app_principal_id = g.local_app_principal_id
+		WHERE g.local_os_user_anchor = ? AND g.account_id = ? AND g.grant_id = ? AND p.state = 'active'`,
+		store.kernel.anchor, accountID, grantID))
+}
+
 const grantSelect = `SELECT g.local_os_user_anchor, g.account_id, g.local_app_principal_id,
 	g.capability_resource_fingerprint, g.grant_id, g.capability_scope_json, g.resource_scope_json,
 	g.grant_generation, g.grant_revision, g.state, g.issued_unix_nano, g.expires_unix_nano,

@@ -5,9 +5,11 @@ import test from 'node:test';
 import {
   disableNimiRealmTwoFactor,
   enableNimiRealmTwoFactor,
+  NIMI_REALM_OAUTH_PROVIDER,
   prepareNimiRealmTwoFactor,
   updateNimiRealmPassword,
 } from '@nimiplatform/sdk/realm';
+import { profileOauthPlatform } from '../src/shell/renderer/features/settings/profile-oauth-platform.js';
 
 const securityPageSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/settings/settings-security-page.tsx'),
@@ -100,17 +102,34 @@ test('security page consumes SDK Realm security helpers instead of Realm securit
   assert.doesNotMatch(securityPageSource, /dataSync\.(prepareTwoFactor|updatePassword|enableTwoFactor|disableTwoFactor)/);
 });
 
-test('settings pages consume SDK Realm account helpers instead of Realm account helper', () => {
+test('settings pages keep Realm settings in SDK and account linking on the Runtime-owned platform seam', () => {
   assert.match(notificationsPageSource, /loadNimiRealmUserNotificationSettings\(getDesktopRealm\(\)\)/);
   assert.match(notificationsPageSource, /updateNimiRealmUserNotificationSettings\(getDesktopRealm\(\)/);
   assert.match(privacyPageSource, /loadNimiRealmUserSettings\(getDesktopRealm\(\)\)/);
   assert.match(privacyPageSource, /updateNimiRealmUserSettings\(getDesktopRealm\(\)/);
   assert.match(performancePageSource, /loadNimiRealmCreatorEligibility\(getDesktopRealm\(\)\)/);
-  assert.match(accountPageSource, /linkNimiRealmOAuth\(getDesktopRealm\(\)/);
-  assert.match(accountPageSource, /unlinkNimiRealmOAuth\(getDesktopRealm\(\)/);
+  assert.match(accountPageSource, /profileOauthPlatform/);
+  assert.match(accountPageSource, /profileOauthPlatform\.linkProvider\(/);
+  assert.match(accountPageSource, /profileOauthPlatform\.unlinkProvider\(/);
+  assert.doesNotMatch(accountPageSource, /(?:link|unlink)NimiRealmOAuth\(getDesktopRealm\(\)/);
   assert.doesNotMatch(
     `${notificationsPageSource}\n${privacyPageSource}\n${performancePageSource}\n${accountPageSource}`,
     /dataSync\.(loadMySettings|updateMySettings|loadMyNotificationSettings|updateMyNotificationSettings|loadMyCreatorEligibility|linkOauth|unlinkOauth)/,
+  );
+});
+
+test('Desktop profile OAuth seam fails closed until RuntimeAccountService exposes account linking', async () => {
+  assert.deepEqual(profileOauthPlatform.availability(NIMI_REALM_OAUTH_PROVIDER.GOOGLE), {
+    enabled: false,
+    disabledReason: 'Account linking is managed by RuntimeAccountService',
+  });
+  await assert.rejects(
+    () => profileOauthPlatform.linkProvider(NIMI_REALM_OAUTH_PROVIDER.GOOGLE),
+    /managed by RuntimeAccountService/,
+  );
+  await assert.rejects(
+    () => profileOauthPlatform.unlinkProvider(NIMI_REALM_OAUTH_PROVIDER.GOOGLE),
+    /managed by RuntimeAccountService/,
   );
 });
 

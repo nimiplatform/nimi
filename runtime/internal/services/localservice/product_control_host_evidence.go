@@ -34,7 +34,7 @@ func (s *Service) authenticatedProductControlAccount(ctx context.Context) (*runt
 }
 
 func (s *Service) productControlHostEvidenceInputs(ctx context.Context, label string) (string, *productControlRecord, string, string, string, string, error) {
-	path, err := productControlRecordPath()
+	path, err := s.productControlRecordPath()
 	if err != nil {
 		return "", nil, "", "", "", "", err
 	}
@@ -43,7 +43,7 @@ func (s *Service) productControlHostEvidenceInputs(ctx context.Context, label st
 		return "", nil, "", "", "", "", err
 	}
 	if record == nil {
-		return "", nil, "", "", "", "", fmt.Errorf("~/.nimi/nimi.json is missing; select nimi_data before %s", label)
+		return "", nil, "", "", "", "", fmt.Errorf("product-control record is missing; select nimi_data before %s", label)
 	}
 	dataRootPath := selectedProductDataRootPath(record)
 	if dataRootPath == "" {

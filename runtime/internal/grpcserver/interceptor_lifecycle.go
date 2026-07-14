@@ -27,8 +27,6 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets":                          true,
 	"/nimi.runtime.v1.RuntimeAiService/ListPresetVoices":                         true,
 	"/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents":               true,
-	"/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken":                true,
-	"/nimi.runtime.v1.RuntimeGrantService/ListTokenChain":                        true,
 	"/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus": true,
 	"/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens":       true,
 	"/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus":             true,

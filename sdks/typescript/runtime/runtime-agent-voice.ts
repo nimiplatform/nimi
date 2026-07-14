@@ -15,7 +15,6 @@ import {
 } from './agent-local-identity';
 import {
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -25,7 +24,6 @@ import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 export interface NimiRuntimeAgentVoiceRuntime {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agents: {
     subscribeAgentVoiceStream(
       request: SubscribeAgentVoiceStreamRequest,

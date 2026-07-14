@@ -2,7 +2,7 @@
 //
 // This is the Apps-surface-only registry bridge. It intentionally avoids the
 // broader Nimi Home bridge, because Apps only needs the SDK NimiAppClient over
-// the desktop `~/.nimi/apps` projection.
+// owner projections exposed through the SDK and protected Runtime carrier.
 
 import { NimiAppClient, createNimiAppRegistryTransport } from '@nimiplatform/sdk/app';
 import { getAppsBridgeProjection } from '@renderer/bridge/runtime-bridge/apps-projection';
@@ -14,8 +14,8 @@ export interface DesktopAppsLiveBridge {
 
 export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
   // Fetch once per bridge instance so registry rows and release descriptors see
-  // the same materialized projection snapshot. Package readiness is fetched
-  // from Runtime per app through the SDK Runtime surface.
+  // the same materialized projection snapshot. Immutable package readiness is
+  // the selector-free global 0K typed-unavailable projection.
   let projectionPromise: ReturnType<typeof getAppsBridgeProjection> | null = null;
   const loadProjection = (): ReturnType<typeof getAppsBridgeProjection> => {
     if (!projectionPromise) {
@@ -34,30 +34,12 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
           surfaceId: 'desktop.apps',
         },
       }),
-      loadLocalAdoptions: async () => getDesktopRuntime().appLifecycle.listLocalAdoptions({
+      loadPackageReadiness: async () => getDesktopRuntime().appLifecycle.packageReadiness({
         timeoutMs: 20_000,
         metadata: {
           surfaceId: 'desktop.apps',
         },
       }),
-      loadPackageReadiness: async (appId) => getDesktopRuntime().appLifecycle.packageReadiness(
-        { appId },
-        {
-          timeoutMs: 20_000,
-          metadata: {
-            surfaceId: 'desktop.apps',
-          },
-        },
-      ),
-      loadActiveJobs: async (appId) => getDesktopRuntime().appLifecycle.listJobs(
-        { appId },
-        {
-          timeoutMs: 20_000,
-          metadata: {
-            surfaceId: 'desktop.apps',
-          },
-        },
-      ),
     })),
   };
 }

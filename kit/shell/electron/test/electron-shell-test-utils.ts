@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, realpath, rename, rm, symlink } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import {
@@ -58,6 +58,56 @@ export async function withTempDir<T>(prefix: string, run: (dir: string) => Promi
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+}
+
+export async function replaceManagedFileWithPathEscape(
+  targetPath: string,
+  outsidePath: string,
+  escapeRoot: string,
+): Promise<() => Promise<void>> {
+  if (process.platform !== 'win32') {
+    await rm(targetPath, { force: true });
+    await symlink(outsidePath, targetPath, 'file');
+    return async () => {
+      await rm(targetPath, { force: true });
+      await copyFile(outsidePath, targetPath);
+    };
+  }
+
+  // Creating file symlinks on Windows requires Developer Mode or elevation. A
+  // directory junction is an unprivileged NTFS reparse point and exercises the
+  // same managed-custody escape: the apparent file remains below the admitted
+  // path while its resolved parent lives outside that custody root.
+  await rm(targetPath, { force: true });
+  await copyFile(outsidePath, targetPath);
+  const managedParent = path.dirname(targetPath);
+  const escapedParent = await mkdtemp(path.join(escapeRoot, `${path.basename(managedParent)}-escape-`));
+  await rm(escapedParent, { recursive: true, force: true });
+  await rename(managedParent, escapedParent);
+  await symlink(escapedParent, managedParent, 'junction');
+  return createDirectoryEscapeRestorer(managedParent, escapedParent);
+}
+
+export async function replaceManagedDirectoryWithPathEscape(
+  targetPath: string,
+  outsidePath: string,
+): Promise<() => Promise<void>> {
+  await rename(targetPath, outsidePath);
+  await symlink(outsidePath, targetPath, process.platform === 'win32' ? 'junction' : 'dir');
+  return createDirectoryEscapeRestorer(targetPath, outsidePath);
+}
+
+function createDirectoryEscapeRestorer(
+  targetPath: string,
+  outsidePath: string,
+): () => Promise<void> {
+  let restored = false;
+  return async () => {
+    if (restored) return;
+    await rm(targetPath, { recursive: true, force: true });
+    await rename(outsidePath, targetPath);
+    restored = true;
+  };
 }
 
 export async function withEnvVars<T>(

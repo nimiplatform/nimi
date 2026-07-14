@@ -87,14 +87,12 @@ export type PerformancePreferences = {
   hardwareAcceleration: boolean;
   reduceAnimations: boolean;
   autoUpdate: boolean;
-  developerMode: boolean;
 };
 
 const DEFAULT_PERFORMANCE_PREFERENCES: PerformancePreferences = {
   hardwareAcceleration: true,
   reduceAnimations: false,
   autoUpdate: true,
-  developerMode: false,
 };
 
 const performancePreferenceSubscribers = new Set<(prefs: PerformancePreferences) => void>();
@@ -111,8 +109,7 @@ export function loadStoredPerformancePreferences(): PerformancePreferences {
     return {
       hardwareAcceleration: payload.hardwareAcceleration !== false,
       reduceAnimations: payload.reduceAnimations === true,
-        autoUpdate: payload.autoUpdate !== false,
-        developerMode: payload.developerMode === true,
+      autoUpdate: payload.autoUpdate !== false,
       };
     },
   );
@@ -127,7 +124,6 @@ export function persistStoredPerformancePreferences(prefs: PerformancePreference
       hardwareAcceleration: prefs.hardwareAcceleration === true,
       reduceAnimations: prefs.reduceAnimations === true,
       autoUpdate: prefs.autoUpdate === true,
-      developerMode: prefs.developerMode === true,
     };
     const result = writeStorageJsonTo(
       resolveBrowserStorage('local'),

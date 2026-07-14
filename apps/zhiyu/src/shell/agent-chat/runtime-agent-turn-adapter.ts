@@ -1,4 +1,8 @@
-import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  createNimiLocalAppStandardShellSurface,
+  hasElectronRuntime,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+import { createNimiAppRuntimePlatformClient } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createRuntimeAgentConversationProjectionState,
   reduceRuntimeAgentConversationProjectionEvent,
@@ -13,6 +17,7 @@ import {
   runNimiRuntimeAgentTurn,
   Runtime,
   type NimiRuntimeAgentTurnRequest,
+  type NimiRuntimeAgentTurnsModule,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
 import type { ZhiyuEvidence } from '../app/evidence';
@@ -295,6 +300,9 @@ function createElectronRuntimeAgentStreamTurn(
   ownerUserId: string,
   runtimeBinding: Exclude<ZhiyuRuntimeAgentBindingDecision, { readonly kind: 'missing' }>,
 ): ZhiyuRuntimeAgentChatStreamTurn {
+  if (runtimeBinding.kind === 'local-app-carrier') {
+    return createLocalAppRuntimeAgentStreamTurn(ownerUserId);
+  }
   return async (request, options) => {
     if (typeof window === 'undefined' || !hasElectronRuntime()) {
       throw Object.assign(new Error('Electron Runtime bridge is not available.'), {
@@ -311,7 +319,6 @@ function createElectronRuntimeAgentStreamTurn(
       runtime: {
         appId: 'nimi.zhiyu',
         auth: runtime.auth,
-        appAuth: runtime.grants,
         agents: runtime.agents,
         appMessages: runtime.appMessages,
       },
@@ -335,6 +342,109 @@ function createElectronRuntimeAgentStreamTurn(
   };
 }
 
+function createLocalAppRuntimeAgentStreamTurn(ownerUserId: string): ZhiyuRuntimeAgentChatStreamTurn {
+  return async (request, options) => {
+    if (typeof window === 'undefined' || !hasElectronRuntime()) {
+      throw localAppTurnError('protected-carrier-required', 'restart_zhiyu_electron_shell');
+    }
+    const platform = createNimiAppRuntimePlatformClient({
+      standardShell: createNimiLocalAppStandardShellSurface(),
+    });
+    const agentId = stringOr(request.localAgentRef, '');
+    const conversationAnchorId = stringOr(request.conversationAnchorId, '');
+    const resourceRef = `agent:${agentId}/conversation:${conversationAnchorId}`;
+    await ensureLocalAppPermission(
+      platform,
+      'runtime_agent.conversation.turn_send',
+      resourceRef,
+      'Send a message to this Runtime-owned conversation',
+    );
+    await ensureLocalAppPermission(
+      platform,
+      'runtime_agent.conversation.turn_subscribe',
+      resourceRef,
+      'Read the resulting Runtime-owned conversation events',
+    );
+    const turns: NimiRuntimeAgentTurnsModule = {
+      subscribe: async () => subscribeLocalAppTurn(platform, agentId, conversationAnchorId),
+      request: async (turnRequest) => platform.agent.sendTurn({
+        agentId,
+        conversationAnchorId,
+        clientTurnId: stringOr(turnRequest.requestId, ''),
+        userText: localAppUserText(turnRequest),
+      }),
+      interrupt: async () => {
+        throw localAppTurnError('local-app-operation-unavailable', 'wait_for_current_turn');
+      },
+      renderVoice: async () => ({ status: 'text_only', reason: 'voice_projection_unavailable' }),
+      getSessionSnapshot: async () => platform.agent.getConversationSnapshot({
+        agentId,
+        conversationAnchorId,
+      }),
+    };
+    const { scopedBinding: _scopedBinding, ...localRequest } = request;
+    return runNimiRuntimeAgentTurn({
+      turns,
+      subscribe: {
+        ownerUserId,
+        runtimeSourceRef: request.runtimeSourceRef,
+        localAgentRef: agentId,
+        conversationAnchorId,
+        includeAgentEvents: false,
+      },
+      request: localRequest,
+      signal: options?.signal,
+      interruptReason: 'user_cancel',
+    });
+  };
+}
+
+async function* subscribeLocalAppTurn(
+  platform: ReturnType<typeof createNimiAppRuntimePlatformClient>,
+  agentId: string,
+  conversationAnchorId: string,
+) {
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await platform.agent.subscribeTurn({
+      agentId,
+      conversationAnchorId,
+      ...(cursor ? { cursor } : {}),
+    });
+    cursor = page.cursor;
+    yield page.events[0];
+  }
+}
+
+async function ensureLocalAppPermission(
+  platform: ReturnType<typeof createNimiAppRuntimePlatformClient>,
+  operationId: string,
+  resourceRef: string,
+  purpose: string,
+): Promise<void> {
+  const posture = await platform.permissions.posture({ operationId, resourceRef });
+  if (posture.state === 'granted') return;
+  if (posture.state !== 'pending') {
+    const requested = await platform.permissions.request({ operationId, resourceRef, purpose });
+    if (requested.state === 'granted') return;
+  }
+  throw localAppTurnError(
+    posture.state === 'pending' ? 'local-app-grant-pending' : posture.reasonCode,
+    'approve_local_app_operation_in_desktop',
+  );
+}
+
+function localAppUserText(request: NimiRuntimeAgentTurnRequest): string {
+  const message = [...request.messages].reverse().find((candidate) => candidate.role === 'user');
+  const content = typeof message?.content === 'string' ? message.content.trim() : '';
+  if (!content) throw localAppTurnError('zhiyu-turn-text-required', 'enter_runtime_agent_turn_text');
+  return content;
+}
+
+function localAppTurnError(reasonCode: string, actionHint: string): Error {
+  return Object.assign(new Error(reasonCode), { reasonCode, actionHint, source: 'runtime' });
+}
+
 function createElectronRuntimeArtifactPreviewResolver(
   runtimeBinding: Exclude<ZhiyuRuntimeAgentBindingDecision, { readonly kind: 'missing' }>,
 ): (artifact: RuntimeAgentArtifactPreviewInput) => Promise<string | null> {
@@ -350,6 +460,14 @@ function createElectronRuntimeArtifactPreviewResolver(
         actionHint: 'restart_zhiyu_electron_shell',
         source: 'renderer',
       });
+    }
+    if (runtimeBinding.kind === 'local-app-carrier') {
+      const platform = createNimiAppRuntimePlatformClient({
+        standardShell: createNimiLocalAppStandardShellSurface(),
+      });
+      const response = await platform.artifacts.readRuntimeBytes(artifactId);
+      if (!response.mimeType.toLowerCase().startsWith('image/') || response.bytes.byteLength === 0) return null;
+      return `data:${response.mimeType};base64,${bytesToBase64(response.bytes)}`;
     }
     const runtime = new Runtime({
       appId: 'nimi.zhiyu',

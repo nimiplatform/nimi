@@ -18,28 +18,66 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   isDeveloperModeEnabled,
+  refreshDeveloperMode,
+  setDeveloperMode,
   subscribeDeveloperMode,
-  loadStoredPerformancePreferences,
-  persistStoredPerformancePreferences,
 } from './developer-mode.js';
 
 export function DeveloperModeToggle() {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(() => isDeveloperModeEnabled());
+  const [busy, setBusy] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
+  const [error, setError] = useState('');
 
   // Keep in sync if Developer Mode is toggled elsewhere (e.g. another
   // discoverable entry or a second tab) — a single persisted truth.
   useEffect(() => {
-    return subscribeDeveloperMode((next) => {
+    const unsubscribe = subscribeDeveloperMode((next) => {
       setEnabled(next);
     });
+    void refreshDeveloperMode()
+      .then((projection) => {
+        setUnavailable(projection.state === 'unavailable');
+        setError('');
+      })
+      .catch((cause) => {
+        setUnavailable(true);
+        setError(cause instanceof Error ? cause.message : String(cause));
+      })
+      .finally(() => setBusy(false));
+    return unsubscribe;
   }, []);
 
-  const toggle = () => {
-    const next = !enabled;
-    const prefs = loadStoredPerformancePreferences();
-    persistStoredPerformancePreferences({ ...prefs, developerMode: next });
-    setEnabled(next);
+  const toggle = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const projection = await setDeveloperMode(!enabled);
+      setUnavailable(projection.state === 'unavailable');
+      setEnabled(projection.enabled);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const retry = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const projection = await refreshDeveloperMode();
+      setUnavailable(projection.state === 'unavailable');
+      setEnabled(projection.enabled);
+      if (projection.state === 'unavailable') setError(projection.reasonCode);
+    } catch (cause) {
+      setUnavailable(true);
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -64,16 +102,22 @@ export function DeveloperModeToggle() {
                 : 'text-xs font-medium text-[var(--nimi-text-muted)]'
             }
           >
-            {enabled
+            {busy
+              ? t('DeveloperTools.developerModeStatusLoading')
+              : unavailable
+                ? t('DeveloperTools.developerModeStatusUnavailable')
+                : enabled
               ? t('DeveloperTools.developerModeStatusOn')
               : t('DeveloperTools.developerModeStatusOff')}
           </p>
+          {error ? <p className="max-w-xl break-words text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
         </div>
         <button
           type="button"
           data-testid="developer-mode-toggle-button"
           aria-pressed={enabled}
-          onClick={toggle}
+          disabled={busy || unavailable}
+          onClick={() => { void toggle(); }}
           className={
             enabled
               ? 'rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-active)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-wait disabled:opacity-70'
@@ -84,6 +128,17 @@ export function DeveloperModeToggle() {
             ? t('DeveloperTools.developerModeDisable')
             : t('DeveloperTools.developerModeEnable')}
         </button>
+        {unavailable ? (
+          <button
+            type="button"
+            disabled={busy}
+            data-testid="developer-mode-retry-button"
+            onClick={() => { void retry(); }}
+            className="rounded-lg border border-[var(--nimi-border-subtle)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-wait disabled:opacity-70"
+          >
+            {t('DeveloperTools.developerModeRetry')}
+          </button>
+        ) : null}
       </div>
     </div>
   );

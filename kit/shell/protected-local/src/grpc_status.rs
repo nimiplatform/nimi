@@ -1,4 +1,4 @@
-use crate::{NimiHostError, NimiHostErrorReasonCode};
+use crate::{LocalAppOperationError, LocalAppReasonCode, NimiHostError, NimiHostErrorReasonCode};
 use prost::Message;
 use std::collections::HashMap;
 use tonic::{Code, Status};
@@ -41,13 +41,6 @@ fn runtime_error_info(status: &Status) -> Option<GoogleRpcErrorInfo> {
     })
 }
 
-pub(crate) fn production_open_not_applicable(status: &Status) -> bool {
-    matches!(
-        runtime_reason(status).as_deref(),
-        Some("PRINCIPAL_UNAUTHORIZED" | "PROTECTED_ORIGIN_ROLE_MISMATCH")
-    )
-}
-
 #[cfg(feature = "windows-e2e-fixture")]
 fn report_windows_e2e_status(status: &Status) {
     let info = runtime_error_info(status);
@@ -86,6 +79,76 @@ pub(crate) fn host_error_from_status(status: Status) -> NimiHostError {
         _ => NimiHostErrorReasonCode::RuntimeServiceUntrusted,
     };
     NimiHostError::new(reason, status_is_retryable(status.code()))
+}
+
+pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationError {
+    report_windows_e2e_status(&status);
+    let reason = runtime_reason(&status)
+        .as_deref()
+        .and_then(local_app_reason_from_runtime_reason)
+        .unwrap_or_else(|| match status.code() {
+            Code::InvalidArgument => LocalAppReasonCode::InvalidPayload,
+            Code::Unauthenticated => LocalAppReasonCode::RuntimeUnauthenticated,
+            Code::PermissionDenied => LocalAppReasonCode::RuntimePermissionDenied,
+            Code::NotFound => LocalAppReasonCode::NotFound,
+            Code::ResourceExhausted => LocalAppReasonCode::ResourceExhausted,
+            Code::Unavailable | Code::DeadlineExceeded | Code::Cancelled => {
+                LocalAppReasonCode::RuntimeServiceUnavailable
+            }
+            _ => LocalAppReasonCode::RuntimeServiceUntrusted,
+        });
+    LocalAppOperationError::new(reason, status_is_retryable(status.code()))
+}
+
+pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCode> {
+    Some(match value {
+        1 => LocalAppReasonCode::ActionExecuted,
+        642 | 643 | 644 | 645 | 655 | 656 | 657 | 658 | 659 | 660 => {
+            LocalAppReasonCode::RuntimePermissionDenied
+        }
+        646 | 647 | 648 => LocalAppReasonCode::RuntimeUnauthenticated,
+        649 => LocalAppReasonCode::ProcessReplaced,
+        650 => LocalAppReasonCode::Revoked,
+        651 => LocalAppReasonCode::NoGrant,
+        652 => LocalAppReasonCode::GrantRevoked,
+        653 => LocalAppReasonCode::GrantSuperseded,
+        654 => LocalAppReasonCode::AccountChanged,
+        _ => return None,
+    })
+}
+
+fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCode> {
+    Some(match value {
+        "ACTION_EXECUTED" => LocalAppReasonCode::ActionExecuted,
+        "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED"
+        | "PROTECTED_ORIGIN_ROLE_MISMATCH"
+        | "LOCAL_APP_LAUNCH_LEASE_REQUIRED"
+        | "LOCAL_APP_LAUNCH_LEASE_MISMATCH"
+        | "LOCAL_APP_LAUNCH_LEASE_REPLAY" => LocalAppReasonCode::RuntimeUnauthenticated,
+        "LOCAL_APP_PROCESS_MISMATCH" => LocalAppReasonCode::ProcessReplaced,
+        "LOCAL_APP_ACCOUNT_CHANGED" => LocalAppReasonCode::AccountChanged,
+        "LOCAL_APP_SESSION_REVOKED" => LocalAppReasonCode::Revoked,
+        "LOCAL_APP_GRANT_REQUIRED" => LocalAppReasonCode::NoGrant,
+        "LOCAL_APP_GRANT_REVOKED" => LocalAppReasonCode::GrantRevoked,
+        "LOCAL_APP_GRANT_SUPERSEDED" => LocalAppReasonCode::GrantSuperseded,
+        "PROTOCOL_ENVELOPE_INVALID" => LocalAppReasonCode::InvalidPayload,
+        "ARTIFACT_NOT_FOUND" => LocalAppReasonCode::NotFound,
+        "RESOURCE_EXHAUSTED" | "ARTIFACT_TOO_LARGE" => LocalAppReasonCode::ResourceExhausted,
+        "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED" | "PROTECTED_LOCAL_LEDGER_UNAVAILABLE" => {
+            LocalAppReasonCode::RuntimeServiceUnavailable
+        }
+        "LOCAL_APP_RECORD_NOT_FOUND"
+        | "LOCAL_APP_RECORD_TOMBSTONED"
+        | "LOCAL_APP_PROVENANCE_UNAVAILABLE"
+        | "LOCAL_APP_OPERATION_UNAVAILABLE"
+        | "LOCAL_APP_PRESENCE_REQUIRED"
+        | "LOCAL_APP_PRESENCE_EXPIRED"
+        | "LOCAL_APP_DEVELOPER_MODE_DISABLED"
+        | "LOCAL_APP_REMEMBERED_PROJECT_DORMANT"
+        | "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"
+        | "PRINCIPAL_UNAUTHORIZED" => LocalAppReasonCode::RuntimePermissionDenied,
+        _ => return None,
+    })
 }
 
 fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCode> {

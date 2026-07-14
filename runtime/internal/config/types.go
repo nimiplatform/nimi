@@ -108,12 +108,6 @@ type Config struct {
 	// endpoint consulted after successful JWT validation.
 	AuthJWTRevocationURL string
 
-	// AuthDeveloperRegistrationEnabled is the K-AUTHSVC-014 developer
-	// registration gate. When true, RegisterApp may admit a not-yet-admitted
-	// governed app_id that explicitly declares developer_registration, for local
-	// developer testing. Default: false (production admission stays fail-closed).
-	AuthDeveloperRegistrationEnabled bool
-
 	// AccountRealmBaseURL is the Realm API origin used by RuntimeAccountService
 	// to derive OAuth authorize/token endpoints. It is distinct from JWT issuer
 	// because deployments may use an issuer value that is not the API base URL.
@@ -126,6 +120,11 @@ type Config struct {
 	// AccountTokenURL is an explicit RuntimeAccountService OAuth token endpoint
 	// override for staging/test environments.
 	AccountTokenURL string
+
+	// NonReleaseDevKernelCheckpoint is populated only by the signed fixed-service
+	// acceptance profile in an explicitly linked non-release Runtime candidate.
+	// Portable config files and environment loading never populate this field.
+	NonReleaseDevKernelCheckpoint *DevKernelCheckpointAcceptance
 
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
@@ -223,6 +222,18 @@ type Config struct {
 	SchedulingPreemptionOccupancyPercent int
 }
 
+type DevKernelCheckpointAcceptance struct {
+	TrialID                string
+	RuntimeCandidateID     string
+	AcceptanceRoundID      string
+	DevelopmentDataRootRef string
+	PrimaryAccountID       string
+	SecondaryAccountID     string
+	LocalAgentRef          string
+	RuntimeSourceRef       string
+	AgentDisplayName       string
+}
+
 // FileConfig is the on-disk JSON schema for runtime configuration.
 // All fields are flat top-level keys per K-DAEMON-009. Cloud provider
 // credentials may be referenced by apiKeyEnv or stored inline in the canonical
@@ -316,15 +327,8 @@ type FileConfigEngine struct {
 
 // FileConfigAuth holds JWT authentication configuration in the config file.
 type FileConfigAuth struct {
-	JWT                   *FileConfigJWT                   `json:"jwt,omitempty"`
-	Account               *FileConfigAccount               `json:"account,omitempty"`
-	DeveloperRegistration *FileConfigDeveloperRegistration `json:"developerRegistration,omitempty"`
-}
-
-// FileConfigDeveloperRegistration holds the K-AUTHSVC-014 developer
-// registration gate (auth.developerRegistration.enabled).
-type FileConfigDeveloperRegistration struct {
-	Enabled *bool `json:"enabled,omitempty"`
+	JWT     *FileConfigJWT     `json:"jwt,omitempty"`
+	Account *FileConfigAccount `json:"account,omitempty"`
 }
 
 // FileConfigJWT holds JWT-specific authentication configuration.

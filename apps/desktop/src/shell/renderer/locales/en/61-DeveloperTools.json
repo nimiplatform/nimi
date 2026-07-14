@@ -4,9 +4,12 @@
   "sectionDiagnostics": "Diagnostics",
   "navLabel": "Developer Tools",
   "developerModeTitle": "Developer Mode",
-  "developerModeDescription": "Developer Mode unlocks developer and internal surfaces, including local app testing — letting a locally built Nimi app that is not yet admitted register with the runtime for development. It is off by default and only changes what you can reach, never ordinary product behaviour.",
+  "developerModeDescription": "Developer Mode lets this production account approve isolated local-development projects. It grants no Nimi API permission by itself; every operation still needs a separate grant.",
   "developerModeStatusOn": "Developer Mode is on",
   "developerModeStatusOff": "Developer Mode is off",
+  "developerModeStatusLoading": "Checking Nimi Runtime…",
+  "developerModeStatusUnavailable": "Developer Mode is unavailable until the fixed Nimi Runtime service is connected",
+  "developerModeRetry": "Retry Runtime connection",
   "developerModeEnable": "Enable Developer Mode",
   "developerModeDisable": "Disable Developer Mode"
 }

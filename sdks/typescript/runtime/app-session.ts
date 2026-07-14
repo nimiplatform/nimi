@@ -25,7 +25,6 @@ export interface NimiRuntimeAppRegistrationInput {
   readonly deviceId: string;
   readonly appVersion?: string;
   readonly capabilities?: readonly string[];
-  readonly developerRegistration?: boolean;
   readonly rejectionLabel?: string;
   readonly callOptions?: RuntimeTypedCallOptions;
 }
@@ -150,7 +149,6 @@ function createNimiRuntimeRegisterAppRequest(input: NimiRuntimeAppRegistrationIn
     deviceId: requireText(input.deviceId, 'deviceId'),
     appVersion: normalizeText(input.appVersion) || '1',
     capabilities: normalizeStrings(input.capabilities || []),
-    developerRegistration: input.developerRegistration === true,
     modeManifest: {
       appMode: AppMode.FULL,
       runtimeRequired: true,

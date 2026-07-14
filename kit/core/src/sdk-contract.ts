@@ -319,11 +319,24 @@ export type {
   RuntimeDurableTargetRef,
 } from '@nimiplatform/sdk/runtime';
 export type {
+  BeginLoginResponse,
+  CompleteLoginResponse,
+  GetAccountSessionStatusResponse,
+  InvokeRealmUnaryResponse,
+  LogoutResponse,
+  SwitchAccountResponse,
+} from '@nimiplatform/sdk/runtime/generated';
+export type {
   ReadArtifactBytesResponse,
   RuntimeTypedCallOptions,
   ScenarioArtifact,
   ScenarioExtension,
   ScenarioJob,
+} from '@nimiplatform/sdk/runtime/generated';
+export {
+  AccountReasonCode,
+  AccountSessionState,
+  ReasonCode as RuntimeReasonCode,
 } from '@nimiplatform/sdk/runtime/generated';
 export {
   NIMI_CONVERSATION_SESSION_COMPLETION_RESERVE,
@@ -361,6 +374,7 @@ export {
   parseNimiDesktopOpenRendererRequest,
   parseNimiDesktopOpenResult,
   safeParseNimiDesktopOpenIntentEnvelope,
+  createNimiAppRuntimePlatformClient,
 } from '@nimiplatform/sdk/app';
 export type {
   ComposeNimiDesktopOpenIntentEnvelopeInput,

@@ -90,6 +90,21 @@ func TestPrincipalLineageAndRandomNonReuse(t *testing.T) {
 	if first.AppID != second.AppID {
 		t.Fatal("test requires equal display app_id")
 	}
+	resolved, err := kernel.Principals().GetByDevelopmentAuthorizationID(ctx, "dev-auth:one")
+	if err != nil || !reflect.DeepEqual(resolved, first) {
+		t.Fatalf("development authorization lookup = (%+v, %v), want %+v", resolved, err, first)
+	}
+	if _, err := kernel.Principals().GetByDevelopmentAuthorizationID(ctx, "dev-auth:missing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing development authorization error = %v", err)
+	}
+	tombstoned, err := kernel.Principals().Tombstone(ctx, first.LocalAppPrincipalID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err = kernel.Principals().GetByDevelopmentAuthorizationID(ctx, "dev-auth:one")
+	if err != nil || !reflect.DeepEqual(resolved, tombstoned) {
+		t.Fatalf("tombstoned development authorization lookup = (%+v, %v), want %+v", resolved, err, tombstoned)
+	}
 }
 
 func TestStoresUseSeparateTablesWithoutGrantFieldsInRecord(t *testing.T) {

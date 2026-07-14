@@ -13,6 +13,14 @@ const runTauriDevSource = fs.readFileSync(
   path.join(root, 'scripts/run-tauri-dev.mjs'),
   'utf8',
 );
+const devKernelElectronRunnerSource = fs.readFileSync(
+  path.join(root, 'scripts/run-dev-kernel-checkpoint-electron.mjs'),
+  'utf8',
+);
+const prepareSignedElectronRuntimeSource = fs.readFileSync(
+  path.join(root, 'scripts/prepare-signed-electron-runtime.mjs'),
+  'utf8',
+);
 const workspacePackageJson = JSON.parse(fs.readFileSync(
   path.join(root, '../..', 'package.json'),
   'utf8',
@@ -78,6 +86,34 @@ test('Windows Tauri dev runner does not require local code signing by default', 
   assert.doesNotMatch(runnerSource, /New-SelfSignedCertificate/);
   assert.doesNotMatch(runnerSource, /TrustedPublisher/);
   assert.doesNotMatch(runnerSource, /signWindowsDevBinary/);
+});
+
+test('dev-kernel acceptance is Electron-only and cannot activate through the Tauri dev runner', () => {
+  assert.equal(fs.existsSync(path.join(root, 'scripts/run-dev-kernel-checkpoint-desktop.mjs')), false);
+  assert.doesNotMatch(runnerSource, /devKernelCheckpoint|NIMI_DEV_KERNEL_CHECKPOINT/);
+  assert.match(devKernelElectronRunnerSource, /NIMI_DEV_KERNEL_CHECKPOINT: '1'/);
+  assert.doesNotMatch(devKernelElectronRunnerSource, /NIMI_RUNTIME_GRPC_ADDR|ACCOUNT_TOKEN|Bearer|authorization:/i);
+});
+
+test('dev-kernel Electron runner invokes pnpm through the portable Node CLI carrier', () => {
+  assert.match(devKernelElectronRunnerSource, /resolvePortableProcessInvocation/);
+  assert.match(devKernelElectronRunnerSource, /run\('pnpm', \[/);
+  assert.doesNotMatch(devKernelElectronRunnerSource, /spawnSync\(['"]pnpm\.cmd['"]/);
+});
+
+test('dev-kernel Electron runner confines standard local assets to the isolated trial root', () => {
+  assert.match(
+    devKernelElectronRunnerSource,
+    /NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: path\.join\(desktopUserDataRoot, 'standard-shell-data'\)/,
+  );
+});
+
+test('dev-kernel Electron runtime is signed before atomic publication and reverified before launch', () => {
+  assert.match(prepareSignedElectronRuntimeSource, /stagingRoot/);
+  assert.match(prepareSignedElectronRuntimeSource, /publishPreparedElectronRuntime/);
+  assert.match(prepareSignedElectronRuntimeSource, /requireWindowsDevSignedFiles\(\[stagedDesktopExecutable\]/);
+  assert.doesNotMatch(prepareSignedElectronRuntimeSource, /rmSync\(candidateRoot/);
+  assert.match(devKernelElectronRunnerSource, /requireWindowsDevSignedFiles\(\[executablePath\]/);
 });
 
 test('Windows Tauri dev runner treats replacement kills as successful handoff', () => {

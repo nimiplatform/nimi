@@ -5,7 +5,11 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
+import {
+  ProductControlWorkflow,
+  resolveProjectedDataRootPick,
+  resolveProductControlWorkflowError,
+} from '../src/shell/renderer/first-run/product-control-workflow.js';
 import {
   NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   NIMI_FIRST_RUN_PHASES,
@@ -37,6 +41,45 @@ import {
 
 // --- Fixtures -------------------------------------------------------------
 
+test('a local first-run action error survives a clean projection refresh', () => {
+  assert.equal(
+    resolveProductControlWorkflowError('RUNTIME_BRIDGE_CONNECT_FAILED', null, null),
+    'RUNTIME_BRIDGE_CONNECT_FAILED',
+  );
+  assert.equal(
+    resolveProductControlWorkflowError(null, 'Materialization observer failed', null),
+    'Materialization observer failed',
+  );
+  assert.equal(
+    resolveProductControlWorkflowError(null, null, 'Runtime-owned projection failed'),
+    'Runtime-owned projection failed',
+  );
+  assert.equal(resolveProductControlWorkflowError(null, null, null), null);
+});
+
+test('a successful observer refresh cannot erase an unresolved action failure', () => {
+  let actionError: string | null = 'RUNTIME_ACTION_FAILED';
+  let observerError: string | null = 'RUNTIME_OBSERVER_FAILED';
+
+  assert.equal(
+    resolveProductControlWorkflowError(null, observerError, null),
+    'RUNTIME_OBSERVER_FAILED',
+  );
+
+  // This is the state transition performed after any later 3-second observer
+  // sample succeeds: only the observer-owned failure is cleared.
+  observerError = null;
+
+  assert.equal(
+    resolveProductControlWorkflowError(actionError, observerError, null),
+    'RUNTIME_ACTION_FAILED',
+  );
+
+  // A subsequent explicit action owns clearing its own failure.
+  actionError = null;
+  assert.equal(resolveProductControlWorkflowError(actionError, observerError, null), null);
+});
+
 function projectionFor(
   state: NimiProductControlState,
   override: Partial<NimiProductControlRecord> = {},
@@ -57,6 +100,7 @@ function projectionFor(
     path: '/tmp/home/.nimi/nimi.json',
     exists: state !== 'config_missing',
     state,
+    dataRootProposal: null,
     error: null,
     record: {
       schemaVersion: 1,
@@ -207,7 +251,7 @@ test('the Storage phase wires the native folder picker to the selectProductDataR
   assert.doesNotMatch(bridgeSource, /invokeChecked\('product_control_pick_data_root_directory'/);
 });
 
-test('the Storage phase pre-fills the OS default nimi_data path as a confirmable proposal', () => {
+test('the Storage phase prefers the Runtime checkpoint proposal and keeps the OS default as production fallback', () => {
   // The workflow proposes the OS-conventional default so the field is never
   // empty, but it is only a candidate — the user still confirms it through
   // selectProductDataRoot. The renderer never records or fabricates a path.
@@ -215,6 +259,8 @@ test('the Storage phase pre-fills the OS default nimi_data path as a confirmable
     path.join(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
     'utf8',
   );
+  assert.match(workflowSource, /projection\?\.dataRootProposal\?\.path/);
+  assert.match(workflowSource, /if \(runtimeDataRootProposal\) return/);
   assert.match(workflowSource, /defaultProductDataRootDirectory/);
 
   // The bridge call is read-only and fails closed: no Tauri runtime or a
@@ -230,6 +276,36 @@ test('the Storage phase pre-fills the OS default nimi_data path as a confirmable
   // `product_control_record_*` family, so it cannot mutate the record —
   // P-COLD-010 keeps recording with selectProductDataRoot after user confirm.
   assert.doesNotMatch(bridgeSource, /product_control_record_default_data_root/);
+});
+
+test('the Runtime data-root proposal replaces only the renderer fallback, never a user pick or record', () => {
+  assert.deepEqual(resolveProjectedDataRootPick({
+    currentPath: 'C:\\Users\\admin\\Nimi',
+    currentAuthority: 'fallback',
+    recordedPath: null,
+    runtimeProposalPath: 'C:\\service-owned-trial\\Nimi',
+  }), {
+    path: 'C:\\service-owned-trial\\Nimi',
+    authority: 'runtime',
+  });
+  assert.deepEqual(resolveProjectedDataRootPick({
+    currentPath: 'D:\\UserPick',
+    currentAuthority: 'user',
+    recordedPath: null,
+    runtimeProposalPath: 'C:\\service-owned-trial\\Nimi',
+  }), {
+    path: 'D:\\UserPick',
+    authority: 'user',
+  });
+  assert.deepEqual(resolveProjectedDataRootPick({
+    currentPath: 'D:\\UserPick',
+    currentAuthority: 'user',
+    recordedPath: 'E:\\Recorded',
+    runtimeProposalPath: 'C:\\service-owned-trial\\Nimi',
+  }), {
+    path: 'E:\\Recorded',
+    authority: 'record',
+  });
 });
 
 // --- Install-level cards --------------------------------------------------

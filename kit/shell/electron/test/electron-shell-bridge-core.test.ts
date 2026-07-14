@@ -16,7 +16,7 @@ import {
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_IDS,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
@@ -66,7 +66,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
       trustedRuntimeMetadataProvider: async () => ({
         metadata: {
           extra: {
-            'x-nimi-source-host': 'desktop-electron-account-host',
+            'x-nimi-source-host': 'unit-test-trusted-metadata-provider',
             'x-nimi-app-instance-id': 'nimi.tester.desktop-shell',
           },
         },
@@ -104,7 +104,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     expect(capturedMetadata.authorization).toBeUndefined();
     expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAuditService_GetRuntimeHealth-\d+-\d+$/);
     expect(capturedMetadata['x-nimi-custom']).toBe('custom-value');
-    expect(capturedMetadata['x-nimi-source-host']).toBe('desktop-electron-account-host');
+    expect(capturedMetadata['x-nimi-source-host']).toBe('unit-test-trusted-metadata-provider');
     expect(capturedMetadata['x-nimi-app-instance-id']).toBe('nimi.tester.desktop-shell');
     expect([...fromBase64(response.responseBytesBase64)]).toEqual([4, 5, 6]);
     expect(response.responseMetadata['x-nimi-runtime-version']).toBe('0.5.0');
@@ -538,7 +538,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
+        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
         requestBytesBase64: '',
         metadata: {
           surfaceId: 'renderer-spoofed-surface',

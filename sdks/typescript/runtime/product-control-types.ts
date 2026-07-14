@@ -96,7 +96,14 @@ export interface NimiProductControlRecordProjection {
   readonly exists: boolean;
   readonly state: NimiProductControlState;
   readonly record: NimiProductControlRecord | null;
+  readonly dataRootProposal: NimiProductControlDataRootProposal | null;
   readonly error: string | null;
+}
+
+export interface NimiProductControlDataRootProposal {
+  readonly path: string;
+  readonly authority: 'runtime_protected_product_control';
+  readonly profile: 'dev_kernel_checkpoint';
 }
 
 export interface NimiProductControlSelectedDataRootProjection {

@@ -3,12 +3,10 @@ use super::RuntimeBridgeAppSession;
 
 const DEFAULT_TTL_SECONDS: i32 = 3_600;
 const DEFAULT_REFRESH_SKEW_MS: u64 = 60_000;
-pub const RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST: &str = "desktop-tauri-account-host";
 pub const RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST: &str = "tauri-standard-shell";
 
-/// Legacy configuration shape retained until the protected native carrier is
-/// wired into every Tauri host. These values are not sent to Runtime and cannot
-/// establish a caller, session, or developer-registration authority.
+/// Desktop-shell binding configuration. These values are not sent to the
+/// protected Local App carrier and cannot establish third-party authority.
 #[derive(Debug, Clone)]
 pub struct RuntimeBridgeHostAppSessionConfig {
     pub app_id: String,
@@ -16,7 +14,6 @@ pub struct RuntimeBridgeHostAppSessionConfig {
     pub device_id: String,
     pub app_version: String,
     pub capabilities: Vec<String>,
-    pub developer_registration: bool,
     pub ttl_seconds: i32,
     pub refresh_skew_ms: u64,
 }
@@ -34,34 +31,14 @@ impl RuntimeBridgeHostAppSessionConfig {
             device_id: require_text(device_id, "device_id")?,
             app_version: "1".to_string(),
             capabilities: normalize_capabilities(capabilities),
-            developer_registration: false,
-            ttl_seconds: DEFAULT_TTL_SECONDS,
-            refresh_skew_ms: DEFAULT_REFRESH_SKEW_MS,
-        })
-    }
-
-    pub fn local_developer_app(
-        app_id: &str,
-        app_instance_id: &str,
-        device_id: &str,
-        capabilities: Vec<String>,
-    ) -> Result<Self, String> {
-        Ok(Self {
-            app_id: require_text(app_id, "app_id")?,
-            app_instance_id: require_text(app_instance_id, "app_instance_id")?,
-            device_id: require_text(device_id, "device_id")?,
-            app_version: "1".to_string(),
-            capabilities: normalize_capabilities(capabilities),
-            developer_registration: true,
             ttl_seconds: DEFAULT_TTL_SECONDS,
             refresh_skew_ms: DEFAULT_REFRESH_SKEW_MS,
         })
     }
 }
 
-/// A Tauri host cannot mint an app session over the ordinary Runtime bridge.
-/// A.1 will replace this with an implementation that consumes a Runtime-issued
-/// installed launch session over the verified protected carrier.
+/// A Tauri Desktop host cannot mint an app session over the ordinary Runtime
+/// bridge. Third-party Local Apps use `RuntimeBridgeLocalAppHost` instead.
 #[derive(Debug, Clone, Default)]
 pub struct RuntimeBridgeHostAppSessionProvider;
 
@@ -133,29 +110,6 @@ mod tests {
         assert!(
             RuntimeBridgeHostAppSessionConfig::desktop_shell("", "instance", "device", vec![])
                 .is_err()
-        );
-    }
-
-    #[test]
-    fn local_developer_config_is_an_inert_legacy_shape() {
-        let config = RuntimeBridgeHostAppSessionConfig::local_developer_app(
-            "nimi.tester",
-            "nimi.tester.local-developer",
-            "nimi-tester-local-developer-device",
-            vec![
-                "data.scope.read#realm.worlds.read-probe".to_string(),
-                "account.session.read".to_string(),
-                "account.session.read".to_string(),
-            ],
-        )
-        .expect("local developer config");
-        assert!(config.developer_registration);
-        assert_eq!(
-            config.capabilities,
-            vec![
-                "account.session.read",
-                "data.scope.read#realm.worlds.read-probe"
-            ]
         );
     }
 

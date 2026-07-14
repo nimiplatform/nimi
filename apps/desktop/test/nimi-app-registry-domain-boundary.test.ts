@@ -20,7 +20,7 @@ describe('Nimi App registry/admission domain boundary', () => {
       '.nimi/spec/platform/kernel/tables/local-config-file-registry.yaml',
     );
 
-    assert.match(admissionContract, /Platform (owns|拥有) Nimi App admission/);
+    assert.match(admissionContract, /Platform (owns|拥有) verified Nimi App catalog\/release admission/);
     assert.match(admissionContract, /Apps 不得拥有 admission truth/);
     assert.match(admissionContract, /tables\/nimi-app-registry\.yaml/);
     assert.match(admissionContract, /tables\/nimi-app-release-descriptors\.yaml/);
@@ -32,10 +32,10 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(registryTable, /package_kind:\s*nimi-app/);
     assert.match(releaseDescriptors, /package_kind:\s*nimi-app/);
 
-    assert.match(localConfigRegistry, /config_file_id:\s*registry_json/);
-    assert.match(localConfigRegistry, /schema_owner:\s*account_apps_registry/);
-    assert.match(localConfigRegistry, /config_file_id:\s*packages_json/);
-    assert.match(localConfigRegistry, /schema_owner:\s*account_apps_packages/);
+    assert.doesNotMatch(localConfigRegistry, /config_file_id:\s*(?:registry|packages)_json/);
+    assert.doesNotMatch(localConfigRegistry, /schema_owner:\s*account_apps_(?:registry|packages)/);
+    assert.match(localConfigRegistry, /Runtime-owned local-app principal, record, grant, session, inventory, and/);
+    assert.match(localConfigRegistry, /retired user-local app projections are not/);
   });
 
   it('keeps Desktop Tauri apps projections as Kit-backed materializers only', () => {
@@ -81,8 +81,8 @@ describe('Nimi App registry/admission domain boundary', () => {
     const panelProjection = readRepo(
       'apps/desktop/src/shell/renderer/features/apps/apps-panel-projection.ts',
     );
-    const lifecycleBridge = readRepo(
-      'apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts',
+    const cardActions = readRepo(
+      'apps/desktop/src/shell/renderer/features/apps/apps-card-actions.ts',
     );
 
     assert.match(bridgeClient, /parseNimiAppBridgeProjection/);
@@ -96,19 +96,19 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(liveBridge, /createNimiAppRegistryTransport/);
     assert.match(liveBridge, /loadPackageReadiness/);
     assert.match(liveBridge, /getDesktopRuntime\(\)\.appLifecycle\.packageReadiness/);
+    assert.match(liveBridge, /loadPackageReadiness:\s*async\s*\(\)/);
+    assert.doesNotMatch(liveBridge, /loadActiveJobs|listJobs|watchJobEvents/);
     assert.doesNotMatch(liveBridge, /loadInstallEvidence/);
     assert.match(liveBridge, /from '@nimiplatform\/sdk\/app'/);
 
     assert.match(panelProjection, /NimiAppClient/);
-    assert.match(panelProjection, /resolveNimiRuntimeAppActiveStorageRoots/);
+    assert.match(panelProjection, /deriveAppCardState/);
+    assert.doesNotMatch(panelProjection, /@nimiplatform\/sdk\/runtime|client\.status|listJobs|storageRoots/);
     assert.doesNotMatch(panelProjection, /nimi-app-registry\.yaml|nimi-app-release-descriptors\.yaml/);
     assert.doesNotMatch(panelProjection, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
 
-    assert.match(lifecycleBridge, /getDesktopRuntime\(\)\.appLifecycle/);
-    assert.doesNotMatch(lifecycleBridge, /getPlatformClient\(\)\.runtime\.appLifecycle/);
-    assert.match(lifecycleBridge, /NimiRuntimeAppLifecycleClient/);
-    assert.doesNotMatch(lifecycleBridge, /invokeChecked|apps_bridge_projection_get|__TAURI__/);
-    assert.match(lifecycleBridge, /never returns a fabricated "success" job/);
+    assert.match(cardActions, /AppCardActionId\s*=\s*'sign_in'\s*\|\s*'details'/);
+    assert.doesNotMatch(cardActions, /desktopAppLifecycleBridge|NimiRuntimeAppLifecycleClient/);
   });
 
   it('keeps account app-inventory reads behind the SDK Runtime surface, not Desktop account projection truth', () => {
@@ -118,7 +118,7 @@ describe('Nimi App registry/admission domain boundary', () => {
     const appsLiveBridge = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-live-bridge.ts');
 
     assert.match(appsLiveBridge, /appLifecycle\.accountInventory/);
-    assert.match(appsLiveBridge, /appLifecycle\.listLocalAdoptions/);
+    assert.doesNotMatch(appsLiveBridge, /appLifecycle\.listLocalAdoptions/);
     assert.doesNotMatch(appBootstrap, /account_app_inventory_/);
     assert.doesNotMatch(accountProjection, /inventory\.json|AccountAppInventory|write_app_inventory_record/);
     assert.doesNotMatch(appsPanelController, /desktopAppLibraryBridge\.apply|AccountAppLibraryMutationKind/);

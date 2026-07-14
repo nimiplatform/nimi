@@ -8,11 +8,12 @@ func runtimeChecklist() []checklistItemSpec {
 		pkgAuditLog     = "github.com/nimiplatform/nimi/runtime/internal/auditlog"
 		pkgAuditSvc     = "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 		pkgAI           = "github.com/nimiplatform/nimi/runtime/internal/services/ai"
+		pkgAccount      = "github.com/nimiplatform/nimi/runtime/internal/services/account"
 		pkgAuth         = "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 		pkgConfig       = "github.com/nimiplatform/nimi/runtime/internal/config"
 		pkgConnector    = "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 		pkgDaemon       = "github.com/nimiplatform/nimi/runtime/internal/daemon"
-		pkgGrant        = "github.com/nimiplatform/nimi/runtime/internal/services/grant"
+		pkgLocalApp     = "github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 		pkgGrpc         = "github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 		pkgGrpcErr      = "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 		pkgCognition    = "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
@@ -28,9 +29,10 @@ func runtimeChecklist() []checklistItemSpec {
 	return append(runtimeChecklistPart1(
 		pkgAppRegistry,
 		pkgAI,
+		pkgAccount,
 		pkgAuditLog,
 		pkgAuditSvc,
-		pkgGrant,
+		pkgLocalApp,
 		pkgGrpc,
 		pkgModel,
 		pkgNimillm,
@@ -51,6 +53,7 @@ func runtimeChecklist() []checklistItemSpec {
 		pkgGrpcErr,
 		pkgCognition,
 		pkgLocalService,
+		pkgLocalApp,
 		pkgModel,
 		pkgNimillm,
 		pkgProtocol,

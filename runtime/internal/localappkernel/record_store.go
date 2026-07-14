@@ -80,6 +80,84 @@ func (store *RecordStore) GetByPrincipalID(ctx context.Context, principalID stri
 		FROM local_app_records WHERE local_os_user_anchor = ? AND local_app_principal_id = ?`, store.kernel.anchor, principalID))
 }
 
+// UpdateDevelopment advances one exact development record. A changed host or
+// payload digest increments project generation; a lifecycle-only transition
+// preserves it. The update is conditional on the caller's exact record and
+// generation so stale launch preparation cannot overwrite newer truth.
+func (store *RecordStore) UpdateDevelopment(ctx context.Context, input UpdateDevelopmentRecordInput) (Record, error) {
+	if store == nil || store.kernel == nil {
+		return Record{}, fmt.Errorf("%w: record store", ErrInvalidArgument)
+	}
+	for name, value := range map[string]string{
+		"local_app_principal_id": input.LocalAppPrincipalID,
+		"local_app_record_id":    input.LocalAppRecordID,
+		"host_executable_digest": input.HostExecutableDigest,
+		"payload_root_digest":    input.PayloadRootDigest,
+	} {
+		if err := requireExactText(name, value); err != nil {
+			return Record{}, err
+		}
+	}
+	if input.ExpectedProjectGeneration == 0 || !validLifecycleState(input.LifecycleState) {
+		return Record{}, fmt.Errorf("%w: development record generation or lifecycle", ErrInvalidArgument)
+	}
+	store.kernel.mu.Lock()
+	defer store.kernel.mu.Unlock()
+	tx, err := store.kernel.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Record{}, fmt.Errorf("begin development record update: %w", err)
+	}
+	defer tx.Rollback()
+	current, err := scanRecord(tx.QueryRowContext(ctx, `SELECT
+		local_os_user_anchor, local_app_record_id, local_app_principal_id, trust_class,
+		provenance_attestation_refs_json, provenance_revision, active_release_or_project_identity_ref,
+		install_or_project_generation, active_capability_fingerprint, execution_profile_ref,
+		host_executable_digest, payload_root_digest, lifecycle_state
+		FROM local_app_records WHERE local_os_user_anchor = ? AND local_app_principal_id = ? AND local_app_record_id = ?`,
+		store.kernel.anchor, input.LocalAppPrincipalID, input.LocalAppRecordID))
+	if err != nil {
+		return Record{}, err
+	}
+	if current.TrustClass != TrustClassLocalDevelopment || current.InstallOrProjectGeneration != input.ExpectedProjectGeneration {
+		return Record{}, ErrRevisionConflict
+	}
+	principal, err := scanPrincipal(tx.QueryRowContext(ctx, `SELECT
+		local_os_user_anchor, local_app_principal_id, principal_kind, app_id,
+		immutable_lineage_id, development_authorization_id, canonical_project_file_id,
+		state, created_unix_nano, tombstoned_unix_nano
+		FROM local_app_principals WHERE local_os_user_anchor = ? AND local_app_principal_id = ?`, store.kernel.anchor, input.LocalAppPrincipalID))
+	if err != nil {
+		return Record{}, err
+	}
+	if principal.Kind != PrincipalKindDevelopment || principal.State != PrincipalStateActive {
+		return Record{}, ErrPrincipalTombstoned
+	}
+	nextGeneration := current.InstallOrProjectGeneration
+	if current.HostExecutableDigest != input.HostExecutableDigest || current.PayloadRootDigest != input.PayloadRootDigest {
+		nextGeneration++
+	}
+	result, err := tx.ExecContext(ctx, `UPDATE local_app_records SET
+		install_or_project_generation = ?, host_executable_digest = ?, payload_root_digest = ?, lifecycle_state = ?
+		WHERE local_os_user_anchor = ? AND local_app_principal_id = ? AND local_app_record_id = ? AND install_or_project_generation = ?`,
+		nextGeneration, input.HostExecutableDigest, input.PayloadRootDigest, string(input.LifecycleState),
+		store.kernel.anchor, input.LocalAppPrincipalID, input.LocalAppRecordID, input.ExpectedProjectGeneration)
+	if err != nil {
+		return Record{}, fmt.Errorf("update development record: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil || rows != 1 {
+		return Record{}, ErrRevisionConflict
+	}
+	if err := tx.Commit(); err != nil {
+		return Record{}, fmt.Errorf("commit development record update: %w", err)
+	}
+	current.InstallOrProjectGeneration = nextGeneration
+	current.HostExecutableDigest = input.HostExecutableDigest
+	current.PayloadRootDigest = input.PayloadRootDigest
+	current.LifecycleState = input.LifecycleState
+	return current, nil
+}
+
 // AdvanceProvenanceRevision is provenance-agnostic. It does not install,
 // update, import, verify, or promote a package. It only commits the frozen
 // revision/invalidation invariant for a record already admitted by an owner.

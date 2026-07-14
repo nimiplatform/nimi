@@ -360,7 +360,7 @@ test('Zhiyu Runtime Agent host equivalence requires Runtime SDK authority eviden
 
   const decision = module.resolveZhiyuRuntimeAgentBindingDecision({
     hostEquivalence: {
-      evidenceRef: 'runtime-sdk-authority:installed-app-host-equivalence',
+      evidenceRef: 'runtime-sdk-authority:local-first-party-electron-host-equivalence',
       authority: 'runtime-sdk',
       failureSemantics: 'fail-closed',
     },
@@ -372,7 +372,7 @@ test('Zhiyu Runtime Agent host equivalence requires Runtime SDK authority eviden
   const result = await module.withZhiyuRuntimeAgentBindingScopes(decision, ['runtime.agent.read'], async (options) => {
     assert.equal(
       options.metadata['x-nimi-runtime-host-equivalence'],
-      'runtime-sdk-authority:installed-app-host-equivalence',
+      'runtime-sdk-authority:local-first-party-electron-host-equivalence',
     );
     return 'allowed';
   });

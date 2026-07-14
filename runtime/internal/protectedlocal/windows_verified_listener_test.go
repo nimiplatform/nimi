@@ -224,7 +224,7 @@ func assertWindowsVerifiedListenerConnection(t *testing.T, raw net.Conn) {
 		t.Fatal("verified listener accepted a connection without protected-local authority")
 	}
 	origin := connection.Origin()
-	if origin.TransportClass != TransportDesktopControl || !origin.HasRole(RoleVerifiedDesktopProcess) || !origin.HasRole(RoleDesktopAccountHost) || !origin.HasRole(RoleDesktopLifecycleHost) {
+	if origin.TransportClass != TransportDesktopControl || !origin.HasRole(RoleVerifiedDesktopProcess) || !origin.HasRole(RoleDesktopAccountHost) || !origin.HasRole(RoleLocalAppControl) {
 		t.Fatalf("verified listener origin = %#v, want authenticated Desktop control roles", origin)
 	}
 }

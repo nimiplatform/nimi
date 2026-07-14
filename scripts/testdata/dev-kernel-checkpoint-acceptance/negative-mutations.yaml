@@ -1,0 +1,134 @@
+version: 2
+fixtures:
+  - fixtureId: close-level-is-platform
+    expectedCode: CLOSE_LEVEL_INVALID
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [closeLevel], value: windows_platform_reference_close }
+  - fixtureId: checkpoint-claims-release
+    expectedCode: RELEASE_POSTURE_INVALID
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [releasePosture], value: release }
+  - fixtureId: checkpoint-claims-product-close
+    expectedCode: PRODUCT_CLOSE_PROMOTION_INVALID
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [productClosePromotion], value: promotable_to_product_close }
+  - fixtureId: package-identity-made-applicable
+    expectedCode: DEV_CHECKPOINT_IDENTITY_MUST_BE_NOT_APPLICABLE
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [packageIdentity, applicability], value: applicable }
+  - fixtureId: signing-identity-made-applicable
+    expectedCode: DEV_CHECKPOINT_IDENTITY_MUST_BE_NOT_APPLICABLE
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [signingIdentity, applicability], value: applicable }
+  - fixtureId: service-signature-blurred-into-package-signing
+    expectedCode: DEV_SERVICE_SIGNATURE_KIND_INVALID
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [developmentServiceSignature, kind], value: package_signing_identity }
+  - fixtureId: candidate-binding-mismatch
+    expectedCode: CANDIDATE_BINDING_HASH_MISMATCH
+    mutation: { operation: set_manifest, path: [candidateBindingSha256], value: "0000000000000000000000000000000000000000000000000000000000000000" }
+  - fixtureId: repository-head-not-exact
+    expectedCode: GIT_HEAD_REQUIRED
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [candidate, repositories, 0, headCommit], value: deadbeef }
+  - fixtureId: fixed-service-principal-changed
+    expectedCode: FIXED_SERVICE_PRINCIPAL_REQUIRED
+    rebindCandidate: true
+    mutation: { operation: set_manifest, path: [candidate, runtime, service, principal], value: InteractiveUser }
+  - fixtureId: sdk-build-binding-removed
+    expectedCode: REQUIRED_BUILD_COMPONENT_MISSING
+    rebindCandidate: true
+    mutation: { operation: remove_array_item, path: [candidate, builds], matchField: component, matchValue: sdk }
+  - fixtureId: required-row-removed
+    expectedCode: REQUIRED_ACCEPTANCE_ROW_MISSING
+    mutation: { operation: remove_array_item, path: [acceptanceRows], matchField: rowId, matchValue: H-05 }
+  - fixtureId: required-row-fails
+    expectedCode: ACCEPTANCE_ROW_NOT_PASS
+    mutation: { operation: set_matching, path: [acceptanceRows], matchField: rowId, matchValue: F-04a, field: result, value: fail }
+  - fixtureId: required-row-has-no-evidence
+    expectedCode: ROW_EVIDENCE_REQUIRED
+    mutation: { operation: set_matching, path: [acceptanceRows], matchField: rowId, matchValue: A-01, field: evidenceRefs, value: [] }
+  - fixtureId: generic-closeout-kind-forbidden
+    expectedCode: EVIDENCE_KIND_INVALID
+    mutation: { operation: set_evidence_kind, evidenceId: synthetic-authority-convergence, value: closeout }
+  - fixtureId: one-record-claims-all-rows
+    expectedCode: GENERIC_ALL_ROWS_EVIDENCE_FORBIDDEN
+    mutation: { operation: replace_claims_all_rows, evidenceId: synthetic-authority-convergence }
+  - fixtureId: wrong-kind-for-row-claim
+    expectedCode: EVIDENCE_KIND_NOT_ALLOWED_FOR_CLAIM
+    mutation: { operation: set_evidence_kind, evidenceId: synthetic-security-negative, value: authority_convergence }
+  - fixtureId: required-claim-removed
+    expectedCode: ROW_REQUIRED_CLAIM_UNPROVEN
+    mutation: { operation: remove_evidence_claim, evidenceId: synthetic-static-owner-gates, rowId: A-05, claimId: wire.retired_public_vocabulary_absent }
+  - fixtureId: row-references-record-without-row-claim
+    expectedCode: ROW_EVIDENCE_HAS_NO_ROW_CLAIM
+    mutation: { operation: set_matching, path: [acceptanceRows], matchField: rowId, matchValue: C-03, field: evidenceRefs, value: [synthetic-authority-convergence] }
+  - fixtureId: static-claim-inherits-execution
+    expectedCode: CLAIM_EXECUTION_BINDING_FORBIDDEN
+    mutation: { operation: copy_execution_binding, fromEvidenceId: synthetic-runtime-trace, toEvidenceId: synthetic-authority-convergence }
+  - fixtureId: execution-claim-loses-binding
+    expectedCode: CLAIM_EXECUTION_BINDING_REQUIRED
+    mutation: { operation: set_evidence_record, evidenceId: synthetic-runtime-trace, path: [executionBinding], value: null }
+  - fixtureId: execution-record-misses-observation
+    expectedCode: EXECUTION_OBSERVATION_REQUIRED
+    mutation: { operation: remove_artifact_role, evidenceId: synthetic-runtime-trace, role: execution_observation }
+  - fixtureId: execution-set-diverges
+    expectedCode: EXECUTION_BINDING_MISMATCH
+    mutation: { operation: diverge_execution_binding, evidenceId: synthetic-security-negative, sourceStateDigest: "2121212121212121212121212121212121212121212121212121212121212121" }
+  - fixtureId: execution-observation-binding-diverges
+    expectedCode: EXECUTION_OBSERVATION_BINDING_MISMATCH
+    mutation: { operation: set_execution_observation, path: [journeyTrialId], value: another-trial }
+  - fixtureId: f04a-runner-pair-missing
+    expectedCode: RUNNER_ARTIFACT_PAIR_REQUIRED
+    mutation: { operation: remove_artifact_role, evidenceId: synthetic-local-agent-journey, role: runner_artifact_manifest }
+  - fixtureId: runner-outcome-fails
+    expectedCode: RUNNER_OUTCOME_NOT_PASSED
+    mutation: { operation: set_runner_result, path: [outcome], value: failed }
+  - fixtureId: runner-result-privacy-fails
+    expectedCode: RUNNER_RESULT_PRIVACY_INVALID
+    mutation: { operation: set_runner_result, path: [privacy], value: {ok: false, findings: [synthetic-finding]} }
+  - fixtureId: runner-artifact-privacy-fails
+    expectedCode: RUNNER_ARTIFACT_PRIVACY_INVALID
+    mutation: { operation: set_runner_manifest, path: [privacy], value: {ok: false, findings: [synthetic-finding]} }
+  - fixtureId: runner-trial-does-not-bind-evidence
+    expectedCode: RUNNER_JOURNEY_TRIAL_MISMATCH
+    mutation: { operation: set_runner_result, path: [journeyTrialId], value: another-trial }
+  - fixtureId: runner-source-digest-does-not-bind-evidence
+    expectedCode: RUNNER_SOURCE_STATE_DIGEST_MISMATCH
+    mutation: { operation: set_runner_result, path: [sourceState, sourceDigest], value: "2222222222222222222222222222222222222222222222222222222222222222" }
+  - fixtureId: runner-checkpoint-fails
+    expectedCode: RUNNER_CHECKPOINT_NOT_PASSED
+    mutation: { operation: set_runner_checkpoint, checkpointId: fixed-service-restarted, field: outcome, value: failed }
+  - fixtureId: runner-checkpoint-removed
+    expectedCode: RUNNER_CHECKPOINT_SET_INVALID
+    mutation: { operation: remove_runner_checkpoint, checkpointId: account-switch-invalidated }
+  - fixtureId: runner-required-artifact-removed
+    expectedCode: RUNNER_REQUIRED_ARTIFACT_MISSING
+    mutation: { operation: remove_runner_artifact, artifactId: fixed-service-summary }
+  - fixtureId: runner-narrow-screenshot-removed
+    expectedCode: RUNNER_SHELL_SCREENSHOTS_INSUFFICIENT
+    mutation: { operation: remove_runner_artifact, artifactId: real-shell-narrow-screenshot }
+  - fixtureId: runner-result-not-manifest-bound
+    expectedCode: RUNNER_RESULT_NOT_BOUND_BY_ARTIFACT_MANIFEST
+    mutation: { operation: remove_runner_manifest_file, path: result.json }
+  - fixtureId: runner-manifest-uses-absolute-path
+    expectedCode: RUNNER_ARTIFACT_PATH_INVALID
+    mutation: { operation: set_runner_manifest, path: [files, 1, path], value: "C:/Users/example/evidence.json" }
+  - fixtureId: nested-runner-artifact-tampered
+    expectedCode: RUNNER_ARTIFACT_FILE_HASH_MISMATCH
+    mutation: { operation: replace_file_without_rehash, ref: runner/evidence/005-process-summary.json, value: "tampered synthetic process summary\n" }
+  - fixtureId: evidence-artifact-contains-secret
+    expectedCode: SECRET_OR_TOKEN_MATERIAL_FORBIDDEN
+    mutation: { operation: replace_shared_artifact, ref: synthetic-observation.json, value: "Bearer synthetic-reusable-value-12345\n" }
+  - fixtureId: evidence-ref-contains-absolute-user-path
+    expectedCode: ABSOLUTE_USER_PATH_FORBIDDEN
+    mutation: { operation: set_evidence_entry, evidenceId: synthetic-authority-convergence, path: [ref], value: "C:/Users/example/checkpoint.json" }
+  - fixtureId: predecessor-evidence-reused
+    expectedCode: OLD_WAVE_EVIDENCE_FORBIDDEN
+    mutation: { operation: set_evidence_entry, evidenceId: synthetic-authority-convergence, path: [ref], value: Wave-A-result.json }
+  - fixtureId: repository-workflow-field-added
+    expectedCode: WORKFLOW_FIELD_FORBIDDEN
+    mutation: { operation: set_manifest, path: [status], value: complete }
+  - fixtureId: required-row-waiver-added
+    expectedCode: WAIVER_FIELD_FORBIDDEN
+    mutation: { operation: set_matching, path: [acceptanceRows], matchField: rowId, matchValue: H-05, field: waiver, value: accepted }

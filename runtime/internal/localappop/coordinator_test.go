@@ -449,7 +449,7 @@ func selectorFor(operation Operation) Selector {
 	case OperationConversationTurnSend, OperationConversationSnapshot:
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
 	case OperationConversationSubscribe:
-		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1", TurnID: "turn:1"}
+		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
 	default:
 		return Selector{}
 	}

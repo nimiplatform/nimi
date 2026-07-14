@@ -23,7 +23,6 @@ function getDesktopRuntimeAgentMemoryClient(): NimiHostRuntimeAgentMemoryClient 
   return {
     appId: getDesktopAppId(),
     auth: accountRuntime.auth,
-    appAuth: accountRuntime.grants,
     agent: getDesktopRuntime().agents,
   };
 }

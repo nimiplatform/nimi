@@ -85,7 +85,6 @@ test('remaining SDK or Kit forwarding exports are explicit separate domains or p
     'apps/desktop/src/shell/renderer/bridge/runtime-bridge/runtime-types.ts',
     'apps/desktop/src/shell/renderer/bridge/runtime-bridge/shared.ts',
     'apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts',
-    'apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts',
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-catalog-sdk-service.ts',
     'apps/desktop/src/shell/renderer/first-run/runtime-materialization.ts',
     'apps/desktop/src/shell/renderer/infra/runtime-agent-ai-config.ts',

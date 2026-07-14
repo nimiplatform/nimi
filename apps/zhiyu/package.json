@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm run dev:renderer",
+    "dev": "nimi-app dev --shell electron",
+    "dev:shell": "nimi-app dev",
     "dev:renderer": "vite --host 127.0.0.1 --port 1472 --strictPort",
     "dev:electron": "corepack pnpm run build:electron && node scripts/run-electron-dev.mjs",
     "prepare:workspace-surfaces": "corepack pnpm --filter @nimiplatform/sdk build && corepack pnpm --filter @nimiplatform/kit build",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
+    "@nimiplatform/app-tools": "workspace:*",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

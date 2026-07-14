@@ -7,3 +7,4 @@ shards:
   - config/test-inventories/sdks-typescript/shard-01.yaml
   - config/test-inventories/sdks-typescript/shard-02.yaml
   - config/test-inventories/sdks-typescript/shard-03.yaml
+  - config/test-inventories/sdks-typescript/shard-04.yaml

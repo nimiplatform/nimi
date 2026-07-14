@@ -3,7 +3,7 @@ export const NIMI_DESKTOP_OPEN_SCHEMA_VERSION = 1 as const;
 export const NIMI_DESKTOP_OPEN_SOURCE_HOSTS = [
   'electron-standard-shell',
   'tauri-standard-shell',
-  'desktop-electron-installed-app-host',
+  'desktop-electron-local-app-host',
   'dev-fixture',
 ] as const;
 

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -77,7 +78,91 @@ func (c Config) Validate() error {
 	if err := validateJWTSettings(c.AuthJWTIssuer, c.AuthJWTAudience, c.AuthJWTJWKSURL, c.AuthJWTRevocationURL); err != nil {
 		return err
 	}
+	if c.NonReleaseDevKernelCheckpoint != nil {
+		if !c.AllowLoopbackProviderEndpoint {
+			return fmt.Errorf("dev-kernel checkpoint acceptance requires the bounded loopback provider profile")
+		}
+		if err := ValidateDevKernelCheckpointAcceptance(c.NonReleaseDevKernelCheckpoint); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func ValidateDevKernelCheckpointAcceptance(acceptance *DevKernelCheckpointAcceptance) error {
+	if acceptance == nil {
+		return fmt.Errorf("dev-kernel checkpoint acceptance is required")
+	}
+	values := []struct {
+		name  string
+		value string
+	}{
+		{"trial id", acceptance.TrialID},
+		{"Runtime candidate id", acceptance.RuntimeCandidateID},
+		{"acceptance round id", acceptance.AcceptanceRoundID},
+		{"primary account id", acceptance.PrimaryAccountID},
+		{"secondary account id", acceptance.SecondaryAccountID},
+		{"local agent ref", acceptance.LocalAgentRef},
+		{"runtime source ref", acceptance.RuntimeSourceRef},
+		{"agent display name", acceptance.AgentDisplayName},
+	}
+	for _, item := range values {
+		if item.value == "" || strings.TrimSpace(item.value) != item.value {
+			return fmt.Errorf("dev-kernel checkpoint %s is invalid", item.name)
+		}
+	}
+	if acceptance.PrimaryAccountID == acceptance.SecondaryAccountID {
+		return fmt.Errorf("dev-kernel checkpoint accounts must be distinct")
+	}
+	if !validDevKernelTrialID(acceptance.TrialID) {
+		return fmt.Errorf("dev-kernel checkpoint trial id is invalid")
+	}
+	const roundPrefix = "dev-kernel-round-"
+	roundSuffix := strings.TrimPrefix(acceptance.AcceptanceRoundID, roundPrefix)
+	if len(roundSuffix) != 32 || roundPrefix+roundSuffix != acceptance.AcceptanceRoundID || strings.IndexFunc(roundSuffix, func(value rune) bool {
+		return !((value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'))
+	}) >= 0 {
+		return fmt.Errorf("dev-kernel checkpoint acceptance round id is invalid")
+	}
+	if value := strings.TrimSpace(acceptance.DevelopmentDataRootRef); value != acceptance.DevelopmentDataRootRef {
+		return fmt.Errorf("dev-kernel checkpoint development data root ref is invalid")
+	} else if value != "" {
+		cleaned := filepath.Clean(value)
+		if cleaned == "." || !filepath.IsAbs(cleaned) || cleaned == filepath.VolumeName(cleaned)+string(filepath.Separator) {
+			return fmt.Errorf("dev-kernel checkpoint development data root ref must be an absolute non-root path")
+		}
+	}
+	const candidatePrefix = "dev-kernel-runtime-"
+	candidateSuffix := strings.TrimPrefix(acceptance.RuntimeCandidateID, candidatePrefix)
+	if len(candidateSuffix) != 32 || candidatePrefix+candidateSuffix != acceptance.RuntimeCandidateID || strings.IndexFunc(candidateSuffix, func(value rune) bool {
+		return !((value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'))
+	}) >= 0 {
+		return fmt.Errorf("dev-kernel checkpoint Runtime candidate id is invalid")
+	}
+	localRefSuffix := strings.TrimPrefix(acceptance.LocalAgentRef, "local-agent:runtime-")
+	if len(localRefSuffix) != 32 || strings.IndexFunc(localRefSuffix, func(value rune) bool {
+		return !((value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'))
+	}) >= 0 {
+		return fmt.Errorf("dev-kernel checkpoint local agent ref is invalid")
+	}
+	return nil
+}
+
+func validDevKernelTrialID(value string) bool {
+	if len(value) == 0 || len(value) > 64 {
+		return false
+	}
+	first := value[0]
+	if !((first >= 'a' && first <= 'z') || (first >= '0' && first <= '9')) {
+		return false
+	}
+	for index, char := range value {
+		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || (char == '-' && index > 0 && index < len(value)-1) {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 // ParseLogLevel converts a string log level to slog.Level.

@@ -130,6 +130,16 @@
     }
   },
   {
+    "fixture_id": "desktop-product-control-posture-falls-back-to-anonymous",
+    "code": "DESKTOP_PRODUCT_CONTROL_ROUTE_CONVERGENCE_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob\n    posture: protected_origin_required",
+      "to": "  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob\n    posture: anonymous_read"
+    }
+  },
+  {
     "fixture_id": "portable-privileged-session-reenabled",
     "code": "PORTABLE_AUTHORITY_FORBIDDEN",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",

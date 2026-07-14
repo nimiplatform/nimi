@@ -127,6 +127,7 @@ type publicChatAnchorState struct {
 	OwnerUserID          string
 	RuntimeSourceRef     string
 	CallerAppID          string
+	LocalAppPrincipalID  string
 	SubjectUserID        string
 	ThreadID             string
 	Binding              publicChatExecutionBinding

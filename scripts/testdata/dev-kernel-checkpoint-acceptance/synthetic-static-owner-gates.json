@@ -1,0 +1,21 @@
+{
+  "schemaId": "nimi.repository.candidate-evidence.v2",
+  "evidenceId": "synthetic-static-owner-gates",
+  "candidateBindingSha256": "daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12",
+  "evidenceKind": "owner_gate",
+  "claims": [
+    {"rowId":"A-01","claimId":"authority.projections_converged"},
+    {"rowId":"A-04","claimId":"runtime.stores_and_decisions_separated"},
+    {"rowId":"A-05","claimId":"wire.retired_public_vocabulary_absent"},
+    {"rowId":"D-01","claimId":"developer_mode.single_mode_and_trust_set_schema"},
+    {"rowId":"E-09","claimId":"authority.provider_selection_owner_supplied"},
+    {"rowId":"F-01","claimId":"surface.final_host_neutral_carrier"},
+    {"rowId":"F-02","claimId":"authority.shared_owner_surfaces_reused"},
+    {"rowId":"F-06a","claimId":"authority.zhiyu_shared_surface_dependency"},
+    {"rowId":"H-02","claimId":"close.static_schema_checker_and_fixtures"}
+  ],
+  "executionBinding": null,
+  "artifactRefs": [
+    {"role":"observation","ref":"synthetic-observation.json","sha256":"c1e7dda79a5089f01d76a5773a74a07fb8531ac34669cd16a5bb087c0c51ae4b"}
+  ]
+}

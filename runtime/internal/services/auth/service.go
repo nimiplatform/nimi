@@ -20,19 +20,17 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type appRegistration struct {
-	AppID                 string
-	AppInstanceID         string
-	DeviceID              string
-	AppVersion            string
-	Capabilities          []string
-	ModeManifest          *runtimev1.AppModeManifest
-	DeveloperRegistration bool
-	RegisteredAt          time.Time
+	AppID         string
+	AppInstanceID string
+	DeviceID      string
+	AppVersion    string
+	Capabilities  []string
+	ModeManifest  *runtimev1.AppModeManifest
+	RegisteredAt  time.Time
 }
 
 type appSession struct {
@@ -77,37 +75,37 @@ type runtimeAccountSecurityContextProvider interface {
 	AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool)
 }
 
+type LocalAppSessionProjection struct {
+	TrustClass        runtimev1.LocalAppTrustClass
+	AccountGeneration uint64
+	RuntimeBootEpoch  protectedlocal.Identifier
+}
+
+type localAppSessionOpener interface {
+	OpenLocalAppSessionProjection(context.Context) (LocalAppSessionProjection, error)
+}
+
 func WithDesktopSessionManager(manager *protectedlocal.DesktopSessionManager) Option {
 	return func(service *Service) {
 		service.desktopSessions = manager
 	}
 }
 
-func WithInstalledLaunchStore(store *InstalledLaunchStore) Option {
-	return func(service *Service) {
-		service.installedLaunches = store
-	}
-}
-
 // Service implements RuntimeAuthService with in-memory session storage.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAuthServiceServer
-	logger            *slog.Logger
-	registry          *appregistry.Registry
-	nimiApps          *appregistrycatalog.Registry
-	migrations        *firstpartymigration.LaunchGate
-	auditStore        *auditlog.Store
-	desktopSessions   *protectedlocal.DesktopSessionManager
-	installedLaunches *InstalledLaunchStore
-	accountSecurity   runtimeAccountSecurityContextProvider
+	logger          *slog.Logger
+	registry        *appregistry.Registry
+	nimiApps        *appregistrycatalog.Registry
+	migrations      *firstpartymigration.LaunchGate
+	auditStore      *auditlog.Store
+	desktopSessions *protectedlocal.DesktopSessionManager
+	accountSecurity runtimeAccountSecurityContextProvider
+	localAppOpener  localAppSessionOpener
 
 	// TTL bounds (K-AUTHSVC-004).
 	ttlMinSeconds int32
 	ttlMaxSeconds int32
-
-	// developerRegistrationEnabled is the daemon-level K-AUTHSVC-014 gate. When
-	// false (default) RegisterApp keeps production-governed admission fail-closed.
-	developerRegistrationEnabled bool
 
 	mu                 sync.RWMutex
 	apps               map[string]appRegistration
@@ -164,14 +162,12 @@ func (s *Service) SetRuntimeAccountSecurityContextProvider(provider runtimeAccou
 	s.accountSecurity = provider
 }
 
-func (s *Service) SetFirstPartyMigrationLaunchGate(gate *firstpartymigration.LaunchGate) {
-	s.migrations = gate
+func (s *Service) SetLocalAppSessionOpener(opener localAppSessionOpener) {
+	s.localAppOpener = opener
 }
 
-// SetDeveloperRegistrationEnabled wires the K-AUTHSVC-014 daemon developer
-// registration gate (auth.developerRegistration.enabled). Default false.
-func (s *Service) SetDeveloperRegistrationEnabled(enabled bool) {
-	s.developerRegistrationEnabled = enabled
+func (s *Service) SetFirstPartyMigrationLaunchGate(gate *firstpartymigration.LaunchGate) {
+	s.migrations = gate
 }
 
 // OpenDesktopSession establishes non-portable Desktop authority from the
@@ -268,22 +264,16 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 			ReasonCode: reasonCode,
 		}, nil
 	}
-	developerAdmission := false
-	if reasonCode, eligibilityReason, ok := s.checkNimiAppRegistryEligibility(req); !ok {
+	if reasonCode, eligibilityReason, ok := s.checkNimiAppRegistryEligibility(appID); !ok {
 		payload := map[string]any{
 			"eligibility_reason": eligibilityReason,
 			"registry_app_id":    normalizeNimiAppRegistryID(appID),
-		}
-		if req.GetDeveloperRegistration() {
-			payload["developer_registration"] = true
 		}
 		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, payload)
 		return &runtimev1.RegisterAppResponse{
 			Accepted:   false,
 			ReasonCode: reasonCode,
 		}, nil
-	} else if eligibilityReason == developerRegistrationReason {
-		developerAdmission = true
 	}
 	if reasonCode, migrationReason, ok := s.checkFirstPartyMigrationGate(appID); !ok {
 		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, map[string]any{
@@ -302,19 +292,18 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	}
 
 	now := time.Now().UTC()
-	capabilities := s.registrationCapabilities(appID, req.GetCapabilities(), developerAdmission)
+	capabilities := s.registrationCapabilities(appID, req.GetCapabilities())
 	registration := appRegistration{
-		AppID:                 appID,
-		AppInstanceID:         instanceID,
-		DeviceID:              strings.TrimSpace(req.GetDeviceId()),
-		AppVersion:            strings.TrimSpace(req.GetAppVersion()),
-		Capabilities:          append([]string(nil), capabilities...),
-		ModeManifest:          cloneModeManifest(req.GetModeManifest()),
-		DeveloperRegistration: developerAdmission,
-		RegisteredAt:          now,
+		AppID:         appID,
+		AppInstanceID: instanceID,
+		DeviceID:      strings.TrimSpace(req.GetDeviceId()),
+		AppVersion:    strings.TrimSpace(req.GetAppVersion()),
+		Capabilities:  append([]string(nil), capabilities...),
+		ModeManifest:  cloneModeManifest(req.GetModeManifest()),
+		RegisteredAt:  now,
 	}
 
-	if err := s.registry.UpsertInstanceWithAdmission(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), capabilities, developerAdmission); err != nil {
+	if err := s.registry.UpsertInstance(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), capabilities); err != nil {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
 	s.mu.Lock()
@@ -326,15 +315,8 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	s.apps[appKey] = registration
 	s.mu.Unlock()
 
-	if developerAdmission {
-		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-			"developer_registration": true,
-			"registry_app_id":        normalizeNimiAppRegistryID(appID),
-		})
-	} else {
-		s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
-	}
-	s.logger.Info("app registered", "app_id", appID, "app_instance_id", instanceID, "developer_registration", developerAdmission)
+	s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.logger.Info("app registered", "app_id", appID, "app_instance_id", instanceID)
 	return &runtimev1.RegisterAppResponse{
 		AppInstanceId: instanceID,
 		Accepted:      true,
@@ -342,16 +324,12 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	}, nil
 }
 
-func (s *Service) registrationCapabilities(_ string, _ []string, _ bool) []string {
+func (s *Service) registrationCapabilities(_ string, _ []string) []string {
 	return nil
 }
 
-// developerRegistrationReason is the eligibility reason returned when a caller
-// is admitted through the K-AUTHSVC-014 developer-registration double gate.
-const developerRegistrationReason = "developer-registration"
-
-func (s *Service) checkNimiAppRegistryEligibility(req *runtimev1.RegisterAppRequest) (runtimev1.ReasonCode, string, bool) {
-	appID := strings.TrimSpace(req.GetAppId())
+func (s *Service) checkNimiAppRegistryEligibility(appID string) (runtimev1.ReasonCode, string, bool) {
+	appID = strings.TrimSpace(appID)
 	registryAppID := normalizeNimiAppRegistryID(appID)
 	if !isPlatformGovernedNimiAppID(registryAppID) {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
@@ -360,19 +338,7 @@ func (s *Service) checkNimiAppRegistryEligibility(req *runtimev1.RegisterAppRequ
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
 	}
 
-	reasonCode, reason, ok := s.evaluateNimiAppRegistryEligibility(registryAppID)
-	if ok {
-		return reasonCode, reason, true
-	}
-	// K-AUTHSVC-014: developer-registration double gate. A governed app_id that
-	// is otherwise ineligible may register for local developer testing only when
-	// BOTH the daemon gate (auth.developerRegistration.enabled) is on AND the
-	// caller explicitly declared developer_registration. Either condition false
-	// preserves the production fail-closed rejection (APP_NOT_REGISTERED).
-	if s.developerRegistrationEnabled && req.GetDeveloperRegistration() {
-		return runtimev1.ReasonCode_ACTION_EXECUTED, developerRegistrationReason, true
-	}
-	return reasonCode, reason, false
+	return s.evaluateNimiAppRegistryEligibility(registryAppID)
 }
 
 func (s *Service) evaluateNimiAppRegistryEligibility(registryAppID string) (runtimev1.ReasonCode, string, bool) {
@@ -447,9 +413,8 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 		isLocalFirstPartyModeManifest(registration.ModeManifest)
 	if localFirstParty && subjectUserID != "" {
 		s.emitAuditWithPayload(ctx, "OpenSession", appID, "", runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, map[string]any{
-			"subject_source":         "caller_provided",
-			"session_mode":           runtimeAccountSessionMode(registration),
-			"developer_registration": registration.DeveloperRegistration,
+			"subject_source": "caller_provided",
+			"session_mode":   runtimeAccountSessionMode(registration),
 		})
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED}, nil
 	}
@@ -486,7 +451,6 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	s.emitAuditWithPayload(ctx, "OpenSession", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"session_id":             sessionID,
 		"session_mode":           runtimeAccountSessionMode(registration),
-		"developer_registration": registration.DeveloperRegistration,
 		"caller_subject_ignored": subjectUserID != "",
 	})
 	return &runtimev1.OpenSessionResponse{
@@ -781,36 +745,4 @@ func cloneModeManifest(input *runtimev1.AppModeManifest) *runtimev1.AppModeManif
 		RealmRequired:   input.GetRealmRequired(),
 		WorldRelation:   input.GetWorldRelation(),
 	}
-}
-
-// emitAudit writes an audit event for auth operations (K-AUTHSVC-007).
-func (s *Service) emitAudit(ctx context.Context, operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode) {
-	s.emitAuditWithPayload(ctx, operation, appID, subjectUserID, reasonCode, nil)
-}
-
-func (s *Service) emitAuditWithPayload(ctx context.Context, operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode, payload map[string]any) {
-	if s.auditStore == nil {
-		return
-	}
-	var payloadStruct *structpb.Struct
-	if len(payload) > 0 {
-		built, err := structpb.NewStruct(payload)
-		if err != nil {
-			if s.logger != nil {
-				s.logger.Warn("auth audit payload serialization failed", "operation", operation, "error", err)
-			}
-		} else {
-			payloadStruct = built
-		}
-	}
-	traceID := strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx))
-	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
-		Domain:        "runtime.auth",
-		Operation:     operation,
-		AppId:         appID,
-		SubjectUserId: subjectUserID,
-		ReasonCode:    reasonCode,
-		TraceId:       traceID,
-		Payload:       payloadStruct,
-	})
 }

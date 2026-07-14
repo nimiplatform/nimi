@@ -119,7 +119,7 @@ test('Wave 7: admission fails closed when the Tauri runtime is unavailable', asy
   try {
     await assert.rejects(
       () => admitProductReadyForUse(),
-      /product_control_record_admit_ready_for_use requires Tauri runtime/,
+      /product_control_record_admit_ready_for_use requires standard shell Runtime/,
     );
   } finally {
     if (typeof previousTauri !== 'undefined') {

@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "synthetic-process-summary/v1",
+  "processStarts": {"provider": 1, "realm": 1, "runtime": 1, "desktop": 1, "zhiyu": 1},
+  "processProblems": [],
+  "outcome": "passed"
+}

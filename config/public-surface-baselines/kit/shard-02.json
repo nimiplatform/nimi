@@ -477,7 +477,7 @@
         "export type { ConversationTargetRailProps} from './components/conversation-target-rail.js';",
         "export type { ConversationThreadListProps} from './components/conversation-thread-list.js';",
         "export type { ConversationTranscriptShellProps} from './components/conversation-transcript-shell.js';",
-        "export type { RealmChatTimelineAvatarRenderInput, RealmChatTimelineGiftRenderInput, RealmChatTimelineProps, } from './components/realm-chat-timeline.js';",
+        "export type { RealmChatTimelineAvatarRenderInput, RealmChatTimelineGiftRenderInput, RealmChatTimelineMediaKind, RealmChatTimelineMediaResolveInput, RealmChatTimelineMediaResolver, RealmChatTimelineProps, RealmChatTimelineResolvedMediaSource, } from './components/realm-chat-timeline.js';",
         "export type { RpContentRendererProps} from './components/rp-content-renderer.js';",
         "export type { RpSegment, RpSegmentKind} from './utils/rp-content-parser.js';",
         "export type { RuntimeAgentArtifactPreviewInput, RuntimeAgentConversationProjectionInitialInput, RuntimeAgentConversationProjectionReduceOptions, RuntimeAgentConversationProjectionState, RuntimeAgentConversationProjectionStatus, RuntimeAgentTurnRunnerMessageEnvelopeLike, RuntimeAgentTurnRunnerPartLike, RuntimeAgentTurnRunnerProjectionOptions, } from './headless/runtime-agent-turn-projection.js';",

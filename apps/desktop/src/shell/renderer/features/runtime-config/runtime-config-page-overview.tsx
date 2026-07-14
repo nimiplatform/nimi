@@ -276,7 +276,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Button variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
+            <Button data-testid="runtime-service-refresh" variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
               {daemonBusy
                 ? t('runtimeConfig.overview.working', { defaultValue: 'Working...' })
                 : t('runtimeConfig.overview.refresh', { defaultValue: 'Refresh' })}
@@ -284,7 +284,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             <Button variant="secondary" size="sm" disabled={daemonBusy || daemonRunning} onClick={() => void model.startRuntimeDaemon()}>
               {t('runtimeConfig.overview.start', { defaultValue: 'Start' })}
             </Button>
-            <Button variant="secondary" size="sm" disabled={daemonBusy || !daemonRunning} onClick={() => void model.restartRuntimeDaemon()}>
+            <Button data-testid="runtime-service-restart" variant="secondary" size="sm" disabled={daemonBusy || !daemonRunning} onClick={() => void model.restartRuntimeDaemon()}>
               {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
             </Button>
           </div>

@@ -1,7 +1,7 @@
 // Aggregator coverage index consumed by Kit cross-app adoption checks:
 // - tester kit gallery showcases real kit components
 // - tester auth and runtime bootstrap consume Kit shell bridge primitives
-// - tester product-local preferences use Kit storage while AIConfig persistence is standard-shell owned
+// - unadmitted AIConfig and standard storage fail closed with typed SDK errors
 // - Runtime account projection without account control
 // - emitRuntimeLog
 import './tester-contract/boundary.mjs';

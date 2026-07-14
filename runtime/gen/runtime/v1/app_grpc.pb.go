@@ -27,17 +27,14 @@ const (
 	RuntimeAppService_UninstallApp_FullMethodName                = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
 	RuntimeAppService_GetAppStorage_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
 	RuntimeAppService_GetAccountAppInventory_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory"
-	RuntimeAppService_AdoptLocalApp_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp"
-	RuntimeAppService_ListLocalAppAdoptions_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions"
-	RuntimeAppService_RemoveLocalAppAdoption_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption"
 	RuntimeAppService_GetAppPackageReadiness_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"
 	RuntimeAppService_GetAppInstallJob_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
 	RuntimeAppService_ListAppInstallJobs_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
 	RuntimeAppService_WatchAppInstallJobEvents_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents"
 	RuntimeAppService_UpdateApp_FullMethodName                   = "/nimi.runtime.v1.RuntimeAppService/UpdateApp"
 	RuntimeAppService_HealthRepairApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp"
-	RuntimeAppService_OpenApp_FullMethodName                     = "/nimi.runtime.v1.RuntimeAppService/OpenApp"
-	RuntimeAppService_BindInstalledLaunchProcess_FullMethodName  = "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess"
+	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
+	RuntimeAppService_BindLocalAppProcess_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -48,26 +45,21 @@ type RuntimeAppServiceClient interface {
 	SubscribeAppMessages(ctx context.Context, in *SubscribeAppMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppMessageEvent], error)
 	PrepareAppLifecycleIntent(ctx context.Context, in *PrepareAppLifecycleIntentRequest, opts ...grpc.CallOption) (*PrepareAppLifecycleIntentResponse, error)
 	GetAppLifecycleIntentStatus(ctx context.Context, in *GetAppLifecycleIntentStatusRequest, opts ...grpc.CallOption) (*GetAppLifecycleIntentStatusResponse, error)
-	// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+	// Frozen immutable-package seam. Mutation/job methods below are deny-all in
+	// 0K; GetAppPackageReadiness is callable only for typed unavailable.
 	InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error)
 	UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error)
 	GetAppStorage(ctx context.Context, in *GetAppStorageRequest, opts ...grpc.CallOption) (*GetAppStorageResponse, error)
 	GetAccountAppInventory(ctx context.Context, in *GetAccountAppInventoryRequest, opts ...grpc.CallOption) (*GetAccountAppInventoryResponse, error)
-	AdoptLocalApp(ctx context.Context, in *AdoptLocalAppRequest, opts ...grpc.CallOption) (*AdoptLocalAppResponse, error)
-	ListLocalAppAdoptions(ctx context.Context, in *ListLocalAppAdoptionsRequest, opts ...grpc.CallOption) (*ListLocalAppAdoptionsResponse, error)
-	RemoveLocalAppAdoption(ctx context.Context, in *RemoveLocalAppAdoptionRequest, opts ...grpc.CallOption) (*RemoveLocalAppAdoptionResponse, error)
 	GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error)
 	WatchAppInstallJobEvents(ctx context.Context, in *WatchAppInstallJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppInstallJobEvent], error)
-	// Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+	// Frozen immutable update/repair seam; deny-all in 0K.
 	UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error)
 	HealthRepairApp(ctx context.Context, in *HealthRepairAppRequest, opts ...grpc.CallOption) (*HealthRepairAppResponse, error)
-	// Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
-	// entry for launching a Nimi App; it requires an explicit app-shape
-	// AIScopeRef and never infers launch scope.
-	OpenApp(ctx context.Context, in *OpenAppRequest, opts ...grpc.CallOption) (*OpenAppResponse, error)
-	BindInstalledLaunchProcess(ctx context.Context, in *BindInstalledLaunchProcessRequest, opts ...grpc.CallOption) (*BindInstalledLaunchProcessResponse, error)
+	PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error)
+	BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error)
 }
 
 type runtimeAppServiceClient struct {
@@ -167,36 +159,6 @@ func (c *runtimeAppServiceClient) GetAccountAppInventory(ctx context.Context, in
 	return out, nil
 }
 
-func (c *runtimeAppServiceClient) AdoptLocalApp(ctx context.Context, in *AdoptLocalAppRequest, opts ...grpc.CallOption) (*AdoptLocalAppResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AdoptLocalAppResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_AdoptLocalApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) ListLocalAppAdoptions(ctx context.Context, in *ListLocalAppAdoptionsRequest, opts ...grpc.CallOption) (*ListLocalAppAdoptionsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListLocalAppAdoptionsResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_ListLocalAppAdoptions_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAppServiceClient) RemoveLocalAppAdoption(ctx context.Context, in *RemoveLocalAppAdoptionRequest, opts ...grpc.CallOption) (*RemoveLocalAppAdoptionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RemoveLocalAppAdoptionResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_RemoveLocalAppAdoption_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAppServiceClient) GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAppPackageReadinessResponse)
@@ -266,20 +228,20 @@ func (c *runtimeAppServiceClient) HealthRepairApp(ctx context.Context, in *Healt
 	return out, nil
 }
 
-func (c *runtimeAppServiceClient) OpenApp(ctx context.Context, in *OpenAppRequest, opts ...grpc.CallOption) (*OpenAppResponse, error) {
+func (c *runtimeAppServiceClient) PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OpenAppResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_OpenApp_FullMethodName, in, out, cOpts...)
+	out := new(PrepareLocalAppLaunchResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_PrepareLocalAppLaunch_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAppServiceClient) BindInstalledLaunchProcess(ctx context.Context, in *BindInstalledLaunchProcessRequest, opts ...grpc.CallOption) (*BindInstalledLaunchProcessResponse, error) {
+func (c *runtimeAppServiceClient) BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BindInstalledLaunchProcessResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_BindInstalledLaunchProcess_FullMethodName, in, out, cOpts...)
+	out := new(BindLocalAppProcessResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_BindLocalAppProcess_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -294,26 +256,21 @@ type RuntimeAppServiceServer interface {
 	SubscribeAppMessages(*SubscribeAppMessagesRequest, grpc.ServerStreamingServer[AppMessageEvent]) error
 	PrepareAppLifecycleIntent(context.Context, *PrepareAppLifecycleIntentRequest) (*PrepareAppLifecycleIntentResponse, error)
 	GetAppLifecycleIntentStatus(context.Context, *GetAppLifecycleIntentStatusRequest) (*GetAppLifecycleIntentStatusResponse, error)
-	// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+	// Frozen immutable-package seam. Mutation/job methods below are deny-all in
+	// 0K; GetAppPackageReadiness is callable only for typed unavailable.
 	InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error)
 	UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error)
 	GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error)
 	GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error)
-	AdoptLocalApp(context.Context, *AdoptLocalAppRequest) (*AdoptLocalAppResponse, error)
-	ListLocalAppAdoptions(context.Context, *ListLocalAppAdoptionsRequest) (*ListLocalAppAdoptionsResponse, error)
-	RemoveLocalAppAdoption(context.Context, *RemoveLocalAppAdoptionRequest) (*RemoveLocalAppAdoptionResponse, error)
 	GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error)
 	WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error
-	// Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+	// Frozen immutable update/repair seam; deny-all in 0K.
 	UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error)
 	HealthRepairApp(context.Context, *HealthRepairAppRequest) (*HealthRepairAppResponse, error)
-	// Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
-	// entry for launching a Nimi App; it requires an explicit app-shape
-	// AIScopeRef and never infers launch scope.
-	OpenApp(context.Context, *OpenAppRequest) (*OpenAppResponse, error)
-	BindInstalledLaunchProcess(context.Context, *BindInstalledLaunchProcessRequest) (*BindInstalledLaunchProcessResponse, error)
+	PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error)
+	BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error)
 }
 
 // UnimplementedRuntimeAppServiceServer should be embedded to have
@@ -347,15 +304,6 @@ func (UnimplementedRuntimeAppServiceServer) GetAppStorage(context.Context, *GetA
 func (UnimplementedRuntimeAppServiceServer) GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAccountAppInventory not implemented")
 }
-func (UnimplementedRuntimeAppServiceServer) AdoptLocalApp(context.Context, *AdoptLocalAppRequest) (*AdoptLocalAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method AdoptLocalApp not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) ListLocalAppAdoptions(context.Context, *ListLocalAppAdoptionsRequest) (*ListLocalAppAdoptionsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAdoptions not implemented")
-}
-func (UnimplementedRuntimeAppServiceServer) RemoveLocalAppAdoption(context.Context, *RemoveLocalAppAdoptionRequest) (*RemoveLocalAppAdoptionResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAppAdoption not implemented")
-}
 func (UnimplementedRuntimeAppServiceServer) GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppPackageReadiness not implemented")
 }
@@ -374,11 +322,11 @@ func (UnimplementedRuntimeAppServiceServer) UpdateApp(context.Context, *UpdateAp
 func (UnimplementedRuntimeAppServiceServer) HealthRepairApp(context.Context, *HealthRepairAppRequest) (*HealthRepairAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method HealthRepairApp not implemented")
 }
-func (UnimplementedRuntimeAppServiceServer) OpenApp(context.Context, *OpenAppRequest) (*OpenAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method OpenApp not implemented")
+func (UnimplementedRuntimeAppServiceServer) PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrepareLocalAppLaunch not implemented")
 }
-func (UnimplementedRuntimeAppServiceServer) BindInstalledLaunchProcess(context.Context, *BindInstalledLaunchProcessRequest) (*BindInstalledLaunchProcessResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method BindInstalledLaunchProcess not implemented")
+func (UnimplementedRuntimeAppServiceServer) BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BindLocalAppProcess not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) testEmbeddedByValue() {}
 
@@ -537,60 +485,6 @@ func _RuntimeAppService_GetAccountAppInventory_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAppService_AdoptLocalApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AdoptLocalAppRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).AdoptLocalApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_AdoptLocalApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).AdoptLocalApp(ctx, req.(*AdoptLocalAppRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_ListLocalAppAdoptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListLocalAppAdoptionsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).ListLocalAppAdoptions(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_ListLocalAppAdoptions_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).ListLocalAppAdoptions(ctx, req.(*ListLocalAppAdoptionsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAppService_RemoveLocalAppAdoption_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveLocalAppAdoptionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).RemoveLocalAppAdoption(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAppService_RemoveLocalAppAdoption_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).RemoveLocalAppAdoption(ctx, req.(*RemoveLocalAppAdoptionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAppService_GetAppPackageReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAppPackageReadinessRequest)
 	if err := dec(in); err != nil {
@@ -692,38 +586,38 @@ func _RuntimeAppService_HealthRepairApp_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAppService_OpenApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OpenAppRequest)
+func _RuntimeAppService_PrepareLocalAppLaunch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrepareLocalAppLaunchRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).OpenApp(ctx, in)
+		return srv.(RuntimeAppServiceServer).PrepareLocalAppLaunch(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAppService_OpenApp_FullMethodName,
+		FullMethod: RuntimeAppService_PrepareLocalAppLaunch_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).OpenApp(ctx, req.(*OpenAppRequest))
+		return srv.(RuntimeAppServiceServer).PrepareLocalAppLaunch(ctx, req.(*PrepareLocalAppLaunchRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAppService_BindInstalledLaunchProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BindInstalledLaunchProcessRequest)
+func _RuntimeAppService_BindLocalAppProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BindLocalAppProcessRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).BindInstalledLaunchProcess(ctx, in)
+		return srv.(RuntimeAppServiceServer).BindLocalAppProcess(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAppService_BindInstalledLaunchProcess_FullMethodName,
+		FullMethod: RuntimeAppService_BindLocalAppProcess_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).BindInstalledLaunchProcess(ctx, req.(*BindInstalledLaunchProcessRequest))
+		return srv.(RuntimeAppServiceServer).BindLocalAppProcess(ctx, req.(*BindLocalAppProcessRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -764,18 +658,6 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_GetAccountAppInventory_Handler,
 		},
 		{
-			MethodName: "AdoptLocalApp",
-			Handler:    _RuntimeAppService_AdoptLocalApp_Handler,
-		},
-		{
-			MethodName: "ListLocalAppAdoptions",
-			Handler:    _RuntimeAppService_ListLocalAppAdoptions_Handler,
-		},
-		{
-			MethodName: "RemoveLocalAppAdoption",
-			Handler:    _RuntimeAppService_RemoveLocalAppAdoption_Handler,
-		},
-		{
 			MethodName: "GetAppPackageReadiness",
 			Handler:    _RuntimeAppService_GetAppPackageReadiness_Handler,
 		},
@@ -796,12 +678,12 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_HealthRepairApp_Handler,
 		},
 		{
-			MethodName: "OpenApp",
-			Handler:    _RuntimeAppService_OpenApp_Handler,
+			MethodName: "PrepareLocalAppLaunch",
+			Handler:    _RuntimeAppService_PrepareLocalAppLaunch_Handler,
 		},
 		{
-			MethodName: "BindInstalledLaunchProcess",
-			Handler:    _RuntimeAppService_BindInstalledLaunchProcess_Handler,
+			MethodName: "BindLocalAppProcess",
+			Handler:    _RuntimeAppService_BindLocalAppProcess_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -67,7 +67,6 @@ export async function startRuntimeDaemon({ fixtureOrigin, realmIssuerOrigin = fi
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: path.join(stateRoot, 'connector-store.json'),
       NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS: '1',
       NIMI_RUNTIME_ACCOUNT_TEST_CUSTODY_FILE_PATH: path.join(stateRoot, 'account-custody.json'),
-      NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',
       NIMI_RUNTIME_APP_REGISTRY_PATH: path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-app-registry.yaml'),
       NIMI_RUNTIME_AUTH_JWT_ISSUER: realmIssuerOrigin,
       NIMI_RUNTIME_AUTH_JWT_AUDIENCE: 'nimi-runtime',
@@ -169,7 +168,6 @@ export async function completeRuntimeAccountLogin(runtime, observationsLog, real
       deviceId: caller.deviceId,
       appVersion: 'desktop-explore-materialization-acceptance',
       capabilities: REGISTRATION_CAPABILITIES,
-      developerRegistration: false,
     },
   )();
   const sessionMetadata = await createNimiRuntimeAppSessionMetadataProvider({
@@ -178,17 +176,9 @@ export async function completeRuntimeAccountLogin(runtime, observationsLog, real
     deviceId: caller.deviceId,
     appVersion: 'desktop-explore-materialization-acceptance',
     capabilities: REGISTRATION_CAPABILITIES,
-    developerRegistration: false,
     auth: runtime.auth,
   })();
-  const accountControlMetadata = {
-    ...sessionMetadata,
-    'x-nimi-source-host': 'desktop-electron-account-host',
-    'x-nimi-app-id': caller.appId,
-    'x-nimi-app-instance-id': caller.appInstanceId,
-    'x-nimi-device-id': caller.deviceId,
-  };
-  const accountOptions = (key) => idempotency(key, { metadata: accountControlMetadata });
+  const accountOptions = (key) => idempotency(key, { metadata: sessionMetadata });
   observationsLog.runtimeAccount = { stage: 'begin_login' };
   const begin = await runtime.account.beginLogin({
     caller,
@@ -298,7 +288,6 @@ export function createAcceptanceAgentClient(runtime, ownerUserId = OWNER_USER_ID
     deviceId: 'acceptance-agent-session',
     appVersion: 'desktop-explore-materialization-acceptance',
     capabilities: REGISTRATION_CAPABILITIES,
-    developerRegistration: false,
     auth: runtime.auth,
   });
   const agentRuntime = {

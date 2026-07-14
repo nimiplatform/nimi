@@ -10,9 +10,6 @@ import {
   type NimiDesktopOpenResultReasonCode,
   type NimiDesktopOpenSourceHost,
 } from '@nimiplatform/kit/core/desktop-open';
-import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-} from '@nimiplatform/kit/shell/capabilities';
 import { normalizeText } from './paths.js';
 import type {
   NimiElectronDesktopOpenFetch,
@@ -112,9 +109,6 @@ export async function openElectronDesktopIntent(
 function resolveElectronDesktopOpenSourceHost(
   host: NimiElectronStandardShellHost | undefined,
 ): NimiDesktopOpenSourceHost {
-  if (host?.capabilitySetRef === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID) {
-    return 'desktop-electron-installed-app-host';
-  }
   if (host?.desktopOpen?.sourceHost) {
     return host.desktopOpen.sourceHost;
   }

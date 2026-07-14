@@ -13,51 +13,23 @@ use nimi_shell_tauri::{
         set_standard_local_assets_host_hooks, StandardLocalAssetsHostHooks,
     },
     capabilities::runtime::{
-        DesktopAccountSessionStatusRequest, RuntimeBridgeHostAppSessionConfig,
-        RuntimeBridgeHostAppSessionProvider, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
+        DesktopAccountSessionStatusRequest, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
         RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataRequest,
-        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID, RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
+        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
     },
     capabilities::shell_ui::{StandardConfirmDialogPayload, StandardShellUiHostHooks},
 };
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 pub(super) async fn resolve_desktop_runtime_trusted_metadata(
     request: RuntimeBridgeTrustedMetadataRequest,
     desktop_account_caller: nimi_shell_tauri::capabilities::runtime::generated::AccountCaller,
-    desktop_account_session: RuntimeBridgeHostAppSessionProvider,
 ) -> Result<Option<RuntimeBridgeTrustedMetadata>, String> {
     if request
         .method_id
         .starts_with("/nimi.runtime.v1.RuntimeAccountService/")
     {
-        let app_session = desktop_account_session.resolve().await?;
-        let extra = HashMap::from([
-            (
-                "x-nimi-source-host".to_string(),
-                RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST.to_string(),
-            ),
-            (
-                "x-nimi-app-instance-id".to_string(),
-                desktop_account_caller.app_instance_id.clone(),
-            ),
-            (
-                "x-nimi-device-id".to_string(),
-                desktop_account_caller.device_id.clone(),
-            ),
-        ]);
-        return Ok(Some(RuntimeBridgeTrustedMetadata {
-            metadata: Some(RuntimeBridgeMetadata {
-                app_id: Some(desktop_account_caller.app_id.clone()),
-                participant_id: Some(desktop_account_caller.app_id.clone()),
-                caller_kind: Some("desktop-shell".to_string()),
-                caller_id: Some(desktop_account_caller.app_instance_id.clone()),
-                extra: Some(extra),
-                ..RuntimeBridgeMetadata::default()
-            }),
-            app_session: Some(app_session),
-            ..RuntimeBridgeTrustedMetadata::default()
-        }));
+        return Err("DESKTOP_CONTROL_TRANSPORT_REQUIRED".to_string());
     }
     if request.method_id == RUNTIME_APP_GET_APP_STORAGE_METHOD_ID {
         return Ok(Some(RuntimeBridgeTrustedMetadata {
@@ -86,16 +58,6 @@ pub(super) async fn resolve_desktop_runtime_trusted_metadata(
 fn install_shared_runtime_bridge_hooks() {
     let desktop_account_caller = desktop_shell_runtime_account_caller("nimi.desktop")
         .expect("Desktop Runtime account caller constants must be valid");
-    let desktop_account_session = RuntimeBridgeHostAppSessionProvider::new(
-        RuntimeBridgeHostAppSessionConfig::desktop_shell(
-            &desktop_account_caller.app_id,
-            &desktop_account_caller.app_instance_id,
-            &desktop_account_caller.device_id,
-            Vec::new(),
-        )
-        .expect("Desktop Runtime host app-session constants must be valid"),
-    )
-    .expect("Desktop Runtime host app-session provider must initialize");
     let desktop_account_status_request = DesktopAccountSessionStatusRequest {
         app_id: desktop_account_caller.app_id.clone(),
         app_instance_id: desktop_account_caller.app_instance_id.clone(),
@@ -127,12 +89,10 @@ fn install_shared_runtime_bridge_hooks() {
             }
         },
         trusted_metadata: Some(Arc::new(move |request| {
-            let desktop_account_session = desktop_account_session.clone();
             let desktop_account_caller = desktop_account_caller.clone();
             Box::pin(resolve_desktop_runtime_trusted_metadata(
                 request,
                 desktop_account_caller,
-                desktop_account_session,
             ))
         })),
         sync_daemon_status: Some(Arc::new(|app, status| {
@@ -348,6 +308,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                     );
                 }
             }
+            app.manage(crate::desktop_local_app_grants::DesktopLocalAppGrantRuntime::start(
+                app.handle().clone(),
+            ));
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
             match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
@@ -469,18 +432,23 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_oauth_runtime_bridge_handler![
             @with_runtime_defaults super::defaults_and_commands::runtime_defaults;
             desktop_release::desktop_release_info_get,
-            nimi_shell_tauri::capabilities::runtime::runtime_account_session_status,
             desktop_updates::desktop_update_state_get,
             desktop_updates::desktop_update_check,
             desktop_updates::desktop_update_download,
             desktop_updates::desktop_update_install,
             desktop_updates::desktop_update_restart,
             crate::desktop_open_intent::desktop_open_intent_set_ready,
+            crate::desktop_local_development::developer_mode_status,
+            crate::desktop_local_development::developer_mode_set,
             crate::desktop_local_development::local_development_pending_approvals,
             crate::desktop_local_development::local_development_decide,
             crate::desktop_local_development::local_development_authorizations_list,
             crate::desktop_local_development::local_development_runs_list,
             crate::desktop_local_development::local_development_authorization_revoke,
+            crate::desktop_local_app_grants::local_app_grant_pending_list,
+            crate::desktop_local_app_grants::local_app_grant_decide,
+            crate::desktop_local_app_grants::local_app_grant_list,
+            crate::desktop_local_app_grants::local_app_grant_revoke,
             crate::desktop_product_control::product_control_record_get,
             crate::desktop_product_control::product_control_selected_data_root_get,
             crate::desktop_product_control::product_control_record_ensure_created,
@@ -567,6 +535,11 @@ pub(crate) fn run() {
                         crate::desktop_local_development::DesktopLocalDevelopmentRuntime,
                     >() {
                         tauri::async_runtime::block_on(runtime.shutdown());
+                    }
+                    if let Some(runtime) = app_handle.try_state::<
+                        crate::desktop_local_app_grants::DesktopLocalAppGrantRuntime,
+                    >() {
+                        runtime.shutdown();
                     }
                     if !crate::menu_bar_shell::is_enabled() {
                         return;

@@ -44,6 +44,26 @@ function notFound(response, pathname) {
   });
 }
 
+function validatedDesktopOauthRedirect(value) {
+  let parsed;
+  try {
+    parsed = new URL(String(value || ''));
+  } catch {
+    return null;
+  }
+  const hostname = parsed.hostname.toLowerCase();
+  if (parsed.protocol !== 'http:'
+    || !['127.0.0.1', 'localhost'].includes(hostname)
+    || !parsed.port
+    || parsed.username
+    || parsed.password
+    || parsed.hash
+    || parsed.pathname !== '/oauth/callback') {
+    return null;
+  }
+  return parsed;
+}
+
 function fixtureSvg(name) {
   const label = String(name || 'fixture').replace(/[^a-z0-9 -]/gi, ' ').trim() || 'fixture';
   const colors = label.includes('cover') || label.includes('banner') || label.includes('hero')
@@ -803,6 +823,31 @@ async function handleControl(request, response, manifestPath) {
     json(response, 200, { restOnline: manifest.realmFixture.restOnline });
     return;
   }
+  if (pathname === '/__fixture/control/current-user') {
+    const accountId = String(body?.accountId || '').trim();
+    const allowedAccountIds = Array.isArray(manifest.devKernelCheckpoint?.allowedAccountIds)
+      ? manifest.devKernelCheckpoint.allowedAccountIds.map((value) => String(value || '').trim())
+      : [];
+    if (!accountId || !allowedAccountIds.includes(accountId)) {
+      json(response, 400, { error: 'dev_kernel_account_not_allowed' });
+      return;
+    }
+    manifest.realmFixture = manifest.realmFixture || {};
+    manifest.realmFixture.currentUser = {
+      ...(manifest.realmFixture.currentUser || {}),
+      id: accountId,
+      displayName: String(body?.displayName || accountId).trim() || accountId,
+      handle: `@${accountId}`,
+      email: `${accountId}@nimi.local`,
+      avatarUrl: '',
+    };
+    writeJsonFile(manifestPath, manifest);
+    json(response, 200, {
+      accountId,
+      displayName: manifest.realmFixture.currentUser.displayName,
+    });
+    return;
+  }
   if (handleLocalAgentProviderControl({ body, manifest, manifestPath, pathname, response })) return;
   if (pathname === '/__fixture/control/manifest') {
     json(response, 200, manifest);
@@ -848,6 +893,39 @@ async function handleApi(request, response, manifestPath) {
       message: 'fixture rest offline',
       scenarioId: manifest.scenarioId,
     });
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/auth/oauth/authorize') {
+    const redirect = validatedDesktopOauthRedirect(requestUrl.searchParams.get('redirect_uri'));
+    const state = String(requestUrl.searchParams.get('state') || '').trim();
+    const clientId = String(requestUrl.searchParams.get('client_id') || '').trim();
+    const codeChallenge = String(requestUrl.searchParams.get('code_challenge') || '').trim();
+    if (!redirect || !state || !clientId || !codeChallenge) {
+      json(response, 400, {
+        error: 'invalid_desktop_oauth_authorization_request',
+      });
+      return undefined;
+    }
+    redirect.searchParams.set('code', 'nimi-dev-kernel-fixture-code');
+    redirect.searchParams.set('state', state);
+    manifest.realmFixture = manifest.realmFixture || {};
+    manifest.realmFixture.runtimeAccountAuthorizationRequests = [
+      ...(Array.isArray(manifest.realmFixture.runtimeAccountAuthorizationRequests)
+        ? manifest.realmFixture.runtimeAccountAuthorizationRequests
+        : []),
+      {
+        clientId,
+        redirectUri: redirect.origin + redirect.pathname,
+        statePresent: true,
+        codeChallengePresent: true,
+      },
+    ];
+    writeJsonFile(manifestPath, manifest);
+    response.statusCode = 302;
+    response.setHeader('cache-control', 'no-store');
+    response.setHeader('location', redirect.toString());
+    response.end();
     return undefined;
   }
 
@@ -1246,6 +1324,12 @@ export async function startRealmFixtureServer({ manifestPath, host = '127.0.0.1'
     origin,
     controlUrl: `${origin}/__fixture/control`,
     async close() {
+      // End fixture-owned transports before asking either server to drain.
+      // A real system browser can otherwise keep the OAuth document or its
+      // Socket.IO transport alive indefinitely after the Electron process has
+      // already exited.
+      io.disconnectSockets(true);
+      server.closeAllConnections?.();
       await new Promise((resolve, reject) => {
         io.close((error) => {
           if (error) {

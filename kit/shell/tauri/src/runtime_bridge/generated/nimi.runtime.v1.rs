@@ -337,17 +337,27 @@ pub enum ReasonCode {
     LifecycleIntentMismatch = 639,
     LifecycleIntentReplay = 640,
     LifecycleIntentExpired = 641,
-    /// LOCAL_DEVELOPMENT family (642+). These values are reserved for the
-    /// explicit non-production mutable-project trust class (K-PLOCAL-009).
-    LocalDevelopmentAuthorizationRequired = 642,
-    LocalDevelopmentReapprovalRequired = 643,
-    LocalDevelopmentProjectChanged = 644,
-    LocalDevelopmentSupervisorRequired = 645,
-    LocalDevelopmentSessionRevoked = 646,
-    LocalDevelopmentPlatformUnsupported = 647,
-    LocalDevelopmentOperationForbidden = 648,
-    LocalDevelopmentDevServerUncontrolled = 649,
-    LocalDevelopmentApprovalDenied = 650,
+    /// LOCAL_APP family (642+). The third-party principal/record/grant/session
+    /// evaluator uses one provenance-agnostic reason vocabulary (K-ERR-012).
+    LocalAppPrincipalRequired = 642,
+    LocalAppRecordNotFound = 643,
+    LocalAppRecordTombstoned = 644,
+    LocalAppProvenanceUnavailable = 645,
+    LocalAppLaunchLeaseRequired = 646,
+    LocalAppLaunchLeaseMismatch = 647,
+    LocalAppLaunchLeaseReplay = 648,
+    LocalAppProcessMismatch = 649,
+    LocalAppSessionRevoked = 650,
+    LocalAppGrantRequired = 651,
+    LocalAppGrantRevoked = 652,
+    LocalAppGrantSuperseded = 653,
+    LocalAppAccountChanged = 654,
+    LocalAppOperationUnavailable = 655,
+    LocalAppPresenceRequired = 656,
+    LocalAppPresenceExpired = 657,
+    LocalAppDeveloperModeDisabled = 658,
+    LocalAppRememberedProjectDormant = 659,
+    LocalAppRiskDisclosureRequired = 660,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -610,27 +620,27 @@ impl ReasonCode {
             Self::LifecycleIntentMismatch => "LIFECYCLE_INTENT_MISMATCH",
             Self::LifecycleIntentReplay => "LIFECYCLE_INTENT_REPLAY",
             Self::LifecycleIntentExpired => "LIFECYCLE_INTENT_EXPIRED",
-            Self::LocalDevelopmentAuthorizationRequired => {
-                "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED"
+            Self::LocalAppPrincipalRequired => "LOCAL_APP_PRINCIPAL_REQUIRED",
+            Self::LocalAppRecordNotFound => "LOCAL_APP_RECORD_NOT_FOUND",
+            Self::LocalAppRecordTombstoned => "LOCAL_APP_RECORD_TOMBSTONED",
+            Self::LocalAppProvenanceUnavailable => "LOCAL_APP_PROVENANCE_UNAVAILABLE",
+            Self::LocalAppLaunchLeaseRequired => "LOCAL_APP_LAUNCH_LEASE_REQUIRED",
+            Self::LocalAppLaunchLeaseMismatch => "LOCAL_APP_LAUNCH_LEASE_MISMATCH",
+            Self::LocalAppLaunchLeaseReplay => "LOCAL_APP_LAUNCH_LEASE_REPLAY",
+            Self::LocalAppProcessMismatch => "LOCAL_APP_PROCESS_MISMATCH",
+            Self::LocalAppSessionRevoked => "LOCAL_APP_SESSION_REVOKED",
+            Self::LocalAppGrantRequired => "LOCAL_APP_GRANT_REQUIRED",
+            Self::LocalAppGrantRevoked => "LOCAL_APP_GRANT_REVOKED",
+            Self::LocalAppGrantSuperseded => "LOCAL_APP_GRANT_SUPERSEDED",
+            Self::LocalAppAccountChanged => "LOCAL_APP_ACCOUNT_CHANGED",
+            Self::LocalAppOperationUnavailable => "LOCAL_APP_OPERATION_UNAVAILABLE",
+            Self::LocalAppPresenceRequired => "LOCAL_APP_PRESENCE_REQUIRED",
+            Self::LocalAppPresenceExpired => "LOCAL_APP_PRESENCE_EXPIRED",
+            Self::LocalAppDeveloperModeDisabled => "LOCAL_APP_DEVELOPER_MODE_DISABLED",
+            Self::LocalAppRememberedProjectDormant => {
+                "LOCAL_APP_REMEMBERED_PROJECT_DORMANT"
             }
-            Self::LocalDevelopmentReapprovalRequired => {
-                "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED"
-            }
-            Self::LocalDevelopmentProjectChanged => "LOCAL_DEVELOPMENT_PROJECT_CHANGED",
-            Self::LocalDevelopmentSupervisorRequired => {
-                "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED"
-            }
-            Self::LocalDevelopmentSessionRevoked => "LOCAL_DEVELOPMENT_SESSION_REVOKED",
-            Self::LocalDevelopmentPlatformUnsupported => {
-                "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED"
-            }
-            Self::LocalDevelopmentOperationForbidden => {
-                "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN"
-            }
-            Self::LocalDevelopmentDevServerUncontrolled => {
-                "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED"
-            }
-            Self::LocalDevelopmentApprovalDenied => "LOCAL_DEVELOPMENT_APPROVAL_DENIED",
+            Self::LocalAppRiskDisclosureRequired => "LOCAL_APP_RISK_DISCLOSURE_REQUIRED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -924,32 +934,32 @@ impl ReasonCode {
             "LIFECYCLE_INTENT_MISMATCH" => Some(Self::LifecycleIntentMismatch),
             "LIFECYCLE_INTENT_REPLAY" => Some(Self::LifecycleIntentReplay),
             "LIFECYCLE_INTENT_EXPIRED" => Some(Self::LifecycleIntentExpired),
-            "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED" => {
-                Some(Self::LocalDevelopmentAuthorizationRequired)
+            "LOCAL_APP_PRINCIPAL_REQUIRED" => Some(Self::LocalAppPrincipalRequired),
+            "LOCAL_APP_RECORD_NOT_FOUND" => Some(Self::LocalAppRecordNotFound),
+            "LOCAL_APP_RECORD_TOMBSTONED" => Some(Self::LocalAppRecordTombstoned),
+            "LOCAL_APP_PROVENANCE_UNAVAILABLE" => {
+                Some(Self::LocalAppProvenanceUnavailable)
             }
-            "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED" => {
-                Some(Self::LocalDevelopmentReapprovalRequired)
+            "LOCAL_APP_LAUNCH_LEASE_REQUIRED" => Some(Self::LocalAppLaunchLeaseRequired),
+            "LOCAL_APP_LAUNCH_LEASE_MISMATCH" => Some(Self::LocalAppLaunchLeaseMismatch),
+            "LOCAL_APP_LAUNCH_LEASE_REPLAY" => Some(Self::LocalAppLaunchLeaseReplay),
+            "LOCAL_APP_PROCESS_MISMATCH" => Some(Self::LocalAppProcessMismatch),
+            "LOCAL_APP_SESSION_REVOKED" => Some(Self::LocalAppSessionRevoked),
+            "LOCAL_APP_GRANT_REQUIRED" => Some(Self::LocalAppGrantRequired),
+            "LOCAL_APP_GRANT_REVOKED" => Some(Self::LocalAppGrantRevoked),
+            "LOCAL_APP_GRANT_SUPERSEDED" => Some(Self::LocalAppGrantSuperseded),
+            "LOCAL_APP_ACCOUNT_CHANGED" => Some(Self::LocalAppAccountChanged),
+            "LOCAL_APP_OPERATION_UNAVAILABLE" => Some(Self::LocalAppOperationUnavailable),
+            "LOCAL_APP_PRESENCE_REQUIRED" => Some(Self::LocalAppPresenceRequired),
+            "LOCAL_APP_PRESENCE_EXPIRED" => Some(Self::LocalAppPresenceExpired),
+            "LOCAL_APP_DEVELOPER_MODE_DISABLED" => {
+                Some(Self::LocalAppDeveloperModeDisabled)
             }
-            "LOCAL_DEVELOPMENT_PROJECT_CHANGED" => {
-                Some(Self::LocalDevelopmentProjectChanged)
+            "LOCAL_APP_REMEMBERED_PROJECT_DORMANT" => {
+                Some(Self::LocalAppRememberedProjectDormant)
             }
-            "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED" => {
-                Some(Self::LocalDevelopmentSupervisorRequired)
-            }
-            "LOCAL_DEVELOPMENT_SESSION_REVOKED" => {
-                Some(Self::LocalDevelopmentSessionRevoked)
-            }
-            "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED" => {
-                Some(Self::LocalDevelopmentPlatformUnsupported)
-            }
-            "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN" => {
-                Some(Self::LocalDevelopmentOperationForbidden)
-            }
-            "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED" => {
-                Some(Self::LocalDevelopmentDevServerUncontrolled)
-            }
-            "LOCAL_DEVELOPMENT_APPROVAL_DENIED" => {
-                Some(Self::LocalDevelopmentApprovalDenied)
+            "LOCAL_APP_RISK_DISCLOSURE_REQUIRED" => {
+                Some(Self::LocalAppRiskDisclosureRequired)
             }
             _ => None,
         }
@@ -1044,12 +1054,6 @@ pub struct RegisterAppRequest {
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "6")]
     pub mode_manifest: ::core::option::Option<AppModeManifest>,
-    /// K-AUTHSVC-014: explicit local developer-registration intent. When true AND
-    /// the daemon's auth.developerRegistration.enabled gate is on, RegisterApp may
-    /// admit an app_id not present in the Nimi App registry. Default false keeps
-    /// production admission fail-closed (APP_NOT_REGISTERED).
-    #[prost(bool, tag = "7")]
-    pub developer_registration: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RegisterAppResponse {
@@ -1102,28 +1106,23 @@ pub struct OpenDesktopSessionResponse {
     #[prost(bytes = "vec", tag = "2")]
     pub runtime_boot_epoch: ::prost::alloc::vec::Vec<u8>,
 }
-/// Empty by design: the Runtime-owned launch record is selected by the exact
-/// verified launch_bootstrap connection, never by request data or metadata.
+/// Request-empty by design. Runtime consumes the exact bound launch lease on
+/// the verified local_app_bootstrap connection; request data and metadata carry
+/// no principal, record, account, grant, process, endpoint, or credential.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenDesktopLaunchedAppSessionRequest {}
-/// Host-only installed session proof. It is returned only on the inherited
-/// native child channel and must never cross renderer IPC.
+pub struct OpenLocalAppSessionRequest {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenDesktopLaunchedAppSessionResponse {
-    #[prost(bytes = "vec", tag = "1")]
-    pub installed_session_id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "2")]
-    pub installed_session_proof: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "3")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "4")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "5")]
-    pub release_digest: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "6")]
+pub struct OpenLocalAppSessionResponse {
+    #[prost(enumeration = "LocalAppSessionState", tag = "1")]
+    pub state: i32,
+    #[prost(enumeration = "LocalAppTrustClass", tag = "2")]
+    pub trust_class: i32,
+    #[prost(uint64, tag = "3")]
     pub account_generation: u64,
-    #[prost(bytes = "vec", tag = "7")]
+    #[prost(bytes = "vec", tag = "4")]
     pub runtime_boot_epoch: ::prost::alloc::vec::Vec<u8>,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RefreshSessionRequest {
@@ -1285,6 +1284,78 @@ impl WorldRelation {
             "WORLD_RELATION_NONE" => Some(Self::None),
             "WORLD_RELATION_RENDER" => Some(Self::Render),
             "WORLD_RELATION_EXTENSION" => Some(Self::Extension),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppSessionState {
+    Unspecified = 0,
+    Ready = 1,
+    RuntimeUnavailable = 2,
+    Revoked = 3,
+    AccountChanged = 4,
+    ProcessReplaced = 5,
+}
+impl LocalAppSessionState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_SESSION_STATE_UNSPECIFIED",
+            Self::Ready => "LOCAL_APP_SESSION_STATE_READY",
+            Self::RuntimeUnavailable => "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE",
+            Self::Revoked => "LOCAL_APP_SESSION_STATE_REVOKED",
+            Self::AccountChanged => "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED",
+            Self::ProcessReplaced => "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_SESSION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_SESSION_STATE_READY" => Some(Self::Ready),
+            "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE" => {
+                Some(Self::RuntimeUnavailable)
+            }
+            "LOCAL_APP_SESSION_STATE_REVOKED" => Some(Self::Revoked),
+            "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED" => Some(Self::AccountChanged),
+            "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED" => Some(Self::ProcessReplaced),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppTrustClass {
+    Unspecified = 0,
+    Verified = 1,
+    UserImported = 2,
+    LocalDevelopment = 3,
+}
+impl LocalAppTrustClass {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_TRUST_CLASS_UNSPECIFIED",
+            Self::Verified => "LOCAL_APP_TRUST_CLASS_VERIFIED",
+            Self::UserImported => "LOCAL_APP_TRUST_CLASS_USER_IMPORTED",
+            Self::LocalDevelopment => "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_TRUST_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_TRUST_CLASS_VERIFIED" => Some(Self::Verified),
+            "LOCAL_APP_TRUST_CLASS_USER_IMPORTED" => Some(Self::UserImported),
+            "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT" => Some(Self::LocalDevelopment),
             _ => None,
         }
     }
@@ -1461,11 +1532,11 @@ pub mod runtime_auth_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn open_desktop_launched_app_session(
+        pub async fn open_local_app_session(
             &mut self,
-            request: impl tonic::IntoRequest<super::OpenDesktopLaunchedAppSessionRequest>,
+            request: impl tonic::IntoRequest<super::OpenLocalAppSessionRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::OpenDesktopLaunchedAppSessionResponse>,
+            tonic::Response<super::OpenLocalAppSessionResponse>,
             tonic::Status,
         > {
             self.inner
@@ -1478,14 +1549,14 @@ pub mod runtime_auth_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession",
+                "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAuthService",
-                        "OpenDesktopLaunchedAppSession",
+                        "OpenLocalAppSession",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -1627,6 +1698,147 @@ pub mod runtime_auth_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAuthService",
                         "RevokeExternalPrincipalSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+    }
+}
+/// RequestRuntimeRestartRequest is intentionally empty. The mutually verified
+/// desktop_control connection and its live boot-scoped Desktop session are the
+/// complete authority input; service name, path, endpoint, timeout, recovery
+/// policy, and portable credentials are forbidden request data.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestRuntimeRestartRequest {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestRuntimeRestartResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+/// Generated client implementations.
+pub mod runtime_service_control_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    /// RuntimeServiceControlService is registered only for the protected Runtime
+    /// host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
+    /// determine success only after SCM recovery and a new verified PID, creation
+    /// marker, boot epoch, and Desktop handshake.
+    #[derive(Debug, Clone)]
+    pub struct RuntimeServiceControlServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeServiceControlServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeServiceControlServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeServiceControlServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeServiceControlServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn request_runtime_restart(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RequestRuntimeRestartRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RequestRuntimeRestartResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeServiceControlService",
+                        "RequestRuntimeRestart",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -2065,6 +2277,81 @@ pub struct RevokeWorkspaceBindingResponse {
     #[prost(bool, tag = "5")]
     pub production_inert: bool,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppGrantProjection {
+    #[prost(enumeration = "LocalAppGrantState", tag = "1")]
+    pub state: i32,
+    #[prost(string, tag = "2")]
+    pub operation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub resource_ref: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "4")]
+    pub request_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub grant_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "6")]
+    pub grant_generation: u64,
+    #[prost(uint64, tag = "7")]
+    pub grant_revision: u64,
+    #[prost(message, optional, tag = "8")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "9")]
+    pub reason_code: i32,
+    /// Present only on the verified Desktop local_app_control projection. The
+    /// local-app carrier never receives this host-private decision correlation.
+    #[prost(bytes = "vec", tag = "10")]
+    pub presence_challenge_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppGrantStatusRequest {
+    #[prost(string, tag = "1")]
+    pub operation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub resource_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppGrantStatusResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppGrantProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestLocalAppGrantRequest {
+    #[prost(string, tag = "1")]
+    pub operation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub resource_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub purpose: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestLocalAppGrantResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppGrantProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DecideLocalAppGrantRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub request_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bool, tag = "2")]
+    pub approved: bool,
+    #[prost(bytes = "vec", tag = "3")]
+    pub presence_challenge_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DecideLocalAppGrantResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppGrantProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeLocalAppGrantRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub grant_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeLocalAppGrantResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<LocalAppGrantProjection>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AccountSessionState {
@@ -2410,8 +2697,7 @@ pub enum AccountCallerMode {
     DesktopLaunchedAvatar = 3,
     WebCloud = 5,
     ExternalPrincipal = 6,
-    LocalDeveloperApp = 7,
-    DesktopLaunchedNimiApp = 8,
+    LocalApp = 9,
 }
 impl AccountCallerMode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2426,10 +2712,7 @@ impl AccountCallerMode {
             Self::DesktopLaunchedAvatar => "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
             Self::WebCloud => "ACCOUNT_CALLER_MODE_WEB_CLOUD",
             Self::ExternalPrincipal => "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
-            Self::LocalDeveloperApp => "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP",
-            Self::DesktopLaunchedNimiApp => {
-                "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP"
-            }
+            Self::LocalApp => "ACCOUNT_CALLER_MODE_LOCAL_APP",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2443,10 +2726,7 @@ impl AccountCallerMode {
             }
             "ACCOUNT_CALLER_MODE_WEB_CLOUD" => Some(Self::WebCloud),
             "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL" => Some(Self::ExternalPrincipal),
-            "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP" => Some(Self::LocalDeveloperApp),
-            "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP" => {
-                Some(Self::DesktopLaunchedNimiApp)
-            }
+            "ACCOUNT_CALLER_MODE_LOCAL_APP" => Some(Self::LocalApp),
             _ => None,
         }
     }
@@ -2619,6 +2899,50 @@ impl WorkspaceBindingState {
             "WORKSPACE_BINDING_STATE_ACTIVE" => Some(Self::Active),
             "WORKSPACE_BINDING_STATE_REVOKED" => Some(Self::Revoked),
             "WORKSPACE_BINDING_STATE_EXPIRED" => Some(Self::Expired),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppGrantState {
+    Unspecified = 0,
+    NoGrant = 1,
+    Pending = 2,
+    Granted = 3,
+    Denied = 4,
+    Expired = 5,
+    Revoked = 6,
+    Superseded = 7,
+}
+impl LocalAppGrantState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_GRANT_STATE_UNSPECIFIED",
+            Self::NoGrant => "LOCAL_APP_GRANT_STATE_NO_GRANT",
+            Self::Pending => "LOCAL_APP_GRANT_STATE_PENDING",
+            Self::Granted => "LOCAL_APP_GRANT_STATE_GRANTED",
+            Self::Denied => "LOCAL_APP_GRANT_STATE_DENIED",
+            Self::Expired => "LOCAL_APP_GRANT_STATE_EXPIRED",
+            Self::Revoked => "LOCAL_APP_GRANT_STATE_REVOKED",
+            Self::Superseded => "LOCAL_APP_GRANT_STATE_SUPERSEDED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_GRANT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_GRANT_STATE_NO_GRANT" => Some(Self::NoGrant),
+            "LOCAL_APP_GRANT_STATE_PENDING" => Some(Self::Pending),
+            "LOCAL_APP_GRANT_STATE_GRANTED" => Some(Self::Granted),
+            "LOCAL_APP_GRANT_STATE_DENIED" => Some(Self::Denied),
+            "LOCAL_APP_GRANT_STATE_EXPIRED" => Some(Self::Expired),
+            "LOCAL_APP_GRANT_STATE_REVOKED" => Some(Self::Revoked),
+            "LOCAL_APP_GRANT_STATE_SUPERSEDED" => Some(Self::Superseded),
             _ => None,
         }
     }
@@ -3056,341 +3380,11 @@ pub mod runtime_account_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AuthorizeExternalPrincipalRequest {
-    #[prost(string, tag = "1")]
-    pub domain: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub external_principal_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "ExternalPrincipalType", tag = "4")]
-    pub external_principal_type: i32,
-    #[prost(string, tag = "5")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub consent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub consent_version: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
-    pub decision_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "9")]
-    pub policy_version: ::prost::alloc::string::String,
-    #[prost(enumeration = "PolicyMode", tag = "10")]
-    pub policy_mode: i32,
-    #[prost(enumeration = "AuthorizationPreset", tag = "11")]
-    pub preset: i32,
-    #[prost(string, repeated, tag = "12")]
-    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "13")]
-    pub resource_selectors: ::core::option::Option<ResourceSelectors>,
-    #[prost(bool, tag = "14")]
-    pub can_delegate: bool,
-    #[prost(int32, tag = "15")]
-    pub max_delegation_depth: i32,
-    #[prost(int32, tag = "16")]
-    pub ttl_seconds: i32,
-    #[prost(string, tag = "17")]
-    pub scope_catalog_version: ::prost::alloc::string::String,
-    #[prost(bool, tag = "18")]
-    pub policy_override: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AuthorizeExternalPrincipalResponse {
-    #[prost(string, tag = "1")]
-    pub token_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub external_principal_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "5")]
-    pub effective_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "6")]
-    pub resource_selectors: ::core::option::Option<ResourceSelectors>,
-    #[prost(message, optional, tag = "7")]
-    pub consent_ref: ::core::option::Option<ConsentRef>,
-    #[prost(string, tag = "8")]
-    pub policy_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub issued_scope_catalog_version: ::prost::alloc::string::String,
-    #[prost(bool, tag = "10")]
-    pub can_delegate: bool,
-    #[prost(message, optional, tag = "11")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "12")]
-    pub secret: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ValidateAppAccessTokenRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub token_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub operation: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "5")]
-    pub requested_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "6")]
-    pub resource_selectors: ::core::option::Option<ResourceSelectors>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ValidateAppAccessTokenResponse {
-    #[prost(bool, tag = "1")]
-    pub valid: bool,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub reason_code: i32,
-    #[prost(string, repeated, tag = "3")]
-    pub effective_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "4")]
-    pub policy_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub issued_scope_catalog_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub action_hint: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RevokeAppAccessTokenRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub token_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct IssueDelegatedAccessTokenRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub parent_token_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "3")]
-    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "4")]
-    pub resource_selectors: ::core::option::Option<ResourceSelectors>,
-    #[prost(int32, tag = "5")]
-    pub ttl_seconds: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct IssueDelegatedAccessTokenResponse {
-    #[prost(string, tag = "1")]
-    pub token_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub parent_token_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "3")]
-    pub effective_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "4")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "5")]
-    pub secret: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListTokenChainRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub root_token_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "3")]
-    pub include_revoked: bool,
-    #[prost(int32, tag = "4")]
-    pub page_size: i32,
-    #[prost(string, tag = "5")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TokenChainEntry {
-    #[prost(string, tag = "1")]
-    pub token_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub parent_token_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub principal_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub principal_type: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "5")]
-    pub effective_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "6")]
-    pub issued_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(bool, tag = "8")]
-    pub revoked: bool,
-    #[prost(int32, tag = "9")]
-    pub delegation_depth: i32,
-    #[prost(string, tag = "10")]
-    pub policy_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub issued_scope_catalog_version: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListTokenChainResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub entries: ::prost::alloc::vec::Vec<TokenChainEntry>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-    #[prost(bool, tag = "3")]
-    pub has_more: bool,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum PolicyMode {
-    Unspecified = 0,
-    Preset = 1,
-    Custom = 2,
-}
-impl PolicyMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "POLICY_MODE_UNSPECIFIED",
-            Self::Preset => "POLICY_MODE_PRESET",
-            Self::Custom => "POLICY_MODE_CUSTOM",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "POLICY_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "POLICY_MODE_PRESET" => Some(Self::Preset),
-            "POLICY_MODE_CUSTOM" => Some(Self::Custom),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AuthorizationPreset {
-    Unspecified = 0,
-    ReadOnly = 1,
-    Full = 2,
-    Delegate = 3,
-}
-impl AuthorizationPreset {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AUTHORIZATION_PRESET_UNSPECIFIED",
-            Self::ReadOnly => "AUTHORIZATION_PRESET_READ_ONLY",
-            Self::Full => "AUTHORIZATION_PRESET_FULL",
-            Self::Delegate => "AUTHORIZATION_PRESET_DELEGATE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AUTHORIZATION_PRESET_UNSPECIFIED" => Some(Self::Unspecified),
-            "AUTHORIZATION_PRESET_READ_ONLY" => Some(Self::ReadOnly),
-            "AUTHORIZATION_PRESET_FULL" => Some(Self::Full),
-            "AUTHORIZATION_PRESET_DELEGATE" => Some(Self::Delegate),
-            _ => None,
-        }
-    }
-}
-/// Generated client implementations.
-pub mod runtime_grant_service_client {
-    #![allow(
-        unused_variables,
-        dead_code,
-        missing_docs,
-        clippy::wildcard_imports,
-        clippy::let_unit_value,
-    )]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    #[derive(Debug, Clone)]
-    pub struct RuntimeGrantServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
-    }
-    impl RuntimeGrantServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> RuntimeGrantServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::Body>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> RuntimeGrantServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
-        {
-            RuntimeGrantServiceClient::new(InterceptedService::new(inner, interceptor))
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// Limits the maximum size of a decoded message.
-        ///
-        /// Default: `4MB`
-        #[must_use]
-        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_decoding_message_size(limit);
-            self
-        }
-        /// Limits the maximum size of an encoded message.
-        ///
-        /// Default: `usize::MAX`
-        #[must_use]
-        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_encoding_message_size(limit);
-            self
-        }
-        pub async fn authorize_external_principal(
+        pub async fn get_local_app_grant_status(
             &mut self,
-            request: impl tonic::IntoRequest<super::AuthorizeExternalPrincipalRequest>,
+            request: impl tonic::IntoRequest<super::GetLocalAppGrantStatusRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::AuthorizeExternalPrincipalResponse>,
+            tonic::Response<super::GetLocalAppGrantStatusResponse>,
             tonic::Status,
         > {
             self.inner
@@ -3403,23 +3397,23 @@ pub mod runtime_grant_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
+                "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeGrantService",
-                        "AuthorizeExternalPrincipal",
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "GetLocalAppGrantStatus",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn validate_app_access_token(
+        pub async fn request_local_app_grant(
             &mut self,
-            request: impl tonic::IntoRequest<super::ValidateAppAccessTokenRequest>,
+            request: impl tonic::IntoRequest<super::RequestLocalAppGrantRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::ValidateAppAccessTokenResponse>,
+            tonic::Response<super::RequestLocalAppGrantResponse>,
             tonic::Status,
         > {
             self.inner
@@ -3432,49 +3426,23 @@ pub mod runtime_grant_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken",
+                "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeGrantService",
-                        "ValidateAppAccessToken",
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "RequestLocalAppGrant",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn revoke_app_access_token(
+        pub async fn decide_local_app_grant(
             &mut self,
-            request: impl tonic::IntoRequest<super::RevokeAppAccessTokenRequest>,
-        ) -> std::result::Result<tonic::Response<super::Ack>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeGrantService",
-                        "RevokeAppAccessToken",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn issue_delegated_access_token(
-            &mut self,
-            request: impl tonic::IntoRequest<super::IssueDelegatedAccessTokenRequest>,
+            request: impl tonic::IntoRequest<super::DecideLocalAppGrantRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::IssueDelegatedAccessTokenResponse>,
+            tonic::Response<super::DecideLocalAppGrantResponse>,
             tonic::Status,
         > {
             self.inner
@@ -3487,23 +3455,23 @@ pub mod runtime_grant_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken",
+                "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeGrantService",
-                        "IssueDelegatedAccessToken",
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "DecideLocalAppGrant",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn list_token_chain(
+        pub async fn revoke_local_app_grant(
             &mut self,
-            request: impl tonic::IntoRequest<super::ListTokenChainRequest>,
+            request: impl tonic::IntoRequest<super::RevokeLocalAppGrantRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::ListTokenChainResponse>,
+            tonic::Response<super::RevokeLocalAppGrantResponse>,
             tonic::Status,
         > {
             self.inner
@@ -3516,14 +3484,14 @@ pub mod runtime_grant_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeGrantService/ListTokenChain",
+                "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeGrantService",
-                        "ListTokenChain",
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "RevokeLocalAppGrant",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -13624,6 +13592,14 @@ pub struct SubscribeAppMessagesRequest {
     pub from_app_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "5")]
     pub scoped_binding: ::core::option::Option<ScopedRuntimeBindingAttachment>,
+    /// Local-app carrier selector only. These fields never establish caller,
+    /// Agent ownership, conversation ownership, grant, or session authority;
+    /// Runtime accepts them only on the verified local_app_host transport and
+    /// revalidates them in the operation owner.
+    #[prost(string, tag = "6")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppMessageEvent {
@@ -13650,9 +13626,8 @@ pub struct AppMessageEvent {
     #[prost(message, optional, tag = "11")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// AppLifecycleDestructiveOptions is the closed set of option values that can
-/// alter the canonical impact for today's lifecycle methods. Runtime resolves
-/// and revalidates their concrete target before it issues an intent.
+/// AppLifecycleDestructiveOptions reserves future immutable-package impact
+/// fields. Runtime does not resolve or issue such an intent in 0K.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppLifecycleDestructiveOptions {
     #[prost(bool, tag = "1")]
@@ -13662,9 +13637,8 @@ pub struct AppLifecycleDestructiveOptions {
     #[prost(string, tag = "3")]
     pub target_job_id: ::prost::alloc::string::String,
 }
-/// AppLifecycleCanonicalImpact is the typed input to RFC8785 JSON
-/// canonicalization and SHA-256 digesting. account_generation remains inside
-/// Runtime/protected transport and is never projected into renderer IPC.
+/// AppLifecycleCanonicalImpact reserves a future canonical-impact shape. No
+/// canonical package impact is produced or projected in 0K.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppLifecycleCanonicalImpact {
     #[prost(uint32, tag = "1")]
@@ -13679,8 +13653,6 @@ pub struct AppLifecycleCanonicalImpact {
     pub release_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub artifact_digest: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "7")]
-    pub adoption_generation: u64,
     #[prost(message, optional, tag = "8")]
     pub destructive_options: ::core::option::Option<AppLifecycleDestructiveOptions>,
     #[prost(string, repeated, tag = "9")]
@@ -13698,8 +13670,6 @@ pub struct PrepareAppLifecycleIntentRequest {
     pub expected_release_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub expected_artifact_digest: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "5")]
-    pub expected_adoption_generation: u64,
     #[prost(message, optional, tag = "6")]
     pub destructive_options: ::core::option::Option<AppLifecycleDestructiveOptions>,
 }
@@ -13738,9 +13708,8 @@ pub struct GetAppLifecycleIntentStatusResponse {
     #[prost(bool, tag = "6")]
     pub retryability: bool,
 }
-/// AppInstallStorageProjection mirrors the Runtime-owned app storage roots
-/// (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
-/// selected nimi_data directory.
+/// AppInstallStorageProjection reserves future immutable-materialization roots.
+/// It is never positively populated in 0K.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppInstallStorageProjection {
     #[prost(string, tag = "1")]
@@ -13754,10 +13723,10 @@ pub struct AppInstallStorageProjection {
     #[prost(string, tag = "5")]
     pub temp_root: ::prost::alloc::string::String,
 }
-/// AppStorageProjection is the stable Runtime-owned app storage truth surface
-/// for app consumers (P-NAPP-015 / S-APP-011). data/cache/tmp are app-scoped
-/// absolute roots under selected nimi_data. active_release_root is populated
-/// only when an installed active release pointer resolves.
+/// AppStorageProjection is the stable Runtime-owned app-private storage truth
+/// surface (K-APP-022). data/cache/tmp are principal-partitioned roots under the
+/// selected nimi_data root. In 0K active_release_root and active_version remain
+/// empty because no immutable materialization is admitted.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppStorageProjection {
     #[prost(string, tag = "1")]
@@ -13783,9 +13752,10 @@ pub struct AppStorageProjection {
     #[prost(string, tag = "11")]
     pub detail: ::prost::alloc::string::String,
 }
-/// AppPackageReadinessProjection is the Runtime-owned package readiness surface
-/// for app consumers. It projects active release + install evidence truth only;
-/// registry admission and permission gates stay in Platform/SDK projections.
+/// AppPackageReadinessProjection is the frozen opaque package seam. In 0K it
+/// contains only BLOCKED, LOCAL_APP_OPERATION_UNAVAILABLE, and
+/// immutable_profile_unavailable; all identity, descriptor, version, digest,
+/// verification, and storage-policy fields remain empty.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppPackageReadinessProjection {
     #[prost(string, tag = "1")]
@@ -13811,11 +13781,8 @@ pub struct AppPackageReadinessProjection {
     #[prost(string, tag = "11")]
     pub detail: ::prost::alloc::string::String,
 }
-/// AppInstallJob is the typed install job projection. It mirrors the
-/// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
-/// resolved descriptor identity, a fail-closed failure detail, and a
-/// retryable flag so a failed install can be retried or its partial files
-/// removed without ever projecting as success.
+/// AppInstallJob reserves a future immutable-package job projection. No job id,
+/// descriptor, digest, storage, retry, or terminal success is emitted in 0K.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppInstallJob {
     #[prost(string, tag = "1")]
@@ -13863,12 +13830,10 @@ pub struct AppInstallJob {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InstallAppRequest {
-    /// app_id resolves an admitted Nimi App registry row and its bound release
-    /// descriptor.
+    /// Reserved future package selector; it has no authority in 0K.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
-    /// confirmed records that the user confirmed the install requirement preview
-    /// (size, data roots, AI/profile requirements, permissions).
+    /// Reserved future confirmation slot; it cannot admit an install in 0K.
     #[prost(bool, tag = "2")]
     pub confirmed: bool,
     #[prost(string, tag = "3")]
@@ -13893,10 +13858,8 @@ pub struct GetAppInstallJobResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppStorageRequest {
-    /// app_id resolves the app-scoped storage roots. For ordinary installed apps
-    /// it resolves against the admitted descriptor/active release. For a
-    /// runtime-registered developer app, it still returns data/cache/tmp under
-    /// the selected nimi_data root without projecting an installed release.
+    /// app_id is correlation-only and must match the verified principal/record
+    /// binding. Runtime never uses it as authority or an app-id fallback.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
 }
@@ -13955,91 +13918,10 @@ pub struct GetAccountAppInventoryResponse {
     pub detail: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAdoption {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub root_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub manifest_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub display_name: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub version: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub entry_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub permission_scope_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub storage_policy_ref: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAppAdoptionState", tag = "9")]
-    pub state: i32,
-    #[prost(enumeration = "LocalAppAdoptionTrust", tag = "10")]
-    pub trust: i32,
-    #[prost(string, tag = "11")]
-    pub adopted_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub updated_at: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "13")]
-    pub reason_code: i32,
-    #[prost(string, tag = "14")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AdoptLocalAppRequest {
-    #[prost(string, tag = "1")]
-    pub root_path: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub expected_app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub lifecycle_intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub displayed_impact_digest: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AdoptLocalAppResponse {
-    #[prost(message, optional, tag = "1")]
-    pub adoption: ::core::option::Option<LocalAppAdoption>,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub reason_code: i32,
-    #[prost(string, tag = "3")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListLocalAppAdoptionsRequest {}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListLocalAppAdoptionsResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub adoptions: ::prost::alloc::vec::Vec<LocalAppAdoption>,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub reason_code: i32,
-    #[prost(string, tag = "3")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RemoveLocalAppAdoptionRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub delete_durable_data_confirmed: bool,
-    #[prost(string, tag = "3")]
-    pub lifecycle_intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub displayed_impact_digest: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RemoveLocalAppAdoptionResponse {
-    #[prost(message, optional, tag = "1")]
-    pub adoption: ::core::option::Option<LocalAppAdoption>,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub reason_code: i32,
-    #[prost(string, tag = "3")]
-    pub detail: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppPackageReadinessRequest {
-    /// app_id resolves the admitted app's release descriptor, active release
-    /// pointer, and install evidence. It never scans from an app-local source.
+    /// Reserved selector slot. 0K callers send it empty; Runtime ignores it and
+    /// returns one global typed-unavailable projection without reading package
+    /// files, descriptors, active-release pointers, or install evidence.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
 }
@@ -14050,8 +13932,7 @@ pub struct GetAppPackageReadinessResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAppInstallJobsRequest {
-    /// app_id filters jobs to a single app. Empty fails closed; global install-job
-    /// enumeration is not admitted for Apps inventory projection.
+    /// Reserved future selector. No local or global job enumeration exists in 0K.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
 }
@@ -14062,14 +13943,12 @@ pub struct ListAppInstallJobsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchAppInstallJobEventsRequest {
-    /// job_id scopes the stream to one Runtime-emitted lifecycle job. Empty fails
-    /// closed; global job event streams are not admitted.
+    /// Reserved future selector. No job event stream exists in 0K.
     #[prost(string, tag = "1")]
     pub job_id: ::prost::alloc::string::String,
 }
-/// AppInstallJobEvent is one typed progress frame for a Watch stream. The
-/// snapshot field carries the full typed job projection at the time of the
-/// event so the consumer never reconstructs state from partial deltas.
+/// AppInstallJobEvent reserves a future progress-frame shape. No frame is
+/// emitted in 0K.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppInstallJobEvent {
     #[prost(uint64, tag = "1")]
@@ -14083,12 +13962,10 @@ pub struct AppInstallJobEvent {
 pub struct UninstallAppRequest {
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
-    /// delete_durable_data, when true, additionally removes the durable app data
-    /// root. It requires destructive_data_delete_confirmed.
+    /// Reserved future destructive option; ignored because the RPC is deny-all.
     #[prost(bool, tag = "2")]
     pub delete_durable_data: bool,
-    /// destructive_data_delete_confirmed records explicit user confirmation of
-    /// the separate destructive "Delete app data" flow with impact preview.
+    /// Reserved future confirmation slot; it cannot authorize deletion in 0K.
     #[prost(bool, tag = "3")]
     pub destructive_data_delete_confirmed: bool,
     #[prost(string, tag = "4")]
@@ -14096,9 +13973,8 @@ pub struct UninstallAppRequest {
     #[prost(string, tag = "5")]
     pub displayed_impact_digest: ::prost::alloc::string::String,
 }
-/// AppUninstallResult is the typed uninstall projection. Uninstall removes
-/// release payloads by default and keeps durable data unless destructive
-/// deletion was explicitly confirmed.
+/// AppUninstallResult reserves a future immutable-package removal projection.
+/// It is never positively returned in 0K.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppUninstallResult {
     #[prost(string, tag = "1")]
@@ -14114,27 +13990,19 @@ pub struct AppUninstallResult {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UninstallAppResponse {
-    /// result is the typed uninstall projection carrying the K-APP-014
-    /// durable-data retention semantics (release_removed / durable_data_removed).
+    /// Reserved future result; absent in 0K typed-unavailable responses.
     #[prost(message, optional, tag = "1")]
     pub result: ::core::option::Option<AppUninstallResult>,
-    /// job is the watchable uninstall lifecycle job (K-APP-017,
-    /// AppLifecycleJobKind=APP_LIFECYCLE_JOB_KIND_UNINSTALL). It is the single
-    /// live-job truth source for the `uninstalling` Apps card state and can be
-    /// followed via WatchAppInstallJobEvents. A failed uninstall is recorded as a
-    /// recoverable job and is never projected as success.
+    /// Reserved future job; no uninstall job exists in 0K.
     #[prost(message, optional, tag = "2")]
     pub job: ::core::option::Option<AppInstallJob>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateAppRequest {
-    /// app_id resolves an admitted Nimi App registry row whose bound release
-    /// descriptor advanced past the currently installed version.
+    /// Reserved future package selector; it has no authority in 0K.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
-    /// confirmed records that the user confirmed the update impact preview
-    /// (version, size, breaking-vs-non-breaking impact). It is required for a
-    /// required (breaking) update and ignored for a non-breaking update.
+    /// Reserved future confirmation slot; it cannot admit an update in 0K.
     #[prost(bool, tag = "2")]
     pub confirmed: bool,
     #[prost(string, tag = "3")]
@@ -14144,23 +14012,19 @@ pub struct UpdateAppRequest {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateAppResponse {
-    /// job is the typed update job projection. It reuses the AppInstallJob shape
-    /// with kind=APP_LIFECYCLE_JOB_KIND_UPDATE.
+    /// Reserved future job; no update job exists in 0K.
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<AppInstallJob>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HealthRepairAppRequest {
-    /// app_id resolves the admitted Nimi App registry row whose lifecycle job is
-    /// being repaired.
+    /// Reserved future package selector; it has no authority in 0K.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
-    /// action is the typed repair action. Only the four admitted tokens are
-    /// accepted; any other value fails closed.
+    /// Reserved future repair action; no action is admitted in 0K.
     #[prost(enumeration = "AppHealthRepairAction", tag = "2")]
     pub action: i32,
-    /// job_id optionally targets a specific lifecycle job for cancel/retry. When
-    /// empty, cancel/retry resolve the most recent recoverable job for the app.
+    /// Reserved future job selector; no recoverable job exists in 0K.
     #[prost(string, tag = "3")]
     pub job_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
@@ -14170,144 +14034,45 @@ pub struct HealthRepairAppRequest {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct HealthRepairAppResponse {
-    /// job is the typed lifecycle job projection produced by the repair action.
-    /// cancel returns the cancelled job; retry/repair/reinstall return the new
-    /// in-flight job. A failed repair is never projected as success.
+    /// Reserved future job; no repair job exists in 0K.
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<AppInstallJob>,
 }
-/// AppOpenScopeRef is the explicit canonical app-launch AIConfig scope a
-/// caller must carry to open a Nimi App (K-APP-017 / P-AISC-007). It is the
-/// app-shape AIScopeRef: kind is always `app`; owner_id is the admitted Nimi
-/// App registry app_id and must equal the app_id being opened; surface_id is
-/// optional and only set when the app's manifest declares a stable AI feature
-/// surface. OpenApp never infers this scope — a missing or mismatched
-/// AppOpenScopeRef fails closed.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppOpenScopeRef {
-    /// kind is the AIScopeRef kind discriminator. For OpenApp it is fixed to the
-    /// literal string `app`; any other value fails closed.
-    #[prost(string, tag = "1")]
-    pub kind: ::prost::alloc::string::String,
-    /// owner_id is the admitted Nimi App registry app_id (dot-separated app
-    /// identity, e.g. `nimi.avatar`). It must equal OpenAppRequest.app_id.
-    #[prost(string, tag = "2")]
-    pub owner_id: ::prost::alloc::string::String,
-    /// surface_id is the optional stable app-declared AI feature surface id.
-    /// Empty means the canonical app-level AI scope.
-    #[prost(string, tag = "3")]
-    pub surface_id: ::prost::alloc::string::String,
+pub struct PrepareLocalAppLaunchRequest {
+    /// Runtime-generated management handle. For local_development it resolves an
+    /// active authorization; immutable profiles remain typed unavailable in 0K.
+    /// It is not a principal id, app id, account selector, path, or credential.
+    #[prost(bytes = "vec", tag = "1")]
+    pub local_app_handle: ::prost::alloc::vec::Vec<u8>,
+    /// Required only for a live local_development supervisor run.
+    #[prost(bytes = "vec", tag = "2")]
+    pub supervisor_run_id: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenAppRequest {
-    /// app_id resolves an admitted Nimi App registry row
-    /// (admission_status=admitted) and a track-discriminated launch path.
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    /// scope is the explicit canonical app-launch AIConfig scope. It is
-    /// mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
-    #[prost(message, optional, tag = "2")]
-    pub scope: ::core::option::Option<AppOpenScopeRef>,
-    #[prost(string, tag = "3")]
-    pub lifecycle_intent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub displayed_impact_digest: ::prost::alloc::string::String,
-}
-/// AppOpenProjection is the typed Open-flow projection. It reports the
-/// terminal state, the step the flow reached, the resolved launch scope, and a
-/// fail-closed reason_code on every blocked branch.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppOpenProjection {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AppOpenState", tag = "2")]
-    pub state: i32,
-    /// reached_step is the last Open-flow step the launch executed. On a blocked
-    /// open it names the exact step that fail-closed.
-    #[prost(enumeration = "AppOpenFlowStep", tag = "3")]
-    pub reached_step: i32,
-    /// launched is true only when state is APP_OPEN_STATE_LAUNCHED. It is never
-    /// inferred from process liveness or file existence.
-    #[prost(bool, tag = "4")]
-    pub launched: bool,
-    /// active_version is the active release version the launch resolved. Empty
-    /// when the open blocked before package verification.
-    #[prost(string, tag = "5")]
-    pub active_version: ::prost::alloc::string::String,
-    /// scope echoes the resolved app-launch AIConfig scope. On a launched open
-    /// the Open flow has validated this scope as the canonical app-shape
-    /// AIScopeRef (P-AISC-007); the per-app first-launch AIConfig initialization
-    /// (S-AICONF-009) is finalized by the SDK/desktop AIConfig surface against
-    /// this validated scope — the AIConfig store is not Runtime-owned.
-    #[prost(message, optional, tag = "6")]
-    pub scope: ::core::option::Option<AppOpenScopeRef>,
-    /// reason_code is the typed fail-closed reason on a blocked open, or
-    /// ACTION_EXECUTED on a launched open. It is never collapsed into a generic
-    /// value.
-    #[prost(enumeration = "ReasonCode", tag = "7")]
-    pub reason_code: i32,
-    #[prost(string, tag = "8")]
-    pub detail: ::prost::alloc::string::String,
-    /// release_descriptor_ref is Runtime-attested descriptor identity used for
-    /// the installed launch. It is empty for blocked local-adoption projections;
-    /// adoption inventory alone cannot satisfy either production installed or
-    /// P-NAPP-035 local-development launch authority.
-    #[prost(string, tag = "9")]
-    pub release_descriptor_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub descriptor_class: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub admission_track: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub source_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub ordinary_visibility: ::prost::alloc::string::String,
-    #[prost(string, tag = "14")]
-    pub digest_verification_state: ::prost::alloc::string::String,
-    #[prost(string, tag = "15")]
-    pub runtime_entry_ref: ::prost::alloc::string::String,
-    /// active_release_root is the verified installed release root Desktop can
-    /// host without recomputing descriptor paths. Future opaque launch URI
-    /// support must use a new field, not overload this path.
-    #[prost(string, tag = "16")]
-    pub active_release_root: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "17")]
-    pub storage: ::core::option::Option<AppInstallStorageProjection>,
-    #[prost(string, tag = "18")]
-    pub shell_capability_set_ref: ::prost::alloc::string::String,
-    /// caller_mode is the installed-app posture string. The AccountCallerMode enum
-    /// authority lands in Task 6; this field carries the OpenApp launch-resolution
-    /// string without reusing external-principal posture.
-    #[prost(string, tag = "19")]
-    pub caller_mode: ::prost::alloc::string::String,
-    /// Non-authorizing 32-byte correlation id. The host-only verified process
-    /// binding is established separately over protected Desktop control.
-    #[prost(bytes = "vec", tag = "20")]
+pub struct PrepareLocalAppLaunchResponse {
+    #[prost(bytes = "vec", tag = "1")]
     pub launch_id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bool, tag = "21")]
-    pub product_readiness_claim_allowed: bool,
+    #[prost(message, optional, tag = "2")]
+    pub bind_deadline: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenAppResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<AppOpenProjection>,
-}
-/// Desktop sends only selectors observed from its suspended exact-executable
-/// launch. Runtime independently opens and verifies the process before binding
-/// it to the launch record; neither field is authority by itself.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct BindInstalledLaunchProcessRequest {
+pub struct BindLocalAppProcessRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub launch_id: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag = "2")]
     pub child_process_id: u32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct BindInstalledLaunchProcessResponse {
+pub struct BindLocalAppProcessResponse {
     #[prost(bytes = "vec", tag = "1")]
     pub launch_id: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "2")]
     pub bind_deadline: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -14341,11 +14106,8 @@ impl AppMessageEventType {
         }
     }
 }
-/// AppInstallJobPhase is the typed install/update pipeline phase. It surfaces
-/// the concrete step so the product Apps card can show "download / verify /
-/// materialize / unpack / swap / evidence" instead of a generic spinner. It is
-/// never inferred from transfer/process/file state. The same phase shape covers
-/// install, update, and healthRepair jobs (K-APP-015 / K-APP-016).
+/// AppInstallJobPhase reserves the future immutable-package pipeline vocabulary.
+/// No value is positively emitted in 0K.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppInstallJobPhase {
@@ -14413,9 +14175,8 @@ impl AppInstallJobPhase {
         }
     }
 }
-/// AppInstallJobState is the typed terminal/in-flight job state. It aligns with
-/// the Platform P-NAPP-008 fail-closed projection: a failed install/update
-/// never projects as success and always leaves a recoverable state.
+/// AppInstallJobState reserves future immutable-package job states. No value is
+/// positively emitted in 0K.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppInstallJobState {
@@ -14464,10 +14225,8 @@ impl AppInstallJobState {
         }
     }
 }
-/// AppLifecycleJobKind distinguishes the lifecycle operation that produced a
-/// job. Install, update, healthRepair, and uninstall jobs share the
-/// AppInstallJob shape but carry a distinct kind so the consumer never infers
-/// intent from phase.
+/// AppLifecycleJobKind reserves future immutable-package operation kinds. No
+/// lifecycle job exists in 0K.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppLifecycleJobKind {
@@ -14509,8 +14268,8 @@ impl AppLifecycleJobKind {
         }
     }
 }
-/// AppHealthRepairAction is the typed health/repair action token. It admits
-/// only the four S-APP-002 tokens; no other action is accepted.
+/// AppHealthRepairAction is a frozen future wire vocabulary. No repair action
+/// is admitted in 0K.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppHealthRepairAction {
@@ -14546,9 +14305,8 @@ impl AppHealthRepairAction {
         }
     }
 }
-/// AppLifecycleIntentAction is the closed action vocabulary owned by
-/// K-APP-026. A single prepare/status protocol covers every lifecycle mutation;
-/// callers cannot introduce action-specific confirmation RPCs.
+/// AppLifecycleIntentAction is a frozen future wire vocabulary. 0K has no
+/// lifecycle intent producer or consumer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppLifecycleIntentAction {
@@ -14557,9 +14315,6 @@ pub enum AppLifecycleIntentAction {
     Uninstall = 2,
     Update = 3,
     HealthRepair = 4,
-    AdoptLocalApp = 5,
-    RemoveLocalAppAdoption = 6,
-    OpenApp = 7,
 }
 impl AppLifecycleIntentAction {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -14573,11 +14328,6 @@ impl AppLifecycleIntentAction {
             Self::Uninstall => "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL",
             Self::Update => "APP_LIFECYCLE_INTENT_ACTION_UPDATE",
             Self::HealthRepair => "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR",
-            Self::AdoptLocalApp => "APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP",
-            Self::RemoveLocalAppAdoption => {
-                "APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION"
-            }
-            Self::OpenApp => "APP_LIFECYCLE_INTENT_ACTION_OPEN_APP",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -14588,17 +14338,12 @@ impl AppLifecycleIntentAction {
             "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL" => Some(Self::Uninstall),
             "APP_LIFECYCLE_INTENT_ACTION_UPDATE" => Some(Self::Update),
             "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR" => Some(Self::HealthRepair),
-            "APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP" => Some(Self::AdoptLocalApp),
-            "APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION" => {
-                Some(Self::RemoveLocalAppAdoption)
-            }
-            "APP_LIFECYCLE_INTENT_ACTION_OPEN_APP" => Some(Self::OpenApp),
             _ => None,
         }
     }
 }
-/// AppLifecycleIntentStatus is the durable reconciliation vocabulary. An
-/// intent id or status is correlation-only and never authorizes a mutation.
+/// AppLifecycleIntentStatus reserves a future reconciliation vocabulary. 0K
+/// has no durable lifecycle intent state; an id could never authorize a call.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppLifecycleIntentStatus {
@@ -14645,9 +14390,8 @@ impl AppLifecycleIntentStatus {
         }
     }
 }
-/// AppInstallSourceKind distinguishes a bundled first-party install (no network
-/// download; materialized from the atomic Nimi release bundle) from an external
-/// immutable artifact install (HTTPS download + sha256 verification).
+/// AppInstallSourceKind reserves future immutable-package provenance mapping.
+/// It does not admit a bundled or external install in 0K.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppInstallSourceKind {
@@ -14677,9 +14421,8 @@ impl AppInstallSourceKind {
         }
     }
 }
-/// AppStorageState is the current app-scoped storage truth state. It is
-/// separate from install job state: a dev/runtime-registered app can have
-/// admitted data/cache/tmp roots before it has an active installed release.
+/// AppStorageState describes app-private storage independently of the frozen
+/// package seam. Local-app data/cache/tmp may be READY without a release.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppStorageState {
@@ -14715,10 +14458,9 @@ impl AppStorageState {
         }
     }
 }
-/// AppPackageReadinessState is the Runtime-owned package readiness projection.
-/// It is separate from storage truth: it reads the active release pointer and
-/// install evidence to decide whether the currently materialized package is
-/// launchable, needs install/update/repair, or is blocked fail-closed.
+/// AppPackageReadinessState is the frozen package-readiness vocabulary. 0K
+/// emits only BLOCKED with LOCAL_APP_OPERATION_UNAVAILABLE and never reads an
+/// active release pointer or install evidence.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppPackageReadinessState {
@@ -14798,16 +14540,15 @@ impl AccountAppInventoryState {
         }
     }
 }
-/// AccountAppInstallState is the account inventory's local materialization
-/// overlay. Runtime install/uninstall/adoption lifecycles mutate this field;
-/// they do not create account entitlement truth.
+/// AccountAppInstallState is a frozen future local-materialization overlay.
+/// Runtime has no positive materialization writer in 0K and never derives
+/// entitlement from this field.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AccountAppInstallState {
     Unspecified = 0,
     NotInstalled = 1,
     Installed = 2,
-    AdoptedLocal = 3,
     Removed = 4,
 }
 impl AccountAppInstallState {
@@ -14820,7 +14561,6 @@ impl AccountAppInstallState {
             Self::Unspecified => "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED",
             Self::NotInstalled => "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED",
             Self::Installed => "ACCOUNT_APP_INSTALL_STATE_INSTALLED",
-            Self::AdoptedLocal => "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL",
             Self::Removed => "ACCOUNT_APP_INSTALL_STATE_REMOVED",
         }
     }
@@ -14830,177 +14570,7 @@ impl AccountAppInstallState {
             "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED" => Some(Self::Unspecified),
             "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED" => Some(Self::NotInstalled),
             "ACCOUNT_APP_INSTALL_STATE_INSTALLED" => Some(Self::Installed),
-            "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL" => Some(Self::AdoptedLocal),
             "ACCOUNT_APP_INSTALL_STATE_REMOVED" => Some(Self::Removed),
-            _ => None,
-        }
-    }
-}
-/// LocalAppAdoptionState is Runtime-owned local external app adoption state. It
-/// is written only by the explicit AdoptLocalApp lifecycle and never by source
-/// scanning or Desktop renderer state.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppAdoptionState {
-    Unspecified = 0,
-    Adopted = 1,
-    RepairRequired = 2,
-    Removed = 3,
-}
-impl LocalAppAdoptionState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_ADOPTION_STATE_UNSPECIFIED",
-            Self::Adopted => "LOCAL_APP_ADOPTION_STATE_ADOPTED",
-            Self::RepairRequired => "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED",
-            Self::Removed => "LOCAL_APP_ADOPTION_STATE_REMOVED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_ADOPTION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_ADOPTION_STATE_ADOPTED" => Some(Self::Adopted),
-            "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED" => Some(Self::RepairRequired),
-            "LOCAL_APP_ADOPTION_STATE_REMOVED" => Some(Self::Removed),
-            _ => None,
-        }
-    }
-}
-/// LocalAppAdoptionTrust is the local trust posture. Local adoption is not public
-/// Platform admission and must not be projected as ordinary catalog truth.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalAppAdoptionTrust {
-    Unspecified = 0,
-    ExplicitLocal = 1,
-    DeveloperLocal = 2,
-}
-impl LocalAppAdoptionTrust {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED",
-            Self::ExplicitLocal => "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL",
-            Self::DeveloperLocal => "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL" => Some(Self::ExplicitLocal),
-            "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL" => Some(Self::DeveloperLocal),
-            _ => None,
-        }
-    }
-}
-/// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
-/// concrete checkpoint the launch is at so a failed Open names the exact step
-/// rather than a generic failure. It is never inferred.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppOpenFlowStep {
-    Unspecified = 0,
-    /// RESOLVE_REGISTRY resolves the admitted Nimi App registry row.
-    ResolveRegistry = 1,
-    /// VERIFY_PACKAGE verifies the materialized release package + install
-    /// evidence (active release pointer, digest-verified payload).
-    VerifyPackage = 2,
-    /// VERIFY_LIBRARY verifies the account app-inventory state for the app.
-    VerifyLibrary = 3,
-    /// VERIFY_APP_DATA verifies the durable app-data root state.
-    VerifyAppData = 4,
-    /// VERIFY_PERMISSIONS verifies the app permissions are granted or
-    /// promptable.
-    VerifyPermissions = 5,
-    /// ENSURE_AICONFIG ensures the app-scope AIConfig exists (first-launch
-    /// initialization per S-AICONF-009).
-    EnsureAiconfig = 6,
-    /// VALIDATE_MANIFEST validates the app manifest requirements.
-    ValidateManifest = 7,
-    /// LAUNCH is the terminal launch step: the runtime-owned app launch
-    /// supervision admits the app process/surface.
-    Launch = 8,
-}
-impl AppOpenFlowStep {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_OPEN_FLOW_STEP_UNSPECIFIED",
-            Self::ResolveRegistry => "APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY",
-            Self::VerifyPackage => "APP_OPEN_FLOW_STEP_VERIFY_PACKAGE",
-            Self::VerifyLibrary => "APP_OPEN_FLOW_STEP_VERIFY_LIBRARY",
-            Self::VerifyAppData => "APP_OPEN_FLOW_STEP_VERIFY_APP_DATA",
-            Self::VerifyPermissions => "APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS",
-            Self::EnsureAiconfig => "APP_OPEN_FLOW_STEP_ENSURE_AICONFIG",
-            Self::ValidateManifest => "APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST",
-            Self::Launch => "APP_OPEN_FLOW_STEP_LAUNCH",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_OPEN_FLOW_STEP_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY" => Some(Self::ResolveRegistry),
-            "APP_OPEN_FLOW_STEP_VERIFY_PACKAGE" => Some(Self::VerifyPackage),
-            "APP_OPEN_FLOW_STEP_VERIFY_LIBRARY" => Some(Self::VerifyLibrary),
-            "APP_OPEN_FLOW_STEP_VERIFY_APP_DATA" => Some(Self::VerifyAppData),
-            "APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS" => Some(Self::VerifyPermissions),
-            "APP_OPEN_FLOW_STEP_ENSURE_AICONFIG" => Some(Self::EnsureAiconfig),
-            "APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST" => Some(Self::ValidateManifest),
-            "APP_OPEN_FLOW_STEP_LAUNCH" => Some(Self::Launch),
-            _ => None,
-        }
-    }
-}
-/// AppOpenState is the typed terminal Open-flow state. A blocked or failed
-/// Open never projects as launched.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppOpenState {
-    Unspecified = 0,
-    /// APP_OPEN_STATE_LAUNCHED means the Open flow completed and the app launch
-    /// was admitted.
-    Launched = 1,
-    /// APP_OPEN_STATE_BLOCKED means a verify step fail-closed before launch
-    /// (package/library/app-data/permission/AIConfig/manifest). It carries the
-    /// distinct typed reason_code; it is never collapsed into a generic value.
-    Blocked = 2,
-    /// Runtime created a short-lived launch record, but no verified child has
-    /// consumed it yet. This is never projected as launched=true.
-    LaunchPrepared = 3,
-}
-impl AppOpenState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_OPEN_STATE_UNSPECIFIED",
-            Self::Launched => "APP_OPEN_STATE_LAUNCHED",
-            Self::Blocked => "APP_OPEN_STATE_BLOCKED",
-            Self::LaunchPrepared => "APP_OPEN_STATE_LAUNCH_PREPARED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_OPEN_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_OPEN_STATE_LAUNCHED" => Some(Self::Launched),
-            "APP_OPEN_STATE_BLOCKED" => Some(Self::Blocked),
-            "APP_OPEN_STATE_LAUNCH_PREPARED" => Some(Self::LaunchPrepared),
             _ => None,
         }
     }
@@ -15212,7 +14782,8 @@ pub mod runtime_app_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
+        /// Frozen immutable-package seam. Mutation/job methods below are deny-all in
+        /// 0K; GetAppPackageReadiness is callable only for typed unavailable.
         pub async fn install_app(
             &mut self,
             request: impl tonic::IntoRequest<super::InstallAppRequest>,
@@ -15316,90 +14887,6 @@ pub mod runtime_app_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
                         "GetAccountAppInventory",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn adopt_local_app(
-            &mut self,
-            request: impl tonic::IntoRequest<super::AdoptLocalAppRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::AdoptLocalAppResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "AdoptLocalApp"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_local_app_adoptions(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListLocalAppAdoptionsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListLocalAppAdoptionsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "ListLocalAppAdoptions",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn remove_local_app_adoption(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RemoveLocalAppAdoptionRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RemoveLocalAppAdoptionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAppService",
-                        "RemoveLocalAppAdoption",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -15520,7 +15007,7 @@ pub mod runtime_app_service_client {
                 );
             self.inner.server_streaming(req, path, codec).await
         }
-        /// Nimi App update + health/repair lifecycle (K-APP-015..K-APP-016).
+        /// Frozen immutable update/repair seam; deny-all in 0K.
         pub async fn update_app(
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateAppRequest>,
@@ -15576,14 +15063,11 @@ pub mod runtime_app_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// Nimi App Open / launch flow (K-APP-017). OpenApp is the sole Runtime RPC
-        /// entry for launching a Nimi App; it requires an explicit app-shape
-        /// AIScopeRef and never infers launch scope.
-        pub async fn open_app(
+        pub async fn prepare_local_app_launch(
             &mut self,
-            request: impl tonic::IntoRequest<super::OpenAppRequest>,
+            request: impl tonic::IntoRequest<super::PrepareLocalAppLaunchRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::OpenAppResponse>,
+            tonic::Response<super::PrepareLocalAppLaunchResponse>,
             tonic::Status,
         > {
             self.inner
@@ -15596,38 +15080,43 @@ pub mod runtime_app_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/OpenApp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "OpenApp"));
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn bind_installed_launch_process(
-            &mut self,
-            request: impl tonic::IntoRequest<super::BindInstalledLaunchProcessRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::BindInstalledLaunchProcessResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
+                "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
-                        "BindInstalledLaunchProcess",
+                        "PrepareLocalAppLaunch",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn bind_local_app_process(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BindLocalAppProcessRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BindLocalAppProcessResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "BindLocalAppProcess",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -20414,6 +19903,1147 @@ pub struct AgentTurnContextSummary {
     #[prost(string, tag = "25")]
     pub turn_id: ::prost::alloc::string::String,
 }
+/// K-AGCORE-151: closed source kinds accepted by the Runtime-owned challenge
+/// and canonical chunked materialization ingress. Unknown numeric values fail
+/// admission; they are never coerced to a source kind.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationSourceKind {
+    Unspecified = 0,
+    WorldCharacter = 1,
+    RealmPersona = 2,
+}
+impl AgentSourceMaterializationSourceKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED",
+            Self::WorldCharacter => {
+                "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER"
+            }
+            Self::RealmPersona => {
+                "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER" => {
+                Some(Self::WorldCharacter)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA" => {
+                Some(Self::RealmPersona)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationChallengeState {
+    Unspecified = 0,
+    Issued = 1,
+    Leased = 2,
+    Consumed = 3,
+    Invalidated = 4,
+    Expired = 5,
+}
+impl AgentSourceMaterializationChallengeState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED"
+            }
+            Self::Issued => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED",
+            Self::Leased => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED",
+            Self::Consumed => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED",
+            Self::Invalidated => {
+                "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED"
+            }
+            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED" => Some(Self::Issued),
+            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED" => Some(Self::Leased),
+            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED" => {
+                Some(Self::Consumed)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED" => {
+                Some(Self::Invalidated)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED" => Some(Self::Expired),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationUploadState {
+    Unspecified = 0,
+    Open = 1,
+    Committing = 2,
+    Committed = 3,
+    Failed = 4,
+    Aborted = 5,
+    Expired = 6,
+}
+impl AgentSourceMaterializationUploadState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED",
+            Self::Open => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN",
+            Self::Committing => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING",
+            Self::Committed => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED",
+            Self::Failed => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED",
+            Self::Aborted => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED",
+            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN" => Some(Self::Open),
+            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING" => {
+                Some(Self::Committing)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED" => {
+                Some(Self::Committed)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED" => Some(Self::Failed),
+            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED" => Some(Self::Aborted),
+            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED" => Some(Self::Expired),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationComponentKind {
+    Unspecified = 0,
+    WorldCharacter = 1,
+    RealmPersona = 2,
+    WorldCore = 3,
+    WorldEntity = 4,
+    WorldRelationship = 5,
+    CoverageManifest = 6,
+}
+impl AgentSourceMaterializationComponentKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED"
+            }
+            Self::WorldCharacter => {
+                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER"
+            }
+            Self::RealmPersona => {
+                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA"
+            }
+            Self::WorldCore => "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE",
+            Self::WorldEntity => {
+                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY"
+            }
+            Self::WorldRelationship => {
+                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP"
+            }
+            Self::CoverageManifest => {
+                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER" => {
+                Some(Self::WorldCharacter)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA" => {
+                Some(Self::RealmPersona)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE" => {
+                Some(Self::WorldCore)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY" => {
+                Some(Self::WorldEntity)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP" => {
+                Some(Self::WorldRelationship)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST" => {
+                Some(Self::CoverageManifest)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationProofAlgorithm {
+    Unspecified = 0,
+    Rs256 = 1,
+}
+impl AgentSourceMaterializationProofAlgorithm {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED"
+            }
+            Self::Rs256 => "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256" => Some(Self::Rs256),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationKeyUse {
+    Unspecified = 0,
+    Sig = 1,
+}
+impl AgentSourceMaterializationKeyUse {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED",
+            Self::Sig => "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG" => Some(Self::Sig),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationPacketSchemaVersion {
+    Unspecified = 0,
+    V2 = 1,
+}
+impl AgentSourceMaterializationPacketSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED"
+            }
+            Self::V2 => "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2" => Some(Self::V2),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationBundleManifestSchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentSourceMaterializationBundleManifestSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED"
+            }
+            Self::V1 => "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1" => {
+                Some(Self::V1)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationPayloadAssemblyVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentSourceMaterializationPayloadAssemblyVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED"
+            }
+            Self::V1 => "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceMaterializationReasonCode {
+    Unspecified = 0,
+    None = 1,
+    InvalidRequest = 2,
+    AccountBindingMismatch = 3,
+    SourceBindingMismatch = 4,
+    ChallengeNotFound = 5,
+    ChallengeExpired = 6,
+    ChallengeConflict = 7,
+    ChallengeAlreadyLeased = 8,
+    ChallengeAlreadyConsumed = 9,
+    AudienceMismatch = 10,
+    BundleCapacityExceeded = 11,
+    ComponentCapacityExceeded = 12,
+    ChunkCapacityExceeded = 13,
+    ChunkCountExceeded = 14,
+    ManifestInvalid = 15,
+    PacketInvalid = 16,
+    ProofInvalid = 17,
+    UploadNotFound = 18,
+    UploadStateConflict = 19,
+    RequestIdConflict = 20,
+    ChunkDescriptorInvalid = 21,
+    ChunkDigestMismatch = 22,
+    ChunkConflict = 23,
+    CommitInProgress = 24,
+    AlreadyCommitted = 25,
+    CommitConflict = 26,
+    AdmissionFailed = 27,
+    Aborted = 28,
+    Expired = 29,
+    PersistenceFailed = 30,
+}
+impl AgentSourceMaterializationReasonCode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
+            Self::None => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
+            Self::InvalidRequest => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
+            }
+            Self::AccountBindingMismatch => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH"
+            }
+            Self::SourceBindingMismatch => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH"
+            }
+            Self::ChallengeNotFound => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND"
+            }
+            Self::ChallengeExpired => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED"
+            }
+            Self::ChallengeConflict => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT"
+            }
+            Self::ChallengeAlreadyLeased => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED"
+            }
+            Self::ChallengeAlreadyConsumed => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED"
+            }
+            Self::AudienceMismatch => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH"
+            }
+            Self::BundleCapacityExceeded => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED"
+            }
+            Self::ComponentCapacityExceeded => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED"
+            }
+            Self::ChunkCapacityExceeded => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED"
+            }
+            Self::ChunkCountExceeded => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED"
+            }
+            Self::ManifestInvalid => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID"
+            }
+            Self::PacketInvalid => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
+            }
+            Self::ProofInvalid => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
+            }
+            Self::UploadNotFound => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND"
+            }
+            Self::UploadStateConflict => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT"
+            }
+            Self::RequestIdConflict => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT"
+            }
+            Self::ChunkDescriptorInvalid => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID"
+            }
+            Self::ChunkDigestMismatch => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH"
+            }
+            Self::ChunkConflict => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT"
+            }
+            Self::CommitInProgress => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS"
+            }
+            Self::AlreadyCommitted => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED"
+            }
+            Self::CommitConflict => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT"
+            }
+            Self::AdmissionFailed => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED"
+            }
+            Self::Aborted => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED",
+            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED",
+            Self::PersistenceFailed => {
+                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE" => Some(Self::None),
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST" => {
+                Some(Self::InvalidRequest)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH" => {
+                Some(Self::AccountBindingMismatch)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH" => {
+                Some(Self::SourceBindingMismatch)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND" => {
+                Some(Self::ChallengeNotFound)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED" => {
+                Some(Self::ChallengeExpired)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT" => {
+                Some(Self::ChallengeConflict)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED" => {
+                Some(Self::ChallengeAlreadyLeased)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED" => {
+                Some(Self::ChallengeAlreadyConsumed)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH" => {
+                Some(Self::AudienceMismatch)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED" => {
+                Some(Self::BundleCapacityExceeded)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED" => {
+                Some(Self::ComponentCapacityExceeded)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED" => {
+                Some(Self::ChunkCapacityExceeded)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED" => {
+                Some(Self::ChunkCountExceeded)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID" => {
+                Some(Self::ManifestInvalid)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID" => {
+                Some(Self::PacketInvalid)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID" => {
+                Some(Self::ProofInvalid)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND" => {
+                Some(Self::UploadNotFound)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT" => {
+                Some(Self::UploadStateConflict)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT" => {
+                Some(Self::RequestIdConflict)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID" => {
+                Some(Self::ChunkDescriptorInvalid)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH" => {
+                Some(Self::ChunkDigestMismatch)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT" => {
+                Some(Self::ChunkConflict)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS" => {
+                Some(Self::CommitInProgress)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED" => {
+                Some(Self::AlreadyCommitted)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT" => {
+                Some(Self::CommitConflict)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED" => {
+                Some(Self::AdmissionFailed)
+            }
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED" => Some(Self::Aborted),
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED" => Some(Self::Expired),
+            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED" => {
+                Some(Self::PersistenceFailed)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceContextState {
+    Unspecified = 0,
+    NotMaterialized = 1,
+    Validating = 2,
+    Ready = 3,
+    Invalid = 4,
+    Deleted = 5,
+}
+impl AgentLocalSourceContextState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED",
+            Self::NotMaterialized => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED",
+            Self::Validating => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING",
+            Self::Ready => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY",
+            Self::Invalid => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID",
+            Self::Deleted => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED" => {
+                Some(Self::NotMaterialized)
+            }
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING" => Some(Self::Validating),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY" => Some(Self::Ready),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED" => Some(Self::Deleted),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceCoverageSection {
+    Unspecified = 0,
+    Identity = 1,
+    Presentation = 2,
+    Placement = 3,
+    Biography = 4,
+    Psychology = 5,
+    Knowledge = 6,
+    Relationships = 7,
+    Capabilities = 8,
+    InteractionProfile = 9,
+    Assets = 10,
+    Authoring = 11,
+    PersonaStyle = 12,
+    ContentProfile = 13,
+    WorldCore = 14,
+    BoundEntity = 15,
+    DependencyClosure = 16,
+}
+impl AgentLocalSourceCoverageSection {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED",
+            Self::Identity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY",
+            Self::Presentation => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION",
+            Self::Placement => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT",
+            Self::Biography => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY",
+            Self::Psychology => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY",
+            Self::Knowledge => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE",
+            Self::Relationships => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS",
+            Self::Capabilities => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES",
+            Self::InteractionProfile => {
+                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE"
+            }
+            Self::Assets => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS",
+            Self::Authoring => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING",
+            Self::PersonaStyle => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE",
+            Self::ContentProfile => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE",
+            Self::WorldCore => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE",
+            Self::BoundEntity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY",
+            Self::DependencyClosure => {
+                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY" => Some(Self::Identity),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION" => {
+                Some(Self::Presentation)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT" => Some(Self::Placement),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY" => Some(Self::Biography),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY" => Some(Self::Psychology),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE" => Some(Self::Knowledge),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS" => {
+                Some(Self::Relationships)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES" => {
+                Some(Self::Capabilities)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE" => {
+                Some(Self::InteractionProfile)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS" => Some(Self::Assets),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING" => Some(Self::Authoring),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE" => {
+                Some(Self::PersonaStyle)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE" => {
+                Some(Self::ContentProfile)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE" => Some(Self::WorldCore),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY" => Some(Self::BoundEntity),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE" => {
+                Some(Self::DependencyClosure)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceCoverageState {
+    Unspecified = 0,
+    Complete = 1,
+    NotApplicable = 2,
+    OptionalOmitted = 3,
+    Invalid = 4,
+}
+impl AgentLocalSourceCoverageState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED",
+            Self::Complete => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE",
+            Self::NotApplicable => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE",
+            Self::OptionalOmitted => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED",
+            Self::Invalid => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE" => Some(Self::Complete),
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE" => {
+                Some(Self::NotApplicable)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED" => {
+                Some(Self::OptionalOmitted)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextState {
+    Unspecified = 0,
+    NotComposed = 1,
+    Ready = 2,
+    ContextCapacityExceeded = 3,
+    Invalid = 4,
+}
+impl AgentTurnContextState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED",
+            Self::NotComposed => "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED",
+            Self::Ready => "AGENT_TURN_CONTEXT_STATE_READY",
+            Self::ContextCapacityExceeded => {
+                "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED"
+            }
+            Self::Invalid => "AGENT_TURN_CONTEXT_STATE_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED" => Some(Self::NotComposed),
+            "AGENT_TURN_CONTEXT_STATE_READY" => Some(Self::Ready),
+            "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED" => {
+                Some(Self::ContextCapacityExceeded)
+            }
+            "AGENT_TURN_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextLaneId {
+    Unspecified = 0,
+    RuntimePolicy = 1,
+    OutputContract = 2,
+    SourceIdentity = 3,
+    SourceBehavior = 4,
+    WorldContext = 5,
+    RelationshipContext = 6,
+    SourceKnowledge = 7,
+    CanonicalMemory = 8,
+    ConversationHistory = 9,
+    CapabilityContext = 10,
+    CurrentUserTurn = 11,
+}
+impl AgentTurnContextLaneId {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED",
+            Self::RuntimePolicy => "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY",
+            Self::OutputContract => "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT",
+            Self::SourceIdentity => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY",
+            Self::SourceBehavior => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR",
+            Self::WorldContext => "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT",
+            Self::RelationshipContext => {
+                "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT"
+            }
+            Self::SourceKnowledge => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE",
+            Self::CanonicalMemory => "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY",
+            Self::ConversationHistory => {
+                "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY"
+            }
+            Self::CapabilityContext => "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT",
+            Self::CurrentUserTurn => "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY" => Some(Self::RuntimePolicy),
+            "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT" => Some(Self::OutputContract),
+            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY" => Some(Self::SourceIdentity),
+            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR" => Some(Self::SourceBehavior),
+            "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT" => Some(Self::WorldContext),
+            "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT" => {
+                Some(Self::RelationshipContext)
+            }
+            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE" => Some(Self::SourceKnowledge),
+            "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY" => Some(Self::CanonicalMemory),
+            "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY" => {
+                Some(Self::ConversationHistory)
+            }
+            "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT" => {
+                Some(Self::CapabilityContext)
+            }
+            "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN" => Some(Self::CurrentUserTurn),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextLaneState {
+    Unspecified = 0,
+    Included = 1,
+    Empty = 2,
+    Omitted = 3,
+    Truncated = 4,
+    Invalid = 5,
+}
+impl AgentTurnContextLaneState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED",
+            Self::Included => "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED",
+            Self::Empty => "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY",
+            Self::Omitted => "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED",
+            Self::Truncated => "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED",
+            Self::Invalid => "AGENT_TURN_CONTEXT_LANE_STATE_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED" => Some(Self::Included),
+            "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY" => Some(Self::Empty),
+            "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED" => Some(Self::Omitted),
+            "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED" => Some(Self::Truncated),
+            "AGENT_TURN_CONTEXT_LANE_STATE_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextTruncationReason {
+    Unspecified = 0,
+    None = 1,
+    InputBudgetExhausted = 2,
+    OptionalContentOmitted = 3,
+    ContextCapacityExceeded = 4,
+}
+impl AgentTurnContextTruncationReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED",
+            Self::None => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE",
+            Self::InputBudgetExhausted => {
+                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED"
+            }
+            Self::OptionalContentOmitted => {
+                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED"
+            }
+            Self::ContextCapacityExceeded => {
+                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE" => Some(Self::None),
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED" => {
+                Some(Self::InputBudgetExhausted)
+            }
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED" => {
+                Some(Self::OptionalContentOmitted)
+            }
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED" => {
+                Some(Self::ContextCapacityExceeded)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentContextProjectionReasonCode {
+    Unspecified = 0,
+    None = 1,
+    SourceNotMaterialized = 2,
+    SourceValidationPending = 3,
+    SourceSnapshotInvalid = 4,
+    ContextNotComposed = 5,
+    ContextCapacityExceeded = 6,
+    ContextManifestInvalid = 7,
+}
+impl AgentContextProjectionReasonCode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED",
+            Self::None => "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE",
+            Self::SourceNotMaterialized => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED"
+            }
+            Self::SourceValidationPending => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING"
+            }
+            Self::SourceSnapshotInvalid => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID"
+            }
+            Self::ContextNotComposed => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED"
+            }
+            Self::ContextCapacityExceeded => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED"
+            }
+            Self::ContextManifestInvalid => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE" => Some(Self::None),
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED" => {
+                Some(Self::SourceNotMaterialized)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING" => {
+                Some(Self::SourceValidationPending)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID" => {
+                Some(Self::SourceSnapshotInvalid)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED" => {
+                Some(Self::ContextNotComposed)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED" => {
+                Some(Self::ContextCapacityExceeded)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID" => {
+                Some(Self::ContextManifestInvalid)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceContextSchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentLocalSourceContextSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V1 => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceSnapshotSchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentLocalSourceSnapshotSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V1 => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextSummarySchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentTurnContextSummarySchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V1 => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextManifestSchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentTurnContextManifestSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V1 => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextCompilerSchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentTurnContextCompilerSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V1 => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentAutonomyConfig {
     #[prost(int64, tag = "1")]
@@ -22803,1147 +23433,6 @@ impl ConversationAnchorStatus {
             "CONVERSATION_ANCHOR_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
             "CONVERSATION_ANCHOR_STATUS_ACTIVE" => Some(Self::Active),
             "CONVERSATION_ANCHOR_STATUS_CLOSED" => Some(Self::Closed),
-            _ => None,
-        }
-    }
-}
-/// K-AGCORE-151: closed source kinds accepted by the Runtime-owned challenge
-/// and canonical chunked materialization ingress. Unknown numeric values fail
-/// admission; they are never coerced to a source kind.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationSourceKind {
-    Unspecified = 0,
-    WorldCharacter = 1,
-    RealmPersona = 2,
-}
-impl AgentSourceMaterializationSourceKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED",
-            Self::WorldCharacter => {
-                "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER"
-            }
-            Self::RealmPersona => {
-                "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER" => {
-                Some(Self::WorldCharacter)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA" => {
-                Some(Self::RealmPersona)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationChallengeState {
-    Unspecified = 0,
-    Issued = 1,
-    Leased = 2,
-    Consumed = 3,
-    Invalidated = 4,
-    Expired = 5,
-}
-impl AgentSourceMaterializationChallengeState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED"
-            }
-            Self::Issued => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED",
-            Self::Leased => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED",
-            Self::Consumed => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED",
-            Self::Invalidated => {
-                "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED"
-            }
-            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED" => Some(Self::Issued),
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED" => Some(Self::Leased),
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED" => {
-                Some(Self::Consumed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED" => {
-                Some(Self::Invalidated)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED" => Some(Self::Expired),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationUploadState {
-    Unspecified = 0,
-    Open = 1,
-    Committing = 2,
-    Committed = 3,
-    Failed = 4,
-    Aborted = 5,
-    Expired = 6,
-}
-impl AgentSourceMaterializationUploadState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED",
-            Self::Open => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN",
-            Self::Committing => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING",
-            Self::Committed => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED",
-            Self::Failed => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED",
-            Self::Aborted => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED",
-            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN" => Some(Self::Open),
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING" => {
-                Some(Self::Committing)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED" => {
-                Some(Self::Committed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED" => Some(Self::Failed),
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED" => Some(Self::Aborted),
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED" => Some(Self::Expired),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationComponentKind {
-    Unspecified = 0,
-    WorldCharacter = 1,
-    RealmPersona = 2,
-    WorldCore = 3,
-    WorldEntity = 4,
-    WorldRelationship = 5,
-    CoverageManifest = 6,
-}
-impl AgentSourceMaterializationComponentKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED"
-            }
-            Self::WorldCharacter => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER"
-            }
-            Self::RealmPersona => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA"
-            }
-            Self::WorldCore => "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE",
-            Self::WorldEntity => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY"
-            }
-            Self::WorldRelationship => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP"
-            }
-            Self::CoverageManifest => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER" => {
-                Some(Self::WorldCharacter)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA" => {
-                Some(Self::RealmPersona)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE" => {
-                Some(Self::WorldCore)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY" => {
-                Some(Self::WorldEntity)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP" => {
-                Some(Self::WorldRelationship)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST" => {
-                Some(Self::CoverageManifest)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationProofAlgorithm {
-    Unspecified = 0,
-    Rs256 = 1,
-}
-impl AgentSourceMaterializationProofAlgorithm {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED"
-            }
-            Self::Rs256 => "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256" => Some(Self::Rs256),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationKeyUse {
-    Unspecified = 0,
-    Sig = 1,
-}
-impl AgentSourceMaterializationKeyUse {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED",
-            Self::Sig => "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG" => Some(Self::Sig),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationPacketSchemaVersion {
-    Unspecified = 0,
-    V2 = 1,
-}
-impl AgentSourceMaterializationPacketSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED"
-            }
-            Self::V2 => "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2" => Some(Self::V2),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationBundleManifestSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentSourceMaterializationBundleManifestSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED"
-            }
-            Self::V1 => "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1" => {
-                Some(Self::V1)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationPayloadAssemblyVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentSourceMaterializationPayloadAssemblyVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED"
-            }
-            Self::V1 => "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationReasonCode {
-    Unspecified = 0,
-    None = 1,
-    InvalidRequest = 2,
-    AccountBindingMismatch = 3,
-    SourceBindingMismatch = 4,
-    ChallengeNotFound = 5,
-    ChallengeExpired = 6,
-    ChallengeConflict = 7,
-    ChallengeAlreadyLeased = 8,
-    ChallengeAlreadyConsumed = 9,
-    AudienceMismatch = 10,
-    BundleCapacityExceeded = 11,
-    ComponentCapacityExceeded = 12,
-    ChunkCapacityExceeded = 13,
-    ChunkCountExceeded = 14,
-    ManifestInvalid = 15,
-    PacketInvalid = 16,
-    ProofInvalid = 17,
-    UploadNotFound = 18,
-    UploadStateConflict = 19,
-    RequestIdConflict = 20,
-    ChunkDescriptorInvalid = 21,
-    ChunkDigestMismatch = 22,
-    ChunkConflict = 23,
-    CommitInProgress = 24,
-    AlreadyCommitted = 25,
-    CommitConflict = 26,
-    AdmissionFailed = 27,
-    Aborted = 28,
-    Expired = 29,
-    PersistenceFailed = 30,
-}
-impl AgentSourceMaterializationReasonCode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
-            Self::None => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
-            Self::InvalidRequest => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
-            }
-            Self::AccountBindingMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH"
-            }
-            Self::SourceBindingMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH"
-            }
-            Self::ChallengeNotFound => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND"
-            }
-            Self::ChallengeExpired => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED"
-            }
-            Self::ChallengeConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT"
-            }
-            Self::ChallengeAlreadyLeased => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED"
-            }
-            Self::ChallengeAlreadyConsumed => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED"
-            }
-            Self::AudienceMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH"
-            }
-            Self::BundleCapacityExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED"
-            }
-            Self::ComponentCapacityExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED"
-            }
-            Self::ChunkCapacityExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED"
-            }
-            Self::ChunkCountExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED"
-            }
-            Self::ManifestInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID"
-            }
-            Self::PacketInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
-            }
-            Self::ProofInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
-            }
-            Self::UploadNotFound => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND"
-            }
-            Self::UploadStateConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT"
-            }
-            Self::RequestIdConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT"
-            }
-            Self::ChunkDescriptorInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID"
-            }
-            Self::ChunkDigestMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH"
-            }
-            Self::ChunkConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT"
-            }
-            Self::CommitInProgress => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS"
-            }
-            Self::AlreadyCommitted => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED"
-            }
-            Self::CommitConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT"
-            }
-            Self::AdmissionFailed => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED"
-            }
-            Self::Aborted => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED",
-            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED",
-            Self::PersistenceFailed => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE" => Some(Self::None),
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST" => {
-                Some(Self::InvalidRequest)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH" => {
-                Some(Self::AccountBindingMismatch)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH" => {
-                Some(Self::SourceBindingMismatch)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND" => {
-                Some(Self::ChallengeNotFound)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED" => {
-                Some(Self::ChallengeExpired)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT" => {
-                Some(Self::ChallengeConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED" => {
-                Some(Self::ChallengeAlreadyLeased)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED" => {
-                Some(Self::ChallengeAlreadyConsumed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH" => {
-                Some(Self::AudienceMismatch)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED" => {
-                Some(Self::BundleCapacityExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED" => {
-                Some(Self::ComponentCapacityExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED" => {
-                Some(Self::ChunkCapacityExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED" => {
-                Some(Self::ChunkCountExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID" => {
-                Some(Self::ManifestInvalid)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID" => {
-                Some(Self::PacketInvalid)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID" => {
-                Some(Self::ProofInvalid)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND" => {
-                Some(Self::UploadNotFound)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT" => {
-                Some(Self::UploadStateConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT" => {
-                Some(Self::RequestIdConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID" => {
-                Some(Self::ChunkDescriptorInvalid)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH" => {
-                Some(Self::ChunkDigestMismatch)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT" => {
-                Some(Self::ChunkConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS" => {
-                Some(Self::CommitInProgress)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED" => {
-                Some(Self::AlreadyCommitted)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT" => {
-                Some(Self::CommitConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED" => {
-                Some(Self::AdmissionFailed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED" => Some(Self::Aborted),
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED" => Some(Self::Expired),
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED" => {
-                Some(Self::PersistenceFailed)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceContextState {
-    Unspecified = 0,
-    NotMaterialized = 1,
-    Validating = 2,
-    Ready = 3,
-    Invalid = 4,
-    Deleted = 5,
-}
-impl AgentLocalSourceContextState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED",
-            Self::NotMaterialized => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED",
-            Self::Validating => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING",
-            Self::Ready => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY",
-            Self::Invalid => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID",
-            Self::Deleted => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED" => {
-                Some(Self::NotMaterialized)
-            }
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING" => Some(Self::Validating),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY" => Some(Self::Ready),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED" => Some(Self::Deleted),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceCoverageSection {
-    Unspecified = 0,
-    Identity = 1,
-    Presentation = 2,
-    Placement = 3,
-    Biography = 4,
-    Psychology = 5,
-    Knowledge = 6,
-    Relationships = 7,
-    Capabilities = 8,
-    InteractionProfile = 9,
-    Assets = 10,
-    Authoring = 11,
-    PersonaStyle = 12,
-    ContentProfile = 13,
-    WorldCore = 14,
-    BoundEntity = 15,
-    DependencyClosure = 16,
-}
-impl AgentLocalSourceCoverageSection {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED",
-            Self::Identity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY",
-            Self::Presentation => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION",
-            Self::Placement => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT",
-            Self::Biography => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY",
-            Self::Psychology => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY",
-            Self::Knowledge => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE",
-            Self::Relationships => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS",
-            Self::Capabilities => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES",
-            Self::InteractionProfile => {
-                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE"
-            }
-            Self::Assets => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS",
-            Self::Authoring => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING",
-            Self::PersonaStyle => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE",
-            Self::ContentProfile => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE",
-            Self::WorldCore => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE",
-            Self::BoundEntity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY",
-            Self::DependencyClosure => {
-                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY" => Some(Self::Identity),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION" => {
-                Some(Self::Presentation)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT" => Some(Self::Placement),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY" => Some(Self::Biography),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY" => Some(Self::Psychology),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE" => Some(Self::Knowledge),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS" => {
-                Some(Self::Relationships)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES" => {
-                Some(Self::Capabilities)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE" => {
-                Some(Self::InteractionProfile)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS" => Some(Self::Assets),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING" => Some(Self::Authoring),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE" => {
-                Some(Self::PersonaStyle)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE" => {
-                Some(Self::ContentProfile)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE" => Some(Self::WorldCore),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY" => Some(Self::BoundEntity),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE" => {
-                Some(Self::DependencyClosure)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceCoverageState {
-    Unspecified = 0,
-    Complete = 1,
-    NotApplicable = 2,
-    OptionalOmitted = 3,
-    Invalid = 4,
-}
-impl AgentLocalSourceCoverageState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED",
-            Self::Complete => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE",
-            Self::NotApplicable => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE",
-            Self::OptionalOmitted => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED",
-            Self::Invalid => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE" => Some(Self::Complete),
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE" => {
-                Some(Self::NotApplicable)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED" => {
-                Some(Self::OptionalOmitted)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID" => Some(Self::Invalid),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextState {
-    Unspecified = 0,
-    NotComposed = 1,
-    Ready = 2,
-    ContextCapacityExceeded = 3,
-    Invalid = 4,
-}
-impl AgentTurnContextState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED",
-            Self::NotComposed => "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED",
-            Self::Ready => "AGENT_TURN_CONTEXT_STATE_READY",
-            Self::ContextCapacityExceeded => {
-                "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED"
-            }
-            Self::Invalid => "AGENT_TURN_CONTEXT_STATE_INVALID",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED" => Some(Self::NotComposed),
-            "AGENT_TURN_CONTEXT_STATE_READY" => Some(Self::Ready),
-            "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED" => {
-                Some(Self::ContextCapacityExceeded)
-            }
-            "AGENT_TURN_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextLaneId {
-    Unspecified = 0,
-    RuntimePolicy = 1,
-    OutputContract = 2,
-    SourceIdentity = 3,
-    SourceBehavior = 4,
-    WorldContext = 5,
-    RelationshipContext = 6,
-    SourceKnowledge = 7,
-    CanonicalMemory = 8,
-    ConversationHistory = 9,
-    CapabilityContext = 10,
-    CurrentUserTurn = 11,
-}
-impl AgentTurnContextLaneId {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED",
-            Self::RuntimePolicy => "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY",
-            Self::OutputContract => "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT",
-            Self::SourceIdentity => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY",
-            Self::SourceBehavior => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR",
-            Self::WorldContext => "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT",
-            Self::RelationshipContext => {
-                "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT"
-            }
-            Self::SourceKnowledge => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE",
-            Self::CanonicalMemory => "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY",
-            Self::ConversationHistory => {
-                "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY"
-            }
-            Self::CapabilityContext => "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT",
-            Self::CurrentUserTurn => "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY" => Some(Self::RuntimePolicy),
-            "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT" => Some(Self::OutputContract),
-            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY" => Some(Self::SourceIdentity),
-            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR" => Some(Self::SourceBehavior),
-            "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT" => Some(Self::WorldContext),
-            "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT" => {
-                Some(Self::RelationshipContext)
-            }
-            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE" => Some(Self::SourceKnowledge),
-            "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY" => Some(Self::CanonicalMemory),
-            "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY" => {
-                Some(Self::ConversationHistory)
-            }
-            "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT" => {
-                Some(Self::CapabilityContext)
-            }
-            "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN" => Some(Self::CurrentUserTurn),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextLaneState {
-    Unspecified = 0,
-    Included = 1,
-    Empty = 2,
-    Omitted = 3,
-    Truncated = 4,
-    Invalid = 5,
-}
-impl AgentTurnContextLaneState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED",
-            Self::Included => "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED",
-            Self::Empty => "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY",
-            Self::Omitted => "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED",
-            Self::Truncated => "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED",
-            Self::Invalid => "AGENT_TURN_CONTEXT_LANE_STATE_INVALID",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED" => Some(Self::Included),
-            "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY" => Some(Self::Empty),
-            "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED" => Some(Self::Omitted),
-            "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED" => Some(Self::Truncated),
-            "AGENT_TURN_CONTEXT_LANE_STATE_INVALID" => Some(Self::Invalid),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextTruncationReason {
-    Unspecified = 0,
-    None = 1,
-    InputBudgetExhausted = 2,
-    OptionalContentOmitted = 3,
-    ContextCapacityExceeded = 4,
-}
-impl AgentTurnContextTruncationReason {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED",
-            Self::None => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE",
-            Self::InputBudgetExhausted => {
-                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED"
-            }
-            Self::OptionalContentOmitted => {
-                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED"
-            }
-            Self::ContextCapacityExceeded => {
-                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE" => Some(Self::None),
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED" => {
-                Some(Self::InputBudgetExhausted)
-            }
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED" => {
-                Some(Self::OptionalContentOmitted)
-            }
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED" => {
-                Some(Self::ContextCapacityExceeded)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentContextProjectionReasonCode {
-    Unspecified = 0,
-    None = 1,
-    SourceNotMaterialized = 2,
-    SourceValidationPending = 3,
-    SourceSnapshotInvalid = 4,
-    ContextNotComposed = 5,
-    ContextCapacityExceeded = 6,
-    ContextManifestInvalid = 7,
-}
-impl AgentContextProjectionReasonCode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED",
-            Self::None => "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE",
-            Self::SourceNotMaterialized => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED"
-            }
-            Self::SourceValidationPending => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING"
-            }
-            Self::SourceSnapshotInvalid => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID"
-            }
-            Self::ContextNotComposed => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED"
-            }
-            Self::ContextCapacityExceeded => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED"
-            }
-            Self::ContextManifestInvalid => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE" => Some(Self::None),
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED" => {
-                Some(Self::SourceNotMaterialized)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING" => {
-                Some(Self::SourceValidationPending)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID" => {
-                Some(Self::SourceSnapshotInvalid)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED" => {
-                Some(Self::ContextNotComposed)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED" => {
-                Some(Self::ContextCapacityExceeded)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID" => {
-                Some(Self::ContextManifestInvalid)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceContextSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentLocalSourceContextSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceSnapshotSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentLocalSourceSnapshotSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextSummarySchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentTurnContextSummarySchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextManifestSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentTurnContextManifestSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextCompilerSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentTurnContextCompilerSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1" => Some(Self::V1),
             _ => None,
         }
     }

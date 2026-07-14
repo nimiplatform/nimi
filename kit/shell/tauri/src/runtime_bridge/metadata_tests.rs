@@ -41,8 +41,8 @@ fn trusted_metadata(app_id: &str) -> RuntimeBridgeTrustedMetadata {
         metadata: Some(RuntimeBridgeMetadata {
             app_id: Some(app_id.to_string()),
             participant_id: Some(app_id.to_string()),
-            caller_kind: Some("local-developer-app".to_string()),
-            caller_id: Some(format!("{app_id}.local-developer")),
+            caller_kind: Some("local-first-party-app".to_string()),
+            caller_id: Some(format!("{app_id}.local-first-party")),
             surface_id: Some("host.surface".to_string()),
             ..RuntimeBridgeMetadata::default()
         }),
@@ -169,11 +169,11 @@ fn trusted_metadata_merges_host_identity_and_auth_with_renderer_call_metadata() 
     );
     assert_eq!(
         read_metadata(&request, "x-nimi-caller-kind").as_deref(),
-        Some("local-developer-app")
+        Some("local-first-party-app")
     );
     assert_eq!(
         read_metadata(&request, "x-nimi-caller-id").as_deref(),
-        Some("nimi.parentos.local-developer")
+        Some("nimi.parentos.local-first-party")
     );
     assert_eq!(
         read_metadata(&request, "x-nimi-domain").as_deref(),

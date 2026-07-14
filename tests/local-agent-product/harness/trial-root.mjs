@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { TRIAL_ROOT_PREFIX, writeHarnessOwnerMarker } from './sandbox-hygiene.mjs';
+import { TRIAL_IDENTITY_FILE, TRIAL_ROOT_PREFIX, writeHarnessOwnerMarker } from './sandbox-hygiene.mjs';
 
 function safeId(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '') || 'trial';
@@ -10,13 +10,21 @@ function safeId(value) {
 
 function createRoot(prefix, identity) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `${TRIAL_ROOT_PREFIX}${safeId(prefix)}-`));
-  writeHarnessOwnerMarker(root);
+  const candidateId = identity.journeyTrialId || identity.suiteTrialId;
+  const trialIdentity = { ...identity, candidateId };
+  fs.writeFileSync(path.join(root, TRIAL_IDENTITY_FILE), `${JSON.stringify(trialIdentity, null, 2)}\n`, { mode: 0o600 });
+  writeHarnessOwnerMarker(root, { candidateId });
   const paths = {
     root,
     realm: path.join(root, 'realm'),
     runtimeState: path.join(root, 'runtime-state'),
-    runtimeData: path.join(root, 'runtime-data'),
+    // Harness scratch data only. Fixed-service First Run replaces this with
+    // the Runtime-projected, candidate-bound proposal; this path is never
+    // Product Control or Runtime authority.
+    runtimeData: path.join(root, 'Nimi'),
     standardShellData: path.join(root, 'standard-shell-data'),
+    appDataRoaming: path.join(root, 'appdata-roaming'),
+    appDataLocal: path.join(root, 'appdata-local'),
     desktopUserData: path.join(root, 'desktop-user-data'),
     zhiyuUserData: path.join(root, 'zhiyu-user-data'),
     providerRaw: path.join(root, 'provider-raw'),
@@ -24,8 +32,7 @@ function createRoot(prefix, identity) {
     control: path.join(root, 'control'),
   };
   for (const value of Object.values(paths)) if (value !== root) fs.mkdirSync(value, { recursive: true });
-  fs.writeFileSync(path.join(root, 'trial-identity.json'), `${JSON.stringify(identity, null, 2)}\n`, { mode: 0o600 });
-  return { identity, paths };
+  return { identity: trialIdentity, paths };
 }
 
 export function createIsolatedJourneyRoot({ journeyId, tier, batch, repeatIndex }) {
@@ -70,5 +77,10 @@ export function createIsolatedSuiteRoot({ suiteId, layers }) {
 }
 
 export function removeIsolatedTrialRoot(trial) {
-  fs.rmSync(trial.paths.root, { recursive: true, force: true });
+  fs.rmSync(trial.paths.root, {
+    recursive: true,
+    force: true,
+    maxRetries: process.platform === 'win32' ? 10 : 0,
+    retryDelay: process.platform === 'win32' ? 200 : 100,
+  });
 }

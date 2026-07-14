@@ -156,30 +156,6 @@ func parseOptionalTimestamp(raw string) (*timestamppb.Timestamp, error) {
 	return timestamppb.New(value.UTC()), nil
 }
 
-func parsePolicyMode(raw string) (runtimev1.PolicyMode, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "preset":
-		return runtimev1.PolicyMode_POLICY_MODE_PRESET, nil
-	case "custom":
-		return runtimev1.PolicyMode_POLICY_MODE_CUSTOM, nil
-	default:
-		return runtimev1.PolicyMode_POLICY_MODE_UNSPECIFIED, fmt.Errorf("invalid policy-mode %q (expected preset|custom)", raw)
-	}
-}
-
-func parseAuthorizationPreset(raw string) (runtimev1.AuthorizationPreset, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "read-only", "readonly", "read_only":
-		return runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_READ_ONLY, nil
-	case "full":
-		return runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_FULL, nil
-	case "delegate":
-		return runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE, nil
-	default:
-		return runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_UNSPECIFIED, fmt.Errorf("invalid preset %q (expected read-only|full|delegate)", raw)
-	}
-}
-
 func parseAppMode(raw string) (runtimev1.AppMode, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "lite":
@@ -203,49 +179,6 @@ func parseWorldRelation(raw string) (runtimev1.WorldRelation, error) {
 		return runtimev1.WorldRelation_WORLD_RELATION_EXTENSION, nil
 	default:
 		return runtimev1.WorldRelation_WORLD_RELATION_UNSPECIFIED, fmt.Errorf("invalid world-relation %q (expected none|render|extension)", raw)
-	}
-}
-
-func loadResourceSelectorsFile(path string) (*runtimev1.ResourceSelectors, error) {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return nil, nil
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read resource selectors file %s: %w", path, err)
-	}
-	selectors := &runtimev1.ResourceSelectors{}
-	if err := protojson.Unmarshal(raw, selectors); err != nil {
-		return nil, fmt.Errorf("parse resource selectors file %s: %w", path, err)
-	}
-	return selectors, nil
-}
-
-func selectorsAsMap(selectors *runtimev1.ResourceSelectors) map[string]any {
-	if selectors == nil {
-		return map[string]any{}
-	}
-	labels := map[string]string{}
-	for key, value := range selectors.GetLabels() {
-		labels[key] = value
-	}
-	return map[string]any{
-		"conversation_ids": selectors.GetConversationIds(),
-		"message_ids":      selectors.GetMessageIds(),
-		"document_ids":     selectors.GetDocumentIds(),
-		"labels":           labels,
-	}
-}
-
-func consentAsMap(consent *runtimev1.ConsentRef) map[string]any {
-	if consent == nil {
-		return map[string]any{}
-	}
-	return map[string]any{
-		"subject_user_id": consent.GetSubjectUserId(),
-		"consent_id":      consent.GetConsentId(),
-		"consent_version": consent.GetConsentVersion(),
 	}
 }
 

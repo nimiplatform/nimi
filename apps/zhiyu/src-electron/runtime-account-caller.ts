@@ -21,7 +21,6 @@ export const ZHIYU_RUNTIME_REGISTRATION_CAPABILITIES = [
   'account.session.read',
   'data.scope.read#realm.worlds.read-probe',
 ] as const;
-const runtimeDeveloperRegistrationRequested = false;
 const runtimeAppSessionTtlSeconds = 3600;
 const runtimeAppSessionRefreshSkewMs = 30_000;
 
@@ -50,7 +49,6 @@ export function createZhiyuElectronRuntimeAppSessionMetadataProvider(input: {
     capabilities: [...ZHIYU_RUNTIME_REGISTRATION_CAPABILITIES],
     ttlSeconds: runtimeAppSessionTtlSeconds,
     refreshSkewMs: runtimeAppSessionRefreshSkewMs,
-    developerRegistration: runtimeDeveloperRegistrationRequested,
   });
 }
 

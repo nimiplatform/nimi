@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { parse } from 'yaml';
@@ -52,22 +52,29 @@ function assertDecision(caller, method, expected) {
   }
 }
 
+function assertCallerDecision(caller, expected) {
+  if (caller.decision !== expected) {
+    fail(`${caller.caller_class} expected ${expected}, got ${caller.decision || '<missing>'}`);
+  }
+}
+
 function checkRuntimePermissionMatrix() {
   const document = parse(read('.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml'));
-  const desktop = matrixCaller(document, 'desktop_account_ux');
+  const desktop = matrixCaller(document, 'desktop_account_and_local_app_control');
   const firstParty = matrixCaller(document, 'local_first_party_app');
-  const developer = matrixCaller(document, 'local_developer_app');
-  const installed = matrixCaller(document, 'desktop_launched_installed_nimi_app');
+  const localApp = matrixCaller(document, 'local_app');
   const avatar = matrixCaller(document, 'binding_only_avatar');
+  assertCallerDecision(avatar, 'deny_all');
   for (const method of ['BeginLogin', 'CompleteLogin', 'Logout', 'SwitchAccount']) {
     assertDecision(desktop, method, 'allow_when');
     assertDecision(firstParty, method, 'deny');
-    assertDecision(developer, method, 'deny');
-    assertDecision(installed, method, 'deny');
-    assertDecision(avatar, method, 'deny');
+    assertDecision(localApp, method, 'deny');
   }
-  assertDecision(developer, 'InvokeRealmUnary', 'deny');
-  assertDecision(installed, 'InvokeRealmUnary', 'deny');
+  assertDecision(localApp, 'InvokeRealmUnary', 'deny');
+  assertDecision(localApp, 'GetLocalAppGrantStatus', 'allow_when');
+  assertDecision(localApp, 'RequestLocalAppGrant', 'allow_when');
+  assertDecision(desktop, 'DecideLocalAppGrant', 'allow_when');
+  assertDecision(desktop, 'RevokeLocalAppGrant', 'allow_when');
   runGoTest('^TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned$');
 }
 
@@ -84,15 +91,21 @@ function checkRuntimePrivateRefresh() {
 
 function checkRuntimeCallerEnvelope() {
   const envelope = read('runtime/internal/services/account/caller_envelope.go');
-  const electron = read('kit/shell/electron/src/main/runtime-account-auth.ts');
   const tauri = read('kit/shell/tauri/src/runtime_bridge/metadata.rs');
-  for (const key of ['x-nimi-source-host', 'x-nimi-app-instance-id', 'x-nimi-device-id', 'x-nimi-launch-nonce', 'x-nimi-release-descriptor-ref', 'x-nimi-capability-set-ref']) {
+  const desktopTauri = read('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
+  const desktopElectron = read('apps/desktop/src-electron/main.ts');
+  for (const key of ['x-nimi-source-host', 'x-nimi-app-instance-id', 'x-nimi-device-id']) {
     requireMatch(envelope, new RegExp(key, 'u'), `Runtime envelope parser is missing ${key}`);
-    requireMatch(electron, new RegExp(key, 'u'), `Electron host does not stamp ${key}`);
   }
-  requireMatch(tauri, /renderer_forbidden_metadata_kind[\s\S]*xnimilaunchnonce/u, 'Tauri metadata policy does not reserve trusted envelope fields');
-  requireMatch(envelope, /ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY/u, 'Runtime launch nonce replay rejection is missing');
-  runGoTest('^(TestInstalledAppBrokerRequiresBoundEnvelopeAndRejectsLaunchNonceReplay|TestProductionLocalCallerRequiresRuntimeAppSessionProof)$');
+  requireMatch(envelope, /protected-local-desktop-account-host/u, 'Runtime canonical protected Desktop account host is missing');
+  requireMatch(tauri, /renderer_forbidden_metadata_kind[\s\S]*xnimisourcehost[\s\S]*xnimiappinstanceid[\s\S]*xnimideviceid/u, 'Tauri metadata policy does not reserve trusted desktop envelope fields');
+  requireMatch(desktopTauri, /DESKTOP_CONTROL_TRANSPORT_REQUIRED/u, 'Tauri ordinary Runtime bridge does not fail closed on account calls');
+  forbidMatch(desktopTauri, /desktop-tauri-account-host|RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST/u, 'Tauri retains the retired account-host carrier');
+  forbidMatch(desktopElectron, /trustedRuntimeMetadataProvider|desktop-electron-account-host|runtime-auth\.js/u, 'Electron ordinary Runtime bridge retains account authority metadata');
+  if (existsSync(path.join(root, 'kit/shell/electron/src/main/runtime-account-auth.ts'))) {
+    fail('retired Electron Runtime account metadata provider still exists');
+  }
+  runGoTest('^(TestDesktopAccountHostRequiresProtectedDesktopOrigin|TestProductionLocalCallerRequiresRuntimeAppSessionProof)$');
 }
 
 function checkRuntimeBrokerPolicy() {
@@ -127,22 +140,28 @@ function checkRuntimeBrokerTokenLeak() {
   runGoTest('^(TestInvokeRealmUnaryFailsClosedOnCredentialLikeResponse|TestInvokeRealmUnaryTypedNegativeMatrix|TestInvokeRealmUnaryMediatesRealmRequestWithoutReturningToken)$');
 }
 
-function checkSdkInstalledBootstrap() {
-  const bootstrap = read('sdks/typescript/core/app/installed-app-bootstrap.ts');
+function checkSdkLocalAppProtectedCarrier() {
+  const client = read('sdks/typescript/core/app/local-app-runtime-platform.ts');
+  const appIndex = read('sdks/typescript/core/app/index.ts');
   const realm = read('sdks/typescript/core/app/runtime-account-realm.ts');
-  requireMatch(bootstrap, /export function createInstalledNimiAppBootstrap/u, 'installed app bootstrap constructor is missing');
-  requireMatch(bootstrap, /InstalledNimiAppStandardShellSurface/u, 'installed app bootstrap does not require the typed standard shell');
-  requireMatch(bootstrap, /readRuntimeBytes/u, 'installed app bootstrap does not expose the protected artifact reader');
-  requireMatch(bootstrap, /Object\.keys\(record\)\.sort\(\)[\s\S]*\['standardShell'\]/u, 'installed app bootstrap does not reject renderer-owned authority fields');
+  requireMatch(client, /export function createNimiAppRuntimePlatformClient/u, 'local-app client constructor is missing');
+  requireMatch(client, /NimiAppRuntimePlatformStandardShell/u, 'local-app client does not require the typed standard shell');
+  requireMatch(client, /session-bound-zero-grant/u, 'local-app client collapses the zero-grant identity session');
+  requireMatch(client, /readRuntimeBytes/u, 'local-app client does not expose the protected artifact reader');
+  requireMatch(client, /assertExactKeys\(input, \['standardShell'\]/u, 'local-app client does not reject caller-owned authority fields');
   forbidMatch(
-    bootstrap,
-    /createRuntimeAccountMediatedRealmTransport|createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession|accountCaller|authMetadata|developerRegistration/u,
-    'installed app bootstrap exposes renderer-owned account or Realm authority',
+    client,
+    /createRuntimeAccountMediatedRealmTransport|createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession|accountCaller|authMetadata|developerRegistration|readonly\s+trustClass/u,
+    'local-app client exposes renderer-owned account, provenance, or Realm authority',
   );
+  forbidMatch(appIndex, /InstalledNimiApp|createInstalledNimiAppBootstrap|installed-app-bootstrap/u, 'SDK app export retains the retired installed-app carrier');
+  if (existsSync(path.join(root, 'sdks/typescript/core/app/installed-app-bootstrap.ts'))) {
+    fail('retired installed-app bootstrap source still exists');
+  }
   forbidMatch(realm, /createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession/u, 'SDK Realm helper exposes public account credential access');
   run(process.execPath, [
     '--import', 'tsx', '--test',
-    'core/app/installed-app-bootstrap.test.ts',
+    'core/app/local-app-runtime-platform.test.ts',
     'core/app/runtime-account-realm.test.ts',
     'runtime/account-caller.test.ts',
     'runtime/shared-auth-surface.test.ts',
@@ -165,7 +184,7 @@ function checkKitParity() {
   run(process.execPath, [
     path.join(root, 'kit/node_modules/vitest/vitest.mjs'), 'run',
     'shell/renderer/test/shared-auth-broker-hardcut.test.ts',
-    'shell/electron/test/electron-runtime-account-auth.test.ts',
+    'shell/electron/test/electron-protected-desktop-hosts.test.ts',
   ], path.join(root, 'kit'));
   run('cargo', ['test', '--manifest-path', 'kit/shell/tauri/Cargo.toml', 'capabilities::catalog']);
   run('cargo', ['test', '--manifest-path', 'kit/shell/tauri/Cargo.toml', 'runtime_bridge']);
@@ -177,7 +196,7 @@ const gates = {
   'runtime-caller-envelope-binding': checkRuntimeCallerEnvelope,
   'runtime-broker-operation-policy': checkRuntimeBrokerPolicy,
   'runtime-broker-token-leak': checkRuntimeBrokerTokenLeak,
-  'sdk-installed-app-broker-bootstrap': checkSdkInstalledBootstrap,
+  'sdk-local-app-protected-carrier': checkSdkLocalAppProtectedCarrier,
   'kit-shared-auth-broker-parity': checkKitParity,
 };
 

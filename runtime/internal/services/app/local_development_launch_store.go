@@ -16,12 +16,18 @@ import (
 )
 
 type localDevelopmentLaunchRequest struct {
-	AuthorizationID protectedlocal.Identifier
-	SupervisorRunID protectedlocal.Identifier
-	Project         localDevelopmentProjectSnapshot
-	ShellKind       runtimev1.LocalDevelopmentShellKind
-	HostExecutable  string
-	RendererOrigin  string
+	AuthorizationID    protectedlocal.Identifier
+	SupervisorRunID    protectedlocal.Identifier
+	Project            localDevelopmentProjectSnapshot
+	ShellKind          runtimev1.LocalDevelopmentShellKind
+	HostExecutable     string
+	RendererOrigin     string
+	PrincipalID        string
+	RecordID           string
+	ProvenanceRevision uint64
+	ProjectGeneration  uint64
+	PayloadDigest      string
+	ExpectedHostDigest protectedlocal.Identifier
 }
 
 type localDevelopmentLaunchTicket struct {
@@ -46,6 +52,11 @@ type localDevelopmentSessionProjection struct {
 	RuntimeBootEpoch        protectedlocal.Identifier
 	Process                 protectedlocal.ProcessTuple
 	Capabilities            []string
+	LocalAppPrincipalID     string
+	LocalAppRecordID        string
+	ProvenanceRevision      uint64
+	ProjectGeneration       uint64
+	PayloadDigest           string
 }
 
 type localDevelopmentSessionBinding struct {
@@ -74,7 +85,17 @@ type localDevelopmentLaunchRow struct {
 	ExpiresAt             time.Time
 	BindDeadline          time.Time
 	Process               protectedlocal.ProcessTuple
+	LocalAppPrincipalID   string
+	LocalAppRecordID      string
+	ProvenanceRevision    uint64
+	ProjectGeneration     uint64
+	PayloadDigest         string
+	ExpectedHostDigest    protectedlocal.Identifier
 }
+
+const localDevelopmentLaunchSelect = `SELECT launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind, account_id, account_generation, capability_fingerprint,
+	local_app_principal_id, local_app_record_id, provenance_revision, project_generation, payload_digest, expected_host_digest,
+	host_executable_path, renderer_origin, runtime_boot_epoch, status, expires_unix_nano, bind_deadline_unix_nano, process_json FROM local_development_launch WHERE launch_id = ?`
 
 func (store *localDevelopmentStore) PendingLaunchPolicy(ctx context.Context, launchID protectedlocal.Identifier) (protectedlocal.LocalDevelopmentProcessPolicy, error) {
 	if store == nil || store.db == nil || launchID == (protectedlocal.Identifier{}) {
@@ -82,7 +103,7 @@ func (store *localDevelopmentStore) PendingLaunchPolicy(ctx context.Context, lau
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	row, err := scanLocalDevelopmentLaunch(store.db.QueryRowContext(ctx, `SELECT launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind, account_id, account_generation, capability_fingerprint, host_executable_path, renderer_origin, runtime_boot_epoch, status, expires_unix_nano, bind_deadline_unix_nano, process_json FROM local_development_launch WHERE launch_id = ?`, launchID[:]))
+	row, err := scanLocalDevelopmentLaunch(store.db.QueryRowContext(ctx, localDevelopmentLaunchSelect, launchID[:]))
 	if err != nil || row.Status != "pending" || row.RuntimeBootEpoch != store.bootEpoch || !store.now().UTC().Before(row.ExpiresAt) {
 		return protectedlocal.LocalDevelopmentProcessPolicy{}, errLocalDevelopmentLaunchExpired
 	}
@@ -96,7 +117,10 @@ func (store *localDevelopmentStore) PendingLaunchPolicy(ctx context.Context, lau
 func (store *localDevelopmentStore) PrepareLaunch(ctx context.Context, request localDevelopmentLaunchRequest) (localDevelopmentLaunchTicket, error) {
 	if store == nil || store.db == nil || request.AuthorizationID == (protectedlocal.Identifier{}) || request.SupervisorRunID == (protectedlocal.Identifier{}) ||
 		request.ShellKind != request.Project.ShellKind || validateLocalDevelopmentProject(request.Project) != nil ||
-		!validLocalDevelopmentHostPath(request.Project.ProjectRoot, request.HostExecutable, request.ShellKind) || !validLocalDevelopmentRendererOrigin(request.RendererOrigin) {
+		!validLocalDevelopmentHostPath(request.Project.ProjectRoot, request.HostExecutable, request.ShellKind) {
+		return localDevelopmentLaunchTicket{}, errLocalDevelopmentInvalid
+	}
+	if strings.TrimSpace(request.PrincipalID) == "" || request.PrincipalID != strings.TrimSpace(request.PrincipalID) || strings.TrimSpace(request.RecordID) == "" || request.RecordID != strings.TrimSpace(request.RecordID) || request.ProvenanceRevision == 0 || request.ProjectGeneration == 0 || strings.TrimSpace(request.PayloadDigest) == "" || request.PayloadDigest != strings.TrimSpace(request.PayloadDigest) || request.ExpectedHostDigest == (protectedlocal.Identifier{}) {
 		return localDevelopmentLaunchTicket{}, errLocalDevelopmentInvalid
 	}
 	store.mu.Lock()
@@ -124,12 +148,15 @@ func (store *localDevelopmentStore) PrepareLaunch(ctx context.Context, request l
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO local_development_launch(
 		launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind,
-		account_id, account_generation, capability_fingerprint, host_executable_path, renderer_origin,
+		account_id, account_generation, capability_fingerprint,
+		local_app_principal_id, local_app_record_id, provenance_revision, project_generation, payload_digest, expected_host_digest,
+		host_executable_path, renderer_origin,
 		runtime_boot_epoch, status, issued_unix_nano, expires_unix_nano
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
 		launchID[:], request.AuthorizationID[:], request.SupervisorRunID[:], request.Project.AppID, request.Project.ProjectRoot,
 		request.Project.ManifestPath, int32(request.ShellKind), request.Project.AccountID, request.Project.AccountGeneration,
-		request.Project.CapabilityFingerprint[:], filepath.Clean(request.HostExecutable), request.RendererOrigin,
+		request.Project.CapabilityFingerprint[:], request.PrincipalID, request.RecordID, request.ProvenanceRevision, request.ProjectGeneration, request.PayloadDigest, request.ExpectedHostDigest[:],
+		filepath.Clean(request.HostExecutable), request.RendererOrigin,
 		store.bootEpoch[:], now.UnixNano(), expiresAt.UnixNano()); err != nil {
 		return localDevelopmentLaunchTicket{}, err
 	}
@@ -151,7 +178,7 @@ func (store *localDevelopmentStore) BindLaunch(ctx context.Context, launchID pro
 		return time.Time{}, err
 	}
 	defer tx.Rollback()
-	row, err := scanLocalDevelopmentLaunch(tx.QueryRowContext(ctx, `SELECT launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind, account_id, account_generation, capability_fingerprint, host_executable_path, renderer_origin, runtime_boot_epoch, status, expires_unix_nano, bind_deadline_unix_nano, process_json FROM local_development_launch WHERE launch_id = ?`, launchID[:]))
+	row, err := scanLocalDevelopmentLaunch(tx.QueryRowContext(ctx, localDevelopmentLaunchSelect, launchID[:]))
 	if err != nil {
 		return time.Time{}, errLocalDevelopmentLaunchMismatch
 	}
@@ -159,7 +186,7 @@ func (store *localDevelopmentStore) BindLaunch(ctx context.Context, launchID pro
 	if row.Status != "pending" || row.RuntimeBootEpoch != store.bootEpoch || !now.Before(row.ExpiresAt) {
 		return time.Time{}, errLocalDevelopmentLaunchExpired
 	}
-	if !sameLocalDevelopmentFile(row.HostExecutable, process.CanonicalExecutablePath) {
+	if !sameLocalDevelopmentFile(row.HostExecutable, process.CanonicalExecutablePath) || process.ExecutableDigest != row.ExpectedHostDigest {
 		return time.Time{}, errLocalDevelopmentLaunchMismatch
 	}
 	deadline := now.Add(localDevelopmentProcessBindTTL)
@@ -187,7 +214,7 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 		return localDevelopmentSessionProjection{}, err
 	}
 	defer tx.Rollback()
-	row, err := scanLocalDevelopmentLaunch(tx.QueryRowContext(ctx, `SELECT launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind, account_id, account_generation, capability_fingerprint, host_executable_path, renderer_origin, runtime_boot_epoch, status, expires_unix_nano, bind_deadline_unix_nano, process_json FROM local_development_launch WHERE launch_id = ?`, launchID[:]))
+	row, err := scanLocalDevelopmentLaunch(tx.QueryRowContext(ctx, localDevelopmentLaunchSelect, launchID[:]))
 	if err != nil {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentLaunchMismatch
 	}
@@ -227,10 +254,13 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 	if _, err := tx.ExecContext(ctx, `INSERT INTO local_development_session(
 		session_id, session_proof_hash, launch_id, authorization_id, supervisor_run_id, app_id, project_root,
 		account_id, account_generation, capability_fingerprint, runtime_boot_epoch, process_json,
+		local_app_principal_id, local_app_record_id, provenance_revision, project_generation, payload_digest,
 		issued_unix_nano, expires_unix_nano
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		sessionID[:], proofHash[:], launchID[:], row.AuthorizationID[:], row.SupervisorRunID[:], row.AppID, row.ProjectRoot,
-		row.AccountID, row.AccountGeneration, row.CapabilityFingerprint[:], store.bootEpoch[:], processJSON, now.UnixNano(), expiresAt.UnixNano()); err != nil {
+		row.AccountID, row.AccountGeneration, row.CapabilityFingerprint[:], store.bootEpoch[:], processJSON,
+		row.LocalAppPrincipalID, row.LocalAppRecordID, row.ProvenanceRevision, row.ProjectGeneration, row.PayloadDigest,
+		now.UnixNano(), expiresAt.UnixNano()); err != nil {
 		return localDevelopmentSessionProjection{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -253,6 +283,11 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 		RuntimeBootEpoch:        store.bootEpoch,
 		Process:                 process,
 		Capabilities:            append([]string(nil), authorization.Project.Capabilities...),
+		LocalAppPrincipalID:     row.LocalAppPrincipalID,
+		LocalAppRecordID:        row.LocalAppRecordID,
+		ProvenanceRevision:      row.ProvenanceRevision,
+		ProjectGeneration:       row.ProjectGeneration,
+		PayloadDigest:           row.PayloadDigest,
 	}, nil
 }
 
@@ -264,12 +299,15 @@ func (store *localDevelopmentStore) ValidateSession(ctx context.Context, binding
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	var launchID, proofHash, authorizationID, runID, capabilityFingerprint, bootEpoch []byte
-	var appID, projectRoot, accountID, processJSON string
-	var accountGeneration uint64
+	var appID, projectRoot, accountID, processJSON, principalID, recordID, payloadDigest string
+	var accountGeneration, provenanceRevision, projectGeneration uint64
 	var expiresAt int64
 	var revokedAt sql.NullInt64
-	err := store.db.QueryRowContext(ctx, `SELECT launch_id, session_proof_hash, authorization_id, supervisor_run_id, app_id, project_root, account_id, account_generation, capability_fingerprint, runtime_boot_epoch, process_json, expires_unix_nano, revoked_unix_nano FROM local_development_session WHERE session_id = ?`, binding.SessionID[:]).Scan(
-		&launchID, &proofHash, &authorizationID, &runID, &appID, &projectRoot, &accountID, &accountGeneration, &capabilityFingerprint, &bootEpoch, &processJSON, &expiresAt, &revokedAt,
+	err := store.db.QueryRowContext(ctx, `SELECT launch_id, session_proof_hash, authorization_id, supervisor_run_id, app_id, project_root, account_id, account_generation, capability_fingerprint, runtime_boot_epoch, process_json,
+		local_app_principal_id, local_app_record_id, provenance_revision, project_generation, payload_digest,
+		expires_unix_nano, revoked_unix_nano FROM local_development_session WHERE session_id = ?`, binding.SessionID[:]).Scan(
+		&launchID, &proofHash, &authorizationID, &runID, &appID, &projectRoot, &accountID, &accountGeneration, &capabilityFingerprint, &bootEpoch, &processJSON,
+		&principalID, &recordID, &provenanceRevision, &projectGeneration, &payloadDigest, &expiresAt, &revokedAt,
 	)
 	if err != nil || revokedAt.Valid || accountGeneration != binding.AccountGeneration || !store.now().UTC().Before(time.Unix(0, expiresAt).UTC()) {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentSessionRevoked
@@ -324,6 +362,11 @@ func (store *localDevelopmentStore) ValidateSession(ctx context.Context, binding
 		RuntimeBootEpoch:        store.bootEpoch,
 		Process:                 process,
 		Capabilities:            append([]string(nil), authorization.Project.Capabilities...),
+		LocalAppPrincipalID:     principalID,
+		LocalAppRecordID:        recordID,
+		ProvenanceRevision:      provenanceRevision,
+		ProjectGeneration:       projectGeneration,
+		PayloadDigest:           payloadDigest,
 	}, nil
 }
 
@@ -373,10 +416,13 @@ func (store *localDevelopmentStore) RenewSession(ctx context.Context, binding lo
 	if _, err := tx.ExecContext(ctx, `INSERT INTO local_development_session(
 		session_id, session_proof_hash, launch_id, authorization_id, supervisor_run_id, app_id, project_root,
 		account_id, account_generation, capability_fingerprint, runtime_boot_epoch, process_json,
+		local_app_principal_id, local_app_record_id, provenance_revision, project_generation, payload_digest,
 		issued_unix_nano, expires_unix_nano
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		sessionID[:], proofHash[:], current.LaunchID[:], current.AuthorizationID[:], current.SupervisorRunID[:], current.AppID, current.ProjectRoot,
-		current.AccountID, current.AccountGeneration, current.CapabilityFingerprint[:], current.RuntimeBootEpoch[:], processJSON, now.UnixNano(), nextExpiry.UnixNano()); err != nil {
+		current.AccountID, current.AccountGeneration, current.CapabilityFingerprint[:], current.RuntimeBootEpoch[:], processJSON,
+		current.LocalAppPrincipalID, current.LocalAppRecordID, current.ProvenanceRevision, current.ProjectGeneration, current.PayloadDigest,
+		now.UnixNano(), nextExpiry.UnixNano()); err != nil {
 		return localDevelopmentSessionProjection{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -409,6 +455,10 @@ func (store *localDevelopmentStore) EndRun(ctx context.Context, authorizationID 
 	}
 	if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE {
 		if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE authorization_id = ? AND state = 'active'`, now.UnixNano(), authorizationID[:]); err != nil {
+			return err
+		}
+	} else if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT {
+		if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'dormant', updated_unix_nano = ? WHERE authorization_id = ? AND state = 'active'`, now.UnixNano(), authorizationID[:]); err != nil {
 			return err
 		}
 	}
@@ -471,14 +521,16 @@ func validLocalDevelopmentRendererOrigin(value string) bool {
 }
 
 func scanLocalDevelopmentLaunch(scanner localDevelopmentRowScanner) (localDevelopmentLaunchRow, error) {
-	var launchID, authorizationID, runID, capabilityFingerprint, bootEpoch []byte
-	var appID, projectRoot, manifestPath, accountID, hostExecutable, rendererOrigin, status string
+	var launchID, authorizationID, runID, capabilityFingerprint, bootEpoch, expectedHostDigest []byte
+	var appID, projectRoot, manifestPath, accountID, hostExecutable, rendererOrigin, status, principalID, recordID, payloadDigest string
 	var shellKind int32
-	var accountGeneration uint64
+	var accountGeneration, provenanceRevision, projectGeneration uint64
 	var expiresAt int64
 	var bindDeadline sql.NullInt64
 	var processJSON sql.NullString
-	if err := scanner.Scan(&launchID, &authorizationID, &runID, &appID, &projectRoot, &manifestPath, &shellKind, &accountID, &accountGeneration, &capabilityFingerprint, &hostExecutable, &rendererOrigin, &bootEpoch, &status, &expiresAt, &bindDeadline, &processJSON); err != nil {
+	if err := scanner.Scan(&launchID, &authorizationID, &runID, &appID, &projectRoot, &manifestPath, &shellKind, &accountID, &accountGeneration, &capabilityFingerprint,
+		&principalID, &recordID, &provenanceRevision, &projectGeneration, &payloadDigest, &expectedHostDigest,
+		&hostExecutable, &rendererOrigin, &bootEpoch, &status, &expiresAt, &bindDeadline, &processJSON); err != nil {
 		return localDevelopmentLaunchRow{}, err
 	}
 	parsedLaunchID, ok := localDevelopmentIdentifierFromBytes(launchID)
@@ -501,12 +553,18 @@ func scanLocalDevelopmentLaunch(scanner localDevelopmentRowScanner) (localDevelo
 	if !ok {
 		return localDevelopmentLaunchRow{}, errLocalDevelopmentLaunchMismatch
 	}
+	parsedHostDigest, ok := localDevelopmentIdentifierFromBytes(expectedHostDigest)
+	if !ok || strings.TrimSpace(principalID) == "" || strings.TrimSpace(recordID) == "" || provenanceRevision == 0 || projectGeneration == 0 || strings.TrimSpace(payloadDigest) == "" {
+		return localDevelopmentLaunchRow{}, errLocalDevelopmentLaunchMismatch
+	}
 	row := localDevelopmentLaunchRow{
 		LaunchID: parsedLaunchID, AuthorizationID: parsedAuthorizationID, SupervisorRunID: parsedRunID,
 		AppID: appID, ProjectRoot: projectRoot, ManifestPath: manifestPath, ShellKind: runtimev1.LocalDevelopmentShellKind(shellKind),
 		AccountID: accountID, AccountGeneration: accountGeneration, CapabilityFingerprint: parsedFingerprint,
 		HostExecutable: hostExecutable, RendererOrigin: rendererOrigin, RuntimeBootEpoch: parsedBootEpoch, Status: status,
-		ExpiresAt: time.Unix(0, expiresAt).UTC(),
+		ExpiresAt:           time.Unix(0, expiresAt).UTC(),
+		LocalAppPrincipalID: principalID, LocalAppRecordID: recordID, ProvenanceRevision: provenanceRevision,
+		ProjectGeneration: projectGeneration, PayloadDigest: payloadDigest, ExpectedHostDigest: parsedHostDigest,
 	}
 	if bindDeadline.Valid {
 		row.BindDeadline = time.Unix(0, bindDeadline.Int64).UTC()

@@ -4,9 +4,8 @@ use super::app_bootstrap::{
 use super::env_http::load_dotenv_file_preserve_env;
 use super::{
     allow_http_request_origin_with_history, allowed_http_origins,
-    is_authorized_http_origin_allowed, is_connector_auth_acquisition_request_allowed,
-    normalize_http_method, normalize_origin, runtime_defaults, HTTP_REQUEST_RATE_LIMIT_BURST,
-    HTTP_REQUEST_RATE_LIMIT_WINDOW,
+    is_connector_auth_acquisition_request_allowed, normalize_http_method, normalize_origin,
+    runtime_defaults, HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use crate::test_support::with_env;
 use reqwest::Url;
@@ -196,6 +195,12 @@ fn shared_bridge_ipc_handler_uses_kit_owned_scaffold_macro() {
         "runtime_bridge::runtime_bridge_restart",
         "runtime_bridge::runtime_bridge_config_get",
         "runtime_bridge::runtime_bridge_config_set",
+        "nimi_shell_tauri::capabilities::runtime::runtime_account_session_status",
+        "nimi_shell_tauri::capabilities::runtime::runtime_account_begin_login",
+        "nimi_shell_tauri::capabilities::runtime::runtime_account_complete_login",
+        "nimi_shell_tauri::capabilities::runtime::runtime_account_invoke_realm_unary",
+        "nimi_shell_tauri::capabilities::runtime::runtime_account_logout",
+        "nimi_shell_tauri::capabilities::runtime::runtime_account_switch_account",
         "super::defaults_and_commands::open_external_url",
         "super::defaults_and_commands::oauth_token_exchange",
         "super::defaults_and_commands::oauth_listen_for_code",
@@ -228,48 +233,23 @@ fn standard_local_agent_hooks_project_desktop_runtime_trusted_caller_without_ide
 }
 
 #[test]
-fn desktop_tauri_stamps_host_identity_on_runtime_registration_before_account_bootstrap() {
+fn desktop_tauri_refuses_account_calls_without_the_protected_desktop_carrier() {
     let caller = nimi_shell_tauri::capabilities::desktop_product_local_agent::desktop_shell_runtime_account_caller(
         "nimi.desktop",
     )
     .expect("desktop caller");
-    let session = nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostAppSessionProvider::new(
-        nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostAppSessionConfig::desktop_shell(
-            &caller.app_id,
-            &caller.app_instance_id,
-            &caller.device_id,
-            Vec::new(),
-        )
-        .expect("desktop session config"),
-    )
-    .expect("desktop session provider");
 
     run_async(async move {
-        let trusted = resolve_desktop_runtime_trusted_metadata(
+        let error = resolve_desktop_runtime_trusted_metadata(
             nimi_shell_tauri::capabilities::runtime::RuntimeBridgeTrustedMetadataRequest {
-                method_id: nimi_shell_tauri::capabilities::runtime::RUNTIME_AUTH_REGISTER_APP_METHOD_ID
-                    .to_string(),
+                method_id: nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID.to_string(),
                 bridge_kind: nimi_shell_tauri::capabilities::runtime::RuntimeBridgeTrustedMetadataBridgeKind::Unary,
             },
             caller.clone(),
-            session,
         )
         .await
-        .expect("trusted metadata")
-        .expect("desktop host identity");
-
-        let metadata = trusted.metadata.expect("desktop metadata");
-        assert_eq!(metadata.app_id.as_deref(), Some("nimi.desktop"));
-        assert_eq!(metadata.participant_id.as_deref(), Some("nimi.desktop"));
-        assert_eq!(metadata.caller_kind.as_deref(), Some("desktop-shell"));
-        assert_eq!(
-            metadata.caller_id.as_deref(),
-            Some(caller.app_instance_id.as_str())
-        );
-        assert!(
-            trusted.app_session.is_none(),
-            "Runtime registration must receive host identity before an app session exists"
-        );
+        .expect_err("ordinary Tauri bridge must not project account authority");
+        assert_eq!(error, "DESKTOP_CONTROL_TRANSPORT_REQUIRED");
     });
 }
 
@@ -359,24 +339,7 @@ fn connector_auth_acquisition_policy_only_allows_exact_profile_endpoints() {
 }
 
 #[test]
-fn http_authorization_origin_policy_only_allows_configured_origins() {
-    let allowed = allowed_http_origins();
-    assert!(is_authorized_http_origin_allowed(
-        "http://localhost:3002",
-        &allowed
-    ));
-    assert!(!is_authorized_http_origin_allowed(
-        "https://api.openai.com:443",
-        &allowed
-    ));
-    assert!(!is_authorized_http_origin_allowed(
-        "http://192.168.31.175:80",
-        &allowed
-    ));
-}
-
-#[test]
-fn http_request_rejects_unadmitted_https_without_authorization_before_network() {
+fn http_request_rejects_unadmitted_https_before_network() {
     with_env(
         &[
             ("NIMI_REALM_URL", Some("http://localhost:3002")),
@@ -389,7 +352,6 @@ fn http_request_rejects_unadmitted_https_without_authorization_before_network() 
                         url: "https://api.third-party.example/v1/data".to_string(),
                         method: Some("GET".to_string()),
                         headers: None,
-                        authorization: None,
                         body: None,
                         diagnostic_session_id: None,
                         connector_auth_profile_id: None,
@@ -408,34 +370,20 @@ fn http_request_rejects_unadmitted_https_without_authorization_before_network() 
 }
 
 #[test]
-fn http_request_rejects_authorization_for_unadmitted_https_before_network() {
-    with_env(
-        &[
-            ("NIMI_REALM_URL", Some("http://localhost:3002")),
-            ("NIMI_E2E_FIXTURE_PATH", None),
-        ],
-        || {
-            run_async(async {
-                let result =
-                    super::defaults_and_commands::http_request(super::HttpRequestPayload {
-                        url: "https://auth.openai.com/api/accounts/deviceauth/usercode".to_string(),
-                        method: Some("POST".to_string()),
-                        headers: None,
-                        authorization: Some("Bearer must-not-leave-renderer".to_string()),
-                        body: Some(r#"{"client_id":"fixture"}"#.to_string()),
-                        diagnostic_session_id: None,
-                        connector_auth_profile_id: Some("openai_codex".to_string()),
-                        connector_auth_purpose: Some("device_authorization".to_string()),
-                    })
-                    .await;
-
-                let error = result.expect_err("request should fail before network dispatch");
-                assert!(
-                    error.contains("DESKTOP_HTTP_AUTH_ORIGIN_BLOCKED"),
-                    "expected structured auth-origin block, got {error}"
-                );
-            });
-        },
+fn http_request_payload_rejects_renderer_authorization_field() {
+    let error = serde_json::from_value::<super::HttpRequestPayload>(serde_json::json!({
+        "url": "https://auth.openai.com/api/accounts/deviceauth/usercode",
+        "method": "POST",
+        "headers": {},
+        "authorization": "Bearer must-not-leave-renderer",
+        "body": "{\"client_id\":\"fixture\"}",
+        "connectorAuthProfileId": "openai_codex",
+        "connectorAuthPurpose": "device_authorization"
+    }))
+    .expect_err("renderer authorization must be rejected during IPC deserialization");
+    assert!(
+        error.to_string().contains("unknown field `authorization`"),
+        "expected unknown authorization field, got {error}"
     );
 }
 

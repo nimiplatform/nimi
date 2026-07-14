@@ -12,7 +12,6 @@ import {
   type NimiElectronShellUiCommandInput,
   type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
-import { createAvatarElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.avatar';
 const AVATAR_PRODUCT_INVOKE_CHANNEL = 'nimi:avatar:invoke';
@@ -46,10 +45,6 @@ void app.whenReady().then(async () => {
     allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
-    trustedRuntimeMetadataProvider: createAvatarElectronTrustedRuntimeMetadataProvider({
-      appId: APP_ID,
-      runtimeEndpoint,
-    }),
     standardShellHost: {
       allowAllStandardShellCommands: true,
       standardDataRootBinding: resolveStandardDataRootBinding(),
@@ -527,8 +522,7 @@ function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
 function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode {
   const mode = normalizeText(process.env.NIMI_AVATAR_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE) || 'local-first-party-app';
   if (
-    mode === 'local-developer-app'
-    || mode === 'local-first-party-app'
+    mode === 'local-first-party-app'
     || mode === 'desktop-shell'
   ) {
     return mode;

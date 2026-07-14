@@ -7,22 +7,12 @@ import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 import { _electron as electron } from 'playwright';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
-import { runDesktopRuntimeLocalAgentCenterAcceptance } from '../scripts/lib/runtime-local-agent-center-runner.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(import.meta.url);
 const electronExecutablePath = require('electron');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiDesktopElectronAcceptance=1`;
-
-if (normalizeText(process.env.NIMI_RLA_EVIDENCE_ROOT)) {
-  test('Desktop Runtime Local Agent Center no-runtime evidence captures real runtime-loss fail-closed UI', { timeout: 180_000 }, async () => {
-    await runDesktopRuntimeLocalAgentCenterAcceptance({
-      scenario: 'no-runtime',
-      evidenceRoot: process.env.NIMI_RLA_EVIDENCE_ROOT,
-    });
-  });
-}
 
 test('Desktop Electron shell boots the Desktop renderer with auth and standard shell bridge coverage', { timeout: 90_000 }, async () => {
   await withTempDir('acceptance', async (tmpRoot) => {

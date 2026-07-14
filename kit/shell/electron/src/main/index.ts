@@ -4,19 +4,40 @@ export * from './local-asset-protocol.js';
 export * from './app-menu.js';
 export * from './ai-config-store.js';
 export * from './agent-center.js';
-export * from './runtime-account-auth.js';
 export * from './desktop-open.js';
 export {
   registerNimiElectronAppBridge,
   type RegisterNimiElectronAppBridgeInput,
 } from './app-bridge.js';
 export {
-  createNimiElectronAppHost,
-  NIMI_ELECTRON_APP_HOST_BOOTSTRAP_COMMAND,
-  NimiElectronAppHostError,
-  type NimiElectronAppHostArtifactBytes,
-  type NimiElectronAppHostBootstrap,
-  type NimiElectronAppHost,
-} from './app-host.js';
+  createNimiElectronLocalAppHost,
+  NimiElectronLocalAppHostError,
+  type NimiElectronLocalAppArtifactBytes,
+  type NimiElectronLocalAppHost,
+  type NimiElectronLocalAppRecord,
+} from './local-app-host.js';
 export { resolveElectronRuntimeDefaults } from './runtime.js';
+export {
+  createNimiElectronLocalAppGrantHost,
+  isElectronLocalAppGrantCommand,
+  type NimiElectronLocalAppGrantBinding,
+  type NimiElectronLocalAppGrantHost,
+} from './local-app-grant-host.js';
+export {
+  createNimiElectronLocalDevelopmentControl,
+  type NimiElectronLocalDevelopmentAuthorization,
+  type NimiElectronLocalDevelopmentControl,
+  type NimiElectronLocalDevelopmentDecision,
+  type NimiElectronLocalDevelopmentEvaluation,
+  type NimiElectronLocalDevelopmentProject,
+  type NimiElectronLocalDevelopmentShell,
+} from './local-development-control.js';
+export {
+  createNimiElectronDesktopControlHost,
+  type NimiElectronDesktopControlHost,
+} from './desktop-control-host.js';
+export {
+  createNimiElectronDesktopAccountHost,
+  type NimiElectronDesktopAccountHost,
+} from './desktop-account-host.js';
 export * from './types.js';

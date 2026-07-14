@@ -1,40 +1,22 @@
 # Kit Protected Local Host Carrier
 
-`kit/shell/protected-local` is the shared native Rust host contract for
-production Desktop-to-Runtime protected control. The crate is host-only and
-has no npm or renderer export.
+`kit/shell/protected-local` is the shared native Rust boundary for the fixed
+Windows Runtime service. It exposes two connection-bound surfaces:
 
-The carrier must consume Runtime `K-PLOCAL-*` and Platform signed executable
-trust rows. It carries, but does not own:
+- Desktop control for fixed-service account and Developer Mode operations; and
+- the common third-party Local App carrier.
 
-- mutual OS principal, endpoint, live-process and same-open-file executable
-  verification;
-- the empty `OpenDesktopSession` request and two-field response;
-- exact typed fixed-service `status`, `start`, and `restart`; and
-- generated typed protected Runtime method calls after Runtime derives the
-  origin.
+The Local App carrier connects only to `\\.\pipe\nimi-runtime-local-app-v1`,
+verifies the pipe server against two stable SCM observations and the admitted
+Runtime signer, performs the request-empty `OpenLocalAppSession`, and retains
+the verified process, executable, channel, and Runtime boot epoch privately.
+Its complete 0K operation surface is session status, permission posture,
+Runtime artifact bytes, and the four selected RuntimeAgent conversation
+operations.
 
-Runtime and the OS remain endpoint, service lifecycle, custody, ledger,
-credential, listener and origin authorities. This module has no renderer/npm
-surface and must not expose stop, binary/service/path selection, env/argv
-override, generic config JSON, bearer-based privilege, session ids, boot epochs,
-process tuples, trust-record paths, or an installed-app child carrier.
-
-A.1 owns any future installed/developer child carrier. Until then, no launch
-metadata or ordinary gRPC proxy can provide protected app access.
-
-The Windows carrier binds fixed-name SCM status/start with the minimum
-query/start access. Opening Desktop control connects to the fixed named pipe,
-requires its server PID to match two stable SCM observations, verifies the
-same locked Runtime executable with WinVerifyTrust and the build-admitted Nimi
-signer certificate identity, and performs `OpenDesktopSession` over that same
-pipe. The verified process/executable handles and channel remain private and
-live for the opaque control handle. A build without an admitted signer identity
-fails closed; it is not production-carrier evidence. Restart also remains
-closed until it can use the live protected connection rather than SCM stop
-authority.
-
-Linux filesystem-UDS and macOS privileged-XPC carrier types remain compile-only
-and fail closed with `protected-carrier-required` until their mutually verified
-native backends are admitted independently. No carrier reports synthetic
-service or session success or exposes a generic method-id/byte proxy.
+The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
+portable session proof, principal, record, grant, launch lease, process tuple,
+account identity, or Runtime boot epoch. Immutable package admission remains
+typed unavailable; only an already-bound `local_development` process can open a
+positive Local App session at this checkpoint. Linux and macOS adapters remain
+compile-only and fail closed until their native trust carriers are admitted.

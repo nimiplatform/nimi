@@ -1,0 +1,11 @@
+{
+  "name": "@nimiplatform/desktop-product-control-win32-x64",
+  "version": "0.1.0",
+  "description": "Private Desktop first-run evidence Node-API binding for Windows x64 Electron",
+  "license": "MIT",
+  "private": true,
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "main": "index.cjs",
+  "files": ["index.cjs", "nimi_desktop_product_control.node", "README.md"]
+}

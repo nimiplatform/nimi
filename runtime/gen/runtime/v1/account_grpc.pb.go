@@ -31,6 +31,10 @@ const (
 	RuntimeAccountService_RevokeScopedAppBinding_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding"
 	RuntimeAccountService_IssueWorkspaceBinding_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding"
 	RuntimeAccountService_RevokeWorkspaceBinding_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding"
+	RuntimeAccountService_GetLocalAppGrantStatus_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus"
+	RuntimeAccountService_RequestLocalAppGrant_FullMethodName          = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant"
+	RuntimeAccountService_DecideLocalAppGrant_FullMethodName           = "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant"
+	RuntimeAccountService_RevokeLocalAppGrant_FullMethodName           = "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant"
 )
 
 // RuntimeAccountServiceClient is the client API for RuntimeAccountService service.
@@ -49,6 +53,10 @@ type RuntimeAccountServiceClient interface {
 	RevokeScopedAppBinding(ctx context.Context, in *RevokeScopedAppBindingRequest, opts ...grpc.CallOption) (*RevokeScopedAppBindingResponse, error)
 	IssueWorkspaceBinding(ctx context.Context, in *IssueWorkspaceBindingRequest, opts ...grpc.CallOption) (*IssueWorkspaceBindingResponse, error)
 	RevokeWorkspaceBinding(ctx context.Context, in *RevokeWorkspaceBindingRequest, opts ...grpc.CallOption) (*RevokeWorkspaceBindingResponse, error)
+	GetLocalAppGrantStatus(ctx context.Context, in *GetLocalAppGrantStatusRequest, opts ...grpc.CallOption) (*GetLocalAppGrantStatusResponse, error)
+	RequestLocalAppGrant(ctx context.Context, in *RequestLocalAppGrantRequest, opts ...grpc.CallOption) (*RequestLocalAppGrantResponse, error)
+	DecideLocalAppGrant(ctx context.Context, in *DecideLocalAppGrantRequest, opts ...grpc.CallOption) (*DecideLocalAppGrantResponse, error)
+	RevokeLocalAppGrant(ctx context.Context, in *RevokeLocalAppGrantRequest, opts ...grpc.CallOption) (*RevokeLocalAppGrantResponse, error)
 }
 
 type runtimeAccountServiceClient struct {
@@ -188,6 +196,46 @@ func (c *runtimeAccountServiceClient) RevokeWorkspaceBinding(ctx context.Context
 	return out, nil
 }
 
+func (c *runtimeAccountServiceClient) GetLocalAppGrantStatus(ctx context.Context, in *GetLocalAppGrantStatusRequest, opts ...grpc.CallOption) (*GetLocalAppGrantStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLocalAppGrantStatusResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_GetLocalAppGrantStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAccountServiceClient) RequestLocalAppGrant(ctx context.Context, in *RequestLocalAppGrantRequest, opts ...grpc.CallOption) (*RequestLocalAppGrantResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestLocalAppGrantResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_RequestLocalAppGrant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAccountServiceClient) DecideLocalAppGrant(ctx context.Context, in *DecideLocalAppGrantRequest, opts ...grpc.CallOption) (*DecideLocalAppGrantResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DecideLocalAppGrantResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_DecideLocalAppGrant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAccountServiceClient) RevokeLocalAppGrant(ctx context.Context, in *RevokeLocalAppGrantRequest, opts ...grpc.CallOption) (*RevokeLocalAppGrantResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeLocalAppGrantResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_RevokeLocalAppGrant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAccountServiceServer is the server API for RuntimeAccountService service.
 // All implementations should embed UnimplementedRuntimeAccountServiceServer
 // for forward compatibility.
@@ -204,6 +252,10 @@ type RuntimeAccountServiceServer interface {
 	RevokeScopedAppBinding(context.Context, *RevokeScopedAppBindingRequest) (*RevokeScopedAppBindingResponse, error)
 	IssueWorkspaceBinding(context.Context, *IssueWorkspaceBindingRequest) (*IssueWorkspaceBindingResponse, error)
 	RevokeWorkspaceBinding(context.Context, *RevokeWorkspaceBindingRequest) (*RevokeWorkspaceBindingResponse, error)
+	GetLocalAppGrantStatus(context.Context, *GetLocalAppGrantStatusRequest) (*GetLocalAppGrantStatusResponse, error)
+	RequestLocalAppGrant(context.Context, *RequestLocalAppGrantRequest) (*RequestLocalAppGrantResponse, error)
+	DecideLocalAppGrant(context.Context, *DecideLocalAppGrantRequest) (*DecideLocalAppGrantResponse, error)
+	RevokeLocalAppGrant(context.Context, *RevokeLocalAppGrantRequest) (*RevokeLocalAppGrantResponse, error)
 }
 
 // UnimplementedRuntimeAccountServiceServer should be embedded to have
@@ -248,6 +300,18 @@ func (UnimplementedRuntimeAccountServiceServer) IssueWorkspaceBinding(context.Co
 }
 func (UnimplementedRuntimeAccountServiceServer) RevokeWorkspaceBinding(context.Context, *RevokeWorkspaceBindingRequest) (*RevokeWorkspaceBindingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeWorkspaceBinding not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) GetLocalAppGrantStatus(context.Context, *GetLocalAppGrantStatusRequest) (*GetLocalAppGrantStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalAppGrantStatus not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) RequestLocalAppGrant(context.Context, *RequestLocalAppGrantRequest) (*RequestLocalAppGrantResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestLocalAppGrant not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) DecideLocalAppGrant(context.Context, *DecideLocalAppGrantRequest) (*DecideLocalAppGrantResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DecideLocalAppGrant not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) RevokeLocalAppGrant(context.Context, *RevokeLocalAppGrantRequest) (*RevokeLocalAppGrantResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeLocalAppGrant not implemented")
 }
 func (UnimplementedRuntimeAccountServiceServer) testEmbeddedByValue() {}
 
@@ -478,6 +542,78 @@ func _RuntimeAccountService_RevokeWorkspaceBinding_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAccountService_GetLocalAppGrantStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalAppGrantStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).GetLocalAppGrantStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_GetLocalAppGrantStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).GetLocalAppGrantStatus(ctx, req.(*GetLocalAppGrantStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAccountService_RequestLocalAppGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestLocalAppGrantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).RequestLocalAppGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_RequestLocalAppGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).RequestLocalAppGrant(ctx, req.(*RequestLocalAppGrantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAccountService_DecideLocalAppGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DecideLocalAppGrantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).DecideLocalAppGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_DecideLocalAppGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).DecideLocalAppGrant(ctx, req.(*DecideLocalAppGrantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAccountService_RevokeLocalAppGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeLocalAppGrantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).RevokeLocalAppGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_RevokeLocalAppGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).RevokeLocalAppGrant(ctx, req.(*RevokeLocalAppGrantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAccountService_ServiceDesc is the grpc.ServiceDesc for RuntimeAccountService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -528,6 +664,22 @@ var RuntimeAccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RevokeWorkspaceBinding",
 			Handler:    _RuntimeAccountService_RevokeWorkspaceBinding_Handler,
+		},
+		{
+			MethodName: "GetLocalAppGrantStatus",
+			Handler:    _RuntimeAccountService_GetLocalAppGrantStatus_Handler,
+		},
+		{
+			MethodName: "RequestLocalAppGrant",
+			Handler:    _RuntimeAccountService_RequestLocalAppGrant_Handler,
+		},
+		{
+			MethodName: "DecideLocalAppGrant",
+			Handler:    _RuntimeAccountService_DecideLocalAppGrant_Handler,
+		},
+		{
+			MethodName: "RevokeLocalAppGrant",
+			Handler:    _RuntimeAccountService_RevokeLocalAppGrant_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

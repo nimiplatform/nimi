@@ -38,17 +38,6 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: runtime/cmd/nimi/app_auth_commands_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
   - path: runtime/cmd/nimi/app_commands_test.go
     owner: runtime
     classification: behavior_unit
@@ -248,50 +237,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: runtime/internal/aicatalog/text_context_metadata_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/appinstallgateway/bundled_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/appinstallgateway/downloader_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/appinstallgateway/gateway_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/appinstallgateway/unpacker_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4
@@ -534,17 +479,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: runtime/internal/daemonctl/manager_windows_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/daemonctl/process_unix_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4

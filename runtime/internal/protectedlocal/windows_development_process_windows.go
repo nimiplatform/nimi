@@ -105,7 +105,7 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 		return ProcessTuple{}, nil, windowsPipeFailure("read Windows local-development process creation marker", err)
 	}
 	executableVerifier := windowsLocalDevelopmentExecutableVerifier{projectRoot: policy.ProjectRoot, hostPath: policy.HostExecutablePath}
-	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleInstalled, executableVerifier, WindowsLocalDevelopmentTrustSetID)
+	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleLocalApp, executableVerifier, WindowsLocalDevelopmentTrustSetID)
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
@@ -133,8 +133,8 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 }
 
 func (verifier windowsLocalDevelopmentExecutableVerifier) VerifyWindowsExecutable(_ context.Context, role WindowsExecutableRole, locked WindowsLockedExecutable) (string, error) {
-	if role != WindowsExecutableRoleInstalled || locked == nil {
-		return "", fmt.Errorf("local-development host requires installed-app executable role")
+	if role != WindowsExecutableRoleLocalApp || locked == nil {
+		return "", fmt.Errorf("local-development host requires local-app executable role")
 	}
 	evidence := locked.Evidence()
 	observed, err := filepath.EvalSymlinks(filepath.Clean(evidence.Path))

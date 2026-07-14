@@ -15,6 +15,7 @@ func runtimeChecklistPart2(
 	pkgGrpcErr string,
 	pkgCognition string,
 	pkgLocalService string,
+	pkgLocalApp string,
 	pkgModel string,
 	pkgNimillm string,
 	pkgProtocol string,
@@ -45,10 +46,10 @@ func runtimeChecklistPart2(
 		},
 		{
 			ID:          "RS-11-29",
-			Requirement: "grant token chain reason code coverage",
+			Requirement: "local-app grant terminal transition coverage",
 			Tests: []testRef{
-				{Package: "github.com/nimiplatform/nimi/runtime/internal/services/grant", Name: "TestListTokenChainRootRequiredReasonCode"},
-				{Package: "github.com/nimiplatform/nimi/runtime/internal/services/grant", Name: "TestListTokenChainRootNotFoundReasonCode"},
+				{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"},
+				{Package: pkgLocalApp, Name: "TestTombstoneRemovesRecordAndNeverInheritsGrantOrKeys"},
 			},
 		},
 		{
@@ -97,7 +98,7 @@ func runtimeChecklistPart2(
 			ID:          "RS-11-37",
 			Requirement: "local connector categories retired; startup does not mint local ConnectorService records (K-RTARGET-006)",
 			Tests: []testRef{
-				{Package: pkgConnector, Name: "TestEnsureLocalConnectorsDoesNotCreateRetiredCategories"},
+				{Package: pkgConnector, Name: "TestReconcileStartupDoesNotCreateRetiredLocalCategories"},
 				{Package: pkgConnector, Name: "TestTestConnectorRetiredLocalFailsClosed"},
 			},
 		},

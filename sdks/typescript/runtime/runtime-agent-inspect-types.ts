@@ -26,7 +26,6 @@ import type {
 } from '../core-generated/runtime-typed-client';
 import type { Struct } from '../core-generated/runtime-protobuf/google/protobuf/struct';
 import type {
-  NimiRuntimeAgentAppAuthClient,
   NimiRuntimeAgentAuthClient,
   NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -265,7 +264,6 @@ export interface NimiRuntimeAgentInspectSurface {
 export interface NimiHostRuntimeAgentInspectClient {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: {
     getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentResponse>;
     getAgentState(request: GetAgentStateRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentStateResponse>;

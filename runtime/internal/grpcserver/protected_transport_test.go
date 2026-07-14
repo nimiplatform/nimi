@@ -17,7 +17,9 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
 
@@ -44,6 +46,29 @@ func TestNativeVerifiedDesktopListenerRejectsOrdinaryConnection(t *testing.T) {
 	}
 }
 
+func TestProtectedDesktopProductControlAdmitsExactDependencyJobControls(t *testing.T) {
+	for _, method := range []string{
+		"/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
+		"/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
+		"/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
+		"/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+	} {
+		role, allowed := protectedDesktopMethodRole(method)
+		if !allowed || role != protectedlocal.RoleVerifiedDesktopProcess {
+			t.Fatalf("dependency job method %q role = %q allowed=%v", method, role, allowed)
+		}
+	}
+	for _, method := range []string{
+		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
+		"/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
+		"/nimi.runtime.v1.RuntimeLocalService/StartEngine",
+	} {
+		if _, allowed := protectedDesktopMethodRole(method); allowed {
+			t.Fatalf("unrelated RuntimeLocalService method %q escaped the exact protected allowlist", method)
+		}
+	}
+}
+
 func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServices(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	authService := authservice.NewWithDependencies(
@@ -55,8 +80,9 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		authservice.WithDesktopSessionManager(manager),
 	)
 	accountService := &protectedDesktopAccountTestService{}
+	localService := &protectedDesktopLocalTestService{}
 	appService := &protectedDesktopAppTestService{}
-	server := newProtectedDesktopRPCServer(authService, accountService, appService, &runtimev1.UnimplementedRuntimeDevelopmentServiceServer{}, manager)
+	server := newProtectedDesktopRPCServer(&runtimev1.UnimplementedRuntimeServiceControlServiceServer{}, authService, accountService, localService, appService, &runtimev1.UnimplementedRuntimeDevelopmentServiceServer{}, manager)
 	baseListener := bufconn.Listen(1024 * 1024)
 	listener := &protectedDesktopTestListener{Listener: baseListener, connection: connection}
 	serveDone := make(chan error, 1)
@@ -79,10 +105,46 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	t.Cleanup(func() { _ = clientConn.Close() })
 	client := runtimev1.NewRuntimeAuthServiceClient(clientConn)
 	accountClient := runtimev1.NewRuntimeAccountServiceClient(clientConn)
+	localClient := runtimev1.NewRuntimeLocalServiceClient(clientConn)
 
 	_, err = accountClient.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 		t.Fatalf("account request without Desktop session reason = %v (present=%v), err=%v", reason, ok, err)
+	}
+	_, err = localClient.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+		t.Fatalf("product-control request without Desktop session reason = %v (present=%v), err=%v", reason, ok, err)
+	}
+	dependencyJobCallsWithoutSession := []struct {
+		name string
+		call func() error
+	}{
+		{name: "StartLocalEnvironmentDependencyJob", call: func() error {
+			_, callErr := localClient.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{})
+			return callErr
+		}},
+		{name: "CancelLocalEnvironmentDependencyJob", call: func() error {
+			_, callErr := localClient.CancelLocalEnvironmentDependencyJob(context.Background(), &runtimev1.CancelLocalEnvironmentDependencyJobRequest{})
+			return callErr
+		}},
+		{name: "RetryLocalEnvironmentDependencyJob", call: func() error {
+			_, callErr := localClient.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{})
+			return callErr
+		}},
+		{name: "RepairLocalEnvironmentDependency", call: func() error {
+			_, callErr := localClient.RepairLocalEnvironmentDependency(context.Background(), &runtimev1.RepairLocalEnvironmentDependencyRequest{})
+			return callErr
+		}},
+	}
+	for _, call := range dependencyJobCallsWithoutSession {
+		if callErr := call.call(); callErr == nil {
+			t.Fatalf("%s without Desktop session unexpectedly succeeded", call.name)
+		} else if reason, ok := grpcerr.ExtractReasonCode(callErr); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+			t.Fatalf("%s without Desktop session reason = %v (present=%v), err=%v", call.name, reason, ok, callErr)
+		}
+	}
+	if localService.dependencyJobBound || localService.cancelDependencyJobBound || localService.retryDependencyJobBound || localService.repairDependencyJobBound {
+		t.Fatalf("dependency job handler ran before Desktop session: start=%v cancel=%v retry=%v repair=%v", localService.dependencyJobBound, localService.cancelDependencyJobBound, localService.retryDependencyJobBound, localService.repairDependencyJobBound)
 	}
 
 	response, err := client.OpenDesktopSession(context.Background(), &runtimev1.OpenDesktopSessionRequest{})
@@ -101,6 +163,43 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if err != nil || statusResponse.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !accountService.statusBound {
 		t.Fatalf("GetAccountSessionStatus protected carrier = (%+v, %v), bound=%v", statusResponse, err, accountService.statusBound)
 	}
+	productControlResponse, err := localClient.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	if err != nil || productControlResponse.GetJson() == "" || !localService.productControlBound {
+		t.Fatalf("GetProductControlRecord protected carrier = (%+v, %v), bound=%v", productControlResponse, err, localService.productControlBound)
+	}
+	dependencyJobResponse, err := localClient.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cpu",
+		DependencyFamily: "native-engine-package.llama",
+		DependencyId:     "llama.cpp.package",
+		SourceKind:       "managed",
+		Confirmed:        true,
+		ConsumerScope:    "llama.cpp.cpu",
+	})
+	if err != nil || dependencyJobResponse.GetJob().GetJobId() == "" || !localService.dependencyJobBound {
+		t.Fatalf("StartLocalEnvironmentDependencyJob protected carrier = (%+v, %v), bound=%v", dependencyJobResponse, err, localService.dependencyJobBound)
+	}
+	cancelResponse, err := localClient.CancelLocalEnvironmentDependencyJob(context.Background(), &runtimev1.CancelLocalEnvironmentDependencyJobRequest{JobId: "dependency-job-protected"})
+	if err != nil || cancelResponse.GetJob().GetJobId() == "" || !localService.cancelDependencyJobBound {
+		t.Fatalf("CancelLocalEnvironmentDependencyJob protected carrier = (%+v, %v), bound=%v", cancelResponse, err, localService.cancelDependencyJobBound)
+	}
+	retryResponse, err := localClient.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{JobId: "dependency-job-protected", Confirmed: true})
+	if err != nil || retryResponse.GetJob().GetJobId() == "" || !localService.retryDependencyJobBound {
+		t.Fatalf("RetryLocalEnvironmentDependencyJob protected carrier = (%+v, %v), bound=%v", retryResponse, err, localService.retryDependencyJobBound)
+	}
+	repairResponse, err := localClient.RepairLocalEnvironmentDependency(context.Background(), &runtimev1.RepairLocalEnvironmentDependencyRequest{
+		EnvironmentKey:   "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cpu",
+		DependencyFamily: "native-engine-package.llama",
+		DependencyId:     "llama.cpp.package",
+		Confirmed:        true,
+		ConsumerScope:    "llama.cpp.cpu",
+	})
+	if err != nil || repairResponse.GetJob().GetJobId() == "" || !localService.repairDependencyJobBound {
+		t.Fatalf("RepairLocalEnvironmentDependency protected carrier = (%+v, %v), bound=%v", repairResponse, err, localService.repairDependencyJobBound)
+	}
+	_, err = localClient.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || localService.localAssetsCalled {
+		t.Fatalf("unlisted RuntimeLocalService method escaped protected gate: reason=%v present=%v called=%v err=%v", reason, ok, localService.localAssetsCalled, err)
+	}
 	accountStream, err := accountClient.SubscribeAccountSessionEvents(context.Background(), &runtimev1.SubscribeAccountSessionEventsRequest{})
 	if err != nil {
 		t.Fatalf("SubscribeAccountSessionEvents protected carrier: %v", err)
@@ -114,21 +213,58 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	}
 
 	appClient := runtimev1.NewRuntimeAppServiceClient(clientConn)
-	prepare, err := appClient.PrepareAppLifecycleIntent(context.Background(), &runtimev1.PrepareAppLifecycleIntentRequest{})
-	if err != nil || prepare.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !appService.prepareBound {
-		t.Fatalf("PrepareAppLifecycleIntent protected carrier = (%+v, %v), bound=%v", prepare, err, appService.prepareBound)
+	immutableCalls := []struct {
+		name string
+		call func() error
+	}{
+		{name: "PrepareAppLifecycleIntent", call: func() error {
+			_, callErr := appClient.PrepareAppLifecycleIntent(context.Background(), &runtimev1.PrepareAppLifecycleIntentRequest{})
+			return callErr
+		}},
+		{name: "GetAppLifecycleIntentStatus", call: func() error {
+			_, callErr := appClient.GetAppLifecycleIntentStatus(context.Background(), &runtimev1.GetAppLifecycleIntentStatusRequest{})
+			return callErr
+		}},
+		{name: "InstallApp", call: func() error {
+			_, callErr := appClient.InstallApp(context.Background(), &runtimev1.InstallAppRequest{})
+			return callErr
+		}},
+		{name: "UninstallApp", call: func() error {
+			_, callErr := appClient.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{})
+			return callErr
+		}},
+		{name: "GetAppInstallJob", call: func() error {
+			_, callErr := appClient.GetAppInstallJob(context.Background(), &runtimev1.GetAppInstallJobRequest{})
+			return callErr
+		}},
+		{name: "ListAppInstallJobs", call: func() error {
+			_, callErr := appClient.ListAppInstallJobs(context.Background(), &runtimev1.ListAppInstallJobsRequest{})
+			return callErr
+		}},
+		{name: "UpdateApp", call: func() error {
+			_, callErr := appClient.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{})
+			return callErr
+		}},
+		{name: "HealthRepairApp", call: func() error {
+			_, callErr := appClient.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{})
+			return callErr
+		}},
 	}
-	lifecycleStatusResponse, err := appClient.GetAppLifecycleIntentStatus(context.Background(), &runtimev1.GetAppLifecycleIntentStatusRequest{})
-	if err != nil || lifecycleStatusResponse.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !appService.statusBound {
-		t.Fatalf("GetAppLifecycleIntentStatus protected carrier = (%+v, %v), bound=%v", lifecycleStatusResponse, err, appService.statusBound)
+	for _, call := range immutableCalls {
+		err := call.call()
+		if status.Code(err) != codes.Unimplemented {
+			t.Fatalf("%s protected carrier code = %v, want Unimplemented: %v", call.name, status.Code(err), err)
+		}
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+			t.Fatalf("%s protected carrier reason = %v present=%v: %v", call.name, reason, ok, err)
+		}
 	}
-	_, err = appClient.InstallApp(context.Background(), &runtimev1.InstallAppRequest{})
-	if err != nil || !appService.installBound {
-		t.Fatalf("InstallApp protected carrier = (%v), bound=%v", err, appService.installBound)
+	if appService.prepareBound || appService.statusBound || appService.installBound {
+		t.Fatalf("immutable package methods reached handler: prepare=%v status=%v install=%v", appService.prepareBound, appService.statusBound, appService.installBound)
 	}
-	_, err = appClient.OpenApp(context.Background(), &runtimev1.OpenAppRequest{})
-	if err != nil || !appService.openBound {
-		t.Fatalf("OpenApp protected carrier = (%v), bound=%v", err, appService.openBound)
+	localAppLaunch, err := appClient.PrepareLocalAppLaunch(context.Background(), &runtimev1.PrepareLocalAppLaunchRequest{})
+	if err != nil || localAppLaunch.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !appService.localAppLaunchBound {
+		t.Fatalf("PrepareLocalAppLaunch protected carrier = (%+v, %v), bound=%v", localAppLaunch, err, appService.localAppLaunchBound)
 	}
 	if err := clientConn.Close(); err != nil {
 		t.Fatalf("close protected Desktop client: %v", err)
@@ -154,6 +290,54 @@ type protectedDesktopAccountTestService struct {
 	workspaceBindingCalled bool
 }
 
+type protectedDesktopLocalTestService struct {
+	runtimev1.UnimplementedRuntimeLocalServiceServer
+	productControlBound      bool
+	dependencyJobBound       bool
+	cancelDependencyJobBound bool
+	retryDependencyJobBound  bool
+	repairDependencyJobBound bool
+	localAssetsCalled        bool
+}
+
+func (service *protectedDesktopLocalTestService) GetProductControlRecord(ctx context.Context, _ *runtimev1.GetProductControlRecordRequest) (*runtimev1.ProductControlProjectionJson, error) {
+	_, service.productControlBound = protectedlocal.DesktopConnectionFromContext(ctx)
+	return &runtimev1.ProductControlProjectionJson{Json: `{"state":"ready_for_use"}`}, nil
+}
+
+func (service *protectedDesktopLocalTestService) StartLocalEnvironmentDependencyJob(ctx context.Context, _ *runtimev1.StartLocalEnvironmentDependencyJobRequest) (*runtimev1.StartLocalEnvironmentDependencyJobResponse, error) {
+	_, service.dependencyJobBound = protectedlocal.DesktopConnectionFromContext(ctx)
+	return &runtimev1.StartLocalEnvironmentDependencyJobResponse{
+		Job: &runtimev1.LocalEnvironmentDependencyJob{JobId: "dependency-job-protected"},
+	}, nil
+}
+
+func (service *protectedDesktopLocalTestService) CancelLocalEnvironmentDependencyJob(ctx context.Context, _ *runtimev1.CancelLocalEnvironmentDependencyJobRequest) (*runtimev1.CancelLocalEnvironmentDependencyJobResponse, error) {
+	_, service.cancelDependencyJobBound = protectedlocal.DesktopConnectionFromContext(ctx)
+	return &runtimev1.CancelLocalEnvironmentDependencyJobResponse{
+		Job: &runtimev1.LocalEnvironmentDependencyJob{JobId: "dependency-job-canceled"},
+	}, nil
+}
+
+func (service *protectedDesktopLocalTestService) RetryLocalEnvironmentDependencyJob(ctx context.Context, _ *runtimev1.RetryLocalEnvironmentDependencyJobRequest) (*runtimev1.RetryLocalEnvironmentDependencyJobResponse, error) {
+	_, service.retryDependencyJobBound = protectedlocal.DesktopConnectionFromContext(ctx)
+	return &runtimev1.RetryLocalEnvironmentDependencyJobResponse{
+		Job: &runtimev1.LocalEnvironmentDependencyJob{JobId: "dependency-job-retried"},
+	}, nil
+}
+
+func (service *protectedDesktopLocalTestService) RepairLocalEnvironmentDependency(ctx context.Context, _ *runtimev1.RepairLocalEnvironmentDependencyRequest) (*runtimev1.RepairLocalEnvironmentDependencyResponse, error) {
+	_, service.repairDependencyJobBound = protectedlocal.DesktopConnectionFromContext(ctx)
+	return &runtimev1.RepairLocalEnvironmentDependencyResponse{
+		Job: &runtimev1.LocalEnvironmentDependencyJob{JobId: "dependency-job-repaired"},
+	}, nil
+}
+
+func (service *protectedDesktopLocalTestService) ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
+	service.localAssetsCalled = true
+	return &runtimev1.ListLocalAssetsResponse{}, nil
+}
+
 func (service *protectedDesktopAccountTestService) GetAccountSessionStatus(ctx context.Context, _ *runtimev1.GetAccountSessionStatusRequest) (*runtimev1.GetAccountSessionStatusResponse, error) {
 	_, service.statusBound = protectedlocal.DesktopConnectionFromContext(ctx)
 	return &runtimev1.GetAccountSessionStatusResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
@@ -171,10 +355,10 @@ func (service *protectedDesktopAccountTestService) IssueWorkspaceBinding(context
 
 type protectedDesktopAppTestService struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
-	prepareBound bool
-	statusBound  bool
-	installBound bool
-	openBound    bool
+	prepareBound        bool
+	statusBound         bool
+	installBound        bool
+	localAppLaunchBound bool
 }
 
 func (service *protectedDesktopAppTestService) PrepareAppLifecycleIntent(ctx context.Context, _ *runtimev1.PrepareAppLifecycleIntentRequest) (*runtimev1.PrepareAppLifecycleIntentResponse, error) {
@@ -192,9 +376,9 @@ func (service *protectedDesktopAppTestService) InstallApp(ctx context.Context, _
 	return &runtimev1.InstallAppResponse{}, nil
 }
 
-func (service *protectedDesktopAppTestService) OpenApp(ctx context.Context, _ *runtimev1.OpenAppRequest) (*runtimev1.OpenAppResponse, error) {
-	_, service.openBound = protectedlocal.DesktopConnectionFromContext(ctx)
-	return &runtimev1.OpenAppResponse{}, nil
+func (service *protectedDesktopAppTestService) PrepareLocalAppLaunch(ctx context.Context, _ *runtimev1.PrepareLocalAppLaunchRequest) (*runtimev1.PrepareLocalAppLaunchResponse, error) {
+	_, service.localAppLaunchBound = protectedlocal.DesktopConnectionFromContext(ctx)
+	return &runtimev1.PrepareLocalAppLaunchResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
 type protectedDesktopTestListener struct {

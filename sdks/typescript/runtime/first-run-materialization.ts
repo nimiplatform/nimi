@@ -105,6 +105,26 @@ export type NimiFirstRunMaterializationInput = {
   readonly installLevel?: string | null;
 };
 
+export type NimiFirstRunMaterializationStartFailure = {
+  readonly dependency: NimiRuntimeLocalEnvironmentPlanDependency;
+  readonly cause: unknown;
+};
+
+export class NimiFirstRunMaterializationStartError extends Error {
+  readonly projection: NimiFirstRunMaterializationProjection;
+  readonly failures: readonly NimiFirstRunMaterializationStartFailure[];
+
+  constructor(
+    projection: NimiFirstRunMaterializationProjection,
+    failures: readonly NimiFirstRunMaterializationStartFailure[],
+  ) {
+    super(`Runtime rejected ${failures.length} first-run materialization job start${failures.length === 1 ? '' : 's'}`);
+    this.name = 'NimiFirstRunMaterializationStartError';
+    this.projection = projection;
+    this.failures = failures;
+  }
+}
+
 export type NimiFirstRunMaterializationDownloadProgress = {
   readonly bytesReceived: number;
   readonly bytesTotal: number;
@@ -232,8 +252,11 @@ export async function startNimiFirstRunMaterialization(
     };
   }
   const startable = before.dependencies.filter(({ dependency, job }) => dependencyStartable(dependency, job));
-  await startNimiFirstRunMaterializationDependencies(input, startable, input.confirmed);
+  const failures = await startNimiFirstRunMaterializationDependencies(input, startable, input.confirmed);
   const after = await resolveNimiFirstRunMaterializationProjection(input);
+  if (failures.length > 0) {
+    throw new NimiFirstRunMaterializationStartError(after, failures);
+  }
   return startable.length > 0
     ? withProductState({
         ...after,
@@ -254,11 +277,17 @@ export async function retryNimiFirstRunMaterializationJob(
   input: NimiFirstRunMaterializationInput & { readonly jobId: string; readonly confirmed: boolean },
 ): Promise<NimiFirstRunMaterializationProjection> {
   const before = await resolveNimiFirstRunMaterializationProjection(input);
-  await startNimiFirstRunMaterializationDependencies(
+  const failures = await startNimiFirstRunMaterializationDependencies(
     input,
     before.dependencies.filter(({ dependency, job }) => dependencyStartable(dependency, job)),
     input.confirmed,
   );
+  if (failures.length > 0) {
+    throw new NimiFirstRunMaterializationStartError(
+      await resolveNimiFirstRunMaterializationProjection(input),
+      failures,
+    );
+  }
   await input.runtime.retryEnvironmentDependencyJob({ jobId: input.jobId, confirmed: input.confirmed }, { caller: 'core' });
   return resolveNimiFirstRunMaterializationProjection(input);
 }
@@ -324,21 +353,27 @@ function dependencyAwaitingStart(
   return job === null || isNimiRuntimeLocalEnvironmentDependencyReadyState(job.state);
 }
 
-function startNimiFirstRunMaterializationDependencies(
+async function startNimiFirstRunMaterializationDependencies(
   input: NimiFirstRunMaterializationInput,
   dependencies: readonly NimiFirstRunMaterializationDependencyProjection[],
   confirmed: boolean,
-): Promise<unknown[]> {
-  return Promise.all(dependencies.map(({ dependency }) =>
-    input.runtime.startEnvironmentDependencyJob({
-      environmentKey: dependency.environmentKey,
-      dependencyFamily: dependency.dependencyFamily,
-      dependencyId: dependency.dependencyId,
-      sourceKind: dependency.sourceKind,
-      confirmed,
-      consumerScope: dependency.consumerScope,
-    }, { caller: 'core' }),
-  ));
+): Promise<readonly NimiFirstRunMaterializationStartFailure[]> {
+  const outcomes = await Promise.all(dependencies.map(async ({ dependency }) => {
+    try {
+      await input.runtime.startEnvironmentDependencyJob({
+        environmentKey: dependency.environmentKey,
+        dependencyFamily: dependency.dependencyFamily,
+        dependencyId: dependency.dependencyId,
+        sourceKind: dependency.sourceKind,
+        confirmed,
+        consumerScope: dependency.consumerScope,
+      }, { caller: 'core' });
+      return null;
+    } catch (cause) {
+      return { dependency, cause } satisfies NimiFirstRunMaterializationStartFailure;
+    }
+  }));
+  return outcomes.filter((outcome): outcome is NimiFirstRunMaterializationStartFailure => outcome !== null);
 }
 
 function jobActive(job: NimiRuntimeLocalEnvironmentDependencyJob | null): boolean {

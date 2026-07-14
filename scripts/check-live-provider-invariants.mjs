@@ -10,7 +10,6 @@ import {
   loadProviderCatalog,
   parseProviderRegistryProviders,
   parseRuntimeLiveTestDefinitions,
-  parseSdkLiveTestDefinitions,
   parseLiveEnvTemplateProviders,
   readYamlFile,
   resolveRepoRoot,
@@ -22,9 +21,6 @@ const providerCatalogPath = path.join(repoRoot, '.nimi/spec/runtime/kernel/table
 const sourceProviderDir = path.join(repoRoot, 'runtime/catalog/source/providers');
 const providerRegistryPath = path.join(repoRoot, 'runtime/internal/providerregistry/generated.go');
 const runtimeLiveSmokePath = path.join(repoRoot, 'runtime/internal/services/ai/live_provider_smoke_matrix_test.go');
-const sdkLiveSmokePaths = [
-  path.join(repoRoot, 'sdks/typescript/runtime/live-provider-smoke.test.ts'),
-];
 const workflowLiveConfigPaths = [
   '.github/workflows/live-smoke-matrix.yml',
   '.github/workflows/desktop-release-dry-run.yml',
@@ -35,6 +31,54 @@ const nimi2dImage2ForbiddenLiveRouteTokens = [
   'openai_api_key',
   'NIMI2D_IMAGE2_OPENAI_API_KEY',
   'openai_image_api',
+];
+const retiredSdkLiveAuthorityScanPaths = [
+  'package.json',
+  'scripts/run-live-test-matrix.mjs',
+  'scripts/check-live-smoke-gate.mjs',
+  'scripts/check-runtime-target-identity-v2.mjs',
+  'config/live/live-gate-baseline.yaml',
+  'config/live/live-test.env.example',
+  'config/live/dashscope-gold-path.env',
+  '.github/workflows/live-smoke-matrix.yml',
+  '.github/workflows/release-runtime.yml',
+  '.github/workflows/release.yml',
+  'runtime/cmd/nimi/main.go',
+  'runtime/cmd/nimi/usage_text.go',
+  'runtime/cmd/nimi/ai_replay_commands.go',
+  'sdks/typescript/runtime/public-credential-grant-hardcut.test.ts',
+  'sdks/typescript/runtime/live-runtime-daemon.test-helper.ts',
+];
+const retiredSdkLiveExecutablePaths = [
+  'scripts/ai-gold-path/fixtures.mjs',
+  'scripts/ai-gold-path/run.ts',
+  'scripts/ai-gold-path/sdk-vnext-runner.ts',
+  'scripts/run-ai-gold-path.mjs',
+  'scripts/run-dashscope-gold-path.mjs',
+  'runtime/cmd/nimi/ai_replay_runtime.go',
+  'sdks/typescript/runtime/live-provider-smoke.test.ts',
+  'sdks/typescript/runtime/runtime-agent-ai-config-live-acceptance.test.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-scenarios.test-helper.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-routes.test-helper.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-shared.test-helper.ts',
+  'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-source-packet.test-helper.ts',
+];
+const retiredSdkLiveAuthorityPatterns = [
+  ['direct_daemon', /\bwithRuntimeDaemon\b/u],
+  ['public_grant_rpc', /\bauthorizeExternalPrincipal\b/u],
+  ['public_grant_facade', /\.grants\s*\./u],
+  ['self_asserted_node_grpc', /['"]node-grpc['"]/u],
+  ['self_asserted_endpoint', /(?:--endpoint|NIMI_RUNTIME_GRPC_ADDR)/u],
+  ['sdk_test_name_matrix', /(?:parseSdkLiveTestDefinitions|NIMI_SDK_LIVE|sdk_test_definitions|nimi sdk vnext live smoke:)/u],
+  ['retired_sdk_live_test', /live-provider-smoke\.test\.ts/u],
+  ['retired_gold_path_entry', /(?:run:ai-gold-path|run-dashscope-gold-path)/u],
+  ['retired_gold_path_source', /ai-gold-path\/(?:run|sdk-vnext-runner)\.(?:mjs|ts)/u],
+  ['retired_gold_subject', /NIMI_LIVE_GOLD_SUBJECT_USER_ID/u],
+  ['runtime_daemon_replay', /(?:runRuntimeAIReplay|executeRuntimeReplay|nimi ai replay|case\s+"replay")/u],
 ];
 
 function parseArgs() {
@@ -89,28 +133,6 @@ function collectProviderCapabilityPairs(definitions) {
     }
   }
   return pairs;
-}
-
-function mergeProviderCapabilityDefinitions(definitionSets) {
-  const merged = new Map();
-  for (const definitions of definitionSets) {
-    for (const [provider, ifaceMap] of definitions.entries()) {
-      if (!merged.has(provider)) {
-        merged.set(provider, new Map());
-      }
-      const targetMap = merged.get(provider);
-      for (const [iface, sources] of ifaceMap.entries()) {
-        if (!targetMap.has(iface)) {
-          targetMap.set(iface, new Set());
-        }
-        const targetSources = targetMap.get(iface);
-        for (const source of sources) {
-          targetSources.add(source);
-        }
-      }
-    }
-  }
-  return merged;
 }
 
 function toPairSet(input) {
@@ -250,6 +272,73 @@ function runtimeSourceCapabilityRequired(provider, capability, runtimeProviderCa
   return true;
 }
 
+function collectMissingRuntimeGenerateProviders(
+  sourceProviderCapabilityMatrix,
+  runtimeLiveDefinitions,
+  exemptions = new Set(),
+) {
+  const runtimeGenerateProviders = collectGenerateProviders(runtimeLiveDefinitions);
+  return toSortedArray(
+    [...sourceProviderCapabilityMatrix.entries()]
+      .filter(([, capabilities]) => capabilities.has('generate'))
+      .map(([provider]) => provider)
+      .filter((provider) => !runtimeGenerateProviders.has(provider) && !exemptions.has(provider)),
+  );
+}
+
+function collectMissingRuntimeCapabilityPairs(
+  sourceProviderCapabilityMatrix,
+  runtimeLiveDefinitions,
+  exemptions = new Set(),
+) {
+  const runtimeProviderCapabilityPairs = collectProviderCapabilityPairs(runtimeLiveDefinitions);
+  const missingPairs = [];
+  for (const [provider, capabilities] of sourceProviderCapabilityMatrix.entries()) {
+    for (const capability of capabilities) {
+      const pair = `${provider}:${capability}`;
+      if (!runtimeSourceCapabilityRequired(provider, capability, runtimeProviderCapabilityPairs)) {
+        continue;
+      }
+      if (!exemptions.has(pair) && !runtimeProviderCapabilityPairs.has(pair)) {
+        missingPairs.push(pair);
+      }
+    }
+  }
+  return missingPairs.sort((left, right) => left.localeCompare(right));
+}
+
+function collectRetiredSdkLiveAuthorityRefs(
+  scanRoot = repoRoot,
+  relativePaths = retiredSdkLiveAuthorityScanPaths,
+) {
+  const refs = [];
+  for (const relativePath of relativePaths) {
+    const normalizedPath = String(relativePath || '').replace(/\\/g, '/');
+    if (!normalizedPath) {
+      continue;
+    }
+    const absolutePath = path.join(scanRoot, normalizedPath);
+    if (!fs.existsSync(absolutePath)) {
+      continue;
+    }
+    const lines = fs.readFileSync(absolutePath, 'utf8').split(/\r?\n/);
+    for (const [index, line] of lines.entries()) {
+      for (const [token, pattern] of retiredSdkLiveAuthorityPatterns) {
+        if (pattern.test(line)) {
+          refs.push({ path: normalizedPath, line: index + 1, token });
+        }
+      }
+    }
+  }
+
+  for (const retiredPath of retiredSdkLiveExecutablePaths) {
+    if (fs.existsSync(path.join(scanRoot, retiredPath))) {
+      refs.push({ path: retiredPath, line: 1, token: 'retired_sdk_live_executable' });
+    }
+  }
+  return refs;
+}
+
 function main() {
   const options = parseArgs();
   const baseline = readYamlFile(options.baselinePath);
@@ -260,25 +349,18 @@ function main() {
   const runtimeBindingsWithoutCatalog = toStringSet(exemptions.runtime_bindings_without_catalog);
   const catalogWithoutRuntimeBinding = toStringSet(exemptions.catalog_without_runtime_binding);
   const runtimeLiveGenerateExemptions = toStringSet(exemptions.runtime_live_generate_exemptions);
-  const sdkLiveSmokeExemptions = toStringSet(exemptions.sdk_live_smoke_exemptions);
   const runtimeCapabilityExemptions = toPairSet(exemptions.runtime_live_capability_exemptions);
-  const sdkCapabilityExemptions = toPairSet(exemptions.sdk_live_capability_exemptions);
 
   const catalogProviders = loadProviderCatalog(providerCatalogPath);
   const sourceProviderCapabilityMatrix = loadSourceProviderCapabilityMatrix(sourceProviderDir);
   const sourceProviders = new Set(sourceProviderCapabilityMatrix.keys());
   const cloudProviderBindings = parseProviderRegistryProviders(providerRegistryPath, 'RemoteProviders');
   const runtimeLiveDefinitions = parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath);
-  const sdkLiveDefinitions = mergeProviderCapabilityDefinitions(
-    sdkLiveSmokePaths.map((sdkLiveSmokePath) => parseSdkLiveTestDefinitions(sdkLiveSmokePath)),
-  );
   const liveEnvProviders = parseLiveEnvTemplateProviders(liveEnvTemplatePath);
 
   const bindingProviders = new Set(cloudProviderBindings);
   const runtimeGenerateProviders = collectGenerateProviders(runtimeLiveDefinitions);
-  const sdkGenerateProviders = collectGenerateProviders(sdkLiveDefinitions);
   const runtimeProviderCapabilityPairs = collectProviderCapabilityPairs(runtimeLiveDefinitions);
-  const sdkProviderCapabilityPairs = collectProviderCapabilityPairs(sdkLiveDefinitions);
   const envProviders = new Set(liveEnvProviders.keys());
 
   const failures = [];
@@ -314,15 +396,10 @@ function main() {
     sourceMissingCatalog,
   );
 
-  const sourceGenerateProviders = new Set(
-    [...sourceProviderCapabilityMatrix.entries()]
-      .filter(([, capabilities]) => capabilities.has('generate'))
-      .map(([provider]) => provider),
-  );
-  const missingRuntimeGenerate = toSortedArray(
-    [...sourceGenerateProviders].filter(
-      (provider) => !runtimeGenerateProviders.has(provider) && !runtimeLiveGenerateExemptions.has(provider),
-    ),
+  const missingRuntimeGenerate = collectMissingRuntimeGenerateProviders(
+    sourceProviderCapabilityMatrix,
+    runtimeLiveDefinitions,
+    runtimeLiveGenerateExemptions,
   );
   pushMissing(
     failures,
@@ -330,53 +407,13 @@ function main() {
     missingRuntimeGenerate,
   );
 
-  const tokenApiRoutableProviders = new Set(
-    [...sourceGenerateProviders].filter((provider) => provider !== 'local' && !runtimeLiveGenerateExemptions.has(provider)),
+  const missingRuntimeCapabilityPairs = collectMissingRuntimeCapabilityPairs(
+    sourceProviderCapabilityMatrix,
+    runtimeLiveDefinitions,
+    runtimeCapabilityExemptions,
   );
-  const missingSdkGenerate = toSortedArray(
-    [...tokenApiRoutableProviders].filter(
-      (provider) => !sdkGenerateProviders.has(provider) && !sdkLiveSmokeExemptions.has(provider),
-    ),
-  );
-  pushMissing(
-    failures,
-    'sdk live smoke generate coverage missing for cloud routable providers',
-    missingSdkGenerate,
-  );
-
-  const missingRuntimeCapabilityPairs = [];
-  for (const [provider, capabilities] of sourceProviderCapabilityMatrix.entries()) {
-    for (const capability of capabilities) {
-      const pair = `${provider}:${capability}`;
-      if (!runtimeSourceCapabilityRequired(provider, capability, runtimeProviderCapabilityPairs)) {
-        continue;
-      }
-      if (runtimeCapabilityExemptions.has(pair)) {
-        continue;
-      }
-      if (!runtimeProviderCapabilityPairs.has(pair)) {
-        missingRuntimeCapabilityPairs.push(pair);
-      }
-    }
-  }
   if (missingRuntimeCapabilityPairs.length > 0) {
     failures.push(`runtime live smoke capability coverage missing pairs: ${missingRuntimeCapabilityPairs.sort((a, b) => a.localeCompare(b)).join(', ')}`);
-  }
-
-  const missingSdkCapabilityPairs = [];
-  for (const [provider, capabilities] of sourceProviderCapabilityMatrix.entries()) {
-    for (const capability of capabilities) {
-      const pair = `${provider}:${capability}`;
-      if (sdkCapabilityExemptions.has(pair)) {
-        continue;
-      }
-      if (!sdkProviderCapabilityPairs.has(pair)) {
-        missingSdkCapabilityPairs.push(pair);
-      }
-    }
-  }
-  if (missingSdkCapabilityPairs.length > 0) {
-    failures.push(`sdk live smoke capability coverage missing pairs: ${missingSdkCapabilityPairs.sort((a, b) => a.localeCompare(b)).join(', ')}`);
   }
 
   const envCoverageExemptions = new Set([
@@ -403,6 +440,15 @@ function main() {
   if (nimi2dImage2LiveRouteDriftRefs.length > 0) {
     failures.push(
       `nimi2d Image2 direct API/key live route drift is forbidden: ${nimi2dImage2LiveRouteDriftRefs
+        .map((ref) => `${ref.path}:${ref.line}:${ref.token}`)
+        .join(', ')}`,
+    );
+  }
+
+  const retiredSdkLiveAuthorityRefs = collectRetiredSdkLiveAuthorityRefs(repoRoot);
+  if (retiredSdkLiveAuthorityRefs.length > 0) {
+    failures.push(
+      `retired SDK direct-daemon/live-matrix authority is forbidden in active gate paths: ${retiredSdkLiveAuthorityRefs
         .map((ref) => `${ref.path}:${ref.line}:${ref.token}`)
         .join(', ')}`,
     );
@@ -482,9 +528,7 @@ function main() {
     process.stderr.write(`- cloud bindings: ${toSortedArray(bindingProviders).join(', ')}\n`);
     process.stderr.write(`- source providers: ${toSortedArray(sourceProviders).join(', ')}\n`);
     process.stderr.write(`- runtime generate providers: ${toSortedArray(runtimeGenerateProviders).join(', ')}\n`);
-    process.stderr.write(`- sdk generate providers: ${toSortedArray(sdkGenerateProviders).join(', ')}\n`);
     process.stderr.write(`- runtime provider+capability pairs: ${toSortedArray(runtimeProviderCapabilityPairs).join(', ')}\n`);
-    process.stderr.write(`- sdk provider+capability pairs: ${toSortedArray(sdkProviderCapabilityPairs).join(', ')}\n`);
     process.stderr.write(`- capability universe: ${CAPABILITY_INTERFACE_ORDER.join(', ')}\n`);
     process.stderr.write(`- env template providers: ${toSortedArray(envProviders).join(', ')}\n`);
     process.exit(1);
@@ -504,5 +548,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 }
 
 export {
+  collectMissingRuntimeCapabilityPairs,
+  collectMissingRuntimeGenerateProviders,
   collectNimi2DImage2LiveRouteDriftRefs,
+  collectRetiredSdkLiveAuthorityRefs,
 };

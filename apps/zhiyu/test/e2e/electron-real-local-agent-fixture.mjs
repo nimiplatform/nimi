@@ -2,168 +2,52 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import {
-  admitLocalFirstPartyRuntimeAccountCaller,
-  createFixtureRuntimeAgentClient,
-  createRuntimeForEndpoint,
-  setFixtureRuntimeAgentPresentationProfile,
-} from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
-import { createNimiHostRuntimeAgentInspectSurface } from '../../../../sdks/typescript/runtime/runtime-agent-inspect.ts';
-import { createNimiLocalFirstPartyAgentPresentationClient } from '../../../../sdks/typescript/runtime/local-first-party-agent-presentation.ts';
-import { withRuntimeAgentLiveE2EFixture } from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
-
-const zhiyuAppId = 'nimi.zhiyu';
-const presentationAppId = 'nimi.avatar';
 const avatarAssetRef = 'vrm_aaaaaaaaaaaa';
 const backgroundAssetRef = 'bg_bbbbbbbbbbbb';
-const protectedScopes = [
-  'account.session.read',
-  'runtime.agent.read',
-  'runtime.agent.write',
-  'runtime.agent.autonomy.write',
-  'runtime.agent.turn.read',
-  'runtime.agent.turn.write',
-  'runtime.agent.delegation.read',
-  'runtime.agent.delegation.write',
-  'runtime.agent.ai_config.read',
-  'runtime.agent.ai_config.write',
-  'ai.spend.meter',
-];
 
 export async function withFixtureRuntimeLocalAgent(run) {
   const handoffPath = process.env.NIMI_LOCAL_AGENT_PRODUCT_HANDOFF_PATH?.trim();
-  if (handoffPath) {
-    const handoff = JSON.parse(await readFile(handoffPath, 'utf8'));
-    assert.equal(handoff.schemaVersion, 'nimi.local-agent-product-desktop-handoff/v2');
-    const runtime = createRuntimeForEndpoint(handoff.runtimeEndpoint, zhiyuAppId);
-    await admitLocalFirstPartyRuntimeAccountCaller(runtime, {
-      appId: zhiyuAppId,
-      appInstanceId: `${zhiyuAppId}.local-first-party`,
-      deviceId: 'nimi-zhiyu-local-first-party-device',
-      capabilities: protectedScopes,
-      scopes: protectedScopes,
-      expectedAccountId: handoff.ownerUserId,
-    });
-    const agentClient = createFixtureRuntimeAgentClient(runtime, {
-      appId: zhiyuAppId,
-      appInstanceId: `${zhiyuAppId}.local-first-party`,
-      deviceId: 'nimi-zhiyu-local-first-party-device',
-      ownerUserId: handoff.ownerUserId,
-    });
-    const inspect = createNimiHostRuntimeAgentInspectSurface({
-      getRuntime: () => ({
-        appId: zhiyuAppId,
-        auth: runtime.auth,
-        appAuth: runtime.grants,
-        agent: runtime.agents,
-      }),
-      getSubjectUserId: () => handoff.ownerUserId,
-    });
-    const targetAgent = (await agentClient.listLocalAgents({ ownerUserId: handoff.ownerUserId }))
-      .find((candidate) => candidate.localAgentRef === handoff.localAgentRef);
-    assert.ok(targetAgent, 'Desktop-materialized LocalAgent must appear in the shared Runtime inventory');
-    const presentationRuntime = createRuntimeForEndpoint(handoff.runtimeEndpoint, presentationAppId);
-    const presentationCaller = await admitLocalFirstPartyRuntimeAccountCaller(presentationRuntime, {
-      appId: presentationAppId,
-      appInstanceId: `${presentationAppId}.local-agent-product-acceptance`,
-      deviceId: 'nimi-avatar-local-agent-product-device',
-      capabilities: ['account.session.read', 'account.raw-token'],
-      scopes: ['account.session.read', 'account.raw-token'],
-      expectedAccountId: handoff.ownerUserId,
-    });
-    const presentation = createNimiLocalFirstPartyAgentPresentationClient({
-      mode: 'first-party-local-app',
-      appId: presentationAppId,
-      accountCaller: presentationCaller,
-      endpoint: handoff.runtimeEndpoint,
-    });
-    const setPresentationProfile = (agent, avatarAutoplay = true) => setFixtureRuntimeAgentPresentationProfile({
-      presentation,
-      identity: {
-        ownerUserId: handoff.ownerUserId,
-        runtimeSourceRef: agent.runtimeSourceRef,
-        localAgentRef: agent.localAgentRef,
-      },
-      profile: fixturePresentationProfile({ avatarAutoplay }),
-    });
-    await setPresentationProfile(targetAgent, true);
-    await run({
-      endpoint: handoff.runtimeEndpoint,
-      realmBaseUrl: handoff.realmBaseUrl,
-      targetAgent,
-      standardDataRoot: handoff.standardDataRoot,
-      handoff,
-      runtime,
-      agentClient,
-      inspect,
-      setPresentationProfile,
-    });
-    return;
+  assert.ok(
+    handoffPath,
+    'Zhiyu real local-app acceptance requires the shared Desktop-to-Zhiyu product runner handoff',
+  );
+  const handoff = JSON.parse(await readFile(handoffPath, 'utf8'));
+  assert.equal(handoff.schemaVersion, 'nimi.local-agent-product-desktop-handoff/v2');
+  for (const field of [
+    'runtimeEndpoint',
+    'realmBaseUrl',
+    'standardDataRoot',
+    'ownerUserId',
+    'runtimeSourceRef',
+    'localAgentRef',
+  ]) {
+    assert.equal(
+      typeof handoff[field] === 'string' && handoff[field].trim().length > 0,
+      true,
+      `Desktop-to-Zhiyu handoff requires ${field}`,
+    );
   }
-
-  await withRuntimeAgentLiveE2EFixture({
-    run: async (context) => {
-      await context.admitLocalFirstPartyRuntimeAccountCaller({
-        appId: zhiyuAppId,
-        appInstanceId: `${zhiyuAppId}.local-first-party`,
-        deviceId: 'nimi-zhiyu-local-first-party-device',
-        capabilities: protectedScopes,
-      });
-      const agentClient = createFixtureRuntimeAgentClient(context.runtime);
-      const inspect = createNimiHostRuntimeAgentInspectSurface({
-        getRuntime: () => ({
-          appId: zhiyuAppId,
-          auth: context.runtime.auth,
-          appAuth: context.runtime.grants,
-          agent: context.runtime.agents,
-        }),
-        getSubjectUserId: () => context.ownerUserId,
-      });
-      const targetAgent = (await agentClient.listLocalAgents({ ownerUserId: context.ownerUserId }))
-        .find((candidate) => candidate.localAgentRef === context.localAgent.localAgentRef);
-      assert.ok(targetAgent, 'materialized Character must appear in bounded Runtime inventory');
-      const setPresentationProfile = (agent, avatarAutoplay = true) => setFixtureRuntimeAgentPresentationProfile({
-        presentation: context.agentPresentation,
-        identity: {
-          ownerUserId: context.ownerUserId,
-          runtimeSourceRef: agent.runtimeSourceRef,
-          localAgentRef: agent.localAgentRef,
-        },
-        profile: fixturePresentationProfile({ avatarAutoplay }),
-      });
-      await setPresentationProfile(targetAgent, true);
-      await agentClient.openConversation({
-        ownerUserId: context.ownerUserId,
-        runtimeSourceRef: targetAgent.runtimeSourceRef,
-        localAgentRef: targetAgent.localAgentRef,
-        metadata: { appId: zhiyuAppId, surface: 'zhiyu.real-local-agent.acceptance' },
-      });
-      await run({
-        endpoint: context.endpoint,
-        realmBaseUrl: context.realmBaseUrl,
-        targetAgent,
-        standardDataRoot: null,
-        handoff: null,
-        runtime: context.runtime,
-        agentClient,
-        inspect,
-        setPresentationProfile,
-      });
-    },
-  });
-}
-
-function fixturePresentationProfile({ avatarAutoplay = true } = {}) {
-  return {
-    backendKind: 'vrm',
-    avatarAssetRef,
-    expressionProfileRef: 'runtime-expression-profile:zhiyu-real-local-agent-calm',
-    idlePreset: 'runtime-idle-preset:idle-soft',
-    interactionPolicyRef: 'runtime-interaction-policy:zhiyu-real-local-agent-ambient',
-    defaultVoiceReference: 'preset_voice_id:runtime-live-voice',
-    avatarAutoplay,
-    backgroundAssetRef,
+  const admittedAgent = Array.isArray(handoff.agents)
+    ? handoff.agents.find((candidate) => candidate?.localAgentRef === handoff.localAgentRef)
+    : null;
+  const targetAgent = {
+    ...(admittedAgent ?? {}),
+    ownerUserId: handoff.ownerUserId,
+    runtimeSourceRef: handoff.runtimeSourceRef,
+    localAgentRef: handoff.localAgentRef,
+    sourceKind: admittedAgent?.sourceKind ?? handoff.sourceKind,
+    sourceRef: admittedAgent?.sourceRef ?? handoff.sourceRef,
+    displayName: admittedAgent?.displayName ?? handoff.displayName,
   };
+  assert.equal(targetAgent.localAgentRef, handoff.localAgentRef);
+  assert.equal(targetAgent.runtimeSourceRef, handoff.runtimeSourceRef);
+  await run({
+    endpoint: handoff.runtimeEndpoint,
+    realmBaseUrl: handoff.realmBaseUrl,
+    targetAgent,
+    standardDataRoot: handoff.standardDataRoot,
+    handoff,
+  });
 }
 
 export async function seedStandardShellAppearanceAssets(input) {

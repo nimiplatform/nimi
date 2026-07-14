@@ -1,9 +1,10 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShellCommandBoundary {
     AgentCenter,
-    AppHost,
+    LocalApp,
     Avatar,
     Daemon,
+    DesktopAccount,
     DesktopOpen,
     Diagnostics,
     Files,
@@ -20,11 +21,50 @@ pub enum ShellCommandBoundary {
     Storage,
 }
 
-pub const APP_HOST_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
-    command_name: "app_host_bootstrap",
-    rust_path: "nimi_shell_tauri::capabilities::artifacts::app_host_bootstrap",
-    boundary: ShellCommandBoundary::AppHost,
-}];
+pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "local_app_session_status",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_session_status",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_permission_posture",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_permission_posture",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_permission_request",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_permission_request",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_artifacts_read_runtime_bytes",
+        rust_path:
+            "nimi_shell_tauri::capabilities::local_app::local_app_artifacts_read_runtime_bytes",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_open_conversation",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_open_conversation",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_send_turn",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_send_turn",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_subscribe_turn",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_subscribe_turn",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_get_conversation_snapshot",
+        rust_path:
+            "nimi_shell_tauri::capabilities::local_app::local_app_agent_get_conversation_snapshot",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ShellCommandDescriptor {
@@ -72,15 +112,43 @@ pub const RUNTIME_BRIDGE_COMMANDS: &[ShellCommandDescriptor] = &[
     },
 ];
 
+pub const PROTECTED_DESKTOP_ACCOUNT_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "runtime_account_session_status",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_session_status",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+    ShellCommandDescriptor {
+        command_name: "runtime_account_begin_login",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_begin_login",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+    ShellCommandDescriptor {
+        command_name: "runtime_account_complete_login",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_complete_login",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+    ShellCommandDescriptor {
+        command_name: "runtime_account_invoke_realm_unary",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_invoke_realm_unary",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+    ShellCommandDescriptor {
+        command_name: "runtime_account_logout",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_logout",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+    ShellCommandDescriptor {
+        command_name: "runtime_account_switch_account",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_switch_account",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+];
+
 pub const OAUTH_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "open_external_url",
         rust_path: "nimi_shell_tauri::capabilities::oauth::open_external_url",
-        boundary: ShellCommandBoundary::OAuth,
-    },
-    ShellCommandDescriptor {
-        command_name: "oauth_token_exchange",
-        rust_path: "nimi_shell_tauri::capabilities::oauth::oauth_token_exchange",
         boundary: ShellCommandBoundary::OAuth,
     },
     ShellCommandDescriptor {
@@ -181,11 +249,6 @@ pub const STANDARD_FILE_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "artifacts_write",
         rust_path: "nimi_shell_tauri::capabilities::artifacts::artifacts_write",
-        boundary: ShellCommandBoundary::Files,
-    },
-    ShellCommandDescriptor {
-        command_name: "artifacts_read_runtime_bytes",
-        rust_path: "nimi_shell_tauri::capabilities::artifacts::artifacts_read_runtime_bytes",
         boundary: ShellCommandBoundary::Files,
     },
 ];
@@ -331,6 +394,7 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     let mut commands = Vec::new();
     commands.extend_from_slice(RUNTIME_DEFAULTS_COMMANDS);
     commands.extend_from_slice(RUNTIME_BRIDGE_COMMANDS);
+    commands.extend_from_slice(PROTECTED_DESKTOP_ACCOUNT_COMMANDS);
     commands.extend_from_slice(OAUTH_COMMANDS);
     commands.extend_from_slice(DESKTOP_OPEN_INTENT_COMMANDS);
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
@@ -348,24 +412,22 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands
 }
 
-pub fn installed_app_standard_shell_commands() -> Vec<ShellCommandDescriptor> {
-    const INSTALLED_APP_COMMAND_NAMES: &[&str] =
-        &["app_host_bootstrap", "artifacts_read_runtime_bytes"];
-    APP_HOST_COMMANDS
-        .iter()
-        .copied()
-        .chain(all_shell_commands())
-        .into_iter()
-        .filter(|command| INSTALLED_APP_COMMAND_NAMES.contains(&command.command_name))
-        .collect()
+pub fn local_app_standard_shell_commands() -> Vec<ShellCommandDescriptor> {
+    LOCAL_APP_COMMANDS.to_vec()
 }
 
 #[macro_export]
-macro_rules! nimi_shell_tauri_installed_app_standard_shell_handler {
+macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
     ($($app_command:path),* $(,)?) => {
         tauri::generate_handler![
-            $crate::capabilities::artifacts::app_host_bootstrap,
-            $crate::capabilities::artifacts::artifacts_read_runtime_bytes,
+            $crate::capabilities::local_app::local_app_session_status,
+            $crate::capabilities::local_app::local_app_permission_posture,
+            $crate::capabilities::local_app::local_app_permission_request,
+            $crate::capabilities::local_app::local_app_artifacts_read_runtime_bytes,
+            $crate::capabilities::local_app::local_app_agent_open_conversation,
+            $crate::capabilities::local_app::local_app_agent_send_turn,
+            $crate::capabilities::local_app::local_app_agent_subscribe_turn,
+            $crate::capabilities::local_app::local_app_agent_get_conversation_snapshot,
             $($app_command),*
         ]
     };
@@ -429,7 +491,6 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
         tauri::generate_handler![
             $runtime_defaults,
             $crate::capabilities::oauth::open_external_url,
-            $crate::capabilities::oauth::oauth_token_exchange,
             $crate::capabilities::oauth::oauth_listen_for_code,
             $crate::capabilities::runtime::runtime_bridge_unary,
             $crate::capabilities::runtime::runtime_bridge_stream_open,
@@ -437,6 +498,12 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::runtime::runtime_bridge_status,
             $crate::capabilities::runtime::runtime_bridge_start,
             $crate::capabilities::runtime::runtime_bridge_restart,
+            $crate::capabilities::runtime::runtime_account_session_status,
+            $crate::capabilities::runtime::runtime_account_begin_login,
+            $crate::capabilities::runtime::runtime_account_complete_login,
+            $crate::capabilities::runtime::runtime_account_invoke_realm_unary,
+            $crate::capabilities::runtime::runtime_account_logout,
+            $crate::capabilities::runtime::runtime_account_switch_account,
             $crate::capabilities::session_logging::log_renderer_event,
             $crate::capabilities::data::data_path_resolve,
             $crate::capabilities::storage::storage_read_json,

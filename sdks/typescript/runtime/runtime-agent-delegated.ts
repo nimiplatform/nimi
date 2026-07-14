@@ -31,7 +31,6 @@ import { buildRuntimeAgentRequestContext, projectRuntimeLocalAgentIdentity, type
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -147,7 +146,6 @@ export interface NimiRuntimeAgentDelegatedCapabilitySurface {
 export interface NimiHostRuntimeAgentDelegatedCapabilityClient {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: {
     executeDelegatedCapability?(
       request: ExecuteDelegatedCapabilityRequest,

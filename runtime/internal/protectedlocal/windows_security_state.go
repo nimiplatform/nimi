@@ -11,22 +11,21 @@ import (
 // exist before the protected Desktop transport starts accepting connections.
 // Its capabilities are intentionally opaque outside this package.
 type WindowsRuntimeSecurityState struct {
-	root              WindowsProtectedStateRoot
-	principal         WindowsServicePrincipal
-	process           WindowsRuntimeProcess
-	secrets           BinarySecretStore
-	ledger            *Ledger
-	bootEpoch         Identifier
-	desktopSessions   *DesktopSessionManager
-	lifecycleIntents  *LifecycleIntentManager
-	installedLaunches *InstalledLaunchRegistry
-	desktopPipe       *WindowsDesktopPipeInstance
-	desktopIdentity   WindowsDesktopIdentity
+	root             WindowsProtectedStateRoot
+	principal        WindowsServicePrincipal
+	process          WindowsRuntimeProcess
+	secrets          BinarySecretStore
+	ledger           *Ledger
+	bootEpoch        Identifier
+	desktopSessions  *DesktopSessionManager
+	localAppLaunches *LocalAppLaunchRegistry
+	desktopPipe      *WindowsDesktopPipeInstance
+	desktopIdentity  WindowsDesktopIdentity
 
-	transportMu        sync.Mutex
-	desktopTransport   interface{ Close() error }
-	installedTransport interface{ Close() error }
-	closed             bool
+	transportMu       sync.Mutex
+	desktopTransport  interface{ Close() error }
+	localAppTransport interface{ Close() error }
+	closed            bool
 
 	closeOnce sync.Once
 	closeErr  error
@@ -53,8 +52,7 @@ const (
 	WindowsSecurityStateStageLedgerOpen
 	WindowsSecurityStateStageBootEpoch
 	WindowsSecurityStateStageDesktopSessions
-	WindowsSecurityStateStageLifecycleIntents
-	WindowsSecurityStateStageInstalledLaunches
+	WindowsSecurityStateStageLocalAppLaunches
 	WindowsSecurityStateStageDesktopPipeOpen
 	WindowsSecurityStateStageDesktopPipeMissing
 	WindowsSecurityStateStageDesktopIdentity
@@ -143,18 +141,11 @@ func (state *WindowsRuntimeSecurityState) DesktopSessions() *DesktopSessionManag
 	return state.desktopSessions
 }
 
-func (state *WindowsRuntimeSecurityState) LifecycleIntents() *LifecycleIntentManager {
+func (state *WindowsRuntimeSecurityState) LocalAppLaunches() *LocalAppLaunchRegistry {
 	if state == nil {
 		return nil
 	}
-	return state.lifecycleIntents
-}
-
-func (state *WindowsRuntimeSecurityState) InstalledLaunches() *InstalledLaunchRegistry {
-	if state == nil {
-		return nil
-	}
-	return state.installedLaunches
+	return state.localAppLaunches
 }
 
 func (state *WindowsRuntimeSecurityState) DesktopPipe() *WindowsDesktopPipeInstance {
@@ -181,22 +172,22 @@ func (state *WindowsRuntimeSecurityState) Close() error {
 		state.transportMu.Lock()
 		state.closed = true
 		transport := state.desktopTransport
-		installedTransport := state.installedTransport
+		localAppTransport := state.localAppTransport
 		pipe := state.desktopPipe
 		state.transportMu.Unlock()
-		var pipeErr, installedErr, ledgerErr error
+		var pipeErr, localAppErr, ledgerErr error
 		if transport != nil {
 			pipeErr = transport.Close()
 		} else if pipe != nil {
 			pipeErr = pipe.Close()
 		}
-		if installedTransport != nil {
-			installedErr = installedTransport.Close()
+		if localAppTransport != nil {
+			localAppErr = localAppTransport.Close()
 		}
 		if state.ledger != nil {
 			ledgerErr = state.ledger.Close()
 		}
-		state.closeErr = errors.Join(pipeErr, installedErr, ledgerErr)
+		state.closeErr = errors.Join(pipeErr, localAppErr, ledgerErr)
 	})
 	return state.closeErr
 }
@@ -262,15 +253,9 @@ func assembleWindowsRuntimeSecurityState(
 	if err != nil {
 		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageDesktopSessions, err)
 	}
-	lifecycleIntents, err := NewLifecycleIntentManager(LifecycleIntentManagerOptions{
-		Sessions: desktopSessions,
-	})
+	localAppLaunches, err := NewLocalAppLaunchRegistry(bootEpoch)
 	if err != nil {
-		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageLifecycleIntents, err)
-	}
-	installedLaunches, err := NewInstalledLaunchRegistry(bootEpoch)
-	if err != nil {
-		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageInstalledLaunches, err)
+		return nil, windowsSecurityStateStageFailure(WindowsSecurityStateStageLocalAppLaunches, err)
 	}
 
 	// The listener is created last: no Desktop client can arrive before the
@@ -292,14 +277,13 @@ func assembleWindowsRuntimeSecurityState(
 
 	cleanupLedger = false
 	return &WindowsRuntimeSecurityState{
-		root:              root,
-		secrets:           secrets,
-		ledger:            ledger,
-		bootEpoch:         bootEpoch,
-		desktopSessions:   desktopSessions,
-		lifecycleIntents:  lifecycleIntents,
-		installedLaunches: installedLaunches,
-		desktopPipe:       desktopPipe,
-		desktopIdentity:   desktopIdentity,
+		root:             root,
+		secrets:          secrets,
+		ledger:           ledger,
+		bootEpoch:        bootEpoch,
+		desktopSessions:  desktopSessions,
+		localAppLaunches: localAppLaunches,
+		desktopPipe:      desktopPipe,
+		desktopIdentity:  desktopIdentity,
 	}, nil
 }

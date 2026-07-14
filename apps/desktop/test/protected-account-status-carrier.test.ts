@@ -21,6 +21,9 @@ const protectedCarrierSource = source(
 const tauriCapabilitiesSource = source(
   '../../../kit/shell/tauri/src/capabilities/mod.rs',
 );
+const tauriCommandRegistrationSource = source(
+  '../../../kit/shell/tauri/src/command_registration.rs',
+);
 const desktopBootstrapHostSource = source(
   '../src-tauri/src/main_parts/app_bootstrap.rs',
 );
@@ -28,7 +31,18 @@ const desktopBootstrapHostSource = source(
 test('Desktop account status uses one exact native carrier operation', () => {
   assert.match(protectedCarrierSource, /fn get_account_session_status\(/);
   assert.match(tauriCapabilitiesSource, /fn runtime_account_session_status\(\s*\)/s);
-  assert.match(desktopBootstrapHostSource, /runtime_account_session_status/);
+  assert.match(
+    tauriCommandRegistrationSource,
+    /nimi_shell_tauri_oauth_runtime_bridge_handler[\s\S]*runtime_account_session_status/,
+  );
+  assert.match(
+    desktopBootstrapHostSource,
+    /nimi_shell_tauri::nimi_shell_tauri_oauth_runtime_bridge_handler!/,
+  );
+  assert.doesNotMatch(
+    desktopBootstrapHostSource,
+    /capabilities::runtime::runtime_account_session_status/,
+  );
   assert.match(desktopBridgeSource, /getRuntimeAccountSessionStatus/);
 });
 

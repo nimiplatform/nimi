@@ -82,8 +82,17 @@ import { probeZhiyuRuntimeAccountStatus } from '../auth/runtime-account-status';
 import { requestZhiyuDesktopOpenSelectPartner } from '../desktop-open/desktop-open-action';
 import { probeZhiyuRuntimeStatus } from '../runtime/runtime-status';
 import { loadZhiyuSourceContextProjection } from './source-context-loader';
+import { ZhiyuLocalDevelopmentJourney } from '../local-development/ZhiyuLocalDevelopmentJourney';
 
 export function App() {
+  const localDevelopment = window.__nimiZhiyuLocalDevelopment;
+  if (localDevelopment) {
+    return <ZhiyuLocalDevelopmentJourney target={localDevelopment} />;
+  }
+  return <ZhiyuBundledApp />;
+}
+
+function ZhiyuBundledApp() {
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
   const [selectedLocalAgentRef, setSelectedLocalAgentRef] = useState<string | null>(null);
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);

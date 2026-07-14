@@ -20,7 +20,6 @@ import {
   createNimiRuntimeAgentTurnsModule,
   createNimiRuntimeAgentVoiceModule,
   fromNimiRuntimeProtoStruct,
-  protectedAppAuth,
   protectedAuth,
   toNimiRuntimeProtoStruct,
   toNimiRuntimeTimestamp,
@@ -71,7 +70,6 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -149,7 +147,6 @@ test('Runtime Agent turn helper resolves voice render projection from Agent pres
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -193,7 +190,6 @@ test('Runtime Agent turn helper reports text_only when Runtime emits no playable
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -269,7 +265,6 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async *subscribeAgentVoiceStream(request) {
           streamRequests.push(request);
@@ -363,12 +358,6 @@ test('Runtime Agent voice helper fails closed when its carrier provides only raw
           return { accepted: true };
         },
       },
-      appAuth: {
-        async authorizeExternalPrincipal() {
-          authCalls.push('authorize');
-          return { tokenId: 'token-voice', secret: 'secret-voice' };
-        },
-      },
       agents: {
         async *subscribeAgentVoiceStream(_request, options) {
           streamOptions.push(options ?? {});
@@ -454,12 +443,6 @@ test('Runtime Agent voice helper preserves scoped Runtime binding without render
           throw new Error('Runtime auth fallback must not run for Runtime auth bindings');
         },
       },
-      appAuth: {
-        async authorizeExternalPrincipal() {
-          authCalls.push('authorize');
-          throw new Error('Runtime protected token fallback must not run for Runtime auth bindings');
-        },
-      },
       agents: {
         async *subscribeAgentVoiceStream(request, options) {
           streamRequests.push(request);
@@ -538,12 +521,6 @@ test('Runtime Agent voice helper preserves host equivalence without renderer tok
         async registerApp() {
           authCalls.push('register');
           throw new Error('Runtime auth fallback must not run for Runtime host equivalence');
-        },
-      },
-      appAuth: {
-        async authorizeExternalPrincipal() {
-          authCalls.push('authorize');
-          throw new Error('Runtime protected token fallback must not run for Runtime host equivalence');
         },
       },
       agents: {

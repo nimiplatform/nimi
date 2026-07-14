@@ -50,6 +50,7 @@ static BUILT_IN_AI_CONFIG_MATERIALIZE_LOCK: Mutex<()> = Mutex::new(());
 /// The two canonical first-run built-in chat surface ids (`P-AISC-006`).
 const BUILT_IN_CHAT_SURFACE_IDS: &[&str] = &["nimi", "agent"];
 
+#[path = "desktop_ai_config_library/types.rs"]
 mod types;
 pub use types::*;
 
@@ -77,6 +78,7 @@ fn built_in_ai_config_for_scope_init_from_record(
     }
 }
 
+#[path = "desktop_ai_config_library/identity.rs"]
 mod identity;
 pub use identity::{built_in_ai_config_path, data_root_ref};
 use identity::{
@@ -695,4 +697,5 @@ pub fn read_built_in_ai_config_for_scope_init(
 }
 
 #[cfg(test)]
+#[path = "desktop_ai_config_library/tests.rs"]
 mod tests;

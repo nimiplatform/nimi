@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import test from 'node:test';
+import test, { afterEach } from 'node:test';
 
 import {
   AgentPresentationBackendKind,
@@ -8,6 +8,10 @@ import {
   ReasonCode,
 } from '@nimiplatform/sdk/runtime/wire-types';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
+import {
+  clearDesktopNimiClientSession,
+  setDesktopNimiClientSessionForTests,
+} from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
 
 const LOCAL_AGENT_REF = 'local-agent:desktop-inspect-agent-1';
 const LOCAL_IDENTITY = {
@@ -15,6 +19,10 @@ const LOCAL_IDENTITY = {
   ownerUserId: 'user-1',
   runtimeSourceRef: 'realm-source:agent-1',
 };
+
+afterEach(() => {
+  clearDesktopNimiClientSession();
+});
 
 test('runtime agent inspect adapter delegates Runtime orchestration to SDK', () => {
   const source = readFileSync('src/shell/renderer/infra/runtime-agent-inspect.ts', 'utf8');
@@ -103,21 +111,12 @@ function buildPendingHook(input: {
 }
 
 function assertProtectedAccessOptions(options: Record<string, unknown>): void {
-  assert.equal(
-    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-access-token-id'],
-    'protected-token-id',
-  );
-  assert.equal(
-    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-access-token-secret'],
-    'protected-token-secret',
-  );
+  assert.equal(options.metadata, undefined);
   assert.equal(options.protectedAccessToken, undefined);
 }
 
 function createRuntimeMock() {
   const calls = {
-    registerApp: [] as Array<Record<string, unknown>>,
-    authorizeExternalPrincipal: [] as Array<Record<string, unknown>>,
     getAgent: [] as Array<Record<string, unknown>>,
     getAgentState: [] as Array<Record<string, unknown>>,
     updateAgentState: [] as Array<Record<string, unknown>>,
@@ -139,21 +138,7 @@ function createRuntimeMock() {
 
   const runtime = {
     appId: 'desktop-test',
-    auth: {
-      registerApp: async (input: Record<string, unknown>) => {
-        calls.registerApp.push(input);
-        return { accepted: true };
-      },
-    },
-    appAuth: {
-      authorizeExternalPrincipal: async (input: Record<string, unknown>) => {
-        calls.authorizeExternalPrincipal.push(input);
-        return {
-          tokenId: 'protected-token-id',
-          secret: 'protected-token-secret',
-        };
-      },
-    },
+    auth: {},
     agent: {
       getAgent: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
         calls.getAgent.push({ ...input, __options: options });
@@ -528,6 +513,25 @@ function createRuntimeMock() {
   return { runtime, calls };
 }
 
+function createDesktopRuntimeAgentInspectTestAdapter(runtime: {
+  readonly appId: string;
+  readonly auth: unknown;
+  readonly agent: unknown;
+}) {
+  setDesktopNimiClientSessionForTests({
+    appId: runtime.appId,
+    runtimeTransport: { type: 'electron-ipc' },
+    client: {},
+    runtime: { agents: runtime.agent },
+    accountRuntime: { auth: runtime.auth },
+    accountCaller: {},
+    realm: {},
+  } as never);
+  return createRuntimeAgentInspectAdapter({
+    getSubjectUserId: () => 'user-1',
+  });
+}
+
 test('runtime agent inspect adapter does not touch platform runtime before first operation', () => {
   let getRuntimeCalls = 0;
   createRuntimeAgentInspectAdapter({
@@ -541,10 +545,7 @@ test('runtime agent inspect adapter does not touch platform runtime before first
 
 test('runtime agent inspect adapter projects public state and pending hook summaries', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   const snapshot = await adapter.getPublicInspect(LOCAL_IDENTITY);
 
@@ -602,18 +603,13 @@ test('runtime agent inspect adapter projects public state and pending hook summa
     MemoryCanonicalClass.WORLD_SHARED,
     MemoryCanonicalClass.DYADIC,
   ]);
-  assert.ok(calls.registerApp.length >= 1);
-  assert.ok(calls.authorizeExternalPrincipal.length >= 1);
   const options = (calls.getAgent[0]?.__options as Record<string, unknown>) || {};
   assertProtectedAccessOptions(options);
 });
 
 test('runtime agent inspect adapter omits dyadic memory preview without active dyadic context', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   await adapter.updateState({
     ...LOCAL_IDENTITY,
@@ -631,10 +627,7 @@ test('runtime agent inspect adapter omits dyadic memory preview without active d
 
 test('runtime agent inspect adapter projects persistent presentation profile without loading inspect extras', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   const profile = await adapter.getPresentationProfile(LOCAL_IDENTITY);
 
@@ -659,15 +652,7 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
 test('runtime agent inspect adapter accepts live2d presentation profiles', async () => {
   const runtime = {
     appId: 'desktop-test',
-    auth: {
-      registerApp: async () => ({ accepted: true }),
-    },
-    appAuth: {
-      authorizeExternalPrincipal: async () => ({
-        tokenId: 'protected-token-id',
-        secret: 'protected-token-secret',
-      }),
-    },
+    auth: {},
     agent: {
       getAgent: async () => ({
         agent: {
@@ -688,10 +673,7 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
     },
   };
 
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   const profile = await adapter.getPresentationProfile(LOCAL_IDENTITY);
 
@@ -712,10 +694,7 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
 
 test('runtime agent inspect adapter enables and disables autonomy through admitted runtime writes', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   const enabled = await adapter.enableAutonomy(LOCAL_IDENTITY);
   const disabled = await adapter.disableAutonomy({
@@ -738,10 +717,7 @@ test('runtime agent inspect adapter enables and disables autonomy through admitt
 
 test('runtime agent inspect adapter updates admitted agent state through runtime.agent.write', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   const updated = await adapter.updateState({
     ...LOCAL_IDENTITY,
@@ -770,10 +746,7 @@ test('runtime agent inspect adapter updates admitted agent state through runtime
 
 test('runtime agent inspect adapter updates autonomy config through admitted runtime writes', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   const updated = await adapter.setAutonomyConfig({
     ...LOCAL_IDENTITY,
@@ -796,10 +769,7 @@ test('runtime agent inspect adapter updates autonomy config through admitted run
 
 test('runtime agent inspect adapter cancels hooks through admitted runtime writes', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
 
   const outcome = await adapter.cancelHook({
     ...LOCAL_IDENTITY,
@@ -818,10 +788,7 @@ test('runtime agent inspect adapter cancels hooks through admitted runtime write
 
 test('runtime agent inspect adapter subscribes to agent events with protected read scopes', async () => {
   const { runtime, calls } = createRuntimeMock();
-  const adapter = createRuntimeAgentInspectAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-  });
+  const adapter = createDesktopRuntimeAgentInspectTestAdapter(runtime);
   const events: Array<{ eventType: number; sequence: string; detailKind: string | null }> = [];
 
   await adapter.subscribePublicEvents({

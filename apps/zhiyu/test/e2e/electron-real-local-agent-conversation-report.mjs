@@ -5,7 +5,6 @@ import {
   readConversationScenarioRegistry,
   resolveConversationScenarioRegistry,
 } from '../../../../tests/local-agent-product/conversation-report/registry.mjs';
-import { buildConversationReportMemoryQuery } from '../../../../tests/local-agent-product/conversation-report/memory-capture.mjs';
 import {
   conversationReportExecutionStatus,
   resolveConversationTurnOutcome,
@@ -20,20 +19,34 @@ import {
   writeControlRequest,
 } from './electron-real-local-agent-core-journey.mjs';
 
-function identity(ownerUserId, agent) {
-  return {
-    ownerUserId,
-    runtimeSourceRef: agent.runtimeSourceRef,
-    localAgentRef: agent.localAgentRef,
-  };
-}
-
 function submittedRequestId(evidence, prompt) {
   const messages = Array.isArray(evidence?.chat?.messages) ? evidence.chat.messages : [];
   const submitted = [...messages].reverse().find((message) => message?.role === 'user'
     && String(message?.text || '') === prompt
     && String(message?.metadata?.turnId || '').trim());
   return String(submitted?.metadata?.turnId || evidence?.chat?.requestId || '').trim();
+}
+
+function observedConversationSnapshot(evidence) {
+  const messages = Array.isArray(evidence?.chat?.messages) ? evidence.chat.messages : [];
+  const state = String(evidence?.chat?.state || '').trim().toLowerCase();
+  return {
+    threadId: evidence?.conversation?.threadId || null,
+    transcriptMessageCount: Number(evidence?.chat?.messageCount || messages.length),
+    transcript: messages,
+    lastTurn: {
+      turnId: evidence?.turn?.runtimeTurnId || evidence?.chat?.runtimeTurnId || null,
+      status: state,
+      reasonCode: state === 'failed'
+        ? (evidence?.chat?.reasonCode || evidence?.turn?.reasonCode || '')
+        : '',
+      message: state === 'failed'
+        ? (evidence?.chat?.message || evidence?.turn?.message || '')
+        : '',
+      contextSummary: evidence?.source?.turnContextSummary || null,
+      structured: evidence?.companion?.structured || null,
+    },
+  };
 }
 
 function presentationOutput(evidence, snapshot, inspectSnapshot, capturedAt) {
@@ -72,16 +85,13 @@ async function executeDeclaredTurn({
   stream,
   agent,
   expectedAnchorId,
-  agentClient,
-  inspect,
   waitForEvidence,
 }) {
   const pageProblemStart = pageProblems.length;
-  const agentIdentity = identity(handoff.ownerUserId, agent);
-  const beforeSnapshot = expectedAnchorId
-    ? await agentClient.getSessionSnapshot({ ...agentIdentity, conversationAnchorId: expectedAnchorId })
-    : null;
-  const previousRuntimeTurnId = String(beforeSnapshot?.lastTurn?.turnId || '').trim();
+  const beforeEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  const previousRuntimeTurnId = String(
+    beforeEvidence?.turn?.runtimeTurnId || beforeEvidence?.chat?.runtimeTurnId || '',
+  ).trim();
   const submittedAt = new Date().toISOString();
   const startedAt = Date.now();
   const evidence = await sendCorePlannedTurn(page, handoff, {
@@ -94,11 +104,9 @@ async function executeDeclaredTurn({
   if (expectedAnchorId) {
     assert.equal(conversationAnchorId, expectedAnchorId, `${declaredTurn.turn_id} replaced the Runtime-owned conversation anchor`);
   }
-  const [snapshot, memory, inspectSnapshot] = await Promise.all([
-    agentClient.getSessionSnapshot({ ...agentIdentity, conversationAnchorId }),
-    agentClient.queryMemory(buildConversationReportMemoryQuery(agentIdentity)),
-    inspect.getPublicInspect(agentIdentity),
-  ]);
+  const snapshot = observedConversationSnapshot(evidence);
+  const memory = evidence.memory ?? null;
+  const inspectSnapshot = evidence.source?.sourceContextStatus ?? null;
   const snapshotRuntimeTurnId = String(snapshot.lastTurn?.turnId || '').trim();
   const evidenceRuntimeTurnId = String(evidence.turn?.runtimeTurnId || '').trim();
   const runtimeTurnId = [snapshotRuntimeTurnId, evidenceRuntimeTurnId]
@@ -183,9 +191,6 @@ export async function runConversationReportContinuation({
   handoff,
   targetAgent,
   readyEvidence,
-  agentClient,
-  inspect,
-  setPresentationProfile,
   waitForEvidence,
 }) {
   const scenario = (await resolveConversationScenarioRegistry(readConversationScenarioRegistry())).scenarios
@@ -214,7 +219,7 @@ export async function runConversationReportContinuation({
   for (const declaredTurn of streamA.turns.slice(4, 7)) {
     turns.push(await executeDeclaredTurn({
       page, pageProblems, handoff, declaredTurn, stream: streamA, agent: targetAgent,
-      expectedAnchorId: anchorA, agentClient, inspect, waitForEvidence,
+      expectedAnchorId: anchorA, waitForEvidence,
     }));
   }
 
@@ -228,7 +233,6 @@ export async function runConversationReportContinuation({
   const agentB = updatedHandoff.agents.find((agent) => agent.sourceKind === 'realmPersona');
   assert.ok(agentB, 'conversation report requires the once-materialized RealmPersona-source LocalAgent B');
   assert.notEqual(agentB.localAgentRef, targetAgent.localAgentRef, 'LocalAgent A/B identities must be opaque and distinct');
-  await setPresentationProfile(agentB, true);
   lifecycleEvents.push(timelineEvent('materialize-local-agent-b', 'materialization', streamB.stream_id, agentB, null, {
     materializationCount: 1,
   }));
@@ -243,7 +247,7 @@ export async function runConversationReportContinuation({
   for (const declaredTurn of streamB.turns.slice(0, 7)) {
     const captured = await executeDeclaredTurn({
       page, pageProblems, handoff: updatedHandoff, declaredTurn, stream: streamB, agent: agentB,
-      expectedAnchorId: anchorB, agentClient, inspect, waitForEvidence,
+      expectedAnchorId: anchorB, waitForEvidence,
     });
     anchorB ||= captured.conversationAnchorId;
     turns.push(captured);
@@ -254,12 +258,12 @@ export async function runConversationReportContinuation({
   lifecycleEvents.push(timelineEvent('switch-back-to-stream-a', 'agent_switch', streamA.stream_id, targetAgent, anchorA));
   turns.push(await executeDeclaredTurn({
     page, pageProblems, handoff: updatedHandoff, declaredTurn: streamA.turns[7], stream: streamA,
-    agent: targetAgent, expectedAnchorId: anchorA, agentClient, inspect, waitForEvidence,
+    agent: targetAgent, expectedAnchorId: anchorA, waitForEvidence,
   }));
   await selectLocalAgent(page, agentB.localAgentRef, waitForEvidence);
   turns.push(await executeDeclaredTurn({
     page, pageProblems, handoff: updatedHandoff, declaredTurn: streamB.turns[7], stream: streamB,
-    agent: agentB, expectedAnchorId: anchorB, agentClient, inspect, waitForEvidence,
+    agent: agentB, expectedAnchorId: anchorB, waitForEvidence,
   }));
   lifecycleEvents.push(timelineEvent('cross-agent-isolation', 'cross_agent_isolation', null, null, null));
 
@@ -276,13 +280,13 @@ export async function runConversationReportContinuation({
   await selectLocalAgent(page, targetAgent.localAgentRef, waitForEvidence);
   turns.push(await executeDeclaredTurn({
     page, pageProblems, handoff: updatedHandoff, declaredTurn: streamA.turns[8], stream: streamA,
-    agent: targetAgent, expectedAnchorId: anchorA, agentClient, inspect, waitForEvidence,
+    agent: targetAgent, expectedAnchorId: anchorA, waitForEvidence,
   }));
   lifecycleEvents.push(timelineEvent('post-restart-stream-a', 'post_restart_turn', streamA.stream_id, targetAgent, anchorA));
   await selectLocalAgent(page, agentB.localAgentRef, waitForEvidence);
   turns.push(await executeDeclaredTurn({
     page, pageProblems, handoff: updatedHandoff, declaredTurn: streamB.turns[8], stream: streamB,
-    agent: agentB, expectedAnchorId: anchorB, agentClient, inspect, waitForEvidence,
+    agent: agentB, expectedAnchorId: anchorB, waitForEvidence,
   }));
   lifecycleEvents.push(timelineEvent('post-restart-stream-b', 'post_restart_turn', streamB.stream_id, agentB, anchorB));
 
@@ -294,13 +298,13 @@ export async function runConversationReportContinuation({
   await selectLocalAgent(page, targetAgent.localAgentRef, waitForEvidence);
   turns.push(await executeDeclaredTurn({
     page, pageProblems, handoff: updatedHandoff, declaredTurn: streamA.turns[9], stream: streamA,
-    agent: targetAgent, expectedAnchorId: anchorA, agentClient, inspect, waitForEvidence,
+    agent: targetAgent, expectedAnchorId: anchorA, waitForEvidence,
   }));
   lifecycleEvents.push(timelineEvent('post-offline-stream-a', 'post_offline_turn', streamA.stream_id, targetAgent, anchorA));
   await selectLocalAgent(page, agentB.localAgentRef, waitForEvidence);
   turns.push(await executeDeclaredTurn({
     page, pageProblems, handoff: updatedHandoff, declaredTurn: streamB.turns[9], stream: streamB,
-    agent: agentB, expectedAnchorId: anchorB, agentClient, inspect, waitForEvidence,
+    agent: agentB, expectedAnchorId: anchorB, waitForEvidence,
   }));
   lifecycleEvents.push(timelineEvent('post-offline-stream-b', 'post_offline_turn', streamB.stream_id, agentB, anchorB));
 

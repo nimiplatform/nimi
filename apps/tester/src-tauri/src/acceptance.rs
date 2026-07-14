@@ -13,13 +13,36 @@ pub(crate) fn tester_renderer_entry_probe_script() -> Result<String, String> {
 pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
     vec![
         serde_json::json!({
-            "id": "app-host.bootstrap.native-unavailable",
-            "command": "app_host_bootstrap",
+            "id": "local-app.session-status.native-unavailable",
+            "command": "local_app_session_status",
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "artifacts.readRuntimeBytes.native-unavailable",
-            "command": "artifacts_read_runtime_bytes",
+            "id": "local-app.permission-posture.native-unavailable",
+            "command": "local_app_permission_posture",
+            "payload": {
+                "payload": {
+                    "operationId": "runtime_agent.conversation.turn.send",
+                    "resourceRef": "agent:tester/conversation:acceptance",
+                }
+            },
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "local-app.permission-request.native-unavailable",
+            "command": "local_app_permission_request",
+            "payload": {
+                "payload": {
+                    "operationId": "runtime_agent.conversation.turn.send",
+                    "resourceRef": "agent:tester/conversation:acceptance",
+                    "purpose": "Tester plain-shell negative acceptance",
+                }
+            },
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "local-app.artifact-read.native-unavailable",
+            "command": "local_app_artifacts_read_runtime_bytes",
             "payload": {
                 "payload": {
                     "artifactId": "runtime-artifact-acceptance",
@@ -28,84 +51,37 @@ pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value>
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "ai-config.set.negative",
-            "command": "ai_config_set",
-            "payload": {
-                "payload": {
-                    "scopeRef": "app:nimi.tester:app-lab",
-                    "config": {
-                        "scopeRef": {
-                            "kind": "app",
-                            "ownerId": "nimi.tester",
-                            "surfaceId": "app-lab"
-                        },
-                        "capabilities": {
-                            "targetRefs": {},
-                            "selectedParams": {}
-                        },
-                        "profileOrigin": null
-                    }
-                }
-            },
+            "id": "local-app.agent-open.native-unavailable",
+            "command": "local_app_agent_open_conversation",
+            "payload": { "payload": { "agentId": "tester", "requestedAnchorDisposition": "create-or-resume" } },
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "ai-config.get.negative",
+            "id": "local-app.agent-send.native-unavailable",
+            "command": "local_app_agent_send_turn",
+            "payload": { "payload": { "agentId": "tester", "conversationAnchorId": "anchor", "clientTurnId": "turn", "userText": "hello" } },
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "local-app.agent-subscribe.native-unavailable",
+            "command": "local_app_agent_subscribe_turn",
+            "payload": { "payload": { "agentId": "tester", "conversationAnchorId": "anchor", "cursor": "" } },
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "local-app.agent-snapshot.native-unavailable",
+            "command": "local_app_agent_get_conversation_snapshot",
+            "payload": { "payload": { "agentId": "tester", "conversationAnchorId": "anchor" } },
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "ai-config.unadmitted.negative",
             "command": "ai_config_get",
-            "payload": {
-                "payload": {
-                    "scopeRef": "app:nimi.tester:app-lab",
-                }
-            },
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "config.get.negative",
-            "command": "runtime_bridge_config_get",
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "standard-storage.runHistory.write.negative",
-            "command": "storage_write_json",
-            "payload": {
-                "payload": {
-                    "relativePath": "tester-run-history.json",
-                    "value": {
-                        "schemaVersion": 1,
-                        "runs": []
-                    }
-                },
-            },
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "standard-storage.runHistory.read.negative",
+            "id": "standard-storage.unadmitted.negative",
             "command": "storage_read_json",
-            "payload": {
-                "payload": {
-                    "relativePath": "tester-run-history.json",
-                },
-            },
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "runtime-lifecycle.status.negative",
-            "command": "runtime_bridge_status",
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "runtime-defaults.get.negative",
-            "command": "runtime_defaults",
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "auth.sessionLoad.negative",
-            "command": "auth_session_load",
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "local-agent.identity.negative",
-            "command": "local_agent_identity",
             "expectError": true,
         }),
         serde_json::json!({

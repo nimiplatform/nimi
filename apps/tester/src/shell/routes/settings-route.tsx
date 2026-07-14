@@ -26,7 +26,7 @@ async function requireTesterRealm(): Promise<Realm> {
   if (projection.status !== 'ready') {
     throw new Error(projection.message);
   }
-  throw new Error('Realm is not admitted for this app-host authorization.');
+  throw new Error('Realm is not admitted by the local-app carrier.');
 }
 
 function errorMessage(error: unknown): string {

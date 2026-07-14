@@ -4,8 +4,6 @@ import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 
 export interface NimiRuntimeAgentAuthClient {}
 
-export interface NimiRuntimeAgentAppAuthClient {}
-
 export interface NimiRuntimeAgentProtectedRuntime {
   readonly appId: string;
 }

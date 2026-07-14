@@ -169,11 +169,10 @@ export type NimiElectronLocalAgentIdentityInput = {
 
 export type NimiElectronRuntimeTrustedCallerMode =
   | 'local-first-party-app'
-  | 'local-developer-app'
   | 'desktop-shell';
 
 export type NimiElectronRuntimeTrustedCallerInput = {
-  readonly mode?: NimiElectronRuntimeTrustedCallerMode;
+  readonly mode: NimiElectronRuntimeTrustedCallerMode;
   readonly appInstanceId?: string;
   readonly deviceId?: string;
   readonly scopes?: readonly string[];
@@ -230,7 +229,7 @@ export type NimiElectronDesktopOpenFetch = (
 
 export type NimiElectronDesktopOpenHost = {
   readonly descriptorPath?: string;
-  readonly sourceHost?: 'electron-standard-shell' | 'desktop-electron-installed-app-host';
+  readonly sourceHost?: 'electron-standard-shell';
   readonly maxHeartbeatAgeMs?: number;
   readonly now?: () => number;
   readonly createRequestId?: () => string;
@@ -343,7 +342,7 @@ export type NimiElectronStandardStorageRoots = {
 export type NimiElectronStandardShellHost = {
   readonly capabilitySetRef?: string;
   readonly allowAllStandardShellCommands?: boolean;
-  readonly appHost?: import('./app-host.js').NimiElectronAppHost;
+  readonly localAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
   readonly standardDataRootBinding?: NimiElectronStandardDataRootBinding;
   readonly localAssetRoots?: readonly string[];
   readonly localAssetProtocolHost?: NimiElectronShellFileProtocolHost;

@@ -24,7 +24,6 @@ test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   assert.match(packageJson.scripts['build:electron'], /tsconfig\.electron\.json/);
   assert.match(packageJson.scripts['test:e2e:electron'], /electron-acceptance/);
   const mainSource = readFileSync(path.join(root, 'src-electron', 'main.ts'), 'utf8');
-  const runtimeAuthSource = readFileSync(path.join(root, 'src-electron', 'runtime-auth.ts'), 'utf8');
   const bootstrapSource = readFileSync(
     path.join(root, 'src', 'shell', 'renderer', 'app-shell', 'app-bootstrap.ts'),
     'utf8',
@@ -39,8 +38,7 @@ test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   assert.match(mainSource, /sandbox:\s*true/);
   assert.doesNotMatch(mainSource, /sandbox:\s*false/);
   assert.doesNotMatch(mainSource, /desktop_product_control|updater|tray/i);
-  assert.match(runtimeAuthSource, /appSession:\s*\{[\s\S]*appInstanceId:\s*`\$\{appId\}\.local-first-party`[\s\S]*deviceId:\s*`\$\{clientIdPrefix\}-local-first-party-device`/);
-  assert.doesNotMatch(runtimeAuthSource, /platform-runtime-session/);
+  assert.doesNotMatch(mainSource, /trustedRuntimeMetadataProvider|runtime-auth\.js/);
   assert.doesNotMatch(mainSource, /nimi_avatar_probe_raw_access_posture|\.account\.getAccessToken\(/);
   assert.doesNotMatch(bootstrapSource, /\.account\.|\.grants\.|createAvatarRuntimeClient|createNimiRuntimeAgent/);
   assert.match(bootstrapSource, /protected_launch_session_required/);

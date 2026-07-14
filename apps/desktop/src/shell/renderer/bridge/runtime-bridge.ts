@@ -47,10 +47,21 @@ import { setDesktopOpenIntentReady } from './runtime-bridge/desktop-open-intent'
 import {
   focusMainWindow,
   oauthListenForCode,
-  oauthTokenExchange,
   openExternalUrl,
   startWindowDrag,
 } from '@nimiplatform/kit/shell/renderer/bridge';
+import type {
+  OauthTokenExchangePayload,
+  OauthTokenExchangeResult,
+} from '@nimiplatform/kit/core/oauth';
+
+async function oauthTokenExchange(
+  _payload: OauthTokenExchangePayload,
+): Promise<OauthTokenExchangeResult> {
+  throw new Error(
+    'Desktop OAuth token exchange is unavailable: Runtime owns connector and account code exchange.',
+  );
+}
 
 export type {
   NimiProductControlRecord,

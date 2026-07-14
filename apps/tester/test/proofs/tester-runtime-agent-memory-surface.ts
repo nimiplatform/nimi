@@ -48,9 +48,6 @@ export function createTesterRuntimeAgentMemorySurface() {
       auth: {
         registerApp: unsupportedRuntimeAgentAuth,
       },
-      appAuth: {
-        authorizeExternalPrincipal: unsupportedRuntimeAgentAuth,
-      },
       agent: {
         getAgentCanonicalMemoryBankStatus: async () => ({ status }),
         requestAgentCanonicalMemoryBankBind: async () => ({

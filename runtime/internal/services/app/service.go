@@ -8,13 +8,12 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
-	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
@@ -41,21 +40,8 @@ type scopedBindingValidator interface {
 	ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool)
 }
 
-// OpenAppReadinessDecision is a typed fail-closed decision returned by the
-// canonical launch-readiness verifier. It is a carrier only; it does not own
-// account-inventory or permission truth.
-type OpenAppReadinessDecision struct {
-	Allowed bool
-	Detail  string
-}
-
-// OpenAppReadinessVerifier verifies the OpenApp gates whose truth is owned by
-// admitted account-inventory and permission authorities. Runtime OpenApp consumes
-// this verifier and fails closed when it is absent; it must not infer grant
-// state from package or registry structure.
-type OpenAppReadinessVerifier interface {
-	VerifyOpenAccountInventory(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error)
-	VerifyOpenPermissions(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error)
+type localAppConversationScopeValidator interface {
+	ValidateLocalAppConversationScope(context.Context, string, string) error
 }
 
 type Option func(*Service)
@@ -85,25 +71,18 @@ type Service struct {
 	now                       func() time.Time
 	sessionValidator          sessionValidator
 	bindingValidator          scopedBindingValidator
+	localAppConversationScope localAppConversationScopeValidator
 	rateLimiter               *appRateLimiter
 	loopDetector              *appLoopDetector
-	installJobs               *installJobManager
-	installRuntime            *installRuntime
 	appStorageDataRoot        string
-	openReadiness             OpenAppReadinessVerifier
 	accountProjection         runtimeAccountProjectionProvider
 	accountSecurity           runtimeAccountSecurityContextProvider
-	runtimeAppRegistry        *appregistry.Registry
 	accountInventory          *accountAppInventoryStore
-	localAdoptions            *localAppAdoptionStore
-	lifecycleIntents          *protectedlocal.LifecycleIntentManager
-	installedLaunches         *authservice.InstalledLaunchStore
-	installedRegistry         *protectedlocal.InstalledLaunchRegistry
-	installedVerifier         protectedlocal.InstalledProcessVerifier
 	localDevelopment          *localDevelopmentStore
-	localDevelopmentRegistry  *protectedlocal.InstalledLaunchRegistry
+	localDevelopmentRegistry  *protectedlocal.LocalAppLaunchRegistry
 	localDevelopmentVerifier  protectedlocal.LocalDevelopmentProcessVerifier
 	localDevelopmentArtifacts runtimeartifactservice.Store
+	localAppKernel            *localappkernel.Kernel
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -118,6 +97,12 @@ func WithScopedBindingValidator(validator scopedBindingValidator) Option {
 	}
 }
 
+func WithLocalAppConversationScopeValidator(validator localAppConversationScopeValidator) Option {
+	return func(s *Service) {
+		s.localAppConversationScope = validator
+	}
+}
+
 func WithClock(now func() time.Time) Option {
 	return func(s *Service) {
 		if now != nil {
@@ -126,30 +111,12 @@ func WithClock(now func() time.Time) Option {
 	}
 }
 
-// WithInstallRuntime injects the Runtime-owned Nimi App install/uninstall
-// lifecycle dependencies. When nil, the install lifecycle RPCs fail closed.
-func WithInstallRuntime(runtime *installRuntime) Option {
-	return func(s *Service) {
-		s.installRuntime = runtime
-	}
-}
-
 // WithAppStorageDataRoot injects the product-selected nimi_data root used for
-// app-scoped storage projections. It is independent from installRuntime so
-// runtime-registered developer apps can resolve data/cache/tmp even when no
-// ordinary registry release descriptor is installed.
+// app-scoped storage projections. The active 0K path is local-development and
+// bundled component storage; immutable package release roots are absent.
 func WithAppStorageDataRoot(dataRootRef string) Option {
 	return func(s *Service) {
 		s.appStorageDataRoot = strings.TrimSpace(dataRootRef)
-	}
-}
-
-// WithOpenAppReadinessVerifier injects the canonical account-inventory/permission
-// verifier consumed by K-APP-017. Without this verifier, OpenApp blocks at the
-// account-inventory step instead of treating missing authority as success.
-func WithOpenAppReadinessVerifier(verifier OpenAppReadinessVerifier) Option {
-	return func(s *Service) {
-		s.openReadiness = verifier
 	}
 }
 
@@ -162,32 +129,7 @@ func WithRuntimeAccountProjectionProvider(provider runtimeAccountProjectionProvi
 	}
 }
 
-func WithRuntimeAppRegistry(registry *appregistry.Registry) Option {
-	return func(s *Service) {
-		s.runtimeAppRegistry = registry
-	}
-}
-
-func WithLifecycleIntentManager(manager *protectedlocal.LifecycleIntentManager) Option {
-	return func(s *Service) {
-		s.lifecycleIntents = manager
-	}
-}
-
-func WithInstalledLaunchStore(store *authservice.InstalledLaunchStore) Option {
-	return func(s *Service) {
-		s.installedLaunches = store
-	}
-}
-
-func WithInstalledLaunchProcessBinding(registry *protectedlocal.InstalledLaunchRegistry, verifier protectedlocal.InstalledProcessVerifier) Option {
-	return func(s *Service) {
-		s.installedRegistry = registry
-		s.installedVerifier = verifier
-	}
-}
-
-func WithLocalDevelopmentAuthority(store *localDevelopmentStore, registry *protectedlocal.InstalledLaunchRegistry, verifier protectedlocal.LocalDevelopmentProcessVerifier, artifacts runtimeartifactservice.Store) Option {
+func WithLocalDevelopmentAuthority(store *localDevelopmentStore, registry *protectedlocal.LocalAppLaunchRegistry, verifier protectedlocal.LocalDevelopmentProcessVerifier, artifacts runtimeartifactservice.Store) Option {
 	return func(s *Service) {
 		s.localDevelopment = store
 		s.localDevelopmentRegistry = registry
@@ -196,15 +138,15 @@ func WithLocalDevelopmentAuthority(store *localDevelopmentStore, registry *prote
 	}
 }
 
-func WithAccountAppInventoryStoreForTest(store *accountAppInventoryStore) Option {
+func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
 	return func(s *Service) {
-		s.accountInventory = store
+		s.localAppKernel = kernel
 	}
 }
 
-func WithLocalAppAdoptionStoreForTest(store *localAppAdoptionStore) Option {
+func WithAccountAppInventoryStoreForTest(store *accountAppInventoryStore) Option {
 	return func(s *Service) {
-		s.localAdoptions = store
+		s.accountInventory = store
 	}
 }
 
@@ -225,10 +167,6 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 	if svc.accountInventory == nil {
 		svc.accountInventory = newAccountAppInventoryStore(defaultNimiDir)
 	}
-	if svc.localAdoptions == nil {
-		svc.localAdoptions = newLocalAppAdoptionStore(defaultNimiDir)
-	}
-	svc.installJobs = newInstallJobManager(svc.now)
 	return svc
 }
 
@@ -244,6 +182,22 @@ func WithTrustedInternalCaller(ctx context.Context, appID string) context.Contex
 }
 
 func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+	if req == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	if localAppAuthorized {
+		if localDecision.Operation != accountservice.LocalAppOperationSendConversationTurn || req.GetToAppId() != "runtime.agent" || req.GetMessageType() != "runtime.agent.turn.request" || req.GetScopedBinding() != nil {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
+		cloned, ok := proto.Clone(req).(*runtimev1.SendAppMessageRequest)
+		if !ok {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		cloned.FromAppId = localDecision.AppID
+		cloned.SubjectUserId = localDecision.AccountID
+		req = cloned
+	}
 	fromAppID := strings.TrimSpace(req.GetFromAppId())
 	toAppID := strings.TrimSpace(req.GetToAppId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
@@ -255,7 +209,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 
-	if s.sessionValidator != nil && !isTrustedInternalCaller(ctx, fromAppID) {
+	if s.sessionValidator != nil && !localAppAuthorized && !isTrustedInternalCaller(ctx, fromAppID) {
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(fromAppID, sessionID, sessionToken); !ok {
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
@@ -265,8 +219,10 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		if !runtimeagentservice.IsPublicChatIngressMessageType(messageType) {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		if err := s.validateRuntimeAgentAccess(ctx, req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
-			return nil, err
+		if !localAppAuthorized {
+			if err := s.validateRuntimeAgentAccess(ctx, req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -349,7 +305,28 @@ func (s *Service) HasInternalConsumer(appID string) bool {
 }
 
 func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesRequest, stream runtimev1.RuntimeAppService_SubscribeAppMessagesServer) error {
-	if req == nil || strings.TrimSpace(req.GetAppId()) == "" {
+	if req == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(stream.Context())
+	if localAppAuthorized {
+		if localDecision.Operation != accountservice.LocalAppOperationSubscribeConversation || req.GetScopedBinding() != nil || len(req.GetFromAppIds()) != 1 || req.GetFromAppIds()[0] != "runtime.agent" || strings.TrimSpace(req.GetLocalAgentRef()) == "" || strings.TrimSpace(req.GetConversationAnchorId()) == "" {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
+		cloned, ok := proto.Clone(req).(*runtimev1.SubscribeAppMessagesRequest)
+		if !ok {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		cloned.AppId = localDecision.AppID
+		cloned.SubjectUserId = localDecision.AccountID
+		req = cloned
+		if s.localAppConversationScope == nil || s.localAppConversationScope.ValidateLocalAppConversationScope(
+			stream.Context(), strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetConversationAnchorId()),
+		) != nil {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		}
+	}
+	if strings.TrimSpace(req.GetAppId()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if strings.TrimSpace(req.GetCursor()) != "" {
@@ -358,15 +335,17 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	if contextAppID := appIDFromContext(stream.Context()); contextAppID != "" && contextAppID != strings.TrimSpace(req.GetAppId()) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-	if s.sessionValidator != nil && !isTrustedInternalCaller(stream.Context(), strings.TrimSpace(req.GetAppId())) {
+	if s.sessionValidator != nil && !localAppAuthorized && !isTrustedInternalCaller(stream.Context(), strings.TrimSpace(req.GetAppId())) {
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(stream.Context())
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(strings.TrimSpace(req.GetAppId()), sessionID, sessionToken); !ok {
 			return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
 		}
 	}
 	if subscribesRuntimeAgent(req) {
-		if err := s.validateRuntimeAgentAccess(stream.Context(), req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
-			return err
+		if !localAppAuthorized {
+			if err := s.validateRuntimeAgentAccess(stream.Context(), req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
+				return err
+			}
 		}
 	}
 	if err := stream.SendHeader(metadata.MD{}); err != nil {

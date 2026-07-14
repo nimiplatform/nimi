@@ -1,5 +1,0 @@
-{
-  "schema_version": 1,
-  "mutation_class": "synthetic_credential_runtime_injection",
-  "canary_sha256": "16517b11bc1f7f8ed1ba4b9e7a6ade55f6c0c36dff2b619e2037be4b2a5bcf91"
-}

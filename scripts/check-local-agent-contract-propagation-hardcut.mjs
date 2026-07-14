@@ -108,9 +108,11 @@ function checkOpenApi() {
 }
 
 function checkProto() {
-  const relativePath = 'proto/runtime/v1/agent_service.proto';
+  const serviceRelativePath = 'proto/runtime/v1/agent_service.proto';
+  const relativePath = 'proto/runtime/v1/agent_source_materialization.proto';
+  const serviceText = read(serviceRelativePath);
   const text = read(relativePath);
-  const service = block(text, 'service', 'RuntimeAgentService');
+  const service = block(serviceText, 'service', 'RuntimeAgentService');
   for (const rpc of [
     'CreateSourceMaterializationChallenge',
     'BeginSourceMaterializationUpload',
@@ -118,7 +120,7 @@ function checkProto() {
     'CommitSourceMaterialization',
     'AbortSourceMaterializationUpload',
   ]) {
-    requireMatch(service, new RegExp(`\\brpc\\s+${rpc}\\s*\\(`), `${relativePath} RPC ${rpc}`);
+    requireMatch(service, new RegExp(`\\brpc\\s+${rpc}\\s*\\(`), `${serviceRelativePath} RPC ${rpc}`);
   }
   for (const [messageName, fields] of Object.entries({
     CreateSourceMaterializationChallengeRequest: ['context', 'request_id', 'source_ref'],
@@ -207,7 +209,7 @@ function checkGeneratedAndFacade() {
   forbidMatch(facadeTypes, /interface\s+\w*SourceMaterializationPacket/u, 'handwritten duplicate packet interface');
 
   const runtimeTypedClient = read('sdks/typescript/core-generated/runtime-typed-client.ts');
-  const runtimeGenerated = read('sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_service.ts');
+  const runtimeGenerated = read('sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_source_materialization.ts');
   for (const typeName of [
     'CreateSourceMaterializationChallengeRequest',
     'BeginSourceMaterializationUploadRequest',
@@ -275,24 +277,20 @@ function checkGeneratedAndFacade() {
 }
 
 function checkDeferredLegacyMaterializationInventory() {
-  // I3 has hard-cut the Runtime/SDK admission chain. I6 still owns the
-  // remaining app producers and Electron acceptance harness. Enumerate every
-  // deferred marker across the complete active source surface. This remains a
-  // bounded RED inventory, never a product-success allowlist; any new file or
-  // count fails immediately.
-  const i6AppAndAcceptance = new Map();
+  // The Runtime/SDK/app admission chain is hard-cut. Every remaining match is
+  // rejection-only checker or negative-fixture vocabulary. Enumerate the exact
+  // active source locations so any new positive producer fails immediately.
   const rejectionOnly = new Map([
-    ['scripts/check-local-agent-full-chain-hardcut.mjs', 10],
+    ['scripts/check-local-agent-full-chain-hardcut.mjs', 1],
     ['scripts/check-realm-contract-lock.mjs', 1],
+    ['scripts/lib/local-agent-full-chain-app-scan.mjs', 9],
     ['scripts/lib/local-agent-runtime-materialization-hardcut.mjs', 7],
     ['sdks/go/coregenerated/behavior_test.go', 1],
   ]);
-  const expected = new Map([...i6AppAndAcceptance, ...rejectionOnly]);
+  const expected = new Map(rejectionOnly);
   deferredLegacyInventorySummary = [
-    `deferred legacy inventory: ${expected.size} tracked files`,
-    `(I3 Runtime/SDK 0,`,
-    `I6 apps/acceptance ${i6AppAndAcceptance.size},`,
-    `rejection-only ${rejectionOnly.size})`,
+    `legacy rejection inventory: ${expected.size} tracked files`,
+    `(positive producers 0, rejection-only ${rejectionOnly.size})`,
   ].join(' ');
   const legacyPattern = new RegExp(
     [

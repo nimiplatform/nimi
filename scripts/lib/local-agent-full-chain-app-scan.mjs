@@ -23,7 +23,16 @@ export async function fullScopeAppCodeFindings(repoRoot) {
     .sort();
   const findings = [];
   for (const relPath of files) {
-    const content = await fs.readFile(path.join(repoRoot, relPath), 'utf8');
+    let content;
+    try {
+      content = await fs.readFile(path.join(repoRoot, relPath), 'utf8');
+    } catch (error) {
+      // `git ls-files -c` reports index entries that are intentionally deleted
+      // in the current hardcut. A deleted path has no active source to scan;
+      // every other filesystem failure remains a checker error.
+      if (error?.code === 'ENOENT') continue;
+      throw error;
+    }
     for (const [id, pattern] of forbiddenMarkers) {
       pattern.lastIndex = 0;
       const matches = [...content.matchAll(pattern)];

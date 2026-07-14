@@ -14,7 +14,7 @@ import {
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_IDS,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
@@ -77,38 +77,56 @@ describe('Electron standard shell capability catalog', () => {
     expect(Object.values(NIMI_STANDARD_SHELL_COMMANDS)).not.toContain('nimi.shell.runtimeLifecycle.stop');
   });
 
-  it('admits only the Windows x64 A.4 artifact operation', () => {
-    const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find((set) =>
-      set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID
+  it('admits the exact final local-app command set', () => {
+    const localAppSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find((set) =>
+      set.setId === NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID
     );
-    expect(installedSet).toMatchObject({
-      setId: 'installed-nimi-app-standard-shell-v1',
-      hostClass: 'desktop-installed-app-standard-shell-host',
+    expect(localAppSet).toMatchObject({
+      setId: 'local-app-standard-shell-v1',
+      hostClass: 'protected-local-app-host',
       appPackageKind: 'nimi-app',
-      launchResolution: 'runtime_launch_record_windows_a4_host_consumed',
-      authBinding: 'runtime_owned_installed_session_host_carried',
-      authorityStatus: 'a4_windows_x64_artifact_read_admitted',
+      launchResolution: 'runtime_prepare_local_app_launch_and_verified_process_binding',
+      authBinding: 'runtime_owned_request_empty_local_app_session',
+      authorityStatus: '0k_final_surface_windows_development_positive',
       plannedOperationsDisposition: 'deny_until_separate_operation_admission',
       sourceRule: 'P-KIT-044',
     });
-    expect(installedSet?.allowedOperations).toEqual(['artifacts.readRuntimeBytes']);
-    expect(installedSet?.allowedCommands).toEqual(['nimi.shell.artifacts.readRuntimeBytes']);
-    expect(installedSet?.plannedOperations).toEqual(expect.arrayContaining([
+    expect(localAppSet?.allowedOperations).toEqual([
+      'local-app.sessionStatus',
+      'local-app.permissionPosture',
+      'local-app.permissionRequest',
+      'local-app.artifactsReadRuntimeBytes',
+      'local-app.agentOpenConversation',
+      'local-app.agentSendTurn',
+      'local-app.agentSubscribeTurn',
+      'local-app.agentGetConversationSnapshot',
+    ]);
+    expect(localAppSet?.allowedCommands).toEqual([
+      'nimi.shell.localApp.sessionStatus',
+      'nimi.shell.localApp.permissionPosture',
+      'nimi.shell.localApp.permissionRequest',
+      'nimi.shell.localApp.artifacts.readRuntimeBytes',
+      'nimi.shell.localApp.agent.openConversation',
+      'nimi.shell.localApp.agent.sendTurn',
+      'nimi.shell.localApp.agent.subscribeTurn',
+      'nimi.shell.localApp.agent.getConversationSnapshot',
+    ]);
+    expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
       'storage.readJson',
       'ai-config.get',
       'desktop-open.openIntent',
     ]));
-    expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']);
-    expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']);
-    expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']);
-    expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']);
-    expect(installedSet?.forbiddenOperations).toContain('electron.raw-ipc');
-    expect(installedSet?.forbiddenOperations).toContain('node.raw-fs');
+    expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']);
+    expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']);
+    expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']);
+    expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']);
+    expect(localAppSet?.forbiddenOperations).toContain('electron.raw-ipc');
+    expect(localAppSet?.forbiddenOperations).toContain('node.raw-fs');
 
     const standardCommands = new Set(NIMI_STANDARD_SHELL_CAPABILITIES.flatMap((capability) =>
       capability.operations.map((operation) => operation.command),
     ));
-    for (const command of [...installedSet?.allowedCommands ?? [], ...installedSet?.forbiddenCommands ?? []]) {
+    for (const command of [...localAppSet?.allowedCommands ?? [], ...localAppSet?.forbiddenCommands ?? []]) {
       expect(standardCommands.has(command), command).toBe(true);
     }
   });

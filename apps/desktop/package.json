@@ -37,14 +37,9 @@
     "test:unit": "pnpm run prepare:workspace-surfaces && pnpm run test:unit:i18n && pnpm run test:unit:rest",
     "test:e2e:electron": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
     "test:e2e:electron:live-runtime": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node scripts/run-electron-live-runtime-acceptance.mjs",
-    "test:e2e:electron:explore-materialization": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node scripts/run-electron-explore-materialization-acceptance.mjs",
     "test:e2e:desktop-open": "node scripts/run-e2e.mjs --suite desktop-open",
     "test:e2e:smoke": "node scripts/run-e2e.mjs --suite smoke",
     "test:e2e:journeys": "node scripts/run-e2e.mjs --suite journeys",
-    "test:e2e:nimi-app-platform-sandbox": "node scripts/run-e2e.mjs --suite nimi-app-platform-sandbox",
-    "test:e2e:nimi-app-platform-live-sandbox": "node scripts/run-e2e.mjs --suite nimi-app-platform-live-sandbox",
-    "test:e2e:nimi-app-platform-ordinary": "node scripts/run-e2e.mjs --suite nimi-app-platform-ordinary",
-    "test:e2e:nimi-app-platform-negative": "node scripts/run-e2e.mjs --suite nimi-app-platform-negative",
     "test:e2e": "node scripts/run-e2e.mjs --suite all",
     "test:e2e:ci": "node scripts/run-e2e.mjs --suite smoke",
     "test:macos:smoke": "node scripts/run-macos-smoke.mjs --scenario boot.anonymous.login-screen",
@@ -79,6 +74,7 @@
     "webdriverio": "^9.27.1"
   },
   "dependencies": {
+    "@nimiplatform/desktop-product-control-win32-x64": "workspace:*",
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@tanstack/react-query": "^5.100.11",
@@ -95,6 +91,7 @@
     "scheduler": "^0.27.0",
     "socket.io-client": "^4.8.3",
     "use-sync-external-store": "^1.6.0",
+    "yaml": "^2.9.0",
     "zod": "4.4.3",
     "zustand": "^5.0.13"
   }

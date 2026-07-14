@@ -19,7 +19,6 @@ fn runtime_register_app_fixture_accepts_local_first_party_registration() {
         app_version: "1".to_string(),
         capabilities: Vec::new(),
         mode_manifest: None,
-        developer_registration: false,
     };
     let payload = RuntimeBridgeUnaryPayload {
         method_id: nimi_shell_tauri::capabilities::runtime::RUNTIME_AUTH_REGISTER_APP_METHOD_ID
@@ -78,259 +77,33 @@ fn runtime_open_session_fixture_issues_app_session_metadata() {
 }
 
 #[test]
-fn runtime_app_platform_fixture_installs_and_opens_sandbox_app() {
-    let temp = temp_fixture_dir("app-platform");
-    let data_root = temp.join("nimi-data");
-    let manifest_path = temp.join("scenario-manifest.json");
-    write_fixture_manifest(
-        &manifest_path,
-        json!({
-            "tauriFixture": {
-                "productControlRecord": {
-                    "schemaVersion": 1,
-                    "installId": "e2e-ready-install",
-                    "productVersion": "0.1.0",
-                    "state": "ready_for_use",
-                    "dataRoot": {
-                        "path": data_root.display().to_string(),
-                        "status": "ready",
-                        "selectedAt": "2026-06-30T00:00:00.000Z",
-                        "verifiedAt": "2026-06-30T00:00:00.000Z",
-                        "selectedAtUnixMs": 1782748800000_u64,
-                        "verifiedAtUnixMs": 1782748800000_u64
-                    },
-                    "firstRun": {
-                        "installLevel": "minimal",
-                        "aiProfileAlias": "local-speech-ready",
-                        "completed": true,
-                        "completedAt": "2026-06-30T00:00:00.000Z",
-                        "initializationPlanId": "e2e-first-run-plan",
-                        "baselineProfileRef": "aiprofile/nimi.first-run.local-factory.minimal@1",
-                        "baselineCommitId": "e2e-fixture",
-                        "accountDefaultProfileRef": "account-default:e2e",
-                        "builtInAiConfigRefs": ["ai-config:nimi-chat:e2e"],
-                        "runtimeBaselineRef": "runtime-baseline:e2e",
-                        "executionEvidenceRef": "e2e-ready-entry"
-                    },
-                    "pointers": {
-                        "runtimeConfigPath": data_root.join("runtime").join("config.json").display().to_string()
-                    },
-                    "repair": {
-                        "required": false,
-                        "reason": null
-                    }
-                },
-                "appPlatform": {
-                    "apps": [{
-                        "appId": "community.nimi.fixture.platform-proof",
-                        "releaseDescriptorRef": "community.nimi.fixture.platform-proof.0.1.0-sandbox",
-                        "version": "0.1.0-sandbox",
-                        "sha256": "fixture-sha256",
-                        "artifactBytes": 1234,
-                        "runtimeEntryRef": "dist/index.html",
-                        "storagePolicyRef": "nimi-data-app-roots",
-                        "descriptorClass": "external-immutable-artifact",
-                        "admissionTrack": "admission-sandbox-ci",
-                        "sourceKind": "admission-sandbox-https-artifact",
-                        "ordinaryVisibility": "developer-only",
-                        "shellCapabilitySetRef": "installed-nimi-app-standard-shell-v1",
-                        "callerMode": "desktop-launched-nimi-app",
-                        "launchNonce": "fixture-launch-nonce",
-                        "productReadinessClaimAllowed": false,
-                        "accountState": "verified",
-                        "installState": "not-installed",
-                        "packageState": "install_required",
-                        "verificationState": "not-installed"
-                    }]
-                }
-            },
-            "realmFixture": {
-                "currentUser": {
-                    "id": "user-e2e-primary",
-                    "displayName": "E2E User"
-                }
-            }
-        }),
-    );
-
-    with_env(&[("NIMI_E2E_FIXTURE_PATH", manifest_path.to_str())], || {
-        let inventory_before: runtime_bridge_generated::GetAccountAppInventoryResponse =
-            decode_fixture_response(
-                runtime_bridge_unary_override(&fixture_payload(
-                    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID,
-                    runtime_bridge_generated::GetAccountAppInventoryRequest {},
-                ))
-                .expect("fixture override")
-                .expect("account inventory override"),
-            );
-        let row_before = &inventory_before.record.as_ref().expect("record").apps[0];
-        assert_eq!(row_before.app_id, "community.nimi.fixture.platform-proof");
-        assert_eq!(
-            row_before.install_state,
-            runtime_bridge_generated::AccountAppInstallState::NotInstalled as i32
-        );
-
-        let readiness_before: runtime_bridge_generated::GetAppPackageReadinessResponse =
-            decode_fixture_response(
-                runtime_bridge_unary_override(&fixture_payload(
-                    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID,
-                    runtime_bridge_generated::GetAppPackageReadinessRequest {
-                        app_id: "community.nimi.fixture.platform-proof".to_string(),
-                    },
-                ))
-                .expect("fixture override")
-                .expect("package readiness override"),
-            );
-        assert_eq!(
-            readiness_before
-                .projection
-                .as_ref()
-                .expect("projection")
-                .state,
-            runtime_bridge_generated::AppPackageReadinessState::InstallRequired as i32
-        );
-
-        let install: runtime_bridge_generated::InstallAppResponse = decode_fixture_response(
-            runtime_bridge_unary_override(&fixture_payload(
-                "/nimi.runtime.v1.RuntimeAppService/InstallApp",
-                runtime_bridge_generated::InstallAppRequest {
-                    app_id: "community.nimi.fixture.platform-proof".to_string(),
-                    confirmed: true,
-                    lifecycle_intent_id: String::new(),
-                    displayed_impact_digest: String::new(),
-                },
-            ))
-            .expect("fixture override")
-            .expect("install override"),
-        );
-        assert_eq!(
-            install.job.as_ref().expect("install job").state,
-            runtime_bridge_generated::AppInstallJobState::Installed as i32
-        );
-
-        let inventory_after: runtime_bridge_generated::GetAccountAppInventoryResponse =
-            decode_fixture_response(
-                runtime_bridge_unary_override(&fixture_payload(
-                    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID,
-                    runtime_bridge_generated::GetAccountAppInventoryRequest {},
-                ))
-                .expect("fixture override")
-                .expect("account inventory override"),
-            );
-        assert_eq!(
-            inventory_after.record.as_ref().expect("record").apps[0].install_state,
-            runtime_bridge_generated::AccountAppInstallState::Installed as i32
-        );
-
-        let open: runtime_bridge_generated::OpenAppResponse = decode_fixture_response(
-            runtime_bridge_unary_override(&fixture_payload(
-                "/nimi.runtime.v1.RuntimeAppService/OpenApp",
-                runtime_bridge_generated::OpenAppRequest {
-                    app_id: "community.nimi.fixture.platform-proof".to_string(),
-                    scope: Some(runtime_bridge_generated::AppOpenScopeRef {
-                        kind: "app".to_string(),
-                        owner_id: "community.nimi.fixture.platform-proof".to_string(),
-                        surface_id: String::new(),
-                    }),
-                    lifecycle_intent_id: String::new(),
-                    displayed_impact_digest: String::new(),
-                },
-            ))
-            .expect("fixture override")
-            .expect("open override"),
-        );
-        let projection = open.projection.expect("open projection");
-        assert!(projection.launched);
-        assert_eq!(projection.ordinary_visibility, "developer-only");
-        assert!(!projection.product_readiness_claim_allowed);
-        assert_eq!(
-            projection.shell_capability_set_ref,
-            "installed-nimi-app-standard-shell-v1"
-        );
-    });
-    let _ = fs::remove_dir_all(temp);
-}
-
-#[test]
-fn runtime_app_platform_fixture_blocks_open_permission_pending() {
-    let temp = temp_fixture_dir("app-platform-permission");
-    let manifest_path = temp.join("scenario-manifest.json");
-    let backend_log_path = temp.join("backend.log");
-    write_fixture_manifest(
-        &manifest_path,
-        json!({
-            "tauriFixture": {
-                "appPlatform": {
-                    "apps": [{
-                        "appId": "community.nimi.fixture.platform-proof",
-                        "releaseDescriptorRef": "community.nimi.fixture.platform-proof.0.1.0-sandbox",
-                        "version": "0.1.0-sandbox",
-                        "sha256": "fixture-sha256",
-                        "runtimeEntryRef": "dist/index.html",
-                        "storagePolicyRef": "nimi-data-app-roots",
-                        "descriptorClass": "external-immutable-artifact",
-                        "admissionTrack": "admission-sandbox-ci",
-                        "sourceKind": "admission-sandbox-https-artifact",
-                        "ordinaryVisibility": "developer-only",
-                        "shellCapabilitySetRef": "installed-nimi-app-standard-shell-v1",
-                        "callerMode": "desktop-launched-nimi-app",
-                        "launchNonce": "fixture-launch-nonce",
-                        "productReadinessClaimAllowed": false,
-                        "accountState": "verified",
-                        "installState": "installed",
-                        "packageState": "ready",
-                        "verificationState": "digest-verified",
-                        "openBlockReason": "permission_pending"
-                    }]
-                }
-            }
-        }),
-    );
-
-    with_env(
-        &[
-            ("NIMI_E2E_FIXTURE_PATH", manifest_path.to_str()),
-            ("NIMI_E2E_BACKEND_LOG_PATH", backend_log_path.to_str()),
-        ],
-        || {
-            let open: runtime_bridge_generated::OpenAppResponse = decode_fixture_response(
-                runtime_bridge_unary_override(&fixture_payload(
-                    "/nimi.runtime.v1.RuntimeAppService/OpenApp",
-                    runtime_bridge_generated::OpenAppRequest {
-                        app_id: "community.nimi.fixture.platform-proof".to_string(),
-                        scope: Some(runtime_bridge_generated::AppOpenScopeRef {
-                            kind: "app".to_string(),
-                            owner_id: "community.nimi.fixture.platform-proof".to_string(),
-                            surface_id: String::new(),
-                        }),
-                        lifecycle_intent_id: String::new(),
-                        displayed_impact_digest: String::new(),
-                    },
-                ))
-                .expect("fixture override")
-                .expect("open override"),
-            );
-            let projection = open.projection.expect("open projection");
-            assert!(!projection.launched);
-            assert_eq!(
-                projection.reached_step,
-                runtime_bridge_generated::AppOpenFlowStep::VerifyPermissions as i32
-            );
-            assert_eq!(
-                projection.reason_code,
-                runtime_bridge_generated::ReasonCode::AppOpenPermissionNotGranted as i32
-            );
+fn runtime_package_readiness_fixture_is_opaque_and_unavailable_before_0p() {
+    let result = runtime_app_package_readiness_response(&fixture_payload(
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID,
+        runtime_bridge_generated::GetAppPackageReadinessRequest {
+            app_id: "community.nimi.fixture.immutable".to_string(),
         },
+    ))
+    .expect("typed unavailable package readiness response");
+
+    let response: runtime_bridge_generated::GetAppPackageReadinessResponse =
+        decode_fixture_response(result);
+    let projection = response.projection.expect("readiness projection");
+    assert_eq!(
+        projection.state,
+        runtime_bridge_generated::AppPackageReadinessState::Blocked as i32
     );
-    let log = fs::read_to_string(&backend_log_path).expect("read backend log");
-    assert!(log.contains(
-        "runtime_app_fixture openAppProjection app_id=community.nimi.fixture.platform-proof"
-    ));
-    assert!(log.contains("state=APP_OPEN_STATE_BLOCKED"));
-    assert!(log.contains("reached_step=APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS"));
-    assert!(log.contains("launched=false"));
-    assert!(log.contains("reason_code=APP_OPEN_PERMISSION_NOT_GRANTED"));
-    let _ = fs::remove_dir_all(temp);
+    assert_eq!(
+        projection.reason_code,
+        runtime_bridge_generated::ReasonCode::LocalAppOperationUnavailable as i32
+    );
+    assert_eq!(projection.detail, "immutable_profile_unavailable");
+    assert!(projection.release_descriptor_ref.is_empty());
+    assert!(projection.expected_version.is_empty());
+    assert!(projection.active_version.is_empty());
+    assert!(projection.installed_version.is_empty());
+    assert!(projection.sha256.is_empty());
+    assert!(projection.verification_state.is_empty());
 }
 
 fn fixture_payload<Request>(method_id: &str, request: Request) -> RuntimeBridgeUnaryPayload
@@ -787,47 +560,6 @@ fn runtime_agent_fixture_projects_session_snapshot_state_and_empty_hooks() {
         decode_fixture_response(hooks);
     assert!(hooks_response.hooks.is_empty());
     assert!(hooks_response.next_page_token.is_empty());
-}
-
-#[test]
-fn runtime_grant_fixture_authorizes_desktop_protected_access() {
-    let result = runtime_authorize_external_principal_response(&fixture_payload(
-        "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
-        runtime_bridge_generated::AuthorizeExternalPrincipalRequest {
-            domain: "app-auth".to_string(),
-            app_id: "nimi.desktop".to_string(),
-            external_principal_id: "nimi.desktop".to_string(),
-            external_principal_type: runtime_bridge_generated::ExternalPrincipalType::App as i32,
-            subject_user_id: "user-e2e-primary".to_string(),
-            consent_id: "desktop-shell-runtime-account".to_string(),
-            consent_version: "fixture".to_string(),
-            decision_at: Some(fixture_timestamp()),
-            policy_version: "fixture".to_string(),
-            policy_mode: runtime_bridge_generated::PolicyMode::Custom as i32,
-            preset: runtime_bridge_generated::AuthorizationPreset::Unspecified as i32,
-            scopes: vec![
-                "runtime.agent.read".to_string(),
-                "runtime.agent.write".to_string(),
-            ],
-            resource_selectors: None,
-            can_delegate: false,
-            max_delegation_depth: 0,
-            ttl_seconds: 3600,
-            scope_catalog_version: "sdk-v2".to_string(),
-            policy_override: false,
-        },
-    ))
-    .expect("authorize external principal fixture");
-    let response: runtime_bridge_generated::AuthorizeExternalPrincipalResponse =
-        decode_fixture_response(result);
-    assert_eq!(response.app_id, "nimi.desktop");
-    assert_eq!(response.subject_user_id, "user-e2e-primary");
-    assert_eq!(
-        response.effective_scopes,
-        ["runtime.agent.read", "runtime.agent.write"]
-    );
-    assert!(response.token_id.starts_with("e2e-protected-access:"));
-    assert_eq!(response.secret, "e2e-protected-access-secret");
 }
 
 #[test]

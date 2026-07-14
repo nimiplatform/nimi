@@ -40,11 +40,6 @@ type windowsLockedExecutable struct {
 	evidence WindowsExecutableEvidence
 }
 
-type windowsInstalledProcessVerifier struct {
-	identity WindowsDesktopIdentity
-	verifier WindowsExecutableTrustVerifier
-}
-
 type WindowsProcessTrustFailureStage uint32
 
 const WindowsProcessTrustStartupExitCodeBase uint32 = 0xA700
@@ -110,20 +105,6 @@ func WindowsProcessTrustStartupExitCode(err error) (uint32, bool) {
 		return 0, false
 	}
 	return WindowsProcessTrustStartupExitCodeBase + uint32(stage), true
-}
-
-func NewWindowsInstalledProcessVerifier(identity WindowsDesktopIdentity, verifier WindowsExecutableTrustVerifier) (InstalledProcessVerifier, error) {
-	if err := identity.validate(); err != nil || verifier == nil {
-		return nil, windowsPipeFailure("create Windows installed process verifier", fmt.Errorf("active Desktop identity and executable verifier are required: %w", err))
-	}
-	return &windowsInstalledProcessVerifier{identity: identity, verifier: verifier}, nil
-}
-
-func (verifier *windowsInstalledProcessVerifier) VerifyInstalledProcess(ctx context.Context, pid uint32) (ProcessTuple, DesktopProcessLiveness, error) {
-	if verifier == nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows installed process", fmt.Errorf("installed process verifier is required"))
-	}
-	return verifyWindowsInstalledProcess(ctx, pid, verifier.identity, verifier.verifier)
 }
 
 func (locked *windowsLockedExecutable) Evidence() WindowsExecutableEvidence {
@@ -378,56 +359,6 @@ func verifyWindowsPipeClientProcessForRole(ctx context.Context, connection *Wind
 	return tuple, liveness, nil
 }
 
-func verifyWindowsInstalledProcess(ctx context.Context, pid uint32, identity WindowsDesktopIdentity, verifier WindowsExecutableTrustVerifier) (ProcessTuple, DesktopProcessLiveness, error) {
-	if err := ctx.Err(); err != nil || pid == 0 {
-		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows installed process", fmt.Errorf("live process and context are required: %w", err))
-	}
-	if err := identity.validate(); err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows installed identity", err)
-	}
-	if err := revalidateWindowsActiveSessionIdentity(ctx, identity); err != nil {
-		return ProcessTuple{}, nil, err
-	}
-	process, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
-	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientProcessOpen, "retain Windows installed process", err)
-	}
-	accepted := false
-	defer func() {
-		if !accepted {
-			_ = windows.CloseHandle(process)
-		}
-	}()
-	var token windows.Token
-	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientTokenOpen, "open Windows installed process token", err)
-	}
-	observed, err := inspectWindowsDesktopToken(token, identity)
-	_ = token.Close()
-	if err != nil {
-		return ProcessTuple{}, nil, err
-	}
-	creationMarker, err := windowsProcessCreationMarker(process)
-	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeFailure("read Windows installed process creation marker", err)
-	}
-	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleInstalled, verifier, WindowsInstalledReleaseTrustSetID)
-	if err != nil {
-		return ProcessTuple{}, nil, err
-	}
-	liveness, err := newWindowsProcessLiveness(process, identity, observed)
-	if err != nil {
-		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientLiveness, "retain Windows installed process liveness", err)
-	}
-	accepted = true
-	tuple := ProcessTuple{OS: OSWindows, PID: pid, CreationMarker: creationMarker, OSLoginSession: observed.logonLUID, SecurityPrincipal: observed.userSID, CanonicalExecutableIdentity: evidence.CanonicalFileIdentity, ExecutableDigest: evidence.Digest, ExecutableTrustSetID: trustSetID}
-	if err := tuple.validate(); err != nil {
-		_ = liveness.Close()
-		return ProcessTuple{}, nil, windowsPipeFailure("validate Windows installed process tuple", err)
-	}
-	return tuple, liveness, nil
-}
-
 func verifyWindowsLockedExecutable(ctx context.Context, process windows.Handle, pid uint32, creationMarker string, role WindowsExecutableRole, verifier WindowsExecutableTrustVerifier, expectedTrustSetID string) (WindowsExecutableEvidence, string, error) {
 	if verifier == nil || strings.TrimSpace(expectedTrustSetID) == "" {
 		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableInput, windowsExecutableTrustFailure("verify locked Windows executable", fmt.Errorf("executable trust verifier and exact trust set are required")))
@@ -649,4 +580,3 @@ func windowsExecutableTrustFailure(operation string, cause error) error {
 }
 
 var _ DesktopProcessLiveness = (*windowsProcessLiveness)(nil)
-var _ InstalledProcessVerifier = (*windowsInstalledProcessVerifier)(nil)

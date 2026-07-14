@@ -9,15 +9,18 @@ function read(relativePath) {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }
 
-test('Tester admits only protected artifact readback through the installed app host', () => {
+test('Tester consumes only the final typed local-app operation set', () => {
   const runtime = read('src/tester/tester-runtime.ts');
   const platform = read('src/shell/auth/runtime-platform.ts');
+  const client = read('src/shell/local-app-runtime-platform.ts');
 
-  assert.match(runtime, /admits artifacts\.readRuntimeBytes only/);
+  assert.match(runtime, /Only the eight typed local-app carrier operations are admitted/);
   assert.match(runtime, /'sdk-method-unavailable'/);
-  assert.match(runtime, /account, Realm, AI, realtime, lifecycle, and media operations remain blocked/);
+  assert.match(runtime, /generic Runtime health, account, Realm, AIConfig, storage, lifecycle, and media surfaces remain blocked/);
   assert.doesNotMatch(runtime, /invokeTesterCapability|projection\.client|new Runtime/);
-  assert.match(platform, /testerInstalledAppBootstrap\.artifacts\.readRuntimeBytes/);
+  assert.match(platform, /testerLocalAppRuntimePlatform\.auth\.status/);
+  assert.match(client, /testerLocalAppRuntimePlatform\.artifacts\.readRuntimeBytes/);
+  assert.match(client, /createNimiLocalAppStandardShellSurface/);
   assert.doesNotMatch(platform, /localhost|127\.0\.0\.1|access[_-]?token|refresh[_-]?token|launch[_-]?ticket|session[_-]?token/i);
 });
 
@@ -26,8 +29,8 @@ test('Tester default Realm, model catalog, and local asset paths fail closed', (
   const modelProvider = read('src/tester/tester-runtime-model-provider.ts');
   const aiConfigPanel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
 
-  assert.match(settingsRoute, /throw new Error\('Realm is not admitted for this app-host authorization\.'\)/);
-  assert.match(modelProvider, /throw new Error\('Runtime model catalog is not admitted for this app-host authorization\.'\)/);
+  assert.match(settingsRoute, /throw new Error\('Realm is not admitted by the local-app carrier\.'\)/);
+  assert.match(modelProvider, /throw new Error\('Runtime model catalog is not admitted by the local-app carrier\.'\)/);
   assert.match(aiConfigPanel, /return \[\] as LocalAssetEntry\[\]/);
   assert.doesNotMatch(aiConfigPanel, /listNimiRuntimeLocalAssetEntries|artifactRoles:\s*asset\.artifactRoles/);
 });

@@ -26,19 +26,19 @@ test('Desktop Open generic fixture covers accepted target row ids', () => {
   ]);
 });
 
-test('Desktop Open generic fixture keeps installed-app sourceHost evidence distinct', () => {
+test('Desktop Open generic fixture keeps local-app sourceHost evidence distinct', () => {
   assert.equal(
     DESKTOP_OPEN_TEST_HOSTS.some((host) =>
-      host.rowId === 'owner.installed-app-source-host'
-        && host.hostClass === 'installed-nimi-app-standard-shell-v1'
-        && host.sourceHost === 'desktop-electron-installed-app-host',
+      host.rowId === 'owner.local-app-source-host'
+        && host.hostClass === 'local-app-standard-shell-v1'
+        && host.sourceHost === 'desktop-electron-local-app-host',
     ),
     true,
   );
   assert.equal(
     DESKTOP_OPEN_TEST_HOSTS.some((host) =>
-      host.hostClass === 'installed-nimi-app-standard-shell-v1'
-        && host.sourceHost === 'desktop-electron-installed-app-host',
+      host.hostClass === 'local-app-standard-shell-v1'
+        && host.sourceHost === 'desktop-electron-local-app-host',
     ),
     true,
   );

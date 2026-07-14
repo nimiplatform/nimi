@@ -63,6 +63,12 @@
     "unknown": "Unknown"
   },
   "state": {
+    "catalogOnly": "Catalog only",
+    "accountVisible": "Account visible",
+    "localRecordActive": "Local development record active",
+    "localRecordDormant": "Local development record dormant",
+    "localRecordRemoved": "Local development record removed",
+    "immutablePackageUnavailable": "Immutable package unavailable (0K)",
     "notInstalledInstallable": "Install Required",
     "installing": "Installing",
     "installedReady": "Ready",

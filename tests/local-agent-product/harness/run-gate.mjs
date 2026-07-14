@@ -20,13 +20,16 @@ if (!['contract', 'core', 'core-stability', 'extended', 'exhaustive'].includes(g
 // kill in cross-app-driver) run instead of the signal default, which skips them.
 for (const abortSignal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
   process.on(abortSignal, () => {
+    process.stderr.write(`local-agent-product ${gate}: received ${abortSignal}; tearing down owned subprocesses\n`);
     process.exitCode = 1;
     process.exit();
   });
 }
 const sweep = sweepStaleIsolatedTrialRoots();
 if (sweep.swept.length > 0) process.stdout.write(`local-agent-product ${gate}: removed ${sweep.swept.length} stale trial sandbox(es): ${sweep.swept.join(', ')}\n`);
-for (const failure of sweep.failed) process.stderr.write(`local-agent-product ${gate}: failed to remove stale trial sandbox ${failure.root} (${failure.code}): ${failure.message}\n`);
+if (sweep.failed.length > 0) {
+  throw new Error(`local-agent-product ${gate}: stale trial cleanup refused: ${sweep.failed.map((failure) => `${failure.root} (${failure.code}): ${failure.message}`).join('; ')}`);
+}
 const architecture = readLocalAgentTestArchitecture();
 const architectureFailures = validateArchitecture(architecture);
 if (architectureFailures.length > 0) throw new Error(`invalid LocalAgent test architecture: ${architectureFailures.join('; ')}`);

@@ -6,12 +6,10 @@ import {
   readTesterAiTestingSurface,
   readTesterKitComponentGallerySurface,
 } from '../tester-surface-readers.mjs';
-import { installStandardShellAIConfigHarness } from '../tester-standard-shell-harness.mjs';
 
 export {
   readTesterAiTestingSurface,
   readTesterKitComponentGallerySurface,
-  installStandardShellAIConfigHarness,
 };
 
 export const root = path.resolve(import.meta.dirname, '../..');

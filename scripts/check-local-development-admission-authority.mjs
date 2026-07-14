@@ -10,7 +10,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 export const authorityPaths = Object.freeze({
   policy: '.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml',
-  platform: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
+  platform: '.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md',
   runtimeSession: '.nimi/spec/runtime/kernel/protected-local-session-contract.md',
   account: '.nimi/spec/runtime/kernel/account-session-contract.md',
   grant: '.nimi/spec/runtime/kernel/grant-service.md',

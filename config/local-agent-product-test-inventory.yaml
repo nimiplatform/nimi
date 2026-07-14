@@ -124,3 +124,53 @@ tests:
     may_enter_regression_gate: allowed
     may_enter_release_gate: after_rewrite
     spec_refs: [P-TEST-008, P-TEST-010]
+  - path: tests/local-agent-product/harness/dependency-clone.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-015, P-TEST-019]
+  - path: tests/local-agent-product/harness/sandbox-hygiene.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-018, P-TEST-019]
+  - path: tests/local-agent-product/harness/dev-kernel-first-run-contract.test.mjs
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-001, P-TEST-018, P-TEST-019]
+  - path: tests/local-agent-product/harness/dev-kernel-fixed-service-contract.test.mjs
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-001, P-TEST-018, P-TEST-019]
+  - path: tests/local-agent-product/harness/dev-kernel-owner-minimal-contract.test.mjs
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-001, P-TEST-018, P-TEST-019]

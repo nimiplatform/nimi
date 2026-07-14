@@ -1,91 +1,27 @@
 import { desktopBridge } from '@renderer/bridge';
 
 function normalizeHeaders(headers: HeadersInit | undefined): Record<string, string> {
-  if (headers instanceof Headers) {
-    return Object.fromEntries(headers.entries());
-  }
-
-  if (Array.isArray(headers)) {
-    return Object.fromEntries(
-      headers
-        .filter((entry) => Array.isArray(entry) && entry.length >= 2)
-        .map(([key, value]) => [String(key), String(value)]),
-    );
-  }
-
-  if (!headers || typeof headers !== 'object') {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(headers)
-      .filter(([, value]) => value !== undefined && value !== null)
-      .map(([key, value]) => [String(key), String(value)]),
-  );
-}
-
-function splitAuthorizationHeader(headers: Record<string, string>): {
-  headers: Record<string, string>;
-  authorization?: string;
-} {
-  const nextHeaders = { ...headers };
-  let authorization = '';
-  for (const [key, value] of Object.entries(nextHeaders)) {
-    if (key.trim().toLowerCase() !== 'authorization') {
+  const entries = headers instanceof Headers
+    ? [...headers.entries()]
+    : Array.isArray(headers)
+      ? headers
+      : Object.entries(headers || {});
+  const normalized: Record<string, string> = {};
+  for (const [key, value] of entries) {
+    const name = String(key).trim();
+    if (!name || value === undefined || value === null) {
       continue;
     }
-    authorization = String(value || '').trim();
-    delete nextHeaders[key];
+    if (name.toLowerCase() === 'authorization') {
+      throw new Error('Desktop renderer proxy fetch cannot carry Authorization credentials.');
+    }
+    normalized[name] = String(value);
   }
-  return {
-    headers: nextHeaders,
-    authorization: authorization || undefined,
-  };
+  return normalized;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
   return typeof Request !== 'undefined' && input instanceof Request;
-}
-
-function hasOwnBody(init: RequestInit): boolean {
-  return Object.prototype.hasOwnProperty.call(init, 'body');
-}
-
-function resolveMethod(input: RequestInfo | URL, init: RequestInit): string {
-  if (typeof init.method === 'string' && init.method.trim()) {
-    return init.method.trim().toUpperCase();
-  }
-  if (isRequest(input) && typeof input.method === 'string' && input.method.trim()) {
-    return input.method.trim().toUpperCase();
-  }
-  return 'GET';
-}
-
-function resolveUrl(input: RequestInfo | URL): string {
-  if (typeof input === 'string') {
-    return input;
-  }
-  if (input instanceof URL) {
-    return input.toString();
-  }
-  if (isRequest(input)) {
-    return input.url;
-  }
-  return String(input || '');
-}
-
-async function readBodyString(body: BodyInit | null | undefined): Promise<string | undefined> {
-  if (body === undefined || body === null) {
-    return undefined;
-  }
-  if (typeof body === 'string') {
-    return body;
-  }
-  const probeRequest = new Request('https://probe.nimi.ai/proxy-body', {
-    method: 'POST',
-    body,
-  });
-  return probeRequest.text();
 }
 
 async function resolveBody(
@@ -96,41 +32,37 @@ async function resolveBody(
   if (method === 'GET' || method === 'HEAD') {
     return undefined;
   }
-  if (hasOwnBody(init)) {
-    return readBodyString(init.body ?? undefined);
-  }
-  if (isRequest(input)) {
-    try {
-      return await input.clone().text();
-    } catch {
+  if (Object.prototype.hasOwnProperty.call(init, 'body')) {
+    if (init.body === undefined || init.body === null) {
       return undefined;
     }
+    if (typeof init.body === 'string') {
+      return init.body;
+    }
+    return new Request('https://probe.nimi.ai/proxy-body', {
+      method: 'POST',
+      body: init.body,
+    }).text();
   }
-  return undefined;
+  return isRequest(input) ? input.clone().text() : undefined;
 }
 
 export function createProxyFetch(): typeof fetch {
   return async (input: RequestInfo | URL, init: RequestInit = {}) => {
-    const method = resolveMethod(input, init);
-    const baseHeaders = isRequest(input) ? normalizeHeaders(input.headers) : {};
-    const overrideHeaders = normalizeHeaders(init.headers);
-    const requestBody = await resolveBody(input, init, method);
-    const { headers, authorization } = splitAuthorizationHeader({
-      ...baseHeaders,
-      ...overrideHeaders,
+    const method = String(init.method || (isRequest(input) ? input.method : 'GET')).trim().toUpperCase();
+    const headers = normalizeHeaders({
+      ...(isRequest(input) ? normalizeHeaders(input.headers) : {}),
+      ...normalizeHeaders(init.headers),
     });
-
     const response = await desktopBridge.proxyHttp({
-      url: resolveUrl(input),
+      url: typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url,
       method,
       headers,
-      authorization,
-      body: requestBody,
+      body: await resolveBody(input, init, method),
     });
-
-    const status = Number(response.status || 0);
-    const disallowBody = status === 204 || status === 205 || status === 304;
-    const body = disallowBody ? null : response.body;
+    const body = response.status === 204 || response.status === 205 || response.status === 304
+      ? null
+      : response.body;
     return new Response(body, {
       status: response.status,
       headers: response.headers,

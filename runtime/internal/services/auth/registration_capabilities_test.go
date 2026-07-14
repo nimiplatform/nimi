@@ -18,7 +18,7 @@ func TestRegistrationCapabilitiesIgnoreCatalogPrivilegeForBindingOnlyBootstrap(t
 		},
 	}}}
 
-	got := svc.registrationCapabilities("nimi.avatar", []string{"realm.admin", "attacker.claim"}, false)
+	got := svc.registrationCapabilities("nimi.avatar", []string{"realm.admin", "attacker.claim"})
 	if len(got) != 0 {
 		t.Fatalf("binding-only catalog registration retained capabilities: %#v", got)
 	}
@@ -26,7 +26,7 @@ func TestRegistrationCapabilitiesIgnoreCatalogPrivilegeForBindingOnlyBootstrap(t
 
 func TestRegistrationCapabilitiesCannotSelfAdmitAnyBusinessCapability(t *testing.T) {
 	svc := New(nil)
-	got := svc.registrationCapabilities("community.example", []string{"account.session.read", "account.raw-token"}, false)
+	got := svc.registrationCapabilities("community.example", []string{"account.session.read", "account.raw-token"})
 	if len(got) != 0 {
 		t.Fatalf("binding-only non-catalog registration retained capabilities: %#v", got)
 	}

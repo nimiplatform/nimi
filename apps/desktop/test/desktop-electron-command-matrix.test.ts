@@ -6,7 +6,8 @@ import test from 'node:test';
 
 import {
   DESKTOP_ELECTRON_COMMAND_MATRIX,
-  DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS,
+  DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS,
+  DESKTOP_ELECTRON_LOCAL_DEVELOPMENT_COMMANDS,
   DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_COMMANDS,
   DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS,
 } from '../src-electron/desktop-electron-command-matrix.js';
@@ -32,26 +33,35 @@ function readRegisteredDesktopTauriCommands(): string[] {
   return [...report.registered].sort();
 }
 
-test('Desktop Electron command matrix admits Runtime-local product-control reads and setup mutations only', () => {
+test('Desktop Electron method matrix matches the complete exact protected product-control set', () => {
   assert.ok(DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS.includes(
     '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
   ));
   assert.ok(DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS.includes(
     '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState',
   ));
-  assert.equal(
-    DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS.some((methodId) =>
-      methodId.includes('AdmitProductControlReadyForUse')),
-    false,
-  );
+  assert.ok(DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS.includes(
+    '/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse',
+  ));
+  assert.ok(DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS.includes(
+    '/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob',
+  ));
+  assert.equal(DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_METHOD_IDS.length, 21);
 });
 
-test('Desktop Electron command matrix explicitly leaves admission repair commands Tauri-only', () => {
-  assert.ok(DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS.includes('product_control_record_admit_ready_for_use'));
-  assert.ok(DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS.includes('account_default_profile_for_scope_init'));
-  assert.ok(DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS.includes('built_in_ai_config_for_scope_init'));
-  assert.match(productControlBridgeSource, /product_control_record_admit_ready_for_use requires Tauri runtime/);
+test('Desktop Electron command matrix covers first-run evidence and admission through the standard shell', () => {
+  assert.ok(DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS.includes('product_control_record_admit_ready_for_use'));
+  assert.ok(DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS.includes('account_default_profile_for_scope_init'));
+  assert.ok(DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS.includes('built_in_ai_config_for_scope_init'));
+  assert.match(productControlBridgeSource, /product_control_record_admit_ready_for_use requires standard shell Runtime/);
   assert.doesNotMatch(productControlBridgeSource, /invokeChecked\('product_control_pick_data_root_directory'/);
+});
+
+test('Desktop Electron product-control consumes the final Kit shell carrier, never an SDK generated client', () => {
+  assert.match(productControlBridgeSource, /hasShellHostInvoke\(\)/);
+  assert.match(productControlBridgeSource, /invokeChecked\('product_control_record_get'/);
+  assert.doesNotMatch(productControlBridgeSource, /getDesktopRuntime\(\)/);
+  assert.doesNotMatch(productControlBridgeSource, /getDesktopRuntime\(\)\.generated/);
 });
 
 test('Desktop Electron command matrix covers every active Desktop Tauri command as visibility-only inventory', () => {
@@ -83,7 +93,13 @@ test('Desktop Electron command matrix does not claim unimplemented app-domain ha
     .map((entry) => entry.command)
     .sort();
 
-  assert.deepEqual(coveredCommands, [...DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_COMMANDS].sort());
+  assert.deepEqual(coveredCommands, [
+    ...DESKTOP_ELECTRON_RUNTIME_LOCAL_PRODUCT_CONTROL_COMMANDS,
+    ...DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS,
+    ...DESKTOP_ELECTRON_LOCAL_DEVELOPMENT_COMMANDS,
+    'developer_mode_set',
+    'developer_mode_status',
+  ].sort());
 });
 
 test('Desktop Electron acceptance recognizes admission-failed as a renderer surface, not bootstrap crash', () => {

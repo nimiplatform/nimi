@@ -11,7 +11,11 @@ import {
   type NimiElectronShellFileProtocolHost,
   type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
-import { createDesktopElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
+import {
+  createDesktopElectronLocalDevelopmentHost,
+  type DesktopElectronLocalDevelopmentHost,
+} from './local-development-host.js';
+import { createDesktopElectronProductControlHost } from './product-control-host.js';
 
 const APP_ID = 'nimi.desktop';
 
@@ -44,6 +48,7 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
   },
 });
 let mainWindow: BrowserWindow | undefined;
+let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -59,16 +64,22 @@ void app.whenReady().then(async () => {
   localAssetProtocolHost.registerProtocolHandler();
   const standardDataRoot = resolveStandardDataRoot();
   await mkdir(standardDataRoot, { recursive: true });
+  localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
+    homeDirectory: app.getPath('home'),
+    focusMainWindow: focusDesktopMainWindow,
+  });
+  const productControlHost = createDesktopElectronProductControlHost();
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
     allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
-    trustedRuntimeMetadataProvider: createDesktopElectronTrustedRuntimeMetadataProvider({
-      appId: APP_ID,
-      runtimeEndpoint,
-    }),
+    commandHandlers: {
+      ...localDevelopmentHost.commandHandlers,
+      ...productControlHost.commandHandlers,
+      product_control_default_data_root_directory: () => path.resolve(app.getPath('home'), 'Nimi'),
+    },
     standardShellHost: {
       allowAllStandardShellCommands: true,
       standardDataRootBinding: resolveStandardDataRootBinding(),
@@ -101,6 +112,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  void localDevelopmentHost?.shutdown();
+  localDevelopmentHost = undefined;
 });
 
 async function createMainWindow(): Promise<BrowserWindow> {

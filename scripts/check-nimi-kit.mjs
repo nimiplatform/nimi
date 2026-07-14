@@ -254,6 +254,7 @@ const requiredStandardShellCapabilityIds = [
   'storage',
   'config',
   'local-assets',
+  'local-app',
   'local-agent',
   'ai-profile',
   'ai-config',
@@ -344,31 +345,40 @@ function assertStandardShellCapabilityCatalog() {
   const capabilitySets = Array.isArray(standardShellCatalog?.capability_sets)
     ? standardShellCatalog.capability_sets
     : [];
-  const installedSet = capabilitySets.find((entry) => String(entry?.set_id || '').trim() === 'installed-nimi-app-standard-shell-v1');
-  expect(installedSet, 'standard-shell-capabilities.yaml: missing installed-nimi-app-standard-shell-v1 capability set');
+  const localAppSet = capabilitySets.find((entry) => String(entry?.set_id || '').trim() === 'local-app-standard-shell-v1');
+  expect(localAppSet, 'standard-shell-capabilities.yaml: missing local-app-standard-shell-v1 capability set');
   expect(
-    String(installedSet?.source_rule || '').trim() === 'P-KIT-044',
-    'standard-shell-capabilities.yaml: installed-nimi-app-standard-shell-v1 must be owned by P-KIT-044',
+    String(localAppSet?.source_rule || '').trim() === 'P-KIT-044',
+    'standard-shell-capabilities.yaml: local-app-standard-shell-v1 must be owned by P-KIT-044',
   );
   expect(
     capabilitySource.includes('NIMI_STANDARD_SHELL_CAPABILITY_SETS')
-      && capabilitySource.includes(`'installed-nimi-app-standard-shell-v1'`)
+      && capabilitySource.includes(`'local-app-standard-shell-v1'`)
       && capabilitySource.includes(`'P-KIT-044'`),
-    'kit/shell/capabilities/src/index.ts: missing installed app capability-set projection',
+    'kit/shell/capabilities/src/index.ts: missing local-app capability-set projection',
   );
-  expect(installedSet?.authority_status === 'a4_windows_x64_artifact_read_admitted', 'standard-shell-capabilities.yaml: installed app capability set must retain narrow Windows x64 artifact-read admission');
+  expect(localAppSet?.authority_status === '0k_final_surface_windows_development_positive', 'standard-shell-capabilities.yaml: local-app capability set must carry the final 0K Windows development authority status');
   expect(
-    JSON.stringify(installedSet?.allowed_operations) === JSON.stringify(['artifacts.readRuntimeBytes']),
-    'standard-shell-capabilities.yaml: installed app capability set must admit only artifacts.readRuntimeBytes',
+    JSON.stringify(localAppSet?.allowed_operations) === JSON.stringify([
+      'local-app.sessionStatus',
+      'local-app.permissionPosture',
+      'local-app.permissionRequest',
+      'local-app.artifactsReadRuntimeBytes',
+      'local-app.agentOpenConversation',
+      'local-app.agentSendTurn',
+      'local-app.agentSubscribeTurn',
+      'local-app.agentGetConversationSnapshot',
+    ]),
+    'standard-shell-capabilities.yaml: local-app capability set must expose the exact final eight-operation allowlist',
   );
-  expect(installedSet?.planned_operations_disposition === 'deny_until_separate_operation_admission', 'standard-shell-capabilities.yaml: every other planned installed app operation must remain deny-only');
+  expect(localAppSet?.planned_operations_disposition === 'deny_until_separate_operation_admission', 'standard-shell-capabilities.yaml: every other planned local-app operation must remain deny-only');
   for (const field of ['planned_operations', 'forbidden_operations', 'negative_tests']) {
     expect(
-      Array.isArray(installedSet?.[field]) && installedSet[field].length > 0,
-      `standard-shell-capabilities.yaml: installed-nimi-app-standard-shell-v1 ${field} must not be empty`,
+      Array.isArray(localAppSet?.[field]) && localAppSet[field].length > 0,
+      `standard-shell-capabilities.yaml: local-app-standard-shell-v1 ${field} must not be empty`,
     );
   }
-  for (const operationRef of Array.isArray(installedSet?.planned_operations) ? installedSet.planned_operations : []) {
+  for (const operationRef of Array.isArray(localAppSet?.planned_operations) ? localAppSet.planned_operations : []) {
     const normalizedRef = String(operationRef || '').trim();
     const command = commandByOperationRef.get(normalizedRef);
     expect(command, `standard-shell-capabilities.yaml: capability set planned operation ${normalizedRef} must resolve to a standard command`);
@@ -377,18 +387,18 @@ function assertStandardShellCapabilityCatalog() {
   }
   for (const retiredOperation of requiredRetiredAuthSessionForbiddenOperations) {
     expect(
-      installedSet.forbidden_operations.includes(retiredOperation),
+      Array.isArray(localAppSet?.forbidden_operations) && localAppSet.forbidden_operations.includes(retiredOperation),
       `standard-shell-capabilities.yaml: retired ${retiredOperation} must remain explicit forbidden vocabulary`,
     );
   }
-  for (const operationRef of Array.isArray(installedSet?.allowed_operations) ? installedSet.allowed_operations : []) {
+  for (const operationRef of Array.isArray(localAppSet?.allowed_operations) ? localAppSet.allowed_operations : []) {
     const normalizedRef = String(operationRef || '').trim();
     const command = commandByOperationRef.get(normalizedRef);
     expect(command, `standard-shell-capabilities.yaml: capability set allowed operation ${normalizedRef} must resolve to a standard command`);
     expect(capabilitySource.includes(`'${normalizedRef}'`), `kit/shell/capabilities/src/index.ts: missing capability set operation ${normalizedRef}`);
     expect(capabilitySource.includes(`'${command}'`), `kit/shell/capabilities/src/index.ts: missing capability set command ${command}`);
   }
-  for (const operationRef of Array.isArray(installedSet?.forbidden_operations) ? installedSet.forbidden_operations : []) {
+  for (const operationRef of Array.isArray(localAppSet?.forbidden_operations) ? localAppSet.forbidden_operations : []) {
     const normalizedRef = String(operationRef || '').trim();
     const command = commandByOperationRef.get(normalizedRef);
     expect(capabilitySource.includes(`'${normalizedRef}'`), `kit/shell/capabilities/src/index.ts: missing capability set operation ${normalizedRef}`);

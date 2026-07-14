@@ -36,7 +36,6 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
 
   await withFixtureRuntimeLocalAgent(async ({
     endpoint, realmBaseUrl, targetAgent, standardDataRoot, handoff,
-    agentClient, inspect, setPresentationProfile,
   }) => {
     await withTempDir('real-local-agent', async (tmpRoot) => {
       const runtimeEndpoint = endpoint;
@@ -234,9 +233,6 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
           handoff,
           targetAgent: targetAgentEvidence,
           readyEvidence: modelReadyEvidence,
-          agentClient,
-          inspect,
-          setPresentationProfile,
           waitForEvidence,
         });
       } else {
@@ -416,7 +412,6 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
           handoff,
           targetAgent: targetAgentEvidence,
           readyEvidence: followUpCompletedEvidence,
-          setPresentationProfile,
           assertProductDesignLayout,
           waitForEvidence,
         });

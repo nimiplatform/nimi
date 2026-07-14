@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -32,12 +33,33 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 	}
 	requestContext := req.GetContext()
 	callerAppID := strings.TrimSpace(requestContext.GetAppId())
+	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	if localAppAuthorized {
+		if localDecision.Operation != accountservice.LocalAppOperationConversationSnapshot || requestContext != nil {
+			return nil, status.Error(codes.PermissionDenied, "local-app conversation snapshot selector is invalid")
+		}
+		callerAppID = localDecision.AppID
+	}
+	if localAppAuthorized {
+		if err := s.ValidateLocalAppConversationScope(ctx, agentID, anchorID); err != nil {
+			return nil, err
+		}
+	}
 	if callerAppID == "" {
 		return nil, status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
 	scopedBinding := requestContext.GetScopedBinding()
 	var identity localAgentIdentity
-	if scopedBinding == nil {
+	if localAppAuthorized {
+		entry, identityErr := s.agentByID(agentID)
+		if identityErr != nil {
+			return nil, identityErr
+		}
+		identity, identityErr = validateLocalAgentIdentity(entry.Agent.GetOwnerUserId(), entry.Agent.GetRuntimeSourceRef(), entry.Agent.GetLocalAgentRef())
+		if identityErr != nil || identity.OwnerUserID != localDecision.AccountID {
+			return nil, status.Error(codes.PermissionDenied, "conversation Agent is not owned by the current account")
+		}
+	} else if scopedBinding == nil {
 		if !envelope.HasValidatedProtectedCapability(ctx, callerAppID, runtimeAgentReadScope) {
 			return nil, runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
 		}
@@ -57,7 +79,9 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 	var snapshot *structpb.Struct
 	var session publicChatAnchorState
 	var err error
-	if scopedBinding != nil {
+	if localAppAuthorized {
+		snapshot, session, _, _, _, err = s.publicChatRuntime().buildAvatarLiveInstanceSessionSnapshot(callerAppID, anchorID, req.GetRequestId(), identity)
+	} else if scopedBinding != nil {
 		snapshot, session, _, _, _, err = s.publicChatRuntime().buildScopedBindingSessionSnapshot(callerAppID, anchorID, req.GetRequestId())
 	} else {
 		snapshot, session, _, _, _, err = s.publicChatRuntime().buildAvatarLiveInstanceSessionSnapshot(callerAppID, anchorID, req.GetRequestId(), identity)

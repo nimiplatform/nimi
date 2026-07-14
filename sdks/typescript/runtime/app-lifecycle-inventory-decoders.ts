@@ -1,12 +1,9 @@
 import {
   AccountAppInstallState,
   AccountAppInventoryState,
-  LocalAppAdoptionState,
-  LocalAppAdoptionTrust,
   ReasonCode as RuntimeGeneratedReasonCode,
   type AccountAppInventoryRecord,
   type AccountAppInventoryRow,
-  type LocalAppAdoption,
 } from '../core-generated/runtime-typed-client';
 import type {
   NimiRuntimeAccountAppInstallState,
@@ -14,9 +11,6 @@ import type {
   NimiRuntimeAccountAppInventoryRecord,
   NimiRuntimeAccountAppInventoryRow,
   NimiRuntimeAccountAppInventoryState,
-  NimiRuntimeLocalAppAdoption,
-  NimiRuntimeLocalAppAdoptionState,
-  NimiRuntimeLocalAppAdoptionTrust,
 } from './app-lifecycle-types';
 import {
   decodeNimiRuntimeAppLifecycleError,
@@ -107,52 +101,6 @@ export function decodeNimiRuntimeAccountAppInventoryRow(
   };
 }
 
-export function decodeNimiRuntimeLocalAppAdoption(
-  adoption: LocalAppAdoption | undefined,
-): NimiRuntimeLocalAppAdoption {
-  if (!adoption) {
-    return decodeNimiRuntimeAppLifecycleError('runtime local app adoption response is missing adoption');
-  }
-  const adoptedAt = normalizeNimiRuntimeAppLifecycleText(adoption.adoptedAt);
-  const updatedAt = normalizeNimiRuntimeAppLifecycleText(adoption.updatedAt);
-  const detail = normalizeNimiRuntimeAppLifecycleText(adoption.detail);
-  const reasonCode = decodeNimiRuntimeReasonCode(adoption.reasonCode);
-  const state = decodeNimiRuntimeLocalAppAdoptionState(adoption.state);
-  if ((state === 'repair-required' || state === 'removed') && !reasonCode) {
-    return decodeNimiRuntimeAppLifecycleError(
-      `runtime local app adoption ${adoption.appId || '<missing>'} is ${state} without a typed reason code`,
-    );
-  }
-  return {
-    appId: requireNimiRuntimeAppLifecycleProjectionText(adoption.appId, 'runtime local app adoption appId'),
-    rootPath: requireNimiRuntimeAppLifecycleProjectionText(adoption.rootPath, 'runtime local app adoption rootPath'),
-    manifestPath: requireNimiRuntimeAppLifecycleProjectionText(
-      adoption.manifestPath,
-      'runtime local app adoption manifestPath',
-    ),
-    displayName: requireNimiRuntimeAppLifecycleProjectionText(
-      adoption.displayName,
-      'runtime local app adoption displayName',
-    ),
-    version: requireNimiRuntimeAppLifecycleProjectionText(adoption.version, 'runtime local app adoption version'),
-    entryRef: requireNimiRuntimeAppLifecycleProjectionText(adoption.entryRef, 'runtime local app adoption entryRef'),
-    permissionScopeRef: requireNimiRuntimeAppLifecycleProjectionText(
-      adoption.permissionScopeRef,
-      'runtime local app adoption permissionScopeRef',
-    ),
-    storagePolicyRef: requireNimiRuntimeAppLifecycleProjectionText(
-      adoption.storagePolicyRef,
-      'runtime local app adoption storagePolicyRef',
-    ),
-    state,
-    trust: decodeNimiRuntimeLocalAppAdoptionTrust(adoption.trust),
-    ...(adoptedAt ? { adoptedAt } : {}),
-    ...(updatedAt ? { updatedAt } : {}),
-    ...(reasonCode ? { reasonCode } : {}),
-    ...(detail ? { detail } : {}),
-  };
-}
-
 function decodeNimiRuntimeAccountAppInventoryState(
   value: AccountAppInventoryState,
 ): NimiRuntimeAccountAppInventoryState {
@@ -179,48 +127,14 @@ function decodeNimiRuntimeAccountAppInstallState(
 ): NimiRuntimeAccountAppInstallState {
   switch (value) {
     case AccountAppInstallState.NOT_INSTALLED:
-      return 'not-installed';
+      return 'not-present';
     case AccountAppInstallState.INSTALLED:
-      return 'installed';
-    case AccountAppInstallState.ADOPTED_LOCAL:
-      return 'adopted-local';
+      return 'local-record-active';
     case AccountAppInstallState.REMOVED:
       return 'removed';
     default:
       return decodeNimiRuntimeAppLifecycleError(
         `runtime account app inventory row has unspecified installState: ${String(value)}`,
-      );
-  }
-}
-
-function decodeNimiRuntimeLocalAppAdoptionState(
-  value: LocalAppAdoptionState,
-): NimiRuntimeLocalAppAdoptionState {
-  switch (value) {
-    case LocalAppAdoptionState.ADOPTED:
-      return 'adopted';
-    case LocalAppAdoptionState.REPAIR_REQUIRED:
-      return 'repair-required';
-    case LocalAppAdoptionState.REMOVED:
-      return 'removed';
-    default:
-      return decodeNimiRuntimeAppLifecycleError(
-        `runtime local app adoption has unspecified state: ${String(value)}`,
-      );
-  }
-}
-
-function decodeNimiRuntimeLocalAppAdoptionTrust(
-  value: LocalAppAdoptionTrust,
-): NimiRuntimeLocalAppAdoptionTrust {
-  switch (value) {
-    case LocalAppAdoptionTrust.EXPLICIT_LOCAL:
-      return 'explicit-local';
-    case LocalAppAdoptionTrust.DEVELOPER_LOCAL:
-      return 'developer-local';
-    default:
-      return decodeNimiRuntimeAppLifecycleError(
-        `runtime local app adoption has unspecified trust: ${String(value)}`,
       );
   }
 }

@@ -75,11 +75,8 @@ func (AppMessageEventType) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{0}
 }
 
-// AppInstallJobPhase is the typed install/update pipeline phase. It surfaces
-// the concrete step so the product Apps card can show "download / verify /
-// materialize / unpack / swap / evidence" instead of a generic spinner. It is
-// never inferred from transfer/process/file state. The same phase shape covers
-// install, update, and healthRepair jobs (K-APP-015 / K-APP-016).
+// AppInstallJobPhase reserves the future immutable-package pipeline vocabulary.
+// No value is positively emitted in 0K.
 type AppInstallJobPhase int32
 
 const (
@@ -167,9 +164,8 @@ func (AppInstallJobPhase) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{1}
 }
 
-// AppInstallJobState is the typed terminal/in-flight job state. It aligns with
-// the Platform P-NAPP-008 fail-closed projection: a failed install/update
-// never projects as success and always leaves a recoverable state.
+// AppInstallJobState reserves future immutable-package job states. No value is
+// positively emitted in 0K.
 type AppInstallJobState int32
 
 const (
@@ -238,10 +234,8 @@ func (AppInstallJobState) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{2}
 }
 
-// AppLifecycleJobKind distinguishes the lifecycle operation that produced a
-// job. Install, update, healthRepair, and uninstall jobs share the
-// AppInstallJob shape but carry a distinct kind so the consumer never infers
-// intent from phase.
+// AppLifecycleJobKind reserves future immutable-package operation kinds. No
+// lifecycle job exists in 0K.
 type AppLifecycleJobKind int32
 
 const (
@@ -303,8 +297,8 @@ func (AppLifecycleJobKind) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{3}
 }
 
-// AppHealthRepairAction is the typed health/repair action token. It admits
-// only the four S-APP-002 tokens; no other action is accepted.
+// AppHealthRepairAction is a frozen future wire vocabulary. No repair action
+// is admitted in 0K.
 type AppHealthRepairAction int32
 
 const (
@@ -360,20 +354,16 @@ func (AppHealthRepairAction) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{4}
 }
 
-// AppLifecycleIntentAction is the closed action vocabulary owned by
-// K-APP-026. A single prepare/status protocol covers every lifecycle mutation;
-// callers cannot introduce action-specific confirmation RPCs.
+// AppLifecycleIntentAction is a frozen future wire vocabulary. 0K has no
+// lifecycle intent producer or consumer.
 type AppLifecycleIntentAction int32
 
 const (
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED               AppLifecycleIntentAction = 0
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_INSTALL                   AppLifecycleIntentAction = 1
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_UNINSTALL                 AppLifecycleIntentAction = 2
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_UPDATE                    AppLifecycleIntentAction = 3
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR             AppLifecycleIntentAction = 4
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP           AppLifecycleIntentAction = 5
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION AppLifecycleIntentAction = 6
-	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_OPEN_APP                  AppLifecycleIntentAction = 7
+	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED   AppLifecycleIntentAction = 0
+	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_INSTALL       AppLifecycleIntentAction = 1
+	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_UNINSTALL     AppLifecycleIntentAction = 2
+	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_UPDATE        AppLifecycleIntentAction = 3
+	AppLifecycleIntentAction_APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR AppLifecycleIntentAction = 4
 )
 
 // Enum value maps for AppLifecycleIntentAction.
@@ -384,19 +374,13 @@ var (
 		2: "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL",
 		3: "APP_LIFECYCLE_INTENT_ACTION_UPDATE",
 		4: "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR",
-		5: "APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP",
-		6: "APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION",
-		7: "APP_LIFECYCLE_INTENT_ACTION_OPEN_APP",
 	}
 	AppLifecycleIntentAction_value = map[string]int32{
-		"APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED":               0,
-		"APP_LIFECYCLE_INTENT_ACTION_INSTALL":                   1,
-		"APP_LIFECYCLE_INTENT_ACTION_UNINSTALL":                 2,
-		"APP_LIFECYCLE_INTENT_ACTION_UPDATE":                    3,
-		"APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR":             4,
-		"APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP":           5,
-		"APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION": 6,
-		"APP_LIFECYCLE_INTENT_ACTION_OPEN_APP":                  7,
+		"APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED":   0,
+		"APP_LIFECYCLE_INTENT_ACTION_INSTALL":       1,
+		"APP_LIFECYCLE_INTENT_ACTION_UNINSTALL":     2,
+		"APP_LIFECYCLE_INTENT_ACTION_UPDATE":        3,
+		"APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR": 4,
 	}
 )
 
@@ -427,8 +411,8 @@ func (AppLifecycleIntentAction) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{5}
 }
 
-// AppLifecycleIntentStatus is the durable reconciliation vocabulary. An
-// intent id or status is correlation-only and never authorizes a mutation.
+// AppLifecycleIntentStatus reserves a future reconciliation vocabulary. 0K
+// has no durable lifecycle intent state; an id could never authorize a call.
 type AppLifecycleIntentStatus int32
 
 const (
@@ -493,9 +477,8 @@ func (AppLifecycleIntentStatus) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{6}
 }
 
-// AppInstallSourceKind distinguishes a bundled first-party install (no network
-// download; materialized from the atomic Nimi release bundle) from an external
-// immutable artifact install (HTTPS download + sha256 verification).
+// AppInstallSourceKind reserves future immutable-package provenance mapping.
+// It does not admit a bundled or external install in 0K.
 type AppInstallSourceKind int32
 
 const (
@@ -545,9 +528,8 @@ func (AppInstallSourceKind) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{7}
 }
 
-// AppStorageState is the current app-scoped storage truth state. It is
-// separate from install job state: a dev/runtime-registered app can have
-// admitted data/cache/tmp roots before it has an active installed release.
+// AppStorageState describes app-private storage independently of the frozen
+// package seam. Local-app data/cache/tmp may be READY without a release.
 type AppStorageState int32
 
 const (
@@ -603,10 +585,9 @@ func (AppStorageState) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{8}
 }
 
-// AppPackageReadinessState is the Runtime-owned package readiness projection.
-// It is separate from storage truth: it reads the active release pointer and
-// install evidence to decide whether the currently materialized package is
-// launchable, needs install/update/repair, or is blocked fail-closed.
+// AppPackageReadinessState is the frozen package-readiness vocabulary. 0K
+// emits only BLOCKED with LOCAL_APP_OPERATION_UNAVAILABLE and never reads an
+// active release pointer or install evidence.
 type AppPackageReadinessState int32
 
 const (
@@ -726,16 +707,15 @@ func (AccountAppInventoryState) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{10}
 }
 
-// AccountAppInstallState is the account inventory's local materialization
-// overlay. Runtime install/uninstall/adoption lifecycles mutate this field;
-// they do not create account entitlement truth.
+// AccountAppInstallState is a frozen future local-materialization overlay.
+// Runtime has no positive materialization writer in 0K and never derives
+// entitlement from this field.
 type AccountAppInstallState int32
 
 const (
 	AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED   AccountAppInstallState = 0
 	AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED AccountAppInstallState = 1
 	AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_INSTALLED     AccountAppInstallState = 2
-	AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL AccountAppInstallState = 3
 	AccountAppInstallState_ACCOUNT_APP_INSTALL_STATE_REMOVED       AccountAppInstallState = 4
 )
 
@@ -745,14 +725,12 @@ var (
 		0: "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED",
 		1: "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED",
 		2: "ACCOUNT_APP_INSTALL_STATE_INSTALLED",
-		3: "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL",
 		4: "ACCOUNT_APP_INSTALL_STATE_REMOVED",
 	}
 	AccountAppInstallState_value = map[string]int32{
 		"ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED":   0,
 		"ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED": 1,
 		"ACCOUNT_APP_INSTALL_STATE_INSTALLED":     2,
-		"ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL": 3,
 		"ACCOUNT_APP_INSTALL_STATE_REMOVED":       4,
 	}
 )
@@ -782,255 +760,6 @@ func (x AccountAppInstallState) Number() protoreflect.EnumNumber {
 // Deprecated: Use AccountAppInstallState.Descriptor instead.
 func (AccountAppInstallState) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{11}
-}
-
-// LocalAppAdoptionState is Runtime-owned local external app adoption state. It
-// is written only by the explicit AdoptLocalApp lifecycle and never by source
-// scanning or Desktop renderer state.
-type LocalAppAdoptionState int32
-
-const (
-	LocalAppAdoptionState_LOCAL_APP_ADOPTION_STATE_UNSPECIFIED     LocalAppAdoptionState = 0
-	LocalAppAdoptionState_LOCAL_APP_ADOPTION_STATE_ADOPTED         LocalAppAdoptionState = 1
-	LocalAppAdoptionState_LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED LocalAppAdoptionState = 2
-	LocalAppAdoptionState_LOCAL_APP_ADOPTION_STATE_REMOVED         LocalAppAdoptionState = 3
-)
-
-// Enum value maps for LocalAppAdoptionState.
-var (
-	LocalAppAdoptionState_name = map[int32]string{
-		0: "LOCAL_APP_ADOPTION_STATE_UNSPECIFIED",
-		1: "LOCAL_APP_ADOPTION_STATE_ADOPTED",
-		2: "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED",
-		3: "LOCAL_APP_ADOPTION_STATE_REMOVED",
-	}
-	LocalAppAdoptionState_value = map[string]int32{
-		"LOCAL_APP_ADOPTION_STATE_UNSPECIFIED":     0,
-		"LOCAL_APP_ADOPTION_STATE_ADOPTED":         1,
-		"LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED": 2,
-		"LOCAL_APP_ADOPTION_STATE_REMOVED":         3,
-	}
-)
-
-func (x LocalAppAdoptionState) Enum() *LocalAppAdoptionState {
-	p := new(LocalAppAdoptionState)
-	*p = x
-	return p
-}
-
-func (x LocalAppAdoptionState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalAppAdoptionState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_app_proto_enumTypes[12].Descriptor()
-}
-
-func (LocalAppAdoptionState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_app_proto_enumTypes[12]
-}
-
-func (x LocalAppAdoptionState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalAppAdoptionState.Descriptor instead.
-func (LocalAppAdoptionState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{12}
-}
-
-// LocalAppAdoptionTrust is the local trust posture. Local adoption is not public
-// Platform admission and must not be projected as ordinary catalog truth.
-type LocalAppAdoptionTrust int32
-
-const (
-	LocalAppAdoptionTrust_LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED     LocalAppAdoptionTrust = 0
-	LocalAppAdoptionTrust_LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL  LocalAppAdoptionTrust = 1
-	LocalAppAdoptionTrust_LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL LocalAppAdoptionTrust = 2
-)
-
-// Enum value maps for LocalAppAdoptionTrust.
-var (
-	LocalAppAdoptionTrust_name = map[int32]string{
-		0: "LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED",
-		1: "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL",
-		2: "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL",
-	}
-	LocalAppAdoptionTrust_value = map[string]int32{
-		"LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED":     0,
-		"LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL":  1,
-		"LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL": 2,
-	}
-)
-
-func (x LocalAppAdoptionTrust) Enum() *LocalAppAdoptionTrust {
-	p := new(LocalAppAdoptionTrust)
-	*p = x
-	return p
-}
-
-func (x LocalAppAdoptionTrust) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalAppAdoptionTrust) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_app_proto_enumTypes[13].Descriptor()
-}
-
-func (LocalAppAdoptionTrust) Type() protoreflect.EnumType {
-	return &file_runtime_v1_app_proto_enumTypes[13]
-}
-
-func (x LocalAppAdoptionTrust) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalAppAdoptionTrust.Descriptor instead.
-func (LocalAppAdoptionTrust) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{13}
-}
-
-// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
-// concrete checkpoint the launch is at so a failed Open names the exact step
-// rather than a generic failure. It is never inferred.
-type AppOpenFlowStep int32
-
-const (
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_UNSPECIFIED AppOpenFlowStep = 0
-	// RESOLVE_REGISTRY resolves the admitted Nimi App registry row.
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY AppOpenFlowStep = 1
-	// VERIFY_PACKAGE verifies the materialized release package + install
-	// evidence (active release pointer, digest-verified payload).
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PACKAGE AppOpenFlowStep = 2
-	// VERIFY_LIBRARY verifies the account app-inventory state for the app.
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_LIBRARY AppOpenFlowStep = 3
-	// VERIFY_APP_DATA verifies the durable app-data root state.
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_APP_DATA AppOpenFlowStep = 4
-	// VERIFY_PERMISSIONS verifies the app permissions are granted or
-	// promptable.
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS AppOpenFlowStep = 5
-	// ENSURE_AICONFIG ensures the app-scope AIConfig exists (first-launch
-	// initialization per S-AICONF-009).
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_ENSURE_AICONFIG AppOpenFlowStep = 6
-	// VALIDATE_MANIFEST validates the app manifest requirements.
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST AppOpenFlowStep = 7
-	// LAUNCH is the terminal launch step: the runtime-owned app launch
-	// supervision admits the app process/surface.
-	AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH AppOpenFlowStep = 8
-)
-
-// Enum value maps for AppOpenFlowStep.
-var (
-	AppOpenFlowStep_name = map[int32]string{
-		0: "APP_OPEN_FLOW_STEP_UNSPECIFIED",
-		1: "APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY",
-		2: "APP_OPEN_FLOW_STEP_VERIFY_PACKAGE",
-		3: "APP_OPEN_FLOW_STEP_VERIFY_LIBRARY",
-		4: "APP_OPEN_FLOW_STEP_VERIFY_APP_DATA",
-		5: "APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS",
-		6: "APP_OPEN_FLOW_STEP_ENSURE_AICONFIG",
-		7: "APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST",
-		8: "APP_OPEN_FLOW_STEP_LAUNCH",
-	}
-	AppOpenFlowStep_value = map[string]int32{
-		"APP_OPEN_FLOW_STEP_UNSPECIFIED":        0,
-		"APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY":   1,
-		"APP_OPEN_FLOW_STEP_VERIFY_PACKAGE":     2,
-		"APP_OPEN_FLOW_STEP_VERIFY_LIBRARY":     3,
-		"APP_OPEN_FLOW_STEP_VERIFY_APP_DATA":    4,
-		"APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS": 5,
-		"APP_OPEN_FLOW_STEP_ENSURE_AICONFIG":    6,
-		"APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST":  7,
-		"APP_OPEN_FLOW_STEP_LAUNCH":             8,
-	}
-)
-
-func (x AppOpenFlowStep) Enum() *AppOpenFlowStep {
-	p := new(AppOpenFlowStep)
-	*p = x
-	return p
-}
-
-func (x AppOpenFlowStep) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AppOpenFlowStep) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_app_proto_enumTypes[14].Descriptor()
-}
-
-func (AppOpenFlowStep) Type() protoreflect.EnumType {
-	return &file_runtime_v1_app_proto_enumTypes[14]
-}
-
-func (x AppOpenFlowStep) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AppOpenFlowStep.Descriptor instead.
-func (AppOpenFlowStep) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{14}
-}
-
-// AppOpenState is the typed terminal Open-flow state. A blocked or failed
-// Open never projects as launched.
-type AppOpenState int32
-
-const (
-	AppOpenState_APP_OPEN_STATE_UNSPECIFIED AppOpenState = 0
-	// APP_OPEN_STATE_LAUNCHED means the Open flow completed and the app launch
-	// was admitted.
-	AppOpenState_APP_OPEN_STATE_LAUNCHED AppOpenState = 1
-	// APP_OPEN_STATE_BLOCKED means a verify step fail-closed before launch
-	// (package/library/app-data/permission/AIConfig/manifest). It carries the
-	// distinct typed reason_code; it is never collapsed into a generic value.
-	AppOpenState_APP_OPEN_STATE_BLOCKED AppOpenState = 2
-	// Runtime created a short-lived launch record, but no verified child has
-	// consumed it yet. This is never projected as launched=true.
-	AppOpenState_APP_OPEN_STATE_LAUNCH_PREPARED AppOpenState = 3
-)
-
-// Enum value maps for AppOpenState.
-var (
-	AppOpenState_name = map[int32]string{
-		0: "APP_OPEN_STATE_UNSPECIFIED",
-		1: "APP_OPEN_STATE_LAUNCHED",
-		2: "APP_OPEN_STATE_BLOCKED",
-		3: "APP_OPEN_STATE_LAUNCH_PREPARED",
-	}
-	AppOpenState_value = map[string]int32{
-		"APP_OPEN_STATE_UNSPECIFIED":     0,
-		"APP_OPEN_STATE_LAUNCHED":        1,
-		"APP_OPEN_STATE_BLOCKED":         2,
-		"APP_OPEN_STATE_LAUNCH_PREPARED": 3,
-	}
-)
-
-func (x AppOpenState) Enum() *AppOpenState {
-	p := new(AppOpenState)
-	*p = x
-	return p
-}
-
-func (x AppOpenState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (AppOpenState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_app_proto_enumTypes[15].Descriptor()
-}
-
-func (AppOpenState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_app_proto_enumTypes[15]
-}
-
-func (x AppOpenState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use AppOpenState.Descriptor instead.
-func (AppOpenState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{15}
 }
 
 type SendAppMessageRequest struct {
@@ -1194,8 +923,14 @@ type SubscribeAppMessagesRequest struct {
 	Cursor        string                          `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
 	FromAppIds    []string                        `protobuf:"bytes,4,rep,name=from_app_ids,json=fromAppIds,proto3" json:"from_app_ids,omitempty"`
 	ScopedBinding *ScopedRuntimeBindingAttachment `protobuf:"bytes,5,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Local-app carrier selector only. These fields never establish caller,
+	// Agent ownership, conversation ownership, grant, or session authority;
+	// Runtime accepts them only on the verified local_app_host transport and
+	// revalidates them in the operation owner.
+	LocalAgentRef        string `protobuf:"bytes,6,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	ConversationAnchorId string `protobuf:"bytes,7,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *SubscribeAppMessagesRequest) Reset() {
@@ -1261,6 +996,20 @@ func (x *SubscribeAppMessagesRequest) GetScopedBinding() *ScopedRuntimeBindingAt
 		return x.ScopedBinding
 	}
 	return nil
+}
+
+func (x *SubscribeAppMessagesRequest) GetLocalAgentRef() string {
+	if x != nil {
+		return x.LocalAgentRef
+	}
+	return ""
+}
+
+func (x *SubscribeAppMessagesRequest) GetConversationAnchorId() string {
+	if x != nil {
+		return x.ConversationAnchorId
+	}
+	return ""
 }
 
 type AppMessageEvent struct {
@@ -1387,9 +1136,8 @@ func (x *AppMessageEvent) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-// AppLifecycleDestructiveOptions is the closed set of option values that can
-// alter the canonical impact for today's lifecycle methods. Runtime resolves
-// and revalidates their concrete target before it issues an intent.
+// AppLifecycleDestructiveOptions reserves future immutable-package impact
+// fields. Runtime does not resolve or issue such an intent in 0K.
 type AppLifecycleDestructiveOptions struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	DeleteDurableData  bool                   `protobuf:"varint,1,opt,name=delete_durable_data,json=deleteDurableData,proto3" json:"delete_durable_data,omitempty"`
@@ -1450,9 +1198,8 @@ func (x *AppLifecycleDestructiveOptions) GetTargetJobId() string {
 	return ""
 }
 
-// AppLifecycleCanonicalImpact is the typed input to RFC8785 JSON
-// canonicalization and SHA-256 digesting. account_generation remains inside
-// Runtime/protected transport and is never projected into renderer IPC.
+// AppLifecycleCanonicalImpact reserves a future canonical-impact shape. No
+// canonical package impact is produced or projected in 0K.
 type AppLifecycleCanonicalImpact struct {
 	state                  protoimpl.MessageState          `protogen:"open.v1"`
 	SchemaVersion          uint32                          `protobuf:"varint,1,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
@@ -1461,7 +1208,6 @@ type AppLifecycleCanonicalImpact struct {
 	AccountGeneration      uint64                          `protobuf:"varint,4,opt,name=account_generation,json=accountGeneration,proto3" json:"account_generation,omitempty"`
 	ReleaseRef             string                          `protobuf:"bytes,5,opt,name=release_ref,json=releaseRef,proto3" json:"release_ref,omitempty"`
 	ArtifactDigest         string                          `protobuf:"bytes,6,opt,name=artifact_digest,json=artifactDigest,proto3" json:"artifact_digest,omitempty"`
-	AdoptionGeneration     uint64                          `protobuf:"varint,7,opt,name=adoption_generation,json=adoptionGeneration,proto3" json:"adoption_generation,omitempty"`
 	DestructiveOptions     *AppLifecycleDestructiveOptions `protobuf:"bytes,8,opt,name=destructive_options,json=destructiveOptions,proto3" json:"destructive_options,omitempty"`
 	ImpactFlags            []string                        `protobuf:"bytes,9,rep,name=impact_flags,json=impactFlags,proto3" json:"impact_flags,omitempty"`
 	DisplayContractVersion uint32                          `protobuf:"varint,10,opt,name=display_contract_version,json=displayContractVersion,proto3" json:"display_contract_version,omitempty"`
@@ -1541,13 +1287,6 @@ func (x *AppLifecycleCanonicalImpact) GetArtifactDigest() string {
 	return ""
 }
 
-func (x *AppLifecycleCanonicalImpact) GetAdoptionGeneration() uint64 {
-	if x != nil {
-		return x.AdoptionGeneration
-	}
-	return 0
-}
-
 func (x *AppLifecycleCanonicalImpact) GetDestructiveOptions() *AppLifecycleDestructiveOptions {
 	if x != nil {
 		return x.DestructiveOptions
@@ -1570,15 +1309,14 @@ func (x *AppLifecycleCanonicalImpact) GetDisplayContractVersion() uint32 {
 }
 
 type PrepareAppLifecycleIntentRequest struct {
-	state                      protoimpl.MessageState          `protogen:"open.v1"`
-	Action                     AppLifecycleIntentAction        `protobuf:"varint,1,opt,name=action,proto3,enum=nimi.runtime.v1.AppLifecycleIntentAction" json:"action,omitempty"`
-	AppId                      string                          `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	ExpectedReleaseRef         string                          `protobuf:"bytes,3,opt,name=expected_release_ref,json=expectedReleaseRef,proto3" json:"expected_release_ref,omitempty"`
-	ExpectedArtifactDigest     string                          `protobuf:"bytes,4,opt,name=expected_artifact_digest,json=expectedArtifactDigest,proto3" json:"expected_artifact_digest,omitempty"`
-	ExpectedAdoptionGeneration uint64                          `protobuf:"varint,5,opt,name=expected_adoption_generation,json=expectedAdoptionGeneration,proto3" json:"expected_adoption_generation,omitempty"`
-	DestructiveOptions         *AppLifecycleDestructiveOptions `protobuf:"bytes,6,opt,name=destructive_options,json=destructiveOptions,proto3" json:"destructive_options,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                  protoimpl.MessageState          `protogen:"open.v1"`
+	Action                 AppLifecycleIntentAction        `protobuf:"varint,1,opt,name=action,proto3,enum=nimi.runtime.v1.AppLifecycleIntentAction" json:"action,omitempty"`
+	AppId                  string                          `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	ExpectedReleaseRef     string                          `protobuf:"bytes,3,opt,name=expected_release_ref,json=expectedReleaseRef,proto3" json:"expected_release_ref,omitempty"`
+	ExpectedArtifactDigest string                          `protobuf:"bytes,4,opt,name=expected_artifact_digest,json=expectedArtifactDigest,proto3" json:"expected_artifact_digest,omitempty"`
+	DestructiveOptions     *AppLifecycleDestructiveOptions `protobuf:"bytes,6,opt,name=destructive_options,json=destructiveOptions,proto3" json:"destructive_options,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *PrepareAppLifecycleIntentRequest) Reset() {
@@ -1637,13 +1375,6 @@ func (x *PrepareAppLifecycleIntentRequest) GetExpectedArtifactDigest() string {
 		return x.ExpectedArtifactDigest
 	}
 	return ""
-}
-
-func (x *PrepareAppLifecycleIntentRequest) GetExpectedAdoptionGeneration() uint64 {
-	if x != nil {
-		return x.ExpectedAdoptionGeneration
-	}
-	return 0
 }
 
 func (x *PrepareAppLifecycleIntentRequest) GetDestructiveOptions() *AppLifecycleDestructiveOptions {
@@ -1859,9 +1590,8 @@ func (x *GetAppLifecycleIntentStatusResponse) GetRetryability() bool {
 	return false
 }
 
-// AppInstallStorageProjection mirrors the Runtime-owned app storage roots
-// (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
-// selected nimi_data directory.
+// AppInstallStorageProjection reserves future immutable-materialization roots.
+// It is never positively populated in 0K.
 type AppInstallStorageProjection struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	AppRoot         string                 `protobuf:"bytes,1,opt,name=app_root,json=appRoot,proto3" json:"app_root,omitempty"`
@@ -1938,10 +1668,10 @@ func (x *AppInstallStorageProjection) GetTempRoot() string {
 	return ""
 }
 
-// AppStorageProjection is the stable Runtime-owned app storage truth surface
-// for app consumers (P-NAPP-015 / S-APP-011). data/cache/tmp are app-scoped
-// absolute roots under selected nimi_data. active_release_root is populated
-// only when an installed active release pointer resolves.
+// AppStorageProjection is the stable Runtime-owned app-private storage truth
+// surface (K-APP-022). data/cache/tmp are principal-partitioned roots under the
+// selected nimi_data root. In 0K active_release_root and active_version remain
+// empty because no immutable materialization is admitted.
 type AppStorageProjection struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	AppId             string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
@@ -2066,9 +1796,10 @@ func (x *AppStorageProjection) GetDetail() string {
 	return ""
 }
 
-// AppPackageReadinessProjection is the Runtime-owned package readiness surface
-// for app consumers. It projects active release + install evidence truth only;
-// registry admission and permission gates stay in Platform/SDK projections.
+// AppPackageReadinessProjection is the frozen opaque package seam. In 0K it
+// contains only BLOCKED, LOCAL_APP_OPERATION_UNAVAILABLE, and
+// immutable_profile_unavailable; all identity, descriptor, version, digest,
+// verification, and storage-policy fields remain empty.
 type AppPackageReadinessProjection struct {
 	state                protoimpl.MessageState   `protogen:"open.v1"`
 	AppId                string                   `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
@@ -2193,11 +1924,8 @@ func (x *AppPackageReadinessProjection) GetDetail() string {
 	return ""
 }
 
-// AppInstallJob is the typed install job projection. It mirrors the
-// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
-// resolved descriptor identity, a fail-closed failure detail, and a
-// retryable flag so a failed install can be retried or its partial files
-// removed without ever projecting as success.
+// AppInstallJob reserves a future immutable-package job projection. No job id,
+// descriptor, digest, storage, retry, or terminal success is emitted in 0K.
 type AppInstallJob struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	JobId                string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
@@ -2380,11 +2108,9 @@ func (x *AppInstallJob) GetPreviousVersion() string {
 
 type InstallAppRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// app_id resolves an admitted Nimi App registry row and its bound release
-	// descriptor.
+	// Reserved future package selector; it has no authority in 0K.
 	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	// confirmed records that the user confirmed the install requirement preview
-	// (size, data roots, AI/profile requirements, permissions).
+	// Reserved future confirmation slot; it cannot admit an install in 0K.
 	Confirmed             bool   `protobuf:"varint,2,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
 	LifecycleIntentId     string `protobuf:"bytes,3,opt,name=lifecycle_intent_id,json=lifecycleIntentId,proto3" json:"lifecycle_intent_id,omitempty"`
 	DisplayedImpactDigest string `protobuf:"bytes,4,opt,name=displayed_impact_digest,json=displayedImpactDigest,proto3" json:"displayed_impact_digest,omitempty"`
@@ -2584,10 +2310,8 @@ func (x *GetAppInstallJobResponse) GetJob() *AppInstallJob {
 
 type GetAppStorageRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// app_id resolves the app-scoped storage roots. For ordinary installed apps
-	// it resolves against the admitted descriptor/active release. For a
-	// runtime-registered developer app, it still returns data/cache/tmp under
-	// the selected nimi_data root without projecting an installed release.
+	// app_id is correlation-only and must match the verified principal/record
+	// binding. Runtime never uses it as authority or an app-id fallback.
 	AppId         string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2952,510 +2676,11 @@ func (x *GetAccountAppInventoryResponse) GetDetail() string {
 	return ""
 }
 
-type LocalAppAdoption struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	AppId              string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	RootPath           string                 `protobuf:"bytes,2,opt,name=root_path,json=rootPath,proto3" json:"root_path,omitempty"`
-	ManifestPath       string                 `protobuf:"bytes,3,opt,name=manifest_path,json=manifestPath,proto3" json:"manifest_path,omitempty"`
-	DisplayName        string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Version            string                 `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
-	EntryRef           string                 `protobuf:"bytes,6,opt,name=entry_ref,json=entryRef,proto3" json:"entry_ref,omitempty"`
-	PermissionScopeRef string                 `protobuf:"bytes,7,opt,name=permission_scope_ref,json=permissionScopeRef,proto3" json:"permission_scope_ref,omitempty"`
-	StoragePolicyRef   string                 `protobuf:"bytes,8,opt,name=storage_policy_ref,json=storagePolicyRef,proto3" json:"storage_policy_ref,omitempty"`
-	State              LocalAppAdoptionState  `protobuf:"varint,9,opt,name=state,proto3,enum=nimi.runtime.v1.LocalAppAdoptionState" json:"state,omitempty"`
-	Trust              LocalAppAdoptionTrust  `protobuf:"varint,10,opt,name=trust,proto3,enum=nimi.runtime.v1.LocalAppAdoptionTrust" json:"trust,omitempty"`
-	AdoptedAt          string                 `protobuf:"bytes,11,opt,name=adopted_at,json=adoptedAt,proto3" json:"adopted_at,omitempty"`
-	UpdatedAt          string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	ReasonCode         ReasonCode             `protobuf:"varint,13,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	Detail             string                 `protobuf:"bytes,14,opt,name=detail,proto3" json:"detail,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *LocalAppAdoption) Reset() {
-	*x = LocalAppAdoption{}
-	mi := &file_runtime_v1_app_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalAppAdoption) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalAppAdoption) ProtoMessage() {}
-
-func (x *LocalAppAdoption) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalAppAdoption.ProtoReflect.Descriptor instead.
-func (*LocalAppAdoption) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *LocalAppAdoption) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetRootPath() string {
-	if x != nil {
-		return x.RootPath
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetManifestPath() string {
-	if x != nil {
-		return x.ManifestPath
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetEntryRef() string {
-	if x != nil {
-		return x.EntryRef
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetPermissionScopeRef() string {
-	if x != nil {
-		return x.PermissionScopeRef
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetStoragePolicyRef() string {
-	if x != nil {
-		return x.StoragePolicyRef
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetState() LocalAppAdoptionState {
-	if x != nil {
-		return x.State
-	}
-	return LocalAppAdoptionState_LOCAL_APP_ADOPTION_STATE_UNSPECIFIED
-}
-
-func (x *LocalAppAdoption) GetTrust() LocalAppAdoptionTrust {
-	if x != nil {
-		return x.Trust
-	}
-	return LocalAppAdoptionTrust_LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED
-}
-
-func (x *LocalAppAdoption) GetAdoptedAt() string {
-	if x != nil {
-		return x.AdoptedAt
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetUpdatedAt() string {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return ""
-}
-
-func (x *LocalAppAdoption) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *LocalAppAdoption) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
-type AdoptLocalAppRequest struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	RootPath              string                 `protobuf:"bytes,1,opt,name=root_path,json=rootPath,proto3" json:"root_path,omitempty"`
-	ExpectedAppId         string                 `protobuf:"bytes,2,opt,name=expected_app_id,json=expectedAppId,proto3" json:"expected_app_id,omitempty"`
-	LifecycleIntentId     string                 `protobuf:"bytes,3,opt,name=lifecycle_intent_id,json=lifecycleIntentId,proto3" json:"lifecycle_intent_id,omitempty"`
-	DisplayedImpactDigest string                 `protobuf:"bytes,4,opt,name=displayed_impact_digest,json=displayedImpactDigest,proto3" json:"displayed_impact_digest,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *AdoptLocalAppRequest) Reset() {
-	*x = AdoptLocalAppRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AdoptLocalAppRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AdoptLocalAppRequest) ProtoMessage() {}
-
-func (x *AdoptLocalAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AdoptLocalAppRequest.ProtoReflect.Descriptor instead.
-func (*AdoptLocalAppRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *AdoptLocalAppRequest) GetRootPath() string {
-	if x != nil {
-		return x.RootPath
-	}
-	return ""
-}
-
-func (x *AdoptLocalAppRequest) GetExpectedAppId() string {
-	if x != nil {
-		return x.ExpectedAppId
-	}
-	return ""
-}
-
-func (x *AdoptLocalAppRequest) GetLifecycleIntentId() string {
-	if x != nil {
-		return x.LifecycleIntentId
-	}
-	return ""
-}
-
-func (x *AdoptLocalAppRequest) GetDisplayedImpactDigest() string {
-	if x != nil {
-		return x.DisplayedImpactDigest
-	}
-	return ""
-}
-
-type AdoptLocalAppResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Adoption      *LocalAppAdoption      `protobuf:"bytes,1,opt,name=adoption,proto3" json:"adoption,omitempty"`
-	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	Detail        string                 `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AdoptLocalAppResponse) Reset() {
-	*x = AdoptLocalAppResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AdoptLocalAppResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AdoptLocalAppResponse) ProtoMessage() {}
-
-func (x *AdoptLocalAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AdoptLocalAppResponse.ProtoReflect.Descriptor instead.
-func (*AdoptLocalAppResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *AdoptLocalAppResponse) GetAdoption() *LocalAppAdoption {
-	if x != nil {
-		return x.Adoption
-	}
-	return nil
-}
-
-func (x *AdoptLocalAppResponse) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *AdoptLocalAppResponse) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
-type ListLocalAppAdoptionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListLocalAppAdoptionsRequest) Reset() {
-	*x = ListLocalAppAdoptionsRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListLocalAppAdoptionsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListLocalAppAdoptionsRequest) ProtoMessage() {}
-
-func (x *ListLocalAppAdoptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListLocalAppAdoptionsRequest.ProtoReflect.Descriptor instead.
-func (*ListLocalAppAdoptionsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{27}
-}
-
-type ListLocalAppAdoptionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Adoptions     []*LocalAppAdoption    `protobuf:"bytes,1,rep,name=adoptions,proto3" json:"adoptions,omitempty"`
-	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	Detail        string                 `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListLocalAppAdoptionsResponse) Reset() {
-	*x = ListLocalAppAdoptionsResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListLocalAppAdoptionsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListLocalAppAdoptionsResponse) ProtoMessage() {}
-
-func (x *ListLocalAppAdoptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListLocalAppAdoptionsResponse.ProtoReflect.Descriptor instead.
-func (*ListLocalAppAdoptionsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{28}
-}
-
-func (x *ListLocalAppAdoptionsResponse) GetAdoptions() []*LocalAppAdoption {
-	if x != nil {
-		return x.Adoptions
-	}
-	return nil
-}
-
-func (x *ListLocalAppAdoptionsResponse) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *ListLocalAppAdoptionsResponse) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
-type RemoveLocalAppAdoptionRequest struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	AppId                      string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	DeleteDurableDataConfirmed bool                   `protobuf:"varint,2,opt,name=delete_durable_data_confirmed,json=deleteDurableDataConfirmed,proto3" json:"delete_durable_data_confirmed,omitempty"`
-	LifecycleIntentId          string                 `protobuf:"bytes,3,opt,name=lifecycle_intent_id,json=lifecycleIntentId,proto3" json:"lifecycle_intent_id,omitempty"`
-	DisplayedImpactDigest      string                 `protobuf:"bytes,4,opt,name=displayed_impact_digest,json=displayedImpactDigest,proto3" json:"displayed_impact_digest,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
-}
-
-func (x *RemoveLocalAppAdoptionRequest) Reset() {
-	*x = RemoveLocalAppAdoptionRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RemoveLocalAppAdoptionRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RemoveLocalAppAdoptionRequest) ProtoMessage() {}
-
-func (x *RemoveLocalAppAdoptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RemoveLocalAppAdoptionRequest.ProtoReflect.Descriptor instead.
-func (*RemoveLocalAppAdoptionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *RemoveLocalAppAdoptionRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *RemoveLocalAppAdoptionRequest) GetDeleteDurableDataConfirmed() bool {
-	if x != nil {
-		return x.DeleteDurableDataConfirmed
-	}
-	return false
-}
-
-func (x *RemoveLocalAppAdoptionRequest) GetLifecycleIntentId() string {
-	if x != nil {
-		return x.LifecycleIntentId
-	}
-	return ""
-}
-
-func (x *RemoveLocalAppAdoptionRequest) GetDisplayedImpactDigest() string {
-	if x != nil {
-		return x.DisplayedImpactDigest
-	}
-	return ""
-}
-
-type RemoveLocalAppAdoptionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Adoption      *LocalAppAdoption      `protobuf:"bytes,1,opt,name=adoption,proto3" json:"adoption,omitempty"`
-	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	Detail        string                 `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RemoveLocalAppAdoptionResponse) Reset() {
-	*x = RemoveLocalAppAdoptionResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RemoveLocalAppAdoptionResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RemoveLocalAppAdoptionResponse) ProtoMessage() {}
-
-func (x *RemoveLocalAppAdoptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RemoveLocalAppAdoptionResponse.ProtoReflect.Descriptor instead.
-func (*RemoveLocalAppAdoptionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *RemoveLocalAppAdoptionResponse) GetAdoption() *LocalAppAdoption {
-	if x != nil {
-		return x.Adoption
-	}
-	return nil
-}
-
-func (x *RemoveLocalAppAdoptionResponse) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *RemoveLocalAppAdoptionResponse) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
 type GetAppPackageReadinessRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// app_id resolves the admitted app's release descriptor, active release
-	// pointer, and install evidence. It never scans from an app-local source.
+	// Reserved selector slot. 0K callers send it empty; Runtime ignores it and
+	// returns one global typed-unavailable projection without reading package
+	// files, descriptors, active-release pointers, or install evidence.
 	AppId         string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3463,7 +2688,7 @@ type GetAppPackageReadinessRequest struct {
 
 func (x *GetAppPackageReadinessRequest) Reset() {
 	*x = GetAppPackageReadinessRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[31]
+	mi := &file_runtime_v1_app_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3475,7 +2700,7 @@ func (x *GetAppPackageReadinessRequest) String() string {
 func (*GetAppPackageReadinessRequest) ProtoMessage() {}
 
 func (x *GetAppPackageReadinessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[31]
+	mi := &file_runtime_v1_app_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3488,7 +2713,7 @@ func (x *GetAppPackageReadinessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppPackageReadinessRequest.ProtoReflect.Descriptor instead.
 func (*GetAppPackageReadinessRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetAppPackageReadinessRequest) GetAppId() string {
@@ -3507,7 +2732,7 @@ type GetAppPackageReadinessResponse struct {
 
 func (x *GetAppPackageReadinessResponse) Reset() {
 	*x = GetAppPackageReadinessResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[32]
+	mi := &file_runtime_v1_app_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3519,7 +2744,7 @@ func (x *GetAppPackageReadinessResponse) String() string {
 func (*GetAppPackageReadinessResponse) ProtoMessage() {}
 
 func (x *GetAppPackageReadinessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[32]
+	mi := &file_runtime_v1_app_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3532,7 +2757,7 @@ func (x *GetAppPackageReadinessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppPackageReadinessResponse.ProtoReflect.Descriptor instead.
 func (*GetAppPackageReadinessResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetAppPackageReadinessResponse) GetProjection() *AppPackageReadinessProjection {
@@ -3544,8 +2769,7 @@ func (x *GetAppPackageReadinessResponse) GetProjection() *AppPackageReadinessPro
 
 type ListAppInstallJobsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// app_id filters jobs to a single app. Empty fails closed; global install-job
-	// enumeration is not admitted for Apps inventory projection.
+	// Reserved future selector. No local or global job enumeration exists in 0K.
 	AppId         string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3553,7 +2777,7 @@ type ListAppInstallJobsRequest struct {
 
 func (x *ListAppInstallJobsRequest) Reset() {
 	*x = ListAppInstallJobsRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[33]
+	mi := &file_runtime_v1_app_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3565,7 +2789,7 @@ func (x *ListAppInstallJobsRequest) String() string {
 func (*ListAppInstallJobsRequest) ProtoMessage() {}
 
 func (x *ListAppInstallJobsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[33]
+	mi := &file_runtime_v1_app_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3578,7 +2802,7 @@ func (x *ListAppInstallJobsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAppInstallJobsRequest.ProtoReflect.Descriptor instead.
 func (*ListAppInstallJobsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListAppInstallJobsRequest) GetAppId() string {
@@ -3597,7 +2821,7 @@ type ListAppInstallJobsResponse struct {
 
 func (x *ListAppInstallJobsResponse) Reset() {
 	*x = ListAppInstallJobsResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[34]
+	mi := &file_runtime_v1_app_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3609,7 +2833,7 @@ func (x *ListAppInstallJobsResponse) String() string {
 func (*ListAppInstallJobsResponse) ProtoMessage() {}
 
 func (x *ListAppInstallJobsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[34]
+	mi := &file_runtime_v1_app_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3622,7 +2846,7 @@ func (x *ListAppInstallJobsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAppInstallJobsResponse.ProtoReflect.Descriptor instead.
 func (*ListAppInstallJobsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListAppInstallJobsResponse) GetJobs() []*AppInstallJob {
@@ -3634,8 +2858,7 @@ func (x *ListAppInstallJobsResponse) GetJobs() []*AppInstallJob {
 
 type WatchAppInstallJobEventsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// job_id scopes the stream to one Runtime-emitted lifecycle job. Empty fails
-	// closed; global job event streams are not admitted.
+	// Reserved future selector. No job event stream exists in 0K.
 	JobId         string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3643,7 +2866,7 @@ type WatchAppInstallJobEventsRequest struct {
 
 func (x *WatchAppInstallJobEventsRequest) Reset() {
 	*x = WatchAppInstallJobEventsRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[35]
+	mi := &file_runtime_v1_app_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3655,7 +2878,7 @@ func (x *WatchAppInstallJobEventsRequest) String() string {
 func (*WatchAppInstallJobEventsRequest) ProtoMessage() {}
 
 func (x *WatchAppInstallJobEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[35]
+	mi := &file_runtime_v1_app_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3668,7 +2891,7 @@ func (x *WatchAppInstallJobEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchAppInstallJobEventsRequest.ProtoReflect.Descriptor instead.
 func (*WatchAppInstallJobEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *WatchAppInstallJobEventsRequest) GetJobId() string {
@@ -3678,9 +2901,8 @@ func (x *WatchAppInstallJobEventsRequest) GetJobId() string {
 	return ""
 }
 
-// AppInstallJobEvent is one typed progress frame for a Watch stream. The
-// snapshot field carries the full typed job projection at the time of the
-// event so the consumer never reconstructs state from partial deltas.
+// AppInstallJobEvent reserves a future progress-frame shape. No frame is
+// emitted in 0K.
 type AppInstallJobEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Sequence      uint64                 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
@@ -3692,7 +2914,7 @@ type AppInstallJobEvent struct {
 
 func (x *AppInstallJobEvent) Reset() {
 	*x = AppInstallJobEvent{}
-	mi := &file_runtime_v1_app_proto_msgTypes[36]
+	mi := &file_runtime_v1_app_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3704,7 +2926,7 @@ func (x *AppInstallJobEvent) String() string {
 func (*AppInstallJobEvent) ProtoMessage() {}
 
 func (x *AppInstallJobEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[36]
+	mi := &file_runtime_v1_app_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3717,7 +2939,7 @@ func (x *AppInstallJobEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppInstallJobEvent.ProtoReflect.Descriptor instead.
 func (*AppInstallJobEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AppInstallJobEvent) GetSequence() uint64 {
@@ -3744,11 +2966,9 @@ func (x *AppInstallJobEvent) GetTimestamp() *timestamppb.Timestamp {
 type UninstallAppRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	AppId string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	// delete_durable_data, when true, additionally removes the durable app data
-	// root. It requires destructive_data_delete_confirmed.
+	// Reserved future destructive option; ignored because the RPC is deny-all.
 	DeleteDurableData bool `protobuf:"varint,2,opt,name=delete_durable_data,json=deleteDurableData,proto3" json:"delete_durable_data,omitempty"`
-	// destructive_data_delete_confirmed records explicit user confirmation of
-	// the separate destructive "Delete app data" flow with impact preview.
+	// Reserved future confirmation slot; it cannot authorize deletion in 0K.
 	DestructiveDataDeleteConfirmed bool   `protobuf:"varint,3,opt,name=destructive_data_delete_confirmed,json=destructiveDataDeleteConfirmed,proto3" json:"destructive_data_delete_confirmed,omitempty"`
 	LifecycleIntentId              string `protobuf:"bytes,4,opt,name=lifecycle_intent_id,json=lifecycleIntentId,proto3" json:"lifecycle_intent_id,omitempty"`
 	DisplayedImpactDigest          string `protobuf:"bytes,5,opt,name=displayed_impact_digest,json=displayedImpactDigest,proto3" json:"displayed_impact_digest,omitempty"`
@@ -3758,7 +2978,7 @@ type UninstallAppRequest struct {
 
 func (x *UninstallAppRequest) Reset() {
 	*x = UninstallAppRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[37]
+	mi := &file_runtime_v1_app_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3770,7 +2990,7 @@ func (x *UninstallAppRequest) String() string {
 func (*UninstallAppRequest) ProtoMessage() {}
 
 func (x *UninstallAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[37]
+	mi := &file_runtime_v1_app_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3783,7 +3003,7 @@ func (x *UninstallAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallAppRequest.ProtoReflect.Descriptor instead.
 func (*UninstallAppRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *UninstallAppRequest) GetAppId() string {
@@ -3821,9 +3041,8 @@ func (x *UninstallAppRequest) GetDisplayedImpactDigest() string {
 	return ""
 }
 
-// AppUninstallResult is the typed uninstall projection. Uninstall removes
-// release payloads by default and keeps durable data unless destructive
-// deletion was explicitly confirmed.
+// AppUninstallResult reserves a future immutable-package removal projection.
+// It is never positively returned in 0K.
 type AppUninstallResult struct {
 	state              protoimpl.MessageState       `protogen:"open.v1"`
 	AppId              string                       `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
@@ -3837,7 +3056,7 @@ type AppUninstallResult struct {
 
 func (x *AppUninstallResult) Reset() {
 	*x = AppUninstallResult{}
-	mi := &file_runtime_v1_app_proto_msgTypes[38]
+	mi := &file_runtime_v1_app_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3849,7 +3068,7 @@ func (x *AppUninstallResult) String() string {
 func (*AppUninstallResult) ProtoMessage() {}
 
 func (x *AppUninstallResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[38]
+	mi := &file_runtime_v1_app_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3862,7 +3081,7 @@ func (x *AppUninstallResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppUninstallResult.ProtoReflect.Descriptor instead.
 func (*AppUninstallResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *AppUninstallResult) GetAppId() string {
@@ -3902,14 +3121,9 @@ func (x *AppUninstallResult) GetReasonCode() ReasonCode {
 
 type UninstallAppResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// result is the typed uninstall projection carrying the K-APP-014
-	// durable-data retention semantics (release_removed / durable_data_removed).
+	// Reserved future result; absent in 0K typed-unavailable responses.
 	Result *AppUninstallResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
-	// job is the watchable uninstall lifecycle job (K-APP-017,
-	// AppLifecycleJobKind=APP_LIFECYCLE_JOB_KIND_UNINSTALL). It is the single
-	// live-job truth source for the `uninstalling` Apps card state and can be
-	// followed via WatchAppInstallJobEvents. A failed uninstall is recorded as a
-	// recoverable job and is never projected as success.
+	// Reserved future job; no uninstall job exists in 0K.
 	Job           *AppInstallJob `protobuf:"bytes,2,opt,name=job,proto3" json:"job,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3917,7 +3131,7 @@ type UninstallAppResponse struct {
 
 func (x *UninstallAppResponse) Reset() {
 	*x = UninstallAppResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[39]
+	mi := &file_runtime_v1_app_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3929,7 +3143,7 @@ func (x *UninstallAppResponse) String() string {
 func (*UninstallAppResponse) ProtoMessage() {}
 
 func (x *UninstallAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[39]
+	mi := &file_runtime_v1_app_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3942,7 +3156,7 @@ func (x *UninstallAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallAppResponse.ProtoReflect.Descriptor instead.
 func (*UninstallAppResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *UninstallAppResponse) GetResult() *AppUninstallResult {
@@ -3961,12 +3175,9 @@ func (x *UninstallAppResponse) GetJob() *AppInstallJob {
 
 type UpdateAppRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// app_id resolves an admitted Nimi App registry row whose bound release
-	// descriptor advanced past the currently installed version.
+	// Reserved future package selector; it has no authority in 0K.
 	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	// confirmed records that the user confirmed the update impact preview
-	// (version, size, breaking-vs-non-breaking impact). It is required for a
-	// required (breaking) update and ignored for a non-breaking update.
+	// Reserved future confirmation slot; it cannot admit an update in 0K.
 	Confirmed             bool   `protobuf:"varint,2,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
 	LifecycleIntentId     string `protobuf:"bytes,3,opt,name=lifecycle_intent_id,json=lifecycleIntentId,proto3" json:"lifecycle_intent_id,omitempty"`
 	DisplayedImpactDigest string `protobuf:"bytes,4,opt,name=displayed_impact_digest,json=displayedImpactDigest,proto3" json:"displayed_impact_digest,omitempty"`
@@ -3976,7 +3187,7 @@ type UpdateAppRequest struct {
 
 func (x *UpdateAppRequest) Reset() {
 	*x = UpdateAppRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[40]
+	mi := &file_runtime_v1_app_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3988,7 +3199,7 @@ func (x *UpdateAppRequest) String() string {
 func (*UpdateAppRequest) ProtoMessage() {}
 
 func (x *UpdateAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[40]
+	mi := &file_runtime_v1_app_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4001,7 +3212,7 @@ func (x *UpdateAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAppRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAppRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *UpdateAppRequest) GetAppId() string {
@@ -4034,8 +3245,7 @@ func (x *UpdateAppRequest) GetDisplayedImpactDigest() string {
 
 type UpdateAppResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// job is the typed update job projection. It reuses the AppInstallJob shape
-	// with kind=APP_LIFECYCLE_JOB_KIND_UPDATE.
+	// Reserved future job; no update job exists in 0K.
 	Job           *AppInstallJob `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4043,7 +3253,7 @@ type UpdateAppResponse struct {
 
 func (x *UpdateAppResponse) Reset() {
 	*x = UpdateAppResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[41]
+	mi := &file_runtime_v1_app_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4055,7 +3265,7 @@ func (x *UpdateAppResponse) String() string {
 func (*UpdateAppResponse) ProtoMessage() {}
 
 func (x *UpdateAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[41]
+	mi := &file_runtime_v1_app_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4068,7 +3278,7 @@ func (x *UpdateAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAppResponse.ProtoReflect.Descriptor instead.
 func (*UpdateAppResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *UpdateAppResponse) GetJob() *AppInstallJob {
@@ -4080,14 +3290,11 @@ func (x *UpdateAppResponse) GetJob() *AppInstallJob {
 
 type HealthRepairAppRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// app_id resolves the admitted Nimi App registry row whose lifecycle job is
-	// being repaired.
+	// Reserved future package selector; it has no authority in 0K.
 	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	// action is the typed repair action. Only the four admitted tokens are
-	// accepted; any other value fails closed.
+	// Reserved future repair action; no action is admitted in 0K.
 	Action AppHealthRepairAction `protobuf:"varint,2,opt,name=action,proto3,enum=nimi.runtime.v1.AppHealthRepairAction" json:"action,omitempty"`
-	// job_id optionally targets a specific lifecycle job for cancel/retry. When
-	// empty, cancel/retry resolve the most recent recoverable job for the app.
+	// Reserved future job selector; no recoverable job exists in 0K.
 	JobId                 string `protobuf:"bytes,3,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	LifecycleIntentId     string `protobuf:"bytes,4,opt,name=lifecycle_intent_id,json=lifecycleIntentId,proto3" json:"lifecycle_intent_id,omitempty"`
 	DisplayedImpactDigest string `protobuf:"bytes,5,opt,name=displayed_impact_digest,json=displayedImpactDigest,proto3" json:"displayed_impact_digest,omitempty"`
@@ -4097,7 +3304,7 @@ type HealthRepairAppRequest struct {
 
 func (x *HealthRepairAppRequest) Reset() {
 	*x = HealthRepairAppRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[42]
+	mi := &file_runtime_v1_app_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4109,7 +3316,7 @@ func (x *HealthRepairAppRequest) String() string {
 func (*HealthRepairAppRequest) ProtoMessage() {}
 
 func (x *HealthRepairAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[42]
+	mi := &file_runtime_v1_app_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4122,7 +3329,7 @@ func (x *HealthRepairAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRepairAppRequest.ProtoReflect.Descriptor instead.
 func (*HealthRepairAppRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *HealthRepairAppRequest) GetAppId() string {
@@ -4162,9 +3369,7 @@ func (x *HealthRepairAppRequest) GetDisplayedImpactDigest() string {
 
 type HealthRepairAppResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// job is the typed lifecycle job projection produced by the repair action.
-	// cancel returns the cancelled job; retry/repair/reinstall return the new
-	// in-flight job. A failed repair is never projected as success.
+	// Reserved future job; no repair job exists in 0K.
 	Job           *AppInstallJob `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4172,7 +3377,7 @@ type HealthRepairAppResponse struct {
 
 func (x *HealthRepairAppResponse) Reset() {
 	*x = HealthRepairAppResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[43]
+	mi := &file_runtime_v1_app_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4184,7 +3389,7 @@ func (x *HealthRepairAppResponse) String() string {
 func (*HealthRepairAppResponse) ProtoMessage() {}
 
 func (x *HealthRepairAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[43]
+	mi := &file_runtime_v1_app_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4197,7 +3402,7 @@ func (x *HealthRepairAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRepairAppResponse.ProtoReflect.Descriptor instead.
 func (*HealthRepairAppResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *HealthRepairAppResponse) GetJob() *AppInstallJob {
@@ -4207,43 +3412,86 @@ func (x *HealthRepairAppResponse) GetJob() *AppInstallJob {
 	return nil
 }
 
-// AppOpenScopeRef is the explicit canonical app-launch AIConfig scope a
-// caller must carry to open a Nimi App (K-APP-017 / P-AISC-007). It is the
-// app-shape AIScopeRef: kind is always `app`; owner_id is the admitted Nimi
-// App registry app_id and must equal the app_id being opened; surface_id is
-// optional and only set when the app's manifest declares a stable AI feature
-// surface. OpenApp never infers this scope — a missing or mismatched
-// AppOpenScopeRef fails closed.
-type AppOpenScopeRef struct {
+type PrepareLocalAppLaunchRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// kind is the AIScopeRef kind discriminator. For OpenApp it is fixed to the
-	// literal string `app`; any other value fails closed.
-	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
-	// owner_id is the admitted Nimi App registry app_id (dot-separated app
-	// identity, e.g. `nimi.avatar`). It must equal OpenAppRequest.app_id.
-	OwnerId string `protobuf:"bytes,2,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	// surface_id is the optional stable app-declared AI feature surface id.
-	// Empty means the canonical app-level AI scope.
-	SurfaceId     string `protobuf:"bytes,3,opt,name=surface_id,json=surfaceId,proto3" json:"surface_id,omitempty"`
+	// Runtime-generated management handle. For local_development it resolves an
+	// active authorization; immutable profiles remain typed unavailable in 0K.
+	// It is not a principal id, app id, account selector, path, or credential.
+	LocalAppHandle []byte `protobuf:"bytes,1,opt,name=local_app_handle,json=localAppHandle,proto3" json:"local_app_handle,omitempty"`
+	// Required only for a live local_development supervisor run.
+	SupervisorRunId []byte `protobuf:"bytes,2,opt,name=supervisor_run_id,json=supervisorRunId,proto3" json:"supervisor_run_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *PrepareLocalAppLaunchRequest) Reset() {
+	*x = PrepareLocalAppLaunchRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrepareLocalAppLaunchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrepareLocalAppLaunchRequest) ProtoMessage() {}
+
+func (x *PrepareLocalAppLaunchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrepareLocalAppLaunchRequest.ProtoReflect.Descriptor instead.
+func (*PrepareLocalAppLaunchRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *PrepareLocalAppLaunchRequest) GetLocalAppHandle() []byte {
+	if x != nil {
+		return x.LocalAppHandle
+	}
+	return nil
+}
+
+func (x *PrepareLocalAppLaunchRequest) GetSupervisorRunId() []byte {
+	if x != nil {
+		return x.SupervisorRunId
+	}
+	return nil
+}
+
+type PrepareLocalAppLaunchResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LaunchId      []byte                 `protobuf:"bytes,1,opt,name=launch_id,json=launchId,proto3" json:"launch_id,omitempty"`
+	BindDeadline  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=bind_deadline,json=bindDeadline,proto3" json:"bind_deadline,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AppOpenScopeRef) Reset() {
-	*x = AppOpenScopeRef{}
-	mi := &file_runtime_v1_app_proto_msgTypes[44]
+func (x *PrepareLocalAppLaunchResponse) Reset() {
+	*x = PrepareLocalAppLaunchResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AppOpenScopeRef) String() string {
+func (x *PrepareLocalAppLaunchResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AppOpenScopeRef) ProtoMessage() {}
+func (*PrepareLocalAppLaunchResponse) ProtoMessage() {}
 
-func (x *AppOpenScopeRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[44]
+func (x *PrepareLocalAppLaunchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4254,385 +3502,33 @@ func (x *AppOpenScopeRef) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AppOpenScopeRef.ProtoReflect.Descriptor instead.
-func (*AppOpenScopeRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{44}
+// Deprecated: Use PrepareLocalAppLaunchResponse.ProtoReflect.Descriptor instead.
+func (*PrepareLocalAppLaunchResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{38}
 }
 
-func (x *AppOpenScopeRef) GetKind() string {
-	if x != nil {
-		return x.Kind
-	}
-	return ""
-}
-
-func (x *AppOpenScopeRef) GetOwnerId() string {
-	if x != nil {
-		return x.OwnerId
-	}
-	return ""
-}
-
-func (x *AppOpenScopeRef) GetSurfaceId() string {
-	if x != nil {
-		return x.SurfaceId
-	}
-	return ""
-}
-
-type OpenAppRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// app_id resolves an admitted Nimi App registry row
-	// (admission_status=admitted) and a track-discriminated launch path.
-	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	// scope is the explicit canonical app-launch AIConfig scope. It is
-	// mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
-	Scope                 *AppOpenScopeRef `protobuf:"bytes,2,opt,name=scope,proto3" json:"scope,omitempty"`
-	LifecycleIntentId     string           `protobuf:"bytes,3,opt,name=lifecycle_intent_id,json=lifecycleIntentId,proto3" json:"lifecycle_intent_id,omitempty"`
-	DisplayedImpactDigest string           `protobuf:"bytes,4,opt,name=displayed_impact_digest,json=displayedImpactDigest,proto3" json:"displayed_impact_digest,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *OpenAppRequest) Reset() {
-	*x = OpenAppRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[45]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OpenAppRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OpenAppRequest) ProtoMessage() {}
-
-func (x *OpenAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[45]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OpenAppRequest.ProtoReflect.Descriptor instead.
-func (*OpenAppRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{45}
-}
-
-func (x *OpenAppRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *OpenAppRequest) GetScope() *AppOpenScopeRef {
-	if x != nil {
-		return x.Scope
-	}
-	return nil
-}
-
-func (x *OpenAppRequest) GetLifecycleIntentId() string {
-	if x != nil {
-		return x.LifecycleIntentId
-	}
-	return ""
-}
-
-func (x *OpenAppRequest) GetDisplayedImpactDigest() string {
-	if x != nil {
-		return x.DisplayedImpactDigest
-	}
-	return ""
-}
-
-// AppOpenProjection is the typed Open-flow projection. It reports the
-// terminal state, the step the flow reached, the resolved launch scope, and a
-// fail-closed reason_code on every blocked branch.
-type AppOpenProjection struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	AppId string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	State AppOpenState           `protobuf:"varint,2,opt,name=state,proto3,enum=nimi.runtime.v1.AppOpenState" json:"state,omitempty"`
-	// reached_step is the last Open-flow step the launch executed. On a blocked
-	// open it names the exact step that fail-closed.
-	ReachedStep AppOpenFlowStep `protobuf:"varint,3,opt,name=reached_step,json=reachedStep,proto3,enum=nimi.runtime.v1.AppOpenFlowStep" json:"reached_step,omitempty"`
-	// launched is true only when state is APP_OPEN_STATE_LAUNCHED. It is never
-	// inferred from process liveness or file existence.
-	Launched bool `protobuf:"varint,4,opt,name=launched,proto3" json:"launched,omitempty"`
-	// active_version is the active release version the launch resolved. Empty
-	// when the open blocked before package verification.
-	ActiveVersion string `protobuf:"bytes,5,opt,name=active_version,json=activeVersion,proto3" json:"active_version,omitempty"`
-	// scope echoes the resolved app-launch AIConfig scope. On a launched open
-	// the Open flow has validated this scope as the canonical app-shape
-	// AIScopeRef (P-AISC-007); the per-app first-launch AIConfig initialization
-	// (S-AICONF-009) is finalized by the SDK/desktop AIConfig surface against
-	// this validated scope — the AIConfig store is not Runtime-owned.
-	Scope *AppOpenScopeRef `protobuf:"bytes,6,opt,name=scope,proto3" json:"scope,omitempty"`
-	// reason_code is the typed fail-closed reason on a blocked open, or
-	// ACTION_EXECUTED on a launched open. It is never collapsed into a generic
-	// value.
-	ReasonCode ReasonCode `protobuf:"varint,7,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	Detail     string     `protobuf:"bytes,8,opt,name=detail,proto3" json:"detail,omitempty"`
-	// release_descriptor_ref is Runtime-attested descriptor identity used for
-	// the installed launch. It is empty for blocked local-adoption projections;
-	// adoption inventory alone cannot satisfy either production installed or
-	// P-NAPP-035 local-development launch authority.
-	ReleaseDescriptorRef    string `protobuf:"bytes,9,opt,name=release_descriptor_ref,json=releaseDescriptorRef,proto3" json:"release_descriptor_ref,omitempty"`
-	DescriptorClass         string `protobuf:"bytes,10,opt,name=descriptor_class,json=descriptorClass,proto3" json:"descriptor_class,omitempty"`
-	AdmissionTrack          string `protobuf:"bytes,11,opt,name=admission_track,json=admissionTrack,proto3" json:"admission_track,omitempty"`
-	SourceKind              string `protobuf:"bytes,12,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
-	OrdinaryVisibility      string `protobuf:"bytes,13,opt,name=ordinary_visibility,json=ordinaryVisibility,proto3" json:"ordinary_visibility,omitempty"`
-	DigestVerificationState string `protobuf:"bytes,14,opt,name=digest_verification_state,json=digestVerificationState,proto3" json:"digest_verification_state,omitempty"`
-	RuntimeEntryRef         string `protobuf:"bytes,15,opt,name=runtime_entry_ref,json=runtimeEntryRef,proto3" json:"runtime_entry_ref,omitempty"`
-	// active_release_root is the verified installed release root Desktop can
-	// host without recomputing descriptor paths. Future opaque launch URI
-	// support must use a new field, not overload this path.
-	ActiveReleaseRoot     string                       `protobuf:"bytes,16,opt,name=active_release_root,json=activeReleaseRoot,proto3" json:"active_release_root,omitempty"`
-	Storage               *AppInstallStorageProjection `protobuf:"bytes,17,opt,name=storage,proto3" json:"storage,omitempty"`
-	ShellCapabilitySetRef string                       `protobuf:"bytes,18,opt,name=shell_capability_set_ref,json=shellCapabilitySetRef,proto3" json:"shell_capability_set_ref,omitempty"`
-	// caller_mode is the installed-app posture string. The AccountCallerMode enum
-	// authority lands in Task 6; this field carries the OpenApp launch-resolution
-	// string without reusing external-principal posture.
-	CallerMode string `protobuf:"bytes,19,opt,name=caller_mode,json=callerMode,proto3" json:"caller_mode,omitempty"`
-	// Non-authorizing 32-byte correlation id. The host-only verified process
-	// binding is established separately over protected Desktop control.
-	LaunchId                     []byte `protobuf:"bytes,20,opt,name=launch_id,json=launchId,proto3" json:"launch_id,omitempty"`
-	ProductReadinessClaimAllowed bool   `protobuf:"varint,21,opt,name=product_readiness_claim_allowed,json=productReadinessClaimAllowed,proto3" json:"product_readiness_claim_allowed,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
-}
-
-func (x *AppOpenProjection) Reset() {
-	*x = AppOpenProjection{}
-	mi := &file_runtime_v1_app_proto_msgTypes[46]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AppOpenProjection) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AppOpenProjection) ProtoMessage() {}
-
-func (x *AppOpenProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[46]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AppOpenProjection.ProtoReflect.Descriptor instead.
-func (*AppOpenProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{46}
-}
-
-func (x *AppOpenProjection) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetState() AppOpenState {
-	if x != nil {
-		return x.State
-	}
-	return AppOpenState_APP_OPEN_STATE_UNSPECIFIED
-}
-
-func (x *AppOpenProjection) GetReachedStep() AppOpenFlowStep {
-	if x != nil {
-		return x.ReachedStep
-	}
-	return AppOpenFlowStep_APP_OPEN_FLOW_STEP_UNSPECIFIED
-}
-
-func (x *AppOpenProjection) GetLaunched() bool {
-	if x != nil {
-		return x.Launched
-	}
-	return false
-}
-
-func (x *AppOpenProjection) GetActiveVersion() string {
-	if x != nil {
-		return x.ActiveVersion
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetScope() *AppOpenScopeRef {
-	if x != nil {
-		return x.Scope
-	}
-	return nil
-}
-
-func (x *AppOpenProjection) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *AppOpenProjection) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetReleaseDescriptorRef() string {
-	if x != nil {
-		return x.ReleaseDescriptorRef
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetDescriptorClass() string {
-	if x != nil {
-		return x.DescriptorClass
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetAdmissionTrack() string {
-	if x != nil {
-		return x.AdmissionTrack
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetSourceKind() string {
-	if x != nil {
-		return x.SourceKind
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetOrdinaryVisibility() string {
-	if x != nil {
-		return x.OrdinaryVisibility
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetDigestVerificationState() string {
-	if x != nil {
-		return x.DigestVerificationState
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetRuntimeEntryRef() string {
-	if x != nil {
-		return x.RuntimeEntryRef
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetActiveReleaseRoot() string {
-	if x != nil {
-		return x.ActiveReleaseRoot
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetStorage() *AppInstallStorageProjection {
-	if x != nil {
-		return x.Storage
-	}
-	return nil
-}
-
-func (x *AppOpenProjection) GetShellCapabilitySetRef() string {
-	if x != nil {
-		return x.ShellCapabilitySetRef
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetCallerMode() string {
-	if x != nil {
-		return x.CallerMode
-	}
-	return ""
-}
-
-func (x *AppOpenProjection) GetLaunchId() []byte {
+func (x *PrepareLocalAppLaunchResponse) GetLaunchId() []byte {
 	if x != nil {
 		return x.LaunchId
 	}
 	return nil
 }
 
-func (x *AppOpenProjection) GetProductReadinessClaimAllowed() bool {
+func (x *PrepareLocalAppLaunchResponse) GetBindDeadline() *timestamppb.Timestamp {
 	if x != nil {
-		return x.ProductReadinessClaimAllowed
-	}
-	return false
-}
-
-type OpenAppResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Projection    *AppOpenProjection     `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *OpenAppResponse) Reset() {
-	*x = OpenAppResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[47]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OpenAppResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OpenAppResponse) ProtoMessage() {}
-
-func (x *OpenAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[47]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OpenAppResponse.ProtoReflect.Descriptor instead.
-func (*OpenAppResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{47}
-}
-
-func (x *OpenAppResponse) GetProjection() *AppOpenProjection {
-	if x != nil {
-		return x.Projection
+		return x.BindDeadline
 	}
 	return nil
 }
 
-// Desktop sends only selectors observed from its suspended exact-executable
-// launch. Runtime independently opens and verifies the process before binding
-// it to the launch record; neither field is authority by itself.
-type BindInstalledLaunchProcessRequest struct {
+func (x *PrepareLocalAppLaunchResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type BindLocalAppProcessRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	LaunchId       []byte                 `protobuf:"bytes,1,opt,name=launch_id,json=launchId,proto3" json:"launch_id,omitempty"`
 	ChildProcessId uint32                 `protobuf:"varint,2,opt,name=child_process_id,json=childProcessId,proto3" json:"child_process_id,omitempty"`
@@ -4640,21 +3536,21 @@ type BindInstalledLaunchProcessRequest struct {
 	sizeCache      protoimpl.SizeCache
 }
 
-func (x *BindInstalledLaunchProcessRequest) Reset() {
-	*x = BindInstalledLaunchProcessRequest{}
-	mi := &file_runtime_v1_app_proto_msgTypes[48]
+func (x *BindLocalAppProcessRequest) Reset() {
+	*x = BindLocalAppProcessRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *BindInstalledLaunchProcessRequest) String() string {
+func (x *BindLocalAppProcessRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BindInstalledLaunchProcessRequest) ProtoMessage() {}
+func (*BindLocalAppProcessRequest) ProtoMessage() {}
 
-func (x *BindInstalledLaunchProcessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[48]
+func (x *BindLocalAppProcessRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4665,48 +3561,49 @@ func (x *BindInstalledLaunchProcessRequest) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BindInstalledLaunchProcessRequest.ProtoReflect.Descriptor instead.
-func (*BindInstalledLaunchProcessRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{48}
+// Deprecated: Use BindLocalAppProcessRequest.ProtoReflect.Descriptor instead.
+func (*BindLocalAppProcessRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{39}
 }
 
-func (x *BindInstalledLaunchProcessRequest) GetLaunchId() []byte {
+func (x *BindLocalAppProcessRequest) GetLaunchId() []byte {
 	if x != nil {
 		return x.LaunchId
 	}
 	return nil
 }
 
-func (x *BindInstalledLaunchProcessRequest) GetChildProcessId() uint32 {
+func (x *BindLocalAppProcessRequest) GetChildProcessId() uint32 {
 	if x != nil {
 		return x.ChildProcessId
 	}
 	return 0
 }
 
-type BindInstalledLaunchProcessResponse struct {
+type BindLocalAppProcessResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LaunchId      []byte                 `protobuf:"bytes,1,opt,name=launch_id,json=launchId,proto3" json:"launch_id,omitempty"`
 	BindDeadline  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=bind_deadline,json=bindDeadline,proto3" json:"bind_deadline,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *BindInstalledLaunchProcessResponse) Reset() {
-	*x = BindInstalledLaunchProcessResponse{}
-	mi := &file_runtime_v1_app_proto_msgTypes[49]
+func (x *BindLocalAppProcessResponse) Reset() {
+	*x = BindLocalAppProcessResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *BindInstalledLaunchProcessResponse) String() string {
+func (x *BindLocalAppProcessResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BindInstalledLaunchProcessResponse) ProtoMessage() {}
+func (*BindLocalAppProcessResponse) ProtoMessage() {}
 
-func (x *BindInstalledLaunchProcessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_app_proto_msgTypes[49]
+func (x *BindLocalAppProcessResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4717,23 +3614,30 @@ func (x *BindInstalledLaunchProcessResponse) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BindInstalledLaunchProcessResponse.ProtoReflect.Descriptor instead.
-func (*BindInstalledLaunchProcessResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_app_proto_rawDescGZIP(), []int{49}
+// Deprecated: Use BindLocalAppProcessResponse.ProtoReflect.Descriptor instead.
+func (*BindLocalAppProcessResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{40}
 }
 
-func (x *BindInstalledLaunchProcessResponse) GetLaunchId() []byte {
+func (x *BindLocalAppProcessResponse) GetLaunchId() []byte {
 	if x != nil {
 		return x.LaunchId
 	}
 	return nil
 }
 
-func (x *BindInstalledLaunchProcessResponse) GetBindDeadline() *timestamppb.Timestamp {
+func (x *BindLocalAppProcessResponse) GetBindDeadline() *timestamppb.Timestamp {
 	if x != nil {
 		return x.BindDeadline
 	}
 	return nil
+}
+
+func (x *BindLocalAppProcessResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
 var File_runtime_v1_app_proto protoreflect.FileDescriptor
@@ -4755,14 +3659,16 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xee\x01\n" +
+	"reasonCode\"\xcc\x02\n" +
 	"\x1bSubscribeAppMessagesRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x16\n" +
 	"\x06cursor\x18\x03 \x01(\tR\x06cursor\x12 \n" +
 	"\ffrom_app_ids\x18\x04 \x03(\tR\n" +
 	"fromAppIds\x12V\n" +
-	"\x0escoped_binding\x18\x05 \x01(\v2/.nimi.runtime.v1.ScopedRuntimeBindingAttachmentR\rscopedBinding\"\xde\x03\n" +
+	"\x0escoped_binding\x18\x05 \x01(\v2/.nimi.runtime.v1.ScopedRuntimeBindingAttachmentR\rscopedBinding\x12&\n" +
+	"\x0flocal_agent_ref\x18\x06 \x01(\tR\rlocalAgentRef\x124\n" +
+	"\x16conversation_anchor_id\x18\a \x01(\tR\x14conversationAnchorId\"\xde\x03\n" +
 	"\x0fAppMessageEvent\x12C\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\x0e2$.nimi.runtime.v1.AppMessageEventTypeR\teventType\x12\x1a\n" +
@@ -4782,7 +3688,7 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x1eAppLifecycleDestructiveOptions\x12.\n" +
 	"\x13delete_durable_data\x18\x01 \x01(\bR\x11deleteDurableData\x12X\n" +
 	"\x14health_repair_action\x18\x02 \x01(\x0e2&.nimi.runtime.v1.AppHealthRepairActionR\x12healthRepairAction\x12\"\n" +
-	"\rtarget_job_id\x18\x03 \x01(\tR\vtargetJobId\"\x87\x04\n" +
+	"\rtarget_job_id\x18\x03 \x01(\tR\vtargetJobId\"\xdc\x03\n" +
 	"\x1bAppLifecycleCanonicalImpact\x12%\n" +
 	"\x0eschema_version\x18\x01 \x01(\rR\rschemaVersion\x12A\n" +
 	"\x06action\x18\x02 \x01(\x0e2).nimi.runtime.v1.AppLifecycleIntentActionR\x06action\x12\x15\n" +
@@ -4790,19 +3696,17 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x12account_generation\x18\x04 \x01(\x04R\x11accountGeneration\x12\x1f\n" +
 	"\vrelease_ref\x18\x05 \x01(\tR\n" +
 	"releaseRef\x12'\n" +
-	"\x0fartifact_digest\x18\x06 \x01(\tR\x0eartifactDigest\x12/\n" +
-	"\x13adoption_generation\x18\a \x01(\x04R\x12adoptionGeneration\x12`\n" +
+	"\x0fartifact_digest\x18\x06 \x01(\tR\x0eartifactDigest\x12`\n" +
 	"\x13destructive_options\x18\b \x01(\v2/.nimi.runtime.v1.AppLifecycleDestructiveOptionsR\x12destructiveOptions\x12!\n" +
 	"\fimpact_flags\x18\t \x03(\tR\vimpactFlags\x128\n" +
 	"\x18display_contract_version\x18\n" +
-	" \x01(\rR\x16displayContractVersion\"\x8c\x03\n" +
+	" \x01(\rR\x16displayContractVersionJ\x04\b\a\x10\b\"\xd0\x02\n" +
 	" PrepareAppLifecycleIntentRequest\x12A\n" +
 	"\x06action\x18\x01 \x01(\x0e2).nimi.runtime.v1.AppLifecycleIntentActionR\x06action\x12\x15\n" +
 	"\x06app_id\x18\x02 \x01(\tR\x05appId\x120\n" +
 	"\x14expected_release_ref\x18\x03 \x01(\tR\x12expectedReleaseRef\x128\n" +
-	"\x18expected_artifact_digest\x18\x04 \x01(\tR\x16expectedArtifactDigest\x12@\n" +
-	"\x1cexpected_adoption_generation\x18\x05 \x01(\x04R\x1aexpectedAdoptionGeneration\x12`\n" +
-	"\x13destructive_options\x18\x06 \x01(\v2/.nimi.runtime.v1.AppLifecycleDestructiveOptionsR\x12destructiveOptions\"\xc7\x02\n" +
+	"\x18expected_artifact_digest\x18\x04 \x01(\tR\x16expectedArtifactDigest\x12`\n" +
+	"\x13destructive_options\x18\x06 \x01(\v2/.nimi.runtime.v1.AppLifecycleDestructiveOptionsR\x12destructiveOptionsJ\x04\b\x05\x10\x06\"\xc7\x02\n" +
 	"!PrepareAppLifecycleIntentResponse\x12\x1b\n" +
 	"\tintent_id\x18\x01 \x01(\tR\bintentId\x12W\n" +
 	"\x10canonical_impact\x18\x02 \x01(\v2,.nimi.runtime.v1.AppLifecycleCanonicalImpactR\x0fcanonicalImpact\x126\n" +
@@ -4920,52 +3824,7 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x06record\x18\x02 \x01(\v2*.nimi.runtime.v1.AccountAppInventoryRecordR\x06record\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\x04 \x01(\tR\x06detail\"\xb5\x04\n" +
-	"\x10LocalAppAdoption\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x1b\n" +
-	"\troot_path\x18\x02 \x01(\tR\brootPath\x12#\n" +
-	"\rmanifest_path\x18\x03 \x01(\tR\fmanifestPath\x12!\n" +
-	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x18\n" +
-	"\aversion\x18\x05 \x01(\tR\aversion\x12\x1b\n" +
-	"\tentry_ref\x18\x06 \x01(\tR\bentryRef\x120\n" +
-	"\x14permission_scope_ref\x18\a \x01(\tR\x12permissionScopeRef\x12,\n" +
-	"\x12storage_policy_ref\x18\b \x01(\tR\x10storagePolicyRef\x12<\n" +
-	"\x05state\x18\t \x01(\x0e2&.nimi.runtime.v1.LocalAppAdoptionStateR\x05state\x12<\n" +
-	"\x05trust\x18\n" +
-	" \x01(\x0e2&.nimi.runtime.v1.LocalAppAdoptionTrustR\x05trust\x12\x1d\n" +
-	"\n" +
-	"adopted_at\x18\v \x01(\tR\tadoptedAt\x12\x1d\n" +
-	"\n" +
-	"updated_at\x18\f \x01(\tR\tupdatedAt\x12<\n" +
-	"\vreason_code\x18\r \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\x0e \x01(\tR\x06detail\"\xc3\x01\n" +
-	"\x14AdoptLocalAppRequest\x12\x1b\n" +
-	"\troot_path\x18\x01 \x01(\tR\brootPath\x12&\n" +
-	"\x0fexpected_app_id\x18\x02 \x01(\tR\rexpectedAppId\x12.\n" +
-	"\x13lifecycle_intent_id\x18\x03 \x01(\tR\x11lifecycleIntentId\x126\n" +
-	"\x17displayed_impact_digest\x18\x04 \x01(\tR\x15displayedImpactDigest\"\xac\x01\n" +
-	"\x15AdoptLocalAppResponse\x12=\n" +
-	"\badoption\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalAppAdoptionR\badoption\x12<\n" +
-	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\x03 \x01(\tR\x06detail\"\x1e\n" +
-	"\x1cListLocalAppAdoptionsRequest\"\xb6\x01\n" +
-	"\x1dListLocalAppAdoptionsResponse\x12?\n" +
-	"\tadoptions\x18\x01 \x03(\v2!.nimi.runtime.v1.LocalAppAdoptionR\tadoptions\x12<\n" +
-	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\x03 \x01(\tR\x06detail\"\xe1\x01\n" +
-	"\x1dRemoveLocalAppAdoptionRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12A\n" +
-	"\x1ddelete_durable_data_confirmed\x18\x02 \x01(\bR\x1adeleteDurableDataConfirmed\x12.\n" +
-	"\x13lifecycle_intent_id\x18\x03 \x01(\tR\x11lifecycleIntentId\x126\n" +
-	"\x17displayed_impact_digest\x18\x04 \x01(\tR\x15displayedImpactDigest\"\xb5\x01\n" +
-	"\x1eRemoveLocalAppAdoptionResponse\x12=\n" +
-	"\badoption\x18\x01 \x01(\v2!.nimi.runtime.v1.LocalAppAdoptionR\badoption\x12<\n" +
-	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\x03 \x01(\tR\x06detail\"6\n" +
+	"\x06detail\x18\x04 \x01(\tR\x06detail\"6\n" +
 	"\x1dGetAppPackageReadinessRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\"p\n" +
 	"\x1eGetAppPackageReadinessResponse\x12N\n" +
@@ -5012,53 +3871,23 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x13lifecycle_intent_id\x18\x04 \x01(\tR\x11lifecycleIntentId\x126\n" +
 	"\x17displayed_impact_digest\x18\x05 \x01(\tR\x15displayedImpactDigest\"K\n" +
 	"\x17HealthRepairAppResponse\x120\n" +
-	"\x03job\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AppInstallJobR\x03job\"_\n" +
-	"\x0fAppOpenScopeRef\x12\x12\n" +
-	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x19\n" +
-	"\bowner_id\x18\x02 \x01(\tR\aownerId\x12\x1d\n" +
-	"\n" +
-	"surface_id\x18\x03 \x01(\tR\tsurfaceId\"\xc7\x01\n" +
-	"\x0eOpenAppRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x126\n" +
-	"\x05scope\x18\x02 \x01(\v2 .nimi.runtime.v1.AppOpenScopeRefR\x05scope\x12.\n" +
-	"\x13lifecycle_intent_id\x18\x03 \x01(\tR\x11lifecycleIntentId\x126\n" +
-	"\x17displayed_impact_digest\x18\x04 \x01(\tR\x15displayedImpactDigest\"\xef\a\n" +
-	"\x11AppOpenProjection\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x123\n" +
-	"\x05state\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.AppOpenStateR\x05state\x12C\n" +
-	"\freached_step\x18\x03 \x01(\x0e2 .nimi.runtime.v1.AppOpenFlowStepR\vreachedStep\x12\x1a\n" +
-	"\blaunched\x18\x04 \x01(\bR\blaunched\x12%\n" +
-	"\x0eactive_version\x18\x05 \x01(\tR\ractiveVersion\x126\n" +
-	"\x05scope\x18\x06 \x01(\v2 .nimi.runtime.v1.AppOpenScopeRefR\x05scope\x12<\n" +
-	"\vreason_code\x18\a \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\b \x01(\tR\x06detail\x124\n" +
-	"\x16release_descriptor_ref\x18\t \x01(\tR\x14releaseDescriptorRef\x12)\n" +
-	"\x10descriptor_class\x18\n" +
-	" \x01(\tR\x0fdescriptorClass\x12'\n" +
-	"\x0fadmission_track\x18\v \x01(\tR\x0eadmissionTrack\x12\x1f\n" +
-	"\vsource_kind\x18\f \x01(\tR\n" +
-	"sourceKind\x12/\n" +
-	"\x13ordinary_visibility\x18\r \x01(\tR\x12ordinaryVisibility\x12:\n" +
-	"\x19digest_verification_state\x18\x0e \x01(\tR\x17digestVerificationState\x12*\n" +
-	"\x11runtime_entry_ref\x18\x0f \x01(\tR\x0fruntimeEntryRef\x12.\n" +
-	"\x13active_release_root\x18\x10 \x01(\tR\x11activeReleaseRoot\x12F\n" +
-	"\astorage\x18\x11 \x01(\v2,.nimi.runtime.v1.AppInstallStorageProjectionR\astorage\x127\n" +
-	"\x18shell_capability_set_ref\x18\x12 \x01(\tR\x15shellCapabilitySetRef\x12\x1f\n" +
-	"\vcaller_mode\x18\x13 \x01(\tR\n" +
-	"callerMode\x12\x1b\n" +
-	"\tlaunch_id\x18\x14 \x01(\fR\blaunchId\x12E\n" +
-	"\x1fproduct_readiness_claim_allowed\x18\x15 \x01(\bR\x1cproductReadinessClaimAllowed\"U\n" +
-	"\x0fOpenAppResponse\x12B\n" +
-	"\n" +
-	"projection\x18\x01 \x01(\v2\".nimi.runtime.v1.AppOpenProjectionR\n" +
-	"projection\"j\n" +
-	"!BindInstalledLaunchProcessRequest\x12\x1b\n" +
-	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\x12(\n" +
-	"\x10child_process_id\x18\x02 \x01(\rR\x0echildProcessId\"\x82\x01\n" +
-	"\"BindInstalledLaunchProcessResponse\x12\x1b\n" +
+	"\x03job\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AppInstallJobR\x03job\"t\n" +
+	"\x1cPrepareLocalAppLaunchRequest\x12(\n" +
+	"\x10local_app_handle\x18\x01 \x01(\fR\x0elocalAppHandle\x12*\n" +
+	"\x11supervisor_run_id\x18\x02 \x01(\fR\x0fsupervisorRunId\"\xbb\x01\n" +
+	"\x1dPrepareLocalAppLaunchResponse\x12\x1b\n" +
 	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\x12?\n" +
-	"\rbind_deadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fbindDeadline*\x98\x01\n" +
+	"\rbind_deadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fbindDeadline\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"c\n" +
+	"\x1aBindLocalAppProcessRequest\x12\x1b\n" +
+	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\x12(\n" +
+	"\x10child_process_id\x18\x02 \x01(\rR\x0echildProcessId\"\xb9\x01\n" +
+	"\x1bBindLocalAppProcessResponse\x12\x1b\n" +
+	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\x12?\n" +
+	"\rbind_deadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fbindDeadline\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode*\x98\x01\n" +
 	"\x13AppMessageEventType\x12&\n" +
 	"\"APP_MESSAGE_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aAPP_MESSAGE_EVENT_RECEIVED\x10\x01\x12\x1b\n" +
@@ -5098,16 +3927,13 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x1fAPP_HEALTH_REPAIR_ACTION_CANCEL\x10\x01\x12\"\n" +
 	"\x1eAPP_HEALTH_REPAIR_ACTION_RETRY\x10\x02\x12#\n" +
 	"\x1fAPP_HEALTH_REPAIR_ACTION_REPAIR\x10\x03\x12&\n" +
-	"\"APP_HEALTH_REPAIR_ACTION_REINSTALL\x10\x04*\x88\x03\n" +
+	"\"APP_HEALTH_REPAIR_ACTION_REINSTALL\x10\x04*\x84\x02\n" +
 	"\x18AppLifecycleIntentAction\x12+\n" +
 	"'APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED\x10\x00\x12'\n" +
 	"#APP_LIFECYCLE_INTENT_ACTION_INSTALL\x10\x01\x12)\n" +
 	"%APP_LIFECYCLE_INTENT_ACTION_UNINSTALL\x10\x02\x12&\n" +
 	"\"APP_LIFECYCLE_INTENT_ACTION_UPDATE\x10\x03\x12-\n" +
-	")APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR\x10\x04\x12/\n" +
-	"+APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP\x10\x05\x129\n" +
-	"5APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION\x10\x06\x12(\n" +
-	"$APP_LIFECYCLE_INTENT_ACTION_OPEN_APP\x10\a*\xf7\x02\n" +
+	")APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR\x10\x04\"\x04\b\x05\x10\x05\"\x04\b\x06\x10\x06\"\x04\b\a\x10\a*\xf7\x02\n" +
 	"\x18AppLifecycleIntentStatus\x12+\n" +
 	"'APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED\x10\x00\x12(\n" +
 	"$APP_LIFECYCLE_INTENT_STATUS_PREPARED\x10\x01\x12(\n" +
@@ -5140,37 +3966,12 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"$ACCOUNT_APP_INVENTORY_STATE_ENTITLED\x10\x02\x12(\n" +
 	"$ACCOUNT_APP_INVENTORY_STATE_DISABLED\x10\x03\x12'\n" +
 	"#ACCOUNT_APP_INVENTORY_STATE_REMOVED\x10\x04\x12'\n" +
-	"#ACCOUNT_APP_INVENTORY_STATE_REVOKED\x10\x05*\xed\x01\n" +
+	"#ACCOUNT_APP_INVENTORY_STATE_REVOKED\x10\x05*\xc6\x01\n" +
 	"\x16AccountAppInstallState\x12)\n" +
 	"%ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED\x10\x00\x12+\n" +
 	"'ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED\x10\x01\x12'\n" +
-	"#ACCOUNT_APP_INSTALL_STATE_INSTALLED\x10\x02\x12+\n" +
-	"'ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL\x10\x03\x12%\n" +
-	"!ACCOUNT_APP_INSTALL_STATE_REMOVED\x10\x04*\xbb\x01\n" +
-	"\x15LocalAppAdoptionState\x12(\n" +
-	"$LOCAL_APP_ADOPTION_STATE_UNSPECIFIED\x10\x00\x12$\n" +
-	" LOCAL_APP_ADOPTION_STATE_ADOPTED\x10\x01\x12,\n" +
-	"(LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED\x10\x02\x12$\n" +
-	" LOCAL_APP_ADOPTION_STATE_REMOVED\x10\x03*\x9c\x01\n" +
-	"\x15LocalAppAdoptionTrust\x12(\n" +
-	"$LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED\x10\x00\x12+\n" +
-	"'LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL\x10\x01\x12,\n" +
-	"(LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL\x10\x02*\xf0\x02\n" +
-	"\x0fAppOpenFlowStep\x12\"\n" +
-	"\x1eAPP_OPEN_FLOW_STEP_UNSPECIFIED\x10\x00\x12'\n" +
-	"#APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY\x10\x01\x12%\n" +
-	"!APP_OPEN_FLOW_STEP_VERIFY_PACKAGE\x10\x02\x12%\n" +
-	"!APP_OPEN_FLOW_STEP_VERIFY_LIBRARY\x10\x03\x12&\n" +
-	"\"APP_OPEN_FLOW_STEP_VERIFY_APP_DATA\x10\x04\x12)\n" +
-	"%APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS\x10\x05\x12&\n" +
-	"\"APP_OPEN_FLOW_STEP_ENSURE_AICONFIG\x10\x06\x12(\n" +
-	"$APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST\x10\a\x12\x1d\n" +
-	"\x19APP_OPEN_FLOW_STEP_LAUNCH\x10\b*\x8b\x01\n" +
-	"\fAppOpenState\x12\x1e\n" +
-	"\x1aAPP_OPEN_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
-	"\x17APP_OPEN_STATE_LAUNCHED\x10\x01\x12\x1a\n" +
-	"\x16APP_OPEN_STATE_BLOCKED\x10\x02\x12\"\n" +
-	"\x1eAPP_OPEN_STATE_LAUNCH_PREPARED\x10\x032\xaa\x10\n" +
+	"#ACCOUNT_APP_INSTALL_STATE_INSTALLED\x10\x02\x12%\n" +
+	"!ACCOUNT_APP_INSTALL_STATE_REMOVED\x10\x04\"\x04\b\x03\x10\x032\xeb\r\n" +
 	"\x11RuntimeAppService\x12a\n" +
 	"\x0eSendAppMessage\x12&.nimi.runtime.v1.SendAppMessageRequest\x1a'.nimi.runtime.v1.SendAppMessageResponse\x12h\n" +
 	"\x14SubscribeAppMessages\x12,.nimi.runtime.v1.SubscribeAppMessagesRequest\x1a .nimi.runtime.v1.AppMessageEvent0\x01\x12\x82\x01\n" +
@@ -5180,18 +3981,15 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"InstallApp\x12\".nimi.runtime.v1.InstallAppRequest\x1a#.nimi.runtime.v1.InstallAppResponse\x12[\n" +
 	"\fUninstallApp\x12$.nimi.runtime.v1.UninstallAppRequest\x1a%.nimi.runtime.v1.UninstallAppResponse\x12^\n" +
 	"\rGetAppStorage\x12%.nimi.runtime.v1.GetAppStorageRequest\x1a&.nimi.runtime.v1.GetAppStorageResponse\x12y\n" +
-	"\x16GetAccountAppInventory\x12..nimi.runtime.v1.GetAccountAppInventoryRequest\x1a/.nimi.runtime.v1.GetAccountAppInventoryResponse\x12^\n" +
-	"\rAdoptLocalApp\x12%.nimi.runtime.v1.AdoptLocalAppRequest\x1a&.nimi.runtime.v1.AdoptLocalAppResponse\x12v\n" +
-	"\x15ListLocalAppAdoptions\x12-.nimi.runtime.v1.ListLocalAppAdoptionsRequest\x1a..nimi.runtime.v1.ListLocalAppAdoptionsResponse\x12y\n" +
-	"\x16RemoveLocalAppAdoption\x12..nimi.runtime.v1.RemoveLocalAppAdoptionRequest\x1a/.nimi.runtime.v1.RemoveLocalAppAdoptionResponse\x12y\n" +
+	"\x16GetAccountAppInventory\x12..nimi.runtime.v1.GetAccountAppInventoryRequest\x1a/.nimi.runtime.v1.GetAccountAppInventoryResponse\x12y\n" +
 	"\x16GetAppPackageReadiness\x12..nimi.runtime.v1.GetAppPackageReadinessRequest\x1a/.nimi.runtime.v1.GetAppPackageReadinessResponse\x12g\n" +
 	"\x10GetAppInstallJob\x12(.nimi.runtime.v1.GetAppInstallJobRequest\x1a).nimi.runtime.v1.GetAppInstallJobResponse\x12m\n" +
 	"\x12ListAppInstallJobs\x12*.nimi.runtime.v1.ListAppInstallJobsRequest\x1a+.nimi.runtime.v1.ListAppInstallJobsResponse\x12s\n" +
 	"\x18WatchAppInstallJobEvents\x120.nimi.runtime.v1.WatchAppInstallJobEventsRequest\x1a#.nimi.runtime.v1.AppInstallJobEvent0\x01\x12R\n" +
 	"\tUpdateApp\x12!.nimi.runtime.v1.UpdateAppRequest\x1a\".nimi.runtime.v1.UpdateAppResponse\x12d\n" +
-	"\x0fHealthRepairApp\x12'.nimi.runtime.v1.HealthRepairAppRequest\x1a(.nimi.runtime.v1.HealthRepairAppResponse\x12L\n" +
-	"\aOpenApp\x12\x1f.nimi.runtime.v1.OpenAppRequest\x1a .nimi.runtime.v1.OpenAppResponse\x12\x85\x01\n" +
-	"\x1aBindInstalledLaunchProcess\x122.nimi.runtime.v1.BindInstalledLaunchProcessRequest\x1a3.nimi.runtime.v1.BindInstalledLaunchProcessResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x0fHealthRepairApp\x12'.nimi.runtime.v1.HealthRepairAppRequest\x1a(.nimi.runtime.v1.HealthRepairAppResponse\x12v\n" +
+	"\x15PrepareLocalAppLaunch\x12-.nimi.runtime.v1.PrepareLocalAppLaunchRequest\x1a..nimi.runtime.v1.PrepareLocalAppLaunchResponse\x12p\n" +
+	"\x13BindLocalAppProcess\x12+.nimi.runtime.v1.BindLocalAppProcessRequest\x1a,.nimi.runtime.v1.BindLocalAppProcessResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_app_proto_rawDescOnce sync.Once
@@ -5205,8 +4003,8 @@ func file_runtime_v1_app_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_app_proto_rawDescData
 }
 
-var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
-var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
+var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
+var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
 var file_runtime_v1_app_proto_goTypes = []any{
 	(AppMessageEventType)(0),                    // 0: nimi.runtime.v1.AppMessageEventType
 	(AppInstallJobPhase)(0),                     // 1: nimi.runtime.v1.AppInstallJobPhase
@@ -5220,173 +4018,141 @@ var file_runtime_v1_app_proto_goTypes = []any{
 	(AppPackageReadinessState)(0),               // 9: nimi.runtime.v1.AppPackageReadinessState
 	(AccountAppInventoryState)(0),               // 10: nimi.runtime.v1.AccountAppInventoryState
 	(AccountAppInstallState)(0),                 // 11: nimi.runtime.v1.AccountAppInstallState
-	(LocalAppAdoptionState)(0),                  // 12: nimi.runtime.v1.LocalAppAdoptionState
-	(LocalAppAdoptionTrust)(0),                  // 13: nimi.runtime.v1.LocalAppAdoptionTrust
-	(AppOpenFlowStep)(0),                        // 14: nimi.runtime.v1.AppOpenFlowStep
-	(AppOpenState)(0),                           // 15: nimi.runtime.v1.AppOpenState
-	(*SendAppMessageRequest)(nil),               // 16: nimi.runtime.v1.SendAppMessageRequest
-	(*SendAppMessageResponse)(nil),              // 17: nimi.runtime.v1.SendAppMessageResponse
-	(*SubscribeAppMessagesRequest)(nil),         // 18: nimi.runtime.v1.SubscribeAppMessagesRequest
-	(*AppMessageEvent)(nil),                     // 19: nimi.runtime.v1.AppMessageEvent
-	(*AppLifecycleDestructiveOptions)(nil),      // 20: nimi.runtime.v1.AppLifecycleDestructiveOptions
-	(*AppLifecycleCanonicalImpact)(nil),         // 21: nimi.runtime.v1.AppLifecycleCanonicalImpact
-	(*PrepareAppLifecycleIntentRequest)(nil),    // 22: nimi.runtime.v1.PrepareAppLifecycleIntentRequest
-	(*PrepareAppLifecycleIntentResponse)(nil),   // 23: nimi.runtime.v1.PrepareAppLifecycleIntentResponse
-	(*GetAppLifecycleIntentStatusRequest)(nil),  // 24: nimi.runtime.v1.GetAppLifecycleIntentStatusRequest
-	(*GetAppLifecycleIntentStatusResponse)(nil), // 25: nimi.runtime.v1.GetAppLifecycleIntentStatusResponse
-	(*AppInstallStorageProjection)(nil),         // 26: nimi.runtime.v1.AppInstallStorageProjection
-	(*AppStorageProjection)(nil),                // 27: nimi.runtime.v1.AppStorageProjection
-	(*AppPackageReadinessProjection)(nil),       // 28: nimi.runtime.v1.AppPackageReadinessProjection
-	(*AppInstallJob)(nil),                       // 29: nimi.runtime.v1.AppInstallJob
-	(*InstallAppRequest)(nil),                   // 30: nimi.runtime.v1.InstallAppRequest
-	(*InstallAppResponse)(nil),                  // 31: nimi.runtime.v1.InstallAppResponse
-	(*GetAppInstallJobRequest)(nil),             // 32: nimi.runtime.v1.GetAppInstallJobRequest
-	(*GetAppInstallJobResponse)(nil),            // 33: nimi.runtime.v1.GetAppInstallJobResponse
-	(*GetAppStorageRequest)(nil),                // 34: nimi.runtime.v1.GetAppStorageRequest
-	(*GetAppStorageResponse)(nil),               // 35: nimi.runtime.v1.GetAppStorageResponse
-	(*AccountAppInventoryRow)(nil),              // 36: nimi.runtime.v1.AccountAppInventoryRow
-	(*AccountAppInventoryRecord)(nil),           // 37: nimi.runtime.v1.AccountAppInventoryRecord
-	(*GetAccountAppInventoryRequest)(nil),       // 38: nimi.runtime.v1.GetAccountAppInventoryRequest
-	(*GetAccountAppInventoryResponse)(nil),      // 39: nimi.runtime.v1.GetAccountAppInventoryResponse
-	(*LocalAppAdoption)(nil),                    // 40: nimi.runtime.v1.LocalAppAdoption
-	(*AdoptLocalAppRequest)(nil),                // 41: nimi.runtime.v1.AdoptLocalAppRequest
-	(*AdoptLocalAppResponse)(nil),               // 42: nimi.runtime.v1.AdoptLocalAppResponse
-	(*ListLocalAppAdoptionsRequest)(nil),        // 43: nimi.runtime.v1.ListLocalAppAdoptionsRequest
-	(*ListLocalAppAdoptionsResponse)(nil),       // 44: nimi.runtime.v1.ListLocalAppAdoptionsResponse
-	(*RemoveLocalAppAdoptionRequest)(nil),       // 45: nimi.runtime.v1.RemoveLocalAppAdoptionRequest
-	(*RemoveLocalAppAdoptionResponse)(nil),      // 46: nimi.runtime.v1.RemoveLocalAppAdoptionResponse
-	(*GetAppPackageReadinessRequest)(nil),       // 47: nimi.runtime.v1.GetAppPackageReadinessRequest
-	(*GetAppPackageReadinessResponse)(nil),      // 48: nimi.runtime.v1.GetAppPackageReadinessResponse
-	(*ListAppInstallJobsRequest)(nil),           // 49: nimi.runtime.v1.ListAppInstallJobsRequest
-	(*ListAppInstallJobsResponse)(nil),          // 50: nimi.runtime.v1.ListAppInstallJobsResponse
-	(*WatchAppInstallJobEventsRequest)(nil),     // 51: nimi.runtime.v1.WatchAppInstallJobEventsRequest
-	(*AppInstallJobEvent)(nil),                  // 52: nimi.runtime.v1.AppInstallJobEvent
-	(*UninstallAppRequest)(nil),                 // 53: nimi.runtime.v1.UninstallAppRequest
-	(*AppUninstallResult)(nil),                  // 54: nimi.runtime.v1.AppUninstallResult
-	(*UninstallAppResponse)(nil),                // 55: nimi.runtime.v1.UninstallAppResponse
-	(*UpdateAppRequest)(nil),                    // 56: nimi.runtime.v1.UpdateAppRequest
-	(*UpdateAppResponse)(nil),                   // 57: nimi.runtime.v1.UpdateAppResponse
-	(*HealthRepairAppRequest)(nil),              // 58: nimi.runtime.v1.HealthRepairAppRequest
-	(*HealthRepairAppResponse)(nil),             // 59: nimi.runtime.v1.HealthRepairAppResponse
-	(*AppOpenScopeRef)(nil),                     // 60: nimi.runtime.v1.AppOpenScopeRef
-	(*OpenAppRequest)(nil),                      // 61: nimi.runtime.v1.OpenAppRequest
-	(*AppOpenProjection)(nil),                   // 62: nimi.runtime.v1.AppOpenProjection
-	(*OpenAppResponse)(nil),                     // 63: nimi.runtime.v1.OpenAppResponse
-	(*BindInstalledLaunchProcessRequest)(nil),   // 64: nimi.runtime.v1.BindInstalledLaunchProcessRequest
-	(*BindInstalledLaunchProcessResponse)(nil),  // 65: nimi.runtime.v1.BindInstalledLaunchProcessResponse
-	(*structpb.Struct)(nil),                     // 66: google.protobuf.Struct
-	(*ScopedRuntimeBindingAttachment)(nil),      // 67: nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	(ReasonCode)(0),                             // 68: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),               // 69: google.protobuf.Timestamp
+	(*SendAppMessageRequest)(nil),               // 12: nimi.runtime.v1.SendAppMessageRequest
+	(*SendAppMessageResponse)(nil),              // 13: nimi.runtime.v1.SendAppMessageResponse
+	(*SubscribeAppMessagesRequest)(nil),         // 14: nimi.runtime.v1.SubscribeAppMessagesRequest
+	(*AppMessageEvent)(nil),                     // 15: nimi.runtime.v1.AppMessageEvent
+	(*AppLifecycleDestructiveOptions)(nil),      // 16: nimi.runtime.v1.AppLifecycleDestructiveOptions
+	(*AppLifecycleCanonicalImpact)(nil),         // 17: nimi.runtime.v1.AppLifecycleCanonicalImpact
+	(*PrepareAppLifecycleIntentRequest)(nil),    // 18: nimi.runtime.v1.PrepareAppLifecycleIntentRequest
+	(*PrepareAppLifecycleIntentResponse)(nil),   // 19: nimi.runtime.v1.PrepareAppLifecycleIntentResponse
+	(*GetAppLifecycleIntentStatusRequest)(nil),  // 20: nimi.runtime.v1.GetAppLifecycleIntentStatusRequest
+	(*GetAppLifecycleIntentStatusResponse)(nil), // 21: nimi.runtime.v1.GetAppLifecycleIntentStatusResponse
+	(*AppInstallStorageProjection)(nil),         // 22: nimi.runtime.v1.AppInstallStorageProjection
+	(*AppStorageProjection)(nil),                // 23: nimi.runtime.v1.AppStorageProjection
+	(*AppPackageReadinessProjection)(nil),       // 24: nimi.runtime.v1.AppPackageReadinessProjection
+	(*AppInstallJob)(nil),                       // 25: nimi.runtime.v1.AppInstallJob
+	(*InstallAppRequest)(nil),                   // 26: nimi.runtime.v1.InstallAppRequest
+	(*InstallAppResponse)(nil),                  // 27: nimi.runtime.v1.InstallAppResponse
+	(*GetAppInstallJobRequest)(nil),             // 28: nimi.runtime.v1.GetAppInstallJobRequest
+	(*GetAppInstallJobResponse)(nil),            // 29: nimi.runtime.v1.GetAppInstallJobResponse
+	(*GetAppStorageRequest)(nil),                // 30: nimi.runtime.v1.GetAppStorageRequest
+	(*GetAppStorageResponse)(nil),               // 31: nimi.runtime.v1.GetAppStorageResponse
+	(*AccountAppInventoryRow)(nil),              // 32: nimi.runtime.v1.AccountAppInventoryRow
+	(*AccountAppInventoryRecord)(nil),           // 33: nimi.runtime.v1.AccountAppInventoryRecord
+	(*GetAccountAppInventoryRequest)(nil),       // 34: nimi.runtime.v1.GetAccountAppInventoryRequest
+	(*GetAccountAppInventoryResponse)(nil),      // 35: nimi.runtime.v1.GetAccountAppInventoryResponse
+	(*GetAppPackageReadinessRequest)(nil),       // 36: nimi.runtime.v1.GetAppPackageReadinessRequest
+	(*GetAppPackageReadinessResponse)(nil),      // 37: nimi.runtime.v1.GetAppPackageReadinessResponse
+	(*ListAppInstallJobsRequest)(nil),           // 38: nimi.runtime.v1.ListAppInstallJobsRequest
+	(*ListAppInstallJobsResponse)(nil),          // 39: nimi.runtime.v1.ListAppInstallJobsResponse
+	(*WatchAppInstallJobEventsRequest)(nil),     // 40: nimi.runtime.v1.WatchAppInstallJobEventsRequest
+	(*AppInstallJobEvent)(nil),                  // 41: nimi.runtime.v1.AppInstallJobEvent
+	(*UninstallAppRequest)(nil),                 // 42: nimi.runtime.v1.UninstallAppRequest
+	(*AppUninstallResult)(nil),                  // 43: nimi.runtime.v1.AppUninstallResult
+	(*UninstallAppResponse)(nil),                // 44: nimi.runtime.v1.UninstallAppResponse
+	(*UpdateAppRequest)(nil),                    // 45: nimi.runtime.v1.UpdateAppRequest
+	(*UpdateAppResponse)(nil),                   // 46: nimi.runtime.v1.UpdateAppResponse
+	(*HealthRepairAppRequest)(nil),              // 47: nimi.runtime.v1.HealthRepairAppRequest
+	(*HealthRepairAppResponse)(nil),             // 48: nimi.runtime.v1.HealthRepairAppResponse
+	(*PrepareLocalAppLaunchRequest)(nil),        // 49: nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	(*PrepareLocalAppLaunchResponse)(nil),       // 50: nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	(*BindLocalAppProcessRequest)(nil),          // 51: nimi.runtime.v1.BindLocalAppProcessRequest
+	(*BindLocalAppProcessResponse)(nil),         // 52: nimi.runtime.v1.BindLocalAppProcessResponse
+	(*structpb.Struct)(nil),                     // 53: google.protobuf.Struct
+	(*ScopedRuntimeBindingAttachment)(nil),      // 54: nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	(ReasonCode)(0),                             // 55: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),               // 56: google.protobuf.Timestamp
 }
 var file_runtime_v1_app_proto_depIdxs = []int32{
-	66, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
-	67, // 1: nimi.runtime.v1.SendAppMessageRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
-	68, // 2: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	67, // 3: nimi.runtime.v1.SubscribeAppMessagesRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	53, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
+	54, // 1: nimi.runtime.v1.SendAppMessageRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	55, // 2: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	54, // 3: nimi.runtime.v1.SubscribeAppMessagesRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
 	0,  // 4: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
-	66, // 5: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
-	68, // 6: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	69, // 7: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
+	53, // 5: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
+	55, // 6: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	56, // 7: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
 	4,  // 8: nimi.runtime.v1.AppLifecycleDestructiveOptions.health_repair_action:type_name -> nimi.runtime.v1.AppHealthRepairAction
 	5,  // 9: nimi.runtime.v1.AppLifecycleCanonicalImpact.action:type_name -> nimi.runtime.v1.AppLifecycleIntentAction
-	20, // 10: nimi.runtime.v1.AppLifecycleCanonicalImpact.destructive_options:type_name -> nimi.runtime.v1.AppLifecycleDestructiveOptions
+	16, // 10: nimi.runtime.v1.AppLifecycleCanonicalImpact.destructive_options:type_name -> nimi.runtime.v1.AppLifecycleDestructiveOptions
 	5,  // 11: nimi.runtime.v1.PrepareAppLifecycleIntentRequest.action:type_name -> nimi.runtime.v1.AppLifecycleIntentAction
-	20, // 12: nimi.runtime.v1.PrepareAppLifecycleIntentRequest.destructive_options:type_name -> nimi.runtime.v1.AppLifecycleDestructiveOptions
-	21, // 13: nimi.runtime.v1.PrepareAppLifecycleIntentResponse.canonical_impact:type_name -> nimi.runtime.v1.AppLifecycleCanonicalImpact
-	69, // 14: nimi.runtime.v1.PrepareAppLifecycleIntentResponse.deadline:type_name -> google.protobuf.Timestamp
-	68, // 15: nimi.runtime.v1.PrepareAppLifecycleIntentResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	16, // 12: nimi.runtime.v1.PrepareAppLifecycleIntentRequest.destructive_options:type_name -> nimi.runtime.v1.AppLifecycleDestructiveOptions
+	17, // 13: nimi.runtime.v1.PrepareAppLifecycleIntentResponse.canonical_impact:type_name -> nimi.runtime.v1.AppLifecycleCanonicalImpact
+	56, // 14: nimi.runtime.v1.PrepareAppLifecycleIntentResponse.deadline:type_name -> google.protobuf.Timestamp
+	55, // 15: nimi.runtime.v1.PrepareAppLifecycleIntentResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	6,  // 16: nimi.runtime.v1.GetAppLifecycleIntentStatusResponse.status:type_name -> nimi.runtime.v1.AppLifecycleIntentStatus
-	68, // 17: nimi.runtime.v1.GetAppLifecycleIntentStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	55, // 17: nimi.runtime.v1.GetAppLifecycleIntentStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	8,  // 18: nimi.runtime.v1.AppStorageProjection.state:type_name -> nimi.runtime.v1.AppStorageState
-	68, // 19: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	55, // 19: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	9,  // 20: nimi.runtime.v1.AppPackageReadinessProjection.state:type_name -> nimi.runtime.v1.AppPackageReadinessState
-	68, // 21: nimi.runtime.v1.AppPackageReadinessProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	55, // 21: nimi.runtime.v1.AppPackageReadinessProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 22: nimi.runtime.v1.AppInstallJob.state:type_name -> nimi.runtime.v1.AppInstallJobState
 	1,  // 23: nimi.runtime.v1.AppInstallJob.phase:type_name -> nimi.runtime.v1.AppInstallJobPhase
 	7,  // 24: nimi.runtime.v1.AppInstallJob.source_kind:type_name -> nimi.runtime.v1.AppInstallSourceKind
-	26, // 25: nimi.runtime.v1.AppInstallJob.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
-	68, // 26: nimi.runtime.v1.AppInstallJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	22, // 25: nimi.runtime.v1.AppInstallJob.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
+	55, // 26: nimi.runtime.v1.AppInstallJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 27: nimi.runtime.v1.AppInstallJob.kind:type_name -> nimi.runtime.v1.AppLifecycleJobKind
-	29, // 28: nimi.runtime.v1.InstallAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
-	29, // 29: nimi.runtime.v1.GetAppInstallJobResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
-	27, // 30: nimi.runtime.v1.GetAppStorageResponse.projection:type_name -> nimi.runtime.v1.AppStorageProjection
+	25, // 28: nimi.runtime.v1.InstallAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
+	25, // 29: nimi.runtime.v1.GetAppInstallJobResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
+	23, // 30: nimi.runtime.v1.GetAppStorageResponse.projection:type_name -> nimi.runtime.v1.AppStorageProjection
 	10, // 31: nimi.runtime.v1.AccountAppInventoryRow.account_state:type_name -> nimi.runtime.v1.AccountAppInventoryState
 	11, // 32: nimi.runtime.v1.AccountAppInventoryRow.install_state:type_name -> nimi.runtime.v1.AccountAppInstallState
-	36, // 33: nimi.runtime.v1.AccountAppInventoryRecord.apps:type_name -> nimi.runtime.v1.AccountAppInventoryRow
-	37, // 34: nimi.runtime.v1.GetAccountAppInventoryResponse.record:type_name -> nimi.runtime.v1.AccountAppInventoryRecord
-	68, // 35: nimi.runtime.v1.GetAccountAppInventoryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	12, // 36: nimi.runtime.v1.LocalAppAdoption.state:type_name -> nimi.runtime.v1.LocalAppAdoptionState
-	13, // 37: nimi.runtime.v1.LocalAppAdoption.trust:type_name -> nimi.runtime.v1.LocalAppAdoptionTrust
-	68, // 38: nimi.runtime.v1.LocalAppAdoption.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	40, // 39: nimi.runtime.v1.AdoptLocalAppResponse.adoption:type_name -> nimi.runtime.v1.LocalAppAdoption
-	68, // 40: nimi.runtime.v1.AdoptLocalAppResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	40, // 41: nimi.runtime.v1.ListLocalAppAdoptionsResponse.adoptions:type_name -> nimi.runtime.v1.LocalAppAdoption
-	68, // 42: nimi.runtime.v1.ListLocalAppAdoptionsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	40, // 43: nimi.runtime.v1.RemoveLocalAppAdoptionResponse.adoption:type_name -> nimi.runtime.v1.LocalAppAdoption
-	68, // 44: nimi.runtime.v1.RemoveLocalAppAdoptionResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	28, // 45: nimi.runtime.v1.GetAppPackageReadinessResponse.projection:type_name -> nimi.runtime.v1.AppPackageReadinessProjection
-	29, // 46: nimi.runtime.v1.ListAppInstallJobsResponse.jobs:type_name -> nimi.runtime.v1.AppInstallJob
-	29, // 47: nimi.runtime.v1.AppInstallJobEvent.job:type_name -> nimi.runtime.v1.AppInstallJob
-	69, // 48: nimi.runtime.v1.AppInstallJobEvent.timestamp:type_name -> google.protobuf.Timestamp
-	26, // 49: nimi.runtime.v1.AppUninstallResult.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
-	68, // 50: nimi.runtime.v1.AppUninstallResult.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	54, // 51: nimi.runtime.v1.UninstallAppResponse.result:type_name -> nimi.runtime.v1.AppUninstallResult
-	29, // 52: nimi.runtime.v1.UninstallAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
-	29, // 53: nimi.runtime.v1.UpdateAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
-	4,  // 54: nimi.runtime.v1.HealthRepairAppRequest.action:type_name -> nimi.runtime.v1.AppHealthRepairAction
-	29, // 55: nimi.runtime.v1.HealthRepairAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
-	60, // 56: nimi.runtime.v1.OpenAppRequest.scope:type_name -> nimi.runtime.v1.AppOpenScopeRef
-	15, // 57: nimi.runtime.v1.AppOpenProjection.state:type_name -> nimi.runtime.v1.AppOpenState
-	14, // 58: nimi.runtime.v1.AppOpenProjection.reached_step:type_name -> nimi.runtime.v1.AppOpenFlowStep
-	60, // 59: nimi.runtime.v1.AppOpenProjection.scope:type_name -> nimi.runtime.v1.AppOpenScopeRef
-	68, // 60: nimi.runtime.v1.AppOpenProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	26, // 61: nimi.runtime.v1.AppOpenProjection.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
-	62, // 62: nimi.runtime.v1.OpenAppResponse.projection:type_name -> nimi.runtime.v1.AppOpenProjection
-	69, // 63: nimi.runtime.v1.BindInstalledLaunchProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	16, // 64: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	18, // 65: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	22, // 66: nimi.runtime.v1.RuntimeAppService.PrepareAppLifecycleIntent:input_type -> nimi.runtime.v1.PrepareAppLifecycleIntentRequest
-	24, // 67: nimi.runtime.v1.RuntimeAppService.GetAppLifecycleIntentStatus:input_type -> nimi.runtime.v1.GetAppLifecycleIntentStatusRequest
-	30, // 68: nimi.runtime.v1.RuntimeAppService.InstallApp:input_type -> nimi.runtime.v1.InstallAppRequest
-	53, // 69: nimi.runtime.v1.RuntimeAppService.UninstallApp:input_type -> nimi.runtime.v1.UninstallAppRequest
-	34, // 70: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
-	38, // 71: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:input_type -> nimi.runtime.v1.GetAccountAppInventoryRequest
-	41, // 72: nimi.runtime.v1.RuntimeAppService.AdoptLocalApp:input_type -> nimi.runtime.v1.AdoptLocalAppRequest
-	43, // 73: nimi.runtime.v1.RuntimeAppService.ListLocalAppAdoptions:input_type -> nimi.runtime.v1.ListLocalAppAdoptionsRequest
-	45, // 74: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAdoption:input_type -> nimi.runtime.v1.RemoveLocalAppAdoptionRequest
-	47, // 75: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:input_type -> nimi.runtime.v1.GetAppPackageReadinessRequest
-	32, // 76: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:input_type -> nimi.runtime.v1.GetAppInstallJobRequest
-	49, // 77: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:input_type -> nimi.runtime.v1.ListAppInstallJobsRequest
-	51, // 78: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:input_type -> nimi.runtime.v1.WatchAppInstallJobEventsRequest
-	56, // 79: nimi.runtime.v1.RuntimeAppService.UpdateApp:input_type -> nimi.runtime.v1.UpdateAppRequest
-	58, // 80: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:input_type -> nimi.runtime.v1.HealthRepairAppRequest
-	61, // 81: nimi.runtime.v1.RuntimeAppService.OpenApp:input_type -> nimi.runtime.v1.OpenAppRequest
-	64, // 82: nimi.runtime.v1.RuntimeAppService.BindInstalledLaunchProcess:input_type -> nimi.runtime.v1.BindInstalledLaunchProcessRequest
-	17, // 83: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	19, // 84: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	23, // 85: nimi.runtime.v1.RuntimeAppService.PrepareAppLifecycleIntent:output_type -> nimi.runtime.v1.PrepareAppLifecycleIntentResponse
-	25, // 86: nimi.runtime.v1.RuntimeAppService.GetAppLifecycleIntentStatus:output_type -> nimi.runtime.v1.GetAppLifecycleIntentStatusResponse
-	31, // 87: nimi.runtime.v1.RuntimeAppService.InstallApp:output_type -> nimi.runtime.v1.InstallAppResponse
-	55, // 88: nimi.runtime.v1.RuntimeAppService.UninstallApp:output_type -> nimi.runtime.v1.UninstallAppResponse
-	35, // 89: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
-	39, // 90: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:output_type -> nimi.runtime.v1.GetAccountAppInventoryResponse
-	42, // 91: nimi.runtime.v1.RuntimeAppService.AdoptLocalApp:output_type -> nimi.runtime.v1.AdoptLocalAppResponse
-	44, // 92: nimi.runtime.v1.RuntimeAppService.ListLocalAppAdoptions:output_type -> nimi.runtime.v1.ListLocalAppAdoptionsResponse
-	46, // 93: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAdoption:output_type -> nimi.runtime.v1.RemoveLocalAppAdoptionResponse
-	48, // 94: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:output_type -> nimi.runtime.v1.GetAppPackageReadinessResponse
-	33, // 95: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:output_type -> nimi.runtime.v1.GetAppInstallJobResponse
-	50, // 96: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:output_type -> nimi.runtime.v1.ListAppInstallJobsResponse
-	52, // 97: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:output_type -> nimi.runtime.v1.AppInstallJobEvent
-	57, // 98: nimi.runtime.v1.RuntimeAppService.UpdateApp:output_type -> nimi.runtime.v1.UpdateAppResponse
-	59, // 99: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:output_type -> nimi.runtime.v1.HealthRepairAppResponse
-	63, // 100: nimi.runtime.v1.RuntimeAppService.OpenApp:output_type -> nimi.runtime.v1.OpenAppResponse
-	65, // 101: nimi.runtime.v1.RuntimeAppService.BindInstalledLaunchProcess:output_type -> nimi.runtime.v1.BindInstalledLaunchProcessResponse
-	83, // [83:102] is the sub-list for method output_type
-	64, // [64:83] is the sub-list for method input_type
-	64, // [64:64] is the sub-list for extension type_name
-	64, // [64:64] is the sub-list for extension extendee
-	0,  // [0:64] is the sub-list for field type_name
+	32, // 33: nimi.runtime.v1.AccountAppInventoryRecord.apps:type_name -> nimi.runtime.v1.AccountAppInventoryRow
+	33, // 34: nimi.runtime.v1.GetAccountAppInventoryResponse.record:type_name -> nimi.runtime.v1.AccountAppInventoryRecord
+	55, // 35: nimi.runtime.v1.GetAccountAppInventoryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	24, // 36: nimi.runtime.v1.GetAppPackageReadinessResponse.projection:type_name -> nimi.runtime.v1.AppPackageReadinessProjection
+	25, // 37: nimi.runtime.v1.ListAppInstallJobsResponse.jobs:type_name -> nimi.runtime.v1.AppInstallJob
+	25, // 38: nimi.runtime.v1.AppInstallJobEvent.job:type_name -> nimi.runtime.v1.AppInstallJob
+	56, // 39: nimi.runtime.v1.AppInstallJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	22, // 40: nimi.runtime.v1.AppUninstallResult.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
+	55, // 41: nimi.runtime.v1.AppUninstallResult.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	43, // 42: nimi.runtime.v1.UninstallAppResponse.result:type_name -> nimi.runtime.v1.AppUninstallResult
+	25, // 43: nimi.runtime.v1.UninstallAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
+	25, // 44: nimi.runtime.v1.UpdateAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
+	4,  // 45: nimi.runtime.v1.HealthRepairAppRequest.action:type_name -> nimi.runtime.v1.AppHealthRepairAction
+	25, // 46: nimi.runtime.v1.HealthRepairAppResponse.job:type_name -> nimi.runtime.v1.AppInstallJob
+	56, // 47: nimi.runtime.v1.PrepareLocalAppLaunchResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	55, // 48: nimi.runtime.v1.PrepareLocalAppLaunchResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	56, // 49: nimi.runtime.v1.BindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	55, // 50: nimi.runtime.v1.BindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	12, // 51: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	14, // 52: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	18, // 53: nimi.runtime.v1.RuntimeAppService.PrepareAppLifecycleIntent:input_type -> nimi.runtime.v1.PrepareAppLifecycleIntentRequest
+	20, // 54: nimi.runtime.v1.RuntimeAppService.GetAppLifecycleIntentStatus:input_type -> nimi.runtime.v1.GetAppLifecycleIntentStatusRequest
+	26, // 55: nimi.runtime.v1.RuntimeAppService.InstallApp:input_type -> nimi.runtime.v1.InstallAppRequest
+	42, // 56: nimi.runtime.v1.RuntimeAppService.UninstallApp:input_type -> nimi.runtime.v1.UninstallAppRequest
+	30, // 57: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
+	34, // 58: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:input_type -> nimi.runtime.v1.GetAccountAppInventoryRequest
+	36, // 59: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:input_type -> nimi.runtime.v1.GetAppPackageReadinessRequest
+	28, // 60: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:input_type -> nimi.runtime.v1.GetAppInstallJobRequest
+	38, // 61: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:input_type -> nimi.runtime.v1.ListAppInstallJobsRequest
+	40, // 62: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:input_type -> nimi.runtime.v1.WatchAppInstallJobEventsRequest
+	45, // 63: nimi.runtime.v1.RuntimeAppService.UpdateApp:input_type -> nimi.runtime.v1.UpdateAppRequest
+	47, // 64: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:input_type -> nimi.runtime.v1.HealthRepairAppRequest
+	49, // 65: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	51, // 66: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
+	13, // 67: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	15, // 68: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	19, // 69: nimi.runtime.v1.RuntimeAppService.PrepareAppLifecycleIntent:output_type -> nimi.runtime.v1.PrepareAppLifecycleIntentResponse
+	21, // 70: nimi.runtime.v1.RuntimeAppService.GetAppLifecycleIntentStatus:output_type -> nimi.runtime.v1.GetAppLifecycleIntentStatusResponse
+	27, // 71: nimi.runtime.v1.RuntimeAppService.InstallApp:output_type -> nimi.runtime.v1.InstallAppResponse
+	44, // 72: nimi.runtime.v1.RuntimeAppService.UninstallApp:output_type -> nimi.runtime.v1.UninstallAppResponse
+	31, // 73: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
+	35, // 74: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:output_type -> nimi.runtime.v1.GetAccountAppInventoryResponse
+	37, // 75: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:output_type -> nimi.runtime.v1.GetAppPackageReadinessResponse
+	29, // 76: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:output_type -> nimi.runtime.v1.GetAppInstallJobResponse
+	39, // 77: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:output_type -> nimi.runtime.v1.ListAppInstallJobsResponse
+	41, // 78: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:output_type -> nimi.runtime.v1.AppInstallJobEvent
+	46, // 79: nimi.runtime.v1.RuntimeAppService.UpdateApp:output_type -> nimi.runtime.v1.UpdateAppResponse
+	48, // 80: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:output_type -> nimi.runtime.v1.HealthRepairAppResponse
+	50, // 81: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	52, // 82: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
+	67, // [67:83] is the sub-list for method output_type
+	51, // [51:67] is the sub-list for method input_type
+	51, // [51:51] is the sub-list for extension type_name
+	51, // [51:51] is the sub-list for extension extendee
+	0,  // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }
@@ -5400,8 +4166,8 @@ func file_runtime_v1_app_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_app_proto_rawDesc), len(file_runtime_v1_app_proto_rawDesc)),
-			NumEnums:      16,
-			NumMessages:   50,
+			NumEnums:      12,
+			NumMessages:   41,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

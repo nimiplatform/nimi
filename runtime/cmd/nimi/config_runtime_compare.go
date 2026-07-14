@@ -60,9 +60,6 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if authAccountFieldValue(before, func(accountCfg *config.FileConfigAccount) string { return accountCfg.TokenURL }) != authAccountFieldValue(after, func(accountCfg *config.FileConfigAccount) string { return accountCfg.TokenURL }) {
 		return true
 	}
-	if authDeveloperRegistrationEnabledValue(before) != authDeveloperRegistrationEnabledValue(after) {
-		return true
-	}
 	if !runtimeProvidersEqual(before.Providers, after.Providers) {
 		return true
 	}
@@ -105,13 +102,6 @@ func authAccountFieldValue(fileCfg config.FileConfig, selector func(*config.File
 		return ""
 	}
 	return strings.TrimSpace(selector(fileCfg.Auth.Account))
-}
-
-func authDeveloperRegistrationEnabledValue(fileCfg config.FileConfig) bool {
-	return fileCfg.Auth != nil &&
-		fileCfg.Auth.DeveloperRegistration != nil &&
-		fileCfg.Auth.DeveloperRegistration.Enabled != nil &&
-		*fileCfg.Auth.DeveloperRegistration.Enabled
 }
 
 func intPtrValue(p *int) int {

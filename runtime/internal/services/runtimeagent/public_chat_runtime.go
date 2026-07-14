@@ -5,8 +5,11 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type publicChatRuntime struct {
@@ -28,9 +31,35 @@ func (r publicChatRuntime) consumeAppMessage(ctx context.Context, event *runtime
 	}
 	switch strings.TrimSpace(event.GetMessageType()) {
 	case publicChatTurnRequestType:
-		req, err := decodePublicChatTurnRequestPayload(event.GetPayload())
+		payload := event.GetPayload()
+		if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+			if decision.Operation != accountservice.LocalAppOperationSendConversationTurn || payload == nil {
+				return status.Error(codes.PermissionDenied, "local-app turn selector is invalid")
+			}
+			localAgentRef := strings.TrimSpace(payload.GetFields()["local_agent_ref"].GetStringValue())
+			entry, entryErr := r.svc.agentByID(localAgentRef)
+			if entryErr != nil {
+				return entryErr
+			}
+			if entry == nil || entry.Agent == nil || strings.TrimSpace(entry.Agent.GetOwnerUserId()) != decision.AccountID {
+				return status.Error(codes.PermissionDenied, "turn Agent is not owned by the current account")
+			}
+			cloned, cloneOK := proto.Clone(payload).(*structpb.Struct)
+			if !cloneOK {
+				return status.Error(codes.InvalidArgument, "public chat turn payload invalid")
+			}
+			cloned.Fields["owner_user_id"] = structpb.NewStringValue(entry.Agent.GetOwnerUserId())
+			cloned.Fields["runtime_source_ref"] = structpb.NewStringValue(entry.Agent.GetRuntimeSourceRef())
+			payload = cloned
+		}
+		req, err := decodePublicChatTurnRequestPayload(payload)
 		if err != nil {
 			return err
+		}
+		if _, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+			if err := r.svc.ValidateLocalAppConversationScope(ctx, req.LocalAgentRef, req.ConversationAnchorID); err != nil {
+				return err
+			}
 		}
 		return r.handleTurnRequest(ctx, event, req)
 	case publicChatTurnInterruptType:

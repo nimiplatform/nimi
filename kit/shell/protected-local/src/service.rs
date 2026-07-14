@@ -61,5 +61,12 @@ pub trait FixedRuntimeServiceControl: Send + Sync {
 
     fn request_runtime_service_restart(
         &self,
-    ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError>;
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<RuntimeServiceActionOutcome, ProtectedCarrierError>,
+                > + Send
+                + '_,
+        >,
+    >;
 }

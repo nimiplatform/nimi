@@ -27,8 +27,13 @@ mod tests {
                 "runtime_bridge_status",
                 "runtime_bridge_start",
                 "runtime_bridge_restart",
+                "runtime_account_session_status",
+                "runtime_account_begin_login",
+                "runtime_account_complete_login",
+                "runtime_account_invoke_realm_unary",
+                "runtime_account_logout",
+                "runtime_account_switch_account",
                 "open_external_url",
-                "oauth_token_exchange",
                 "oauth_listen_for_code",
                 "desktop_open_intent_open_intent",
                 "log_renderer_event",
@@ -46,7 +51,6 @@ mod tests {
                 "file_reveal_reveal",
                 "export_save_file",
                 "artifacts_write",
-                "artifacts_read_runtime_bytes",
                 "local_assets_resolve_url",
                 "local_agent_identity",
                 "local_agent_runtime_trusted_caller",
@@ -89,6 +93,9 @@ mod tests {
             .any(|command| command.boundary == ShellCommandBoundary::Daemon));
         assert!(commands
             .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::DesktopAccount));
+        assert!(commands
+            .iter()
             .any(|command| command.boundary == ShellCommandBoundary::OAuth));
         assert!(commands
             .iter()
@@ -129,6 +136,36 @@ mod tests {
     }
 
     #[test]
+    fn local_app_carrier_behavior() {
+        let names = local_app_standard_shell_commands()
+            .into_iter()
+            .map(|command| command.command_name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            names,
+            vec![
+                "local_app_session_status",
+                "local_app_permission_posture",
+                "local_app_permission_request",
+                "local_app_artifacts_read_runtime_bytes",
+                "local_app_agent_open_conversation",
+                "local_app_agent_send_turn",
+                "local_app_agent_subscribe_turn",
+                "local_app_agent_get_conversation_snapshot",
+            ]
+        );
+        for forbidden in [
+            "runtime_bridge_unary",
+            "runtime_bridge_restart",
+            "oauth_token_exchange",
+            "storage_read_json",
+            "file_dialog_open",
+        ] {
+            assert!(!names.contains(&forbidden));
+        }
+    }
+
+    #[test]
     fn runtime_bridge_catalog_excludes_retired_stop_and_runtime_config_controls() {
         let names = RUNTIME_BRIDGE_COMMANDS
             .iter()
@@ -153,6 +190,30 @@ mod tests {
         ] {
             assert!(!names.contains(&forbidden));
         }
+    }
+
+    #[test]
+    fn protected_desktop_account_catalog_is_kit_owned_and_token_free() {
+        let names = PROTECTED_DESKTOP_ACCOUNT_COMMANDS
+            .iter()
+            .map(|command| command.command_name)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            names,
+            vec![
+                "runtime_account_session_status",
+                "runtime_account_begin_login",
+                "runtime_account_complete_login",
+                "runtime_account_invoke_realm_unary",
+                "runtime_account_logout",
+                "runtime_account_switch_account",
+            ]
+        );
+        assert!(PROTECTED_DESKTOP_ACCOUNT_COMMANDS
+            .iter()
+            .all(|command| command.boundary == ShellCommandBoundary::DesktopAccount));
+        assert!(!names.iter().any(|name| name.contains("token")));
     }
 
     #[test]
@@ -199,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn standard_ai_config_commands_cover_installed_app_operations() {
+    fn standard_ai_config_commands_cover_declared_operations() {
         let names = STANDARD_AI_CONFIG_COMMANDS
             .iter()
             .map(|command| command.command_name)
@@ -223,7 +284,6 @@ mod tests {
                 "file_reveal_reveal",
                 "export_save_file",
                 "artifacts_write",
-                "artifacts_read_runtime_bytes",
             ]
         );
         assert!(STANDARD_FILE_COMMANDS
@@ -258,14 +318,23 @@ mod tests {
     }
 
     #[test]
-    fn installed_app_standard_shell_catalog_matches_admitted_surface() {
-        let names = installed_app_standard_shell_commands()
+    fn local_app_standard_shell_catalog_matches_admitted_surface() {
+        let names = local_app_standard_shell_commands()
             .into_iter()
             .map(|command| command.command_name)
             .collect::<Vec<_>>();
         assert_eq!(
             names,
-            vec!["app_host_bootstrap", "artifacts_read_runtime_bytes"]
+            vec![
+                "local_app_session_status",
+                "local_app_permission_posture",
+                "local_app_permission_request",
+                "local_app_artifacts_read_runtime_bytes",
+                "local_app_agent_open_conversation",
+                "local_app_agent_send_turn",
+                "local_app_agent_subscribe_turn",
+                "local_app_agent_get_conversation_snapshot",
+            ]
         );
         for forbidden in [
             "runtime_bridge_unary",
@@ -342,8 +411,8 @@ mod tests {
         );
         let _floating_window_only_builder = tauri::Builder::<tauri::Wry>::default()
             .invoke_handler(crate::nimi_shell_tauri_floating_window_commands![]);
-        let _installed_app_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_installed_app_standard_shell_handler![test_app_command],
+        let _local_app_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
+            crate::nimi_shell_tauri_local_app_standard_shell_handler![test_app_command],
         );
     }
 }

@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { mkdir, readFile, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
@@ -9,7 +9,14 @@ import {
   type NimiElectronShellFileProtocolHost,
 } from '../src/main/index.js';
 import { FakeElectronProtocol } from './fake-electron-protocol.js';
-import { FakeIpcMain, createInvokeEvent, invokeBridge, withTempDir } from './electron-shell-test-utils.js';
+import {
+  FakeIpcMain,
+  createInvokeEvent,
+  invokeBridge,
+  replaceManagedDirectoryWithPathEscape,
+  replaceManagedFileWithPathEscape,
+  withTempDir,
+} from './electron-shell-test-utils.js';
 
 type Scope = {
   readonly hostScope: 'local-agent';
@@ -432,30 +439,34 @@ describe('Electron Agent Center content admission', () => {
       const manifest = await findManagedFile(dataRoot, result.backgroundAssetRef, 'manifest.json');
       const outside = path.join(root, 'outside-manifest.json');
       await writeFile(outside, await readFile(manifest));
-      await rm(manifest);
-      await symlink(outside, manifest);
-      await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet'], {
-        ...SCOPE,
-        backgroundAssetRef: result.backgroundAssetRef,
-      })).rejects.toMatchObject({ code: 'invalid-path' });
+      const restoreManifest = await replaceManagedFileWithPathEscape(manifest, outside, root);
+      try {
+        await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet'], {
+          ...SCOPE,
+          backgroundAssetRef: result.backgroundAssetRef,
+        })).rejects.toMatchObject({ code: 'invalid-path' });
+      } finally {
+        await restoreManifest();
+      }
 
-      await rm(manifest);
-      await writeFile(manifest, await readFile(outside));
       const accountRoot = path.join(dataRoot, 'agent-center', 'accounts', SCOPE.accountId);
       const movedAccountRoot = path.join(root, 'moved-account');
-      await rename(accountRoot, movedAccountRoot);
-      await symlink(movedAccountRoot, accountRoot, 'dir');
-      await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundValidate'], {
-        ...SCOPE,
-        backgroundAssetRef: result.backgroundAssetRef,
-      })).rejects.toMatchObject({ code: 'invalid-path' });
-      await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove'], {
-        ...SCOPE,
-      })).rejects.toMatchObject({ code: 'invalid-path' });
-      await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.accountResourcesRemove'], {
-        hostScope: 'account',
-        accountId: SCOPE.accountId,
-      })).rejects.toMatchObject({ code: 'invalid-path' });
+      const restoreAccountRoot = await replaceManagedDirectoryWithPathEscape(accountRoot, movedAccountRoot);
+      try {
+        await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundValidate'], {
+          ...SCOPE,
+          backgroundAssetRef: result.backgroundAssetRef,
+        })).rejects.toMatchObject({ code: 'invalid-path' });
+        await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove'], {
+          ...SCOPE,
+        })).rejects.toMatchObject({ code: 'invalid-path' });
+        await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.accountResourcesRemove'], {
+          hostScope: 'account',
+          accountId: SCOPE.accountId,
+        })).rejects.toMatchObject({ code: 'invalid-path' });
+      } finally {
+        await restoreAccountRoot();
+      }
     });
   });
 
@@ -472,16 +483,19 @@ describe('Electron Agent Center content admission', () => {
       const avatarManifest = await findManagedFile(dataRoot, avatar.avatarAssetRef, 'manifest.json');
       const avatarRoot = path.dirname(avatarManifest);
       const movedAvatarRoot = path.join(root, 'moved-avatar');
-      await rename(avatarRoot, movedAvatarRoot);
-      await symlink(movedAvatarRoot, avatarRoot, 'dir');
-      for (const command of [
-        NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate'],
-        NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview'],
-      ]) {
-        await expect(invoke(ipcMain, command, {
-          ...SCOPE,
-          avatarAssetRef: avatar.avatarAssetRef,
-        })).rejects.toMatchObject({ code: 'invalid-path' });
+      const restoreAvatarRoot = await replaceManagedDirectoryWithPathEscape(avatarRoot, movedAvatarRoot);
+      try {
+        for (const command of [
+          NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate'],
+          NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview'],
+        ]) {
+          await expect(invoke(ipcMain, command, {
+            ...SCOPE,
+            avatarAssetRef: avatar.avatarAssetRef,
+          })).rejects.toMatchObject({ code: 'invalid-path' });
+        }
+      } finally {
+        await restoreAvatarRoot();
       }
 
       const backgroundSource = path.join(root, 'valid.png');
@@ -494,12 +508,15 @@ describe('Electron Agent Center content admission', () => {
       const backgroundManifest = await findManagedFile(dataRoot, background.backgroundAssetRef, 'manifest.json');
       const backgroundRoot = path.dirname(backgroundManifest);
       const movedBackgroundRoot = path.join(root, 'moved-background');
-      await rename(backgroundRoot, movedBackgroundRoot);
-      await symlink(movedBackgroundRoot, backgroundRoot, 'dir');
-      await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundRemove'], {
-        ...SCOPE,
-        backgroundAssetRef: background.backgroundAssetRef,
-      })).rejects.toMatchObject({ code: 'invalid-path' });
+      const restoreBackgroundRoot = await replaceManagedDirectoryWithPathEscape(backgroundRoot, movedBackgroundRoot);
+      try {
+        await expect(invoke(ipcMain, NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundRemove'], {
+          ...SCOPE,
+          backgroundAssetRef: background.backgroundAssetRef,
+        })).rejects.toMatchObject({ code: 'invalid-path' });
+      } finally {
+        await restoreBackgroundRoot();
+      }
     });
   });
 });

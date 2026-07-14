@@ -33,7 +33,6 @@ import {
   RUNTIME_AUTH_METHODS,
   RUNTIME_CONNECTOR_METHODS,
   RUNTIME_EXTERNAL_AGENT_METHODS,
-  RUNTIME_GRANT_METHODS,
   RUNTIME_KNOWLEDGE_METHODS,
   RUNTIME_LOCAL_METHODS,
   RUNTIME_MEMORY_METHODS,
@@ -49,7 +48,6 @@ import {
   type RuntimeAuthModule,
   type RuntimeConnectorModule,
   type RuntimeExternalAgentModule,
-  type RuntimeGrantModule,
   type RuntimeKnowledgeModule,
   type RuntimeLocalModule,
   type RuntimeMemoryModule,
@@ -73,7 +71,6 @@ export {
   RUNTIME_AUTH_METHODS,
   RUNTIME_CONNECTOR_METHODS,
   RUNTIME_EXTERNAL_AGENT_METHODS,
-  RUNTIME_GRANT_METHODS,
   RUNTIME_KNOWLEDGE_METHODS,
   RUNTIME_LOCAL_METHODS,
   RUNTIME_MEMORY_METHODS,
@@ -91,7 +88,6 @@ export type {
   RuntimeAuthModule,
   RuntimeConnectorModule,
   RuntimeExternalAgentModule,
-  RuntimeGrantModule,
   RuntimeKnowledgeModule,
   RuntimeLocalModule,
   RuntimeMemoryModule,
@@ -364,7 +360,6 @@ export class Runtime {
   readonly realtime: RuntimeRealtimeModule;
   readonly connectors: RuntimeConnectorModule;
   readonly auth: RuntimeAuthModule;
-  readonly grants: RuntimeGrantModule;
   readonly externalAgents: RuntimeExternalAgentModule;
   readonly audit: RuntimeAuditModule;
   readonly knowledge: RuntimeKnowledgeModule;
@@ -389,7 +384,6 @@ export class Runtime {
     this.realtime = bindRuntimeModule(generated, RUNTIME_REALTIME_METHODS);
     this.connectors = bindRuntimeModule(generated, RUNTIME_CONNECTOR_METHODS);
     this.auth = bindRuntimeModule(generated, RUNTIME_AUTH_METHODS);
-    this.grants = bindRuntimeModule(this.generated, RUNTIME_GRANT_METHODS);
     this.externalAgents = bindRuntimeModule(generated, RUNTIME_EXTERNAL_AGENT_METHODS);
     this.audit = bindRuntimeModule(generated, RUNTIME_AUDIT_METHODS);
     this.knowledge = bindRuntimeModule(generated, RUNTIME_KNOWLEDGE_METHODS);
@@ -557,7 +551,6 @@ function createPublicRuntimeGeneratedClient(client: RuntimeTypedClient): Runtime
 
 const RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES = new Set<RuntimeRpcAuthPosture>([
   'protected_origin_required',
-  'deny_all_tombstone',
   'blocked_pending_authority',
 ]);
 

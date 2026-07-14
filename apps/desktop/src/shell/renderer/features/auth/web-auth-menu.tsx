@@ -14,7 +14,7 @@ import {
   createDesktopAuthAdapter,
   createDesktopRuntimeAccountBrowserBroker,
   desktopOAuthBridge,
-} from './desktop-auth-adapter.js';
+} from '@renderer/features/auth/desktop-auth-adapter.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 

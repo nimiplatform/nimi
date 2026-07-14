@@ -65,8 +65,8 @@ const realmFixtureServerSource = fs.readFileSync(
   path.join(root, 'e2e/fixtures/realm-fixture-server.mjs'),
   'utf8',
 );
-const exploreMaterializationAcceptanceSource = fs.readFileSync(
-  path.join(root, 'scripts/run-electron-explore-materialization-acceptance.mjs'),
+const exploreMaterializationRuntimeAgentConfigSource = fs.readFileSync(
+  path.join(root, 'scripts/explore-materialization-acceptance/acceptance-runtime-agent-config.mjs'),
   'utf8',
 );
 const exploreMaterializationAcceptanceConstantsSource = fs.readFileSync(
@@ -79,6 +79,14 @@ const exploreMaterializationAcceptanceFixtureSource = fs.readFileSync(
 );
 const wdioConfigSource = fs.readFileSync(
   path.join(root, 'wdio.conf.mjs'),
+  'utf8',
+);
+const electronAcceptanceSource = fs.readFileSync(
+  path.join(root, 'test/electron-acceptance.mjs'),
+  'utf8',
+);
+const electronLiveRuntimeAcceptanceSource = fs.readFileSync(
+  path.join(root, 'scripts/run-electron-live-runtime-acceptance.mjs'),
   'utf8',
 );
 
@@ -220,7 +228,7 @@ test('desktop E2E Realm fixture serves public world and source materialization p
   assert.match(realmFixtureServerSource, /runtime-source:\$\{sourceRef\.kind\}/);
 });
 
-test('Explore materialization Electron acceptance hard-cuts to worldCharacter detail', () => {
+test('materialization support fixtures retain world-character and Runtime Agent inputs', () => {
   assert.match(exploreMaterializationAcceptanceConstantsSource, /VALID_SOURCE_REF = FIXTURE_SOURCE_REF/);
   assert.match(exploreMaterializationAcceptanceConstantsSource, /source-materialization-packet-v2\.mjs/);
   assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.read/);
@@ -232,15 +240,15 @@ test('Explore materialization Electron acceptance hard-cuts to worldCharacter de
   assert.match(exploreMaterializationAcceptanceFixtureSource, /interactionProfile/);
   assert.match(exploreMaterializationAcceptanceFixtureSource, /character-acceptance-disabled-hash/);
   assert.doesNotMatch(exploreMaterializationAcceptanceFixtureSource, /omitContentHash/);
-  assert.match(exploreMaterializationAcceptanceSource, /world-character-source-detail-page/);
-  assert.match(exploreMaterializationAcceptanceSource, /Source Detail must render the world-character page/);
-  assert.match(exploreMaterializationAcceptanceSource, /world-character-back-button/);
-  assert.match(exploreMaterializationAcceptanceSource, /agentClient\.agentAIConfig\.get/);
-  assert.match(exploreMaterializationAcceptanceSource, /waitForRuntimeTextGenerateTargetRef/);
-  assert.doesNotMatch(exploreMaterializationAcceptanceSource, /waitForTextGenerateTargetRef/);
-  assert.match(exploreMaterializationAcceptanceSource, /sourceDetailSurface = 'world-character'/);
-  assert.doesNotMatch(exploreMaterializationAcceptanceSource, /sourceDetailSurface = 'compact-source'/);
-  assert.doesNotMatch(exploreMaterializationAcceptanceSource, /Boolean\(worldCharacterDetail \|\| compactDetail\)/);
+  assert.match(exploreMaterializationRuntimeAgentConfigSource, /agentClient\.agentAIConfig\.get/);
+});
+
+test('Desktop Electron acceptance has no environment-activated direct-daemon runner', () => {
+  for (const source of [electronAcceptanceSource, electronLiveRuntimeAcceptanceSource]) {
+    assert.doesNotMatch(source, /NIMI_RLA_EVIDENCE_ROOT/);
+    assert.doesNotMatch(source, /runtime-local-agent-center-runner/);
+    assert.doesNotMatch(source, /startRuntimeDaemon/);
+  }
 });
 
 test('authenticated desktop E2E chat messages use canonical Realm message DTOs', () => {
@@ -289,7 +297,7 @@ test('desktop E2E fixture Runtime overrides are test-feature gated and productio
   assert.match(desktopE2eFixtureSource, /#\[cfg\(any\(test, feature = "desktop-e2e-fixture"\)\)\][\s\S]*#\[path = "desktop_e2e_fixture\/enabled\.rs"\][\s\S]*mod enabled/);
   assert.match(desktopE2eFixtureSource, /#\[cfg\(not\(any\(test, feature = "desktop-e2e-fixture"\)\)\)\][\s\S]*(?:#\[allow\(dead_code\)\][\s\S]*)?#\[path = "desktop_e2e_fixture\/disabled\.rs"\][\s\S]*mod disabled/);
   assert.match(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID/);
-  assert.match(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
+  assert.doesNotMatch(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
   assert.match(desktopE2eFixtureRuntimeAppSource, /AccountSessionState::Authenticated as i32/);
   assert.match(desktopE2eFixtureDisabledSource, /pub fn runtime_bridge_unary_override\([\s\S]*?Ok\(None\)/);
 });

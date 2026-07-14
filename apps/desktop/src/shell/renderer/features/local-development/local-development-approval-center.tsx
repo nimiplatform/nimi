@@ -25,7 +25,9 @@ export function LocalDevelopmentApprovalCenter() {
   const [approvals, setApprovals] = useState<LocalDevelopmentApproval[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [riskAcknowledged, setRiskAcknowledged] = useState(false);
   const approval = approvals[0] ?? null;
+  const reactivation = approval?.approvalState === 'dormant';
 
   const refresh = useCallback(async () => {
     if (!localDevelopmentBridgeAvailable()) return;
@@ -67,7 +69,11 @@ export function LocalDevelopmentApprovalCenter() {
     setBusy(true);
     setError('');
     try {
-      await decideLocalDevelopmentApproval(approval.requestId, decision);
+      await decideLocalDevelopmentApproval(
+        approval.requestId,
+        decision,
+        decision === 'deny' ? false : riskAcknowledged,
+      );
       setApprovals((current) => current.filter((row) => row.requestId !== approval.requestId));
       await refresh();
     } catch (cause) {
@@ -75,7 +81,7 @@ export function LocalDevelopmentApprovalCenter() {
     } finally {
       setBusy(false);
     }
-  }, [approval, busy, refresh]);
+  }, [approval, busy, refresh, riskAcknowledged]);
 
   if (!approval) return null;
 
@@ -115,23 +121,26 @@ export function LocalDevelopmentApprovalCenter() {
           >
             {t('LocalDevelopment.action.deny')}
           </Button>
-          <Button
-            tone="secondary"
-            size="sm"
-            disabled={busy}
-            data-testid="local-development-allow-once"
-            onClick={() => { void submit('allow-run-once'); }}
-          >
-            {t('LocalDevelopment.action.allowOnce')}
-          </Button>
+          {!reactivation ? (
+            <Button
+              tone="secondary"
+              size="sm"
+              disabled={busy || !riskAcknowledged}
+              data-testid="local-development-allow-once"
+              onClick={() => { void submit('allow-run-once'); }}
+            >
+              {t('LocalDevelopment.action.allowOnce')}
+            </Button>
+          ) : null}
           <Button
             tone="primary"
             size="sm"
             loading={busy}
+            disabled={busy || !riskAcknowledged}
             data-testid="local-development-remember"
             onClick={() => { void submit('allow-remember-project'); }}
           >
-            {t('LocalDevelopment.action.remember')}
+            {t(reactivation ? 'LocalDevelopment.action.reactivate' : 'LocalDevelopment.action.remember')}
           </Button>
         </div>
       )}
@@ -140,6 +149,17 @@ export function LocalDevelopmentApprovalCenter() {
         <InlineAlert tone="warning">
           {t('LocalDevelopment.approval.warning')}
         </InlineAlert>
+        <label className="flex cursor-pointer items-start gap-3 rounded-[var(--nimi-radius-md)] border border-[color-mix(in_srgb,var(--nimi-status-warning)_36%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_7%,var(--nimi-surface-card))] px-3 py-3 text-sm leading-6 text-[var(--nimi-text-primary)]">
+          <input
+            type="checkbox"
+            checked={riskAcknowledged}
+            disabled={busy}
+            data-testid="local-development-native-risk-ack"
+            className="mt-1 h-4 w-4 shrink-0 accent-[var(--nimi-action-primary-bg)]"
+            onChange={(event) => setRiskAcknowledged(event.currentTarget.checked)}
+          />
+          <span>{t('LocalDevelopment.approval.nativeRiskAcknowledgement')}</span>
+        </label>
         {approvals.length > 1 ? (
           <NimiText role="caption">
             {t('LocalDevelopment.approval.queue', { count: approvals.length })}

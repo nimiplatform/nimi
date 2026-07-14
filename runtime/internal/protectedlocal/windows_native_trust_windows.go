@@ -80,14 +80,12 @@ func (verifier *windowsNativeExecutableTrustVerifier) VerifyWindowsExecutable(ct
 	if err := verifyWindowsAuthenticode(executable, evidence.Path); err != nil {
 		return "", err
 	}
-	if role != WindowsExecutableRoleInstalled {
-		observed, err := windowsEmbeddedSignerCertSHA256(evidence.Path)
-		if err != nil {
-			return "", err
-		}
-		if subtle.ConstantTimeCompare(observed[:], verifier.signerCertSHA256[:]) != 1 {
-			return "", windowsExecutableTrustFailure("verify Windows signer identity", fmt.Errorf("signer certificate mismatch"))
-		}
+	observed, err := windowsEmbeddedSignerCertSHA256(evidence.Path)
+	if err != nil {
+		return "", err
+	}
+	if subtle.ConstantTimeCompare(observed[:], verifier.signerCertSHA256[:]) != 1 {
+		return "", windowsExecutableTrustFailure("verify Windows signer identity", fmt.Errorf("signer certificate mismatch"))
 	}
 	return trustSetID, nil
 }
@@ -99,11 +97,6 @@ func windowsExecutableRolePolicy(role WindowsExecutableRole) (string, string, er
 		return profile.runtimeExecutableName, profile.runtimeTrustSetID, nil
 	case WindowsExecutableRoleDesktop:
 		return profile.desktopExecutableName, profile.desktopTrustSetID, nil
-	case WindowsExecutableRoleInstalled:
-		// Installed publisher identity and release authority are supplied by the
-		// Platform release digest. This verifier contributes only the native
-		// Authenticode chain result and must not create a second signer registry.
-		return "", WindowsInstalledReleaseTrustSetID, nil
 	default:
 		return "", "", windowsExecutableTrustFailure("verify Windows executable role", fmt.Errorf("unsupported executable role"))
 	}

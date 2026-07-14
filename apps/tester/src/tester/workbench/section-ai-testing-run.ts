@@ -5,7 +5,7 @@ import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHis
 import {
   createTesterAIConfigService,
   createTesterAppLabAIScopeRef,
-  hydrateTesterAIConfigFromStandardShell,
+  requireTesterAIConfigAdmission,
 } from '../tester-ai-config-store.js';
 import { createTesterRunTargetSummary, type TesterRunTargetLocalModel, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
@@ -79,10 +79,14 @@ export function useTesterRunTargetSummary(
 
   useEffect(() => {
     let cancelled = false;
-    void hydrateTesterAIConfigFromStandardShell(scopeRef)
+    let unsubscribe = () => {};
+    void requireTesterAIConfigAdmission(scopeRef)
       .then((next) => {
         if (!cancelled) {
           setConfig(next);
+          unsubscribe = service.aiConfig.subscribe(scopeRef, (updated) => {
+            if (!cancelled) setConfig(updated);
+          });
         }
       })
       .catch(() => {
@@ -90,11 +94,6 @@ export function useTesterRunTargetSummary(
           setConfig(null);
         }
       });
-    const unsubscribe = service.aiConfig.subscribe(scopeRef, (next) => {
-      if (!cancelled) {
-        setConfig(next);
-      }
-    });
     return () => {
       cancelled = true;
       unsubscribe();

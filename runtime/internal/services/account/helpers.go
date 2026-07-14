@@ -17,14 +17,11 @@ const workspaceMembershipProjectionMaxAge = 15 * time.Minute
 func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool) (runtimev1.AccountReasonCode, bool) {
 	switch caller.GetMode() {
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
-		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP,
 		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
 		if strings.TrimSpace(caller.GetAppId()) == "" || strings.TrimSpace(caller.GetAppInstanceId()) == "" {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 		}
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP:
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
 	default:
@@ -49,20 +46,10 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 		}
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
-		if tokenRequest || s.registry == nil || !s.registry.AdmitLocalFirstPartyInstance(caller.GetAppId(), caller.GetAppInstanceId()) {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-		}
-		if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
-			return reason, false
-		}
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP:
 		if tokenRequest {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 		}
-		if s.registry == nil || !s.registry.AdmitLocalDeveloperInstance(caller.GetAppId(), caller.GetAppInstanceId()) {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-		}
-		if reason, ok := s.validateLocalCallerAppSession(ctx, caller); !ok {
+		if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
 			return reason, false
 		}
 	default:
@@ -88,9 +75,6 @@ func (s *Service) validateRuntimeAccountControlCaller(ctx context.Context, calle
 		return reason, false
 	}
 	if caller.GetMode() != runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-	}
-	if s.registry == nil || !s.registry.AdmitLocalFirstPartyInstance(caller.GetAppId(), caller.GetAppInstanceId()) {
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 	}
 	if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
@@ -169,8 +153,7 @@ func (s *Service) validateScopedBindingCaller(ctx context.Context, caller *runti
 	}
 	switch caller.GetMode() {
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
-		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
-		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP:
+		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP:
 		return s.validateRuntimeAdmittedCaller(ctx, caller, false)
 	default:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false

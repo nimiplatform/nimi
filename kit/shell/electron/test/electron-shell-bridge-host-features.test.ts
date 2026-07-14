@@ -14,7 +14,7 @@ import {
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_IDS,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
@@ -102,7 +102,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
           localAgentRef: ' local-agent:opaque-tester-runtime ',
         },
         runtimeTrustedCaller: {
-          mode: 'local-developer-app',
+          mode: 'local-first-party-app',
         },
       },
     });
@@ -122,9 +122,9 @@ describe('registerNimiElectronRuntimeBridge', () => {
       payload: {},
     })).resolves.toEqual({
       appId: 'nimi.tester',
-      appInstanceId: 'nimi.tester.local-developer',
-      deviceId: 'local-developer-device',
-      mode: 7,
+      appInstanceId: 'nimi.tester.local-first-party',
+      deviceId: 'local-first-party-device',
+      mode: 1,
       scopes: [],
     });
 

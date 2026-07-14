@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"crypto/rand"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
 
 func New(logger *slog.Logger, opts ...Option) *Service {
@@ -17,23 +20,24 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 	s := &Service{
-		logger:              logger,
-		now:                 time.Now,
-		custody:             unavailableCustody{},
-		exchanger:           inertExchanger{},
-		refresher:           inertRefresher{},
-		registry:            appregistry.New(),
-		realmHTTP:           &http.Client{Timeout: 30 * time.Second},
-		realmBaseURL:        "",
-		presenceVerifier:    inertPresenceVerifier{},
-		partition:           "runtime-account:default-device",
-		eventRetention:      128,
-		state:               runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
-		loginAttempts:       make(map[string]loginAttemptRecord),
-		bindings:            make(map[string]bindingRecord),
-		workspaceBindings:   make(map[string]workspaceBindingRecord),
-		launchNonceSessions: make(map[string]string),
-		subscribers:         make(map[uint64]subscriber),
+		logger:                logger,
+		now:                   time.Now,
+		custody:               unavailableCustody{},
+		exchanger:             inertExchanger{},
+		refresher:             inertRefresher{},
+		registry:              appregistry.New(),
+		realmHTTP:             &http.Client{Timeout: 30 * time.Second},
+		realmBaseURL:          "",
+		presenceVerifier:      inertPresenceVerifier{},
+		localAppGrantRandom:   rand.Reader,
+		partition:             "runtime-account:default-device",
+		eventRetention:        128,
+		state:                 runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+		loginAttempts:         make(map[string]loginAttemptRecord),
+		bindings:              make(map[string]bindingRecord),
+		workspaceBindings:     make(map[string]workspaceBindingRecord),
+		subscribers:           make(map[uint64]subscriber),
+		localAppGrantRequests: make(map[string]localAppGrantPendingRequest),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -42,6 +46,41 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 	}
 	s.recoverFromCustody(context.Background())
 	return s
+}
+
+// WithLocalAppKernel injects the sole Runtime-owned local-app principal,
+// record, and grant store. The account service never opens a parallel store.
+func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
+	return func(s *Service) {
+		s.localAppKernel = kernel
+	}
+}
+
+// WithLocalAppGrantControlAuthority injects the protected Desktop control
+// binding used to route and consume Runtime-issued grant-presence challenges.
+func WithLocalAppGrantControlAuthority(authority LocalAppGrantControlAuthority) Option {
+	return func(s *Service) {
+		s.localAppGrantControl = authority
+	}
+}
+
+// WithAuditStore binds Account-owned local-app grant lifecycle events to the
+// sole Runtime audit store. Production grant mutation fails closed when this
+// dependency is absent; the account service never opens a parallel audit log.
+func WithAuditStore(store *auditlog.Store) Option {
+	return func(s *Service) {
+		s.auditStore = store
+	}
+}
+
+// withLocalAppGrantRandom is intentionally package-private. Production uses
+// crypto/rand; focused tests may inject deterministic entropy.
+func withLocalAppGrantRandom(random io.Reader) Option {
+	return func(s *Service) {
+		if random != nil {
+			s.localAppGrantRandom = random
+		}
+	}
 }
 
 func WithClock(now func() time.Time) Option {

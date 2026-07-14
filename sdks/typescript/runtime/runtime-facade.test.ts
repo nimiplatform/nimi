@@ -94,6 +94,8 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
   assert.equal(typeof runtime.knowledge.searchHybrid, 'function');
   assert.equal(typeof runtime.memory.subscribeMemoryEvents, 'function');
   assert.equal(typeof runtime.local.resolveLocalEnvironmentPlan, 'function');
+  assert.equal('getProductControlRecord' in runtime.local, false);
+  assert.equal('reconcileProductControlFirstRunSetupState' in runtime.local, false);
   assert.equal(typeof runtime.appMessages.sendAppMessage, 'function');
   assert.equal(typeof runtime.artifacts.cleanupGeneratedVoiceArtifacts, 'function');
 
@@ -246,8 +248,6 @@ test('Runtime facade keeps low-level generated core explicit and high-level defe
     () => runtime.generated.openDesktopSession({}),
     () => runtime.generated.readArtifactBytes({ artifactId: 'artifact-1' }),
     () => runtime.artifacts.readArtifactBytes({ artifactId: 'artifact-1' }),
-    () => runtime.generated.authorizeExternalPrincipal({} as never),
-    () => runtime.grants.authorizeExternalPrincipal({} as never),
   ]) {
     await assert.rejects(
       invoke(),

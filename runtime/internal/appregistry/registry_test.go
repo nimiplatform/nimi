@@ -57,7 +57,7 @@ func TestRegistryUpsertRejectsEmptyAppID(t *testing.T) {
 	}
 }
 
-func TestRegistryAdmissionDistinguishesFirstPartyAndDeveloperInstances(t *testing.T) {
+func TestRegistryAdmissionKeepsOrdinaryInstancesFirstPartyOnly(t *testing.T) {
 	registry := New()
 	manifest := &runtimev1.AppModeManifest{
 		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -65,24 +65,11 @@ func TestRegistryAdmissionDistinguishesFirstPartyAndDeveloperInstances(t *testin
 		RealmRequired:   true,
 		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
 	}
-	if err := registry.UpsertInstanceWithAdmission("nimi.tester", "nimi.tester.local-developer", "developer-device", manifest, nil, true); err != nil {
-		t.Fatalf("UpsertInstanceWithAdmission developer: %v", err)
-	}
-	if registry.AdmitLocalFirstPartyInstance("nimi.tester", "nimi.tester.local-developer") {
-		t.Fatalf("developer-registration instance must not be admitted as local first-party")
-	}
-	if !registry.AdmitLocalDeveloperInstance("nimi.tester", "nimi.tester.local-developer") {
-		t.Fatalf("developer-registration instance should be admitted as local developer")
-	}
-
 	if err := registry.UpsertInstance("nimi.avatar", "nimi.avatar.local-first-party", "avatar-device", manifest, nil); err != nil {
 		t.Fatalf("UpsertInstance first-party: %v", err)
 	}
 	if !registry.AdmitLocalFirstPartyInstance("nimi.avatar", "nimi.avatar.local-first-party") {
 		t.Fatalf("registry-admitted first-party instance should be admitted as local first-party")
-	}
-	if registry.AdmitLocalDeveloperInstance("nimi.avatar", "nimi.avatar.local-first-party") {
-		t.Fatalf("first-party instance must not be admitted as local developer")
 	}
 }
 
@@ -112,199 +99,6 @@ func TestRegistryInstancesRetainIndependentCapabilities(t *testing.T) {
 	}
 	if len(runtimeAgentInstance.Capabilities) != 1 || runtimeAgentInstance.Capabilities[0] != "runtime.agent.read" {
 		t.Fatalf("Desktop Runtime Agent instance capabilities mismatch: %#v", runtimeAgentInstance.Capabilities)
-	}
-}
-
-func TestRegistryAdmissionDistinguishesDesktopLaunchedInstalledNimiApps(t *testing.T) {
-	registry := New()
-	manifest := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}
-	admission := DesktopLaunchedNimiAppAdmission{
-		PlatformRegistryAdmitted: true,
-		ReleaseDescriptorRef:     "community.nimi.fixture.platform-proof.0.1.0-sandbox",
-		ActiveReleaseRoot:        "D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0",
-		LaunchHostID:             DesktopInstalledAppLaunchHostID,
-		LaunchNonce:              "launch-nonce-1",
-		AccountInventoryEntitled: true,
-		LocalMaterialized:        true,
-	}
-	if err := registry.UpsertDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.instance",
-		"fixture.device",
-		manifest,
-		[]string{"runtime.account.status"},
-		admission,
-	); err != nil {
-		t.Fatalf("UpsertDesktopLaunchedNimiAppInstance: %v", err)
-	}
-	if !registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.instance",
-		"fixture.device",
-		DesktopInstalledAppLaunchHostID,
-		"launch-nonce-1",
-		"community.nimi.fixture.platform-proof.0.1.0-sandbox",
-	) {
-		t.Fatalf("installed app launch evidence should admit desktop-launched Nimi App posture")
-	}
-	if registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.instance",
-		"other-device",
-		DesktopInstalledAppLaunchHostID,
-		"launch-nonce-1",
-		"community.nimi.fixture.platform-proof.0.1.0-sandbox",
-	) {
-		t.Fatalf("installed app admission must bind the Runtime device identity")
-	}
-	if registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.instance",
-		"fixture.device",
-		DesktopInstalledAppLaunchHostID,
-		"wrong-launch-nonce",
-		"community.nimi.fixture.platform-proof.0.1.0-sandbox",
-	) {
-		t.Fatalf("installed app admission must bind the Runtime launch nonce")
-	}
-	if registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.instance",
-		"fixture.device",
-		DesktopInstalledAppLaunchHostID,
-		"launch-nonce-1",
-		"other.descriptor",
-	) {
-		t.Fatalf("installed app admission must bind the Runtime release descriptor")
-	}
-	if registry.AdmitLocalFirstPartyInstance("community.nimi.fixture.platform-proof", "fixture.instance") {
-		t.Fatalf("installed app launch evidence must not become local first-party admission")
-	}
-	if registry.AdmitLocalDeveloperInstance("community.nimi.fixture.platform-proof", "fixture.instance") {
-		t.Fatalf("installed app launch evidence must not become local developer admission")
-	}
-
-	missingRelease := admission
-	missingRelease.ReleaseDescriptorRef = ""
-	if err := registry.UpsertDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.missing-release",
-		"fixture.device",
-		manifest,
-		nil,
-		missingRelease,
-	); err != nil {
-		t.Fatalf("UpsertDesktopLaunchedNimiAppInstance missing release: %v", err)
-	}
-	if registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.missing-release",
-		"fixture.device",
-		DesktopInstalledAppLaunchHostID,
-		"launch-nonce-1",
-		"community.nimi.fixture.platform-proof.0.1.0-sandbox",
-	) {
-		t.Fatalf("installed app admission must require release descriptor evidence")
-	}
-
-	wrongHost := admission
-	wrongHost.LaunchHostID = "desktop-shell"
-	if err := registry.UpsertDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.wrong-host",
-		"fixture.device",
-		manifest,
-		nil,
-		wrongHost,
-	); err != nil {
-		t.Fatalf("UpsertDesktopLaunchedNimiAppInstance wrong host: %v", err)
-	}
-	if registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.wrong-host",
-		"fixture.device",
-		DesktopInstalledAppLaunchHostID,
-		"launch-nonce-1",
-		"community.nimi.fixture.platform-proof.0.1.0-sandbox",
-	) {
-		t.Fatalf("installed app admission must require the Desktop installed app launch host")
-	}
-
-	noInventory := admission
-	noInventory.AccountInventoryEntitled = false
-	if err := registry.UpsertDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.no-inventory",
-		"fixture.device",
-		manifest,
-		nil,
-		noInventory,
-	); err != nil {
-		t.Fatalf("UpsertDesktopLaunchedNimiAppInstance no inventory: %v", err)
-	}
-	if registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"fixture.no-inventory",
-		"fixture.device",
-		DesktopInstalledAppLaunchHostID,
-		"launch-nonce-1",
-		"community.nimi.fixture.platform-proof.0.1.0-sandbox",
-	) {
-		t.Fatalf("installed app admission must require account inventory entitlement")
-	}
-}
-
-func TestRegistryPreservesDesktopLaunchAdmissionAcrossRegisterAppUpsert(t *testing.T) {
-	registry := New()
-	manifest := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}
-	admission := DesktopLaunchedNimiAppAdmission{
-		PlatformRegistryAdmitted: true,
-		ReleaseDescriptorRef:     "community.nimi.fixture.platform-proof.0.1.0-sandbox",
-		ActiveReleaseRoot:        "D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0",
-		LaunchHostID:             DesktopInstalledAppLaunchHostID,
-		LaunchNonce:              "launch-nonce-1",
-		AccountInventoryEntitled: true,
-		LocalMaterialized:        true,
-	}
-	if err := registry.UpsertDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"community.nimi.fixture.platform-proof.desktop-host",
-		"desktop-installed-app-host-device",
-		manifest,
-		[]string{"runtime.account.status"},
-		admission,
-	); err != nil {
-		t.Fatalf("UpsertDesktopLaunchedNimiAppInstance: %v", err)
-	}
-	if err := registry.UpsertInstanceWithAdmission(
-		"community.nimi.fixture.platform-proof",
-		"community.nimi.fixture.platform-proof.desktop-host",
-		"desktop-installed-app-host-device",
-		manifest,
-		[]string{"runtime.account.status"},
-		false,
-	); err != nil {
-		t.Fatalf("UpsertInstanceWithAdmission: %v", err)
-	}
-	if !registry.AdmitDesktopLaunchedNimiAppInstance(
-		"community.nimi.fixture.platform-proof",
-		"community.nimi.fixture.platform-proof.desktop-host",
-		"desktop-installed-app-host-device",
-		DesktopInstalledAppLaunchHostID,
-		"launch-nonce-1",
-		"community.nimi.fixture.platform-proof.0.1.0-sandbox",
-	) {
-		t.Fatalf("RegisterApp upsert must preserve matching Desktop launch admission")
 	}
 }
 

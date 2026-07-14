@@ -1,8 +1,8 @@
 #[cfg(not(target_os = "windows"))]
-use nimi_shell_protected_local::WindowsAppHostCarrier;
+use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
-    LinuxAppHostCarrier, LinuxUnixSocketCarrier, MacOsAppHostCarrier, MacOsPrivilegedXpcCarrier,
-    NimiAppHostCarrier, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier,
+    LinuxLocalAppCarrier, LinuxUnixSocketCarrier, LocalAppReasonCode, MacOsLocalAppCarrier,
+    MacOsPrivilegedXpcCarrier, NimiLocalAppCarrier, NimiProtectedLocalHostCarrier,
     ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
     RuntimeServiceState, RuntimeServiceStatus, WindowsNamedPipeCarrier,
 };
@@ -11,7 +11,7 @@ async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     for error in [
         carrier.runtime_service_status().unwrap_err(),
         carrier.request_runtime_service_start().unwrap_err(),
-        carrier.request_runtime_service_restart().unwrap_err(),
+        carrier.request_runtime_service_restart().await.unwrap_err(),
         match carrier.open_desktop_control().await {
             Ok(_) => panic!("unbound protected carrier must not open a desktop session"),
             Err(error) => error,
@@ -26,14 +26,14 @@ async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     }
 }
 
-async fn assert_app_host_unbound<C: NimiAppHostCarrier>(carrier: C) {
-    let error = match carrier.open_app_host_session().await {
-        Ok(_) => panic!("unbound app-host carrier must not open a session"),
+async fn assert_local_app_unbound<C: NimiLocalAppCarrier>(carrier: C) {
+    let error = match carrier.open_local_app_session().await {
+        Ok(_) => panic!("unbound local-app carrier must not open a session"),
         Err(error) => error,
     };
     assert_eq!(
         error.reason_code(),
-        NimiHostErrorReasonCode::ProtectedCarrierRequired
+        LocalAppReasonCode::ProtectedCarrierRequired
     );
     assert!(!error.retryable());
 }
@@ -45,10 +45,10 @@ async fn compile_only_os_adapters_fail_closed_when_unbound() {
     #[cfg(not(target_os = "windows"))]
     assert_unbound(WindowsNamedPipeCarrier).await;
 
-    assert_app_host_unbound(LinuxAppHostCarrier).await;
-    assert_app_host_unbound(MacOsAppHostCarrier).await;
+    assert_local_app_unbound(LinuxLocalAppCarrier).await;
+    assert_local_app_unbound(MacOsLocalAppCarrier).await;
     #[cfg(not(target_os = "windows"))]
-    assert_app_host_unbound(WindowsAppHostCarrier).await;
+    assert_local_app_unbound(WindowsLocalAppCarrier).await;
 }
 
 #[cfg(target_os = "windows")]

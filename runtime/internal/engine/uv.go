@@ -151,27 +151,56 @@ func ensureManagedPythonRuntime(ctx context.Context, uvPath string, root string,
 		return "", "", fmt.Errorf("create managed python installation root: %w", err)
 	}
 	env := managedPythonRuntimeEnv(root)
-	// Managed-only Python preference is carried by UV_PYTHON_PREFERENCE in env;
-	// the --managed-python CLI flag is its alias and uv rejects passing both.
-	if err := runCommand(ctx, root, env, uvPath, "python", "install", "--install-dir", managedPythonInstallationDir(root), pythonVersion); err != nil {
+	find := func() (string, error) {
+		return runCommandOutput(ctx, root, env, uvPath, "python", "find", pythonVersion)
+	}
+	verify := func(interpreterPath string) (string, error) {
+		return runCommandOutput(ctx, "", env, interpreterPath, "--version")
+	}
+	install := func() error {
+		// Managed-only Python preference is carried by UV_PYTHON_PREFERENCE in
+		// env; the --managed-python CLI flag is its alias and uv rejects both.
+		return runCommand(ctx, root, env, uvPath, "python", "install", "--install-dir", managedPythonInstallationDir(root), pythonVersion)
+	}
+	return ensureManagedPythonRuntimeWithCommands(find, verify, install)
+}
+
+func ensureManagedPythonRuntimeWithCommands(
+	find func() (string, error),
+	verify func(string) (string, error),
+	install func() error,
+) (string, string, error) {
+	interpreterPath, findErr := find()
+	if findErr == nil {
+		return verifyManagedPythonRuntime(interpreterPath, verify)
+	}
+	if err := install(); err != nil {
 		return "", "", err
 	}
-	interpreterPath, err := runCommandOutput(ctx, root, env, uvPath, "python", "find", pythonVersion)
+	interpreterPath, err := find()
 	if err != nil {
 		return "", "", err
 	}
+	return verifyManagedPythonRuntime(interpreterPath, verify)
+}
+
+func verifyManagedPythonRuntime(
+	interpreterPath string,
+	verify func(string) (string, error),
+) (string, string, error) {
 	interpreterPath = strings.TrimSpace(interpreterPath)
 	if interpreterPath == "" {
 		return "", "", fmt.Errorf("managed python runtime finder returned empty interpreter path")
 	}
-	versionOutput, err := runCommandOutput(ctx, "", env, interpreterPath, "--version")
+	versionOutput, err := verify(interpreterPath)
 	if err != nil {
 		return "", "", fmt.Errorf("verify managed python runtime: %w", err)
 	}
-	if strings.TrimSpace(versionOutput) == "" {
+	versionOutput = strings.TrimSpace(versionOutput)
+	if versionOutput == "" {
 		return "", "", fmt.Errorf("verify managed python runtime: empty version output")
 	}
-	return interpreterPath, strings.TrimSpace(versionOutput), nil
+	return interpreterPath, versionOutput, nil
 }
 
 func ensureManagedPythonVenv(ctx context.Context, uvPath string, pythonRuntimePath string, root string) (string, error) {

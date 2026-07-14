@@ -25,7 +25,6 @@ function getDesktopRuntimeAgentAIConfigClient() {
   return {
     appId: getDesktopAppId(),
     auth: accountRuntime.auth,
-    appAuth: accountRuntime.grants,
     agent: getDesktopRuntime().agents,
   };
 }

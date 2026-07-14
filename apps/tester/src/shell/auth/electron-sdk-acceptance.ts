@@ -1,8 +1,6 @@
 import { hasElectronRuntime, hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { Runtime } from '@nimiplatform/sdk/runtime';
 import { getRuntimePlatformProjection } from './runtime-platform.js';
-import { createTesterRuntimeTransportConfig } from './runtime-transport.js';
-import { testerInstalledAppBootstrap } from '../installed-app-bootstrap.js';
+import { testerLocalAppRuntimePlatform } from '../local-app-runtime-platform.js';
 
 type TesterElectronSdkAcceptanceProbeResult =
   | {
@@ -24,9 +22,9 @@ type TesterElectronSdkAcceptanceProbeResult =
   };
 
 type TesterElectronSdkAcceptanceProbe = {
-  runtimeReady(): Promise<TesterElectronSdkAcceptanceProbeResult>;
-  installedProjection(): Promise<TesterElectronSdkAcceptanceProbeResult>;
-  installedArtifactRead(): Promise<TesterElectronSdkAcceptanceProbeResult>;
+  localAppAuthStatus(): Promise<TesterElectronSdkAcceptanceProbeResult>;
+  localAppProjection(): Promise<TesterElectronSdkAcceptanceProbeResult>;
+  localAppArtifactRead(): Promise<TesterElectronSdkAcceptanceProbeResult>;
 };
 
 const ELECTRON_SDK_ACCEPTANCE_QUERY = 'nimiElectronSdkAcceptance';
@@ -65,25 +63,26 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
     return;
   }
   window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__ = {
-    async runtimeReady() {
+    async localAppAuthStatus() {
       const transport = acceptanceTransport();
-      const runtime = new Runtime({
-        appId: 'nimi.tester',
-        transport: createTesterRuntimeTransportConfig(),
-      });
       try {
-        const health = await runtime.ready();
+        const status = await testerLocalAppRuntimePlatform.auth.status();
         return {
           ok: true,
           transport,
-          status: health.status,
-          reason: health.reason,
+          status: status.state,
+          reason: {
+            sessionBound: status.sessionBound,
+            operationAllowed: status.operationAllowed,
+            reasonCode: status.reasonCode,
+            actionHint: status.actionHint,
+          },
         };
       } catch (error) {
         return serializeSdkAcceptanceError(error, transport);
       }
     },
-    async installedProjection() {
+    async localAppProjection() {
       const transport = acceptanceTransport();
       try {
         const projection = await getRuntimePlatformProjection();
@@ -101,16 +100,16 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
         return serializeSdkAcceptanceError(error, transport);
       }
     },
-    async installedArtifactRead() {
+    async localAppArtifactRead() {
       const transport = acceptanceTransport();
       try {
-        const artifact = await testerInstalledAppBootstrap.artifacts.readRuntimeBytes(
+        const artifact = await testerLocalAppRuntimePlatform.artifacts.readRuntimeBytes(
           'runtime-artifact-sdk-acceptance',
         );
         return {
           ok: true,
           transport,
-          status: 'installed-artifact-readable',
+          status: 'local-app-artifact-readable',
           reason: {
             mimeType: artifact.mimeType,
             sizeBytes: artifact.sizeBytes,

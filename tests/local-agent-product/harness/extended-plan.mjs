@@ -111,7 +111,7 @@ export const extendedCommandPlans = Object.freeze({
     })],
   }),
   'challenge-replay-concurrency': Object.freeze({
-    processStarts: { provider: 0, realm: 0, runtime: 2, desktop: 0, zhiyu: 0 },
+    processStarts: { provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0 },
     steps: [runtimeStep('runtime-challenge-replay-concurrency', [
       'TestVerifySourceMaterializationBeginControlV2FailsClosed',
       'TestSourceMaterializationChallengeRequiresAuthAndIsRequestIdempotent',
@@ -139,7 +139,7 @@ export const extendedCommandPlans = Object.freeze({
     })],
   }),
   'crash-recovery': Object.freeze({
-    processStarts: { provider: 0, realm: 0, runtime: 2, desktop: 0, zhiyu: 0 },
+    processStarts: { provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0 },
     steps: [runtimeStep('runtime-crash-recovery', [
       'TestSourceMaterializationRestartPreservesIssuedAndInvalidatesOpenUpload',
     ], {

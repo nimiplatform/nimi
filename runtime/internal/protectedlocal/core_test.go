@@ -195,7 +195,7 @@ func TestTransportAndRolesAreDerivedBeforeRequests(t *testing.T) {
 	if origin.TransportClass != TransportDesktopControl {
 		t.Fatalf("unexpected transport: %q", origin.TransportClass)
 	}
-	for _, role := range []OriginRole{RoleVerifiedDesktopProcess, RoleDesktopAccountHost, RoleDesktopLifecycleHost} {
+	for _, role := range []OriginRole{RoleVerifiedDesktopProcess, RoleDesktopAccountHost, RoleLocalAppControl} {
 		if !origin.HasRole(role) {
 			t.Fatalf("missing derived role %q", role)
 		}
@@ -264,14 +264,14 @@ func TestDesktopSessionLivenessRevocationImmediatelyRemovesContextAuthority(t *t
 	if _, err := manager.Open(connectionContext); err != nil {
 		t.Fatalf("open desktop session: %v", err)
 	}
-	if err := manager.AuthorizeContext(connectionContext, RoleDesktopLifecycleHost); err != nil {
+	if err := manager.AuthorizeContext(connectionContext, RoleLocalAppControl); err != nil {
 		t.Fatalf("authorize live lifecycle role: %v", err)
 	}
 
 	liveness.revoke()
 	deadline := time.Now().Add(time.Second)
 	for {
-		err = manager.AuthorizeContext(connectionContext, RoleDesktopLifecycleHost)
+		err = manager.AuthorizeContext(connectionContext, RoleLocalAppControl)
 		if IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
 			break
 		}

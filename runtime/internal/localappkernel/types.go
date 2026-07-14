@@ -115,6 +115,19 @@ type CreateRecordInput struct {
 	LifecycleState                    LifecycleState
 }
 
+// UpdateDevelopmentRecordInput advances only the mutable-project generation
+// and opaque execution observations of an already-admitted development record.
+// It cannot change principal lineage, app identity, trust class, provenance
+// revision, attestation refs, capability fingerprint, or execution profile.
+type UpdateDevelopmentRecordInput struct {
+	LocalAppPrincipalID       string
+	LocalAppRecordID          string
+	ExpectedProjectGeneration uint64
+	HostExecutableDigest      string
+	PayloadRootDigest         string
+	LifecycleState            LifecycleState
+}
+
 type Grant struct {
 	LocalOSUserAnchor             string
 	AccountID                     string

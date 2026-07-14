@@ -328,7 +328,6 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   const runtime = {
     appId: 'sdk.test',
     auth: {},
-    appAuth: {},
     agent: {
       async setAgentPresentationProfile(request: unknown, options?: RuntimeTypedCallOptions) {
         requests.push(request);
@@ -408,22 +407,6 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
           appInstanceId: 'sdk.test.runtime-agent',
           accepted: true,
           reasonCode: 0,
-        };
-      },
-    },
-    appAuth: {
-      async authorizeExternalPrincipal(request: { scopes: string[] }) {
-        issuedScopes.push(request.scopes);
-        return {
-          tokenId: 'token-1',
-          secret: 'secret-1',
-          appId: 'sdk.test',
-          subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test.runtime-agent',
-          effectiveScopes: request.scopes,
-          policyVersion: 'runtime-agent-v1',
-          issuedScopeCatalogVersion: 'sdk-v2',
-          canDelegate: false,
         };
       },
     },
@@ -739,22 +722,6 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
           appInstanceId: 'sdk.test.runtime-agent',
           accepted: true,
           reasonCode: 0,
-        };
-      },
-    },
-    appAuth: {
-      async authorizeExternalPrincipal(request: { scopes: string[] }) {
-        issuedScopes.push(request.scopes);
-        return {
-          tokenId: 'token-1',
-          secret: 'secret-1',
-          appId: 'sdk.test',
-          subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test.runtime-agent',
-          effectiveScopes: request.scopes,
-          policyVersion: 'runtime-agent-v1',
-          issuedScopeCatalogVersion: 'sdk-v2',
-          canDelegate: false,
         };
       },
     },

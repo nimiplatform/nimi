@@ -1,30 +1,27 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
 import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
-import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeFullAppRegistration, createNimiRuntimePlatformClient, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime, type Runtime } from '@nimiplatform/sdk/runtime';
+import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimePlatformClient, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime, type Runtime } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import { Realm, createRealmFetchTransport, loginNimiRealmAuthPassword, type NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
-import { createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
+import { Realm } from '@nimiplatform/sdk/realm';
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+import {
+  beginRuntimeAccountLogin,
+  completeRuntimeAccountLogin,
+  getRuntimeAccountSessionStatusResponse,
+  invokeRuntimeAccountRealmUnary,
+  logoutRuntimeAccount,
+  switchRuntimeAccount,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   DESKTOP_RUNTIME_PROTECTED_SCOPES,
-  DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES,
 } from '../../../shared/runtime-account-contract';
-
-export type DesktopNimiRealmFetch = typeof fetch;
-
-export interface DesktopAuthUserRecord {
-  readonly [key: string]: unknown;
-  readonly id?: unknown;
-  readonly accountId?: unknown;
-  readonly subjectId?: unknown;
-  readonly sub?: unknown;
-}
 
 export interface DesktopNimiClientSession {
   readonly appId: string;
   readonly runtimeTransport?: DesktopRuntimeTransport;
   readonly client?: NimiClient;
   readonly runtime?: Runtime;
-  readonly accountRuntime?: Runtime;
+  readonly accountRuntime?: DesktopAccountRuntime;
   readonly realm: Realm;
   readonly accountCaller?: NimiRuntimeAccountCaller;
 }
@@ -33,9 +30,24 @@ export interface DesktopRuntimeRealmSession extends DesktopNimiClientSession {
   readonly runtimeTransport: DesktopRuntimeTransport;
   readonly client: NimiClient;
   readonly runtime: Runtime;
-  readonly accountRuntime: Runtime;
+  readonly accountRuntime: DesktopAccountRuntime;
   readonly accountCaller: NimiRuntimeAccountCaller;
 }
+
+type DesktopProtectedAccountModule = Pick<
+  Runtime['account'],
+  | 'getAccountSessionStatus'
+  | 'beginLogin'
+  | 'completeLogin'
+  | 'invokeRealmUnary'
+  | 'logout'
+  | 'switchAccount'
+>;
+
+export type DesktopAccountRuntime = {
+  readonly auth: Runtime['auth'];
+  readonly account: DesktopProtectedAccountModule;
+};
 
 export type DesktopRuntimeTransport =
   | {
@@ -51,21 +63,6 @@ export interface ConfigureDesktopRuntimeRealmSessionInput {
   readonly appId: string;
   readonly realmBaseUrl: string;
   readonly runtimeTransport: DesktopRuntimeTransport;
-  readonly developerRegistration?: boolean;
-}
-
-export interface ConfigureDesktopRealmOnlySessionInput {
-  readonly appId: string;
-  readonly realmBaseUrl: string;
-  readonly accessToken?: string;
-  readonly refreshToken?: string;
-  readonly fetchImpl?: DesktopNimiRealmFetch | null;
-  readonly getCurrentUser?: () => DesktopAuthUserRecord | null;
-  readonly setAuthSession?: (
-    user: DesktopAuthUserRecord | null,
-    accessToken: string,
-  ) => void | Promise<void>;
-  readonly clearAuthSession?: () => void | Promise<void>;
 }
 
 let currentSession: DesktopNimiClientSession | null = null;
@@ -80,18 +77,8 @@ export async function configureDesktopRuntimeRealmSession(
     appId,
     transport,
   });
-  const { runtime, accountRuntime } = platformClient;
-  await createNimiRuntimeFullAppRegistration(
-    () => ({ auth: accountRuntime.auth }),
-    {
-      appId,
-      appInstanceId: accountCaller.appInstanceId,
-      deviceId: accountCaller.deviceId,
-      capabilities: [...DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES],
-      rejectionLabel: 'desktop shell Runtime account caller registration rejected',
-      developerRegistration: input.developerRegistration,
-    },
-  )();
+  const { runtime, accountRuntime: publicAccountRuntime } = platformClient;
+  const accountRuntime = createDesktopProtectedAccountRuntime(publicAccountRuntime.auth);
   const realm = new Realm({
     transport: createRuntimeAccountMediatedRealmTransport({
       realmBaseUrl: input.realmBaseUrl,
@@ -115,6 +102,51 @@ export async function configureDesktopRuntimeRealmSession(
   };
   currentSession = session;
   return session;
+}
+
+function runtimeIdempotencyKey(options: RuntimeTypedCallOptions | undefined): string | undefined {
+  const metadata = options?.metadata as Record<string, unknown> | undefined;
+  const value = String(metadata?.idempotencyKey || metadata?.['x-nimi-idempotency-key'] || '').trim();
+  return value || undefined;
+}
+
+function createDesktopProtectedAccountRuntime(auth: Runtime['auth']): DesktopAccountRuntime {
+  const account: DesktopProtectedAccountModule = {
+    getAccountSessionStatus: async () => getRuntimeAccountSessionStatusResponse(),
+    beginLogin: async (request) => beginRuntimeAccountLogin({
+      redirectUri: request.redirectUri,
+      callbackOrigin: request.callbackOrigin,
+      requestedScopes: request.requestedScopes,
+      ttlSeconds: request.ttlSeconds,
+    }),
+    completeLogin: async (request) => {
+      if (String(request.refreshToken || '').trim() || String(request.sealedCompletionTicket || '').trim()) {
+        throw createNimiError({
+          message: 'Desktop protected account login accepts only a loopback OAuth code.',
+          reasonCode: ReasonCode.AUTH_UNSUPPORTED_PROOF_TYPE,
+          actionHint: 'complete_with_runtime_owned_oauth_code',
+          source: 'runtime',
+        });
+      }
+      return completeRuntimeAccountLogin({
+        loginAttemptId: request.loginAttemptId,
+        code: request.code,
+        state: request.state,
+        nonce: request.nonce,
+        redirectUri: request.redirectUri,
+        callbackOrigin: request.callbackOrigin,
+      });
+    },
+    invokeRealmUnary: async (request, options) => invokeRuntimeAccountRealmUnary({
+      methodId: request.methodId,
+      requestJson: request.requestJson,
+      timeoutMs: request.timeoutMs,
+      idempotencyKey: runtimeIdempotencyKey(options),
+    }),
+    logout: async (request) => logoutRuntimeAccount(request.reason),
+    switchAccount: async (request) => switchRuntimeAccount(request.reason),
+  };
+  return { auth, account };
 }
 
 async function getDesktopRuntimeProtectedAccessCallOptions(
@@ -152,47 +184,17 @@ function assertDesktopProtectedScopes(scopes: readonly string[]): void {
   }
 }
 
-export async function configureDesktopRealmOnlySession(
-  input: ConfigureDesktopRealmOnlySessionInput,
-): Promise<DesktopNimiClientSession> {
+export function installRealmProjectionSession(input: {
+  readonly appId: string;
+  readonly realm: Realm;
+}): DesktopNimiClientSession {
   const appId = requireText(input.appId, 'appId');
-  const currentAccessToken = normalizeText(input.accessToken);
-  const realm = new Realm({
-    transport: createRealmFetchTransport({
-      baseUrl: input.realmBaseUrl,
-      fetch: input.fetchImpl || undefined,
-      headers: (): CoreMetadata => {
-        if (!currentAccessToken) {
-          return {};
-        }
-        return {
-          authorization: `Bearer ${currentAccessToken}`,
-        };
-      },
-    }),
-  });
   const session = {
     appId,
-    realm,
+    realm: input.realm,
   };
   currentSession = session;
   return session;
-}
-
-export async function loginDesktopRealmPasswordWithBrowserSession(input: {
-  readonly realmBaseUrl: string;
-  readonly identifier: string;
-  readonly password: string;
-  readonly fetchImpl?: DesktopNimiRealmFetch;
-}): Promise<NimiRealmOAuthLoginResult> {
-  const realm = new Realm({
-    transport: createRealmFetchTransport({
-      baseUrl: input.realmBaseUrl,
-      fetch: input.fetchImpl,
-      credentials: 'include',
-    }),
-  });
-  return loginNimiRealmAuthPassword(realm, input.identifier, input.password);
 }
 
 export function clearDesktopNimiClientSession(): void {
@@ -250,7 +252,6 @@ export function getDesktopRuntimeAgentTurnsRuntime(): NimiRuntimeAgentTurnsRunti
   return {
     appId: session.appId,
     auth: session.accountRuntime.auth,
-    appAuth: session.accountRuntime.grants,
     agents: session.runtime.agents,
     appMessages: session.runtime.appMessages,
   };
@@ -264,12 +265,11 @@ export function getDesktopHostRuntimeAgentClient():
   return {
     appId: session.appId,
     auth: session.accountRuntime.auth,
-    appAuth: session.accountRuntime.grants,
     agent: session.runtime.agents,
   };
 }
 
-export function getDesktopAccountRuntime(): Runtime {
+export function getDesktopAccountRuntime(): DesktopAccountRuntime {
   if (!currentSession?.accountRuntime) {
     throw desktopSessionMissingError('Runtime account bootstrap');
   }

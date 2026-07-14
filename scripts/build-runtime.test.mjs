@@ -1,22 +1,62 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import {
+  createRuntimeBuildRecord,
+  validateRuntimeBuildRecord,
+} from './lib/runtime-build-record.mjs';
 
 const buildRuntimeSource = readFileSync(new URL('./build-runtime.mjs', import.meta.url), 'utf8');
 const goTestSignerSource = readFileSync(new URL('./windows-go-test-exec-signer.ps1', import.meta.url), 'utf8');
 
 test('build-runtime uses the unified Windows dev signing helper only', () => {
-  assert.match(buildRuntimeSource, /windows-dev-signing\.ps1/);
-  assert.match(buildRuntimeSource, /'-Mode',\s*'Sign'/);
+  assert.match(buildRuntimeSource, /windows-dev-signing\.mjs/);
+  assert.match(buildRuntimeSource, /signWindowsDevFiles\(\[outputPath\]/);
   assert.doesNotMatch(buildRuntimeSource, /New-SelfSignedCertificate/);
   assert.doesNotMatch(buildRuntimeSource, /TrustedPublisher/);
   assert.doesNotMatch(buildRuntimeSource, /certutil\.exe/);
 });
 
 test('build-runtime signs only the current runtime binary', () => {
-  assert.match(buildRuntimeSource, /signWindowsDevBinary\(outputPath\)/);
+  assert.match(buildRuntimeSource, /signWindowsDevFiles\(\[outputPath\]/);
   assert.doesNotMatch(buildRuntimeSource, /nimi-dev\.exe/);
   assert.doesNotMatch(buildRuntimeSource, /signTargets/);
+});
+
+test('build-runtime emits a source-bound non-release candidate record', () => {
+  assert.match(buildRuntimeSource, /captureRuntimeBuildSource\(repoRoot\)/);
+  assert.match(buildRuntimeSource, /assertRuntimeBuildSourceUnchanged\(buildSource, repoRoot\)/);
+  assert.match(buildRuntimeSource, /nimi-build-record\.json/);
+  const source = {
+    repositoryId: 'nimi',
+    headCommit: '1'.repeat(40),
+    branch: 'refactory/third-party',
+    dirty: true,
+    trackedDiffSha256: '2'.repeat(64),
+    untrackedFiles: [{ path: 'runtime/new.go', sha256: '3'.repeat(64) }],
+    sourceTreeSha256: '4'.repeat(64),
+    dirtyDescriptorSha256: '',
+  };
+  const descriptor = { ...source };
+  delete descriptor.dirtyDescriptorSha256;
+  const canonical = (value) => Array.isArray(value)
+    ? `[${value.map(canonical).join(',')}]`
+    : value && typeof value === 'object'
+      ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+      : JSON.stringify(value);
+  source.dirtyDescriptorSha256 = createHash('sha256').update(canonical(descriptor)).digest('hex');
+  const record = createRuntimeBuildRecord({
+    source,
+    runtimeBinarySha256: '5'.repeat(64),
+    signerCertificateSha256: '6'.repeat(64),
+    nonRelease: true,
+    generatedAt: '2026-07-13T00:00:00.000Z',
+  });
+  assert.equal(validateRuntimeBuildRecord(record, { source, requireDevKernel: true }), record);
+  const tampered = structuredClone(record);
+  tampered.runtime.binarySha256 = '7'.repeat(64);
+  assert.throws(() => validateRuntimeBuildRecord(tampered, { requireDevKernel: true }), /candidate id does not recompute/u);
 });
 
 test('build-runtime reports a running Windows runtime binary before signing', () => {

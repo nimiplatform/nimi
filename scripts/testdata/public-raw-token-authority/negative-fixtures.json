@@ -17,8 +17,8 @@
     "fixture_id": "transport-surface-reintroduced",
     "code": "PUBLIC_RAW_TOKEN_TRANSPORT_SURFACE_PRESENT",
     "path": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
-    "replace_from": "  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
-    "replace_to": "  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccessToken\n    operation_class: reintroduced\n  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
+    "replace_from": "  - { method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary, operation_class: realm_broker_transport, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-023 }",
+    "replace_to": "  - { method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccessToken, operation_class: reintroduced }\n  - { method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary, operation_class: realm_broker_transport, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-023 }"
   },
   {
     "fixture_id": "sdk-method-reexported",

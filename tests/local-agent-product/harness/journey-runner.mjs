@@ -1,11 +1,9 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { runFullChainCoreTrial } from './cross-app-driver.mjs';
-import {
-  runCommandExtendedJourneyTrial,
-  runProductSummaryExtendedJourneyTrial,
-} from './extended-driver.mjs';
+import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
+import { runDevKernelCoreTrial } from './dev-kernel-cross-app-driver.mjs';
+import { runCommandExtendedJourneyTrial } from './extended-driver.mjs';
 import { repoRoot } from './registry.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { pruneRetainedTrialRootPayload } from './sandbox-hygiene.mjs';
@@ -32,10 +30,11 @@ function runProcess(command, args) {
 export async function buildProductPrerequisites(journeys, evidenceRoot) {
   const needsDesktop = journeys.some((journey) => journey.environment.requires_desktop);
   const needsZhiyu = journeys.some((journey) => journey.environment.requires_zhiyu);
+  const devKernel = journeys.some((journey) => journey.journey_id === 'dev-kernel-core');
   const commands = [
     ...(needsDesktop ? [
       ['pnpm', ['--filter', '@nimiplatform/desktop', 'build:renderer']],
-      ['pnpm', ['--filter', '@nimiplatform/desktop', 'build:electron']],
+      ...(!devKernel ? [['pnpm', ['--filter', '@nimiplatform/desktop', 'build:electron']]] : []),
     ] : []),
     ...(needsZhiyu ? [
       ['pnpm', ['--filter', '@nimiplatform/zhiyu', 'build']],
@@ -43,21 +42,29 @@ export async function buildProductPrerequisites(journeys, evidenceRoot) {
     ] : []),
   ];
   if (commands.length === 0) return;
-  const outputDir = path.join(evidenceRoot, 'prerequisites');
-  fs.mkdirSync(outputDir, { recursive: true });
-  for (const [index, [command, args]] of commands.entries()) {
-    const result = await runProcess(command, args);
-    const log = path.join(outputDir, `${String(index + 1).padStart(2, '0')}-${args.at(-1)}.log`);
-    fs.writeFileSync(log, `${result.stdout}\n${result.stderr}`);
-    if (result.code !== 0 || result.signal) {
-      throw new Error(`Journey prerequisite failed (${command} ${args.join(' ')}): ${result.stderr || result.stdout}`);
+  await withSdkDistLock(`local-agent-product prerequisites: ${journeys.map((journey) => journey.journey_id).join(',')}`, async () => {
+    const outputDir = path.join(evidenceRoot, 'prerequisites');
+    fs.mkdirSync(outputDir, { recursive: true });
+    for (const [index, [command, args]] of commands.entries()) {
+      const result = await runProcess(command, args);
+      const log = path.join(outputDir, `${String(index + 1).padStart(2, '0')}-${args.at(-1)}.log`);
+      fs.writeFileSync(log, `${result.stdout}\n${result.stderr}`);
+      if (result.code !== 0 || result.signal) {
+        throw new Error(`Journey prerequisite failed (${command} ${args.join(' ')}): ${result.stderr || result.stdout}`);
+      }
     }
-  }
+  });
 }
 
 function gateSchedule(architecture, gate) {
-  if (gate === 'core') return [{ journeyId: 'full-chain-core', repeats: 1 }];
-  if (gate === 'core-stability') return [{ journeyId: 'full-chain-core', repeats: 3 }];
+  if (gate === 'core') return architecture.policy.gates.core.journeys.map((row) => ({
+    journeyId: row.journey_id,
+    repeats: row.repeats,
+  }));
+  if (gate === 'core-stability') return architecture.policy.gates.core_stability.journeys.map((row) => ({
+    journeyId: row.journey_id,
+    repeats: row.repeats,
+  }));
   if (gate === 'extended') return architecture.policy.gates.extended.journeys.map((row) => ({
     journeyId: row.journey_id,
     repeats: row.repeats,
@@ -70,6 +77,8 @@ export async function runJourneyGate({ architecture, evidenceRoot, gate, sourceS
   const journeyById = new Map(architecture.journeys.journeys.map((journey) => [journey.journey_id, journey]));
   const scheduledJourneys = schedule.map((row) => journeyById.get(row.journeyId));
   if (scheduledJourneys.some((journey) => !journey)) throw new Error(`${gate} references an unknown Journey`);
+  const nonExecutable = scheduledJourneys.find((journey) => journey.execution_disposition === 'historical_mapping_only');
+  if (nonExecutable) throw new Error(`${gate} cannot execute historical mapping ${nonExecutable.journey_id}`);
   await buildProductPrerequisites(scheduledJourneys, evidenceRoot);
   assertSourceState(sourceState, repoRoot);
   const records = [];
@@ -85,8 +94,8 @@ export async function runJourneyGate({ architecture, evidenceRoot, gate, sourceS
       const outputDir = path.join(evidenceRoot, 'journeys', journey.journey_id, `repeat-${repeatIndex}`);
       let completed = false;
       try {
-        const persisted = journey.journey_id === 'full-chain-core'
-          ? await runFullChainCoreTrial({ architecture, journey, trial, sourceState, outputDir })
+        const persisted = journey.journey_id === 'dev-kernel-core'
+          ? await runDevKernelCoreTrial({ architecture, journey, trial, sourceState, outputDir })
           : await runExtendedJourneyTrial({ architecture, journey, trial, sourceState, outputDir });
         records.push({
           kind: 'journey',
@@ -112,8 +121,5 @@ export async function runJourneyGate({ architecture, evidenceRoot, gate, sourceS
 }
 
 async function runExtendedJourneyTrial(input) {
-  if (['pre-materialization-offline', 'turn-media-recovery', 'native-macos-input'].includes(input.journey.journey_id)) {
-    return runProductSummaryExtendedJourneyTrial(input);
-  }
   return runCommandExtendedJourneyTrial(input);
 }

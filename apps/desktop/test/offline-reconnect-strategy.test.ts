@@ -77,7 +77,10 @@ async function flushAsyncWork(): Promise<void> {
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
   test('Desktop probes Realm reachability through the Runtime-mediated Realm session', () => {
     const runtimeSessionStart = DESKTOP_SESSION_SOURCE.indexOf('export async function configureDesktopRuntimeRealmSession');
-    const runtimeSessionEnd = DESKTOP_SESSION_SOURCE.indexOf('\nlet protectedAccessCache', runtimeSessionStart);
+    const runtimeSessionEnd = DESKTOP_SESSION_SOURCE.indexOf(
+      '\nexport function installRealmProjectionSession',
+      runtimeSessionStart,
+    );
     assert.notEqual(runtimeSessionStart, -1);
     assert.notEqual(runtimeSessionEnd, -1);
     const runtimeSessionSource = DESKTOP_SESSION_SOURCE.slice(runtimeSessionStart, runtimeSessionEnd);

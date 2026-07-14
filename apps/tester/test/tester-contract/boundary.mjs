@@ -51,16 +51,16 @@ test('tester workbench lazy-loads secondary routes instead of pinning them in th
 test('tester auth and runtime bootstrap consume Kit shell bridge primitives', () => {
   const main = read('src/main.tsx');
   const runtimePlatform = read('src/shell/auth/runtime-platform.ts');
-  const installedBootstrap = read('src/shell/installed-app-bootstrap.ts');
+  const localAppClient = read('src/shell/local-app-runtime-platform.ts');
 
   assert.match(main, /installNimiShellRuntimeBridge/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
-  assert.match(installedBootstrap, /createInstalledNimiAppBootstrap/);
-  assert.match(installedBootstrap, /createInstalledNimiAppStandardShellSurface/);
+  assert.match(localAppClient, /createNimiAppRuntimePlatformClient/);
+  assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/);
   assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
-  assert.match(runtimePlatform, /mode: 'third-party-nimi-app'/);
-  assert.match(runtimePlatform, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
-  assert.match(runtimePlatform, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+  assert.match(runtimePlatform, /mode: 'local-app'/);
+  assert.match(runtimePlatform, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+  assert.match(runtimePlatform, /operationAllowed/);
   assert.doesNotMatch(runtimePlatform, /readonly client:|readonly auth:/);
   assert.doesNotMatch(runtimePlatform, /createNimi(?:DeveloperRegistered|LocalFirstParty)RuntimeAccountCaller/);
   assert.doesNotMatch(runtimePlatform, /createNimiRuntimeFullAppRegistration|createNimiRuntimeAppSessionMetadataProvider/);
@@ -68,12 +68,13 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.doesNotMatch(runtimePlatform, /developerRegistration|local-developer|getAccessToken|refreshAccountSession/);
 });
 
-test('tester artifact readback uses the installed SDK and Kit carrier', () => {
+test('tester artifact readback uses the final local-app SDK and Kit carrier', () => {
   const runtimePlatform = read('src/shell/auth/runtime-platform.ts');
-  const bootstrap = read('src/shell/installed-app-bootstrap.ts');
+  const client = read('src/shell/local-app-runtime-platform.ts');
 
-  assert.match(runtimePlatform, /testerInstalledAppBootstrap\.artifacts\.readRuntimeBytes/);
-  assert.match(bootstrap, /createInstalledNimiAppBootstrap/);
+  assert.match(runtimePlatform, /testerLocalAppRuntimePlatform\.auth\.status/);
+  assert.match(client, /testerLocalAppRuntimePlatform\.artifacts\.readRuntimeBytes/);
+  assert.match(client, /createNimiAppRuntimePlatformClient/);
   assert.doesNotMatch(runtimePlatform, /client\.runtime|new Runtime|runtimeEndpoint/);
   for (const retired of [
     'src/tester/tester-runtime-invokers.ts',
@@ -164,7 +165,7 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
   assert.match(accountPanel, /from '@nimiplatform\/kit\/ui'/);
   assert.doesNotMatch(accountPanel, /RuntimeLoginPage|loginOpen|handleOpenLogin/);
   assert.match(accountPanel, /AccountPanel/);
-  for (const label of ['Account protected by Nimi Desktop', 'Open Nimi Desktop', 'Nimi Lab Settings']) {
+  for (const label of ['Identity protected by Nimi Desktop', 'Open Nimi Desktop', 'Nimi Lab Settings']) {
     assert.match(accountPanel, new RegExp(label));
   }
   assert.match(accountPanel, /disabled:\s*true/);
@@ -180,7 +181,7 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
   ]) {
     assert.doesNotMatch(accountPanel, new RegExp(desktopOnly));
   }
-  assert.match(accountPanel, /projection\.appHost/);
+  assert.match(accountPanel, /projection\.localAppSession/);
   assert.doesNotMatch(accountPanel, /subjectUserId|projection\.auth/);
   assert.doesNotMatch(accountPanel, /runtime\.account|getRuntimeAccountCaller|loadRuntimeAccountUser/);
   assert.doesNotMatch(accountPanel, /logoutRuntimeAccount|handleLogout|handleLoginComplete/);
@@ -217,7 +218,7 @@ test('tester runtime unavailable flow consumes Kit offline coordinator', () => {
   assert.doesNotMatch(unavailablePage, />\{projection\?\.actionHint\}</);
 });
 
-test('tester kit gallery showcases real kit components for third-party apps', () => {
+test('tester kit gallery showcases real kit components for local apps', () => {
   const gallery = readTesterKitComponentGallerySurface(root);
   for (const required of [
     'Button',
@@ -472,7 +473,7 @@ test('tester capability runs consume Kit renderer telemetry', () => {
   assert.doesNotMatch(workbench, /Math\.random\(\)/);
 });
 
-test('tester product-local preferences use Kit storage while AIConfig persistence is standard-shell owned', () => {
+test('tester product-local preferences stay app-owned while platform AIConfig and storage fail closed', () => {
   const preferences = read('src/tester/tester-preferences.ts');
   const store = read('src/tester/tester-ai-config-store.ts');
 
@@ -485,9 +486,10 @@ test('tester product-local preferences use Kit storage while AIConfig persistenc
   ]) {
     assert.match(preferences, new RegExp(helper));
   }
-  assert.match(store, /createInstalledNimiAppStandardShellSurface/);
-  assert.match(store, /standardShellSurface\.aiConfig\.get/);
-  assert.match(store, /standardShellSurface\.aiConfig\.set/);
+  assert.match(store, /createNimiError/);
+  assert.match(store, /TESTER_LOCAL_APP_AI_CONFIG_UNAVAILABLE/);
+  assert.doesNotMatch(store, /standardShellSurface\.aiConfig/);
+  assert.doesNotMatch(store, /localStorage|sessionStorage/);
   assert.doesNotMatch(store, /from '@nimiplatform\/kit\/core\/storage-json'/);
   assert.doesNotMatch(store, /resolveBrowserStorage\('local'\)/);
   assert.doesNotMatch(store, /createNimiAIConfigStore/);
@@ -499,13 +501,14 @@ test('tester app-owned Tauri commands are registered in standalone shell', () =>
   assert.match(main, /save_world_tour_viewer_preset/);
   assert.match(main, /open_world_tour_window/);
   assert.match(main, /claim_world_tour_viewer_launch/);
-  // Run/image history, export, and artifact save now flow through the kit
-  // standard storage/export/artifact commands, not app-owned Tauri commands.
+  // Run/image history and artifact materialization are unadmitted and fail
+  // closed in the renderer; they do not become app-owned Tauri commands.
   assert.doesNotMatch(main, /tester_run_history_load/);
   assert.doesNotMatch(main, /tester_image_history_save/);
   assert.doesNotMatch(main, /tester_artifact_save/);
   assert.doesNotMatch(main, /tester_export_save/);
-  assert.match(main, /StandardAppStorageRootSlot/);
+  assert.doesNotMatch(main, /StandardAppStorageRootSlot/);
+  assert.match(main, /RuntimeBridgeLocalAppHost::platform_default/);
 });
 
 test('tester scaffold boundary expands beyond the product route', () => {

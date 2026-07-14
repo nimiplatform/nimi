@@ -52,15 +52,15 @@ export async function getRuntimeBridgeStatus(): Promise<RuntimeBridgeDaemonStatu
 }
 
 export async function startRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
-  if (!hasTauriInvoke()) {
-    throw new Error('runtime_bridge_start requires Tauri runtime');
+  if (!hasShellHostInvoke()) {
+    throw new Error('runtime lifecycle start requires a standard shell host');
   }
   return startDaemon();
 }
 
 export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
-  if (!hasTauriInvoke()) {
-    throw new Error('runtime_bridge_restart requires Tauri runtime');
+  if (!hasShellHostInvoke()) {
+    throw new Error('runtime lifecycle restart requires a standard shell host');
   }
   return restartDaemon();
 }

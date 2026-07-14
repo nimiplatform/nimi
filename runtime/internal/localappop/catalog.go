@@ -15,7 +15,7 @@ var operationSpecs = map[Operation]selectorShape{
 	OperationArtifactRead:          selectorArtifact,
 	OperationConversationOpen:      selectorAgent,
 	OperationConversationTurnSend:  selectorAgentAnchor,
-	OperationConversationSubscribe: selectorAgentAnchorTurn,
+	OperationConversationSubscribe: selectorAgentAnchor,
 	OperationConversationSnapshot:  selectorAgentAnchor,
 }
 

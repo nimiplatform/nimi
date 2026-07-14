@@ -23,28 +23,6 @@ pub struct OpenExternalUrlResult {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(rename_all = "camelCase")]
-pub struct OauthTokenExchangePayload {
-    pub provider: String,
-    pub client_id: String,
-    pub code: String,
-    pub code_verifier: Option<String>,
-    pub redirect_uri: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OauthTokenExchangeResult {
-    pub access_token: String,
-    pub refresh_token: Option<String>,
-    pub token_type: Option<String>,
-    pub expires_in: Option<i64>,
-    pub scope: Option<String>,
-    pub raw: serde_json::Value,
-}
-
-#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OauthListenForCodePayload {
     pub redirect_uri: String,
@@ -130,40 +108,6 @@ fn hex_value(byte: u8) -> Option<u8> {
         b'A'..=b'F' => Some(byte - b'A' + 10),
         _ => None,
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum OauthTokenExchangeProvider {
-    Codex,
-    Twitter,
-    TikTok,
-}
-
-fn parse_oauth_token_exchange_provider(
-    provider: &str,
-) -> Result<OauthTokenExchangeProvider, String> {
-    match provider.trim().to_ascii_uppercase().as_str() {
-        "CODEX" => Ok(OauthTokenExchangeProvider::Codex),
-        "TWITTER" => Ok(OauthTokenExchangeProvider::Twitter),
-        "TIKTOK" => Ok(OauthTokenExchangeProvider::TikTok),
-        _ => Err("OAuth token exchange provider is not admitted".to_string()),
-    }
-}
-
-fn oauth_token_exchange_url(provider: OauthTokenExchangeProvider) -> &'static str {
-    match provider {
-        OauthTokenExchangeProvider::Codex => "https://auth.openai.com/oauth/token",
-        OauthTokenExchangeProvider::Twitter => "https://api.twitter.com/2/oauth2/token",
-        OauthTokenExchangeProvider::TikTok => "https://open.tiktokapis.com/v2/oauth/token/",
-    }
-}
-
-fn required_trimmed(value: Option<&str>, field_name: &str) -> Result<String, String> {
-    let normalized = value.unwrap_or_default().trim().to_string();
-    if normalized.is_empty() {
-        return Err(format!("OAuth token exchange requires {field_name}"));
-    }
-    Ok(normalized)
 }
 
 fn parse_oauth_redirect_uri(redirect_uri: &str) -> Result<(String, u16, String), String> {
@@ -378,65 +322,6 @@ fn render_oauth_callback_page(success: bool) -> String {
     }
 }
 
-fn is_sensitive_key(key: &str) -> bool {
-    let normalized = key.trim().to_ascii_lowercase();
-    normalized == "authorization"
-        || normalized == "cookie"
-        || normalized.contains("token")
-        || normalized.contains("password")
-        || normalized.contains("secret")
-        || normalized.contains("api_key")
-        || normalized.contains("apikey")
-}
-
-fn preview_text_utf8_safe(input: &str, max_bytes: usize) -> String {
-    if input.len() <= max_bytes {
-        return input.to_string();
-    }
-    let mut end = max_bytes.min(input.len());
-    while end > 0 && !input.is_char_boundary(end) {
-        end -= 1;
-    }
-    let head = &input[..end];
-    format!("{head}... (truncated, {} bytes total)", input.len())
-}
-
-fn redact_body_preview(input: &str, max_bytes: usize) -> String {
-    let trimmed = input.trim();
-    if trimmed.starts_with('{') || trimmed.starts_with('[') {
-        if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(trimmed) {
-            redact_json_value(&mut parsed);
-            if let Ok(redacted) = serde_json::to_string(&parsed) {
-                return preview_text_utf8_safe(&redacted, max_bytes);
-            }
-        }
-    }
-    preview_text_utf8_safe("<unparseable response body>", max_bytes)
-}
-
-fn redact_json_value(value: &mut serde_json::Value) {
-    match value {
-        serde_json::Value::Object(map) => {
-            let keys = map.keys().cloned().collect::<Vec<_>>();
-            for key in keys {
-                if let Some(entry) = map.get_mut(&key) {
-                    if is_sensitive_key(&key) {
-                        *entry = serde_json::Value::String("[REDACTED]".to_string());
-                    } else {
-                        redact_json_value(entry);
-                    }
-                }
-            }
-        }
-        serde_json::Value::Array(items) => {
-            for item in items {
-                redact_json_value(item);
-            }
-        }
-        _ => {}
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Blocking OAuth listener
 // ---------------------------------------------------------------------------
@@ -527,80 +412,6 @@ pub fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternal
     Ok(OpenExternalUrlResult { opened: true })
 }
 
-pub async fn oauth_token_exchange(
-    payload: OauthTokenExchangePayload,
-) -> Result<OauthTokenExchangeResult, String> {
-    let provider = parse_oauth_token_exchange_provider(payload.provider.as_str())?;
-    let token_url =
-        Url::parse(oauth_token_exchange_url(provider)).map_err(|error| error.to_string())?;
-    let client_id = required_trimmed(Some(payload.client_id.as_str()), "clientId")?;
-    let code = required_trimmed(Some(payload.code.as_str()), "code")?;
-    let code_verifier = required_trimmed(payload.code_verifier.as_deref(), "codeVerifier")?;
-    let redirect_uri = required_trimmed(payload.redirect_uri.as_deref(), "redirectUri")?;
-
-    let mut form = HashMap::<String, String>::new();
-    form.insert("grant_type".to_string(), "authorization_code".to_string());
-    form.insert("client_id".to_string(), client_id.clone());
-    form.insert("code".to_string(), code);
-    form.insert("code_verifier".to_string(), code_verifier);
-    form.insert("redirect_uri".to_string(), redirect_uri);
-
-    if provider == OauthTokenExchangeProvider::TikTok {
-        form.insert("client_key".to_string(), client_id);
-    }
-
-    let response = reqwest::Client::new()
-        .post(token_url.clone())
-        .header("content-type", "application/x-www-form-urlencoded")
-        .form(&form)
-        .send()
-        .await
-        .map_err(|error| error.to_string())?;
-
-    let status = response.status();
-    let body_text = response.text().await.map_err(|error| error.to_string())?;
-    if !status.is_success() {
-        let body_preview = redact_body_preview(&body_text, 300);
-        return Err(format!(
-            "OAuth token exchange failed: HTTP {} body={}",
-            status, body_preview
-        ));
-    }
-
-    let parsed = serde_json::from_str::<serde_json::Value>(&body_text)
-        .map_err(|error| format!("OAuth token response is not JSON: {error}"))?;
-
-    let access_token = parsed
-        .get("access_token")
-        .and_then(|value| value.as_str())
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| "OAuth token response missing access_token".to_string())?;
-
-    let refresh_token = parsed
-        .get("refresh_token")
-        .and_then(|value| value.as_str())
-        .map(|value| value.to_string());
-    let token_type = parsed
-        .get("token_type")
-        .and_then(|value| value.as_str())
-        .map(|value| value.to_string());
-    let scope = parsed
-        .get("scope")
-        .and_then(|value| value.as_str())
-        .map(|value| value.to_string());
-    let expires_in = parsed.get("expires_in").and_then(|value| value.as_i64());
-
-    Ok(OauthTokenExchangeResult {
-        access_token,
-        refresh_token,
-        token_type,
-        expires_in,
-        scope,
-        raw: parsed,
-    })
-}
-
 pub async fn oauth_listen_for_code(
     payload: OauthListenForCodePayload,
 ) -> Result<OauthListenForCodeResult, String> {
@@ -613,75 +424,9 @@ pub async fn oauth_listen_for_code(
 mod tests {
     use super::{
         is_desktop_open_reserved_oauth_url, normalize_oauth_callback_target,
-        oauth_token_exchange_url, parse_oauth_callback_http_request,
-        parse_oauth_token_exchange_provider, redact_body_preview, redact_json_value,
-        render_oauth_callback_page, validate_external_url, OauthTokenExchangePayload,
-        OauthTokenExchangeProvider,
+        parse_oauth_callback_http_request, render_oauth_callback_page, validate_external_url,
     };
     use url::Url;
-
-    #[test]
-    fn redact_body_preview_masks_sensitive_json_keys() {
-        let preview = redact_body_preview(
-            r#"{"access_token":"abc","nested":{"refreshToken":"def","name":"ok"}}"#,
-            200,
-        );
-        assert!(preview.contains("[REDACTED]"));
-        assert!(!preview.contains("abc"));
-        assert!(!preview.contains("def"));
-        assert!(preview.contains("\"name\":\"ok\""));
-    }
-
-    #[test]
-    fn redact_body_preview_hides_unparseable_body_contents() {
-        let preview = redact_body_preview("access_token=secret-value", 200);
-        assert_eq!(preview, "<unparseable response body>");
-        assert!(!preview.contains("secret-value"));
-    }
-
-    #[test]
-    fn redact_json_value_masks_nested_sensitive_fields() {
-        let mut value = serde_json::json!({
-            "sessionToken": "top-secret",
-            "items": [
-                {
-                    "cookie": "cookie-value"
-                }
-            ]
-        });
-        redact_json_value(&mut value);
-        let rendered = serde_json::to_string(&value).expect("json serialization must succeed");
-        assert!(rendered.contains("[REDACTED]"));
-        assert!(!rendered.contains("top-secret"));
-        assert!(!rendered.contains("cookie-value"));
-    }
-
-    #[test]
-    fn oauth_token_exchange_provider_is_fixed_allowlist() {
-        assert_eq!(
-            parse_oauth_token_exchange_provider("CODEX").unwrap(),
-            OauthTokenExchangeProvider::Codex
-        );
-        assert_eq!(
-            oauth_token_exchange_url(OauthTokenExchangeProvider::Twitter),
-            "https://api.twitter.com/2/oauth2/token"
-        );
-        assert!(parse_oauth_token_exchange_provider("https://example.test/token").is_err());
-    }
-
-    #[test]
-    fn oauth_token_exchange_payload_rejects_caller_selected_endpoint_fields() {
-        let parsed = serde_json::from_value::<OauthTokenExchangePayload>(serde_json::json!({
-            "provider": "CODEX",
-            "tokenUrl": "https://example.test/token",
-            "clientId": "client",
-            "code": "code",
-            "codeVerifier": "verifier",
-            "redirectUri": "https://auth.openai.com/deviceauth/callback"
-        }));
-
-        assert!(parsed.is_err());
-    }
 
     #[test]
     fn normalize_oauth_callback_target_requires_exact_callback_path() {

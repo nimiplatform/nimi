@@ -1074,44 +1074,84 @@ export enum ReasonCode {
      */
     LIFECYCLE_INTENT_EXPIRED = 641,
     /**
-     * LOCAL_DEVELOPMENT family (642+). These values are reserved for the
-     * explicit non-production mutable-project trust class (K-PLOCAL-009).
+     * LOCAL_APP family (642+). The third-party principal/record/grant/session
+     * evaluator uses one provenance-agnostic reason vocabulary (K-ERR-012).
      *
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED = 642;
+     * @generated from protobuf enum value: LOCAL_APP_PRINCIPAL_REQUIRED = 642;
      */
-    LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED = 642,
+    LOCAL_APP_PRINCIPAL_REQUIRED = 642,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED = 643;
+     * @generated from protobuf enum value: LOCAL_APP_RECORD_NOT_FOUND = 643;
      */
-    LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED = 643,
+    LOCAL_APP_RECORD_NOT_FOUND = 643,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_PROJECT_CHANGED = 644;
+     * @generated from protobuf enum value: LOCAL_APP_RECORD_TOMBSTONED = 644;
      */
-    LOCAL_DEVELOPMENT_PROJECT_CHANGED = 644,
+    LOCAL_APP_RECORD_TOMBSTONED = 644,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED = 645;
+     * @generated from protobuf enum value: LOCAL_APP_PROVENANCE_UNAVAILABLE = 645;
      */
-    LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED = 645,
+    LOCAL_APP_PROVENANCE_UNAVAILABLE = 645,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_SESSION_REVOKED = 646;
+     * @generated from protobuf enum value: LOCAL_APP_LAUNCH_LEASE_REQUIRED = 646;
      */
-    LOCAL_DEVELOPMENT_SESSION_REVOKED = 646,
+    LOCAL_APP_LAUNCH_LEASE_REQUIRED = 646,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED = 647;
+     * @generated from protobuf enum value: LOCAL_APP_LAUNCH_LEASE_MISMATCH = 647;
      */
-    LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED = 647,
+    LOCAL_APP_LAUNCH_LEASE_MISMATCH = 647,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN = 648;
+     * @generated from protobuf enum value: LOCAL_APP_LAUNCH_LEASE_REPLAY = 648;
      */
-    LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN = 648,
+    LOCAL_APP_LAUNCH_LEASE_REPLAY = 648,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED = 649;
+     * @generated from protobuf enum value: LOCAL_APP_PROCESS_MISMATCH = 649;
      */
-    LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED = 649,
+    LOCAL_APP_PROCESS_MISMATCH = 649,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_APPROVAL_DENIED = 650;
+     * @generated from protobuf enum value: LOCAL_APP_SESSION_REVOKED = 650;
      */
-    LOCAL_DEVELOPMENT_APPROVAL_DENIED = 650
+    LOCAL_APP_SESSION_REVOKED = 650,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_REQUIRED = 651;
+     */
+    LOCAL_APP_GRANT_REQUIRED = 651,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_REVOKED = 652;
+     */
+    LOCAL_APP_GRANT_REVOKED = 652,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_GRANT_SUPERSEDED = 653;
+     */
+    LOCAL_APP_GRANT_SUPERSEDED = 653,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ACCOUNT_CHANGED = 654;
+     */
+    LOCAL_APP_ACCOUNT_CHANGED = 654,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_OPERATION_UNAVAILABLE = 655;
+     */
+    LOCAL_APP_OPERATION_UNAVAILABLE = 655,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PRESENCE_REQUIRED = 656;
+     */
+    LOCAL_APP_PRESENCE_REQUIRED = 656,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_PRESENCE_EXPIRED = 657;
+     */
+    LOCAL_APP_PRESENCE_EXPIRED = 657,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_DEVELOPER_MODE_DISABLED = 658;
+     */
+    LOCAL_APP_DEVELOPER_MODE_DISABLED = 658,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_REMEMBERED_PROJECT_DORMANT = 659;
+     */
+    LOCAL_APP_REMEMBERED_PROJECT_DORMANT = 659,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660;
+     */
+    LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

@@ -264,11 +264,3 @@ export function protectedAuth() {
     },
   };
 }
-
-export function protectedAppAuth() {
-  return {
-    async authorizeExternalPrincipal() {
-      return { tokenId: 'token-1', secret: 'secret-1' };
-    },
-  };
-}

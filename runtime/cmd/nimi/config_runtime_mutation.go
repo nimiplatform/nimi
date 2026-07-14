@@ -190,13 +190,6 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "auth.account.tokenUrl":
 		ensureAuthAccountConfig(cfg).TokenURL = value
 		return nil
-	case "auth.developerRegistration.enabled":
-		parsed, err := parseBooleanConfigValue(value)
-		if err != nil {
-			return fmt.Errorf("auth.developerRegistration.enabled must be boolean: %w", err)
-		}
-		ensureAuthDeveloperRegistrationConfig(cfg).Enabled = &parsed
-		return nil
 	case "engines.llama.enabled":
 		parsed, err := parseBooleanConfigValue(value)
 		if err != nil {
@@ -384,10 +377,6 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "auth.account.tokenUrl":
 		ensureAuthAccountConfig(cfg).TokenURL = ""
-		pruneEmptyAuthConfig(cfg)
-		return nil
-	case "auth.developerRegistration.enabled":
-		ensureAuthDeveloperRegistrationConfig(cfg).Enabled = nil
 		pruneEmptyAuthConfig(cfg)
 		return nil
 	case "engines.llama.enabled":

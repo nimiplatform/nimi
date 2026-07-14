@@ -23,11 +23,6 @@ const AUTH_STUB = {
     return { accepted: true };
   },
 };
-const APP_AUTH_STUB = {
-  async authorizeExternalPrincipal() {
-    return { tokenId: 'token-1', secret: 'secret-1' };
-  },
-};
 const AI_CONFIG_IDENTITY = {
   ownerUserId: 'user-1',
   runtimeSourceRef: 'agent-alpha',
@@ -42,7 +37,6 @@ function createModule(
     runtime: {
       appId: 'nimi.test-app',
       auth: AUTH_STUB,
-      appAuth: APP_AUTH_STUB,
       agent,
     },
     getSubjectUserId: () => 'user-1',

@@ -1,0 +1,190 @@
+schemaId: nimi.repository.static-close-manifest.v1
+manifestVersion: 1
+closeLevel: dev_kernel_checkpoint
+releasePosture: non_release
+productClosePromotion: non_promotable_to_product_close
+candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+candidate:
+  candidateId: synthetic-dev-kernel-candidate-0001
+  repositories:
+    - repoId: nimi
+      headCommit: "1111111111111111111111111111111111111111"
+      dirty: true
+      dirtyDiffSha256: "2222222222222222222222222222222222222222222222222222222222222222"
+  runtime:
+    buildId: runtime-synthetic-build-0001
+    binarySha256: "3333333333333333333333333333333333333333333333333333333333333333"
+    configurationSha256: "4444444444444444444444444444444444444444444444444444444444444444"
+    service:
+      name: NimiRuntimeSynthetic
+      kind: fixed_windows_service
+      principal: LocalSystem
+      accountSid: S-1-5-18
+      serviceSidType: restricted
+      startType: automatic
+      interactive: false
+      binarySha256: "3333333333333333333333333333333333333333333333333333333333333333"
+      configurationSha256: "4444444444444444444444444444444444444444444444444444444444444444"
+      dataRootIdentitySha256: "5555555555555555555555555555555555555555555555555555555555555555"
+  builds:
+    - component: runtime
+      buildId: runtime-synthetic-build-0001
+      artifactSha256: "3333333333333333333333333333333333333333333333333333333333333333"
+    - component: sdk
+      buildId: sdk-synthetic-build-0001
+      artifactSha256: "6666666666666666666666666666666666666666666666666666666666666666"
+    - component: kit
+      buildId: kit-synthetic-build-0001
+      artifactSha256: "7777777777777777777777777777777777777777777777777777777777777777"
+    - component: desktop
+      buildId: desktop-synthetic-build-0001
+      artifactSha256: "8888888888888888888888888888888888888888888888888888888888888888"
+    - component: zhiyu
+      buildId: zhiyu-synthetic-build-0001
+      artifactSha256: "9999999999999999999999999999999999999999999999999999999999999999"
+    - component: app-tools
+      buildId: app-tools-synthetic-build-0001
+      artifactSha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  configuration:
+    profileId: synthetic-fixed-service-local-development
+    aggregateSha256: 75e9f84288a390ba56cca0cba2555eb5fdf0afb7aff1d9b985f6b85ff3f49d91
+    runtimeSha256: "4444444444444444444444444444444444444444444444444444444444444444"
+    desktopSha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    zhiyuSha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  principals:
+    - principalId: local-app-principal-synthetic-0001
+      localOsUserAnchorSha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+      accountBindingSha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+      provenance: local_development
+      recordRevision: 7
+      grantRevision: 11
+      leaseId: launch-lease-synthetic-0001
+      processId: 4242
+      sessionId: local-app-session-synthetic-0001
+      buildId: zhiyu-synthetic-build-0001
+      executionProfileRef: execution-profile-synthetic-native-dev
+      hostExecutableSha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+      payloadRootSha256: "1010101010101010101010101010101010101010101010101010101010101010"
+  artifacts:
+    - artifactId: runtime-service-binary
+      sha256: "3333333333333333333333333333333333333333333333333333333333333333"
+    - artifactId: proto-generated
+      sha256: "1212121212121212121212121212121212121212121212121212121212121212"
+    - artifactId: sdk-distribution
+      sha256: "6666666666666666666666666666666666666666666666666666666666666666"
+    - artifactId: kit-distribution
+      sha256: "7777777777777777777777777777777777777777777777777777777777777777"
+    - artifactId: desktop-shell
+      sha256: "8888888888888888888888888888888888888888888888888888888888888888"
+    - artifactId: zhiyu-electron
+      sha256: "9999999999999999999999999999999999999999999999999999999999999999"
+    - artifactId: app-tools
+      sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+packageIdentity:
+  applicability: not_applicable
+  reason: Immutable package identity belongs to 0P and is outside this dev-only checkpoint.
+signingIdentity:
+  applicability: not_applicable
+  reason: Package signing identity belongs to 0P and is outside this dev-only checkpoint.
+developmentServiceSignature:
+  kind: development_windows_service_authenticode
+  certificateFingerprintSha256: "1313131313131313131313131313131313131313131313131313131313131313"
+  signedArtifactSha256: "3333333333333333333333333333333333333333333333333333333333333333"
+evidence:
+  - evidenceId: synthetic-authority-convergence
+    kind: authority_convergence
+    ref: synthetic-authority-convergence.json
+    sha256: d4739597ffdcb025f2e75f53e82a2ec9289ea5f5f9ba0058efa55392d2e75a8e
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-static-owner-gates
+    kind: owner_gate
+    ref: synthetic-static-owner-gates.json
+    sha256: b246c6e697fe009632492fd20fb867c8c216ec096e78c20fb081b9d13968c8fd
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-runtime-trace
+    kind: runtime_trace
+    ref: synthetic-runtime-trace.json
+    sha256: 1962d7d0da828d588f4c509d020df45b157845904f01cd79dd6aafac36fd7873
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-security-negative
+    kind: security_negative
+    ref: synthetic-security-negative.json
+    sha256: b3e63f5c553cd313b0d049bcea41896c5309a42af07c3a85e3817cf78fe0a8c3
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-developer-mode-journey
+    kind: developer_mode_journey
+    ref: synthetic-developer-mode-journey.json
+    sha256: eb60375f32782cf6649c7bf8eb73b52d58e88e0bd0ab37cf2e526de8a339883a
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-local-agent-journey
+    kind: local_agent_journey
+    ref: synthetic-local-agent-journey.json
+    sha256: 4cc2b80b1d3256e6b7f908c8e7999ff51cd0c6f7198416a9d0ae36ad2bf9f0a2
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-real-shell-audit
+    kind: real_shell_audit
+    ref: synthetic-real-shell-audit.json
+    sha256: a3377fdb4b385669d26c094db534710c1c40d585ef99fc37ec34f82990b2ba94
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-execution-privacy-audit
+    kind: privacy_audit
+    ref: synthetic-execution-privacy-audit.json
+    sha256: 6df7aee9c33b15d77acac3855f4a937e1dcf389e30ef480a8ac7677b36f36d37
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-static-privacy-audit
+    kind: privacy_audit
+    ref: synthetic-static-privacy-audit.json
+    sha256: d80bd69da8a27d5ea089fab1aa56a0d02242bb5ff80373b64d4d69d66bdecc5b
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-execution-owner-gate
+    kind: owner_gate
+    ref: synthetic-execution-owner-gate.json
+    sha256: c860736c9f111362a042aebb8bf38687081995d4178720098eb6ec9e8379810f
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-static-close-reconciliation
+    kind: close_reconciliation
+    ref: synthetic-static-close-reconciliation.json
+    sha256: 1708424ce846e6a65ef096db28a3efaee0b9ceaf377b7b2de8fb2a190e3d84fa
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+  - evidenceId: synthetic-execution-close-reconciliation
+    kind: close_reconciliation
+    ref: synthetic-execution-close-reconciliation.json
+    sha256: 67b3f8eb68ca3db201dc857c73d9db8e34c7777f684c7c3240d59ec0ae5c878f
+    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+acceptanceRows:
+  - { rowId: A-01, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-static-owner-gates] }
+  - { rowId: A-03, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-security-negative] }
+  - { rowId: A-04, result: pass, evidenceRefs: [synthetic-static-owner-gates, synthetic-runtime-trace] }
+  - { rowId: A-05, result: pass, evidenceRefs: [synthetic-static-owner-gates] }
+  - { rowId: A-06, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-execution-privacy-audit] }
+  - { rowId: A-09, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-local-agent-journey] }
+  - { rowId: C-03, result: pass, evidenceRefs: [synthetic-security-negative] }
+  - { rowId: C-04, result: pass, evidenceRefs: [synthetic-security-negative] }
+  - { rowId: C-06, result: pass, evidenceRefs: [synthetic-developer-mode-journey] }
+  - { rowId: C-08, result: pass, evidenceRefs: [synthetic-execution-privacy-audit] }
+  - { rowId: C-09, result: pass, evidenceRefs: [synthetic-runtime-trace] }
+  - { rowId: D-01, result: pass, evidenceRefs: [synthetic-static-owner-gates, synthetic-developer-mode-journey] }
+  - { rowId: D-02, result: pass, evidenceRefs: [synthetic-developer-mode-journey] }
+  - { rowId: D-03, result: pass, evidenceRefs: [synthetic-developer-mode-journey] }
+  - { rowId: D-04, result: pass, evidenceRefs: [synthetic-security-negative] }
+  - { rowId: D-05, result: pass, evidenceRefs: [synthetic-developer-mode-journey] }
+  - { rowId: D-06, result: pass, evidenceRefs: [synthetic-developer-mode-journey] }
+  - { rowId: D-08, result: pass, evidenceRefs: [synthetic-security-negative] }
+  - { rowId: D-09, result: pass, evidenceRefs: [synthetic-real-shell-audit] }
+  - { rowId: E-01a, result: pass, evidenceRefs: [synthetic-runtime-trace] }
+  - { rowId: E-03, result: pass, evidenceRefs: [synthetic-runtime-trace] }
+  - { rowId: E-04a, result: pass, evidenceRefs: [synthetic-developer-mode-journey] }
+  - { rowId: E-05, result: pass, evidenceRefs: [synthetic-execution-owner-gate] }
+  - { rowId: E-07, result: pass, evidenceRefs: [synthetic-security-negative] }
+  - { rowId: E-08, result: pass, evidenceRefs: [synthetic-runtime-trace] }
+  - { rowId: E-09, result: pass, evidenceRefs: [synthetic-static-owner-gates, synthetic-local-agent-journey] }
+  - { rowId: F-01, result: pass, evidenceRefs: [synthetic-static-owner-gates, synthetic-local-agent-journey] }
+  - { rowId: F-02, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-static-owner-gates] }
+  - { rowId: F-03a, result: pass, evidenceRefs: [synthetic-runtime-trace] }
+  - { rowId: F-04a, result: pass, evidenceRefs: [synthetic-local-agent-journey] }
+  - { rowId: F-06a, result: pass, evidenceRefs: [synthetic-static-owner-gates, synthetic-local-agent-journey] }
+  - { rowId: H-01, result: pass, evidenceRefs: [synthetic-static-close-reconciliation] }
+  - { rowId: H-02, result: pass, evidenceRefs: [synthetic-static-owner-gates] }
+  - { rowId: H-03, result: pass, evidenceRefs: [synthetic-static-privacy-audit] }
+  - { rowId: H-04, result: pass, evidenceRefs: [synthetic-execution-close-reconciliation] }
+  - { rowId: H-05, result: pass, evidenceRefs: [synthetic-static-close-reconciliation] }

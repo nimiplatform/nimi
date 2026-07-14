@@ -97,7 +97,6 @@ export function createZhiyuAgentInspectSurface(
     getRuntime: () => ({
       appId: 'nimi.zhiyu',
       auth: runtime.auth,
-      appAuth: runtime.grants,
       agent: runtime.agents,
     }),
     getSubjectUserId: () => subject,
@@ -118,7 +117,6 @@ export function createZhiyuAgentPresentationProfileSurface(
     getRuntime: () => ({
       appId: 'nimi.zhiyu',
       auth: runtime.auth,
-      appAuth: runtime.grants,
       agent: runtime.agents,
     }),
     getSubjectUserId: () => subject,

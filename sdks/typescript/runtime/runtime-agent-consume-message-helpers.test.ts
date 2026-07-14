@@ -222,11 +222,6 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
           return { accepted: true };
         },
       },
-      appAuth: {
-        async authorizeExternalPrincipal() {
-          return { tokenId: 'token-1', secret: 'secret-1' };
-        },
-      },
       agent: {
         async getAgentCanonicalMemoryBankStatus(request, options) {
           requests.push({ method: 'get', request, options });
@@ -265,11 +260,6 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
         appId: 'nimi.avatar',
         auth: {
           async registerApp() {
-            throw new Error('unexpected');
-          },
-        },
-        appAuth: {
-          async authorizeExternalPrincipal() {
             throw new Error('unexpected');
           },
         },
@@ -371,11 +361,6 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
       appId: 'nimi.avatar',
       auth: {
         async registerApp() {
-          throw new Error('withScopes should provide call options');
-        },
-      },
-      appAuth: {
-        async authorizeExternalPrincipal() {
           throw new Error('withScopes should provide call options');
         },
       },

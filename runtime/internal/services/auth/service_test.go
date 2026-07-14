@@ -271,57 +271,6 @@ func TestOpenSessionLocalFirstPartyRejectsCallerProvidedSubject(t *testing.T) {
 	}
 }
 
-func TestOpenSessionDeveloperRegisteredLocalAppOnlySession(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
-	svc.SetDeveloperRegistrationEnabled(true)
-	ctx := context.Background()
-
-	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:                 "nimi.parentos",
-		AppInstanceId:         "nimi.parentos.platform-runtime-session",
-		DeviceId:              "platform-runtime-session",
-		ModeManifest:          validFullAppModeManifest(),
-		DeveloperRegistration: true,
-	})
-	if err != nil {
-		t.Fatalf("register developer local app: %v", err)
-	}
-	if !registerResp.GetAccepted() {
-		t.Fatalf("developer local app registration rejected: %v", registerResp.GetReasonCode())
-	}
-
-	accepted, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.parentos",
-		AppInstanceId: registerResp.GetAppInstanceId(),
-		DeviceId:      "platform-runtime-session",
-		TtlSeconds:    600,
-	})
-	if err != nil {
-		t.Fatalf("open developer local app-only session: %v", err)
-	}
-	if accepted.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("expected app-only session accepted, got %v", accepted.GetReasonCode())
-	}
-	if accepted.GetSessionId() == "" || accepted.GetSessionToken() == "" {
-		t.Fatalf("developer local app-only session must issue credentials: %+v", accepted)
-	}
-
-	rejected, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.parentos",
-		AppInstanceId: registerResp.GetAppInstanceId(),
-		DeviceId:      "platform-runtime-session",
-		SubjectUserId: "caller-user-001",
-		TtlSeconds:    600,
-	})
-	if err != nil {
-		t.Fatalf("open reverse-DNS first-party session with subject should return reason, got error: %v", err)
-	}
-	if rejected.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("expected caller subject rejected, got %v", rejected.GetReasonCode())
-	}
-}
-
 func TestRegisterAppMaintainsPerAppIndexOncePerInstance(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
@@ -445,73 +394,20 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	}
 }
 
-// TestRegisterAppDeveloperRegistrationDoubleGate verifies the K-AUTHSVC-014
-// developer-registration double gate: a governed app_id absent from the registry
-// (the local-dev shijing case) registers only when BOTH the daemon gate is on
-// AND the caller declares developer_registration. Either condition false keeps
-// the production fail-closed APP_NOT_REGISTERED rejection.
-func TestRegisterAppDeveloperRegistrationDoubleGate(t *testing.T) {
-	const devAppID = "app.nimi.shijing" // governed, not in the registry catalog
-
-	newSvc := func() *Service {
-		svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-		svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
-		return svc
-	}
-	register := func(svc *Service, developer bool) *runtimev1.RegisterAppResponse {
-		resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-			AppId:                 devAppID,
-			ModeManifest:          validFullAppModeManifest(),
-			DeveloperRegistration: developer,
-		})
-		if err != nil {
-			t.Fatalf("register app: %v", err)
-		}
-		return resp
-	}
-
-	// Gate off (default) + flag set -> fail closed.
-	if resp := register(newSvc(), true); resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
-		t.Fatalf("dev gate off + flag must fail closed, got accepted=%v reason=%v", resp.GetAccepted(), resp.GetReasonCode())
-	}
-
-	// Gate on + no flag -> fail closed.
-	svcGateOnNoFlag := newSvc()
-	svcGateOnNoFlag.SetDeveloperRegistrationEnabled(true)
-	if resp := register(svcGateOnNoFlag, false); resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
-		t.Fatalf("dev gate on + no flag must fail closed, got accepted=%v reason=%v", resp.GetAccepted(), resp.GetReasonCode())
-	}
-
-	// Gate on + flag -> admitted as a normal app session.
-	svcBoth := newSvc()
-	svcBoth.SetDeveloperRegistrationEnabled(true)
-	resp := register(svcBoth, true)
-	if !resp.GetAccepted() {
-		t.Fatalf("dev gate on + flag must admit developer registration, reason=%v", resp.GetReasonCode())
-	}
-	if resp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("developer registration reason code: %v", resp.GetReasonCode())
-	}
-	if resp.GetAppInstanceId() == "" {
-		t.Fatalf("developer registration must allocate an app instance id")
-	}
-}
-
-func TestRegisterAppDeveloperRegistrationFailureAuditMarksIntent(t *testing.T) {
+func TestRegisterAppUnadmittedGovernedAppFailsClosedAndAuditsEligibility(t *testing.T) {
 	store := auditlog.New(16, 16)
 	svc := NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, 60, 86400)
 	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
 
 	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:                 "app.nimi.shijing",
-		ModeManifest:          validFullAppModeManifest(),
-		DeveloperRegistration: true,
+		AppId:        "app.nimi.shijing",
+		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
 		t.Fatalf("register app: %v", err)
 	}
 	if resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
-		t.Fatalf("developer registration with runtime gate off must fail closed, got accepted=%v reason=%v", resp.GetAccepted(), resp.GetReasonCode())
+		t.Fatalf("unadmitted governed app must fail closed, got accepted=%v reason=%v", resp.GetAccepted(), resp.GetReasonCode())
 	}
 
 	events, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
@@ -522,11 +418,11 @@ func TestRegisterAppDeveloperRegistrationFailureAuditMarksIntent(t *testing.T) {
 		t.Fatalf("expected one audit event, got %d", len(events.GetEvents()))
 	}
 	payload := events.GetEvents()[0].GetPayload().AsMap()
-	if payload["developer_registration"] != true {
-		t.Fatalf("expected developer_registration audit marker, got %#v", payload["developer_registration"])
-	}
 	if payload["registry_app_id"] != "nimi.shijing" {
 		t.Fatalf("expected normalized registry_app_id, got %#v", payload["registry_app_id"])
+	}
+	if payload["eligibility_reason"] != "app-not-registered" {
+		t.Fatalf("expected registry eligibility reason, got %#v", payload["eligibility_reason"])
 	}
 }
 

@@ -423,14 +423,13 @@ func (PresenceVerificationMethod) EnumDescriptor() ([]byte, []int) {
 type AccountCallerMode int32
 
 const (
-	AccountCallerMode_ACCOUNT_CALLER_MODE_UNSPECIFIED               AccountCallerMode = 0
-	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP     AccountCallerMode = 1
-	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL             AccountCallerMode = 2
-	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR   AccountCallerMode = 3
-	AccountCallerMode_ACCOUNT_CALLER_MODE_WEB_CLOUD                 AccountCallerMode = 5
-	AccountCallerMode_ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL        AccountCallerMode = 6
-	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP       AccountCallerMode = 7
-	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP AccountCallerMode = 8
+	AccountCallerMode_ACCOUNT_CALLER_MODE_UNSPECIFIED             AccountCallerMode = 0
+	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP   AccountCallerMode = 1
+	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL           AccountCallerMode = 2
+	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR AccountCallerMode = 3
+	AccountCallerMode_ACCOUNT_CALLER_MODE_WEB_CLOUD               AccountCallerMode = 5
+	AccountCallerMode_ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL      AccountCallerMode = 6
+	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP               AccountCallerMode = 9
 )
 
 // Enum value maps for AccountCallerMode.
@@ -442,18 +441,16 @@ var (
 		3: "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
 		5: "ACCOUNT_CALLER_MODE_WEB_CLOUD",
 		6: "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
-		7: "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP",
-		8: "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP",
+		9: "ACCOUNT_CALLER_MODE_LOCAL_APP",
 	}
 	AccountCallerMode_value = map[string]int32{
-		"ACCOUNT_CALLER_MODE_UNSPECIFIED":               0,
-		"ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP":     1,
-		"ACCOUNT_CALLER_MODE_DESKTOP_SHELL":             2,
-		"ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR":   3,
-		"ACCOUNT_CALLER_MODE_WEB_CLOUD":                 5,
-		"ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL":        6,
-		"ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP":       7,
-		"ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP": 8,
+		"ACCOUNT_CALLER_MODE_UNSPECIFIED":             0,
+		"ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP":   1,
+		"ACCOUNT_CALLER_MODE_DESKTOP_SHELL":           2,
+		"ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR": 3,
+		"ACCOUNT_CALLER_MODE_WEB_CLOUD":               5,
+		"ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL":      6,
+		"ACCOUNT_CALLER_MODE_LOCAL_APP":               9,
 	}
 )
 
@@ -748,6 +745,70 @@ func (x WorkspaceBindingState) Number() protoreflect.EnumNumber {
 // Deprecated: Use WorkspaceBindingState.Descriptor instead.
 func (WorkspaceBindingState) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_account_proto_rawDescGZIP(), []int{10}
+}
+
+type LocalAppGrantState int32
+
+const (
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_UNSPECIFIED LocalAppGrantState = 0
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_NO_GRANT    LocalAppGrantState = 1
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_PENDING     LocalAppGrantState = 2
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_GRANTED     LocalAppGrantState = 3
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_DENIED      LocalAppGrantState = 4
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_EXPIRED     LocalAppGrantState = 5
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_REVOKED     LocalAppGrantState = 6
+	LocalAppGrantState_LOCAL_APP_GRANT_STATE_SUPERSEDED  LocalAppGrantState = 7
+)
+
+// Enum value maps for LocalAppGrantState.
+var (
+	LocalAppGrantState_name = map[int32]string{
+		0: "LOCAL_APP_GRANT_STATE_UNSPECIFIED",
+		1: "LOCAL_APP_GRANT_STATE_NO_GRANT",
+		2: "LOCAL_APP_GRANT_STATE_PENDING",
+		3: "LOCAL_APP_GRANT_STATE_GRANTED",
+		4: "LOCAL_APP_GRANT_STATE_DENIED",
+		5: "LOCAL_APP_GRANT_STATE_EXPIRED",
+		6: "LOCAL_APP_GRANT_STATE_REVOKED",
+		7: "LOCAL_APP_GRANT_STATE_SUPERSEDED",
+	}
+	LocalAppGrantState_value = map[string]int32{
+		"LOCAL_APP_GRANT_STATE_UNSPECIFIED": 0,
+		"LOCAL_APP_GRANT_STATE_NO_GRANT":    1,
+		"LOCAL_APP_GRANT_STATE_PENDING":     2,
+		"LOCAL_APP_GRANT_STATE_GRANTED":     3,
+		"LOCAL_APP_GRANT_STATE_DENIED":      4,
+		"LOCAL_APP_GRANT_STATE_EXPIRED":     5,
+		"LOCAL_APP_GRANT_STATE_REVOKED":     6,
+		"LOCAL_APP_GRANT_STATE_SUPERSEDED":  7,
+	}
+)
+
+func (x LocalAppGrantState) Enum() *LocalAppGrantState {
+	p := new(LocalAppGrantState)
+	*p = x
+	return p
+}
+
+func (x LocalAppGrantState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LocalAppGrantState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_account_proto_enumTypes[11].Descriptor()
+}
+
+func (LocalAppGrantState) Type() protoreflect.EnumType {
+	return &file_runtime_v1_account_proto_enumTypes[11]
+}
+
+func (x LocalAppGrantState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LocalAppGrantState.Descriptor instead.
+func (LocalAppGrantState) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{11}
 }
 
 type WorkspaceMembershipProjection struct {
@@ -3162,6 +3223,516 @@ func (x *RevokeWorkspaceBindingResponse) GetProductionInert() bool {
 	return false
 }
 
+type LocalAppGrantProjection struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	State           LocalAppGrantState     `protobuf:"varint,1,opt,name=state,proto3,enum=nimi.runtime.v1.LocalAppGrantState" json:"state,omitempty"`
+	OperationId     string                 `protobuf:"bytes,2,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
+	ResourceRef     string                 `protobuf:"bytes,3,opt,name=resource_ref,json=resourceRef,proto3" json:"resource_ref,omitempty"`
+	RequestId       []byte                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	GrantId         []byte                 `protobuf:"bytes,5,opt,name=grant_id,json=grantId,proto3" json:"grant_id,omitempty"`
+	GrantGeneration uint64                 `protobuf:"varint,6,opt,name=grant_generation,json=grantGeneration,proto3" json:"grant_generation,omitempty"`
+	GrantRevision   uint64                 `protobuf:"varint,7,opt,name=grant_revision,json=grantRevision,proto3" json:"grant_revision,omitempty"`
+	ExpiresAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	ReasonCode      ReasonCode             `protobuf:"varint,9,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	// Present only on the verified Desktop local_app_control projection. The
+	// local-app carrier never receives this host-private decision correlation.
+	PresenceChallengeId []byte `protobuf:"bytes,10,opt,name=presence_challenge_id,json=presenceChallengeId,proto3" json:"presence_challenge_id,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *LocalAppGrantProjection) Reset() {
+	*x = LocalAppGrantProjection{}
+	mi := &file_runtime_v1_account_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalAppGrantProjection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalAppGrantProjection) ProtoMessage() {}
+
+func (x *LocalAppGrantProjection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalAppGrantProjection.ProtoReflect.Descriptor instead.
+func (*LocalAppGrantProjection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *LocalAppGrantProjection) GetState() LocalAppGrantState {
+	if x != nil {
+		return x.State
+	}
+	return LocalAppGrantState_LOCAL_APP_GRANT_STATE_UNSPECIFIED
+}
+
+func (x *LocalAppGrantProjection) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
+}
+
+func (x *LocalAppGrantProjection) GetResourceRef() string {
+	if x != nil {
+		return x.ResourceRef
+	}
+	return ""
+}
+
+func (x *LocalAppGrantProjection) GetRequestId() []byte {
+	if x != nil {
+		return x.RequestId
+	}
+	return nil
+}
+
+func (x *LocalAppGrantProjection) GetGrantId() []byte {
+	if x != nil {
+		return x.GrantId
+	}
+	return nil
+}
+
+func (x *LocalAppGrantProjection) GetGrantGeneration() uint64 {
+	if x != nil {
+		return x.GrantGeneration
+	}
+	return 0
+}
+
+func (x *LocalAppGrantProjection) GetGrantRevision() uint64 {
+	if x != nil {
+		return x.GrantRevision
+	}
+	return 0
+}
+
+func (x *LocalAppGrantProjection) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *LocalAppGrantProjection) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *LocalAppGrantProjection) GetPresenceChallengeId() []byte {
+	if x != nil {
+		return x.PresenceChallengeId
+	}
+	return nil
+}
+
+type GetLocalAppGrantStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OperationId   string                 `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
+	ResourceRef   string                 `protobuf:"bytes,2,opt,name=resource_ref,json=resourceRef,proto3" json:"resource_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLocalAppGrantStatusRequest) Reset() {
+	*x = GetLocalAppGrantStatusRequest{}
+	mi := &file_runtime_v1_account_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLocalAppGrantStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLocalAppGrantStatusRequest) ProtoMessage() {}
+
+func (x *GetLocalAppGrantStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLocalAppGrantStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetLocalAppGrantStatusRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetLocalAppGrantStatusRequest) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
+}
+
+func (x *GetLocalAppGrantStatusRequest) GetResourceRef() string {
+	if x != nil {
+		return x.ResourceRef
+	}
+	return ""
+}
+
+type GetLocalAppGrantStatusResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Projection    *LocalAppGrantProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLocalAppGrantStatusResponse) Reset() {
+	*x = GetLocalAppGrantStatusResponse{}
+	mi := &file_runtime_v1_account_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLocalAppGrantStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLocalAppGrantStatusResponse) ProtoMessage() {}
+
+func (x *GetLocalAppGrantStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLocalAppGrantStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetLocalAppGrantStatusResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetLocalAppGrantStatusResponse) GetProjection() *LocalAppGrantProjection {
+	if x != nil {
+		return x.Projection
+	}
+	return nil
+}
+
+type RequestLocalAppGrantRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OperationId   string                 `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
+	ResourceRef   string                 `protobuf:"bytes,2,opt,name=resource_ref,json=resourceRef,proto3" json:"resource_ref,omitempty"`
+	Purpose       string                 `protobuf:"bytes,3,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestLocalAppGrantRequest) Reset() {
+	*x = RequestLocalAppGrantRequest{}
+	mi := &file_runtime_v1_account_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestLocalAppGrantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestLocalAppGrantRequest) ProtoMessage() {}
+
+func (x *RequestLocalAppGrantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestLocalAppGrantRequest.ProtoReflect.Descriptor instead.
+func (*RequestLocalAppGrantRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *RequestLocalAppGrantRequest) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
+}
+
+func (x *RequestLocalAppGrantRequest) GetResourceRef() string {
+	if x != nil {
+		return x.ResourceRef
+	}
+	return ""
+}
+
+func (x *RequestLocalAppGrantRequest) GetPurpose() string {
+	if x != nil {
+		return x.Purpose
+	}
+	return ""
+}
+
+type RequestLocalAppGrantResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Projection    *LocalAppGrantProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestLocalAppGrantResponse) Reset() {
+	*x = RequestLocalAppGrantResponse{}
+	mi := &file_runtime_v1_account_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestLocalAppGrantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestLocalAppGrantResponse) ProtoMessage() {}
+
+func (x *RequestLocalAppGrantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestLocalAppGrantResponse.ProtoReflect.Descriptor instead.
+func (*RequestLocalAppGrantResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *RequestLocalAppGrantResponse) GetProjection() *LocalAppGrantProjection {
+	if x != nil {
+		return x.Projection
+	}
+	return nil
+}
+
+type DecideLocalAppGrantRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	RequestId           []byte                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Approved            bool                   `protobuf:"varint,2,opt,name=approved,proto3" json:"approved,omitempty"`
+	PresenceChallengeId []byte                 `protobuf:"bytes,3,opt,name=presence_challenge_id,json=presenceChallengeId,proto3" json:"presence_challenge_id,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DecideLocalAppGrantRequest) Reset() {
+	*x = DecideLocalAppGrantRequest{}
+	mi := &file_runtime_v1_account_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecideLocalAppGrantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecideLocalAppGrantRequest) ProtoMessage() {}
+
+func (x *DecideLocalAppGrantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecideLocalAppGrantRequest.ProtoReflect.Descriptor instead.
+func (*DecideLocalAppGrantRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *DecideLocalAppGrantRequest) GetRequestId() []byte {
+	if x != nil {
+		return x.RequestId
+	}
+	return nil
+}
+
+func (x *DecideLocalAppGrantRequest) GetApproved() bool {
+	if x != nil {
+		return x.Approved
+	}
+	return false
+}
+
+func (x *DecideLocalAppGrantRequest) GetPresenceChallengeId() []byte {
+	if x != nil {
+		return x.PresenceChallengeId
+	}
+	return nil
+}
+
+type DecideLocalAppGrantResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Projection    *LocalAppGrantProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecideLocalAppGrantResponse) Reset() {
+	*x = DecideLocalAppGrantResponse{}
+	mi := &file_runtime_v1_account_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecideLocalAppGrantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecideLocalAppGrantResponse) ProtoMessage() {}
+
+func (x *DecideLocalAppGrantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecideLocalAppGrantResponse.ProtoReflect.Descriptor instead.
+func (*DecideLocalAppGrantResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *DecideLocalAppGrantResponse) GetProjection() *LocalAppGrantProjection {
+	if x != nil {
+		return x.Projection
+	}
+	return nil
+}
+
+type RevokeLocalAppGrantRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GrantId       []byte                 `protobuf:"bytes,1,opt,name=grant_id,json=grantId,proto3" json:"grant_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeLocalAppGrantRequest) Reset() {
+	*x = RevokeLocalAppGrantRequest{}
+	mi := &file_runtime_v1_account_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeLocalAppGrantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeLocalAppGrantRequest) ProtoMessage() {}
+
+func (x *RevokeLocalAppGrantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeLocalAppGrantRequest.ProtoReflect.Descriptor instead.
+func (*RevokeLocalAppGrantRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *RevokeLocalAppGrantRequest) GetGrantId() []byte {
+	if x != nil {
+		return x.GrantId
+	}
+	return nil
+}
+
+type RevokeLocalAppGrantResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Projection    *LocalAppGrantProjection `protobuf:"bytes,1,opt,name=projection,proto3" json:"projection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeLocalAppGrantResponse) Reset() {
+	*x = RevokeLocalAppGrantResponse{}
+	mi := &file_runtime_v1_account_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeLocalAppGrantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeLocalAppGrantResponse) ProtoMessage() {}
+
+func (x *RevokeLocalAppGrantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeLocalAppGrantResponse.ProtoReflect.Descriptor instead.
+func (*RevokeLocalAppGrantResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *RevokeLocalAppGrantResponse) GetProjection() *LocalAppGrantProjection {
+	if x != nil {
+		return x.Projection
+	}
+	return nil
+}
+
 var File_runtime_v1_account_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_account_proto_rawDesc = "" +
@@ -3413,7 +3984,52 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
-	"\x10production_inert\x18\x05 \x01(\bR\x0fproductionInert*\x9f\x03\n" +
+	"\x10production_inert\x18\x05 \x01(\bR\x0fproductionInert\"\xd3\x03\n" +
+	"\x17LocalAppGrantProjection\x129\n" +
+	"\x05state\x18\x01 \x01(\x0e2#.nimi.runtime.v1.LocalAppGrantStateR\x05state\x12!\n" +
+	"\foperation_id\x18\x02 \x01(\tR\voperationId\x12!\n" +
+	"\fresource_ref\x18\x03 \x01(\tR\vresourceRef\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x04 \x01(\fR\trequestId\x12\x19\n" +
+	"\bgrant_id\x18\x05 \x01(\fR\agrantId\x12)\n" +
+	"\x10grant_generation\x18\x06 \x01(\x04R\x0fgrantGeneration\x12%\n" +
+	"\x0egrant_revision\x18\a \x01(\x04R\rgrantRevision\x129\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12<\n" +
+	"\vreason_code\x18\t \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\x122\n" +
+	"\x15presence_challenge_id\x18\n" +
+	" \x01(\fR\x13presenceChallengeId\"e\n" +
+	"\x1dGetLocalAppGrantStatusRequest\x12!\n" +
+	"\foperation_id\x18\x01 \x01(\tR\voperationId\x12!\n" +
+	"\fresource_ref\x18\x02 \x01(\tR\vresourceRef\"j\n" +
+	"\x1eGetLocalAppGrantStatusResponse\x12H\n" +
+	"\n" +
+	"projection\x18\x01 \x01(\v2(.nimi.runtime.v1.LocalAppGrantProjectionR\n" +
+	"projection\"}\n" +
+	"\x1bRequestLocalAppGrantRequest\x12!\n" +
+	"\foperation_id\x18\x01 \x01(\tR\voperationId\x12!\n" +
+	"\fresource_ref\x18\x02 \x01(\tR\vresourceRef\x12\x18\n" +
+	"\apurpose\x18\x03 \x01(\tR\apurpose\"h\n" +
+	"\x1cRequestLocalAppGrantResponse\x12H\n" +
+	"\n" +
+	"projection\x18\x01 \x01(\v2(.nimi.runtime.v1.LocalAppGrantProjectionR\n" +
+	"projection\"\x8b\x01\n" +
+	"\x1aDecideLocalAppGrantRequest\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\fR\trequestId\x12\x1a\n" +
+	"\bapproved\x18\x02 \x01(\bR\bapproved\x122\n" +
+	"\x15presence_challenge_id\x18\x03 \x01(\fR\x13presenceChallengeId\"g\n" +
+	"\x1bDecideLocalAppGrantResponse\x12H\n" +
+	"\n" +
+	"projection\x18\x01 \x01(\v2(.nimi.runtime.v1.LocalAppGrantProjectionR\n" +
+	"projection\"7\n" +
+	"\x1aRevokeLocalAppGrantRequest\x12\x19\n" +
+	"\bgrant_id\x18\x01 \x01(\fR\agrantId\"g\n" +
+	"\x1bRevokeLocalAppGrantResponse\x12H\n" +
+	"\n" +
+	"projection\x18\x01 \x01(\v2(.nimi.runtime.v1.LocalAppGrantProjectionR\n" +
+	"projection*\x9f\x03\n" +
 	"\x13AccountSessionState\x12%\n" +
 	"!ACCOUNT_SESSION_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fACCOUNT_SESSION_STATE_ANONYMOUS\x10\x01\x12'\n" +
@@ -3486,16 +4102,15 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"(PRESENCE_VERIFICATION_METHOD_UNSPECIFIED\x10\x00\x12.\n" +
 	"*PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL\x10\x01\x12,\n" +
 	"(PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH\x10\x02\x12-\n" +
-	")PRESENCE_VERIFICATION_METHOD_TEST_HARNESS\x10\x03*\x8d\x03\n" +
+	")PRESENCE_VERIFICATION_METHOD_TEST_HARNESS\x10\x03*\xb4\x03\n" +
 	"\x11AccountCallerMode\x12#\n" +
 	"\x1fACCOUNT_CALLER_MODE_UNSPECIFIED\x10\x00\x12-\n" +
 	")ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP\x10\x01\x12%\n" +
 	"!ACCOUNT_CALLER_MODE_DESKTOP_SHELL\x10\x02\x12/\n" +
 	"+ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR\x10\x03\x12!\n" +
 	"\x1dACCOUNT_CALLER_MODE_WEB_CLOUD\x10\x05\x12*\n" +
-	"&ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL\x10\x06\x12+\n" +
-	"'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP\x10\a\x121\n" +
-	"-ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP\x10\b\"\x04\b\x04\x10\x04*\x17ACCOUNT_CALLER_MODE_MOD*\xa8\x02\n" +
+	"&ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL\x10\x06\x12!\n" +
+	"\x1dACCOUNT_CALLER_MODE_LOCAL_APP\x10\t\"\x04\b\x04\x10\x04\"\x04\b\a\x10\a\"\x04\b\b\x10\b*\x17ACCOUNT_CALLER_MODE_MOD*'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP*-ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP*\xa8\x02\n" +
 	"\x15ScopedAppBindingState\x12(\n" +
 	"$SCOPED_APP_BINDING_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fSCOPED_APP_BINDING_STATE_ISSUED\x10\x01\x12#\n" +
@@ -3522,8 +4137,16 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\x1eWORKSPACE_BINDING_STATE_ISSUED\x10\x01\x12\"\n" +
 	"\x1eWORKSPACE_BINDING_STATE_ACTIVE\x10\x02\x12#\n" +
 	"\x1fWORKSPACE_BINDING_STATE_REVOKED\x10\x03\x12#\n" +
-	"\x1fWORKSPACE_BINDING_STATE_EXPIRED\x10\x042\xd1\n" +
-	"\n" +
+	"\x1fWORKSPACE_BINDING_STATE_EXPIRED\x10\x04*\xb3\x02\n" +
+	"\x12LocalAppGrantState\x12%\n" +
+	"!LOCAL_APP_GRANT_STATE_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eLOCAL_APP_GRANT_STATE_NO_GRANT\x10\x01\x12!\n" +
+	"\x1dLOCAL_APP_GRANT_STATE_PENDING\x10\x02\x12!\n" +
+	"\x1dLOCAL_APP_GRANT_STATE_GRANTED\x10\x03\x12 \n" +
+	"\x1cLOCAL_APP_GRANT_STATE_DENIED\x10\x04\x12!\n" +
+	"\x1dLOCAL_APP_GRANT_STATE_EXPIRED\x10\x05\x12!\n" +
+	"\x1dLOCAL_APP_GRANT_STATE_REVOKED\x10\x06\x12$\n" +
+	" LOCAL_APP_GRANT_STATE_SUPERSEDED\x10\a2\xa5\x0e\n" +
 	"\x15RuntimeAccountService\x12|\n" +
 	"\x17GetAccountSessionStatus\x12/.nimi.runtime.v1.GetAccountSessionStatusRequest\x1a0.nimi.runtime.v1.GetAccountSessionStatusResponse\x12~\n" +
 	"\x1dSubscribeAccountSessionEvents\x125.nimi.runtime.v1.SubscribeAccountSessionEventsRequest\x1a$.nimi.runtime.v1.AccountSessionEvent0\x01\x12U\n" +
@@ -3537,7 +4160,11 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\x15IssueScopedAppBinding\x12-.nimi.runtime.v1.IssueScopedAppBindingRequest\x1a..nimi.runtime.v1.IssueScopedAppBindingResponse\x12y\n" +
 	"\x16RevokeScopedAppBinding\x12..nimi.runtime.v1.RevokeScopedAppBindingRequest\x1a/.nimi.runtime.v1.RevokeScopedAppBindingResponse\x12v\n" +
 	"\x15IssueWorkspaceBinding\x12-.nimi.runtime.v1.IssueWorkspaceBindingRequest\x1a..nimi.runtime.v1.IssueWorkspaceBindingResponse\x12y\n" +
-	"\x16RevokeWorkspaceBinding\x12..nimi.runtime.v1.RevokeWorkspaceBindingRequest\x1a/.nimi.runtime.v1.RevokeWorkspaceBindingResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x16RevokeWorkspaceBinding\x12..nimi.runtime.v1.RevokeWorkspaceBindingRequest\x1a/.nimi.runtime.v1.RevokeWorkspaceBindingResponse\x12y\n" +
+	"\x16GetLocalAppGrantStatus\x12..nimi.runtime.v1.GetLocalAppGrantStatusRequest\x1a/.nimi.runtime.v1.GetLocalAppGrantStatusResponse\x12s\n" +
+	"\x14RequestLocalAppGrant\x12,.nimi.runtime.v1.RequestLocalAppGrantRequest\x1a-.nimi.runtime.v1.RequestLocalAppGrantResponse\x12p\n" +
+	"\x13DecideLocalAppGrant\x12+.nimi.runtime.v1.DecideLocalAppGrantRequest\x1a,.nimi.runtime.v1.DecideLocalAppGrantResponse\x12p\n" +
+	"\x13RevokeLocalAppGrant\x12+.nimi.runtime.v1.RevokeLocalAppGrantRequest\x1a,.nimi.runtime.v1.RevokeLocalAppGrantResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_account_proto_rawDescOnce sync.Once
@@ -3551,8 +4178,8 @@ func file_runtime_v1_account_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_account_proto_rawDescData
 }
 
-var file_runtime_v1_account_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
-var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_runtime_v1_account_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
+var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_runtime_v1_account_proto_goTypes = []any{
 	(AccountSessionState)(0),                     // 0: nimi.runtime.v1.AccountSessionState
 	(AccountEventType)(0),                        // 1: nimi.runtime.v1.AccountEventType
@@ -3565,146 +4192,171 @@ var file_runtime_v1_account_proto_goTypes = []any{
 	(WorkspaceMembershipState)(0),                // 8: nimi.runtime.v1.WorkspaceMembershipState
 	(WorkspaceBindingPurpose)(0),                 // 9: nimi.runtime.v1.WorkspaceBindingPurpose
 	(WorkspaceBindingState)(0),                   // 10: nimi.runtime.v1.WorkspaceBindingState
-	(*WorkspaceMembershipProjection)(nil),        // 11: nimi.runtime.v1.WorkspaceMembershipProjection
-	(*AccountProjection)(nil),                    // 12: nimi.runtime.v1.AccountProjection
-	(*AccountCaller)(nil),                        // 13: nimi.runtime.v1.AccountCaller
-	(*ScopedAppBindingRelation)(nil),             // 14: nimi.runtime.v1.ScopedAppBindingRelation
-	(*WorkspaceBindingRelation)(nil),             // 15: nimi.runtime.v1.WorkspaceBindingRelation
-	(*AccountSessionEvent)(nil),                  // 16: nimi.runtime.v1.AccountSessionEvent
-	(*GetAccountSessionStatusRequest)(nil),       // 17: nimi.runtime.v1.GetAccountSessionStatusRequest
-	(*GetAccountSessionStatusResponse)(nil),      // 18: nimi.runtime.v1.GetAccountSessionStatusResponse
-	(*SubscribeAccountSessionEventsRequest)(nil), // 19: nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	(*BeginLoginRequest)(nil),                    // 20: nimi.runtime.v1.BeginLoginRequest
-	(*BeginLoginResponse)(nil),                   // 21: nimi.runtime.v1.BeginLoginResponse
-	(*CompleteLoginRequest)(nil),                 // 22: nimi.runtime.v1.CompleteLoginRequest
-	(*CompleteLoginResponse)(nil),                // 23: nimi.runtime.v1.CompleteLoginResponse
-	(*RequestPresenceVerificationRequest)(nil),   // 24: nimi.runtime.v1.RequestPresenceVerificationRequest
-	(*RequestPresenceVerificationResponse)(nil),  // 25: nimi.runtime.v1.RequestPresenceVerificationResponse
-	(*InvokeRealmUnaryRequest)(nil),              // 26: nimi.runtime.v1.InvokeRealmUnaryRequest
-	(*InvokeRealmUnaryResponse)(nil),             // 27: nimi.runtime.v1.InvokeRealmUnaryResponse
-	(*LogoutRequest)(nil),                        // 28: nimi.runtime.v1.LogoutRequest
-	(*LogoutResponse)(nil),                       // 29: nimi.runtime.v1.LogoutResponse
-	(*SwitchAccountRequest)(nil),                 // 30: nimi.runtime.v1.SwitchAccountRequest
-	(*SwitchAccountResponse)(nil),                // 31: nimi.runtime.v1.SwitchAccountResponse
-	(*IssueScopedAppBindingRequest)(nil),         // 32: nimi.runtime.v1.IssueScopedAppBindingRequest
-	(*IssueScopedAppBindingResponse)(nil),        // 33: nimi.runtime.v1.IssueScopedAppBindingResponse
-	(*RevokeScopedAppBindingRequest)(nil),        // 34: nimi.runtime.v1.RevokeScopedAppBindingRequest
-	(*RevokeScopedAppBindingResponse)(nil),       // 35: nimi.runtime.v1.RevokeScopedAppBindingResponse
-	(*IssueWorkspaceBindingRequest)(nil),         // 36: nimi.runtime.v1.IssueWorkspaceBindingRequest
-	(*IssueWorkspaceBindingResponse)(nil),        // 37: nimi.runtime.v1.IssueWorkspaceBindingResponse
-	(*RevokeWorkspaceBindingRequest)(nil),        // 38: nimi.runtime.v1.RevokeWorkspaceBindingRequest
-	(*RevokeWorkspaceBindingResponse)(nil),       // 39: nimi.runtime.v1.RevokeWorkspaceBindingResponse
-	nil,                                          // 40: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
-	(*timestamppb.Timestamp)(nil),                // 41: google.protobuf.Timestamp
-	(ReasonCode)(0),                              // 42: nimi.runtime.v1.ReasonCode
-	(*WorkspaceBindingAttachment)(nil),           // 43: nimi.runtime.v1.WorkspaceBindingAttachment
+	(LocalAppGrantState)(0),                      // 11: nimi.runtime.v1.LocalAppGrantState
+	(*WorkspaceMembershipProjection)(nil),        // 12: nimi.runtime.v1.WorkspaceMembershipProjection
+	(*AccountProjection)(nil),                    // 13: nimi.runtime.v1.AccountProjection
+	(*AccountCaller)(nil),                        // 14: nimi.runtime.v1.AccountCaller
+	(*ScopedAppBindingRelation)(nil),             // 15: nimi.runtime.v1.ScopedAppBindingRelation
+	(*WorkspaceBindingRelation)(nil),             // 16: nimi.runtime.v1.WorkspaceBindingRelation
+	(*AccountSessionEvent)(nil),                  // 17: nimi.runtime.v1.AccountSessionEvent
+	(*GetAccountSessionStatusRequest)(nil),       // 18: nimi.runtime.v1.GetAccountSessionStatusRequest
+	(*GetAccountSessionStatusResponse)(nil),      // 19: nimi.runtime.v1.GetAccountSessionStatusResponse
+	(*SubscribeAccountSessionEventsRequest)(nil), // 20: nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	(*BeginLoginRequest)(nil),                    // 21: nimi.runtime.v1.BeginLoginRequest
+	(*BeginLoginResponse)(nil),                   // 22: nimi.runtime.v1.BeginLoginResponse
+	(*CompleteLoginRequest)(nil),                 // 23: nimi.runtime.v1.CompleteLoginRequest
+	(*CompleteLoginResponse)(nil),                // 24: nimi.runtime.v1.CompleteLoginResponse
+	(*RequestPresenceVerificationRequest)(nil),   // 25: nimi.runtime.v1.RequestPresenceVerificationRequest
+	(*RequestPresenceVerificationResponse)(nil),  // 26: nimi.runtime.v1.RequestPresenceVerificationResponse
+	(*InvokeRealmUnaryRequest)(nil),              // 27: nimi.runtime.v1.InvokeRealmUnaryRequest
+	(*InvokeRealmUnaryResponse)(nil),             // 28: nimi.runtime.v1.InvokeRealmUnaryResponse
+	(*LogoutRequest)(nil),                        // 29: nimi.runtime.v1.LogoutRequest
+	(*LogoutResponse)(nil),                       // 30: nimi.runtime.v1.LogoutResponse
+	(*SwitchAccountRequest)(nil),                 // 31: nimi.runtime.v1.SwitchAccountRequest
+	(*SwitchAccountResponse)(nil),                // 32: nimi.runtime.v1.SwitchAccountResponse
+	(*IssueScopedAppBindingRequest)(nil),         // 33: nimi.runtime.v1.IssueScopedAppBindingRequest
+	(*IssueScopedAppBindingResponse)(nil),        // 34: nimi.runtime.v1.IssueScopedAppBindingResponse
+	(*RevokeScopedAppBindingRequest)(nil),        // 35: nimi.runtime.v1.RevokeScopedAppBindingRequest
+	(*RevokeScopedAppBindingResponse)(nil),       // 36: nimi.runtime.v1.RevokeScopedAppBindingResponse
+	(*IssueWorkspaceBindingRequest)(nil),         // 37: nimi.runtime.v1.IssueWorkspaceBindingRequest
+	(*IssueWorkspaceBindingResponse)(nil),        // 38: nimi.runtime.v1.IssueWorkspaceBindingResponse
+	(*RevokeWorkspaceBindingRequest)(nil),        // 39: nimi.runtime.v1.RevokeWorkspaceBindingRequest
+	(*RevokeWorkspaceBindingResponse)(nil),       // 40: nimi.runtime.v1.RevokeWorkspaceBindingResponse
+	(*LocalAppGrantProjection)(nil),              // 41: nimi.runtime.v1.LocalAppGrantProjection
+	(*GetLocalAppGrantStatusRequest)(nil),        // 42: nimi.runtime.v1.GetLocalAppGrantStatusRequest
+	(*GetLocalAppGrantStatusResponse)(nil),       // 43: nimi.runtime.v1.GetLocalAppGrantStatusResponse
+	(*RequestLocalAppGrantRequest)(nil),          // 44: nimi.runtime.v1.RequestLocalAppGrantRequest
+	(*RequestLocalAppGrantResponse)(nil),         // 45: nimi.runtime.v1.RequestLocalAppGrantResponse
+	(*DecideLocalAppGrantRequest)(nil),           // 46: nimi.runtime.v1.DecideLocalAppGrantRequest
+	(*DecideLocalAppGrantResponse)(nil),          // 47: nimi.runtime.v1.DecideLocalAppGrantResponse
+	(*RevokeLocalAppGrantRequest)(nil),           // 48: nimi.runtime.v1.RevokeLocalAppGrantRequest
+	(*RevokeLocalAppGrantResponse)(nil),          // 49: nimi.runtime.v1.RevokeLocalAppGrantResponse
+	nil,                                          // 50: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	(*timestamppb.Timestamp)(nil),                // 51: google.protobuf.Timestamp
+	(ReasonCode)(0),                              // 52: nimi.runtime.v1.ReasonCode
+	(*WorkspaceBindingAttachment)(nil),           // 53: nimi.runtime.v1.WorkspaceBindingAttachment
 }
 var file_runtime_v1_account_proto_depIdxs = []int32{
 	8,  // 0: nimi.runtime.v1.WorkspaceMembershipProjection.membership_state:type_name -> nimi.runtime.v1.WorkspaceMembershipState
-	41, // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
-	40, // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
-	11, // 3: nimi.runtime.v1.AccountProjection.workspace_memberships:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection
+	51, // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
+	50, // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	12, // 3: nimi.runtime.v1.AccountProjection.workspace_memberships:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection
 	5,  // 4: nimi.runtime.v1.AccountCaller.mode:type_name -> nimi.runtime.v1.AccountCallerMode
 	7,  // 5: nimi.runtime.v1.ScopedAppBindingRelation.purpose:type_name -> nimi.runtime.v1.ScopedAppBindingPurpose
-	41, // 6: nimi.runtime.v1.ScopedAppBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
-	41, // 7: nimi.runtime.v1.ScopedAppBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
+	51, // 6: nimi.runtime.v1.ScopedAppBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
+	51, // 7: nimi.runtime.v1.ScopedAppBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
 	6,  // 8: nimi.runtime.v1.ScopedAppBindingRelation.state:type_name -> nimi.runtime.v1.ScopedAppBindingState
 	2,  // 9: nimi.runtime.v1.ScopedAppBindingRelation.reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	9,  // 10: nimi.runtime.v1.WorkspaceBindingRelation.purpose:type_name -> nimi.runtime.v1.WorkspaceBindingPurpose
-	41, // 11: nimi.runtime.v1.WorkspaceBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
-	41, // 12: nimi.runtime.v1.WorkspaceBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
+	51, // 11: nimi.runtime.v1.WorkspaceBindingRelation.issued_at:type_name -> google.protobuf.Timestamp
+	51, // 12: nimi.runtime.v1.WorkspaceBindingRelation.expires_at:type_name -> google.protobuf.Timestamp
 	10, // 13: nimi.runtime.v1.WorkspaceBindingRelation.state:type_name -> nimi.runtime.v1.WorkspaceBindingState
-	42, // 14: nimi.runtime.v1.WorkspaceBindingRelation.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	41, // 15: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
+	52, // 14: nimi.runtime.v1.WorkspaceBindingRelation.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	51, // 15: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
 	1,  // 16: nimi.runtime.v1.AccountSessionEvent.event_type:type_name -> nimi.runtime.v1.AccountEventType
 	0,  // 17: nimi.runtime.v1.AccountSessionEvent.state:type_name -> nimi.runtime.v1.AccountSessionState
-	42, // 18: nimi.runtime.v1.AccountSessionEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	52, // 18: nimi.runtime.v1.AccountSessionEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 19: nimi.runtime.v1.AccountSessionEvent.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	12, // 20: nimi.runtime.v1.AccountSessionEvent.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	14, // 21: nimi.runtime.v1.AccountSessionEvent.binding_relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	13, // 22: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	13, // 20: nimi.runtime.v1.AccountSessionEvent.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	15, // 21: nimi.runtime.v1.AccountSessionEvent.binding_relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
+	14, // 22: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,  // 23: nimi.runtime.v1.GetAccountSessionStatusResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	12, // 24: nimi.runtime.v1.GetAccountSessionStatusResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	42, // 25: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	13, // 24: nimi.runtime.v1.GetAccountSessionStatusResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	52, // 25: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 26: nimi.runtime.v1.GetAccountSessionStatusResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 27: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	13, // 28: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	41, // 29: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
-	42, // 30: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	14, // 27: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	14, // 28: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	51, // 29: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	52, // 30: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 31: nimi.runtime.v1.BeginLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 32: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	14, // 32: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,  // 33: nimi.runtime.v1.CompleteLoginResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	12, // 34: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	42, // 35: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	13, // 34: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	52, // 35: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 36: nimi.runtime.v1.CompleteLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 37: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	14, // 37: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	3,  // 38: nimi.runtime.v1.RequestPresenceVerificationResponse.state:type_name -> nimi.runtime.v1.PresenceVerificationState
 	4,  // 39: nimi.runtime.v1.RequestPresenceVerificationResponse.method:type_name -> nimi.runtime.v1.PresenceVerificationMethod
-	41, // 40: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
-	12, // 41: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	42, // 42: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	51, // 40: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
+	13, // 41: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	52, // 42: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 43: nimi.runtime.v1.RequestPresenceVerificationResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 44: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	42, // 45: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	14, // 44: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	52, // 45: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 46: nimi.runtime.v1.InvokeRealmUnaryResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 47: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	14, // 47: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,  // 48: nimi.runtime.v1.LogoutResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	42, // 49: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	52, // 49: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 50: nimi.runtime.v1.LogoutResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 51: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	14, // 51: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,  // 52: nimi.runtime.v1.SwitchAccountResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	12, // 53: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	42, // 54: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	13, // 53: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
+	52, // 54: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 55: nimi.runtime.v1.SwitchAccountResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 56: nimi.runtime.v1.IssueScopedAppBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	14, // 57: nimi.runtime.v1.IssueScopedAppBindingRequest.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	14, // 58: nimi.runtime.v1.IssueScopedAppBindingResponse.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	42, // 59: nimi.runtime.v1.IssueScopedAppBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	14, // 56: nimi.runtime.v1.IssueScopedAppBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	15, // 57: nimi.runtime.v1.IssueScopedAppBindingRequest.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
+	15, // 58: nimi.runtime.v1.IssueScopedAppBindingResponse.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
+	52, // 59: nimi.runtime.v1.IssueScopedAppBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 60: nimi.runtime.v1.IssueScopedAppBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 61: nimi.runtime.v1.RevokeScopedAppBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	14, // 61: nimi.runtime.v1.RevokeScopedAppBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	2,  // 62: nimi.runtime.v1.RevokeScopedAppBindingRequest.reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	14, // 63: nimi.runtime.v1.RevokeScopedAppBindingResponse.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
-	42, // 64: nimi.runtime.v1.RevokeScopedAppBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 63: nimi.runtime.v1.RevokeScopedAppBindingResponse.relation:type_name -> nimi.runtime.v1.ScopedAppBindingRelation
+	52, // 64: nimi.runtime.v1.RevokeScopedAppBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 65: nimi.runtime.v1.RevokeScopedAppBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 66: nimi.runtime.v1.IssueWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	43, // 67: nimi.runtime.v1.IssueWorkspaceBindingResponse.attachment:type_name -> nimi.runtime.v1.WorkspaceBindingAttachment
-	15, // 68: nimi.runtime.v1.IssueWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
-	42, // 69: nimi.runtime.v1.IssueWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	14, // 66: nimi.runtime.v1.IssueWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	53, // 67: nimi.runtime.v1.IssueWorkspaceBindingResponse.attachment:type_name -> nimi.runtime.v1.WorkspaceBindingAttachment
+	16, // 68: nimi.runtime.v1.IssueWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
+	52, // 69: nimi.runtime.v1.IssueWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 70: nimi.runtime.v1.IssueWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	13, // 71: nimi.runtime.v1.RevokeWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	42, // 72: nimi.runtime.v1.RevokeWorkspaceBindingRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 73: nimi.runtime.v1.RevokeWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
-	42, // 74: nimi.runtime.v1.RevokeWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	14, // 71: nimi.runtime.v1.RevokeWorkspaceBindingRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
+	52, // 72: nimi.runtime.v1.RevokeWorkspaceBindingRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	16, // 73: nimi.runtime.v1.RevokeWorkspaceBindingResponse.relation:type_name -> nimi.runtime.v1.WorkspaceBindingRelation
+	52, // 74: nimi.runtime.v1.RevokeWorkspaceBindingResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	2,  // 75: nimi.runtime.v1.RevokeWorkspaceBindingResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	17, // 76: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
-	19, // 77: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	20, // 78: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
-	22, // 79: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
-	24, // 80: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
-	26, // 81: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
-	28, // 82: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
-	30, // 83: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
-	32, // 84: nimi.runtime.v1.RuntimeAccountService.IssueScopedAppBinding:input_type -> nimi.runtime.v1.IssueScopedAppBindingRequest
-	34, // 85: nimi.runtime.v1.RuntimeAccountService.RevokeScopedAppBinding:input_type -> nimi.runtime.v1.RevokeScopedAppBindingRequest
-	36, // 86: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:input_type -> nimi.runtime.v1.IssueWorkspaceBindingRequest
-	38, // 87: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:input_type -> nimi.runtime.v1.RevokeWorkspaceBindingRequest
-	18, // 88: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
-	16, // 89: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
-	21, // 90: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
-	23, // 91: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
-	25, // 92: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
-	27, // 93: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
-	29, // 94: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
-	31, // 95: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
-	33, // 96: nimi.runtime.v1.RuntimeAccountService.IssueScopedAppBinding:output_type -> nimi.runtime.v1.IssueScopedAppBindingResponse
-	35, // 97: nimi.runtime.v1.RuntimeAccountService.RevokeScopedAppBinding:output_type -> nimi.runtime.v1.RevokeScopedAppBindingResponse
-	37, // 98: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:output_type -> nimi.runtime.v1.IssueWorkspaceBindingResponse
-	39, // 99: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:output_type -> nimi.runtime.v1.RevokeWorkspaceBindingResponse
-	88, // [88:100] is the sub-list for method output_type
-	76, // [76:88] is the sub-list for method input_type
-	76, // [76:76] is the sub-list for extension type_name
-	76, // [76:76] is the sub-list for extension extendee
-	0,  // [0:76] is the sub-list for field type_name
+	11, // 76: nimi.runtime.v1.LocalAppGrantProjection.state:type_name -> nimi.runtime.v1.LocalAppGrantState
+	51, // 77: nimi.runtime.v1.LocalAppGrantProjection.expires_at:type_name -> google.protobuf.Timestamp
+	52, // 78: nimi.runtime.v1.LocalAppGrantProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	41, // 79: nimi.runtime.v1.GetLocalAppGrantStatusResponse.projection:type_name -> nimi.runtime.v1.LocalAppGrantProjection
+	41, // 80: nimi.runtime.v1.RequestLocalAppGrantResponse.projection:type_name -> nimi.runtime.v1.LocalAppGrantProjection
+	41, // 81: nimi.runtime.v1.DecideLocalAppGrantResponse.projection:type_name -> nimi.runtime.v1.LocalAppGrantProjection
+	41, // 82: nimi.runtime.v1.RevokeLocalAppGrantResponse.projection:type_name -> nimi.runtime.v1.LocalAppGrantProjection
+	18, // 83: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
+	20, // 84: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	21, // 85: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
+	23, // 86: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
+	25, // 87: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
+	27, // 88: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
+	29, // 89: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
+	31, // 90: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
+	33, // 91: nimi.runtime.v1.RuntimeAccountService.IssueScopedAppBinding:input_type -> nimi.runtime.v1.IssueScopedAppBindingRequest
+	35, // 92: nimi.runtime.v1.RuntimeAccountService.RevokeScopedAppBinding:input_type -> nimi.runtime.v1.RevokeScopedAppBindingRequest
+	37, // 93: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:input_type -> nimi.runtime.v1.IssueWorkspaceBindingRequest
+	39, // 94: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:input_type -> nimi.runtime.v1.RevokeWorkspaceBindingRequest
+	42, // 95: nimi.runtime.v1.RuntimeAccountService.GetLocalAppGrantStatus:input_type -> nimi.runtime.v1.GetLocalAppGrantStatusRequest
+	44, // 96: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppGrant:input_type -> nimi.runtime.v1.RequestLocalAppGrantRequest
+	46, // 97: nimi.runtime.v1.RuntimeAccountService.DecideLocalAppGrant:input_type -> nimi.runtime.v1.DecideLocalAppGrantRequest
+	48, // 98: nimi.runtime.v1.RuntimeAccountService.RevokeLocalAppGrant:input_type -> nimi.runtime.v1.RevokeLocalAppGrantRequest
+	19, // 99: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
+	17, // 100: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
+	22, // 101: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
+	24, // 102: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
+	26, // 103: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
+	28, // 104: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
+	30, // 105: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
+	32, // 106: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
+	34, // 107: nimi.runtime.v1.RuntimeAccountService.IssueScopedAppBinding:output_type -> nimi.runtime.v1.IssueScopedAppBindingResponse
+	36, // 108: nimi.runtime.v1.RuntimeAccountService.RevokeScopedAppBinding:output_type -> nimi.runtime.v1.RevokeScopedAppBindingResponse
+	38, // 109: nimi.runtime.v1.RuntimeAccountService.IssueWorkspaceBinding:output_type -> nimi.runtime.v1.IssueWorkspaceBindingResponse
+	40, // 110: nimi.runtime.v1.RuntimeAccountService.RevokeWorkspaceBinding:output_type -> nimi.runtime.v1.RevokeWorkspaceBindingResponse
+	43, // 111: nimi.runtime.v1.RuntimeAccountService.GetLocalAppGrantStatus:output_type -> nimi.runtime.v1.GetLocalAppGrantStatusResponse
+	45, // 112: nimi.runtime.v1.RuntimeAccountService.RequestLocalAppGrant:output_type -> nimi.runtime.v1.RequestLocalAppGrantResponse
+	47, // 113: nimi.runtime.v1.RuntimeAccountService.DecideLocalAppGrant:output_type -> nimi.runtime.v1.DecideLocalAppGrantResponse
+	49, // 114: nimi.runtime.v1.RuntimeAccountService.RevokeLocalAppGrant:output_type -> nimi.runtime.v1.RevokeLocalAppGrantResponse
+	99, // [99:115] is the sub-list for method output_type
+	83, // [83:99] is the sub-list for method input_type
+	83, // [83:83] is the sub-list for extension type_name
+	83, // [83:83] is the sub-list for extension extendee
+	0,  // [0:83] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_account_proto_init() }
@@ -3718,8 +4370,8 @@ func file_runtime_v1_account_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_account_proto_rawDesc), len(file_runtime_v1_account_proto_rawDesc)),
-			NumEnums:      11,
-			NumMessages:   30,
+			NumEnums:      12,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

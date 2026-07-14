@@ -63,11 +63,12 @@ test('tester run history is a global runtime test timeline (no standalone Eviden
   for (const helper of ['createTesterRunHistoryResultSnapshot', 'getTesterRunResultSummary', 'getTesterRunResultTags', 'getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
   }
-  // Run history now flows through the kit standard storage bridge; the app no
-  // longer resolves or injects Runtime app storage roots into command payloads.
-  assert.match(standardStorage, /createInstalledNimiAppStandardShellSurface/);
-  assert.match(standardStorage, /storage\.readJson/);
-  assert.match(standardStorage, /storage\.writeJson/);
+  // Standard storage is outside the eight-operation local-app carrier and
+  // therefore fails closed with a typed SDK error.
+  assert.match(standardStorage, /createNimiError/);
+  assert.match(standardStorage, /TESTER_LOCAL_APP_STORAGE_UNAVAILABLE/);
+  assert.match(standardStorage, /await_local_app_storage_operation_admission/);
+  assert.doesNotMatch(standardStorage, /localStorage|sessionStorage|invokeShell|invokeTauri/);
   assert.match(historyStore, /TESTER_RUN_HISTORY_STORAGE_PATH = 'tester-run-history\.json'/);
   assert.match(historyStore, /readTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH\)/);
   assert.match(historyStore, /writeTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH/);
@@ -584,10 +585,11 @@ test('tester artifact history persistence is real and fail-closed', () => {
   assert.match(workbench, /saveTesterArtifact/);
   assert.match(workbench, /createTesterRunHistoryResultSnapshot\(historyResult\)/);
   assert.match(workbench, /appendTesterImageHistoryRecord/);
-  // Artifacts persist through the kit standard artifacts.write command (artifacts/ prefix).
-  assert.match(artifactStorage, /writeShellArtifact/);
-  assert.match(artifactStorage, /relativePath:\s*`artifacts\//);
-  assert.match(artifactStorage, /convertTauriFileSrc\(result\.path\)/);
+  // Artifact writes are outside the final carrier and fail closed; protected
+  // Runtime artifact readback remains available through the separate client.
+  assert.match(artifactStorage, /createNimiError/);
+  assert.match(artifactStorage, /TESTER_LOCAL_APP_ARTIFACT_WRITE_UNAVAILABLE/);
+  assert.doesNotMatch(artifactStorage, /writeShellArtifact|convertTauriFileSrc|localStorage|invoke/);
   assert.doesNotMatch(artifactStorage, /tester_artifact_save|storageRoot|invokeTesterCommand/);
   assert.doesNotMatch(imageHistory, /kind: record\.kind \|\| 'runtime-media'/);
 

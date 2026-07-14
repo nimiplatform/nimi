@@ -1,16 +1,13 @@
-import { NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
+import { NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
 import { registerNimiElectronRuntimeBridge } from './host.js';
-import {
-  createNimiElectronAppHost,
-  NIMI_ELECTRON_APP_HOST_BOOTSTRAP_COMMAND,
-} from './app-host.js';
+import { createNimiElectronLocalAppHost } from './local-app-host.js';
 import {
   NimiElectronShellHostError,
   type NimiElectronIpcMain,
   type RegisteredNimiElectronRuntimeBridge,
 } from './types.js';
 
-const APP_HOST_PROTECTED_LOCAL_ENDPOINT_SENTINEL = 'app-host-protected-local-only';
+const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
 const INPUT_KEYS = ['allowedRendererUrls', 'appId', 'ipcMain'] as const;
 
 export type RegisterNimiElectronAppBridgeInput = {
@@ -20,12 +17,11 @@ export type RegisterNimiElectronAppBridgeInput = {
 };
 
 /**
- * Registers the fixed app-host surface shared by production-installed and
- * Desktop-supervised local-development sessions.
+ * Registers the fixed local-app surface for a Desktop-supervised process.
  *
  * The app supplies only its public id, exact renderer URLs, and Electron's IPC
  * registrar. Trust-class selection, Runtime endpoint selection, native carrier
- * choice, bootstrap renewal, and command authority remain Kit-owned.
+ * choice, session renewal, and command authority remain Kit-owned.
  */
 export function registerNimiElectronAppBridge(
   input: RegisterNimiElectronAppBridgeInput,
@@ -35,31 +31,28 @@ export function registerNimiElectronAppBridge(
   if (allowedRendererUrls.length === 0) {
     throw appBridgeInputError(
       'Electron app bridge requires at least one exact renderer URL',
-      'electron-app-host-renderer-url-required',
-      'provide_exact_app_host_renderer_url',
+      'electron-local-app-renderer-url-required',
+      'provide_exact_local_app_renderer_url',
     );
   }
-  const appHost = createNimiElectronAppHost();
+  const localAppHost = createNimiElectronLocalAppHost();
   return registerNimiElectronRuntimeBridge({
     appId: input.appId,
-    runtimeEndpoint: APP_HOST_PROTECTED_LOCAL_ENDPOINT_SENTINEL,
+    runtimeEndpoint: LOCAL_APP_PROTECTED_CARRIER_SENTINEL,
     allowedOrigins: [...new Set(allowedRendererUrls.map(rendererOrigin))],
     allowedRendererUrls,
     ipcMain: input.ipcMain,
     createGrpcClient: () => {
       throw new NimiElectronShellHostError({
         code: 'capability-unavailable',
-        message: 'Nimi app-host bridge cannot construct an ordinary Runtime gRPC client',
-        reasonCode: 'electron-app-host-ordinary-grpc-forbidden',
-        actionHint: 'use_typed_app_host_protected_carrier',
+        message: 'Nimi local-app bridge cannot construct an ordinary Runtime gRPC client',
+        reasonCode: 'electron-local-app-ordinary-grpc-forbidden',
+        actionHint: 'use_typed_local_app_protected_carrier',
       });
     },
     standardShellHost: {
-      capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-      appHost,
-    },
-    commandHandlers: {
-      [NIMI_ELECTRON_APP_HOST_BOOTSTRAP_COMMAND]: () => appHost.bootstrap(),
+      capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+      localAppHost,
     },
   });
 }
@@ -68,16 +61,16 @@ function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): v
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw appBridgeInputError(
       'Electron app bridge input must be an object',
-      'electron-app-host-bridge-input-invalid',
-      'provide_exact_app_host_bridge_input',
+      'electron-local-app-bridge-input-invalid',
+      'provide_exact_local_app_bridge_input',
     );
   }
   const keys = Object.keys(input).sort();
   if (JSON.stringify(keys) !== JSON.stringify([...INPUT_KEYS].sort())) {
     throw appBridgeInputError(
       'Electron app bridge input contains forbidden authority fields',
-      'electron-app-host-bridge-input-forbidden',
-      'remove_app_owned_app_host_authority',
+      'electron-local-app-bridge-input-forbidden',
+      'remove_app_owned_local_app_authority',
     );
   }
 }
@@ -86,18 +79,18 @@ function normalizeRendererUrl(value: unknown): string {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (!normalized || normalized !== value) {
     throw appBridgeInputError(
-      'Electron app-host renderer URL is invalid',
-      'electron-app-host-renderer-url-invalid',
-      'provide_exact_app_host_renderer_url',
+      'Electron local-app renderer URL is invalid',
+      'electron-local-app-renderer-url-invalid',
+      'provide_exact_local_app_renderer_url',
     );
   }
   try {
     return new URL(normalized).toString();
   } catch {
     throw appBridgeInputError(
-      'Electron app-host renderer URL is invalid',
-      'electron-app-host-renderer-url-invalid',
-      'provide_exact_app_host_renderer_url',
+      'Electron local-app renderer URL is invalid',
+      'electron-local-app-renderer-url-invalid',
+      'provide_exact_local_app_renderer_url',
     );
   }
 }

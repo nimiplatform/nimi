@@ -2,32 +2,16 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  RUNTIME_EXECUTION_MODE_STREAM,
-  RUNTIME_EXECUTION_MODE_SYNC,
-  RUNTIME_ROUTE_POLICY_CLOUD,
-  RUNTIME_ROUTE_POLICY_LOCAL,
-  RUNTIME_SCENARIO_TYPE_TEXT_EMBED,
-  RUNTIME_SCENARIO_TYPE_TEXT_GENERATE,
-  RUNTIME_SCHEDULING_DENIED,
   cleanupBehaviorModules,
-  createMemoryStorage,
-  installStandardShellAIConfigHarness,
   importBehaviorModule,
   listSourceFiles,
   read,
   readTesterAiTestingSurface,
   readTesterKitComponentGallerySurface,
   root,
-  runnableSchedulingResponse,
-  textEmbedScenarioResponse,
-  textGenerateScenarioResponse,
-  textScenarioStream,
 } from './helpers.mjs';
 
 test.after(cleanupBehaviorModules);
-test.beforeEach((t) => {
-  installStandardShellAIConfigHarness(t);
-});
 
 test('tester renderer resolves kit model-config from source instead of stale prebundle', () => {
   const viteConfig = read('vite.config.ts');
@@ -206,7 +190,7 @@ test('tester text run target omits unconfigured model drawer placeholders from h
   assert.deepEqual(summary.paramsSummary, []);
 });
 
-test('tester AI config is the Kit model-config surface in Settings with real SDK AIProfiles', () => {
+test('tester AI config remains visibly fail-closed until the local-app carrier admits it', () => {
   const store = read('src/tester/tester-ai-config-store.ts');
   const surface = read('src/shell/ai/tester-ai-config-settings.tsx');
   const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
@@ -217,23 +201,12 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   const styles = read('src/tester/tester-workbench.css');
 
   for (const required of [
-    'NimiAIProfile',
     'NimiAIConfig',
     'createNimiAppAIScopeRef',
-    'createInstalledNimiAppStandardShellSurface',
-    'standardShellSurface.aiConfig.get',
-    'standardShellSurface.aiConfig.set',
-    'createNimiAISnapshotStore',
-    'parseNimiAIProfile',
-    'createNimiAIHostSurface',
-    'createNimiAIConfigSubscriptionRegistry',
-    'validateNimiAIConfig',
-    'versionNimiAIConfig',
+    'createNimiError',
+    'TESTER_LOCAL_APP_AI_CONFIG_UNAVAILABLE',
+    'await_local_app_ai_config_operation_admission',
     'importTesterAIProfileJson',
-    'TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY',
-    'TESTER_AI_SNAPSHOT_INDEX_KEY',
-    'previewApply',
-    'apply(scopeRef',
     'saveTesterAIConfig',
     'recordTesterAISnapshot',
     'getLatestTesterAISnapshot',
@@ -241,6 +214,9 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   ]) {
     assert.match(store, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  assert.doesNotMatch(store, /createInstalledNimiAppStandardShellSurface/);
+  assert.doesNotMatch(store, /standardShellSurface\.aiConfig/);
+  assert.doesNotMatch(store, /localStorage|sessionStorage/);
   assert.doesNotMatch(store, /createAppAIScopeRef/);
   assert.doesNotMatch(store, /createScopedAIConfigStore/);
   assert.doesNotMatch(store, /createScopedAISnapshotStore/);
@@ -382,7 +358,7 @@ test('tester capability model config drawer section follows the active left rail
 test('tester keeps AIConfig and AI execution fail-closed until separately admitted', () => {
   const runtime = read('src/tester/tester-runtime.ts');
 
-  assert.match(runtime, /admits artifacts\.readRuntimeBytes only/);
+  assert.match(runtime, /Only the eight typed local-app carrier operations are admitted/);
   assert.match(runtime, /'sdk-method-unavailable'/);
   assert.doesNotMatch(runtime, /invokeTesterCapability|projection\.client|new Runtime/);
 });

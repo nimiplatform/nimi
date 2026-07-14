@@ -62,6 +62,10 @@ type Service struct {
 	localProviderCatalog             *catalog.LocalProviderCatalog
 	runtimeAccountProvider           RuntimeAccountProjectionProvider
 	stateStorePath                   string
+	productControlRoot               string
+	productControlRootLocked         bool
+	productControlDataRootProposal   string
+	productControlProposalLocked     bool
 	localAuditCap                    int
 	productVersion                   string
 	localModelsPath                  string
@@ -165,6 +169,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 	if len(localModelsPathOverride) > 1 {
 		runtimeDataRoot = localModelsPathOverride[1]
 	}
+	resolvedStateStorePath := resolveLocalStatePath(stateStorePath)
 	localProviderCatalog, catalogErr := catalog.LoadBuiltInLocalProviderCatalog()
 	if catalogErr != nil {
 		return nil, fmt.Errorf("local service: load local provider catalog: %w", catalogErr)
@@ -177,7 +182,8 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		logger:                                  logger,
 		auditStore:                              store,
 		localProviderCatalog:                    localProviderCatalog,
-		stateStorePath:                          resolveLocalStatePath(stateStorePath),
+		stateStorePath:                          resolvedStateStorePath,
+		productControlRoot:                      productControlRootFromStateStorePath(resolvedStateStorePath),
 		localAuditCap:                           localAuditCapacity,
 		localModelsPath:                         resolveLocalModelsPath(localModelsPath),
 		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot, localModelsPath),

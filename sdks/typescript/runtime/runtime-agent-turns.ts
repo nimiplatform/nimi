@@ -28,7 +28,6 @@ import type {
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
-  type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
@@ -81,7 +80,6 @@ const SCOPED_BINDING_FIELDS = new Set([
 export interface NimiRuntimeAgentTurnsRuntime {
   readonly appId: string;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agents: {
     getPublicChatSessionSnapshot(
       request: GetPublicChatSessionSnapshotRequest,
@@ -572,6 +570,8 @@ export function createNimiRuntimeAgentTurnsModule(
           scopedBinding,
           cursor,
           fromAppIds: [RUNTIME_AGENT_APP_ID],
+          localAgentRef: '',
+          conversationAnchorId: '',
         }, callOptions),
       );
       const includeAgentEvents = request.includeAgentEvents !== false;
@@ -687,6 +687,8 @@ export function createNimiRuntimeAgentTurnsModule(
           scopedBinding,
           cursor: '',
           fromAppIds: [RUNTIME_AGENT_APP_ID],
+          localAgentRef: '',
+          conversationAnchorId: '',
         }, callOptions),
       );
       const agentStream = await withTurnScopes(options, subjectUserId, [AGENT_READ_SCOPE], async (callOptions) =>

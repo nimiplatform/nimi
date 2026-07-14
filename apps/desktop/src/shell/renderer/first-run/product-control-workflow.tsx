@@ -52,6 +52,14 @@ const SETUP_TICK_MS = 1_000;
 const SETUP_INFO_NOTICE_MS = 45_000;
 const SETUP_STALL_NOTICE_MS = 60_000;
 
+export function resolveProductControlWorkflowError(
+  actionError: string | null,
+  observerError: string | null,
+  projectionError: string | null | undefined,
+): string | null {
+  return actionError ?? observerError ?? projectionError ?? null;
+}
+
 const SETUP_STEP_LABEL_DEFAULTS: Record<FirstRunSetupStepId, string> = {
   download: 'Downloading local models',
   verify: 'Verifying files',
@@ -69,6 +77,21 @@ function formatSetupDuration(ms: number): string {
   return `${seconds}s`;
 }
 
+export type FirstRunDataRootPickAuthority = 'record' | 'runtime' | 'user' | 'fallback';
+
+export function resolveProjectedDataRootPick(input: {
+  readonly currentPath: string | null;
+  readonly currentAuthority: FirstRunDataRootPickAuthority;
+  readonly recordedPath: string | null;
+  readonly runtimeProposalPath: string | null;
+}): { readonly path: string | null; readonly authority: FirstRunDataRootPickAuthority } {
+  if (input.recordedPath) return { path: input.recordedPath, authority: 'record' };
+  if (input.runtimeProposalPath && input.currentAuthority !== 'user') {
+    return { path: input.runtimeProposalPath, authority: 'runtime' };
+  }
+  return { path: input.currentPath, authority: input.currentAuthority };
+}
+
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
   const projection = props.projection;
@@ -76,9 +99,20 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const notifyProjectionChange = props.onProjectionChange;
 
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(projection?.error ?? null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [observerError, setObserverError] = useState<string | null>(null);
+  const error = resolveProductControlWorkflowError(actionError, observerError, projection?.error);
+  const setError = setActionError;
+  const runtimeDataRootProposal = projection?.dataRootProposal?.path ?? null;
+  const pickedPathAuthorityRef = useRef<FirstRunDataRootPickAuthority>(
+    projection?.record?.dataRoot?.path
+      ? 'record'
+      : runtimeDataRootProposal
+        ? 'runtime'
+        : 'fallback',
+  );
   const [pickedPath, setPickedPath] = useState<string | null>(
-    projection?.record?.dataRoot?.path ?? null,
+    projection?.record?.dataRoot?.path ?? runtimeDataRootProposal,
   );
   const [materialization, setMaterialization] = useState<NimiFirstRunMaterializationProjection | null>(null);
 
@@ -144,21 +178,28 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     };
   }, [setupVisible]);
 
-  // Sync the picked path to the recorded data root whenever the projection
-  // changes. A projection without a recorded data root (the Storage phase)
-  // must NOT wipe an in-progress pick or the pre-filled default proposal —
-  // only an actually-recorded path overrides what the field is showing.
+  // A recorded Product Control root always wins. Before recording, the
+  // Runtime-owned proposal supersedes only the renderer fallback; an explicit
+  // user folder pick remains stable until it is confirmed.
   useEffect(() => {
     const recorded = projection?.record?.dataRoot?.path;
-    if (recorded) setPickedPath(recorded);
-    setError(projection?.error ?? null);
-  }, [projection]);
+    setPickedPath((currentPath) => {
+      const next = resolveProjectedDataRootPick({
+        currentPath,
+        currentAuthority: pickedPathAuthorityRef.current,
+        recordedPath: recorded ?? null,
+        runtimeProposalPath: runtimeDataRootProposal,
+      });
+      pickedPathAuthorityRef.current = next.authority;
+      return next.path;
+    });
+  }, [projection, runtimeDataRootProposal]);
 
   // `config_missing` is an internal first-run state: the backend creates the
   // empty product-control record, then the user-visible Storage phase starts
   // from `data_root_missing`.
   useEffect(() => {
-    if (state !== 'config_missing' || !desktopBridge.hasTauriInvoke()) {
+    if (state !== 'config_missing' || !desktopBridge.hasShellHostInvoke()) {
       return;
     }
     let disposed = false;
@@ -187,22 +228,21 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     };
   }, [state, notifyProjectionChange, t]);
 
-  // Pre-fill the Storage phase with the OS-conventional default `nimi_data`
-  // location so a first-time user never faces an empty field. Fetched once on
-  // mount and kept independent of projection updates, so the proposal is never
-  // raced away by the projection sync above. This is only a proposal: the user
-  // reviews it and either confirms it through `selectProductDataRoot`
-  // (P-COLD-010 — the recorded path stays user-selected and explicitly
-  // confirmed) or overrides it with the folder picker. `current ?? proposed`
-  // never clobbers a recorded or user-picked path; an absent/failed proposal
-  // leaves the field empty and fails closed — never a fabricated path.
+  // Production keeps the OS-conventional path as a renderer fallback only
+  // when Runtime supplies no checkpoint proposal. It never records a path and
+  // cannot override a Runtime projection or an explicit user pick.
   useEffect(() => {
+    if (runtimeDataRootProposal) return;
     let disposed = false;
     void (async () => {
       try {
         const proposed = await desktopBridge.defaultProductDataRootDirectory();
         if (!disposed && proposed) {
-          setPickedPath((current) => current ?? proposed);
+          setPickedPath((current) => {
+            if (current) return current;
+            pickedPathAuthorityRef.current = 'fallback';
+            return proposed;
+          });
         }
       } catch {
         // Fail-closed: leave the field empty; the folder picker stays available.
@@ -211,7 +251,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [runtimeDataRootProposal]);
 
   const { deviceSummary, deviceScanSettled, retryDeviceScan } = useFirstRunDeviceScan(selectedDataRoot);
 
@@ -219,10 +259,11 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     async (next: NimiFirstRunMaterializationProjection, observedProductState?: NimiProductControlState): Promise<void> => {
       // A successful Runtime materialization projection supersedes stale
       // product-control ready-read verification errors from a recoverable
-      // Setup downgrade. Bridge/observer failures still set `error` in their
-      // catch paths.
+      // Setup downgrade. A clean observer sample may clear only a previous
+      // observer failure. It must never erase an action failure that still
+      // needs the user's retry or a successful replacement action.
       markSetupChecked();
-      setError(null);
+      setObserverError(null);
       setMaterialization(next);
       if (
         next.productState !== observedProductState
@@ -244,7 +285,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     projectMaterialization,
     setMaterialization,
     setPendingAction,
-    setError,
+    setError: setObserverError,
     observeFailedFallback: t('FirstRun.errors.materializationObserveFailed', {
       defaultValue: 'Failed to observe Runtime materialization.',
     }),
@@ -267,7 +308,10 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     setError(null);
     try {
       const picked = await desktopBridge.pickProductDataRootDirectory();
-      if (picked) setPickedPath(picked);
+      if (picked) {
+        pickedPathAuthorityRef.current = 'user';
+        setPickedPath(picked);
+      }
     } catch (nextError) {
       setError(
         nextError instanceof Error
@@ -723,6 +767,8 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     <section
       data-testid="product-first-run-workflow"
       data-product-state={state}
+      data-pending-action={pendingAction ?? ''}
+      aria-busy={busy || undefined}
       className="flex min-h-full flex-1 flex-col"
     >
       <FirstRunWizardChrome activePhase={screen.kind === 'phase' ? screen.phase : null}>

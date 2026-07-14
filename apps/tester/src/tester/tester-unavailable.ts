@@ -1,7 +1,7 @@
 import type { TesterCapability } from './tester-capabilities.js';
 
 // Typed unavailable reasons retained by the workbench presentation model.
-// The admitted app-host path currently emits only runtime-not-ready and
+// The admitted local-app path currently emits only runtime-not-ready and
 // sdk-method-unavailable; adding another live reason requires a separately
 // admitted SDK operation and a concrete call site.
 export type TesterUnavailableReason =

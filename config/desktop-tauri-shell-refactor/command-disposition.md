@@ -8,10 +8,10 @@ Current command accounting after the Agent Center Kit-shell hardcut:
 
 | Bucket | Count |
 | --- | ---: |
-| Registered Desktop Tauri commands | 96 |
-| Kit/shared injected commands | 47 |
-| App-local Desktop commands | 49 |
-| Dormant annotated commands | 9 |
+| Registered Desktop Tauri commands | 106 |
+| Kit/shared injected commands | 46 |
+| App-local Desktop commands | 60 |
+| Dormant annotated commands | 17 |
 
 Owner bucket vocabulary:
 
@@ -33,6 +33,17 @@ Owner bucket vocabulary:
 | `desktop_update_install` | `desktop-packaging` | `runtime-bridge/desktop-release.ts` | Installs downloaded Desktop update payload. | None admitted. |
 | `desktop_update_restart` | `desktop-packaging` | `runtime-bridge/desktop-release.ts` | Hands off to Desktop updater restart behavior. | None admitted. |
 | `desktop_open_intent_set_ready` | `desktop-product` | `runtime-bridge/desktop-open-intent.ts` | Marks Desktop renderer readiness for product open-intent delivery. | None admitted. |
+| `developer_mode_status` | `desktop-product` | `features/developer/developer-mode.ts` | Reads the fixed-service Developer Mode projection through the protected Tauri carrier. | Runtime Developer Mode authority remains current. |
+| `developer_mode_set` | `desktop-product` | `features/developer/developer-mode.ts` | Enables or disables fixed-service Developer Mode through the protected Tauri carrier. | Runtime Developer Mode authority remains current. |
+| `local_development_pending_approvals` | `desktop-product` | `features/local-development/local-development-bridge.ts` | Lists pending local-development project admissions from Runtime truth. | Runtime local-development authority remains current. |
+| `local_development_decide` | `desktop-product` | `features/local-development/local-development-bridge.ts` | Records the user decision for a Runtime-owned local-development admission. | Runtime local-development authority remains current. |
+| `local_development_authorizations_list` | `desktop-product` | `features/local-development/local-development-bridge.ts` | Lists Runtime-owned remembered project authorizations. | Runtime local-development authority remains current. |
+| `local_development_runs_list` | `desktop-product` | `features/local-development/local-development-bridge.ts` | Projects supervised local-development runs from Runtime truth. | Runtime local-development authority remains current. |
+| `local_development_authorization_revoke` | `desktop-product` | `features/local-development/local-development-bridge.ts` | Revokes a Runtime-owned remembered project authorization. | Runtime local-development authority remains current. |
+| `local_app_grant_pending_list` | `desktop-product` | `features/local-app-grants/local-app-grant-bridge.ts` | Lists pending local-app grant requests from Runtime truth. | Runtime grant authority remains current. |
+| `local_app_grant_decide` | `desktop-product` | `features/local-app-grants/local-app-grant-bridge.ts` | Records the user decision for a Runtime-owned local-app grant request. | Runtime grant authority remains current. |
+| `local_app_grant_list` | `desktop-product` | `features/local-app-grants/local-app-grant-bridge.ts` | Lists active Runtime-owned local-app grants. | Runtime grant authority remains current. |
+| `local_app_grant_revoke` | `desktop-product` | `features/local-app-grants/local-app-grant-bridge.ts` | Revokes an active Runtime-owned local-app grant. | Runtime grant authority remains current. |
 | `product_control_record_get` | `runtime-domain-retained` | `runtime-bridge/product-control.ts` | Bridges runtime product-control record read. | Runtime owner remains current. |
 | `product_control_selected_data_root_get` | `runtime-domain-retained` | `runtime-bridge/product-control.ts` | Bridges selected data-root projection from product-control record. | Runtime owner remains current. |
 | `product_control_record_ensure_created` | `runtime-domain-retained` | `runtime-bridge/product-control.ts` | Creates canonical product-control record through runtime-domain admission. | Runtime owner remains current. |

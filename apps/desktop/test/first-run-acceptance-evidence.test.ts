@@ -105,6 +105,7 @@ function projectionFor(
     path: '/tmp/home/.nimi/nimi.json',
     exists: state !== 'config_missing',
     state,
+    dataRootProposal: null,
     error: null,
     record: {
       schemaVersion: 1,
@@ -447,9 +448,10 @@ test('Runtime materialization orchestration is wired through SDK Runtime local c
   assert.match(productControlWorkflowSource, /'local_ai_ready'/);
 });
 
-test('renderer evidence: Runtime materialization projection clears stale ready-read errors', () => {
+test('renderer evidence: Runtime materialization projection clears only stale observer errors', () => {
   assert.match(productControlWorkflowSource, /product-control ready-read verification errors/);
-  assert.match(productControlWorkflowSource, /setError\(null\);\s*setMaterialization\(next\);/);
+  assert.match(productControlWorkflowSource, /setObserverError\(null\);\s*setMaterialization\(next\);/);
+  assert.doesNotMatch(productControlWorkflowSource, /projectMaterialization[\s\S]{0,600}setActionError\(null\)/);
 });
 
 test('first-run materialization derives Runtime job requests from selected AIProfile pack and dependency refs', async () => {

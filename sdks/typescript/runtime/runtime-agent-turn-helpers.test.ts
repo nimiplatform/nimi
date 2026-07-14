@@ -22,7 +22,6 @@ import {
   createNimiRuntimeAgentTurnsModule,
   createNimiRuntimeAgentVoiceModule,
   fromNimiRuntimeProtoStruct,
-  protectedAppAuth,
   protectedAuth,
   toNimiRuntimeProtoStruct,
   toNimiRuntimeTimestamp,
@@ -89,7 +88,6 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -166,7 +164,6 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -265,7 +262,6 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -319,7 +315,6 @@ test('Runtime Agent turn subscription opens live streams before caller pulls', a
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -408,7 +403,6 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
@@ -464,7 +458,6 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
     runtime: {
       appId: 'desktop',
       auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};

@@ -1,0 +1,122 @@
+[
+  {
+    "fixture_id": "caller-selected-local-app-session",
+    "target": "proto/runtime/v1/auth.proto",
+    "expected_issue": "PLINK_AUTH_REQUEST_EMPTY",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "message OpenLocalAppSessionRequest {\n}",
+      "to": "message OpenLocalAppSessionRequest {\n  string caller_selected_principal = 1;\n}"
+    }
+  },
+  {
+    "fixture_id": "portable-local-app-session-material",
+    "target": "proto/runtime/v1/auth.proto",
+    "expected_issue": "PLINK_AUTH_RESPONSE_SHAPE",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  ReasonCode reason_code = 5;\n}\n\nmessage RefreshSessionRequest",
+      "to": "  ReasonCode reason_code = 5;\n  string session_token = 6;\n}\n\nmessage RefreshSessionRequest"
+    }
+  },
+  {
+    "fixture_id": "app-id-launch-selector",
+    "target": "proto/runtime/v1/app.proto",
+    "expected_issue": "PLINK_PREPARE_REQUEST_SHAPE",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  bytes local_app_handle = 1;",
+      "to": "  string app_id = 1;"
+    }
+  },
+  {
+    "fixture_id": "missing-local-app-bind-rpc",
+    "target": "proto/runtime/v1/app.proto",
+    "expected_issue": "PLINK_BIND_RPC",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  rpc BindLocalAppProcess(BindLocalAppProcessRequest) returns (BindLocalAppProcessResponse);",
+      "to": "  // fixture removes final process bind"
+    }
+  },
+  {
+    "fixture_id": "developer-mode-self-enable-field",
+    "target": "proto/runtime/v1/development.proto",
+    "expected_issue": "PLINK_DEVELOPER_MODE_SET_REQUEST_SHAPE",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "message SetDeveloperModeRequest {\n  bool enabled = 1;\n}",
+      "to": "message SetDeveloperModeRequest {\n  bool enabled = 1;\n  string app_selected_account = 2;\n}"
+    }
+  },
+  {
+    "fixture_id": "reactivation-without-risk-ack",
+    "target": "proto/runtime/v1/development.proto",
+    "expected_issue": "PLINK_DEVELOPMENT_REACTIVATE_REQUEST_SHAPE",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  bool risk_disclosure_acknowledged = 2;",
+      "to": "  bool risk_disclosure_acknowledged_removed = 2;"
+    }
+  },
+  {
+    "fixture_id": "missing-grant-request-rpc",
+    "target": "proto/runtime/v1/account.proto",
+    "expected_issue": "PLINK_GRANT_RPC_REQUEST_LOCAL_APP_GRANT",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  rpc RequestLocalAppGrant(RequestLocalAppGrantRequest) returns (RequestLocalAppGrantResponse);",
+      "to": "  // fixture removes distinct grant request"
+    }
+  },
+  {
+    "fixture_id": "grant-folded-into-account-caller",
+    "target": "proto/runtime/v1/account.proto",
+    "expected_issue": "PLINK_GRANT_MESSAGE_GET_LOCAL_APP_GRANT_STATUS_REQUEST",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "message GetLocalAppGrantStatusRequest {\n  string operation_id = 1;",
+      "to": "message GetLocalAppGrantStatusRequest {\n  AccountCaller caller = 3;\n  string operation_id = 1;"
+    }
+  },
+  {
+    "fixture_id": "local-app-reason-renumbered",
+    "target": "proto/runtime/v1/common.proto",
+    "expected_issue": "PLINK_REASON_PROTO_RANGE",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  LOCAL_APP_GRANT_REQUIRED = 651;",
+      "to": "  LOCAL_APP_GRANT_REQUIRED = 1661;"
+    }
+  },
+  {
+    "fixture_id": "final-method-left-unassigned",
+    "target": ".nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml",
+    "expected_issue": "PLINK_FINAL_MAPPING",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "    proto_service: RuntimeAuthService\n    proto_method: OpenLocalAppSession\n    mapping_posture: aligned",
+      "to": "    proto_service: \"\"\n    proto_method: \"\"\n    mapping_posture: proto_target_unassigned"
+    }
+  },
+  {
+    "fixture_id": "retired-caller-name-not-reserved",
+    "target": "proto/runtime/v1/account.proto",
+    "expected_issue": "PLINK_ACCOUNT_CALLER_RETIRED_NAMES_RESERVED",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  reserved 7, 8;\n  reserved \"ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP\";\n  reserved \"ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP\";",
+      "to": "  reserved 7, 8;\n  reserved \"ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP\";"
+    }
+  },
+  {
+    "fixture_id": "excluded-retired-surface-reintroduced",
+    "target": ".nimi/spec/runtime/kernel/tables/rpc-migration-map/excluded-proto-methods.yaml",
+    "expected_issue": "PLINK_EXCLUDED_METHODS_NOT_EMPTY",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "excluded_count: 0\nexcluded_proto_methods: []",
+      "to": "excluded_count: 1\nexcluded_proto_methods:\n  - { proto_service: RuntimeAppService, proto_method: OpenApp, reason: fixture, source_rule: K-APP-017 }"
+    }
+  }
+]

@@ -80,11 +80,11 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 			"computeMs":    safeUsageComputeMs(usage),
 		}
 	case "image.generate", "audio.synthesize":
-		req, err := fixture.buildSubmitScenarioJobRequest(aiReplayAppID, "")
+		req, err := fixture.buildSubmitScenarioJobRequest(aiProviderRawAppID, "")
 		if err != nil {
 			return nil, err
 		}
-		artifacts, usage, providerJobID, err := nimillm.ExecuteAlibabaNative(ctx, configValue, noopGoldJobUpdater{}, "gold-provider-raw", req, strings.TrimSpace(fixture.ModelID))
+		artifacts, usage, providerJobID, err := nimillm.ExecuteAlibabaNative(ctx, configValue, noopProviderRawJobUpdater{}, "runtime-provider-raw", req, strings.TrimSpace(fixture.ModelID))
 		if err != nil {
 			return withReplayFailure(payload, err), nil
 		}
@@ -95,7 +95,7 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 		payload.ArtifactSummary["outputTokens"] = safeUsageOutputTokens(usage)
 		payload.ArtifactSummary["computeMs"] = safeUsageComputeMs(usage)
 	case "audio.transcribe":
-		req, err := fixture.buildSubmitScenarioJobRequest(aiReplayAppID, "")
+		req, err := fixture.buildSubmitScenarioJobRequest(aiProviderRawAppID, "")
 		if err != nil {
 			return nil, err
 		}

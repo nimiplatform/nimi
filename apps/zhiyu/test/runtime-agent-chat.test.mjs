@@ -458,9 +458,12 @@ test('Zhiyu Runtime Agent chat source uses Desktop-parity shared Kit/SDK surface
   assert.match(source, /createNimiRuntimeAgentTurnsModule/);
   assert.match(source, /runNimiRuntimeAgentTurn/);
   assert.match(source, /scopedBindingForRuntimeAgentRequest/);
+  assert.match(source, /createNimiAppRuntimePlatformClient/);
+  assert.match(source, /createNimiLocalAppStandardShellSurface/);
+  assert.match(source, /platform\.agent\.sendTurn/);
   assert.doesNotMatch(source, /apps\/desktop|apps\/tester|runtime\/internal/);
   assert.doesNotMatch(source, /withZhiyuElectronRuntimeProtectedScopes|operation\s*\(\s*\{\s*\}\s*\)/);
-  assert.doesNotMatch(source, /\bsendTurn\(|fetch\(|apiKey|providerId|modelId:\s*['"]/);
+  assert.doesNotMatch(source, /fetch\(|apiKey|providerId|modelId:\s*['"]/);
 });
 
 async function importRuntimeAgentChat() {
@@ -502,7 +505,24 @@ function workspaceKitSourceAliasPlugin() {
       }));
       buildApi.onLoad({ filter: /.*/, namespace: 'workspace-kit-bridge-stub' }, () => ({
         loader: 'js',
-        contents: 'export function hasElectronRuntime() { return false; }',
+        contents: `
+          export function hasElectronRuntime() { return false; }
+          export function createNimiLocalAppStandardShellSurface() {
+            throw new Error('Local-app carrier must be injected only by carrier-specific tests.');
+          }
+        `,
+      }));
+      buildApi.onResolve({ filter: /^@nimiplatform\/kit\/core\/sdk-contract$/ }, () => ({
+        path: 'workspace-kit-sdk-contract-stub',
+        namespace: 'workspace-kit-sdk-contract-stub',
+      }));
+      buildApi.onLoad({ filter: /.*/, namespace: 'workspace-kit-sdk-contract-stub' }, () => ({
+        loader: 'js',
+        contents: `
+          export function createNimiAppRuntimePlatformClient() {
+            throw new Error('Local-app platform client must be injected only by carrier-specific tests.');
+          }
+        `,
       }));
     },
   };

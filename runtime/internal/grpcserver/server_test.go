@@ -148,12 +148,15 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		ProtectedServiceBindings{
-			ServiceStateRoot: serviceStateRoot,
-			AccountCustody:   emptyProtectedAccountCustody{},
-			AccountPartition: "verified-user-and-logon-session",
-			ConnectorSecrets: emptyProtectedConnectorSecrets{},
-			DesktopSessions:  authorities.desktop,
-			LifecycleIntents: authorities.lifecycle,
+			ServiceStateRoot:         serviceStateRoot,
+			AccountCustody:           emptyProtectedAccountCustody{},
+			AccountPartition:         "verified-user-and-logon-session",
+			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			ConnectorSecrets:         emptyProtectedConnectorSecrets{},
+			DesktopSessions:          authorities.desktop,
+			LocalAppLaunches:         authorities.localApps,
+			LocalDevelopmentVerifier: serverTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:  func() bool { return true },
 		},
 	)
 	if err != nil {
@@ -196,13 +199,16 @@ func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) 
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		ProtectedServiceBindings{
-			ServiceStateRoot:        t.TempDir(),
-			PlatformAppRegistryPath: "relative/nimi-app-registry.yaml",
-			AccountCustody:          emptyProtectedAccountCustody{},
-			AccountPartition:        "verified-user-and-logon-session",
-			ConnectorSecrets:        emptyProtectedConnectorSecrets{},
-			DesktopSessions:         authorities.desktop,
-			LifecycleIntents:        authorities.lifecycle,
+			ServiceStateRoot:         t.TempDir(),
+			PlatformAppRegistryPath:  "relative/nimi-app-registry.yaml",
+			AccountCustody:           emptyProtectedAccountCustody{},
+			AccountPartition:         "verified-user-and-logon-session",
+			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			ConnectorSecrets:         emptyProtectedConnectorSecrets{},
+			DesktopSessions:          authorities.desktop,
+			LocalAppLaunches:         authorities.localApps,
+			LocalDevelopmentVerifier: serverTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:  func() bool { return true },
 		},
 	)
 	if err == nil || !strings.Contains(err.Error(), "Platform app registry must be an absolute non-root path") {
@@ -210,53 +216,8 @@ func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) 
 	}
 }
 
-func TestProtectedServiceDoesNotRegisterPublicRuntimeGrantService(t *testing.T) {
-	authorities := newProtectedAuthoritiesForServerTest(t)
-	server, err := NewProtectedService(
-		config.Config{
-			GRPCAddr:             "127.0.0.1:0",
-			HTTPAddr:             "127.0.0.1:0",
-			ShutdownTimeout:      2 * time.Second,
-			AuditRingBufferSize:  64,
-			UsageStatsBufferSize: 64,
-			IdempotencyCapacity:  32,
-		},
-		health.NewState(),
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		"test",
-		ProtectedServiceBindings{
-			ServiceStateRoot: t.TempDir(),
-			AccountCustody:   emptyProtectedAccountCustody{},
-			AccountPartition: "verified-user-and-logon-session",
-			ConnectorSecrets: emptyProtectedConnectorSecrets{},
-			DesktopSessions:  authorities.desktop,
-			LifecycleIntents: authorities.lifecycle,
-		},
-	)
-	if err != nil {
-		t.Fatalf("NewProtectedService: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = server.Stop(context.Background())
-		if svc := server.LocalService(); svc != nil {
-			svc.Close()
-		}
-		if svc := server.MemoryService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.CognitionService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.AgentService(); svc != nil {
-			svc.Close()
-		}
-	})
-	if _, registered := server.grpcServer.GetServiceInfo()["nimi.runtime.v1.RuntimeGrantService"]; registered {
-		t.Fatal("protected Runtime must not register the public RuntimeGrantService")
-	}
-}
-
 func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
+	authorities := newProtectedAuthoritiesForServerTest(t)
 	for name, manager := range map[string]*protectedlocal.DesktopSessionManager{
 		"missing": nil,
 		"zero":    {},
@@ -278,12 +239,15 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 				slog.New(slog.NewTextHandler(io.Discard, nil)),
 				"test",
 				ProtectedServiceBindings{
-					ServiceStateRoot: t.TempDir(),
-					AccountCustody:   emptyProtectedAccountCustody{},
-					AccountPartition: "verified-user-and-logon-session",
-					ConnectorSecrets: emptyProtectedConnectorSecrets{},
-					DesktopSessions:  manager,
-					LifecycleIntents: &protectedlocal.LifecycleIntentManager{},
+					ServiceStateRoot:         t.TempDir(),
+					AccountCustody:           emptyProtectedAccountCustody{},
+					AccountPartition:         "verified-user-and-logon-session",
+					LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+					ConnectorSecrets:         emptyProtectedConnectorSecrets{},
+					DesktopSessions:          manager,
+					LocalAppLaunches:         authorities.localApps,
+					LocalDevelopmentVerifier: serverTestLocalDevelopmentVerifier{},
+					RuntimeRestartRequester:  func() bool { return true },
 				},
 			)
 			if server != nil {
@@ -296,41 +260,9 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 	}
 }
 
-func TestProtectedServiceRejectsMismatchedLifecycleIntentAuthority(t *testing.T) {
-	first := newProtectedAuthoritiesForServerTest(t)
-	second := newProtectedAuthoritiesForServerTest(t)
-	for name, lifecycle := range map[string]*protectedlocal.LifecycleIntentManager{
-		"zero":        {},
-		"other_state": second.lifecycle,
-	} {
-		t.Run(name, func(t *testing.T) {
-			server, err := NewProtectedService(
-				config.Config{},
-				health.NewState(),
-				slog.New(slog.NewTextHandler(io.Discard, nil)),
-				"test",
-				ProtectedServiceBindings{
-					ServiceStateRoot: t.TempDir(),
-					AccountCustody:   emptyProtectedAccountCustody{},
-					AccountPartition: "verified-user-and-logon-session",
-					ConnectorSecrets: emptyProtectedConnectorSecrets{},
-					DesktopSessions:  first.desktop,
-					LifecycleIntents: lifecycle,
-				},
-			)
-			if server != nil {
-				_ = server.Stop(context.Background())
-			}
-			if err == nil {
-				t.Fatal("protected service accepted mismatched lifecycle intent authority")
-			}
-		})
-	}
-}
-
 type protectedAuthoritiesForServerTest struct {
 	desktop   *protectedlocal.DesktopSessionManager
-	lifecycle *protectedlocal.LifecycleIntentManager
+	localApps *protectedlocal.LocalAppLaunchRegistry
 }
 
 func newProtectedAuthoritiesForServerTest(t *testing.T) protectedAuthoritiesForServerTest {
@@ -361,13 +293,17 @@ func newProtectedAuthoritiesForServerTest(t *testing.T) protectedAuthoritiesForS
 	if err != nil {
 		t.Fatalf("create protected test Desktop session manager: %v", err)
 	}
-	lifecycle, err := protectedlocal.NewLifecycleIntentManager(protectedlocal.LifecycleIntentManagerOptions{
-		Sessions: desktop,
-	})
+	localApps, err := protectedlocal.NewLocalAppLaunchRegistry(bootEpoch)
 	if err != nil {
-		t.Fatalf("create protected test lifecycle intent manager: %v", err)
+		t.Fatalf("create protected test local-app launch registry: %v", err)
 	}
-	return protectedAuthoritiesForServerTest{desktop: desktop, lifecycle: lifecycle}
+	return protectedAuthoritiesForServerTest{desktop: desktop, localApps: localApps}
+}
+
+type serverTestLocalDevelopmentVerifier struct{}
+
+func (serverTestLocalDevelopmentVerifier) VerifyLocalDevelopmentProcess(context.Context, uint32, protectedlocal.LocalDevelopmentProcessPolicy) (protectedlocal.ProcessTuple, protectedlocal.DesktopProcessLiveness, error) {
+	return protectedlocal.ProcessTuple{}, nil, context.Canceled
 }
 
 type emptyProtectedAccountCustody struct{}

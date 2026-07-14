@@ -73,14 +73,26 @@ export {
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';
 export {
-  createInstalledNimiAppBootstrap,
-  type InstalledNimiAppArtifactBytes,
-  type InstalledNimiAppArtifactReader,
-  type InstalledNimiAppBootstrap,
-  type InstalledNimiAppBootstrapInput,
-  type InstalledNimiAppStandardShellSurface,
-  type NimiAppHostBootstrapStatus,
-} from './installed-app-bootstrap.js';
+  createNimiAppRuntimePlatformClient,
+} from './local-app-runtime-platform.js';
+export type {
+  NimiAppAuthMode,
+  NimiAppAuthProjection,
+  NimiAppAuthUnavailable,
+  NimiAppLocalSessionProjection,
+  NimiAppPermissionPosture,
+  NimiAppPermissionPostureInput,
+  NimiAppPermissionRequestInput,
+  NimiAppRuntimeAgentConversationSnapshotInput,
+  NimiAppRuntimeAgentOpenConversationInput,
+  NimiAppRuntimeAgentSendTurnInput,
+  NimiAppRuntimeAgentSubscribeTurnInput,
+  NimiAppRuntimeAgentTurnEventPage,
+  NimiAppRuntimeArtifactBytes,
+  NimiAppRuntimePlatformClient,
+  NimiAppRuntimePlatformClientInput,
+  NimiAppRuntimePlatformStandardShell,
+} from './local-app-runtime-platform.js';
 export {
   NIMI_APP_AI_PROFILE_FACTORY_CATALOG,
   NIMI_APP_AI_PROFILE_FACTORY_ROWS,

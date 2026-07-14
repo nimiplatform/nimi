@@ -38,12 +38,15 @@ func TestProtectedDaemonRunFailsClosedWithoutVerifiedNativeListener(t *testing.T
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot: serviceStateRoot,
-			AccountCustody:   daemonProtectedAccountCustody{},
-			AccountPartition: "account=user-alpha;logon=42",
-			ConnectorSecrets: daemonProtectedConnectorSecrets{},
-			DesktopSessions:  authorities.desktop,
-			LifecycleIntents: authorities.lifecycle,
+			ServiceStateRoot:         serviceStateRoot,
+			AccountCustody:           daemonProtectedAccountCustody{},
+			AccountPartition:         "account=user-alpha;logon=42",
+			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			ConnectorSecrets:         daemonProtectedConnectorSecrets{},
+			DesktopSessions:          authorities.desktop,
+			LocalAppLaunches:         authorities.localApps,
+			LocalDevelopmentVerifier: daemonTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:  func() bool { return true },
 		},
 	)
 	if err != nil {
@@ -74,12 +77,15 @@ func TestProtectedDaemonRunProtectedUsesNativeCarrierWithoutPublicListeners(t *t
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot: serviceStateRoot,
-			AccountCustody:   daemonProtectedAccountCustody{},
-			AccountPartition: "account=user-alpha;logon=42",
-			ConnectorSecrets: daemonProtectedConnectorSecrets{},
-			DesktopSessions:  authorities.desktop,
-			LifecycleIntents: authorities.lifecycle,
+			ServiceStateRoot:         serviceStateRoot,
+			AccountCustody:           daemonProtectedAccountCustody{},
+			AccountPartition:         "account=user-alpha;logon=42",
+			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			ConnectorSecrets:         daemonProtectedConnectorSecrets{},
+			DesktopSessions:          authorities.desktop,
+			LocalAppLaunches:         authorities.localApps,
+			LocalDevelopmentVerifier: daemonTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:  func() bool { return true },
 		},
 	)
 	if err != nil {
@@ -190,12 +196,15 @@ func TestNewProtectedUsesProtectedServerWithoutPublishingStatePathToEnvironment(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot: serviceStateRoot,
-			AccountCustody:   daemonProtectedAccountCustody{},
-			AccountPartition: "account=user-alpha;logon=42",
-			ConnectorSecrets: daemonProtectedConnectorSecrets{},
-			DesktopSessions:  authorities.desktop,
-			LifecycleIntents: authorities.lifecycle,
+			ServiceStateRoot:         serviceStateRoot,
+			AccountCustody:           daemonProtectedAccountCustody{},
+			AccountPartition:         "account=user-alpha;logon=42",
+			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			ConnectorSecrets:         daemonProtectedConnectorSecrets{},
+			DesktopSessions:          authorities.desktop,
+			LocalAppLaunches:         authorities.localApps,
+			LocalDevelopmentVerifier: daemonTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:  func() bool { return true },
 		},
 	)
 	if err != nil {
@@ -239,12 +248,15 @@ func TestNewProtectedWithResourcesClosesOwnedState(t *testing.T) {
 			"test",
 			ProtectedRuntimeResources{
 				Bindings: grpcserver.ProtectedServiceBindings{
-					ServiceStateRoot: serviceStateRoot,
-					AccountCustody:   daemonProtectedAccountCustody{},
-					AccountPartition: "account=user-alpha;logon=42",
-					ConnectorSecrets: daemonProtectedConnectorSecrets{},
-					DesktopSessions:  authorities.desktop,
-					LifecycleIntents: authorities.lifecycle,
+					ServiceStateRoot:         serviceStateRoot,
+					AccountCustody:           daemonProtectedAccountCustody{},
+					AccountPartition:         "account=user-alpha;logon=42",
+					LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+					ConnectorSecrets:         daemonProtectedConnectorSecrets{},
+					DesktopSessions:          authorities.desktop,
+					LocalAppLaunches:         authorities.localApps,
+					LocalDevelopmentVerifier: daemonTestLocalDevelopmentVerifier{},
+					RuntimeRestartRequester:  func() bool { return true },
 				},
 				Close: func() error {
 					closeCalls++
@@ -306,16 +318,32 @@ func TestNewProtectedFromWindowsSecurityStateFailsClosedWithoutVerifiedState(t *
 		"unverified": {},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if _, err := NewProtectedFromWindowsSecurityState(cfg, logger, "test", state); err == nil {
+			if _, err := NewProtectedFromWindowsSecurityState(cfg, logger, "test", state, func() bool { return true }); err == nil {
 				t.Fatal("production daemon must reject missing or unverified Windows security state")
 			}
 		})
 	}
 }
 
+func TestResolveProtectedServiceDataRootAdmitsOnlyDescendants(t *testing.T) {
+	root := t.TempDir()
+	for _, localStatePath := range []string{
+		filepath.Join(root, "runtime", "local-state.json"),
+		filepath.Join(root, "acceptance-runs", "dev-kernel-checkpoint", "dev-kernel-runtime-0123456789abcdef0123456789abcdef", "dev-kernel-round-0123456789abcdef0123456789abcdef", "runtime", "local-state.json"),
+	} {
+		resolved, err := resolveProtectedServiceDataRoot(root, localStatePath)
+		if err != nil || !strings.HasPrefix(resolved, root) {
+			t.Fatalf("resolve protected data root %q = %q, %v", localStatePath, resolved, err)
+		}
+	}
+	if _, err := resolveProtectedServiceDataRoot(root, filepath.Join(filepath.Dir(root), "escape", "runtime", "local-state.json")); err == nil {
+		t.Fatal("protected data root escaped the verified service root")
+	}
+}
+
 type daemonProtectedAuthorities struct {
 	desktop   *protectedlocal.DesktopSessionManager
-	lifecycle *protectedlocal.LifecycleIntentManager
+	localApps *protectedlocal.LocalAppLaunchRegistry
 }
 
 func newDaemonProtectedAuthorities(t *testing.T) daemonProtectedAuthorities {
@@ -346,13 +374,17 @@ func newDaemonProtectedAuthorities(t *testing.T) daemonProtectedAuthorities {
 	if err != nil {
 		t.Fatalf("create protected daemon test Desktop session manager: %v", err)
 	}
-	lifecycle, err := protectedlocal.NewLifecycleIntentManager(protectedlocal.LifecycleIntentManagerOptions{
-		Sessions: desktop,
-	})
+	localApps, err := protectedlocal.NewLocalAppLaunchRegistry(bootEpoch)
 	if err != nil {
-		t.Fatalf("create protected daemon test lifecycle intent manager: %v", err)
+		t.Fatalf("create protected daemon local-app launch registry: %v", err)
 	}
-	return daemonProtectedAuthorities{desktop: desktop, lifecycle: lifecycle}
+	return daemonProtectedAuthorities{desktop: desktop, localApps: localApps}
+}
+
+type daemonTestLocalDevelopmentVerifier struct{}
+
+func (daemonTestLocalDevelopmentVerifier) VerifyLocalDevelopmentProcess(context.Context, uint32, protectedlocal.LocalDevelopmentProcessPolicy) (protectedlocal.ProcessTuple, protectedlocal.DesktopProcessLiveness, error) {
+	return protectedlocal.ProcessTuple{}, nil, context.Canceled
 }
 
 type daemonProtectedAccountCustody struct{}

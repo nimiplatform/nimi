@@ -29,8 +29,7 @@ func TestWindowsSecurityStateStartupExitCodesAreStableAndUnique(t *testing.T) {
 		WindowsSecurityStateStageLedgerOpen,
 		WindowsSecurityStateStageBootEpoch,
 		WindowsSecurityStateStageDesktopSessions,
-		WindowsSecurityStateStageLifecycleIntents,
-		WindowsSecurityStateStageInstalledLaunches,
+		WindowsSecurityStateStageLocalAppLaunches,
 		WindowsSecurityStateStageDesktopPipeOpen,
 		WindowsSecurityStateStageDesktopPipeMissing,
 		WindowsSecurityStateStageDesktopIdentity,
@@ -74,11 +73,17 @@ func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t 
 		t.Fatalf("assemble first synthetic security state: %v", err)
 	}
 	firstEpoch := first.BootEpoch()
-	if firstEpoch == (Identifier{}) || first.Ledger() == nil || first.DesktopSessions() == nil || first.LifecycleIntents() == nil || first.DesktopPipe() == nil {
+	if firstEpoch == (Identifier{}) || first.Ledger() == nil || first.DesktopSessions() == nil || first.LocalAppLaunches() == nil || first.DesktopPipe() == nil {
 		t.Fatalf("incomplete first security state: %#v", first)
 	}
-	if first.LifecycleIntents().sessions != first.DesktopSessions() {
-		t.Fatal("lifecycle intent authority does not share the boot-scoped Desktop sessions")
+	for _, retiredTable := range []string{"protected_lifecycle_challenge", "protected_lifecycle_intent"} {
+		var count int
+		if err := first.Ledger().db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, retiredTable).Scan(&count); err != nil {
+			t.Fatalf("inspect retired package lifecycle table %s: %v", retiredTable, err)
+		}
+		if count != 0 {
+			t.Fatalf("security state constructed retired package lifecycle table %s", retiredTable)
+		}
 	}
 	if first.DesktopIdentity().AccountPartition() != identity.AccountPartition() {
 		t.Fatal("security state lost verified account partition")

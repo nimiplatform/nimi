@@ -70,7 +70,7 @@ export function runAccountSessionHardcutSelfTest({
       relPath: 'runtime/internal/services/account/service.go',
       source: `
 func (s *Service) GetAccountSessionStatus(ctx context.Context, req *Request) {
-  s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false)
+  s.validateProtectedDesktopAccountStatusCaller(ctx, req.GetCaller())
   s.mu.RLock()
 }
 func (s *Service) GetAccessToken(ctx context.Context, req *Request) { s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), true) }
@@ -100,6 +100,26 @@ func (s *Service) RevokeScopedAppBinding(ctx context.Context, req *Request) {
   s.mu.Lock()
 }
 func (s *Service) validateRuntimeAdmittedCaller() { s.registry.AdmitLocalFirstPartyInstance("", "") }
+func (s *Service) validateProtectedDesktopAccountStatusCaller(ctx context.Context, caller *Caller) {
+  if caller.GetMode() != runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL {
+    s.validateRuntimeAdmittedCaller(ctx, caller, false)
+  }
+  s.validateDesktopAccountHost(ctx, caller)
+}
+func (s *Service) validateDesktopAccountHost(ctx context.Context, caller *Caller) {
+  connection, protected := protectedlocal.DesktopConnectionFromContext(ctx)
+  origin := connection.Origin()
+  if protected && origin.TransportClass == protectedlocal.TransportDesktopControl &&
+    origin.HasRole(protectedlocal.RoleVerifiedDesktopProcess) &&
+    origin.HasRole(protectedlocal.RoleDesktopAccountHost) && desktopCallerMatchesHostEnvelope(ctx, caller) {}
+}
+func desktopCallerMatchesHostEnvelope(ctx context.Context, caller *Caller) bool {
+  return value("x-nimi-source-host") == "protected-local-desktop-account-host" &&
+    value("x-nimi-caller-kind") == "desktop-shell" &&
+    value("x-nimi-app-id") == caller.GetAppId() &&
+    value("x-nimi-app-instance-id") == caller.GetAppInstanceId() &&
+    value("x-nimi-device-id") == caller.GetDeviceId()
+}
 func (s *Service) ValidateScopedBinding() {
   if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {}
 }

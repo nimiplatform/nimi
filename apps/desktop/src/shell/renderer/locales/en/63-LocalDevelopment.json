@@ -4,6 +4,7 @@
     "title": "Allow this development project?",
     "subtitle": "Nimi Desktop will supervise the build, dev server, and native host.",
     "warning": "Only approve a project you are actively developing. This authorization cannot become a store listing or production release.",
+    "nativeRiskAcknowledgement": "I understand this project can build and run native Windows code with my user privileges. I have reviewed and trust this exact project root.",
     "queue": "{{count}} development requests are waiting."
   },
   "field": {
@@ -40,6 +41,7 @@
     "deny": "Deny",
     "allowOnce": "Only this run",
     "remember": "Remember this project",
+    "reactivate": "Reactivate project",
     "refresh": "Refresh",
     "revoke": "Revoke",
     "confirmRevoke": "Revoke now",

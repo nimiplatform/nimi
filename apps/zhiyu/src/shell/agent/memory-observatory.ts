@@ -89,7 +89,6 @@ async function readRuntimeMemoryObservatory(
   return createNimiRuntimeAgentMemoryObservatory({
     appId: APP_ID,
     auth: runtime.auth,
-    appAuth: runtime.grants,
     agent: runtime.agents,
   }, {
     ownerUserId: input.ownerUserId,

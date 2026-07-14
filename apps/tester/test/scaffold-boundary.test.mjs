@@ -5,7 +5,7 @@ import test from 'node:test';
 
 const authSource = readFileSync(new URL('../src/shell/auth/runtime-platform.ts', import.meta.url), 'utf8');
 const authGateSource = readFileSync(new URL('../src/shell/auth/auth-gate.tsx', import.meta.url), 'utf8');
-const runtimeTransportSource = readFileSync(new URL('../src/shell/auth/runtime-transport.ts', import.meta.url), 'utf8');
+const localAppPlatformSource = readFileSync(new URL('../src/shell/local-app-runtime-platform.ts', import.meta.url), 'utf8');
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const tauriMainSource = readFileSync(new URL('../src-tauri/src/main.rs', import.meta.url), 'utf8');
@@ -14,11 +14,13 @@ const appSource = [authSource, productSource].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
 
-test('auth glue exposes only the installed app projection', () => {
-  assert.match(authSource, /'third-party-nimi-app'/);
+test('auth glue exposes only the final local-app projection', () => {
+  assert.match(authSource, /'local-app'/);
   assert.match(authSource, /runtimeAccountLoginEnabled = false/);
-  assert.match(authSource, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
-  assert.match(authSource, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+  assert.match(authSource, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+  assert.match(authSource, /operationAllowed/);
+  assert.match(localAppPlatformSource, /createNimiAppRuntimePlatformClient/);
+  assert.match(localAppPlatformSource, /createNimiLocalAppStandardShellSurface/);
   assert.doesNotMatch(authSource, /createNimiClient|new Runtime|new Realm/);
   assert.doesNotMatch(authSource, /readonly client:|readonly auth:/);
   assert.doesNotMatch(authSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
@@ -26,22 +28,13 @@ test('auth glue exposes only the installed app projection', () => {
   assert.doesNotMatch(authSource, /developer-registration|local-developer|developer-registered-local-app/i);
 });
 
-test('Runtime transport selector supports Electron without spoofing Tauri', () => {
-  assert.match(runtimeTransportSource, /hasElectronRuntime/);
-  assert.match(runtimeTransportSource, /type:\s*'electron-ipc'/);
-  assert.match(runtimeTransportSource, /type:\s*'tauri-ipc'/);
-  const electronBranchStart = runtimeTransportSource.indexOf("hostKind === 'electron'");
-  const tauriBranchStart = runtimeTransportSource.indexOf("type: 'tauri-ipc'");
-  assert.ok(electronBranchStart >= 0, 'runtime transport must branch for Electron');
-  assert.ok(tauriBranchStart > electronBranchStart, 'Tauri branch must follow Electron branch');
-  const electronBranchSource = runtimeTransportSource.slice(electronBranchStart, tauriBranchStart);
-  assert.doesNotMatch(electronBranchSource, /commandNamespace|eventNamespace/);
-  assert.match(runtimeTransportSource, /typeof window !== 'undefined'/);
-  assert.doesNotMatch(runtimeTransportSource, /__NIMI_TAURI_RUNTIME__\s*=/);
-  assert.doesNotMatch(runtimeTransportSource, /__TAURI__\?\.core\?\.invoke/);
+test('local-app renderer does not select or self-assert a Runtime transport', () => {
+  assert.equal(existsSync(new URL('../src/shell/auth/runtime-transport.ts', import.meta.url)), false);
+  assert.doesNotMatch(localAppPlatformSource, /electron-ipc|tauri-ipc|commandNamespace|eventNamespace|runtimeEndpoint/);
+  assert.doesNotMatch(localAppPlatformSource, /__NIMI_TAURI_RUNTIME__|__TAURI__/);
 });
 
-test('installed auth gate keeps account control and embedded login out of the app', () => {
+test('local-app auth gate keeps account control and embedded login out of the app', () => {
   assert.equal(existsSync(new URL('../src/shell/auth/runtime-account-auth.ts', import.meta.url)), false);
   assert.equal(existsSync(new URL('../src/shell/auth/runtime-login-page.tsx', import.meta.url)), false);
   assert.match(authGateSource, /clearRuntimePlatformProjection/);
@@ -68,7 +61,8 @@ test('renderer bootstrap installs Kit runtime bridge before render', () => {
 });
 
 test('Tauri scaffold consumes Kit shared command registration and renderer probe', () => {
-  assert.match(tauriMainSource, /nimi_shell_tauri::nimi_shell_tauri_installed_app_standard_shell_handler!\[/);
+  assert.match(tauriMainSource, /nimi_shell_tauri::nimi_shell_tauri_local_app_standard_shell_handler!\[/);
+  assert.match(tauriMainSource, /RuntimeBridgeLocalAppHost::platform_default/);
   assert.doesNotMatch(tauriMainSource, /@with_runtime_defaults/);
   assert.match(tauriMainSource, /use acceptance::tester_renderer_entry_probe_script/);
   assert.match(tauriAcceptanceSource, /capabilities::diagnostics::build_renderer_entry_probe_script/);

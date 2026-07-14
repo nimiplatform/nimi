@@ -8,7 +8,10 @@ import { AuthGate } from './shell/auth/auth-gate';
 import { installZhiyuElectronSdkAcceptanceProbe } from './shell/auth/electron-sdk-acceptance';
 
 installNimiShellRuntimeBridge();
-installZhiyuElectronSdkAcceptanceProbe();
+const localDevelopment = window.__nimiZhiyuLocalDevelopment;
+if (!localDevelopment) {
+  installZhiyuElectronSdkAcceptanceProbe();
+}
 
 const root = document.getElementById('root');
 if (!root) {
@@ -18,9 +21,11 @@ if (!root) {
 createRoot(root).render(
   <React.StrictMode>
     <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
-      <AuthGate>
-        <App />
-      </AuthGate>
+      {localDevelopment ? <App /> : (
+        <AuthGate>
+          <App />
+        </AuthGate>
+      )}
     </NimiThemeProvider>
   </React.StrictMode>,
 );

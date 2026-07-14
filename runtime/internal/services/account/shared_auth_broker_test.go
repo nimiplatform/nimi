@@ -14,12 +14,10 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned(t *testing.T) {
 	desktop := realmDesktopShellCaller()
-	developer := localDeveloperCaller()
 	localApp := firstPartyCaller()
 
 	for _, tc := range []struct {
@@ -27,10 +25,9 @@ func TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned(t *testing.T)
 		caller *runtimev1.AccountCaller
 	}{
 		{name: "local_first_party", caller: localApp},
-		{name: "developer", caller: developer},
 	} {
 		t.Run("begin_login_denies_"+tc.name, func(t *testing.T) {
-			svc := newHarnessService(t, &memoryCustody{err: ErrNoStoredAccount}, WithAppRegistry(testAppRegistry(t, desktop, localApp, developer)))
+			svc := newHarnessService(t, &memoryCustody{err: ErrNoStoredAccount}, WithAppRegistry(testAppRegistry(t, desktop, localApp)))
 			response, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: tc.caller})
 			if err != nil {
 				t.Fatalf("BeginLogin: %v", err)
@@ -41,94 +38,8 @@ func TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned(t *testing.T)
 		})
 	}
 
-	svc := newHarnessService(t, nil, WithAppRegistry(testDeveloperAppRegistryWithDesktop(t, developer, desktop, localApp)), WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-2", "refresh-2")}))
-	login := beginLoginAs(t, svc, desktop)
-	completeByDeveloper, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         developer,
-		LoginAttemptId: login.GetLoginAttemptId(),
-		Code:           "auth-code",
-		State:          login.GetState(),
-		Nonce:          login.GetNonce(),
-	})
-	if err != nil {
-		t.Fatalf("developer CompleteLogin: %v", err)
-	}
-	if completeByDeveloper.GetAccepted() || completeByDeveloper.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("developer must not complete Desktop login: %+v", completeByDeveloper)
-	}
-
-	completeLoginAttemptAs(t, svc, desktop, login)
-}
-
-func TestInstalledAppBrokerRequiresBoundEnvelopeAndRejectsLaunchNonceReplay(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("content-type", "application/json")
-		_, _ = w.Write([]byte(`{"items":[{"id":"world-1"}]}`))
-	}))
-	defer server.Close()
-
-	caller := installedNimiAppCaller()
-	registry := testInstalledNimiAppRegistry(t, caller, nil)
-	registerTestCallerWithCapabilities(t, registry, realmDesktopShellCaller(), []string{"account.session.read", "realm.worlds.read"}, false)
-	if record, ok := registry.Get(caller.GetAppId()); ok {
-		if err := registry.Upsert(record.AppID, record.Manifest, []string{"account.session.read", "data.scope.read#realm.worlds.read-probe"}); err != nil {
-			t.Fatalf("update installed app policy capabilities: %v", err)
-		}
-	}
-	svc := newHarnessService(t, nil, WithAppRegistry(registry), WithRealmBaseURL(server.URL))
-	completeLoginAs(t, svc, realmDesktopShellCaller())
-
-	request := &runtimev1.InvokeRealmUnaryRequest{
-		Caller:       caller,
-		MethodId:     "WorldPublicController_listWorlds",
-		RealmBaseUrl: server.URL,
-		RequestJson:  `{}`,
-	}
-	withoutEnvelope, err := svc.InvokeRealmUnary(context.Background(), request)
-	if err != nil {
-		t.Fatalf("InvokeRealmUnary without envelope: %v", err)
-	}
-	if withoutEnvelope.GetAccepted() {
-		t.Fatalf("installed broker call without host envelope must fail closed: %+v", withoutEnvelope)
-	}
-	if withoutEnvelope.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("installed broker call without envelope reason = %v", withoutEnvelope.GetAccountReasonCode())
-	}
-
-	ctx := installedBrokerContext(caller, "runtime-session-1", "runtime-session-token-1")
-	accepted, err := svc.InvokeRealmUnary(ctx, request)
-	if err != nil {
-		t.Fatalf("InvokeRealmUnary with envelope: %v", err)
-	}
-	if accepted.GetAccepted() || accepted.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("installed broker call must remain denied before A.1: %+v", accepted)
-	}
-
-	forgedCaller := proto.Clone(caller).(*runtimev1.AccountCaller)
-	forgedCaller.AppInstanceId = "forged-instance"
-	forged, err := svc.InvokeRealmUnary(ctx, &runtimev1.InvokeRealmUnaryRequest{
-		Caller:       forgedCaller,
-		MethodId:     request.GetMethodId(),
-		RealmBaseUrl: request.GetRealmBaseUrl(),
-		RequestJson:  request.GetRequestJson(),
-	})
-	if err != nil {
-		t.Fatalf("InvokeRealmUnary forged caller: %v", err)
-	}
-	if forged.GetAccepted() {
-		t.Fatalf("request-body caller mismatch must fail closed: %+v", forged)
-	}
-
-	replayed, err := svc.InvokeRealmUnary(installedBrokerContext(caller, "runtime-session-2", "runtime-session-token-2"), request)
-	if err != nil {
-		t.Fatalf("InvokeRealmUnary replay: %v", err)
-	}
-	if replayed.GetAccepted() {
-		t.Fatalf("launch nonce must not bind a second Runtime app session: %+v", replayed)
-	}
-	if replayed.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("launch nonce replay reason = %v", replayed.GetAccountReasonCode())
-	}
+	svc := newHarnessService(t, nil, WithAppRegistry(testAppRegistry(t, desktop, localApp)), WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-2", "refresh-2")}))
+	completeLoginAs(t, svc, desktop)
 }
 
 func TestInvokeRealmUnaryTypedNegativeMatrix(t *testing.T) {
@@ -325,21 +236,14 @@ func completeLoginAs(t *testing.T, svc *Service, caller *runtimev1.AccountCaller
 	completeLoginAttemptAs(t, svc, caller, beginLoginAs(t, svc, caller))
 }
 
-func testDeveloperAppRegistryWithDesktop(t *testing.T, developer *runtimev1.AccountCaller, callers ...*runtimev1.AccountCaller) *appregistry.Registry {
+func registerTestCallerWithCapabilities(t *testing.T, registry *appregistry.Registry, caller *runtimev1.AccountCaller, capabilities []string) {
 	t.Helper()
-	registry := testAppRegistry(t, callers...)
-	registerTestCallerWithCapabilities(t, registry, developer, []string{"account.session.read", "data.scope.read#realm.worlds.read-probe"}, true)
-	return registry
-}
-
-func registerTestCallerWithCapabilities(t *testing.T, registry *appregistry.Registry, caller *runtimev1.AccountCaller, capabilities []string, developer bool) {
-	t.Helper()
-	if err := registry.UpsertInstanceWithAdmission(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), &runtimev1.AppModeManifest{
+	if err := registry.UpsertInstance(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), &runtimev1.AppModeManifest{
 		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
 		RuntimeRequired: true,
 		RealmRequired:   true,
 		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, capabilities, developer); err != nil {
+	}, capabilities); err != nil {
 		t.Fatalf("register caller: %v", err)
 	}
 }
@@ -347,14 +251,14 @@ func registerTestCallerWithCapabilities(t *testing.T, registry *appregistry.Regi
 func TestRealmBrokerCapabilitiesRemainBoundToCallerInstance(t *testing.T) {
 	caller := realmDesktopShellCaller()
 	registry := appregistry.New()
-	registerTestCallerWithCapabilities(t, registry, caller, []string{"account.session.read", "realm_source.snapshot.bind"}, false)
+	registerTestCallerWithCapabilities(t, registry, caller, []string{"account.session.read", "realm_source.snapshot.bind"})
 	background := &runtimev1.AccountCaller{
 		AppId:         caller.GetAppId(),
 		AppInstanceId: "nimi.desktop.runtime-agent",
 		DeviceId:      "runtime-agent",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
 	}
-	registerTestCallerWithCapabilities(t, registry, background, []string{"runtime.agent.read"}, false)
+	registerTestCallerWithCapabilities(t, registry, background, []string{"runtime.agent.read"})
 	svc := &Service{registry: registry}
 	operation := realmBrokerOperations["WorldCoreController_createSourceMaterializationPacket"]
 	if !svc.admitRealmBrokerCapabilities(caller, operation) {
@@ -363,19 +267,4 @@ func TestRealmBrokerCapabilitiesRemainBoundToCallerInstance(t *testing.T) {
 	if svc.admitRealmBrokerCapabilities(background, operation) {
 		t.Fatal("background instance must not inherit Desktop account broker capabilities")
 	}
-}
-
-func installedBrokerContext(caller *runtimev1.AccountCaller, sessionID string, sessionToken string) context.Context {
-	return metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-source-host", appregistry.DesktopInstalledAppLaunchHostID,
-		"x-nimi-app-id", caller.GetAppId(),
-		"x-nimi-app-instance-id", caller.GetAppInstanceId(),
-		"x-nimi-device-id", caller.GetDeviceId(),
-		"x-nimi-launch-host-id", caller.GetLaunchHostId(),
-		"x-nimi-launch-nonce", caller.GetLaunchNonce(),
-		"x-nimi-release-descriptor-ref", caller.GetReleaseDescriptorRef(),
-		"x-nimi-capability-set-ref", "installed-nimi-app-standard-shell-v1",
-		"x-nimi-session-id", sessionID,
-		"x-nimi-session-token", sessionToken,
-	))
 }

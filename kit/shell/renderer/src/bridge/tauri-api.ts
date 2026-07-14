@@ -44,7 +44,6 @@ export type NimiShellRuntimeBridgeResult =
   | { installed: false; reason: 'standard-host-preload-required' };
 
 export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = {
-  ['nimi.app-host.bootstrap']: 'app_host_bootstrap',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']]: 'runtime_bridge_unary',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime.streamOpen']]: 'runtime_bridge_stream_open',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime.streamClose']]: 'runtime_bridge_stream_close',
@@ -67,6 +66,14 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag']]: 'start_window_drag',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']]: 'focus_main_window',
   [NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']]: 'local_assets_resolve_url',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus']]: 'local_app_session_status',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionPosture']]: 'local_app_permission_posture',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest']]: 'local_app_permission_request',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes']]: 'local_app_artifacts_read_runtime_bytes',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation']]: 'local_app_agent_open_conversation',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn']]: 'local_app_agent_send_turn',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn']]: 'local_app_agent_subscribe_turn',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot']]: 'local_app_agent_get_conversation_snapshot',
   [NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']]: 'local_agent_identity',
   [NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']]: 'local_agent_runtime_trusted_caller',
   [NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']]: 'avatar_asset_resolve',

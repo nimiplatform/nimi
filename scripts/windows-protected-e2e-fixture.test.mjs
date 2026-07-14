@@ -54,7 +54,7 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /ProgramData[\s\S]*Nimi[\s\S]*Runtime[\s\S]*E2E/);
   assert.match(installer, /E2E-Virtual/);
   assert.match(serviceGate, /desktopPipePresent/);
-  assert.match(serviceGate, /installedPipePresent/);
+  assert.match(serviceGate, /localAppPipePresent/);
   assert.match(serviceGate, /restrictedSid/);
   assert.match(installer, /sc\.exe @Arguments 2>&1/);
   assert.match(installer, /sc\.exe exit \$exitCode/);
@@ -110,7 +110,7 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.match(installer, /Assert-GracefulFixtureStop/);
   assert.match(windowsService, /StopPending[\s\S]*CheckPoint[\s\S]*WaitHint/);
   assert.match(windowsService, /windowsRuntimeServiceStopTimeoutCode/);
-  assert.match(windowsService, /initiateWindowsRuntimeServiceStop\(cancel, runtimeDaemon, installedListener, desktopListener\)/);
+  assert.match(windowsService, /initiateWindowsRuntimeServiceStop\(cancel, runtimeDaemon, localAppListener, desktopListener\)/);
   assert.match(process, /verifyWindowsRuntimeProcessHandle\(ctx, pid, windows\.CurrentProcess\(\), principal, verifier\)/);
   assert.match(processPrincipal, /LABEL_SECURITY_INFORMATION/);
   assert.match(processPrincipal, /system_integrity_no_write_up_only/);
@@ -124,7 +124,8 @@ test('Windows protected E2E Runtime is a separately tagged and signed service fi
   assert.doesNotMatch(grpcStatus, /e2e[^\n]*status\.message\(\)/i);
   assert.match(localDevelopmentProjection, /windows-e2e-fixture[\s\S]*stage[\s\S]*confirmation_required/);
   assert.doesNotMatch(localDevelopmentProjection, /e2e[^\n]*(?:error|status|response)\.to_string\(\)/i);
-  assert.match(localDevelopmentContract, /LOCAL_DEVELOPMENT_TRUST_CLASS[^\n]*"local-development-installed-admission"/);
+  assert.match(localDevelopmentContract, /LOCAL_DEVELOPMENT_TRUST_CLASS[^\n]*"local_development"/);
+  assert.doesNotMatch(localDevelopmentContract, /local-development-installed-admission/);
   assert.match(desktopLocalDevelopment, /protected-local-e2e-fixture[\s\S]*stage[\s\S]*reason_code/);
   assert.doesNotMatch(desktopLocalDevelopment, /e2e[^\n]*(?:error|status)\.to_string\(\)/i);
   assert.match(desktopLocalDevelopmentSupervisor, /GetSystemDirectoryW[\s\S]*taskkill\.exe/);
@@ -155,7 +156,7 @@ test('Windows E2E carriers use a feature-gated fixed service, pipes, and signer'
   const tauriCargo = read('../kit/shell/tauri/Cargo.toml');
   const desktopCargo = read('../apps/desktop/src-tauri/Cargo.toml');
   const service = read('../kit/shell/protected-local/src/windows_service_control.rs');
-  const installed = read('../kit/shell/protected-local/src/windows_installed_session.rs');
+  const localApp = read('../kit/shell/protected-local/src/windows_local_app.rs');
   const peer = read('../kit/shell/protected-local/src/windows_peer_trust.rs');
 
   assert.match(protectedCargo, /windows-e2e-fixture\s*=\s*\[\]/);
@@ -164,7 +165,7 @@ test('Windows E2E carriers use a feature-gated fixed service, pipes, and signer'
   assert.match(desktopCargo, /protected-local-e2e-fixture[\s\S]*nimi-shell-tauri\/windows-e2e-fixture/);
   assert.match(service, /NimiRuntimeE2E/);
   assert.match(service, /nimi-runtime-e2e-protected-v1/);
-  assert.match(installed, /nimi-runtime-e2e-installed-v1/);
+  assert.match(localApp, /nimi-runtime-e2e-local-app-v1/);
   assert.match(peer, /NIMI_WINDOWS_E2E_SIGNER_CERT_SHA256/);
 });
 
@@ -248,6 +249,8 @@ test('Desktop and Node fixture launchers build the E2E carrier without changing 
   assert.match(signing, /windows-dev-signing\.ps1/);
   assert.match(nodeBuilder, /--e2e-fixture/);
   assert.match(nodeBuilder, /windows-e2e-fixture/);
+  assert.match(nodeBuilder, /windows-production/);
+  assert.match(nodeBuilder, /CARGO_TARGET_DIR/);
   assert.equal(typeof packageJson.scripts['build:windows-protected-e2e'], 'string');
   assert.equal(packageJson.scripts['check:windows-protected-e2e-candidate'], 'node scripts/check-windows-protected-e2e-candidate.mjs');
   assert.equal(typeof packageJson.scripts['build:windows-protected-e2e-virtual'], 'string');

@@ -1,6 +1,6 @@
 use crate::{
-    FixedRuntimeServiceControl, NimiAppHostCarrier, NimiAppHostSession, NimiDesktopControl,
-    NimiHostError, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    FixedRuntimeServiceControl, LocalAppOperationError, LocalAppReasonCode, NimiDesktopControl,
+    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
     ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceStatus,
 };
 
@@ -28,8 +28,15 @@ macro_rules! define_unbound_carrier {
 
             fn request_runtime_service_restart(
                 &self,
-            ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
-                Err(unbound())
+            ) -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<
+                            Output = Result<RuntimeServiceActionOutcome, ProtectedCarrierError>,
+                        > + Send
+                        + '_,
+                >,
+            > {
+                Box::pin(async { Err(unbound()) })
             }
         }
 
@@ -55,34 +62,39 @@ define_unbound_carrier!(WindowsNamedPipeCarrier);
 define_unbound_carrier!(LinuxUnixSocketCarrier);
 define_unbound_carrier!(MacOsPrivilegedXpcCarrier);
 
-macro_rules! define_unbound_app_host_carrier {
+macro_rules! define_unbound_local_app_carrier {
     ($name:ident) => {
         #[derive(Clone, Copy, Debug, Default)]
         pub struct $name;
 
-        impl NimiAppHostCarrier for $name {
-            fn open_app_host_session(
+        impl NimiLocalAppCarrier for $name {
+            fn open_local_app_session(
                 &self,
             ) -> std::pin::Pin<
                 Box<
                     dyn std::future::Future<
-                            Output = Result<Box<dyn NimiAppHostSession>, NimiHostError>,
+                            Output = Result<Box<dyn NimiLocalAppSession>, LocalAppOperationError>,
                         > + Send
                         + '_,
                 >,
             > {
-                Box::pin(async { Err(NimiHostError::from(unbound())) })
+                Box::pin(async {
+                    Err(LocalAppOperationError::new(
+                        LocalAppReasonCode::ProtectedCarrierRequired,
+                        false,
+                    ))
+                })
             }
         }
     };
 }
 
 #[cfg(not(target_os = "windows"))]
-define_unbound_app_host_carrier!(WindowsAppHostCarrier);
-define_unbound_app_host_carrier!(LinuxAppHostCarrier);
-define_unbound_app_host_carrier!(MacOsAppHostCarrier);
+define_unbound_local_app_carrier!(WindowsLocalAppCarrier);
+define_unbound_local_app_carrier!(LinuxLocalAppCarrier);
+define_unbound_local_app_carrier!(MacOsLocalAppCarrier);
 
 #[cfg(target_os = "windows")]
-pub use crate::windows_installed_session::WindowsAppHostCarrier;
+pub use crate::windows_local_app::WindowsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 pub use crate::windows_service_control::WindowsNamedPipeCarrier;

@@ -91,7 +91,6 @@ export function performanceEqual(left: PerformancePreferences, right: Performanc
     left.hardwareAcceleration === right.hardwareAcceleration
     && left.reduceAnimations === right.reduceAnimations
     && left.autoUpdate === right.autoUpdate
-    && left.developerMode === right.developerMode
   );
 }
 

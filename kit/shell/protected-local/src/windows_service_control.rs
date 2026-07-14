@@ -1,14 +1,14 @@
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::fs::{File, OpenOptions};
 use std::future::Future;
 use std::io;
 use std::os::windows::io::AsRawHandle;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use hyper_util::rt::TokioIo;
 use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
+use tokio::sync::Mutex as AsyncMutex;
 use tonic::transport::{Channel, Endpoint};
 use tower::service_fn;
 use windows_service::service::{ServiceAccess, ServiceState};
@@ -20,14 +20,23 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::OpenDesktopSessionRequest;
 use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
 use crate::{
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, FixedRuntimeServiceControl,
-    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, LocalDevelopmentAuthorization,
+    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionStatus,
+    DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
+    DesktopProductControlResponse, DeveloperModeStatus, LocalAppGrantControlDecisionRequest,
+    LocalAppGrantControlPending, LocalAppGrantControlProjection, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
-    NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
-    RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiDesktopControl,
+    NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
+    RuntimeServiceStatus,
 };
+
+#[path = "windows_service_projection.rs"]
+mod projection;
+use projection::{project_start_outcome, project_status};
 
 #[cfg(not(feature = "windows-e2e-fixture"))]
 const RUNTIME_SERVICE_NAME: &str = "NimiRuntime";
@@ -38,43 +47,204 @@ const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-protected-v1";
 #[cfg(feature = "windows-e2e-fixture")]
 const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-e2e-protected-v1";
 
+#[path = "windows_service_lifecycle.rs"]
+mod lifecycle;
+use lifecycle::request_verified_runtime_restart_on_channel;
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WindowsNamedPipeCarrier;
 
 struct WindowsDesktopControl {
-    _channel: Channel,
-    _runtime_peer: VerifiedRuntimePeer,
-    _desktop_session_id: [u8; 32],
-    _runtime_boot_epoch: [u8; 32],
+    session: Arc<VerifiedDesktopRuntimeSession>,
     development_processes:
         Mutex<HashMap<[u8; 32], crate::windows_supervised_process::SupervisedDevelopmentProcess>>,
 }
 
+struct VerifiedDesktopRuntimeSession {
+    channel: Channel,
+    _runtime_peer: VerifiedRuntimePeer,
+    _desktop_session_id: [u8; 32],
+    runtime_boot_epoch: [u8; 32],
+}
+
+static DESKTOP_RUNTIME_SESSION: OnceLock<AsyncMutex<Option<Arc<VerifiedDesktopRuntimeSession>>>> =
+    OnceLock::new();
+
+fn desktop_runtime_session_cache() -> &'static AsyncMutex<Option<Arc<VerifiedDesktopRuntimeSession>>>
+{
+    DESKTOP_RUNTIME_SESSION.get_or_init(|| AsyncMutex::new(None))
+}
+
+impl WindowsDesktopControl {
+    fn channel(&self) -> Channel {
+        self.session.channel.clone()
+    }
+}
+
 impl NimiDesktopControl for WindowsDesktopControl {
+    fn invoke_product_control(
+        &self,
+        request: DesktopProductControlRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopProductControlResponse, DesktopProductControlError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::desktop_product_control::invoke(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn request_runtime_service_restart(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<RuntimeServiceActionOutcome, ProtectedCarrierError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(request_verified_runtime_restart_on_channel(
+            self.channel(),
+            self.session.runtime_boot_epoch,
+        ))
+    }
+
     fn get_account_session_status(
         &self,
         request: DesktopAccountSessionStatusRequest,
     ) -> Pin<Box<dyn Future<Output = Result<DesktopAccountSessionStatus, NimiHostError>> + Send + '_>>
     {
         Box::pin(crate::windows_desktop_account::get_account_session_status(
-            self._channel.clone(),
+            self.channel(),
             request,
         ))
     }
 
-    fn launch_installed_app(
+    fn begin_account_login(
         &self,
-        request: InstalledAppLaunchRequest,
+        request: DesktopAccountBeginLoginRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<InstalledAppLaunchOutcome, ProtectedCarrierError>>
+            dyn Future<Output = Result<DesktopAccountBeginLoginResponse, NimiHostError>>
                 + Send
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_installed_launch::launch_installed_app(
-            self._channel.clone(),
+        Box::pin(crate::windows_desktop_account::begin_login(
+            self.channel(),
             request,
+        ))
+    }
+
+    fn complete_account_login(
+        &self,
+        request: DesktopAccountCompleteLoginRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<DesktopAccountMutationResponse, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_desktop_account::complete_login(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn invoke_account_realm_unary(
+        &self,
+        request: DesktopAccountRealmUnaryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopAccountRealmUnaryResponse, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::windows_desktop_account::invoke_realm_unary(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn logout_account(
+        &self,
+        request: DesktopAccountActionRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<DesktopAccountMutationResponse, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_desktop_account::logout(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn switch_account(
+        &self,
+        request: DesktopAccountActionRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<DesktopAccountMutationResponse, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_desktop_account::switch_account(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn get_developer_mode_status(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>> {
+        Box::pin(crate::windows_local_development::get_developer_mode_status(
+            self.channel(),
+        ))
+    }
+
+    fn set_developer_mode(
+        &self,
+        enabled: bool,
+    ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>> {
+        Box::pin(crate::windows_local_development::set_developer_mode(
+            self.channel(),
+            enabled,
+        ))
+    }
+
+    fn pending_local_app_grant(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Option<LocalAppGrantControlPending>, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::windows_local_app_grant_control::pending_grant(
+            self.channel(),
+        ))
+    }
+
+    fn decide_local_app_grant(
+        &self,
+        request: LocalAppGrantControlDecisionRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppGrantControlProjection, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_local_app_grant_control::decide_grant(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn revoke_local_app_grant(
+        &self,
+        grant_id: [u8; 32],
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppGrantControlProjection, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_local_app_grant_control::revoke_grant(
+            self.channel(),
+            grant_id,
         ))
     }
 
@@ -84,7 +254,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
     ) -> Pin<Box<dyn Future<Output = Result<LocalDevelopmentEvaluation, NimiHostError>> + Send + '_>>
     {
         Box::pin(crate::windows_local_development::evaluate_project(
-            self._channel.clone(),
+            self.channel(),
             request,
         ))
     }
@@ -96,7 +266,19 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
     > {
         Box::pin(crate::windows_local_development::decide_project(
-            self._channel.clone(),
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn reactivate_local_development_project(
+        &self,
+        request: LocalDevelopmentReactivationRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_local_development::reactivate_project(
+            self.channel(),
             request,
         ))
     }
@@ -111,7 +293,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
         >,
     > {
         Box::pin(crate::windows_local_development::list_authorizations(
-            self._channel.clone(),
+            self.channel(),
         ))
     }
 
@@ -122,7 +304,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
     > {
         Box::pin(crate::windows_local_development::revoke_authorization(
-            self._channel.clone(),
+            self.channel(),
             authorization_id,
         ))
     }
@@ -136,15 +318,14 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box::pin(async move {
             let run_id = request.supervisor_run_id;
             let (outcome, process) =
-                crate::windows_local_development::launch_host(self._channel.clone(), request)
-                    .await?;
+                crate::windows_local_development::launch_host(self.channel(), request).await?;
             let mut processes = self.development_processes.lock().map_err(|_| {
                 NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
             })?;
-            let replaced = processes.insert(run_id, process).is_some();
+            let _replaced = processes.insert(run_id, process).is_some();
             #[cfg(feature = "windows-e2e-fixture")]
             eprintln!(
-                "[protected-local local-development windows-e2e-fixture] stage=host-carrier-retained replaced={replaced}"
+                "[protected-local local-development windows-e2e-fixture] stage=host-carrier-retained replaced={_replaced}"
             );
             Ok(outcome)
         })
@@ -156,8 +337,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
     ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
         Box::pin(async move {
             let run_id = request.supervisor_run_id;
-            let result =
-                crate::windows_local_development::end_run(self._channel.clone(), request).await;
+            let result = crate::windows_local_development::end_run(self.channel(), request).await;
             let mut processes = self.development_processes.lock().map_err(|_| {
                 NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
             })?;
@@ -179,13 +359,13 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        let present = processes.contains_key(&supervisor_run_id);
+        let _present = processes.contains_key(&supervisor_run_id);
         let running = processes
             .get(&supervisor_run_id)
             .is_some_and(|process| process.running());
         #[cfg(feature = "windows-e2e-fixture")]
         eprintln!(
-            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-health present={present} running={running}"
+            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-health present={_present} running={running}"
         );
         Ok(running)
     }
@@ -203,52 +383,12 @@ impl NimiDesktopControl for WindowsDesktopControl {
         let mut processes = self.development_processes.lock().map_err(|_| {
             NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
         })?;
-        let removed = processes.remove(&supervisor_run_id).is_some();
+        let _removed = processes.remove(&supervisor_run_id).is_some();
         #[cfg(feature = "windows-e2e-fixture")]
         eprintln!(
-            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-removed removed={removed}"
+            "[protected-local local-development windows-e2e-fixture] stage=host-carrier-removed removed={_removed}"
         );
         Ok(())
-    }
-}
-
-impl FixedRuntimeServiceControl for WindowsNamedPipeCarrier {
-    fn runtime_service_status(&self) -> Result<RuntimeServiceStatus, ProtectedCarrierError> {
-        let state = query_service_state(ServiceAccess::QUERY_STATUS)?;
-        project_status(state)
-    }
-
-    fn request_runtime_service_start(
-        &self,
-    ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
-        let manager = service_manager()?;
-        let service = manager
-            .open_service(
-                RUNTIME_SERVICE_NAME,
-                ServiceAccess::QUERY_STATUS | ServiceAccess::START,
-            )
-            .map_err(|_| unavailable())?;
-        let before = service.query_status().map_err(|_| unavailable())?;
-        match before.current_state {
-            ServiceState::Stopped => {
-                service.start(&[] as &[&OsStr]).map_err(|_| unavailable())?;
-                let after = service.query_status().map_err(|_| unavailable())?;
-                project_start_outcome(after.current_state)
-            }
-            state => project_start_outcome(state),
-        }
-    }
-
-    fn request_runtime_service_restart(
-        &self,
-    ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
-        // Restart is never SCM stop/start. It requires an already verified
-        // protected Runtime connection to request self-exit, followed by SCM
-        // recovery and a new PID/boot-epoch handshake.
-        Err(ProtectedCarrierError::new(
-            ProtectedCarrierReasonCode::ProtectedCarrierRequired,
-            false,
-        ))
     }
 }
 
@@ -268,30 +408,9 @@ impl NimiProtectedLocalHostCarrier for WindowsNamedPipeCarrier {
 
 async fn open_verified_desktop_control(
 ) -> Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError> {
-    let (channel, runtime_peer) =
-        open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
-    let mut client = RuntimeAuthServiceClient::new(channel.clone());
-    let response = client
-        .open_desktop_session(OpenDesktopSessionRequest {})
-        .await
-        .map_err(|_| untrusted())?
-        .into_inner();
-    let desktop_session_id: [u8; 32] = response
-        .desktop_session_id
-        .try_into()
-        .map_err(|_| untrusted())?;
-    let runtime_boot_epoch: [u8; 32] = response
-        .runtime_boot_epoch
-        .try_into()
-        .map_err(|_| untrusted())?;
-    if desktop_session_id == [0u8; 32] || runtime_boot_epoch == [0u8; 32] {
-        return Err(untrusted());
-    }
+    let session = shared_verified_desktop_runtime_session().await?;
     Ok(Box::new(WindowsDesktopControl {
-        _channel: channel,
-        _runtime_peer: runtime_peer,
-        _desktop_session_id: desktop_session_id,
-        _runtime_boot_epoch: runtime_boot_epoch,
+        session,
         development_processes: Mutex::new(HashMap::new()),
     }))
 }
@@ -301,16 +420,98 @@ pub(crate) async fn open_verified_runtime_channel(
 ) -> Result<(Channel, VerifiedRuntimePeer), ProtectedCarrierError> {
     let before = query_service_status()?;
     let expected_pid = running_service_pid(&before)?;
+    diagnose_desktop_session("service-running");
     let pipe = ClientOptions::new()
         .open(pipe_name)
         .map_err(|_| unavailable())?;
+    diagnose_desktop_session("pipe-opened");
     let pipe_server_pid = named_pipe_server_pid_from_handle(pipe.as_raw_handle() as HANDLE)?;
     let after = query_service_status()?;
     let observed_pid = running_service_pid(&after)?;
     validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)?;
+    diagnose_desktop_session("pipe-scm-binding-verified");
     let runtime_peer = verify_runtime_peer_code_signing(pipe_server_pid)?;
-    let channel = channel_from_verified_pipe(pipe).await?;
+    diagnose_desktop_session("runtime-peer-verified");
+    let channel = channel_from_verified_pipe(pipe).await.map_err(|error| {
+        diagnose_desktop_session("grpc-channel-open-failed");
+        error
+    })?;
+    diagnose_desktop_session("grpc-channel-opened");
     Ok((channel, runtime_peer))
+}
+
+async fn shared_verified_desktop_runtime_session(
+) -> Result<Arc<VerifiedDesktopRuntimeSession>, ProtectedCarrierError> {
+    let mut slot = desktop_runtime_session_cache().lock().await;
+    if let Some(session) = slot.as_ref() {
+        return Ok(session.clone());
+    }
+
+    let (channel, runtime_peer) =
+        open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
+    diagnose_desktop_session("open-desktop-session-started");
+    let mut auth = RuntimeAuthServiceClient::new(channel.clone());
+    let opened = auth
+        .open_desktop_session(OpenDesktopSessionRequest {})
+        .await
+        .map_err(|status| {
+            diagnose_desktop_session(&format!(
+                "open-failed-{}-{}",
+                status.code(),
+                crate::grpc_status::runtime_reason(&status)
+                    .unwrap_or_else(|| "no-runtime-reason".to_string())
+            ));
+            untrusted()
+        })?
+        .into_inner();
+    let desktop_session_id: [u8; 32] = opened
+        .desktop_session_id
+        .try_into()
+        .map_err(|_| untrusted())?;
+    let runtime_boot_epoch: [u8; 32] = opened
+        .runtime_boot_epoch
+        .try_into()
+        .map_err(|_| untrusted())?;
+    if desktop_session_id == [0u8; 32] || runtime_boot_epoch == [0u8; 32] {
+        diagnose_desktop_session("invalid-session-identity");
+        return Err(untrusted());
+    }
+    diagnose_desktop_session("opened");
+    let session = Arc::new(VerifiedDesktopRuntimeSession {
+        channel,
+        _runtime_peer: runtime_peer,
+        _desktop_session_id: desktop_session_id,
+        runtime_boot_epoch,
+    });
+    *slot = Some(session.clone());
+    Ok(session)
+}
+
+fn diagnose_desktop_session(stage: &str) {
+    if std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+    {
+        eprintln!("[protected-local desktop-session] stage={stage}");
+    }
+}
+
+/// Returns a clone of the one boot-scoped Desktop control channel shared by
+/// status, control, unary, and streaming calls. `OpenDesktopSession` runs once
+/// on that exact mutually verified connection; no portable session authority
+/// or caller-selected endpoint crosses this boundary.
+pub async fn open_verified_desktop_runtime_channel() -> Result<Channel, ProtectedCarrierError> {
+    Ok(shared_verified_desktop_runtime_session()
+        .await?
+        .channel
+        .clone())
+}
+
+/// Drops Kit's owner-side reference after a verified disconnect or Runtime
+/// replacement so the next call must repeat the full fixed-service handshake.
+pub async fn invalidate_verified_desktop_runtime_channel() {
+    if let Some(cache) = DESKTOP_RUNTIME_SESSION.get() {
+        cache.lock().await.take();
+    }
 }
 
 async fn channel_from_verified_pipe(
@@ -349,49 +550,6 @@ fn query_service_state(access: ServiceAccess) -> Result<ServiceState, ProtectedC
         .query_status()
         .map(|status| status.current_state)
         .map_err(|_| unavailable())
-}
-
-fn project_status(state: ServiceState) -> Result<RuntimeServiceStatus, ProtectedCarrierError> {
-    match state {
-        ServiceState::Stopped => Ok(RuntimeServiceStatus {
-            state: RuntimeServiceState::Stopped,
-            release_id: None,
-            reason_code: None,
-            retryable: false,
-        }),
-        ServiceState::StartPending => Ok(RuntimeServiceStatus {
-            state: RuntimeServiceState::StartPending,
-            release_id: None,
-            reason_code: None,
-            retryable: true,
-        }),
-        ServiceState::Running => {
-            verify_fixed_pipe_scm_binding()?;
-            // PID/service binding alone is insufficient. Platform code-signing
-            // and OpenDesktopSession must both succeed before Running is projected.
-            Err(untrusted())
-        }
-        _ => Err(repair_required()),
-    }
-}
-
-fn project_start_outcome(
-    state: ServiceState,
-) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
-    match state {
-        ServiceState::StartPending => Ok(RuntimeServiceActionOutcome {
-            state: RuntimeServiceState::StartPending,
-            release_id: None,
-            reason_code: None,
-            retryable: true,
-        }),
-        ServiceState::Running => {
-            verify_fixed_pipe_scm_binding()?;
-            Err(untrusted())
-        }
-        ServiceState::Stopped => Err(unavailable()),
-        _ => Err(repair_required()),
-    }
 }
 
 fn unavailable() -> ProtectedCarrierError {
@@ -481,59 +639,4 @@ fn validate_stable_server_binding(
         return Err(untrusted());
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn scm_running_never_claims_protected_runtime_success() {
-        let error = project_status(ServiceState::Running).expect_err("trust verification required");
-        assert!(matches!(
-            error.reason_code(),
-            ProtectedCarrierReasonCode::RuntimeServiceUnavailable
-                | ProtectedCarrierReasonCode::RuntimeServiceUntrusted
-        ));
-    }
-
-    #[test]
-    fn scm_start_pending_is_an_honest_retryable_projection() {
-        let status = project_status(ServiceState::StartPending).expect("start pending");
-        assert_eq!(status.state, RuntimeServiceState::StartPending);
-        assert!(status.retryable);
-
-        let outcome = project_start_outcome(ServiceState::StartPending).expect("start pending");
-        assert_eq!(outcome.state, RuntimeServiceState::StartPending);
-        assert!(outcome.retryable);
-    }
-
-    #[test]
-    fn scm_stop_or_pause_states_require_repair() {
-        for state in [
-            ServiceState::StopPending,
-            ServiceState::PausePending,
-            ServiceState::Paused,
-            ServiceState::ContinuePending,
-        ] {
-            let error = project_status(state).expect_err("repair required");
-            assert_eq!(
-                error.reason_code(),
-                ProtectedCarrierReasonCode::RuntimeServiceRepairRequired
-            );
-        }
-    }
-
-    #[test]
-    fn pipe_server_pid_must_match_two_stable_scm_snapshots() {
-        assert!(validate_stable_server_binding(41, 41, 41).is_ok());
-        for (before, after, pipe) in [(0, 41, 41), (41, 0, 41), (41, 42, 41), (41, 41, 42)] {
-            let error = validate_stable_server_binding(before, after, pipe)
-                .expect_err("unstable or mismatched service binding");
-            assert_eq!(
-                error.reason_code(),
-                ProtectedCarrierReasonCode::RuntimeServiceUntrusted
-            );
-        }
-    }
 }

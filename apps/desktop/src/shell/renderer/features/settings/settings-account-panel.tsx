@@ -1,19 +1,13 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useRef, useState } from 'react';
 import {
-  linkNimiRealmOAuth,
   NIMI_REALM_OAUTH_PROVIDER,
-  unlinkNimiRealmOAuth,
   uploadNimiRealmResourceFile,
   type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { ShellAuthWindow } from '@nimiplatform/kit/auth/shell';
-import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/kit/auth';
-import { startSocialOauth } from '@nimiplatform/kit/auth';
-import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   BIO_MAX,
@@ -29,6 +23,7 @@ import {
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ProfileConnectedAccountsSection } from './settings-account-oauth-section.js';
 import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { profileOauthPlatform } from './profile-oauth-platform.js';
 
 const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
@@ -61,7 +56,6 @@ export function ProfilePage() {
     ))
     : [];
   const connectedProviderSet = new Set<NimiRealmOAuthProvider>(connectedProviders);
-  const googleClientId = getGoogleClientId();
   const profileDraft = {
     displayName: name.trim() || displayName,
     avatarUrl,
@@ -91,57 +85,13 @@ export function ProfilePage() {
     }
   }, []);
 
-  const requestGoogleAccessToken = async (): Promise<string> => {
-    const clientId = String(googleClientId || '').trim();
-    if (!clientId) {
-      throw new Error(t('Profile.googleOauthClientIdMissing'));
-    }
-    await loadGoogleScript();
-    const win = window as ShellAuthWindow;
-    const initTokenClient = win.google?.accounts?.oauth2?.initTokenClient;
-    if (!initTokenClient) {
-      throw new Error(t('Profile.googleOauthInitFailed'));
-    }
-    return new Promise((resolve, reject) => {
-      const tokenClient = initTokenClient({
-        client_id: clientId,
-        scope: 'email profile openid',
-        callback: (tokenResponse: { access_token?: string }) => {
-          const accessToken = String(tokenResponse?.access_token || '').trim();
-          if (!accessToken) {
-            reject(new Error('Google OAuth did not return access token'));
-            return;
-          }
-          resolve(accessToken);
-        },
-      });
-      tokenClient.requestAccessToken();
-    });
-  };
-
-  const resolveProviderAccessToken = async (provider: NimiRealmOAuthProvider): Promise<string> => {
-    if (provider === NIMI_REALM_OAUTH_PROVIDER.GOOGLE) {
-      return requestGoogleAccessToken();
-    }
-    if (provider === NIMI_REALM_OAUTH_PROVIDER.TWITTER) {
-      const result = await startSocialOauth('TWITTER', desktopOAuthBridge);
-      return result.accessToken;
-    }
-    if (provider === NIMI_REALM_OAUTH_PROVIDER.TIKTOK) {
-      const result = await startSocialOauth('TIKTOK', desktopOAuthBridge);
-      return result.accessToken;
-    }
-    throw new Error(`Unsupported OAuth provider: ${provider}`);
-  };
-
   const handleLinkProvider = async (provider: NimiRealmOAuthProvider) => {
     if (linkingProvider || unlinkingProvider) {
       return;
     }
     setLinkingProvider(provider);
     try {
-      const accessToken = await resolveProviderAccessToken(provider);
-      await linkNimiRealmOAuth(getDesktopRealm(), provider, accessToken);
+      await profileOauthPlatform.linkProvider(provider);
       await refreshCurrentUser();
       setFeedback(null);
     } catch (error) {
@@ -160,7 +110,7 @@ export function ProfilePage() {
     }
     setUnlinkingProvider(provider);
     try {
-      await unlinkNimiRealmOAuth(getDesktopRealm(), provider);
+      await profileOauthPlatform.unlinkProvider(provider);
       await refreshCurrentUser();
       setFeedback(null);
     } catch (error) {
@@ -447,7 +397,6 @@ export function ProfilePage() {
       <ProfileConnectedAccountsSection
         connectedProviderSet={connectedProviderSet}
         email={email}
-        googleClientId={googleClientId}
         linkingProvider={linkingProvider}
         onLinkProvider={(provider) => void handleLinkProvider(provider)}
         onUnlinkProvider={(provider) => void handleUnlinkProvider(provider)}

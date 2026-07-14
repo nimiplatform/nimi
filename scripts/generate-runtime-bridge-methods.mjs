@@ -33,6 +33,7 @@ const GENERIC_BRIDGE_DENIED_POSTURES = Object.freeze(new Set([
   'protected_origin_required',
   'deny_all_tombstone',
   'blocked_pending_authority',
+  'unavailable_by_authority',
 ]));
 
 function readManifest() {

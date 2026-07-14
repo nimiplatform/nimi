@@ -3,9 +3,10 @@ package main
 func runtimeChecklistPart1(
 	pkgAppRegistry string,
 	pkgAI string,
+	pkgAccount string,
 	pkgAuditLog string,
 	pkgAuditSvc string,
-	pkgGrant string,
+	pkgLocalApp string,
 	pkgGrpc string,
 	pkgModel string,
 	pkgNimillm string,
@@ -31,41 +32,44 @@ func runtimeChecklistPart1(
 		},
 		{
 			ID:          "RS-11-03",
-			Requirement: "auth/grant chain tests",
-			Tests:       []testRef{{Package: pkgGrant, Name: "TestGrantAuthorizeValidateRevoke"}},
+			Requirement: "local-app grant key and transition tests",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"}},
 		},
 		{
 			ID:          "RS-11-04",
-			Requirement: "ExternalPrincipal -> App authorization (preset + custom)",
+			Requirement: "local-app principal/record/grant store separation",
 			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantAuthorizeValidateRevoke"},
-				{Package: pkgGrant, Name: "TestGrantResourceSelectorsSubsetAndOutOfScopeDeny"},
+				{Package: pkgLocalApp, Name: "TestStoresUseSeparateTablesWithoutGrantFieldsInRecord"},
+				{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"},
 			},
 		},
 		{
 			ID:          "RS-11-05",
-			Requirement: "token delegation (subset + ttl + depth + cascade revoke)",
-			Tests:       []testRef{{Package: pkgGrant, Name: "TestGrantDelegateChain"}},
+			Requirement: "principal tombstone revokes inheritance",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestTombstoneRemovesRecordAndNeverInheritsGrantOrKeys"}},
 		},
 		{
 			ID:          "RS-11-06",
-			Requirement: "delegate second-hop rejected",
-			Tests:       []testRef{{Package: pkgGrant, Name: "TestGrantDelegateChain"}},
+			Requirement: "grant supersession requires exact prior grant",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"}},
 		},
 		{
 			ID:          "RS-11-07",
-			Requirement: "resource selector subset + out-of-scope deny",
-			Tests:       []testRef{{Package: pkgGrant, Name: "TestGrantResourceSelectorsSubsetAndOutOfScopeDeny"}},
+			Requirement: "grant capability and resource fingerprint isolation",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"}},
 		},
 		{
 			ID:          "RS-11-08",
-			Requirement: "consent required + consent invalid deny",
-			Tests:       []testRef{{Package: pkgGrant, Name: "TestGrantAuthorizeRejectsMissingOrInvalidConsent"}},
+			Requirement: "grant approval requires presence evidence",
+			Tests: []testRef{
+				{Package: pkgAccount, Name: "TestLocalAppGrantZeroRequestPresenceDecisionAndReplay"},
+				{Package: pkgAccount, Name: "TestLocalAppGrantExplicitDenialConsumesChallengeWithoutPresence"},
+			},
 		},
 		{
 			ID:          "RS-11-09",
-			Requirement: "policy update invalidates existing token immediately",
-			Tests:       []testRef{{Package: pkgGrant, Name: "TestGrantPolicyUpdateInvalidatesExistingToken"}},
+			Requirement: "provenance promotion invalidates leases and sessions without grant mutation",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestProvenanceAdvanceAtomicallyRecordsInvalidationWithoutGrantMutation"}},
 		},
 		{
 			ID:          "RS-11-10",
@@ -160,8 +164,8 @@ func runtimeChecklistPart1(
 		},
 		{
 			ID:          "RS-11-22",
-			Requirement: "audit field completeness",
-			Tests:       []testRef{{Package: pkgGrpc, Name: "TestUnaryAuditInterceptorCapturesGrantAuditFields"}},
+			Requirement: "local-app grant lifecycle audit field completeness (P-PERM-004/K-AUDIT-001)",
+			Tests:       []testRef{{Package: pkgAccount, Name: "TestLocalAppGrantLifecycleAuditFields"}},
 		},
 		{
 			ID:          "RS-11-23",

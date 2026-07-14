@@ -821,7 +821,6 @@ export async function readLiveRuntimeFixtureArtifactBytes(fixture, artifactId) {
     appInstanceId: `${desktopAppId}.live-runtime`,
     deviceId: 'nimi-desktop-live-runtime-device',
     appVersion: 'zhiyu-electron-live-runtime-acceptance',
-    developerRegistration: false,
     auth: fixture.runtime.auth,
   });
   return fixture.runtime.artifacts.readArtifactBytes({ artifactId }, {
@@ -883,7 +882,6 @@ function createZhiyuRuntimeAppSessionMetadataProvider(runtime, overrides = {}) {
     appInstanceId: normalizeRuntimeVoiceText(overrides.appInstanceId) || `${zhiyuAppId}.local-first-party`,
     deviceId: normalizeRuntimeVoiceText(overrides.deviceId) || 'nimi-zhiyu-local-first-party-device',
     appVersion: 'zhiyu-electron-live-runtime-acceptance',
-    developerRegistration: false,
     capabilities: zhiyuRuntimeProtectedScopes,
     auth: runtime.auth,
   });

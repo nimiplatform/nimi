@@ -1,8 +1,14 @@
 import { createDefaultRuntimeGrpcBridgeClient } from './grpc-client.js';
+import { createNimiElectronDesktopControlHost } from './desktop-control-host.js';
+import {
+  createNimiElectronDesktopAccountHost,
+  isElectronDesktopAccountCommand,
+} from './desktop-account-host.js';
 import {
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
   NIMI_STANDARD_SHELL_COMMANDS,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
 } from '@nimiplatform/kit/shell/capabilities';
 import { isElectronRuntimeAccountCustodyCommand } from './auth.js';
 import { resolveElectronAvatarAssetUrl } from './avatar.js';
@@ -17,6 +23,14 @@ import {
   writeElectronStandardStorageJson,
 } from './data-storage.js';
 import { resolveElectronDiagnosticsRendererEntryProbe, resolveElectronRendererOrigin } from './diagnostics.js';
+import {
+  createNimiElectronDeveloperModeHost,
+  isElectronDeveloperModeCommand,
+} from './developer-mode-host.js';
+import {
+  createNimiElectronLocalAppGrantHost,
+  isElectronLocalAppGrantCommand,
+} from './local-app-grant-host.js';
 import {
   assertAllowedElectronRendererOrigin,
   assertAllowedElectronRendererUrl,
@@ -33,7 +47,7 @@ import {
   toSerializedElectronShellError,
 } from './errors.js';
 import { writeElectronShellArtifact } from './artifacts.js';
-import { readElectronInstalledArtifact } from './installed-artifacts.js';
+import { dispatchElectronLocalAppCommand, isElectronLocalAppCommand } from './local-app-commands.js';
 import { bindElectronStandardDataRootRuntimeResolver } from './data-root-binding.js';
 import { openElectronDesktopIntent } from './desktop-open.js';
 import { saveElectronShellExportFile } from './export.js';
@@ -64,6 +78,7 @@ import {
   resolveElectronRuntimeDefaults,
 } from './runtime.js';
 import { isElectronExternallyManagedRuntimeCommand } from './runtime-lifecycle.js';
+import { createNimiElectronFixedRuntimeLifecycleHost } from './runtime-lifecycle-host.js';
 import { NimiElectronShellHostError } from './types.js';
 import type {
   NimiElectronHostCommandKind,
@@ -94,6 +109,15 @@ const STANDARD_SHELL_COMMAND_SET: ReadonlySet<string> = new Set(
   NIMI_STANDARD_SHELL_CAPABILITIES.flatMap((capability) => capability.operations.map((operation) => operation.command)),
 );
 
+const LOCAL_APP_EXPLICITLY_FORBIDDEN_COMMANDS: ReadonlySet<string> = new Set([
+  'nimi.shell.auth.sessionLoad',
+  'nimi.shell.auth.sessionSave',
+  'nimi.shell.auth.sessionClear',
+  'nimi.shell.desktopPrivate.productControl',
+  'nimi.shell.electron.rawIpc',
+  'nimi.shell.node.rawFs',
+]);
+
 type ResolvedElectronStandardShellCapabilitySet = {
   readonly allowAllStandardShellCommands: boolean;
   readonly capabilitySetRef: string;
@@ -111,7 +135,10 @@ function classifyElectronHostCommand(
   if (isStandardShellCommand(command)) {
     return 'standard';
   }
-  if (hasCommandHandler) {
+  if (hasCommandHandler
+    || isElectronDesktopAccountCommand(command)
+    || isElectronDeveloperModeCommand(command)
+    || isElectronLocalAppGrantCommand(command)) {
     return 'app-domain';
   }
   return 'unknown';
@@ -138,6 +165,21 @@ export function registerNimiElectronRuntimeBridge(
   const eventChannelPrefix = normalizeText(input.eventChannelPrefix) || 'nimi:runtime:event:';
   const capabilitySet = resolveElectronStandardShellCapabilitySet(input.standardShellHost);
   const createGrpcClient = input.createGrpcClient ?? createDefaultRuntimeGrpcBridgeClient;
+  const desktopControlHost = appId === 'nimi.desktop'
+    ? createNimiElectronDesktopControlHost()
+    : undefined;
+  const desktopAccountHost = appId === 'nimi.desktop'
+    ? createNimiElectronDesktopAccountHost()
+    : undefined;
+  const fixedRuntimeLifecycleHost = appId === 'nimi.desktop'
+    ? createNimiElectronFixedRuntimeLifecycleHost(runtimeEndpoint)
+    : undefined;
+  const developerModeHost = appId === 'nimi.desktop'
+    ? createNimiElectronDeveloperModeHost()
+    : undefined;
+  const localAppGrantHost = appId === 'nimi.desktop'
+    ? createNimiElectronLocalAppGrantHost()
+    : undefined;
   let clientPromise: Promise<RuntimeGrpcBridgeClient> | undefined;
   const ensureClient = () => {
     clientPromise ??= Promise.resolve(createGrpcClient(runtimeEndpoint));
@@ -180,6 +222,7 @@ export function registerNimiElectronRuntimeBridge(
         runtimeEndpoint,
         command,
         trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
+        desktopControlHost,
       });
     }
     if (command === commandNames.stream_open) {
@@ -202,6 +245,9 @@ export function registerNimiElectronRuntimeBridge(
       return closeElectronRuntimeStream(electronRuntimeCommandPayload(payload, command), streams);
     }
     if (command === commandNames.status) {
+      if (fixedRuntimeLifecycleHost) {
+        return fixedRuntimeLifecycleHost.invoke(command, commandNames);
+      }
       try {
         return await probeElectronRuntimeStatus({ client: await ensureClient(), appId, runtimeEndpoint, command });
       } catch (error) {
@@ -213,7 +259,12 @@ export function registerNimiElectronRuntimeBridge(
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get']) return resolveElectronRuntimeDefaults();
     if (command === NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']) return resolveElectronDiagnosticsRendererEntryProbe({ event, payload, appId });
-    if (isElectronExternallyManagedRuntimeCommand(command, commandNames)) throw createElectronExternalDaemonRequiredError(command);
+    if (isElectronExternallyManagedRuntimeCommand(command, commandNames)) {
+      if (fixedRuntimeLifecycleHost) {
+        return fixedRuntimeLifecycleHost.invoke(command, commandNames);
+      }
+      throw createElectronExternalDaemonRequiredError(command);
+    }
     const standardPayload = standardNestedPayload(payload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return readElectronStandardStorageJson(input.standardShellHost, standardPayload, command);
@@ -237,8 +288,12 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) return revealElectronShellFile(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']) return saveElectronShellExportFile(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']) return writeElectronShellArtifact(input.standardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.readRuntimeBytes']) {
-      return readElectronInstalledArtifact(input.standardShellHost, standardPayload, command);
+    if (isElectronLocalAppCommand(command)) {
+      return dispatchElectronLocalAppCommand({
+        host: input.standardShellHost?.localAppHost,
+        payload: standardPayload,
+        command,
+      });
     }
     if (isElectronAgentCenterCommand(command)) {
       return dispatchElectronAgentCenterCommand({ host: input.standardShellHost, payload: standardPayload, command });
@@ -253,9 +308,24 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']) return resolveElectronPlatformProjection(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']) return getElectronAiConfig(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']) return setElectronAiConfig(input.standardShellHost, standardPayload, command);
+    if (desktopAccountHost && isElectronDesktopAccountCommand(command)) {
+      return desktopAccountHost.invoke(command, payload);
+    }
+    if (developerModeHost && isElectronDeveloperModeCommand(command)) {
+      return developerModeHost.invoke(command, payload);
+    }
+    if (localAppGrantHost && isElectronLocalAppGrantCommand(command)) {
+      return localAppGrantHost.invoke(command, payload);
+    }
     if (isElectronRuntimeAccountCustodyCommand(command)) throw createElectronRuntimeAccountCustodyExternalError(command);
     if (commandHandler) return await commandHandler({ command, payload, event, appId, runtimeEndpoint });
     if (isStandardShellCommand(command)) throw createElectronCapabilityUnavailableError(command);
+    if (
+      capabilitySet?.capabilitySetRef === NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID
+      && LOCAL_APP_EXPLICITLY_FORBIDDEN_COMMANDS.has(command)
+    ) {
+      throw createElectronCapabilityNotInHostSetError(command, capabilitySet.capabilitySetRef);
+    }
     throw new NimiElectronShellHostError({
       code: 'invalid-payload',
       message: 'Unsupported Electron Runtime bridge command: ' + command,

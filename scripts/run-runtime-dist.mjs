@@ -110,44 +110,6 @@ function writeWindowsSigningDiagnostic() {
   }
 }
 
-function enableLocalDeveloperRegistrationGate(env) {
-  const command = String(process.argv[2] || '').trim();
-  if (command !== 'serve' && command !== 'start') {
-    return;
-  }
-  if (!fs.existsSync(devAppRegistryPath)) {
-    return;
-  }
-  const result = spawnSync(
-    binaryPath,
-    [
-      'config',
-      'set',
-      '--set',
-      'auth.developerRegistration.enabled=true',
-      '--json',
-    ],
-    {
-      cwd: repoRoot,
-      env,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
-  if (result.status === 0) {
-    return;
-  }
-  const detail = [result.error?.message, result.stderr, result.stdout]
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-    .join('\n');
-  process.stderr.write(`[run-runtime-dist] failed to enable local developer registration gate${detail ? `: ${detail}` : ''}\n`);
-  if (shouldRunWindowsSigningDiagnostic(result.error, detail)) {
-    writeWindowsSigningDiagnostic();
-  }
-  process.exit(result.status ?? 1);
-}
-
 function runtimeCommandArgs() {
   const args = process.argv.slice(2);
   if (process.platform !== 'win32' || args[0] !== 'stop') {
@@ -166,7 +128,6 @@ if (!fs.existsSync(binaryPath)) {
 }
 
 const runtimeEnv = applyRootRuntimeEnv({ ...process.env });
-enableLocalDeveloperRegistrationGate(runtimeEnv);
 
 const child = spawn(binaryPath, runtimeCommandArgs(), {
   cwd: repoRoot,

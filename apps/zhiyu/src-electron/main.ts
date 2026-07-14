@@ -5,21 +5,21 @@ import {
   createNimiElectronStandardApplicationMenuTemplate,
   createElectronShellFileProtocolHost,
   isAllowedElectronRendererUrl,
+  registerNimiElectronAppBridge,
   registerNimiElectronRuntimeBridge,
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
-  type NimiElectronRuntimeTrustedCallerMode,
   type NimiElectronShellFileProtocolHost,
   type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
 import { registerZhiyuAvatarLaunchHandoffBridge } from './avatar-launch-handoff.js';
-import { createZhiyuElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 import {
   ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND,
   createZhiyuRuntimeAgentScopedBindingCommandHandler,
 } from './runtime-agent-scoped-binding.js';
 
 const APP_ID = 'nimi.zhiyu';
+const LOCAL_AGENT_ID_PATTERN = /^local-agent:runtime-[0-9a-f]{32}$/u;
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -28,10 +28,16 @@ const preloadPath = path.join(currentDir, 'preload.cjs');
 const windowIconPath = path.join(currentDir, 'app-icon.png');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
-const rendererUrl = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
-const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
-  || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT)
-  || '127.0.0.1:46371';
+const rendererUrl = readArgument('--nimi-dev-renderer-url')
+  || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
+const isLocalDevelopmentBuild = Boolean(readArgument('--nimi-dev-renderer-url'));
+const localDevelopmentAgentId = readArgument('--nimi-dev-agent-id');
+if (isLocalDevelopmentBuild && !LOCAL_AGENT_ID_PATTERN.test(localDevelopmentAgentId)) {
+  throw new Error('Zhiyu local-development Agent selector is missing or invalid.');
+}
+if (!isLocalDevelopmentBuild && localDevelopmentAgentId) {
+  throw new Error('Zhiyu local-development Agent selector is forbidden outside local development.');
+}
 let mainWindow: BrowserWindow | undefined;
 
 app.setName('织羽 Zhiyu');
@@ -49,39 +55,44 @@ localAssetProtocolHost.registerPrivilegedSchemes();
 void app.whenReady().then(async () => {
   const standardDataRoot = resolveStandardDataRoot();
   localAssetProtocolHost.registerProtocolHandler();
-  registerZhiyuAvatarLaunchHandoffBridge({
-    ipcMain,
-    dataRoot: standardDataRoot,
-    runtimeEndpoint,
-    isAllowedRendererUrl: isZhiyuRendererUrl,
-  });
-  registerNimiElectronRuntimeBridge({
-    appId: APP_ID,
-    runtimeEndpoint,
-    allowedOrigins: allowedRendererOrigins(),
-    allowedRendererUrls: allowedRendererUrls(),
-    ipcMain,
-    trustedRuntimeMetadataProvider: createZhiyuElectronTrustedRuntimeMetadataProvider({
+  if (isLocalDevelopmentBuild) {
+    registerNimiElectronAppBridge({
+      appId: APP_ID,
+      allowedRendererUrls: allowedRendererUrls(),
+      ipcMain,
+    });
+  } else {
+    const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
+      || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT)
+      || '127.0.0.1:46371';
+    registerZhiyuAvatarLaunchHandoffBridge({
+      ipcMain,
+      dataRoot: standardDataRoot,
+      runtimeEndpoint,
+      isAllowedRendererUrl: isZhiyuRendererUrl,
+    });
+    registerNimiElectronRuntimeBridge({
       appId: APP_ID,
       runtimeEndpoint,
-    }),
-    standardShellHost: {
-      allowAllStandardShellCommands: true,
-      standardDataRootBinding: resolveStandardDataRootBinding(),
-      localAssetRoots: resolveLocalAssetRoots(standardDataRoot),
-      localAssetProtocolHost,
-      openFileDialog: openZhiyuStandardFileDialog,
-      runtimeTrustedCaller: {
-        mode: resolveRuntimeTrustedCallerMode(),
+      allowedOrigins: allowedRendererOrigins(),
+      allowedRendererUrls: allowedRendererUrls(),
+      ipcMain,
+      standardShellHost: {
+        allowAllStandardShellCommands: true,
+        runtimeTrustedCaller: { mode: 'local-first-party-app' as const },
+        standardDataRootBinding: resolveStandardDataRootBinding(),
+        localAssetRoots: resolveLocalAssetRoots(standardDataRoot),
+        localAssetProtocolHost,
+        openFileDialog: openZhiyuStandardFileDialog,
       },
-    },
-    commandHandlers: {
-      [ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND]: createZhiyuRuntimeAgentScopedBindingCommandHandler({
-        appId: APP_ID,
-        runtimeEndpoint,
-      }),
-    },
-  });
+      commandHandlers: {
+        [ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND]: createZhiyuRuntimeAgentScopedBindingCommandHandler({
+          appId: APP_ID,
+          runtimeEndpoint,
+        }),
+      },
+    });
+  }
 
   await createMainWindow();
 
@@ -104,12 +115,12 @@ app.on('window-all-closed', () => {
 
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
-    width: 1280,
-    height: 860,
-    minWidth: 980,
-    minHeight: 720,
+    width: isLocalDevelopmentBuild ? 1060 : 1280,
+    height: isLocalDevelopmentBuild ? 780 : 860,
+    minWidth: isLocalDevelopmentBuild ? 360 : 980,
+    minHeight: isLocalDevelopmentBuild ? 640 : 720,
     icon: windowIconPath,
-    title: '织羽 Zhiyu',
+    title: isLocalDevelopmentBuild ? '知语 · 开发内核联调' : '织羽 Zhiyu',
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
@@ -257,18 +268,11 @@ function resolveStandardDataRootBinding(): NimiElectronStandardDataRootBinding {
   return { source: 'runtime-get-app-storage' };
 }
 
-function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode {
-  const mode = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE) || 'local-first-party-app';
-  if (
-    mode === 'local-developer-app'
-    || mode === 'local-first-party-app'
-    || mode === 'desktop-shell'
-  ) {
-    return mode;
-  }
-  throw new Error(`unsupported zhiyu Electron Runtime trusted caller mode: ${mode}`);
-}
-
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function readArgument(name: string): string {
+  const prefix = `${name}=`;
+  return normalizeText(process.argv.find((argument) => argument.startsWith(prefix))?.slice(prefix.length));
 }

@@ -69,6 +69,80 @@ func (store *PrincipalStore) Get(ctx context.Context, principalID string) (Princ
 		FROM local_app_principals WHERE local_os_user_anchor = ? AND local_app_principal_id = ?`, store.kernel.anchor, principalID))
 }
 
+// GetByDevelopmentAuthorizationID resolves only the Runtime-owned development
+// lineage identifier. It deliberately has no app-id fallback and returns the
+// retained tombstone when the exact admission instance has been retired.
+func (store *PrincipalStore) GetByDevelopmentAuthorizationID(ctx context.Context, authorizationID string) (Principal, error) {
+	if store == nil || store.kernel == nil {
+		return Principal{}, fmt.Errorf("%w: principal store", ErrInvalidArgument)
+	}
+	if err := requireExactText("development_authorization_id", authorizationID); err != nil {
+		return Principal{}, err
+	}
+	rows, err := store.kernel.db.QueryContext(ctx, `SELECT
+		local_os_user_anchor, local_app_principal_id, principal_kind, app_id,
+		immutable_lineage_id, development_authorization_id, canonical_project_file_id,
+		state, created_unix_nano, tombstoned_unix_nano
+		FROM local_app_principals WHERE local_os_user_anchor = ? AND development_authorization_id = ?`, store.kernel.anchor, authorizationID)
+	if err != nil {
+		return Principal{}, fmt.Errorf("query local-app development principal: %w", err)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return Principal{}, fmt.Errorf("read local-app development principal: %w", err)
+		}
+		return Principal{}, ErrNotFound
+	}
+	principal, err := scanPrincipal(rows)
+	if err != nil {
+		return Principal{}, err
+	}
+	if rows.Next() {
+		return Principal{}, fmt.Errorf("%w: duplicate development authorization id", ErrStateConflict)
+	}
+	if err := rows.Err(); err != nil {
+		return Principal{}, fmt.Errorf("read local-app development principal: %w", err)
+	}
+	return principal, nil
+}
+
+// ListDevelopment returns the partition-local development principals used by
+// Runtime startup reconciliation. It is not an app-id lookup and cannot be
+// used as a positive authorization fallback.
+func (store *PrincipalStore) ListDevelopment(ctx context.Context, includeTombstoned bool) ([]Principal, error) {
+	if store == nil || store.kernel == nil {
+		return nil, fmt.Errorf("%w: principal store", ErrInvalidArgument)
+	}
+	query := `SELECT
+		local_os_user_anchor, local_app_principal_id, principal_kind, app_id,
+		immutable_lineage_id, development_authorization_id, canonical_project_file_id,
+		state, created_unix_nano, tombstoned_unix_nano
+		FROM local_app_principals
+		WHERE local_os_user_anchor = ? AND principal_kind = 'development'`
+	if !includeTombstoned {
+		query += ` AND state = 'active'`
+	}
+	query += ` ORDER BY created_unix_nano, local_app_principal_id`
+	rows, err := store.kernel.db.QueryContext(ctx, query, store.kernel.anchor)
+	if err != nil {
+		return nil, fmt.Errorf("list local-app development principals: %w", err)
+	}
+	defer rows.Close()
+	principals := make([]Principal, 0)
+	for rows.Next() {
+		principal, scanErr := scanPrincipal(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		principals = append(principals, principal)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read local-app development principals: %w", err)
+	}
+	return principals, nil
+}
+
 // Tombstone permanently retires the principal and removes its current
 // lifecycle record. Existing grant rows remain historical K-GRANT truth and
 // cannot authorize because all positive grant reads require an active principal.

@@ -147,7 +147,6 @@ export async function materializeRealmSourceLocalAgent(
     getRuntime: () => ({
       appId: getDesktopAppId(),
       auth: getDesktopAccountRuntime().auth,
-      appAuth: getDesktopAccountRuntime().grants,
       agent: getDesktopRuntime().agents,
     }),
     getSubjectUserId: () => ownerUserId,

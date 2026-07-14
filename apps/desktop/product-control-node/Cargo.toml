@@ -1,0 +1,20 @@
+[package]
+name = "nimi-desktop-product-control-node"
+version = "0.1.0"
+edition = "2021"
+description = "Private Node-API projection of the shared Desktop first-run evidence core."
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+napi = { version = "3", features = ["napi8", "serde-json"] }
+napi-derive = "3"
+nimi-desktop-product-control-core = { path = "../product-control-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+napi-build = "2"

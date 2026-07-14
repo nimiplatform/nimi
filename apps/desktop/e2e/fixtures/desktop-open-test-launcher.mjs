@@ -14,10 +14,10 @@ export const DESKTOP_OPEN_TEST_HOSTS = [
     hostClass: 'generic-standard-shell',
   },
   {
-    rowId: 'owner.installed-app-source-host',
-    sourceHost: 'desktop-electron-installed-app-host',
+    rowId: 'owner.local-app-source-host',
+    sourceHost: 'desktop-electron-local-app-host',
     appId: DESKTOP_OPEN_TEST_LAUNCHER_APP_ID,
-    hostClass: 'installed-nimi-app-standard-shell-v1',
+    hostClass: 'local-app-standard-shell-v1',
   },
 ];
 

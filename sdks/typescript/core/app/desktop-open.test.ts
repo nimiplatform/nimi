@@ -15,7 +15,7 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
   {
     schemaVersion: 1,
     sourceApp: 'nimi.zhiyu',
-    sourceHost: 'desktop-electron-installed-app-host',
+    sourceHost: 'desktop-electron-local-app-host',
     requestId: 'desktop-open-20260708-0001',
     intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
   },

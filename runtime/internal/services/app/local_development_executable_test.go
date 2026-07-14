@@ -14,7 +14,7 @@ import (
 )
 
 func TestLocalDevelopmentFailureStageIsStructuredAndNonSensitive(t *testing.T) {
-	err := localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED, "host-executable")
+	err := localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "host-executable")
 	metadata, ok := grpcerr.ExtractReasonMetadata(err)
 	if !ok || metadata["diagnostic_stage"] != "host-executable" {
 		t.Fatalf("diagnostic stage metadata = %#v, %v", metadata, ok)

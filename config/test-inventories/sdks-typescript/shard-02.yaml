@@ -209,31 +209,43 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-RUNTIME-015
-  - path: sdks/typescript/runtime/live-provider-smoke.test.ts
+  - path: sdks/typescript/runtime/public-credential-grant-hardcut.test.ts
     owner: sdks
-    classification: live_provider_proof
-    tier: T7
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - S-GATE-080
+      - S-TRANSPORT-010
   - path: sdks/typescript/runtime/live-runtime-daemon.test-helper.ts
     owner: sdks
-    classification: live_provider_proof
-    tier: T7
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
+      - S-TRANSPORT-010
+    note: process-exit and cleanup race diagnostics only; direct-daemon startup is absent
+  - path: sdks/typescript/runtime/live-runtime-daemon.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-TRANSPORT-010
   - path: sdks/typescript/runtime/local-agent-contract-wire-enums.test.ts
     owner: sdks
     classification: behavior_unit
@@ -257,17 +269,6 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-RUNTIME-119
-  - path: sdks/typescript/runtime/local-first-party-agent-presentation.test.ts
-    owner: sdks
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
   - path: sdks/typescript/runtime/memory-embedding.test.ts
     owner: sdks
     classification: contract_conformance
@@ -376,18 +377,6 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-RUNTIME-074
-  - path: sdks/typescript/runtime/runtime-agent-ai-config-live-acceptance.test.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
   - path: sdks/typescript/runtime/runtime-agent-ai-config.test.ts
     owner: sdks
     classification: contract_conformance
@@ -558,109 +547,6 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-RUNTIME-107
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-scenarios.test-helper.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-routes.test-helper.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-shared.test-helper.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-source-packet.test-helper.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
-    note: live proof helper; classified with the live Runtime fixture consumer
-  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test.ts
-    owner: sdks
-    classification: live_provider_proof
-    tier: T7
-    authority_claim: false
-    deterministic: true
-    offline: false
-    may_enter_regression_gate: never
-    may_enter_release_gate: after_env_evidence
-    spec_refs:
-      - P-TEST-001
-      - S-GATE-080
   - path: sdks/typescript/runtime/runtime-agent-materialization.test.ts
     owner: sdks
     classification: behavior_unit

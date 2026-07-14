@@ -82,14 +82,14 @@ test('desktop bootstrap reads Runtime account projection and has no shared-auth 
   assert.doesNotMatch(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
 });
 
-test('web auth adapter stores browser metadata instead of calling shared desktop session persistence in web mode', () => {
+test('web auth adapter is Web-owned and stores browser metadata without shared desktop session persistence', () => {
   const desktopAuthAdapterSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
+    path.join(import.meta.dirname, '../../web/src/desktop-adapter/web-auth-adapter.ts'),
     'utf8',
   );
   assert.match(
     desktopAuthAdapterSource,
-    /if \(isWebShellMode\(\)\) \{\s*const updatedAt = new Date\(\)\.toISOString\(\);\s*persistAuthSessionMetadata\(\{\s*user,\s*updatedAt,\s*expiresAt: resolveSessionExpiry\(accessToken, updatedAt\),\s*\}\);\s*return;\s*\}/s,
+    /const updatedAt = new Date\(\)\.toISOString\(\);\s*persistAuthSessionMetadata\(\{\s*user,\s*updatedAt,\s*expiresAt: resolveSessionExpiry\(accessToken, updatedAt\),\s*\}\);/s,
   );
   assert.doesNotMatch(
     desktopAuthAdapterSource,
@@ -97,9 +97,10 @@ test('web auth adapter stores browser metadata instead of calling shared desktop
   );
   assert.match(
     desktopAuthAdapterSource,
-    /if \(isWebShellMode\(\)\) \{\s*clearPersistedAccessToken\(\);\s*return;\s*\}/s,
+    /clearPersistedSession: async \(\) => \{\s*clearPersistedAccessToken\(\);\s*\}/s,
   );
-  assert.match(desktopAuthAdapterSource, /restoreSession: async \(\) => localFirstPartyBlocked\('restoreSession'\)/);
+  assert.doesNotMatch(desktopAuthAdapterSource, /isWebShellMode|localFirstPartyBlocked/);
+  assert.match(desktopAuthAdapterSource, /Web auth session restore requires browser-owned session authority/);
   assert.doesNotMatch(desktopAuthAdapterSource, /realm\.services\.AuthService\.refreshToken\(\)/);
 });
 

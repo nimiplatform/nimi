@@ -31,7 +31,7 @@ func TestWindowsRuntimeStartupExitCodesAreStableAndUnique(t *testing.T) {
 		windowsRuntimeStartupStateRoot,
 		windowsRuntimeStartupSecurityState,
 		windowsRuntimeStartupDesktopListener,
-		windowsRuntimeStartupInstalledListener,
+		windowsRuntimeStartupLocalAppListener,
 		windowsRuntimeStartupFixtureCustody,
 		windowsRuntimeStartupConfiguration,
 		windowsRuntimeStartupDaemon,

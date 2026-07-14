@@ -545,13 +545,21 @@ async function checkScenarioExecutionRequiresTargetRef() {
     fail('Runtime-backed SDK embedding client must require and serialize v2 targetRef into ScenarioRequestHead');
   }
 
-  const sdkGoldRunner = await read('scripts/ai-gold-path/sdk-vnext-runner.ts');
-  if (!/function\s+runtimeTargetForFixture/u.test(sdkGoldRunner)
-    || !/\bREMOTE_MODEL_CATALOG_ID\b/u.test(sdkGoldRunner)
-    || !/\bCONNECTOR_ID\b/u.test(sdkGoldRunner)
-    || !/targetRef:\s*target\.aiConfig/u.test(sdkGoldRunner)
-    || !/targetRef:\s*target\.runtime/u.test(sdkGoldRunner)) {
-    fail('SDK vNext gold runner must materialize explicit v2 runtime targetRef for SDK and ScenarioRequestHead calls');
+  const runtimeLiveMatrix = await read('runtime/internal/services/ai/live_provider_smoke_matrix_test.go');
+  if (!/TestLiveSmokeCloudScenarioHeadUsesManagedCatalogTargetRef/u.test(runtimeLiveMatrix)
+    || !/head\.TargetRef\s*=\s*cloudScenarioTargetRefForDescriptor\(h\.connectorID,\s*descriptor\)/u.test(runtimeLiveMatrix)
+    || !/cloud\.GetRemoteModelCatalogId\(\)/u.test(runtimeLiveMatrix)
+    || !/cloud\.GetProviderModelId\(\)/u.test(runtimeLiveMatrix)) {
+    fail('Runtime live provider owner must prove managed-catalog durable targetRef construction');
+  }
+
+  const runtimeTargetHelpers = await read('runtime/internal/services/ai/scenario_contract_test_helpers_test.go');
+  if (!/RuntimeDurableTargetRef_Cloud/u.test(runtimeTargetHelpers)
+    || !/ConnectorId:\s*connectorID/u.test(runtimeTargetHelpers)
+    || !/RemoteModelCatalogId:\s*remoteModelCatalogID/u.test(runtimeTargetHelpers)
+    || !/ProviderModelId:\s*providerModelID/u.test(runtimeTargetHelpers)
+    || !/cloudScenarioTargetRefForDescriptor/u.test(runtimeTargetHelpers)) {
+    fail('Runtime scenario contract tests must construct typed v2 cloud targetRef from managed connector descriptors');
   }
 
   const sdkRunnerSmoke = await read('scripts/check-sdk-vnext-ai-runner-consumer-smoke.mjs');

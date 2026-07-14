@@ -6,7 +6,7 @@ import {
   registerNimiElectronRuntimeBridge,
 } from '../src/main/index.js';
 import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_COMMANDS,
 } from '@nimiplatform/kit/shell/capabilities';
 import {
@@ -19,7 +19,7 @@ import {
 const nowIso = '2026-07-08T00:00:05.000Z';
 
 describe('Electron Desktop Open Intent host client', () => {
-  it('denies Desktop Open for installed app hosts before A.1', async () => {
+  it('denies Desktop Open for local-app hosts until separately admitted', async () => {
     await withTempDir('desktop-open', async (dir) => {
       const descriptorPath = path.join(dir, 'presence.v1.json');
       await writeDescriptor(descriptorPath, {
@@ -39,7 +39,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
-          capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
           desktopOpen: {
             descriptorPath,
             now: () => Date.parse(nowIso),
@@ -145,7 +145,7 @@ describe('Electron Desktop Open Intent host client', () => {
     });
   });
 
-  it('denies installed app source-host fixtures before A.1', async () => {
+  it('denies local-app source-host overrides before dispatch', async () => {
     await withTempDir('desktop-open-installed-sourcehost-override', async (dir) => {
       const descriptorPath = path.join(dir, 'presence.v1.json');
       await writeDescriptor(descriptorPath, {
@@ -157,7 +157,7 @@ describe('Electron Desktop Open Intent host client', () => {
       let postedSourceHost = '';
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
-        appId: 'nimi.installed',
+        appId: 'nimi.local-app-fixture',
         runtimeEndpoint: '127.0.0.1:46371',
         allowedOrigins: ['http://localhost:1430'],
         ipcMain,
@@ -165,7 +165,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
-          capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
           desktopOpen: {
             descriptorPath,
             sourceHost: 'electron-standard-shell',

@@ -1,4 +1,4 @@
-import { convertTauriFileSrc, writeShellArtifact } from '@nimiplatform/kit/shell/renderer/bridge';
+import { createNimiError } from '@nimiplatform/sdk/types';
 
 export type TesterArtifactSaveResult = {
   artifactPath: string;
@@ -8,50 +8,17 @@ export type TesterArtifactSaveResult = {
   previewUrl: string;
 };
 
-function parseBase64DataUrl(dataUrl: string): { mimeType?: string; dataBase64: string } {
-  const match = dataUrl.match(/^data:([^;,]+)?;base64,(.*)$/s);
-  if (!match) {
-    throw new Error('TESTER_ARTIFACT_DATA_URL_UNSUPPORTED: expected a base64 data URL');
-  }
-  const mimeType = match[1]?.trim() || undefined;
-  const dataBase64 = match[2]?.trim() || '';
-  if (!dataBase64) {
-    throw new Error('TESTER_ARTIFACT_DATA_URL_EMPTY: data URL payload is empty');
-  }
-  return { mimeType, dataBase64 };
-}
-
-function sanitizeArtifactFilename(filename: string): string {
-  const normalized = filename
-    .trim()
-    .split('')
-    .map((char) => (/[a-zA-Z0-9._-]/u.test(char) ? char : '-'))
-    .join('');
-  const collapsed = normalized.split('-').filter(Boolean).join('-');
-  const trimmed = collapsed.replace(/^\.+|\.+$/gu, '').replace(/^-+|-+$/gu, '');
-  if (!trimmed || trimmed === '.' || trimmed === '..') {
-    return 'nimi-tester-artifact';
-  }
-  return trimmed.slice(0, 180);
-}
-
-export async function saveTesterArtifact(input: {
+export async function saveTesterArtifact(_input: {
   filename: string;
   mimeType?: string;
   dataUrl: string;
 }): Promise<TesterArtifactSaveResult> {
-  const parsed = parseBase64DataUrl(input.dataUrl);
-  const filename = sanitizeArtifactFilename(input.filename);
-  const result = await writeShellArtifact({
-    relativePath: `artifacts/${filename}`,
-    mimeType: input.mimeType || parsed.mimeType,
-    dataBase64: parsed.dataBase64,
+  throw createNimiError({
+    message: 'Artifact materialization is not admitted by the 0K local-app carrier; only protected Runtime artifact readback is available.',
+    code: 'capability-unavailable',
+    reasonCode: 'TESTER_LOCAL_APP_ARTIFACT_WRITE_UNAVAILABLE',
+    actionHint: 'use_runtime_artifact_read_or_await_artifact_write_admission',
+    retryable: false,
+    source: 'sdk',
   });
-  return {
-    artifactPath: result.path,
-    filename,
-    byteSize: result.byteSize,
-    mimeType: result.mimeType || input.mimeType || parsed.mimeType,
-    previewUrl: convertTauriFileSrc(result.path),
-  };
 }

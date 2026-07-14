@@ -182,7 +182,7 @@ test('built-in AIConfig renderer init waits for Runtime account projection and p
     /initializeBuiltInChatScopeFromProductControl|createBuiltInChatAIScopeRef/,
     'runtime slice construction must not call Runtime-owned built-in AIConfig init before account projection exists',
   );
-  const accountProjectionIndex = rendererRuntimeBootstrapSource.indexOf('const accountProjection = accountStatus.accountProjection;');
+  const accountProjectionIndex = rendererRuntimeBootstrapSource.indexOf('const accountProjection = accountStatus?.accountProjection;');
   const productGateIndex = rendererRuntimeBootstrapSource.indexOf('initializeBuiltInChatScopesAfterReadyAdmission(flowId)');
   const initIndex = rendererRuntimeBootstrapSource.indexOf('initializeBuiltInChatScopesFromProductControl()');
   const watcherIndex = rendererRuntimeBootstrapSource.indexOf('startAuthStateWatcher();');

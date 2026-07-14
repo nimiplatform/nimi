@@ -345,9 +345,9 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
 
     assertTauriIconSupport(generated);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
-    assert.match(runtimePlatform, /getInstalledNimiAppBootstrap/);
-    assert.match(runtimePlatform, /bootstrap\.appHost\.bootstrap\(\)/);
-    assert.match(runtimePlatform, /bootstrap\.artifacts\.readRuntimeBytes/);
+    assert.match(runtimePlatform, /getNimiAppRuntimePlatformClient/);
+    assert.match(runtimePlatform, /\.auth\.status\(\)/);
+    assert.match(runtimePlatform, /status\.state !== 'session-bound-zero-grant'/);
     assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
     assert.doesNotMatch(runtimePlatform, /createNimiClient|developerRegistration|developer-registered-local-app/);
     assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
@@ -372,13 +372,20 @@ test('tester-reference scaffold keeps the full proof app explicit', () => {
     assert.equal(packageJson.devDependencies.playwright, versions.playwrightVersion);
     assert.match(generated.read('nimi.app.yaml'), /profile: tester-reference/);
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
-    assert.match(generated.read('src/tester/tester-runtime.ts'), /artifacts\.readRuntimeBytes only/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+    assert.match(generated.read('src/tester/tester-runtime.ts'), /Only the eight typed local-app carrier operations are admitted/);
+    const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
+    const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
+    assert.match(runtimePlatform, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+    assert.match(runtimePlatform, /operationAllowed/);
+    assert.match(localAppPlatform, /createNimiAppRuntimePlatformClient/);
+    assert.match(localAppPlatform, /createNimiLocalAppStandardShellSurface/);
+    assert.match(localAppPlatform, /testerLocalAppRuntimePlatform\.artifacts\.readRuntimeBytes/);
+    assert.doesNotMatch(runtimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
     assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
     assert.match(generated.read('src-tauri/src/main.rs'), /world_tour/);
     assert.match(generated.read('src-electron/main.ts'), /APP_ID = 'acme\.widget'/);
     assertGeneratedPathExists(generated, 'src/tester/tester-standard-storage.ts');
+    assertGeneratedPathExists(generated, 'src/shell/local-app-runtime-platform.ts');
     assertGeneratedPathExists(generated, 'test/electron-acceptance.mjs');
     assertGeneratedPathMissing(generated, 'scripts/run-electron-dev.mjs');
     assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
@@ -1348,23 +1355,23 @@ test('generated scaffold mechanically excludes forbidden shortcuts', () => {
   }
 });
 
-test('default profiles generate installed-app skeleton boundaries without tester or fixture truth', () => {
+test('default profiles generate local-app carrier boundaries without tester or fixture truth', () => {
   for (const profile of ['standalone', 'workspace-app']) {
     const generated = scaffold(profile);
     try {
       const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
-      const installedBootstrap = generated.read('src/shell/auth/installed-app-bootstrap.ts');
+      const localAppClient = generated.read('src/shell/auth/local-app-client.ts');
       const authGate = generated.read('src/shell/auth/auth-gate.tsx');
       const main = generated.read('src/main.tsx');
-      const joined = [runtimePlatform, installedBootstrap, authGate, main].join('\n');
+      const joined = [runtimePlatform, localAppClient, authGate, main].join('\n');
 
       assert.doesNotMatch(runtimePlatform, /developer-registered-local-app|developerRegistration/, `${profile} must not retain developer registration`);
-      assert.match(runtimePlatform, /'third-party-nimi-app'/, `${profile} keeps the app-host mode`);
-      assert.match(runtimePlatform, /getInstalledNimiAppBootstrap/, `${profile} must consume app-host bootstrap`);
-      assert.match(installedBootstrap, /createInstalledNimiAppBootstrap/, `${profile} must consume the SDK installed owner surface`);
-      assert.match(installedBootstrap, /createInstalledNimiAppStandardShellSurface/, `${profile} must compose the Kit standard shell`);
-      assert.match(runtimePlatform, /readRuntimeBytes\(status\.bootstrapArtifactId\)/, `${profile} must prove the admitted artifact read`);
-      assert.doesNotMatch(runtimePlatform, /createNimiClient|RuntimeOptions|runtime\.account|runtime\.ai/i, `${profile} must keep non-artifact operations absent`);
+      assert.match(runtimePlatform, /'local-app'/, `${profile} keeps the final local-app mode`);
+      assert.match(runtimePlatform, /getNimiAppRuntimePlatformClient/, `${profile} must consume the final SDK client`);
+      assert.match(localAppClient, /createNimiAppRuntimePlatformClient/, `${profile} must consume the SDK local-app owner surface`);
+      assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/, `${profile} must compose the Kit local-app shell`);
+      assert.match(runtimePlatform, /status\.state !== 'session-bound-zero-grant'/, `${profile} must distinguish a bound zero-grant session`);
+      assert.doesNotMatch(runtimePlatform, /createNimiClient|RuntimeOptions|runtime\.account|runtime\.ai|bootstrapArtifact/i, `${profile} must keep non-carrier operations absent`);
 
       for (const forbidden of [
         'launchNonce',

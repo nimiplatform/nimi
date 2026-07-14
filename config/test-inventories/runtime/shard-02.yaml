@@ -225,17 +225,6 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: runtime/internal/entrypoint/runtime_grant_client_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
   - path: runtime/internal/entrypoint/runtime_http_test.go
     owner: runtime
     classification: behavior_unit
@@ -336,17 +325,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: runtime/internal/ggufmeta/ggufmeta_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/grantlifecycle/state_machine_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4

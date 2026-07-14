@@ -158,17 +158,6 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/desktop-electron-runtime-auth.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
   - path: apps/desktop/test/desktop-first-run-finalization.test.ts
     owner: desktop
     classification: behavior_unit
@@ -180,29 +169,6 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/desktop/test/desktop-installed-app-launch-resolution.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/desktop/test/desktop-installed-app-launcher.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
   - path: apps/desktop/test/desktop-macos-smoke-basic.test.ts
     owner: desktop
     classification: behavior_unit
@@ -520,18 +486,6 @@ tests:
       - P-TEST-001
     sentinel_purpose: forbidden_copy
   - path: apps/desktop/test/desktop-wallet-hidden-surface.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/developer-mode-runtime-sync.test.ts
     owner: desktop
     classification: source_regex_sentinel
     tier: T3

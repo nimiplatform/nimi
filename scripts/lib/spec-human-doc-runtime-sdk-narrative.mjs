@@ -409,7 +409,7 @@ IPC 层的基础设施先于具体命令。统一的 \`invoke()\` 入口先检�
   d.blank();
   d.rule('D-IPC-003');
 
-  d.text(`**HTTP 代理命令** — \`http_request\` 代理所有 HTTP 请求通过 Tauri 后端，绕过 CORS。**UI 命令** — \`open_external_url\`、\`start_window_drag\`。**OAuth 命令** — \`oauth_token_exchange\` 和 \`oauth_listen_for_code\`，支持 PKCE 和 clientSecret 两种模式：`);
+  d.text(`**HTTP 代理命令** — \`http_request\` 不是认证 Runtime/Realm/provider transport。**UI 命令** — \`open_external_url\`、\`start_window_drag\`。**OAuth 命令** — Desktop 只保留 \`oauth_listen_for_code\` callback observation；code exchange、PKCE verifier、client secret 与 token custody 均由 Runtime 持有：`);
   d.blank();
   d.rule('D-IPC-004');
   d.rule('D-IPC-005');

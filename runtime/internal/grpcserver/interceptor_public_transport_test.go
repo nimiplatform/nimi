@@ -12,7 +12,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
-	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -31,10 +30,21 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 		{method: "/nimi.runtime.v1.RuntimeAccountService/BeginLogin", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
-		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
-		{method: "/nimi.runtime.v1.RuntimeAppService/InstallApp", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
-		{method: "/nimi.runtime.v1.RuntimeAppService/OpenApp", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
-		{method: "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/InstallApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/UninstallApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/UpdateApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
@@ -59,7 +69,11 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 			if resp != nil || handlerCalled {
 				t.Fatalf("protected method reached handler: response=%+v called=%v", resp, handlerCalled)
 			}
-			if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != test.reason.String() {
+			wantCode := codes.PermissionDenied
+			if test.reason == runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+				wantCode = codes.Unimplemented
+			}
+			if status.Code(err) != wantCode || status.Convert(err).Message() != test.reason.String() {
 				t.Fatalf("unexpected denial: code=%v reason=%q err=%v", status.Code(err), status.Convert(err).Message(), err)
 			}
 		})
@@ -73,6 +87,7 @@ func TestA0OrdinaryGRPCRejectsProtectedStreamsBeforeHandler(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		"/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+		"/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
 	} {
 		handlerCalled := false
 		stream := &authzTestStream{ctx: context.Background()}
@@ -80,7 +95,11 @@ func TestA0OrdinaryGRPCRejectsProtectedStreamsBeforeHandler(t *testing.T) {
 			handlerCalled = true
 			return nil
 		})
-		if handlerCalled || status.Code(err) != codes.PermissionDenied {
+		wantCode := codes.PermissionDenied
+		if method == "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents" {
+			wantCode = codes.Unimplemented
+		}
+		if handlerCalled || status.Code(err) != wantCode {
 			t.Fatalf("protected stream %s was not denied before handler: called=%v err=%v", method, handlerCalled, err)
 		}
 	}
@@ -109,9 +128,9 @@ func TestA0PublicTransportGateCoversCanonicalProtectedMatrix(t *testing.T) {
 			if !blocked {
 				t.Fatalf("canonical public deny is not enforced: %s", row.MethodID)
 			}
-			want := runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH
-			if len(row.AllowedTransportClasses) > 0 && !containsTransportClass(row.AllowedTransportClasses, "installed_host") {
-				want = runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED
+			want := runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED
+			if containsTransportClass(row.AllowedTransportClasses, "local_app_bootstrap") || containsTransportClass(row.AllowedTransportClasses, "local_app_host") {
+				want = runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH
 			}
 			if reason != want {
 				t.Fatalf("canonical public denial reason mismatch for %s: got=%v want=%v", row.MethodID, reason, want)
@@ -170,8 +189,7 @@ func TestA0OrdinaryGRPCLeavesBindingOnlyBootstrapReachable(t *testing.T) {
 }
 
 func TestA0BindingOnlySessionCannotExecuteAIWithPortableMetadata(t *testing.T) {
-	authorizer := grantservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	interceptor := newUnaryAuthzInterceptor(authorizer)
+	interceptor := newUnaryAuthzInterceptor(protectedCarrierOnlyCapabilityAuthorizer{})
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-app-id", "community.example.binding-only",
 		"x-nimi-session-id", "binding-only-session",
@@ -201,7 +219,6 @@ func TestA0PublicTransportHardcutOverRealGRPC(t *testing.T) {
 	server := grpc.NewServer(grpc.UnaryInterceptor(newUnaryPublicTransportInterceptor()))
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authservice.New(logger))
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountservice.New(logger))
-	runtimev1.RegisterRuntimeGrantServiceServer(server, grantservice.New(logger))
 	runtimev1.RegisterRuntimeAppServiceServer(server, &a0PublicTransportAppService{})
 	go func() {
 		_ = server.Serve(listener)
@@ -259,8 +276,8 @@ func TestA0PublicTransportHardcutOverRealGRPC(t *testing.T) {
 			_, callErr := authClient.OpenDesktopSession(bindingContext, &runtimev1.OpenDesktopSessionRequest{})
 			return callErr
 		}},
-		{name: "AuthorizeExternalPrincipal", call: func() error {
-			_, callErr := runtimev1.NewRuntimeGrantServiceClient(conn).AuthorizeExternalPrincipal(bindingContext, &runtimev1.AuthorizeExternalPrincipalRequest{})
+		{name: "OpenLocalAppSession", call: func() error {
+			_, callErr := authClient.OpenLocalAppSession(bindingContext, &runtimev1.OpenLocalAppSessionRequest{})
 			return callErr
 		}},
 		{name: "InstallApp", call: func() error {
@@ -271,8 +288,12 @@ func TestA0PublicTransportHardcutOverRealGRPC(t *testing.T) {
 	for _, call := range calls {
 		t.Run(call.name, func(t *testing.T) {
 			err := call.call()
-			if status.Code(err) != codes.PermissionDenied {
-				t.Fatalf("real gRPC call was not denied: code=%v err=%v", status.Code(err), err)
+			wantCode := codes.PermissionDenied
+			if call.name == "InstallApp" {
+				wantCode = codes.Unimplemented
+			}
+			if status.Code(err) != wantCode {
+				t.Fatalf("real gRPC call was not denied: code=%v want=%v err=%v", status.Code(err), wantCode, err)
 			}
 		})
 	}

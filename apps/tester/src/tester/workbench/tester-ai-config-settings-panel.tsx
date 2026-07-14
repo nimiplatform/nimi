@@ -5,7 +5,7 @@ import type { TesterRuntimeInspection } from '../tester-runtime.js';
 import {
   createTesterAIConfigService,
   createTesterAppLabAIScopeRef,
-  hydrateTesterAIConfigFromStandardShell,
+  requireTesterAIConfigAdmission,
   importTesterAIProfileJson,
 } from '../tester-ai-config-store.js';
 import { createTesterRuntimeModelPickerProviderCache } from '../tester-runtime-model-provider.js';
@@ -112,7 +112,7 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
   useEffect(() => {
     let cancelled = false;
     setHydration({ status: 'loading', message: null });
-    void hydrateTesterAIConfigFromStandardShell(scopeRef)
+    void requireTesterAIConfigAdmission(scopeRef)
       .then(() => {
         if (!cancelled) {
           setHydration({ status: 'ready', message: null });

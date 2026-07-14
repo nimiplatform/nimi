@@ -51,6 +51,8 @@ Available macros:
 
 - `nimi_shell_tauri_runtime_bridge_handler!`
 - `nimi_shell_tauri_oauth_runtime_bridge_handler!`
+- `nimi_shell_tauri_local_app_standard_shell_handler!` (the isolated eight-operation
+  Local App carrier only)
 
 The command catalog is also exposed through
 `nimi_shell_tauri::command_registration` for tests, audits, and apps that need

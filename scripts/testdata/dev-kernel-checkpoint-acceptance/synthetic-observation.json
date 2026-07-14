@@ -1,0 +1,5 @@
+{
+  "schemaId": "nimi.repository.synthetic-static-observation.v1",
+  "fixtureScope": "Static acceptance-checker contract only; not product evidence.",
+  "outcome": "passed"
+}

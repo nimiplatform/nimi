@@ -93,7 +93,8 @@ assert.equal('createNimiRuntimeInstalledAppSessionMetadataProvider' in runtimeMo
 assert.equal('createNimiDesktopLaunchedNimiAppRuntimeAccountCaller' in runtimeModule, false);
 
 const appModule = await import('@nimiplatform/sdk/app');
-assert.equal(typeof appModule.createInstalledNimiAppBootstrap, 'function');
+assert.equal(typeof appModule.createNimiAppRuntimePlatformClient, 'function');
+assert.equal('createInstalledNimiAppBootstrap' in appModule, false);
 
 const typesModule = await import('@nimiplatform/sdk/types');
 assert.equal(typesModule.ReasonCode.REALM_UNAVAILABLE, 'REALM_UNAVAILABLE');
@@ -108,10 +109,10 @@ import { ScenarioType, type ExecuteScenarioRequest } from '@nimiplatform/sdk/run
 import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
 import { RealmTypedClient, type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
 import {
-  createInstalledNimiAppBootstrap,
   createNimiAppClient,
-  type InstalledNimiAppArtifactBytes,
+  createNimiAppRuntimePlatformClient,
   type NimiAppInventoryEntry,
+  type NimiAppRuntimePlatformStandardShell,
   type NimiAppRow,
 } from '@nimiplatform/sdk/app';
 import { ReasonCode, createNimiError, type JsonObject, type NimiError } from '@nimiplatform/sdk/types';
@@ -174,20 +175,21 @@ const appClient = createNimiAppClient({
   async get(): Promise<NimiAppInventoryEntry> { return appEntry; },
   async status() { return { appId: 'dev.nimi.surface', launchReadiness: 'ready' }; },
 });
-const installedApp = createInstalledNimiAppBootstrap({
-  standardShell: {
-    artifacts: {
-      async readRuntimeBytes(): Promise<InstalledNimiAppArtifactBytes> {
-        return {
-          bytes: new Uint8Array(),
-          mimeType: 'application/octet-stream',
-          sizeBytes: 0,
-          mimeInferred: true,
-        };
-      },
-    },
+const localAppStandardShell: NimiAppRuntimePlatformStandardShell = {
+  session: { async status() { return { state: 'zero-grant', reasonCode: 'grant-required', retryable: false }; } },
+  permission: {
+    async posture() { return {}; },
+    async request() { return {}; },
   },
-});
+  artifacts: { async readRuntimeBytes() { return {}; } },
+  agent: {
+    async openConversation() { return {}; },
+    async sendTurn() { return {}; },
+    async subscribeTurn() { return {}; },
+    async getConversationSnapshot() { return {}; },
+  },
+};
+const localApp = createNimiAppRuntimePlatformClient({ standardShell: localAppStandardShell });
 const error: NimiError = createNimiError({ message: 'x', reasonCode: 'SDK_SURFACE', source: 'sdk' });
 const json: JsonObject = { reasonCode: ReasonCode.REALM_UNAVAILABLE };
 const generatedReason = RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED;
@@ -207,7 +209,7 @@ const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
 const plan = createWorldWorkflowPlan({ planId: 'plan', steps: [{ kind: 'world-core-list' }] });
 const registry = createNimiToolRegistry([]);
 
-void client; void runtime; void realm; void generatedRealm; void appClient; void installedApp; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void grantRow; void message;
+void client; void runtime; void realm; void generatedRealm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void grantRow; void message;
 void manifest; void model; void runner; void plan; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiKnowledgeContextBundle;

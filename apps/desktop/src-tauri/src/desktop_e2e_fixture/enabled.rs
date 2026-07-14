@@ -13,7 +13,6 @@ use prost::Message;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 const E2E_FIXTURE_PATH_ENV: &str = "NIMI_E2E_FIXTURE_PATH";
@@ -34,41 +33,8 @@ struct DesktopE2ETauriFixture {
     runtime_bridge_status: Option<RuntimeBridgeDaemonStatus>,
     desktop_release_info: Option<DesktopReleaseInfo>,
     product_control_record: Option<ProductControlRecord>,
-    app_platform: Option<DesktopE2EAppPlatformFixture>,
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
     macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct DesktopE2EAppPlatformFixture {
-    apps: Option<Vec<DesktopE2EAppPlatformApp>>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct DesktopE2EAppPlatformApp {
-    app_id: String,
-    release_descriptor_ref: String,
-    version: String,
-    sha256: String,
-    artifact_bytes: Option<i64>,
-    runtime_entry_ref: String,
-    storage_policy_ref: String,
-    descriptor_class: String,
-    admission_track: String,
-    source_kind: String,
-    ordinary_visibility: String,
-    shell_capability_set_ref: String,
-    caller_mode: String,
-    launch_nonce: String,
-    product_readiness_claim_allowed: bool,
-    account_state: Option<String>,
-    install_state: Option<String>,
-    package_state: Option<String>,
-    verification_state: Option<String>,
-    open_block_reason: Option<String>,
-    detail: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -435,37 +401,6 @@ fn runtime_first_run_execution_evidence_response(
     ))
 }
 
-fn runtime_authorize_external_principal_response(
-    payload: &RuntimeBridgeUnaryPayload,
-) -> Result<RuntimeBridgeUnaryResult, String> {
-    let request: runtime_bridge_generated::AuthorizeExternalPrincipalRequest =
-        decode_unary_request(payload)?;
-    let subject_user_id = request.subject_user_id.trim();
-    let app_id = request.app_id.trim();
-    if subject_user_id.is_empty() || app_id.is_empty() {
-        return Err("DESKTOP_E2E_RUNTIME_GRANT_PRINCIPAL_REQUIRED".to_string());
-    }
-    Ok(encode_unary_response(
-        runtime_bridge_generated::AuthorizeExternalPrincipalResponse {
-            token_id: format!("e2e-protected-access:{app_id}:{subject_user_id}"),
-            app_id: app_id.to_string(),
-            subject_user_id: subject_user_id.to_string(),
-            external_principal_id: request.external_principal_id,
-            effective_scopes: request.scopes,
-            resource_selectors: request.resource_selectors,
-            consent_ref: None,
-            policy_version: request.policy_version,
-            issued_scope_catalog_version: request.scope_catalog_version,
-            can_delegate: request.can_delegate,
-            expires_at: Some(prost_types::Timestamp {
-                seconds: 1_787_011_200,
-                nanos: 0,
-            }),
-            secret: "e2e-protected-access-secret".to_string(),
-        },
-    ))
-}
-
 pub(super) fn encode_unary_response<Response>(response: Response) -> RuntimeBridgeUnaryResult
 where
     Response: Message,
@@ -529,40 +464,16 @@ pub fn runtime_bridge_unary_override(
             runtime_account_status_response(projection),
         )))
     }
-    "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal" => {
-        append_backend_log("runtime_grant_fixture method=authorizeExternalPrincipal accepted=true");
-        runtime_authorize_external_principal_response(payload).map(Some)
-    }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
-        runtime_app_storage_response(payload, &manifest).map(Some)
+        runtime_app_storage_response(payload).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID => {
         append_backend_log(&format!(
             "runtime_app_fixture method=getAccountAppInventory authenticated={}",
             projection.is_some()
         ));
-        runtime_account_app_inventory_response(&manifest, projection).map(Some)
-    }
-    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID => {
-        append_backend_log("runtime_app_fixture method=listLocalAppAdoptions accepted=true");
-        Ok(Some(runtime_list_local_app_adoptions_response()))
-    }
-    "/nimi.runtime.v1.RuntimeAppService/InstallApp" => {
-        append_backend_log("runtime_app_fixture method=installApp accepted=true");
-        runtime_install_app_response(payload, &manifest).map(Some)
-    }
-    "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob" => {
-        append_backend_log("runtime_app_fixture method=getAppInstallJob accepted=true");
-        runtime_get_app_install_job_response(payload, &manifest).map(Some)
-    }
-    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID => {
-        append_backend_log("runtime_app_fixture method=listAppInstallJobs accepted=true");
-        runtime_list_app_install_jobs_response(payload, &manifest).map(Some)
-    }
-    "/nimi.runtime.v1.RuntimeAppService/OpenApp" => {
-        append_backend_log("runtime_app_fixture method=openApp accepted=true");
-        runtime_open_app_response(payload, &manifest).map(Some)
+        runtime_account_app_inventory_response(projection).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID => {
         append_backend_log("runtime_product_control_fixture method=getProductControlRecord accepted=true");
@@ -577,8 +488,8 @@ pub fn runtime_bridge_unary_override(
         runtime_first_run_execution_evidence_response(payload, &manifest).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
-        append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");
-        runtime_app_package_readiness_response(payload, &manifest).map(Some)
+        append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=false authority=0p-unavailable");
+        runtime_app_package_readiness_response(payload).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_GET_AGENT_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=getAgent accepted=true");

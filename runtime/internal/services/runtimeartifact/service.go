@@ -28,17 +28,17 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeArtifactServiceServer
 	store      Store
 	logger     *slog.Logger
-	authorizer InstalledOperationAuthorizer
+	authorizer LocalAppOperationAuthorizer
 	now        func() time.Time
 }
 
-type InstalledOperationAuthorizer interface {
-	AuthorizeInstalledOperation(context.Context, accountservice.InstalledOperation) (accountservice.InstalledCallerDecision, error)
+type LocalAppOperationAuthorizer interface {
+	AuthorizeLocalAppOperation(context.Context, accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error)
 }
 
 type Option func(*Service)
 
-func WithInstalledOperationAuthorizer(authorizer InstalledOperationAuthorizer) Option {
+func WithLocalAppOperationAuthorizer(authorizer LocalAppOperationAuthorizer) Option {
 	return func(service *Service) {
 		service.authorizer = authorizer
 	}
@@ -118,8 +118,8 @@ func (s *Service) ReadArtifactBytes(
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 	now := s.now().UTC()
-	decision, err := s.authorizer.AuthorizeInstalledOperation(ctx, accountservice.InstalledOperationReadArtifactBytes)
-	if err != nil || !validInstalledArtifactDecision(decision, now) {
+	decision, err := s.authorizer.AuthorizeLocalAppOperation(ctx, accountservice.LocalAppOperationReadArtifactBytes)
+	if err != nil || !validLocalAppArtifactDecision(decision, now) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 
@@ -146,43 +146,30 @@ func (s *Service) ReadArtifactBytes(
 	}, nil
 }
 
-func validInstalledArtifactDecision(decision accountservice.InstalledCallerDecision, now time.Time) bool {
+func validLocalAppArtifactDecision(decision accountservice.LocalAppCallerDecision, now time.Time) bool {
 	baseValid := decision.SessionID != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AppID) != "" &&
-		decision.ReleaseDigest != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AccountID) != "" &&
+		decision.HostExecutableDigest != (protectedlocal.Identifier{}) && strings.TrimSpace(decision.AccountID) != "" &&
 		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
 		decision.RuntimeBootEpoch != (protectedlocal.Identifier{}) && decision.Process.PID > 0 &&
-		strings.TrimSpace(decision.Process.CreationMarker) != "" && decision.Process.ExecutableDigest == decision.ReleaseDigest &&
-		decision.Operation == accountservice.InstalledOperationReadArtifactBytes && decision.PermissionScope == "data.scope.read#runtime.artifacts" &&
+		strings.TrimSpace(decision.Process.CreationMarker) != "" && decision.Process.ExecutableDigest == decision.HostExecutableDigest &&
+		decision.Operation == accountservice.LocalAppOperationReadArtifactBytes && decision.PermissionScope == "data.scope.read#runtime.artifacts" &&
 		now.Before(decision.ExpiresAt.UTC())
 	if !baseValid {
 		return false
 	}
-	switch decision.TrustClass {
-	case accountservice.InstalledTrustClassProductionInstalled:
-		return decision.CatalogVersion > 0 && strings.TrimSpace(decision.GrantID) != "" && decision.GrantID == strings.TrimSpace(decision.GrantID) && decision.GrantVersion > 0 &&
-			decision.AuthorizationID == (protectedlocal.Identifier{}) && decision.AuthorizationGeneration == 0 && strings.TrimSpace(decision.ProjectRoot) == "" && decision.CapabilityFingerprint == (protectedlocal.Identifier{})
-	case accountservice.InstalledTrustClassLocalDevelopment:
-		return decision.CatalogVersion == 0 && decision.GrantID == "" && decision.GrantVersion == 0 && decision.AuthorizationID != (protectedlocal.Identifier{}) &&
-			decision.AuthorizationGeneration > 0 && filepath.IsAbs(decision.ProjectRoot) && decision.CapabilityFingerprint != (protectedlocal.Identifier{}) &&
-			decision.Process.ExecutableTrustSetID == protectedlocal.WindowsLocalDevelopmentTrustSetID && filepath.IsAbs(decision.Process.CanonicalExecutablePath)
-	default:
-		return false
-	}
+	return decision.TrustClass == accountservice.LocalAppTrustClassDevelopment && decision.AuthorizationID != (protectedlocal.Identifier{}) &&
+		decision.AuthorizationGeneration > 0 && filepath.IsAbs(decision.ProjectRoot) && decision.CapabilityFingerprint != (protectedlocal.Identifier{}) &&
+		decision.Process.ExecutableTrustSetID == protectedlocal.WindowsLocalDevelopmentTrustSetID && filepath.IsAbs(decision.Process.CanonicalExecutablePath)
 }
 
-func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice.InstalledCallerDecision, now time.Time) bool {
+func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice.LocalAppCallerDecision, now time.Time) bool {
 	if audience == nil || audience.AllowedUse != ArtifactUseReadBytes || !now.Before(audience.ExpiresAt.UTC()) ||
 		audience.OwnerAccountID != decision.AccountID || audience.AppID != decision.AppID ||
-		audience.ReleaseDigest != decision.ReleaseDigest || audience.SessionID != decision.SessionID ||
+		audience.ReleaseDigest != decision.HostExecutableDigest || audience.SessionID != decision.SessionID ||
 		audience.AccountGeneration != decision.AccountGeneration {
 		return false
 	}
-	switch decision.TrustClass {
-	case accountservice.InstalledTrustClassProductionInstalled:
-		return audience.TrustClass == "production-installed" && audience.AuthorizationID == (protectedlocal.Identifier{}) && audience.AuthorizationGeneration == 0 && audience.ProjectRoot == "" && audience.CapabilityFingerprint == (protectedlocal.Identifier{})
-	case accountservice.InstalledTrustClassLocalDevelopment:
-		return audience.TrustClass == "local-development-installed-admission" && audience.AuthorizationID == decision.AuthorizationID && audience.AuthorizationGeneration == decision.AuthorizationGeneration && audience.ProjectRoot == decision.ProjectRoot && audience.CapabilityFingerprint == decision.CapabilityFingerprint
-	default:
-		return false
-	}
+	return decision.TrustClass == accountservice.LocalAppTrustClassDevelopment && audience.TrustClass == "local_development" &&
+		audience.AuthorizationID == decision.AuthorizationID && audience.AuthorizationGeneration == decision.AuthorizationGeneration &&
+		audience.ProjectRoot == decision.ProjectRoot && audience.CapabilityFingerprint == decision.CapabilityFingerprint
 }

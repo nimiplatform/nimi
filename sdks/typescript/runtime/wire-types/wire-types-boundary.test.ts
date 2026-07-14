@@ -7,14 +7,17 @@ import { fileURLToPath } from 'node:url';
 import {
   AccountCallerMode,
   AccountSessionState,
+  AvatarDebugProbeStatus,
   ChatContentPartType,
   ConnectorKind,
   ConnectorStatus,
+  DelegatedProviderState,
   ExecutionMode,
   FallbackPolicy,
   FinishReason,
   LocalAssetKind,
   LocalAssetStatus,
+  ParticipationStatus,
   RoutePolicy,
   ScenarioType,
 } from './index';
@@ -59,8 +62,8 @@ function assertWireTypesBoundary(relativePath: string): void {
 test('runtime wire-types exposes ParentOS-needed enum values without importing generated runtime values', () => {
   assert.equal(AccountSessionState.AUTHENTICATED, 3);
   assert.equal(AccountSessionState[3], 'AUTHENTICATED');
-  assert.equal(AccountCallerMode.LOCAL_DEVELOPER_APP, 7);
-  assert.equal(AccountCallerMode[7], 'LOCAL_DEVELOPER_APP');
+  assert.equal(AccountCallerMode.LOCAL_APP, 9);
+  assert.equal(AccountCallerMode[9], 'LOCAL_APP');
   assert.equal(ChatContentPartType.TEXT, 1);
   assert.equal(ExecutionMode.STREAM, 2);
   assert.equal(FallbackPolicy.DENY, 1);
@@ -72,6 +75,9 @@ test('runtime wire-types exposes ParentOS-needed enum values without importing g
   assert.equal(ConnectorStatus.ACTIVE, 1);
   assert.equal(LocalAssetKind.CHAT, 1);
   assert.equal(LocalAssetStatus.ACTIVE, 2);
+  assert.equal(AvatarDebugProbeStatus.PASSED, 1);
+  assert.equal(DelegatedProviderState.READY, 3);
+  assert.equal(ParticipationStatus.RUNNING, 3);
 
   const projection = {
     accountId: 'acct-1',
@@ -109,6 +115,56 @@ test('runtime wire-types exposes ParentOS-needed enum values without importing g
 
 test('runtime wire-types source stays outside full generated runtime value graph', () => {
   assertWireTypesBoundary('runtime/wire-types/index.ts');
+  for (const relativePath of [
+    'runtime/wire-types/agent-participation-enums.ts',
+    'runtime/wire-types/agent-companion-enums.ts',
+    'runtime/wire-types/agent-delegation-enums.ts',
+    'runtime/wire-types/agent-participation-policy-enums.ts',
+  ]) {
+    assertWireTypesBoundary(relativePath);
+  }
+});
+
+test('runtime wire-types excludes the unadmitted immutable-package lifecycle surface', () => {
+  const source = [
+    readPackageFile('runtime/wire-types/identity-app-types.ts'),
+    readPackageFile('runtime/wire-types/identity-app-enums.ts'),
+  ].join('\n');
+  for (const forbiddenName of [
+    'AppInstallJob',
+    'AppInstallStorageProjection',
+    'AppLifecycleCanonicalImpact',
+    'AppPackageReadinessProjection',
+    'AppUninstallResult',
+    'GetAppInstallJobRequest',
+    'GetAppLifecycleIntentStatusRequest',
+    'GetAppPackageReadinessRequest',
+    'HealthRepairAppRequest',
+    'InstallAppRequest',
+    'ListAppInstallJobsRequest',
+    'PrepareAppLifecycleIntentRequest',
+    'UninstallAppRequest',
+    'UpdateAppRequest',
+    'WatchAppInstallJobEventsRequest',
+    'AppHealthRepairAction',
+    'AppInstallJobPhase',
+    'AppInstallJobState',
+    'AppInstallSourceKind',
+    'AppLifecycleIntentAction',
+    'AppLifecycleIntentStatus',
+    'AppLifecycleJobKind',
+    'AppPackageReadinessState',
+  ]) {
+    assert.doesNotMatch(
+      source,
+      new RegExp(`\\b${forbiddenName}\\b`),
+      `${forbiddenName} must remain available only through the complete generated core`,
+    );
+  }
+  assert.match(source, /\bGetAccountAppInventoryRequest\b/);
+  assert.match(source, /\bGetAppStorageRequest\b/);
+  assert.match(source, /\bPrepareLocalAppLaunchRequest\b/);
+  assert.match(source, /\bBindLocalAppProcessRequest\b/);
 });
 
 test('runtime wire-types build output contains no full generated runtime value imports', () => {

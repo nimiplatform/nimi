@@ -419,13 +419,16 @@ export function validateConversationReportArchitecture(input = null) {
   const scripts = architecture.packageScripts || {};
   if (Object.hasOwn(scripts, 'test:e2e:local-agent-product:live-behavior')
     || Object.hasOwn(scripts, 'check:local-agent-live-behavior')) failures.push('old live behavior required path/runner is still registered');
-  if (scripts['test:e2e:local-agent-conversation-report'] !== 'node tests/local-agent-product/conversation-report/run-conversation-report.mjs') failures.push('conversation report Journey command is missing or drifted');
+  if (Object.hasOwn(scripts, 'test:e2e:local-agent-conversation-report')) failures.push('retired direct-daemon conversation report execution command is still registered');
   if (scripts['check:local-agent-conversation-report'] !== 'node scripts/check-local-agent-conversation-report.mjs') failures.push('conversation report checker command is missing or drifted');
   const activePolicy = structuredClone(architecture.executionPolicy || {});
   delete activePolicy.forbidden_active_paths;
   const serializedPolicy = JSON.stringify(activePolicy);
   if (/live_behavior|live-behavior|calibration|minimum_passes|product_journey_repeats_per_batch|"batches":2|two_batches|2x10/iu.test(serializedPolicy)) failures.push('old 2x10/calibration live behavior policy remains in an active or required path');
-  if (array(architecture.executionPolicy?.required_local_pr_composition).includes('conversation_report')) failures.push('on-demand conversation report entered the ordinary required regression composition');
+  if (Object.hasOwn(architecture.executionPolicy?.gates || {}, 'conversation_report')) failures.push('retired conversation report remains an executable gate');
+  if (Object.hasOwn(architecture.executionPolicy?.repeat_policies || {}, 'conversation_report')) failures.push('retired conversation report remains an executable repeat policy');
+  if (array(architecture.executionPolicy?.suites).some((suite) => suite?.suite_id === 'conversation-report-i8')) failures.push('retired conversation report remains an executable suite');
+  if (array(architecture.executionPolicy?.required_local_pr_composition).includes('conversation_report')) failures.push('retired conversation report entered the ordinary required regression composition');
   const registryFailures = validateConversationScenarioRegistry(architecture.scenarioRegistry || {});
   failures.push(...registryFailures);
   const serializedRegistry = JSON.stringify(architecture.scenarioRegistry || {});

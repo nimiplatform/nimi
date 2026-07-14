@@ -194,10 +194,8 @@ func RequestAppIDIsRuntimeAppLifecycleTarget(req any) bool {
 		*runtimev1.ListAppInstallJobsRequest,
 		*runtimev1.InstallAppRequest,
 		*runtimev1.UninstallAppRequest,
-		*runtimev1.RemoveLocalAppAdoptionRequest,
 		*runtimev1.UpdateAppRequest,
-		*runtimev1.HealthRepairAppRequest,
-		*runtimev1.OpenAppRequest:
+		*runtimev1.HealthRepairAppRequest:
 		return true
 	default:
 		return false

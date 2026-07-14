@@ -14,20 +14,25 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ProductionConfig struct {
-	RealmBaseURL        string
-	AuthorizationURL    string
-	TokenURL            string
-	ClientID            string
-	RedirectURI         string
-	CustodyPartition    string
-	Custody             Custody
-	HTTPClient          *http.Client
-	AppRegistry         *appregistry.Registry
-	AppSessionValidator AppSessionValidator
+	RealmBaseURL         string
+	AuthorizationURL     string
+	TokenURL             string
+	ClientID             string
+	RedirectURI          string
+	CustodyPartition     string
+	Custody              Custody
+	HTTPClient           *http.Client
+	AppRegistry          *appregistry.Registry
+	AppSessionValidator  AppSessionValidator
+	LocalAppKernel       *localappkernel.Kernel
+	LocalAppGrantControl LocalAppGrantControlAuthority
+	AuditStore           *auditlog.Store
 }
 
 type custodySnapshot struct {
@@ -101,6 +106,9 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 		WithRealmBaseURL(resolved.RealmBaseURL),
 		WithAppRegistry(resolved.AppRegistry),
 		WithAppSessionValidator(resolved.AppSessionValidator),
+		WithLocalAppKernel(resolved.LocalAppKernel),
+		WithLocalAppGrantControlAuthority(resolved.LocalAppGrantControl),
+		WithAuditStore(resolved.AuditStore),
 	)
 }
 
@@ -145,16 +153,19 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		httpClient = &http.Client{Timeout: 20 * time.Second}
 	}
 	return ProductionConfig{
-		RealmBaseURL:        realmBaseURL,
-		AuthorizationURL:    normalizeOAuthAuthorizeEndpoint(authorizationURL),
-		TokenURL:            strings.TrimSpace(tokenURL),
-		ClientID:            strings.TrimSpace(clientID),
-		RedirectURI:         strings.TrimSpace(redirectURI),
-		CustodyPartition:    strings.TrimSpace(custodyPartition),
-		Custody:             cfg.Custody,
-		HTTPClient:          httpClient,
-		AppRegistry:         cfg.AppRegistry,
-		AppSessionValidator: cfg.AppSessionValidator,
+		RealmBaseURL:         realmBaseURL,
+		AuthorizationURL:     normalizeOAuthAuthorizeEndpoint(authorizationURL),
+		TokenURL:             strings.TrimSpace(tokenURL),
+		ClientID:             strings.TrimSpace(clientID),
+		RedirectURI:          strings.TrimSpace(redirectURI),
+		CustodyPartition:     strings.TrimSpace(custodyPartition),
+		Custody:              cfg.Custody,
+		HTTPClient:           httpClient,
+		AppRegistry:          cfg.AppRegistry,
+		AppSessionValidator:  cfg.AppSessionValidator,
+		LocalAppKernel:       cfg.LocalAppKernel,
+		LocalAppGrantControl: cfg.LocalAppGrantControl,
+		AuditStore:           cfg.AuditStore,
 	}
 }
 

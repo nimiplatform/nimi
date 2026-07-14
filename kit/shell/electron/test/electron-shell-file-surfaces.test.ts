@@ -9,7 +9,7 @@ import {
   type NimiElectronStandardShellHost,
 } from '../src/main/index.js';
 import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_COMMANDS,
 } from '@nimiplatform/kit/shell/capabilities';
 import {
@@ -748,10 +748,10 @@ describe('nimi.shell.floatingWindow.*', () => {
   });
 });
 
-describe('installed Nimi App capability set for file surfaces', () => {
-  it('desktop-installed-app-denies-file-system-handoff: denies fileDialog/fileReveal/export/artifacts commands', async () => {
+describe('local-app capability set for file surfaces', () => {
+  it('local-app-denies-file-system-handoff: denies fileDialog/fileReveal/export/artifacts commands', async () => {
     const ipcMain = registerFileSurfaceBridge({
-      capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+      capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       standardDataRootBinding: {
         source: 'runtime-launch-projection',
         durableDataRoot: '/tmp/never-used',
@@ -776,15 +776,15 @@ describe('installed Nimi App capability set for file surfaces', () => {
         reasonCode: 'electron-standard-capability-not-in-host-set',
         details: {
           command,
-          capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
         },
       });
     }
   });
 
-  it('desktop-installed-app-denies-floating-window: denies all floating-window commands', async () => {
+  it('local-app-denies-floating-window: denies all floating-window commands', async () => {
     const ipcMain = registerFileSurfaceBridge({
-      capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+      capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       floatingWindow: {
         hide: () => undefined,
       },
@@ -800,7 +800,7 @@ describe('installed Nimi App capability set for file surfaces', () => {
         reasonCode: 'electron-standard-capability-not-in-host-set',
         details: {
           command,
-          capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
         },
       });
     }

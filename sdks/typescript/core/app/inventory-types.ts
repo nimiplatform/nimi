@@ -5,7 +5,8 @@ import type {
 } from './account-inventory.js';
 
 export type TrustTierId = 'nimi-first-party' | 'nimi-verified-partner' | 'nimi-community';
-export type NimiAppInventoryTrustTier = TrustTierId | 'local-explicit' | 'local-developer' | 'unknown';
+export type NimiAppLocalTrustClass = 'verified' | 'user_imported' | 'local_development';
+export type NimiAppInventoryTrustTier = TrustTierId | NimiAppLocalTrustClass | 'unknown';
 export type AppKind = 'nimi-app';
 export type NimiAppOrdinaryVisibility =
   | 'ordinary-visible'
@@ -14,33 +15,20 @@ export type NimiAppOrdinaryVisibility =
   | 'not-admitted-visible';
 export type AppLaunchReadiness =
   | 'ready'
-  | 'install-required'
-  | 'update-required'
-  | 'repair-required'
   | 'permission-required'
+  | 'package-unavailable'
+  | 'local-record-dormant'
   | 'blocked-by-master-gate'
   | 'unsupported';
-export type NimiAppOpenReadiness = AppLaunchReadiness | 'sign-in-required' | 'connect-required';
+export type NimiAppOpenReadiness = AppLaunchReadiness | 'sign-in-required';
 export type NimiAppInventoryInstallState =
-  | 'not-installed'
-  | 'installed'
-  | 'adopted-local'
-  | 'installing'
-  | 'updating'
-  | 'repair-required'
+  | 'not-present'
+  | 'local-record-active'
+  | 'local-record-dormant'
   | 'removed'
   | 'unknown';
 export type NimiAppInventorySourceStatus = 'present' | 'absent' | 'degraded';
-export type NimiAppInventoryNextAction =
-  | 'install'
-  | 'open'
-  | 'connect-local'
-  | 'review-permissions'
-  | 'repair'
-  | 'update'
-  | 'uninstall'
-  | 'remove-local-adoption'
-  | 'sign-in';
+export type NimiAppInventoryNextAction = 'open' | 'review-permissions' | 'sign-in';
 
 export const CANONICAL_TRUST_TIERS: readonly TrustTierId[] = [
   'nimi-first-party',
@@ -56,10 +44,9 @@ export const CANONICAL_ORDINARY_VISIBILITY: readonly NimiAppOrdinaryVisibility[]
 ];
 export const CANONICAL_LAUNCH_READINESS: readonly AppLaunchReadiness[] = [
   'ready',
-  'install-required',
-  'update-required',
-  'repair-required',
   'permission-required',
+  'package-unavailable',
+  'local-record-dormant',
   'blocked-by-master-gate',
   'unsupported',
 ];
@@ -69,29 +56,19 @@ export const CANONICAL_APP_INVENTORY_SOURCE_STATUSES: readonly NimiAppInventoryS
   'degraded',
 ];
 export const CANONICAL_APP_INVENTORY_INSTALL_STATES: readonly NimiAppInventoryInstallState[] = [
-  'not-installed',
-  'installed',
-  'adopted-local',
-  'installing',
-  'updating',
-  'repair-required',
+  'not-present',
+  'local-record-active',
+  'local-record-dormant',
   'removed',
   'unknown',
 ];
 export const CANONICAL_APP_OPEN_READINESS: readonly NimiAppOpenReadiness[] = [
   ...CANONICAL_LAUNCH_READINESS,
   'sign-in-required',
-  'connect-required',
 ];
 export const CANONICAL_APP_INVENTORY_NEXT_ACTIONS: readonly NimiAppInventoryNextAction[] = [
-  'install',
   'open',
-  'connect-local',
   'review-permissions',
-  'repair',
-  'update',
-  'uninstall',
-  'remove-local-adoption',
   'sign-in',
 ];
 
@@ -120,19 +97,20 @@ export interface NimiAppAccountInventorySourceRow {
   readonly detail?: string;
 }
 
-export interface NimiAppLocalAdoptionRow {
+export interface NimiAppLocalRecordRow {
   readonly appId: string;
-  readonly rootPath: string;
-  readonly manifestPath: string;
   readonly displayName: string;
-  readonly version: string;
-  readonly entryRef: string;
-  readonly permissionScopeRef: string;
-  readonly storagePolicyRef: string;
-  readonly state: 'adopted' | 'repair-required' | 'removed';
-  readonly trust: 'explicit-local' | 'developer-local';
-  readonly adoptedAt?: string;
-  readonly updatedAt?: string;
+  readonly trustClass: NimiAppLocalTrustClass;
+  readonly recordState: 'active' | 'dormant' | 'removed';
+  readonly sessionState?:
+    | 'session-bound'
+    | 'action-required'
+    | 'revoked'
+    | 'process-replaced'
+    | 'account-changed'
+    | 'runtime-restarted'
+    | 'unavailable';
+  readonly grantPosture?: 'zero-grant' | 'granted' | 'denied' | 'unavailable';
   readonly reasonCode?: string;
   readonly detail?: string;
 }
@@ -144,21 +122,18 @@ export interface NimiAppInventorySource<T> {
   readonly detail?: string;
 }
 
-export interface NimiAppInventoryJobSummary {
-  readonly jobId: string;
-  readonly appId: string;
-  readonly kind: 'install' | 'update' | 'repair' | 'uninstall';
-  readonly state: string;
-  readonly phase?: string;
-  readonly reasonCode?: string;
+/** The sole public 0K immutable-package posture. */
+export interface NimiAppPackageReadinessUnavailable {
+  readonly state: 'unavailable';
+  readonly reasonCode: string;
   readonly detail?: string;
 }
 
 export interface NimiAppInventorySources {
   readonly catalog: NimiAppInventorySource<NimiAppRow>;
   readonly account: NimiAppInventorySource<NimiAppAccountInventorySourceRow>;
-  readonly local: NimiAppInventorySource<NimiAppLocalAdoptionRow>;
-  readonly packageReadiness: NimiAppInventorySource<NimiAppPackageReadinessRow>;
+  readonly localRecord: NimiAppInventorySource<NimiAppLocalRecordRow>;
+  readonly packageReadiness: NimiAppInventorySource<NimiAppPackageReadinessUnavailable>;
 }
 
 export interface NimiAppInventoryEntry {
@@ -174,7 +149,7 @@ export interface NimiAppInventoryEntry {
   readonly sources: NimiAppInventorySources;
   readonly installState: NimiAppInventoryInstallState;
   readonly openReadiness: NimiAppOpenReadiness;
-  readonly activeJobs: readonly NimiAppInventoryJobSummary[];
+  readonly activeJobs: readonly never[];
   readonly nextActions: readonly NimiAppInventoryNextAction[];
   readonly reasonCode?: string;
   readonly detail?: string;
@@ -184,11 +159,7 @@ export interface NimiAppStatus {
   readonly appId: string;
   readonly launchReadiness: AppLaunchReadiness;
   readonly releaseDescriptorRef?: string;
-  readonly installStoragePolicyRef?: string;
-  readonly storageRoots?: NimiAppStorageRoots;
-  readonly verificationState?: NimiAppInstallVerificationState;
-  readonly installedVersion?: string;
-  readonly availableVersion?: string;
+  readonly reasonCode?: string;
   readonly detail?: string;
 }
 
@@ -200,8 +171,7 @@ export type NimiAppReleaseSourceKind =
   | 'nimi-bundle'
   | 'github-release'
   | 'github-commit'
-  | 'npm-package'
-  | 'admission-sandbox-https-artifact';
+  | 'npm-package';
 
 export interface NimiAppReleaseDescriptorRow {
   readonly descriptorId: string;
@@ -224,42 +194,6 @@ export interface NimiAppReleaseDescriptorRow {
   readonly mutableSourceAllowed: boolean;
   readonly installDigestVerificationRequired: string;
   readonly sourceRule: string;
-}
-
-export type NimiAppInstallVerificationState =
-  | 'not-installed'
-  | 'digest-verified'
-  | 'bundled-source'
-  | 'digest-mismatch'
-  | 'blocked'
-  | 'unsupported';
-
-export type NimiAppPackageReadinessState =
-  | 'ready'
-  | 'install_required'
-  | 'update_required'
-  | 'repair_required'
-  | 'blocked';
-
-export interface NimiAppPackageReadinessRow {
-  readonly appId: string;
-  readonly releaseDescriptorRef: string;
-  readonly storagePolicyRef: string;
-  readonly expectedVersion?: string;
-  readonly activeVersion?: string;
-  readonly installedVersion?: string;
-  readonly sha256?: string;
-  readonly verificationState?: string;
-  readonly state: NimiAppPackageReadinessState;
-  readonly reasonCode?: string;
-  readonly detail?: string;
-}
-
-export interface NimiAppStorageRoots {
-  readonly releaseRoot: string;
-  readonly dataRoot: string;
-  readonly cacheRoot: string;
-  readonly tempRoot: string;
 }
 
 export interface NimiAppTransport {
@@ -288,72 +222,42 @@ export function validateNimiAppInventoryEntry(entry: NimiAppInventoryEntry | nul
   if (!entry || typeof entry !== 'object') {
     appError('SDK_APP_RESPONSE_INVALID', 'Nimi app inventory entry is missing', 'fix_app_transport_response');
   }
-  const appId = requireText(
-    entry.appId,
-    'Nimi app inventory entry missing appId',
-    'SDK_APP_RESPONSE_INVALID',
-    'fix_app_inventory_entry',
-  );
-  requireText(
-    entry.displayName,
-    'Nimi app inventory entry missing displayName',
-    'SDK_APP_RESPONSE_INVALID',
-    'fix_app_inventory_entry',
-  );
+  const appId = requireText(entry.appId, 'Nimi app inventory entry missing appId', 'SDK_APP_RESPONSE_INVALID', 'fix_app_inventory_entry');
+  requireText(entry.displayName, 'Nimi app inventory entry missing displayName', 'SDK_APP_RESPONSE_INVALID', 'fix_app_inventory_entry');
   if (!CANONICAL_APP_INVENTORY_INSTALL_STATES.includes(entry.installState)) {
-    appError(
-      'SDK_APP_RESPONSE_INVALID',
-      `installState "${String(entry.installState)}" is not canonical`,
-      'fix_app_inventory_entry',
-    );
+    appError('SDK_APP_RESPONSE_INVALID', `installState "${String(entry.installState)}" is not canonical`, 'fix_app_inventory_entry');
   }
   if (!isCanonicalAppOpenReadiness(entry.openReadiness)) {
-    appError(
-      'SDK_APP_RESPONSE_INVALID',
-      `openReadiness "${String(entry.openReadiness)}" is not canonical`,
-      'fix_app_inventory_entry',
-    );
+    appError('SDK_APP_RESPONSE_INVALID', `openReadiness "${String(entry.openReadiness)}" is not canonical`, 'fix_app_inventory_entry');
   }
   if (!entry.sources || typeof entry.sources !== 'object') {
     appError('SDK_APP_RESPONSE_INVALID', 'Nimi app inventory entry missing sources', 'fix_app_inventory_entry');
   }
   validateInventorySource(entry.sources.catalog, 'catalog');
   validateInventorySource(entry.sources.account, 'account');
-  validateInventorySource(entry.sources.local, 'local');
+  validateInventorySource(entry.sources.localRecord, 'localRecord');
   validateInventorySource(entry.sources.packageReadiness, 'packageReadiness');
-  if (entry.sources.catalog.status === 'present') {
-    validateNimiAppRow(entry.sources.catalog.value);
-    if (entry.sources.catalog.value?.appId !== appId) {
-      appError('SDK_APP_RESPONSE_INVALID', 'catalog source appId does not match inventory appId', 'fix_app_inventory_entry');
+  for (const source of [entry.sources.catalog, entry.sources.account, entry.sources.localRecord]) {
+    if (source.status === 'present' && source.value?.appId !== appId) {
+      appError('SDK_APP_RESPONSE_INVALID', 'inventory source appId does not match inventory appId', 'fix_app_inventory_entry');
     }
   }
-  if (entry.sources.account.status === 'present' && entry.sources.account.value?.appId !== appId) {
-    appError('SDK_APP_RESPONSE_INVALID', 'account source appId does not match inventory appId', 'fix_app_inventory_entry');
-  }
-  if (entry.sources.local.status === 'present' && entry.sources.local.value?.appId !== appId) {
-    appError('SDK_APP_RESPONSE_INVALID', 'local source appId does not match inventory appId', 'fix_app_inventory_entry');
-  }
-  if (entry.sources.packageReadiness.status === 'present' && entry.sources.packageReadiness.value?.appId !== appId) {
-    appError('SDK_APP_RESPONSE_INVALID', 'package readiness source appId does not match inventory appId', 'fix_app_inventory_entry');
+  if (entry.sources.catalog.status === 'present') validateNimiAppRow(entry.sources.catalog.value);
+  if (entry.sources.packageReadiness.status === 'present') {
+    validatePackageReadinessUnavailable(entry.sources.packageReadiness.value);
   }
   if (!Array.isArray(entry.capabilitySet)) {
     appError('SDK_APP_RESPONSE_INVALID', 'Nimi app inventory entry capabilitySet must be an array', 'fix_app_inventory_entry');
   }
-  if (!Array.isArray(entry.activeJobs)) {
-    appError('SDK_APP_RESPONSE_INVALID', 'Nimi app inventory entry activeJobs must be an array', 'fix_app_inventory_entry');
-  }
-  for (const [index, job] of entry.activeJobs.entries()) {
-    requireText(job?.jobId, `activeJobs[${index}].jobId is required`, 'SDK_APP_RESPONSE_INVALID', 'fix_app_inventory_entry');
-    if (normalizeText(job?.appId) !== appId) {
-      appError('SDK_APP_RESPONSE_INVALID', `activeJobs[${index}].appId does not match inventory appId`, 'fix_app_inventory_entry');
-    }
+  if (!Array.isArray(entry.activeJobs) || entry.activeJobs.length !== 0) {
+    appError('SDK_APP_RESPONSE_INVALID', '0K Nimi app inventory activeJobs must be empty', 'remove_package_job_projection');
   }
   if (!Array.isArray(entry.nextActions)) {
     appError('SDK_APP_RESPONSE_INVALID', 'Nimi app inventory entry nextActions must be an array', 'fix_app_inventory_entry');
   }
   for (const action of entry.nextActions) {
     if (!CANONICAL_APP_INVENTORY_NEXT_ACTIONS.includes(action)) {
-      appError('SDK_APP_RESPONSE_INVALID', `nextAction "${String(action)}" is not canonical`, 'fix_app_inventory_entry');
+      appError('SDK_APP_RESPONSE_INVALID', `nextAction "${String(action)}" is not canonical`, 'remove_package_lifecycle_action');
     }
   }
 }
@@ -366,11 +270,21 @@ export function validateNimiAppStatus(status: NimiAppStatus | null | undefined, 
     appError('SDK_APP_RESPONSE_INVALID', 'Nimi app status appId does not match request', 'fix_app_transport_response');
   }
   if (!isCanonicalLaunchReadiness(status.launchReadiness)) {
-    appError(
-      'SDK_APP_RESPONSE_INVALID',
-      `launchReadiness "${String(status.launchReadiness)}" is not canonical`,
-      'fix_app_status_projection',
-    );
+    appError('SDK_APP_RESPONSE_INVALID', `launchReadiness "${String(status.launchReadiness)}" is not canonical`, 'fix_app_status_projection');
+  }
+}
+
+function validatePackageReadinessUnavailable(value: NimiAppPackageReadinessUnavailable | undefined): void {
+  if (!value || value.state !== 'unavailable' || !normalizeText(value.reasonCode)) {
+    appError('SDK_APP_RESPONSE_INVALID', 'package readiness must be typed unavailable', 'use_0k_package_unavailable_projection');
+  }
+  for (const forbidden of [
+    'appId', 'releaseDescriptorRef', 'storagePolicyRef', 'expectedVersion', 'activeVersion',
+    'installedVersion', 'sha256', 'verificationState', 'path', 'evidence', 'jobId',
+  ]) {
+    if (forbidden in (value as unknown as Record<string, unknown>)) {
+      appError('SDK_APP_RESPONSE_INVALID', `package readiness leaked forbidden field ${forbidden}`, 'remove_package_positive_truth');
+    }
   }
 }
 
@@ -387,11 +301,7 @@ function validateNimiAppRow(row: NimiAppRow | null | undefined): void {
     appError('SDK_APP_RESPONSE_INVALID', `Nimi app trust tier "${String(row.trustTier)}" is not canonical`, 'fix_app_registry_row');
   }
   if (row.ordinaryVisibility !== undefined && !CANONICAL_ORDINARY_VISIBILITY.includes(row.ordinaryVisibility)) {
-    appError(
-      'SDK_APP_RESPONSE_INVALID',
-      `Nimi app ordinaryVisibility "${String(row.ordinaryVisibility)}" is not canonical`,
-      'fix_app_registry_row',
-    );
+    appError('SDK_APP_RESPONSE_INVALID', `Nimi app ordinaryVisibility "${String(row.ordinaryVisibility)}" is not canonical`, 'fix_app_registry_row');
   }
   for (const [field, value] of [
     ['publisher', row.publisher],
@@ -404,14 +314,6 @@ function validateNimiAppRow(row: NimiAppRow | null | undefined): void {
   }
   if (!Array.isArray(row.capabilitySet) || row.capabilitySet.length === 0) {
     appError('SDK_APP_RESPONSE_INVALID', 'Nimi app row missing capabilitySet', 'fix_app_registry_row');
-  }
-  for (const [index, capability] of row.capabilitySet.entries()) {
-    requireText(
-      capability,
-      `Nimi app row capabilitySet[${index}] is empty`,
-      'SDK_APP_RESPONSE_INVALID',
-      'fix_app_registry_row',
-    );
   }
 }
 
@@ -439,9 +341,7 @@ function normalizeText(value: unknown): string {
 
 function requireText(value: unknown, message: string, code: string, actionHint: string): string {
   const normalized = normalizeText(value);
-  if (!normalized) {
-    appError(code, message, actionHint);
-  }
+  if (!normalized) appError(code, message, actionHint);
   return normalized;
 }
 

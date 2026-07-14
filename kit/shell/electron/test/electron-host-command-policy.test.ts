@@ -8,7 +8,7 @@ import {
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
 import {
-  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_COMMANDS,
 } from '@nimiplatform/kit/shell/capabilities';
 import {
@@ -369,7 +369,7 @@ describe('Electron host command policy', () => {
       },
       commandPolicy: () => ({ allow: true }),
       standardShellHost: {
-        capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
         openFileDialog: () => ({ canceled: true, paths: [] }),
       },
       commandHandlers: {
@@ -391,7 +391,7 @@ describe('Electron host command policy', () => {
       reasonCode: 'electron-standard-capability-not-in-host-set',
       details: {
         command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
-        capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       },
     });
   });

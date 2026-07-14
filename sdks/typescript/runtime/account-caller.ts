@@ -5,7 +5,7 @@ export type NimiRuntimeAccountCaller = AccountCaller;
 
 export type NimiSDKSharedAuthAppMode =
   | 'first-party-local-app'
-  | 'developer-registered-local-app'
+  | 'local-app'
   | 'third-party-nimi-app'
   | 'dev-standalone'
   | 'desktop-account-ux'
@@ -13,7 +13,9 @@ export type NimiSDKSharedAuthAppMode =
 
 export const NIMI_SDK_SHARED_AUTH_RUNTIME_CALLER_MODE: Readonly<Record<NimiSDKSharedAuthAppMode, AccountCallerMode | null>> = {
   'first-party-local-app': AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-  'developer-registered-local-app': AccountCallerMode.LOCAL_DEVELOPER_APP,
+  // LOCAL_APP identity is inherited from the verified native carrier. It is
+  // deliberately not constructible as an AccountCaller in SDK/app code.
+  'local-app': null,
   'third-party-nimi-app': null,
   'dev-standalone': null,
   'desktop-account-ux': AccountCallerMode.DESKTOP_SHELL,
@@ -48,25 +50,6 @@ export function createNimiLocalFirstPartyRuntimeAccountCaller(
   return createNimiRuntimeAccountCaller(
     input,
     AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-    '',
-  );
-}
-
-export function createNimiDeveloperRegisteredRuntimeAccountCaller(
-  input: NimiRuntimeAccountCallerInput,
-): NimiRuntimeAccountCaller {
-  if (input.appInstanceId === undefined || input.deviceId === undefined) {
-    requireText(input.appId, 'appId');
-    throw createNimiError({
-      message: 'Developer-registered Runtime account caller identity requires explicit app instance and device identity before Runtime registration.',
-      reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
-      actionHint: 'request_runtime_account_caller_registration',
-      source: 'sdk',
-    });
-  }
-  return createNimiRuntimeAccountCaller(
-    input,
-    AccountCallerMode.LOCAL_DEVELOPER_APP,
     '',
   );
 }
