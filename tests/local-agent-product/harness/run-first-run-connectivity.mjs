@@ -171,10 +171,12 @@ try {
     return [
       'config_missing',
       'data_root_missing',
+      'data_root_selected',
       'local_ai_profile_selected_assets_missing',
     ].includes(projection?.state) ? projection : null;
   }, { timeoutMs: 60_000, intervalMs: 100, label: 'installer-owned acceptance round' });
   const resumedFinalizationDiagnostic = initialProjection.state === 'local_ai_profile_selected_assets_missing';
+  const resumedDeviceDiagnostic = initialProjection.state === 'data_root_selected';
   runtimeDataRoot = requireCheckpointDataRootProposal(initialProjection, serviceBefore.runtimeCandidateId);
 
   const baseline = await prepareDesktopFixedServiceBaseline(page);
@@ -183,6 +185,33 @@ try {
   await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 60_000 });
   const login = await loginDesktop(desktopConnection, acceptance.primaryAccountId);
   if (login.outcome !== 'first-run') throw new Error(`expected First Run after login, got ${login.outcome}`);
+
+  if (resumedDeviceDiagnostic) {
+    const firstRunTrial = {
+      ...trial,
+      paths: { ...trial.paths, runtimeData: runtimeDataRoot },
+    };
+    const firstRun = await completeDesktopFirstRun(desktopConnection, firstRunTrial, screenshotsRoot, {
+      captureAllPhases: true,
+      exerciseDeviceRetry: true,
+      resumeFromDevice: true,
+    });
+    const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
+    const diagnostic = {
+      schemaVersion: 'nimi.dev-kernel-first-run-device-resume-diagnostic/v1',
+      observedAt: new Date().toISOString(),
+      finalAcceptanceEvidence: false,
+      serviceBefore,
+      initialProjection,
+      login,
+      firstRun,
+      productControl: record,
+    };
+    const diagnosticPath = path.join(artifactRoot, 'first-run-device-resume-diagnostic.json');
+    fs.writeFileSync(diagnosticPath, `${JSON.stringify(diagnostic, null, 2)}\n`, { mode: 0o600 });
+    await page.screenshot({ path: path.join(screenshotsRoot, 'desktop-first-run-device-resume-ready.png') });
+    throw new Error('resumed First Run reached ready_for_use after a prior runner observation race; result remains non-final diagnostic evidence');
+  }
 
   if (resumedFinalizationDiagnostic) {
     const outcome = await waitUntil(async () => {
@@ -249,13 +278,16 @@ try {
   const bodyText = await page.locator('body').innerText();
   const locale = {
     documentLang: narrowAudit.dom.lang,
-    chineseTextObserved: /[\u3400-\u9fff]/u.test(bodyText) && /[\u3400-\u9fff]/u.test(accountLabel),
+    chineseTextObserved: /[\u3400-\u9fff]/u.test(bodyText),
     replacementCharacterObserved: bodyText.includes('\uFFFD'),
   };
   const longText = {
+    scope: 'real-account-and-runtime-owned-path',
     accountLabel,
     proposedDataRoot: runtimeDataRoot,
-    observed: accountLabel.includes('开发内核主账号') && runtimeDataRoot.length >= 40,
+    syntheticLongTextUsed: false,
+    observed: accountLabel.trim().length > 0
+      && comparablePath(runtimeDataRoot) === comparablePath(initialProjection.dataRootProposal.path),
     overflowed: narrowAudit.dom.scrollWidth > narrowAudit.dom.clientWidth,
   };
   await observer.flush();

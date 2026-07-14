@@ -67,6 +67,7 @@ function validObservation() {
       layout: {
         narrowMetrics: narrow(),
         phaseAcceptance: {
+          deviceInitialScanState: 'pending',
           deviceContinueInitiallyDisabled: true,
           deviceRetryDisabledWhilePending: true,
           deviceContinueDisabledWhileRetryPending: true,
@@ -78,7 +79,13 @@ function validObservation() {
     },
     narrowAudit: { dom: narrow() },
     locale: { documentLang: 'zh-CN', chineseTextObserved: true, replacementCharacterObserved: false },
-    longText: { proposedDataRoot: proposalPath, observed: true, overflowed: false },
+    longText: {
+      scope: 'real-account-and-runtime-owned-path',
+      proposedDataRoot: proposalPath,
+      syntheticLongTextUsed: false,
+      observed: true,
+      overflowed: false,
+    },
     accessibility: { ok: true },
     privacy: { authorizationHeaderObserved: false, secretTextObserved: false, storageAuthorityMaterialObserved: false },
     diagnosticBuildMode: 'reuse', finalAcceptanceEvidence: false,
@@ -98,12 +105,20 @@ test('First Run runner never uses process home or renderer env as the data-root 
   assert.doesNotMatch(source, /(?:rmSync|removeCheckpointDataRoot)\s*\(\s*runtimeDataRoot/);
 });
 
-test('First Run runner diagnoses a persisted failed round without promoting it to acceptance', () => {
+test('First Run runner diagnoses persisted failed or interrupted rounds without promoting them to acceptance', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'), 'utf8');
   assert.match(source, /local_ai_profile_selected_assets_missing/);
   assert.match(source, /nimi\.dev-kernel-first-run-resume-diagnostic\/v1/);
+  assert.match(source, /nimi\.dev-kernel-first-run-device-resume-diagnostic\/v1/);
+  assert.match(source, /resumeFromDevice:\s*true/);
   assert.match(source, /finalAcceptanceEvidence:\s*false/);
   assert.match(source, /fresh installer-owned round is still required for final acceptance/);
+});
+
+test('First Run Device retry observes pending and disabled controls in one DOM snapshot', () => {
+  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  assert.match(driver, /page\.evaluate\(\(\) => \{[\s\S]*data-device-scan[\s\S]*HTMLButtonElement[\s\S]*retryDisabled:\s*retryButton\.disabled[\s\S]*continueDisabled:\s*continueButton\.disabled/u);
+  assert.match(driver, /intervalMs:\s*10,\s*label:\s*'first-run Device retry pending controls'/u);
 });
 
 test('First Run terminal failure captures the bounded Runtime dependency-job owner projection', () => {
@@ -118,6 +133,17 @@ test('First Run connectivity contract admits a pristine candidate with no Produc
   const fixture = validObservation();
   fixture.initialProjection.state = 'config_missing';
   assert.deepEqual(validateFirstRunConnectivityObservation(fixture), []);
+});
+
+test('First Run Device initial state is only asserted when pending is observed atomically', () => {
+  const settled = validObservation();
+  settled.firstRun.layout.phaseAcceptance.deviceInitialScanState = 'settled';
+  settled.firstRun.layout.phaseAcceptance.deviceContinueInitiallyDisabled = null;
+  assert.deepEqual(validateFirstRunConnectivityObservation(settled), []);
+
+  const pending = validObservation();
+  pending.firstRun.layout.phaseAcceptance.deviceContinueInitiallyDisabled = false;
+  assert.match(validateFirstRunConnectivityObservation(pending).join('; '), /initial scan.*pending/iu);
 });
 
 test('First Run connectivity contract admits a signed persistent development data-root proposal', () => {

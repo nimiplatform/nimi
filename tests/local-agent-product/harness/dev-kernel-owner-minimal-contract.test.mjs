@@ -51,3 +51,24 @@ test('owner-minimal runner reuses the core driver and does not create another ca
   assert.match(driver, /runDevKernelTrial\(\{ \.\.\.input, executionMode: 'owner-minimal' \}\)/);
   assert.doesNotMatch(runner, /go(?:\.exe)?['"\s,]+run|serve|node-grpc|runtime_bridge_status/iu);
 });
+
+test('owner-minimal reuses a protected ready round after a transient First Run gate', () => {
+  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  assert.match(driver, /primaryLogin\.outcome === 'first-run'[\s\S]*productControl\?\.state === 'ready_for_use'[\s\S]*captureReusedReadyFirstRun/iu);
+  assert.match(driver, /captureReusedReadyFirstRun[\s\S]*requireCheckpointDataRootProposal[\s\S]*waitForTestId\(page, 'main-shell'[\s\S]*PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD/iu);
+  assert.match(driver, /current\?\.state !== 'ready_for_use'[\s\S]*page\.reload\(\{ waitUntil: 'domcontentloaded'[\s\S]*waitForTestId\(page, 'main-shell'/iu);
+  assert.match(driver, /ready-shell-transition[\s\S]*captureReusedReadyFirstRun[\s\S]*reuseReadyCandidateId: serviceBefore\.runtimeCandidateId/iu);
+});
+
+test('owner-minimal waits for the Runtime-owned Developer Mode projection before toggling', () => {
+  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  assert.match(driver, /label: 'Developer Mode Runtime projection'/u);
+  assert.match(driver, /developer-mode-retry-button[\s\S]*Developer Mode Runtime projection unavailable/iu);
+  assert.match(driver, /card\.getAttribute\('data-developer-mode'\) === expected[\s\S]*button\.isEnabled/iu);
+});
+
+test('owner-minimal resolves the Desktop-owned presence file from the real launcher home only', () => {
+  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  assert.match(driver, /function startZhiyuDev[\s\S]*const launcherHome = os\.homedir\(\)[\s\S]*HOME: launcherHome, USERPROFILE: launcherHome/iu);
+  assert.match(driver, /NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT: trial\.paths\.zhiyuUserData/iu);
+});

@@ -531,10 +531,18 @@ export function requireCheckpointDataRootProposal(projection, candidateId) {
 
 export async function completeDesktopFirstRun(connection, trial, screenshotsRoot, options = {}) {
   const { page } = connection;
-  const storageOutcome = await waitUntil(async () => {
+  const startingPhase = await waitUntil(async () => {
     const phase = page.getByTestId('first-run-phase-storage');
     if (await phase.isVisible().catch(() => false)) {
       return await phase.getAttribute('data-phase-transient') === 'false' ? 'storage-ready' : null;
+    }
+    if (options.resumeFromDevice === true
+      && await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false)) {
+      return 'device-scan-resume';
+    }
+    if (await page.getByTestId('main-shell').isVisible().catch(() => false)
+      && typeof options.reuseReadyCandidateId === 'string') {
+      return 'ready-shell-transition';
     }
     if (await page.getByTestId('login-screen').isVisible().catch(() => false)
       || await page.getByTestId('main-shell').isVisible().catch(() => false)) {
@@ -544,77 +552,111 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
       return 'bootstrap-error';
     }
     return null;
-  }, { timeoutMs: 120_000, intervalMs: 100, label: 'Desktop first-run Storage phase' });
-  if (storageOutcome !== 'storage-ready') {
-    throw new Error(storageOutcome === 'unexpected-auth-shell'
-      ? 'isolated Desktop trial skipped the required first-run Storage phase'
-      : 'Desktop entered bootstrap error before first-run Storage');
+  }, { timeoutMs: 120_000, intervalMs: 100, label: 'Desktop first-run starting phase' });
+  if (startingPhase === 'ready-shell-transition') {
+    const productControlRecord = await readProductControlJSONProjection(
+      page,
+      PRODUCT_CONTROL_RECORD_METHOD,
+    );
+    return captureReusedReadyFirstRun(
+      page,
+      productControlRecord,
+      options.reuseReadyCandidateId,
+    );
+  }
+  if (startingPhase !== 'storage-ready' && startingPhase !== 'device-scan-resume') {
+    throw new Error(startingPhase === 'unexpected-auth-shell'
+      ? 'isolated Desktop trial skipped the required first-run gate'
+      : 'Desktop entered bootstrap error before first-run');
   }
 
   const expectedDataRoot = comparablePath(trial.paths.runtimeData);
-  const displayedDataRoot = comparablePath(await page.getByTestId('first-run-storage-path').innerText());
-  const hostProfileDataRoot = process.env.USERPROFILE
-    ? comparablePath(path.join(process.env.USERPROFILE, 'Nimi'))
-    : null;
-  if (displayedDataRoot !== expectedDataRoot) {
-    throw new Error(`first-run Storage proposed ${displayedDataRoot}, expected Runtime-owned proposal ${expectedDataRoot}`);
-  }
-  if (hostProfileDataRoot && expectedDataRoot === hostProfileDataRoot) {
-    throw new Error(`first-run Storage resolved to the host profile root ${hostProfileDataRoot}`);
-  }
-  const desktopPath = path.join(screenshotsRoot, 'desktop-first-run-storage.png');
-  await page.screenshot({ path: desktopPath });
-  const narrowMethod = await setWindowBounds(connection, 390, 780);
-  const narrowPath = path.join(screenshotsRoot, 'desktop-first-run-storage-narrow.png');
-  await page.screenshot({ path: narrowPath });
-  const narrowMetrics = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  await setWindowBounds(connection, 1440, 940);
+  let desktopPath = null;
+  let narrowMethod = null;
+  let narrowPath = null;
+  let narrowMetrics = null;
+  let selectedDataRoot;
+  let serviceAfterStorage;
+  if (startingPhase === 'storage-ready') {
+    const displayedDataRoot = comparablePath(await page.getByTestId('first-run-storage-path').innerText());
+    const hostProfileDataRoot = process.env.USERPROFILE
+      ? comparablePath(path.join(process.env.USERPROFILE, 'Nimi'))
+      : null;
+    if (displayedDataRoot !== expectedDataRoot) {
+      throw new Error(`first-run Storage proposed ${displayedDataRoot}, expected Runtime-owned proposal ${expectedDataRoot}`);
+    }
+    if (hostProfileDataRoot && expectedDataRoot === hostProfileDataRoot) {
+      throw new Error(`first-run Storage resolved to the host profile root ${hostProfileDataRoot}`);
+    }
+    desktopPath = path.join(screenshotsRoot, 'desktop-first-run-storage.png');
+    await page.screenshot({ path: desktopPath });
+    narrowMethod = await setWindowBounds(connection, 390, 780);
+    narrowPath = path.join(screenshotsRoot, 'desktop-first-run-storage-narrow.png');
+    await page.screenshot({ path: narrowPath });
+    narrowMetrics = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    await setWindowBounds(connection, 1440, 940);
 
-  const continueStorage = page.getByTestId('first-run-storage-continue');
-  if (await continueStorage.isDisabled()) throw new Error('first-run Storage continue is disabled for the isolated proposal');
-  const storageContinueHandled = typeof options.beforeStorageContinue === 'function'
-    ? await options.beforeStorageContinue({ page, continueStorage }) === true
-    : false;
-  if (!storageContinueHandled) await continueStorage.click();
-  const storageTransition = await waitUntil(async () => {
-    if (await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false)) {
-      return { kind: 'advanced' };
+    const continueStorage = page.getByTestId('first-run-storage-continue');
+    if (await continueStorage.isDisabled()) throw new Error('first-run Storage continue is disabled for the isolated proposal');
+    const storageContinueHandled = typeof options.beforeStorageContinue === 'function'
+      ? await options.beforeStorageContinue({ page, continueStorage }) === true
+      : false;
+    if (!storageContinueHandled) await continueStorage.click();
+    const storageTransition = await waitUntil(async () => {
+      if (await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false)) {
+        return { kind: 'advanced' };
+      }
+      const error = page.getByTestId('product-first-run-error');
+      if (await error.isVisible().catch(() => false)) {
+        return { kind: 'error', message: (await error.innerText()).slice(0, 1_000) };
+      }
+      const workflow = page.getByTestId('product-first-run-workflow');
+      const pendingAction = await workflow.getAttribute('data-pending-action').catch(() => '');
+      if (!pendingAction && !(await continueStorage.isDisabled().catch(() => true))) {
+        return { kind: 'stalled', message: 'Storage mutation returned without advancing product state' };
+      }
+      return null;
+    }, { timeoutMs: 120_000, intervalMs: 100, label: 'first-run Storage mutation completion' });
+    if (storageTransition.kind !== 'advanced') {
+      throw new Error(`first-run Storage failed: ${storageTransition.message}`);
     }
-    const error = page.getByTestId('product-first-run-error');
-    if (await error.isVisible().catch(() => false)) {
-      return { kind: 'error', message: (await error.innerText()).slice(0, 1_000) };
+    selectedDataRoot = await readProductControlJSONProjection(page, PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD);
+    if (comparablePath(selectedDataRoot?.dataRoot?.path) !== expectedDataRoot) {
+      throw new Error(`Runtime selected data root ${selectedDataRoot?.dataRoot?.path || '<missing>'}, expected ${trial.paths.runtimeData}`);
     }
-    const workflow = page.getByTestId('product-first-run-workflow');
-    const pendingAction = await workflow.getAttribute('data-pending-action').catch(() => '');
-    if (!pendingAction && !(await continueStorage.isDisabled().catch(() => true))) {
-      return { kind: 'stalled', message: 'Storage mutation returned without advancing product state' };
+    serviceAfterStorage = await waitUntil(() => readFixedServiceStatus(), {
+      timeoutMs: 120_000,
+      intervalMs: 500,
+      label: 'fixed service after first-run Storage sync',
+    });
+  } else {
+    selectedDataRoot = await readProductControlJSONProjection(page, PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD);
+    if (comparablePath(selectedDataRoot?.dataRoot?.path) !== expectedDataRoot) {
+      throw new Error(`Runtime selected data root ${selectedDataRoot?.dataRoot?.path || '<missing>'}, expected ${trial.paths.runtimeData}`);
     }
-    return null;
-  }, { timeoutMs: 120_000, intervalMs: 100, label: 'first-run Storage mutation completion' });
-  if (storageTransition.kind !== 'advanced') {
-    throw new Error(`first-run Storage failed: ${storageTransition.message}`);
+    serviceAfterStorage = readFixedServiceStatus();
   }
-  const selectedDataRoot = await readProductControlJSONProjection(page, PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD);
-  if (comparablePath(selectedDataRoot?.dataRoot?.path) !== expectedDataRoot) {
-    throw new Error(`Runtime selected data root ${selectedDataRoot?.dataRoot?.path || '<missing>'}, expected ${trial.paths.runtimeData}`);
-  }
-  const serviceAfterStorage = await waitUntil(() => readFixedServiceStatus(), {
-    timeoutMs: 120_000,
-    intervalMs: 500,
-    label: 'fixed service after first-run Storage sync',
-  });
 
   await waitForTestId(page, 'first-run-phase-device-scan', 120_000);
   let phaseAcceptance = null;
   if (options.captureAllPhases === true) {
-    const deviceContinueInitiallyDisabled = await page.getByTestId('first-run-device-scan-continue').isDisabled();
-    const deviceLoadingPath = path.join(screenshotsRoot, 'desktop-first-run-device-loading.png');
-    await page.screenshot({ path: deviceLoadingPath });
+    const initialDeviceControls = await page.evaluate(() => {
+      const summary = document.querySelector('[data-testid="first-run-device-summary"]');
+      const continueButton = document.querySelector('[data-testid="first-run-device-scan-continue"]');
+      return {
+        scanState: summary?.getAttribute('data-device-scan') || '',
+        continueDisabled: continueButton instanceof HTMLButtonElement
+          ? continueButton.disabled
+          : null,
+      };
+    });
+    const deviceInitialPath = path.join(screenshotsRoot, 'desktop-first-run-device-initial.png');
+    await page.screenshot({ path: deviceInitialPath });
     const deviceNarrowMethod = await setWindowBounds(connection, 390, 780);
-    const deviceNarrowPath = path.join(screenshotsRoot, 'desktop-first-run-device-loading-narrow.png');
+    const deviceNarrowPath = path.join(screenshotsRoot, 'desktop-first-run-device-initial-narrow.png');
     await page.screenshot({ path: deviceNarrowPath });
     const deviceNarrowMetrics = await page.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,
@@ -622,8 +664,11 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     }));
     await setWindowBounds(connection, 1440, 940);
     phaseAcceptance = {
-      deviceContinueInitiallyDisabled,
-      deviceLoadingPath,
+      deviceInitialScanState: initialDeviceControls.scanState,
+      deviceContinueInitiallyDisabled: initialDeviceControls.scanState === 'pending'
+        ? initialDeviceControls.continueDisabled
+        : null,
+      deviceInitialPath,
       deviceNarrowPath,
       deviceNarrowMethod,
       deviceNarrowMetrics,
@@ -643,12 +688,19 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     const retry = page.getByTestId('first-run-device-scan-retry');
     if (await retry.isDisabled()) throw new Error('first-run Device retry is disabled after a settled scan');
     await retry.click();
-    await waitUntil(async () => {
-      const summary = page.getByTestId('first-run-device-summary');
-      return await summary.getAttribute('data-device-scan') === 'pending';
-    }, { timeoutMs: 30_000, intervalMs: 25, label: 'first-run Device retry pending state' });
-    const retryDisabledWhilePending = await retry.isDisabled();
-    const continueDisabledWhilePending = await page.getByTestId('first-run-device-scan-continue').isDisabled();
+    const pendingControls = await waitUntil(async () => page.evaluate(() => {
+      const summary = document.querySelector('[data-testid="first-run-device-summary"]');
+      if (summary?.getAttribute('data-device-scan') !== 'pending') return null;
+      const retryButton = document.querySelector('[data-testid="first-run-device-scan-retry"]');
+      const continueButton = document.querySelector('[data-testid="first-run-device-scan-continue"]');
+      if (!(retryButton instanceof HTMLButtonElement) || !(continueButton instanceof HTMLButtonElement)) return null;
+      return {
+        retryDisabled: retryButton.disabled,
+        continueDisabled: continueButton.disabled,
+      };
+    }), { timeoutMs: 30_000, intervalMs: 10, label: 'first-run Device retry pending controls' });
+    const retryDisabledWhilePending = pendingControls.retryDisabled;
+    const continueDisabledWhilePending = pendingControls.continueDisabled;
     if (!retryDisabledWhilePending || !continueDisabledWhilePending) {
       throw new Error('first-run Device retry did not disable retry and continue while scan evidence was pending');
     }
@@ -774,6 +826,64 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     serviceAfterStorage,
     serviceAfterReady,
     layout: { desktopPath, narrowPath, narrowMethod, narrowMetrics, phaseAcceptance },
+  };
+}
+
+async function captureReusedReadyFirstRun(page, productControlRecord, candidateId) {
+  if (productControlRecord?.state !== 'ready_for_use') {
+    throw new Error(`Desktop cannot reuse non-ready Product Control: ${JSON.stringify(productControlRecord)}`);
+  }
+  const expectedDataRoot = requireCheckpointDataRootProposal(productControlRecord, candidateId);
+  let rendererReloadedForReadyContinuity = false;
+  try {
+    await waitForTestId(page, 'main-shell', 15_000);
+  } catch {
+    const current = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD);
+    if (current?.state !== 'ready_for_use') {
+      throw new Error(`Desktop ready transition regressed before renderer reload: ${JSON.stringify(current)}`);
+    }
+    rendererReloadedForReadyContinuity = true;
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
+    try {
+      await waitForTestId(page, 'main-shell', 30_000);
+    } catch (error) {
+      const diagnostics = await readDesktopRuntimeDiagnostics(page);
+      const surface = await page.evaluate(() => {
+        const visible = (testId) => {
+          const element = document.querySelector(`[data-testid="${testId}"]`);
+          return element instanceof HTMLElement && element.offsetParent !== null;
+        };
+        const workflow = document.querySelector('[data-testid="product-first-run-workflow"]');
+        return {
+          pathname: location.pathname,
+          loginVisible: visible('login-screen'),
+          mainShellVisible: visible('main-shell'),
+          firstRunGateVisible: visible('desktop-first-run-gate'),
+          bootstrapErrorVisible: visible('app-bootstrap-error-screen'),
+          admissionFailureVisible: visible('desktop-admission-failed'),
+          productState: workflow?.getAttribute('data-product-state') || '',
+        };
+      });
+      throw new Error(`Desktop renderer reload did not restore the ready shell: ${JSON.stringify({ surface, diagnostics })}`, { cause: error });
+    }
+  }
+  const selectedDataRoot = await readProductControlJSONProjection(
+    page,
+    PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD,
+  );
+  if (comparablePath(selectedDataRoot?.dataRoot?.path) !== comparablePath(expectedDataRoot)) {
+    throw new Error(`ready Product Control selected data root ${selectedDataRoot?.dataRoot?.path || '<missing>'}, expected ${expectedDataRoot}`);
+  }
+  const serviceAtReady = readFixedServiceStatus();
+  return {
+    selectedDataRoot,
+    productState: productControlRecord.state,
+    productControlRecord,
+    serviceAfterStorage: serviceAtReady,
+    serviceAfterReady: serviceAtReady,
+    reusedReady: true,
+    rendererReloadedForReadyContinuity,
+    layout: { narrowMetrics: null, phaseAcceptance: null },
   };
 }
 
@@ -927,11 +1037,25 @@ async function openDeveloperModeSettings(page) {
 async function setDeveloperMode(page, enabled) {
   await openDeveloperModeSettings(page);
   const card = page.getByTestId('developer-mode-toggle');
+  const button = page.getByTestId('developer-mode-toggle-button');
+  const settled = await waitUntil(async () => {
+    if (await button.isEnabled().catch(() => false)) return 'ready';
+    const retry = page.getByTestId('developer-mode-retry-button');
+    if (await retry.isVisible().catch(() => false)) {
+      return { unavailable: true, detail: (await card.innerText()).trim().slice(0, 1_000) };
+    }
+    return null;
+  }, { timeoutMs: 60_000, intervalMs: 100, label: 'Developer Mode Runtime projection' });
+  if (settled !== 'ready') {
+    throw new Error(`Developer Mode Runtime projection unavailable: ${settled.detail}`);
+  }
   const expected = enabled ? 'on' : 'off';
   if (await card.getAttribute('data-developer-mode') !== expected) {
-    const button = page.getByTestId('developer-mode-toggle-button');
     await button.click();
-    await waitUntil(async () => await card.getAttribute('data-developer-mode') === expected, {
+    await waitUntil(async () => (
+      await card.getAttribute('data-developer-mode') === expected
+      && await button.isEnabled().catch(() => false)
+    ), {
       timeoutMs: 30_000,
       label: `Developer Mode ${expected}`,
     });
@@ -969,10 +1093,15 @@ async function approveLocalDevelopment(connection, decision, artifactsDir, captu
 }
 
 function startZhiyuDev(env, captureOptions = {}) {
+  const launcherHome = os.homedir();
   return startProcess(process.execPath, [
     path.join(repoRoot, 'app-tools', 'bin', 'nimi-app.mjs'),
     'dev', '--shell', 'electron',
-  ], { cwd: path.join(repoRoot, 'apps', 'zhiyu'), env, ...captureOptions });
+  ], {
+    cwd: path.join(repoRoot, 'apps', 'zhiyu'),
+    env: { ...env, HOME: launcherHome, USERPROFILE: launcherHome },
+    ...captureOptions,
+  });
 }
 
 async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_000) {
@@ -1403,37 +1532,35 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
         desktop.page,
         PRODUCT_CONTROL_RECORD_METHOD,
       );
-      const proposedDataRoot = requireCheckpointDataRootProposal(
-        productControl,
-        serviceBefore.runtimeCandidateId,
-      );
-      observations.firstRun = await completeDesktopFirstRun(desktop, {
-        ...trial,
-        paths: { ...trial.paths, runtimeData: proposedDataRoot },
-      }, screenshotsRoot);
-      observations.firstRun.reusedReady = false;
+      if (productControl?.state === 'ready_for_use') {
+        observations.firstRun = await captureReusedReadyFirstRun(
+          desktop.page,
+          productControl,
+          serviceBefore.runtimeCandidateId,
+        );
+      } else {
+        const proposedDataRoot = requireCheckpointDataRootProposal(
+          productControl,
+          serviceBefore.runtimeCandidateId,
+        );
+        observations.firstRun = await completeDesktopFirstRun(desktop, {
+          ...trial,
+          paths: { ...trial.paths, runtimeData: proposedDataRoot },
+        }, screenshotsRoot, {
+          reuseReadyCandidateId: serviceBefore.runtimeCandidateId,
+        });
+        observations.firstRun.reusedReady = false;
+      }
     } else if (primaryLogin.outcome === 'main-shell') {
       const productControlRecord = await readProductControlJSONProjection(
         desktop.page,
         PRODUCT_CONTROL_RECORD_METHOD,
       );
-      if (productControlRecord?.state !== 'ready_for_use') {
-        throw new Error(`Desktop reached main shell without ready Product Control: ${JSON.stringify(productControlRecord)}`);
-      }
-      const selectedDataRoot = await readProductControlJSONProjection(
+      observations.firstRun = await captureReusedReadyFirstRun(
         desktop.page,
-        PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD,
-      );
-      const serviceAtReady = readFixedServiceStatus();
-      observations.firstRun = {
-        selectedDataRoot,
-        productState: productControlRecord.state,
         productControlRecord,
-        serviceAfterStorage: serviceAtReady,
-        serviceAfterReady: serviceAtReady,
-        reusedReady: true,
-        layout: { narrowMetrics: null, phaseAcceptance: null },
-      };
+        serviceBefore.runtimeCandidateId,
+      );
     } else {
       throw new Error(`Desktop login entered unsupported product state ${primaryLogin.outcome}`);
     }

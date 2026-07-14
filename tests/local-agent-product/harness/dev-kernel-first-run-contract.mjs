@@ -67,7 +67,10 @@ export function validateFirstRunConnectivityObservation(observation) {
     issues.push('ready_for_use must be confirmed by the protected Product Control record');
   }
   const phase = observation?.firstRun?.layout?.phaseAcceptance;
-  if (phase?.deviceContinueInitiallyDisabled !== true) issues.push('Device loading must disable Continue');
+  if (phase?.deviceInitialScanState === 'pending'
+    && phase?.deviceContinueInitiallyDisabled !== true) {
+    issues.push('Device loading must disable Continue while the initial scan is observably pending');
+  }
   if (phase?.deviceRetryDisabledWhilePending !== true
     || phase?.deviceContinueDisabledWhileRetryPending !== true) {
     issues.push('Device retry must disable retry and continue while pending');
@@ -84,8 +87,11 @@ export function validateFirstRunConnectivityObservation(observation) {
     || observation?.locale?.replacementCharacterObserved !== false) {
     issues.push('Chinese First Run readability was not verified');
   }
-  if (observation?.longText?.observed !== true || observation?.longText?.overflowed !== false) {
-    issues.push('long account/path text must remain visible without horizontal overflow');
+  if (observation?.longText?.scope !== 'real-account-and-runtime-owned-path'
+    || observation?.longText?.syntheticLongTextUsed !== false
+    || observation?.longText?.observed !== true
+    || observation?.longText?.overflowed !== false) {
+    issues.push('real account and Runtime-owned path must remain visible without synthetic authority or horizontal overflow');
   }
   if (observation?.accessibility?.ok !== true) issues.push('First Run accessibility audit failed');
   if (observation?.privacy?.authorizationHeaderObserved !== false
