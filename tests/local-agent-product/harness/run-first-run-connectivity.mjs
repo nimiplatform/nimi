@@ -18,6 +18,7 @@ import {
 } from './dev-kernel-contract.mjs';
 import {
   acquireFixedServiceLock,
+  classifyFirstRunStorageRecoverySnapshot,
   completeDesktopFirstRun,
   connectCdp,
   createEarlyCdpObserver,
@@ -192,7 +193,7 @@ try {
         continueStorage,
         screenshotsRoot,
       }));
-      return runtimeInterruption.storageAlreadyAdvanced === true;
+      return runtimeInterruption.storageContinueHandled === true;
     },
   });
   await waitUntil(async () => await page.getByTestId('main-shell').isVisible().catch(() => false), {
@@ -318,6 +319,30 @@ async function exerciseRuntimeInterruption({ page, continueStorage, screenshotsR
     const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
     return status?.running === true && status?.managed === true && record?.state ? true : null;
   }, { timeoutMs: 60_000, intervalMs: 100, label: 'First Run Electron protected-carrier re-handshake' });
+  let recoveryRetryIssued = false;
+  let storageRecoveryState = uiOutcome;
+  if (uiOutcome === 'unavailable-error') {
+    await waitUntil(async () => !(await continueStorage.isDisabled().catch(() => true)) || null, {
+      timeoutMs: 30_000,
+      intervalMs: 50,
+      label: 'First Run Storage retry enabled after Runtime restart',
+    });
+    await continueStorage.click({ noWaitAfter: true });
+    recoveryRetryIssued = true;
+    storageRecoveryState = await waitUntil(async () => {
+      const snapshot = {
+        deviceVisible: await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false),
+        errorVisible: await page.getByTestId('product-first-run-error').isVisible().catch(() => false),
+        pendingAction: await page.getByTestId('product-first-run-workflow')
+          .getAttribute('data-pending-action').catch(() => ''),
+      };
+      return classifyFirstRunStorageRecoverySnapshot(snapshot);
+    }, {
+      timeoutMs: 10_000,
+      intervalMs: 25,
+      label: 'First Run Storage retry accepted after Runtime restart',
+    });
+  }
   return {
     serviceBefore,
     serviceAfter,
@@ -328,7 +353,9 @@ async function exerciseRuntimeInterruption({ page, continueStorage, screenshotsR
     unavailableUiObserved: uiOutcome === 'unavailable-error',
     unavailablePath,
     reconnected,
-    storageAlreadyAdvanced: uiOutcome === 'advanced',
+    recoveryRetryIssued,
+    storageRecoveryState,
+    storageContinueHandled: uiOutcome === 'advanced' || recoveryRetryIssued,
   };
 }
 

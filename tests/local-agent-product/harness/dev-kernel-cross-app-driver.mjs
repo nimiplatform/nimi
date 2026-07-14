@@ -481,11 +481,22 @@ export async function invokeDesktopRuntimeUnary(page, methodId, request = {}, ti
     requestBytesBase64: Buffer.from(codec.encodeRequest(request)).toString('base64'),
     timeoutMs,
   });
-  const responseBytesBase64 = typeof response?.responseBytesBase64 === 'string'
-    ? response.responseBytesBase64
-    : '';
-  if (!responseBytesBase64) throw new Error(`Runtime unary ${methodId} returned no response bytes`);
-  return codec.decodeResponse(Buffer.from(responseBytesBase64, 'base64'));
+  return decodeDesktopRuntimeUnaryResponse(codec, response, methodId);
+}
+
+export function decodeDesktopRuntimeUnaryResponse(codec, response, methodId) {
+  if (typeof response?.responseBytesBase64 !== 'string') {
+    throw new Error(`Runtime unary ${methodId} returned no response bytes field`);
+  }
+  // An empty base64 string is the canonical protobuf encoding for a response
+  // whose fields all have default values (for example, an empty job list).
+  return codec.decodeResponse(Buffer.from(response.responseBytesBase64, 'base64'));
+}
+
+export function classifyFirstRunStorageRecoverySnapshot(snapshot) {
+  if (snapshot?.deviceVisible === true) return 'advanced';
+  if (snapshot?.errorVisible !== true && String(snapshot?.pendingAction || '').trim()) return 'pending';
+  return false;
 }
 
 export async function readProductControlJSONProjection(page, methodId) {
@@ -564,10 +575,10 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
 
   const continueStorage = page.getByTestId('first-run-storage-continue');
   if (await continueStorage.isDisabled()) throw new Error('first-run Storage continue is disabled for the isolated proposal');
-  const storageAlreadyAdvanced = typeof options.beforeStorageContinue === 'function'
+  const storageContinueHandled = typeof options.beforeStorageContinue === 'function'
     ? await options.beforeStorageContinue({ page, continueStorage }) === true
     : false;
-  if (!storageAlreadyAdvanced) await continueStorage.click();
+  if (!storageContinueHandled) await continueStorage.click();
   const storageTransition = await waitUntil(async () => {
     if (await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false)) {
       return { kind: 'advanced' };

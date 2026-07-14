@@ -18,7 +18,10 @@ import {
   waitForObservedProcessConnection,
 } from './dev-kernel-contract.mjs';
 import { startProcess } from './cross-app-driver.mjs';
-import { probeRealRealmBrowserLoginAuthority } from './dev-kernel-cross-app-driver.mjs';
+import {
+  decodeDesktopRuntimeUnaryResponse,
+  probeRealRealmBrowserLoginAuthority,
+} from './dev-kernel-cross-app-driver.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { readLocalAgentTestArchitecture } from './registry.mjs';
 import { validateArchitecture, validateJourneyRepeatIsolation, validateJourneyResult } from './validation.mjs';
@@ -56,6 +59,23 @@ test('dev-kernel Desktop journey invokes the final Electron standard shell carri
   assert.match(devKernelCrossAppDriverSource, /NIMI_STANDARD_SHELL_COMMANDS\['runtime-lifecycle\.status'\]/);
   assert.doesNotMatch(devKernelCrossAppDriverSource, /window\.__TAURI_INTERNALS__/);
   assert.doesNotMatch(devKernelCrossAppDriverSource, /['"]runtime_bridge_status['"]/);
+});
+
+test('Runtime unary decoder accepts a canonical empty protobuf but rejects a missing carrier field', () => {
+  const codec = {
+    decodeResponse(bytes) {
+      assert.equal(bytes.byteLength, 0);
+      return { jobs: [] };
+    },
+  };
+  assert.deepEqual(
+    decodeDesktopRuntimeUnaryResponse(codec, { responseBytesBase64: '' }, '/runtime/ListJobs'),
+    { jobs: [] },
+  );
+  assert.throws(
+    () => decodeDesktopRuntimeUnaryResponse(codec, {}, '/runtime/ListJobs'),
+    /returned no response bytes field/u,
+  );
 });
 
 test('dev-kernel Electron journeys preserve the established external browser profile', () => {

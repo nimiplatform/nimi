@@ -4,7 +4,10 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { validateFirstRunConnectivityObservation } from './dev-kernel-first-run-contract.mjs';
-import { classifyFirstRunTerminalSnapshot } from './dev-kernel-cross-app-driver.mjs';
+import {
+  classifyFirstRunStorageRecoverySnapshot,
+  classifyFirstRunTerminalSnapshot,
+} from './dev-kernel-cross-app-driver.mjs';
 
 function status(pid) {
   return {
@@ -150,5 +153,24 @@ test('First Run terminal classifier admits auth shell and keeps pending setup no
     authShellVisible: false,
     explicitFailures: [],
     setupRetryVisible: false,
+  }), false);
+});
+
+test('First Run restart recovery advances only after a fresh Storage retry is accepted', () => {
+  assert.equal(classifyFirstRunStorageRecoverySnapshot({ deviceVisible: true }), 'advanced');
+  assert.equal(classifyFirstRunStorageRecoverySnapshot({
+    deviceVisible: false,
+    errorVisible: false,
+    pendingAction: 'select-data-root',
+  }), 'pending');
+  assert.equal(classifyFirstRunStorageRecoverySnapshot({
+    deviceVisible: false,
+    errorVisible: true,
+    pendingAction: 'select-data-root',
+  }), false);
+  assert.equal(classifyFirstRunStorageRecoverySnapshot({
+    deviceVisible: false,
+    errorVisible: false,
+    pendingAction: '',
   }), false);
 });
