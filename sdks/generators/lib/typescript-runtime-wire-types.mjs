@@ -83,6 +83,41 @@ const runtimeWireTypeShardDefinitions = [
   },
 ];
 
+// The generated Runtime core deliberately preserves the complete protobuf
+// epoch. The lightweight public wire-types subpath is narrower: 0K admits
+// account/local-record reads and typed-unavailable package readiness, but no
+// immutable-package mutation/job DTOs or positive readiness projection. Keep
+// this exclusion at the generator boundary so regeneration cannot restore a
+// second public package lifecycle surface (S-APP-010 / S-APP-018).
+const runtimePublicWireExcludedMessageNames = new Set([
+  'AppInstallJob',
+  'AppInstallJobEvent',
+  'AppInstallStorageProjection',
+  'AppLifecycleCanonicalImpact',
+  'AppLifecycleDestructiveOptions',
+  'AppPackageReadinessProjection',
+  'AppUninstallResult',
+  'GetAppInstallJobRequest',
+  'GetAppInstallJobResponse',
+  'GetAppLifecycleIntentStatusRequest',
+  'GetAppLifecycleIntentStatusResponse',
+  'GetAppPackageReadinessRequest',
+  'GetAppPackageReadinessResponse',
+  'HealthRepairAppRequest',
+  'HealthRepairAppResponse',
+  'InstallAppRequest',
+  'InstallAppResponse',
+  'ListAppInstallJobsRequest',
+  'ListAppInstallJobsResponse',
+  'PrepareAppLifecycleIntentRequest',
+  'PrepareAppLifecycleIntentResponse',
+  'UninstallAppRequest',
+  'UninstallAppResponse',
+  'UpdateAppRequest',
+  'UpdateAppResponse',
+  'WatchAppInstallJobEventsRequest',
+]);
+
 function runtimeWireTypeShard(importPath) {
   const shard = runtimeWireTypeShardDefinitions.find((definition) => definition.matches(importPath));
   if (!shard) {
@@ -99,7 +134,9 @@ function runtimeWireTypeShardGroups(runtime) {
   const groupById = new Map(groups.map((group) => [group.id, group]));
   for (const [importPath, names] of groupRuntimeTypesByImport(
     runtime,
-    runtimeMessageSchemas(runtime).map((schema) => schema.name),
+    runtimeMessageSchemas(runtime)
+      .filter((schema) => !runtimePublicWireExcludedMessageNames.has(schema.name))
+      .map((schema) => schema.name),
   )) {
     const shard = runtimeWireTypeShard(importPath);
     groupById.get(shard.id).imports.push({ importPath, names });
@@ -166,6 +203,17 @@ const failClosedRuntimeWireEnumNames = new Set([
   'AgentTurnContextCompilerSchemaVersion',
 ]);
 
+const runtimePublicWireExcludedEnumNames = new Set([
+  'AppHealthRepairAction',
+  'AppInstallJobPhase',
+  'AppInstallJobState',
+  'AppInstallSourceKind',
+  'AppLifecycleIntentAction',
+  'AppLifecycleIntentStatus',
+  'AppLifecycleJobKind',
+  'AppPackageReadinessState',
+]);
+
 function renderRuntimeWireEnum(schema) {
   const entries = runtimeEnumValueEntries(schema);
   const used = new Set();
@@ -208,12 +256,29 @@ const runtimeWireEnumShardDefinitions = [
     id: 'agent-participation',
     path: 'sdks/typescript/runtime/wire-types/agent-participation-enums.ts',
     exportPath: './agent-participation-enums',
+    matches: (name) => name.startsWith('Agent'),
+  },
+  {
+    id: 'agent-companion',
+    path: 'sdks/typescript/runtime/wire-types/agent-companion-enums.ts',
+    exportPath: './agent-companion-enums',
     matches: (name) => [
-      'Agent',
       'Avatar',
       'Companion',
       'Conversation',
-      'Delegated',
+    ].some((prefix) => name.startsWith(prefix)),
+  },
+  {
+    id: 'agent-delegation',
+    path: 'sdks/typescript/runtime/wire-types/agent-delegation-enums.ts',
+    exportPath: './agent-delegation-enums',
+    matches: (name) => name.startsWith('Delegated'),
+  },
+  {
+    id: 'agent-participation-policy',
+    path: 'sdks/typescript/runtime/wire-types/agent-participation-policy-enums.ts',
+    exportPath: './agent-participation-policy-enums',
+    matches: (name) => [
       'Hook',
       'Participation',
       'RealmGroup',
@@ -263,6 +328,9 @@ function runtimeWireEnumShardGroups(runtime) {
   }));
   const groupById = new Map(groups.map((group) => [group.id, group]));
   for (const schema of runtimeEnumSchemas(runtime)) {
+    if (runtimePublicWireExcludedEnumNames.has(schema.name)) {
+      continue;
+    }
     const shard = runtimeWireEnumShard(schema);
     groupById.get(shard.id).schemas.push(schema);
   }

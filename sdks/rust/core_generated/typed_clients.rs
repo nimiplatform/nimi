@@ -47,7 +47,6 @@ pub enum AccountAppInstallState {
     ACCOUNTAPPINSTALLSTATEUNSPECIFIED,
     ACCOUNTAPPINSTALLSTATENOTINSTALLED,
     ACCOUNTAPPINSTALLSTATEINSTALLED,
-    ACCOUNTAPPINSTALLSTATEADOPTEDLOCAL,
     ACCOUNTAPPINSTALLSTATEREMOVED,
 }
 
@@ -81,8 +80,7 @@ pub enum AccountCallerMode {
     ACCOUNTCALLERMODEDESKTOPLAUNCHEDAVATAR,
     ACCOUNTCALLERMODEWEBCLOUD,
     ACCOUNTCALLERMODEEXTERNALPRINCIPAL,
-    ACCOUNTCALLERMODELOCALDEVELOPERAPP,
-    ACCOUNTCALLERMODEDESKTOPLAUNCHEDNIMIAPP,
+    ACCOUNTCALLERMODELOCALAPP,
 }
 
 impl Default for AccountCallerMode {
@@ -837,9 +835,6 @@ pub enum AppLifecycleIntentAction {
     APPLIFECYCLEINTENTACTIONUNINSTALL,
     APPLIFECYCLEINTENTACTIONUPDATE,
     APPLIFECYCLEINTENTACTIONHEALTHREPAIR,
-    APPLIFECYCLEINTENTACTIONADOPTLOCALAPP,
-    APPLIFECYCLEINTENTACTIONREMOVELOCALAPPADOPTION,
-    APPLIFECYCLEINTENTACTIONOPENAPP,
 }
 
 impl Default for AppLifecycleIntentAction {
@@ -910,39 +905,6 @@ impl Default for AppMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppOpenFlowStep {
-    APPOPENFLOWSTEPUNSPECIFIED,
-    APPOPENFLOWSTEPRESOLVEREGISTRY,
-    APPOPENFLOWSTEPVERIFYPACKAGE,
-    APPOPENFLOWSTEPVERIFYLIBRARY,
-    APPOPENFLOWSTEPVERIFYAPPDATA,
-    APPOPENFLOWSTEPVERIFYPERMISSIONS,
-    APPOPENFLOWSTEPENSUREAICONFIG,
-    APPOPENFLOWSTEPVALIDATEMANIFEST,
-    APPOPENFLOWSTEPLAUNCH,
-}
-
-impl Default for AppOpenFlowStep {
-    fn default() -> Self {
-        Self::APPOPENFLOWSTEPUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AppOpenState {
-    APPOPENSTATEUNSPECIFIED,
-    APPOPENSTATELAUNCHED,
-    APPOPENSTATEBLOCKED,
-    APPOPENSTATELAUNCHPREPARED,
-}
-
-impl Default for AppOpenState {
-    fn default() -> Self {
-        Self::APPOPENSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppPackageReadinessState {
     APPPACKAGEREADINESSSTATEUNSPECIFIED,
     APPPACKAGEREADINESSSTATEREADY,
@@ -970,20 +932,6 @@ pub enum AppStorageState {
 impl Default for AppStorageState {
     fn default() -> Self {
         Self::APPSTORAGESTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AuthorizationPreset {
-    AUTHORIZATIONPRESETUNSPECIFIED,
-    AUTHORIZATIONPRESETREADONLY,
-    AUTHORIZATIONPRESETFULL,
-    AUTHORIZATIONPRESETDELEGATE,
-}
-
-impl Default for AuthorizationPreset {
-    fn default() -> Self {
-        Self::AUTHORIZATIONPRESETUNSPECIFIED
     }
 }
 
@@ -1352,6 +1300,20 @@ impl Default for DelegatedTransportKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeveloperModeState {
+    DEVELOPERMODESTATEUNSPECIFIED,
+    DEVELOPERMODESTATEDISABLED,
+    DEVELOPERMODESTATEENABLED,
+    DEVELOPERMODESTATEUNAVAILABLE,
+}
+
+impl Default for DeveloperModeState {
+    fn default() -> Self {
+        Self::DEVELOPERMODESTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EffectClass {
     EFFECTCLASSUNSPECIFIED,
     EFFECTCLASSREADONLY,
@@ -1511,29 +1473,50 @@ impl Default for KnowledgeIngestTaskStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalAppAdoptionState {
-    LOCALAPPADOPTIONSTATEUNSPECIFIED,
-    LOCALAPPADOPTIONSTATEADOPTED,
-    LOCALAPPADOPTIONSTATEREPAIRREQUIRED,
-    LOCALAPPADOPTIONSTATEREMOVED,
+pub enum LocalAppGrantState {
+    LOCALAPPGRANTSTATEUNSPECIFIED,
+    LOCALAPPGRANTSTATENOGRANT,
+    LOCALAPPGRANTSTATEPENDING,
+    LOCALAPPGRANTSTATEGRANTED,
+    LOCALAPPGRANTSTATEDENIED,
+    LOCALAPPGRANTSTATEEXPIRED,
+    LOCALAPPGRANTSTATEREVOKED,
+    LOCALAPPGRANTSTATESUPERSEDED,
 }
 
-impl Default for LocalAppAdoptionState {
+impl Default for LocalAppGrantState {
     fn default() -> Self {
-        Self::LOCALAPPADOPTIONSTATEUNSPECIFIED
+        Self::LOCALAPPGRANTSTATEUNSPECIFIED
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalAppAdoptionTrust {
-    LOCALAPPADOPTIONTRUSTUNSPECIFIED,
-    LOCALAPPADOPTIONTRUSTEXPLICITLOCAL,
-    LOCALAPPADOPTIONTRUSTDEVELOPERLOCAL,
+pub enum LocalAppSessionState {
+    LOCALAPPSESSIONSTATEUNSPECIFIED,
+    LOCALAPPSESSIONSTATEREADY,
+    LOCALAPPSESSIONSTATERUNTIMEUNAVAILABLE,
+    LOCALAPPSESSIONSTATEREVOKED,
+    LOCALAPPSESSIONSTATEACCOUNTCHANGED,
+    LOCALAPPSESSIONSTATEPROCESSREPLACED,
 }
 
-impl Default for LocalAppAdoptionTrust {
+impl Default for LocalAppSessionState {
     fn default() -> Self {
-        Self::LOCALAPPADOPTIONTRUSTUNSPECIFIED
+        Self::LOCALAPPSESSIONSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppTrustClass {
+    LOCALAPPTRUSTCLASSUNSPECIFIED,
+    LOCALAPPTRUSTCLASSVERIFIED,
+    LOCALAPPTRUSTCLASSUSERIMPORTED,
+    LOCALAPPTRUSTCLASSLOCALDEVELOPMENT,
+}
+
+impl Default for LocalAppTrustClass {
+    fn default() -> Self {
+        Self::LOCALAPPTRUSTCLASSUNSPECIFIED
     }
 }
 
@@ -1598,28 +1581,12 @@ pub enum LocalDevelopmentAuthorizationState {
     LOCALDEVELOPMENTAUTHORIZATIONSTATEREAPPROVALREQUIRED,
     LOCALDEVELOPMENTAUTHORIZATIONSTATEDENIED,
     LOCALDEVELOPMENTAUTHORIZATIONSTATEREVOKED,
+    LOCALDEVELOPMENTAUTHORIZATIONSTATEDORMANT,
 }
 
 impl Default for LocalDevelopmentAuthorizationState {
     fn default() -> Self {
         Self::LOCALDEVELOPMENTAUTHORIZATIONSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalDevelopmentBootstrapState {
-    LOCALDEVELOPMENTBOOTSTRAPSTATEUNSPECIFIED,
-    LOCALDEVELOPMENTBOOTSTRAPSTATEREADY,
-    LOCALDEVELOPMENTBOOTSTRAPSTATEAUTHORIZATIONREQUIRED,
-    LOCALDEVELOPMENTBOOTSTRAPSTATEDENIED,
-    LOCALDEVELOPMENTBOOTSTRAPSTATERUNTIMEUNAVAILABLE,
-    LOCALDEVELOPMENTBOOTSTRAPSTATEREVOKED,
-    LOCALDEVELOPMENTBOOTSTRAPSTATEPROJECTCHANGED,
-}
-
-impl Default for LocalDevelopmentBootstrapState {
-    fn default() -> Self {
-        Self::LOCALDEVELOPMENTBOOTSTRAPSTATEUNSPECIFIED
     }
 }
 
@@ -2279,19 +2246,6 @@ impl Default for ParticipationVerdictDecision {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PolicyMode {
-    POLICYMODEUNSPECIFIED,
-    POLICYMODEPRESET,
-    POLICYMODECUSTOM,
-}
-
-impl Default for PolicyMode {
-    fn default() -> Self {
-        Self::POLICYMODEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PresenceVerificationMethod {
     PRESENCEVERIFICATIONMETHODUNSPECIFIED,
     PRESENCEVERIFICATIONMETHODOSCREDENTIAL,
@@ -2554,15 +2508,25 @@ pub enum ReasonCode {
     LIFECYCLEINTENTMISMATCH,
     LIFECYCLEINTENTREPLAY,
     LIFECYCLEINTENTEXPIRED,
-    LOCALDEVELOPMENTAUTHORIZATIONREQUIRED,
-    LOCALDEVELOPMENTREAPPROVALREQUIRED,
-    LOCALDEVELOPMENTPROJECTCHANGED,
-    LOCALDEVELOPMENTSUPERVISORREQUIRED,
-    LOCALDEVELOPMENTSESSIONREVOKED,
-    LOCALDEVELOPMENTPLATFORMUNSUPPORTED,
-    LOCALDEVELOPMENTOPERATIONFORBIDDEN,
-    LOCALDEVELOPMENTDEVSERVERUNCONTROLLED,
-    LOCALDEVELOPMENTAPPROVALDENIED,
+    LOCALAPPPRINCIPALREQUIRED,
+    LOCALAPPRECORDNOTFOUND,
+    LOCALAPPRECORDTOMBSTONED,
+    LOCALAPPPROVENANCEUNAVAILABLE,
+    LOCALAPPLAUNCHLEASEREQUIRED,
+    LOCALAPPLAUNCHLEASEMISMATCH,
+    LOCALAPPLAUNCHLEASEREPLAY,
+    LOCALAPPPROCESSMISMATCH,
+    LOCALAPPSESSIONREVOKED,
+    LOCALAPPGRANTREQUIRED,
+    LOCALAPPGRANTREVOKED,
+    LOCALAPPGRANTSUPERSEDED,
+    LOCALAPPACCOUNTCHANGED,
+    LOCALAPPOPERATIONUNAVAILABLE,
+    LOCALAPPPRESENCEREQUIRED,
+    LOCALAPPPRESENCEEXPIRED,
+    LOCALAPPDEVELOPERMODEDISABLED,
+    LOCALAPPREMEMBEREDPROJECTDORMANT,
+    LOCALAPPRISKDISCLOSUREREQUIRED,
 }
 
 impl Default for ReasonCode {
@@ -3699,66 +3663,6 @@ impl AdmitProductControlReadyForUseRequest {
 
         out.account_default_profile_evidence_json = pairs.get("account_default_profile_evidence_json").cloned();
         out.built_in_ai_config_evidence_json = pairs.get("built_in_ai_config_evidence_json").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AdoptLocalAppRequest {
-    pub root_path: Option<String>,
-    pub expected_app_id: Option<String>,
-    pub lifecycle_intent_id: Option<String>,
-    pub displayed_impact_digest: Option<String>,
-}
-
-impl AdoptLocalAppRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.root_path { pairs.push(format!("root_path={}", value)); }
-        if let Some(value) = &self.expected_app_id { pairs.push(format!("expected_app_id={}", value)); }
-        if let Some(value) = &self.lifecycle_intent_id { pairs.push(format!("lifecycle_intent_id={}", value)); }
-        if let Some(value) = &self.displayed_impact_digest { pairs.push(format!("displayed_impact_digest={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.root_path = pairs.get("root_path").cloned();
-        out.expected_app_id = pairs.get("expected_app_id").cloned();
-        out.lifecycle_intent_id = pairs.get("lifecycle_intent_id").cloned();
-        out.displayed_impact_digest = pairs.get("displayed_impact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AdoptLocalAppResponse {
-    pub adoption: Option<Box<LocalAppAdoption>>,
-    pub reason_code: Option<ReasonCode>,
-    pub detail: Option<String>,
-}
-
-impl AdoptLocalAppResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.adoption.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode adoption"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["adoption", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -5877,7 +5781,6 @@ pub struct AppLifecycleCanonicalImpact {
     pub account_generation: Option<u64>,
     pub release_ref: Option<String>,
     pub artifact_digest: Option<String>,
-    pub adoption_generation: Option<u64>,
     pub destructive_options: Option<Box<AppLifecycleDestructiveOptions>>,
     pub impact_flags: Vec<String>,
     pub display_contract_version: Option<u32>,
@@ -5892,7 +5795,6 @@ impl AppLifecycleCanonicalImpact {
         if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
         if let Some(value) = &self.release_ref { pairs.push(format!("release_ref={}", value)); }
         if let Some(value) = &self.artifact_digest { pairs.push(format!("artifact_digest={}", value)); }
-        if let Some(value) = &self.adoption_generation { pairs.push(format!("adoption_generation={}", value)); }
         if self.destructive_options.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode destructive_options"); }
         for value in &self.impact_flags { pairs.push(format!("impact_flags={}", value)); }
         if let Some(value) = &self.display_contract_version { pairs.push(format!("display_contract_version={}", value)); }
@@ -5913,7 +5815,6 @@ impl AppLifecycleCanonicalImpact {
         out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
         out.release_ref = pairs.get("release_ref").cloned();
         out.artifact_digest = pairs.get("artifact_digest").cloned();
-        out.adoption_generation = pairs.get("adoption_generation").and_then(|value| value.parse().ok());
         out.impact_flags = parse_repeated_string(raw, "impact_flags");
         out.display_contract_version = pairs.get("display_contract_version").and_then(|value| value.parse().ok());
         out
@@ -6033,113 +5934,6 @@ impl AppModeManifest {
 
         out.runtime_required = pairs.get("runtime_required").and_then(|value| value.parse().ok());
         out.realm_required = pairs.get("realm_required").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppOpenProjection {
-    pub app_id: Option<String>,
-    pub state: Option<AppOpenState>,
-    pub reached_step: Option<AppOpenFlowStep>,
-    pub launched: Option<bool>,
-    pub active_version: Option<String>,
-    pub scope: Option<Box<AppOpenScopeRef>>,
-    pub reason_code: Option<ReasonCode>,
-    pub detail: Option<String>,
-    pub release_descriptor_ref: Option<String>,
-    pub descriptor_class: Option<String>,
-    pub admission_track: Option<String>,
-    pub source_kind: Option<String>,
-    pub ordinary_visibility: Option<String>,
-    pub digest_verification_state: Option<String>,
-    pub runtime_entry_ref: Option<String>,
-    pub active_release_root: Option<String>,
-    pub storage: Option<Box<AppInstallStorageProjection>>,
-    pub shell_capability_set_ref: Option<String>,
-    pub caller_mode: Option<String>,
-    pub launch_id: Option<Vec<u8>>,
-    pub product_readiness_claim_allowed: Option<bool>,
-}
-
-impl AppOpenProjection {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.reached_step { pairs.push(format!("reached_step={:?}", value)); }
-        if let Some(value) = &self.launched { pairs.push(format!("launched={}", value)); }
-        if let Some(value) = &self.active_version { pairs.push(format!("active_version={}", value)); }
-        if self.scope.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scope"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        if let Some(value) = &self.release_descriptor_ref { pairs.push(format!("release_descriptor_ref={}", value)); }
-        if let Some(value) = &self.descriptor_class { pairs.push(format!("descriptor_class={}", value)); }
-        if let Some(value) = &self.admission_track { pairs.push(format!("admission_track={}", value)); }
-        if let Some(value) = &self.source_kind { pairs.push(format!("source_kind={}", value)); }
-        if let Some(value) = &self.ordinary_visibility { pairs.push(format!("ordinary_visibility={}", value)); }
-        if let Some(value) = &self.digest_verification_state { pairs.push(format!("digest_verification_state={}", value)); }
-        if let Some(value) = &self.runtime_entry_ref { pairs.push(format!("runtime_entry_ref={}", value)); }
-        if let Some(value) = &self.active_release_root { pairs.push(format!("active_release_root={}", value)); }
-        if self.storage.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode storage"); }
-        if let Some(value) = &self.shell_capability_set_ref { pairs.push(format!("shell_capability_set_ref={}", value)); }
-        if let Some(value) = &self.caller_mode { pairs.push(format!("caller_mode={}", value)); }
-        if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
-        if let Some(value) = &self.product_readiness_claim_allowed { pairs.push(format!("product_readiness_claim_allowed={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["state", "reached_step", "scope", "reason_code", "storage", "launch_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.launched = pairs.get("launched").and_then(|value| value.parse().ok());
-        out.active_version = pairs.get("active_version").cloned();
-        out.detail = pairs.get("detail").cloned();
-        out.release_descriptor_ref = pairs.get("release_descriptor_ref").cloned();
-        out.descriptor_class = pairs.get("descriptor_class").cloned();
-        out.admission_track = pairs.get("admission_track").cloned();
-        out.source_kind = pairs.get("source_kind").cloned();
-        out.ordinary_visibility = pairs.get("ordinary_visibility").cloned();
-        out.digest_verification_state = pairs.get("digest_verification_state").cloned();
-        out.runtime_entry_ref = pairs.get("runtime_entry_ref").cloned();
-        out.active_release_root = pairs.get("active_release_root").cloned();
-        out.shell_capability_set_ref = pairs.get("shell_capability_set_ref").cloned();
-        out.caller_mode = pairs.get("caller_mode").cloned();
-        out.product_readiness_claim_allowed = pairs.get("product_readiness_claim_allowed").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppOpenScopeRef {
-    pub kind: Option<String>,
-    pub owner_id: Option<String>,
-    pub surface_id: Option<String>,
-}
-
-impl AppOpenScopeRef {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.kind { pairs.push(format!("kind={}", value)); }
-        if let Some(value) = &self.owner_id { pairs.push(format!("owner_id={}", value)); }
-        if let Some(value) = &self.surface_id { pairs.push(format!("surface_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.kind = pairs.get("kind").cloned();
-        out.owner_id = pairs.get("owner_id").cloned();
-        out.surface_id = pairs.get("surface_id").cloned();
         out
     }
 }
@@ -6754,136 +6548,6 @@ impl AuditExportChunk {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AuthorizeExternalPrincipalRequest {
-    pub domain: Option<String>,
-    pub app_id: Option<String>,
-    pub external_principal_id: Option<String>,
-    pub external_principal_type: Option<ExternalPrincipalType>,
-    pub subject_user_id: Option<String>,
-    pub consent_id: Option<String>,
-    pub consent_version: Option<String>,
-    pub decision_at: Option<String>,
-    pub policy_version: Option<String>,
-    pub policy_mode: Option<PolicyMode>,
-    pub preset: Option<AuthorizationPreset>,
-    pub scopes: Vec<String>,
-    pub resource_selectors: Option<Box<ResourceSelectors>>,
-    pub can_delegate: Option<bool>,
-    pub max_delegation_depth: Option<i32>,
-    pub ttl_seconds: Option<i32>,
-    pub scope_catalog_version: Option<String>,
-    pub policy_override: Option<bool>,
-}
-
-impl AuthorizeExternalPrincipalRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.domain { pairs.push(format!("domain={}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.external_principal_id { pairs.push(format!("external_principal_id={}", value)); }
-        if let Some(value) = &self.external_principal_type { pairs.push(format!("external_principal_type={:?}", value)); }
-        if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if let Some(value) = &self.consent_id { pairs.push(format!("consent_id={}", value)); }
-        if let Some(value) = &self.consent_version { pairs.push(format!("consent_version={}", value)); }
-        if let Some(value) = &self.decision_at { pairs.push(format!("decision_at={}", value)); }
-        if let Some(value) = &self.policy_version { pairs.push(format!("policy_version={}", value)); }
-        if let Some(value) = &self.policy_mode { pairs.push(format!("policy_mode={:?}", value)); }
-        if let Some(value) = &self.preset { pairs.push(format!("preset={:?}", value)); }
-        for value in &self.scopes { pairs.push(format!("scopes={}", value)); }
-        if self.resource_selectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resource_selectors"); }
-        if let Some(value) = &self.can_delegate { pairs.push(format!("can_delegate={}", value)); }
-        if let Some(value) = &self.max_delegation_depth { pairs.push(format!("max_delegation_depth={}", value)); }
-        if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
-        if let Some(value) = &self.scope_catalog_version { pairs.push(format!("scope_catalog_version={}", value)); }
-        if let Some(value) = &self.policy_override { pairs.push(format!("policy_override={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["external_principal_type", "policy_mode", "preset", "resource_selectors"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.domain = pairs.get("domain").cloned();
-        out.app_id = pairs.get("app_id").cloned();
-        out.external_principal_id = pairs.get("external_principal_id").cloned();
-        out.subject_user_id = pairs.get("subject_user_id").cloned();
-        out.consent_id = pairs.get("consent_id").cloned();
-        out.consent_version = pairs.get("consent_version").cloned();
-        out.decision_at = pairs.get("decision_at").cloned();
-        out.policy_version = pairs.get("policy_version").cloned();
-        out.scopes = parse_repeated_string(raw, "scopes");
-        out.can_delegate = pairs.get("can_delegate").and_then(|value| value.parse().ok());
-        out.max_delegation_depth = pairs.get("max_delegation_depth").and_then(|value| value.parse().ok());
-        out.ttl_seconds = pairs.get("ttl_seconds").and_then(|value| value.parse().ok());
-        out.scope_catalog_version = pairs.get("scope_catalog_version").cloned();
-        out.policy_override = pairs.get("policy_override").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AuthorizeExternalPrincipalResponse {
-    pub token_id: Option<String>,
-    pub app_id: Option<String>,
-    pub subject_user_id: Option<String>,
-    pub external_principal_id: Option<String>,
-    pub effective_scopes: Vec<String>,
-    pub resource_selectors: Option<Box<ResourceSelectors>>,
-    pub consent_ref: Option<Box<ConsentRef>>,
-    pub policy_version: Option<String>,
-    pub issued_scope_catalog_version: Option<String>,
-    pub can_delegate: Option<bool>,
-    pub expires_at: Option<String>,
-    pub secret: Option<String>,
-}
-
-impl AuthorizeExternalPrincipalResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.token_id { pairs.push(format!("token_id={}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if let Some(value) = &self.external_principal_id { pairs.push(format!("external_principal_id={}", value)); }
-        for value in &self.effective_scopes { pairs.push(format!("effective_scopes={}", value)); }
-        if self.resource_selectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resource_selectors"); }
-        if self.consent_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode consent_ref"); }
-        if let Some(value) = &self.policy_version { pairs.push(format!("policy_version={}", value)); }
-        if let Some(value) = &self.issued_scope_catalog_version { pairs.push(format!("issued_scope_catalog_version={}", value)); }
-        if let Some(value) = &self.can_delegate { pairs.push(format!("can_delegate={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.secret { pairs.push(format!("secret={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["resource_selectors", "consent_ref"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.token_id = pairs.get("token_id").cloned();
-        out.app_id = pairs.get("app_id").cloned();
-        out.subject_user_id = pairs.get("subject_user_id").cloned();
-        out.external_principal_id = pairs.get("external_principal_id").cloned();
-        out.effective_scopes = parse_repeated_string(raw, "effective_scopes");
-        out.policy_version = pairs.get("policy_version").cloned();
-        out.issued_scope_catalog_version = pairs.get("issued_scope_catalog_version").cloned();
-        out.can_delegate = pairs.get("can_delegate").and_then(|value| value.parse().ok());
-        out.expires_at = pairs.get("expires_at").cloned();
-        out.secret = pairs.get("secret").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AvatarDebugProbeRequestEnvelope {
     pub probe_id: Option<String>,
     pub agent_id: Option<String>,
@@ -7234,12 +6898,12 @@ impl BeginSourceMaterializationUploadResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindInstalledLaunchProcessRequest {
+pub struct BindLocalAppProcessRequest {
     pub launch_id: Option<Vec<u8>>,
     pub child_process_id: Option<u32>,
 }
 
-impl BindInstalledLaunchProcessRequest {
+impl BindLocalAppProcessRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
@@ -7262,69 +6926,13 @@ impl BindInstalledLaunchProcessRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindInstalledLaunchProcessResponse {
-    pub launch_id: Option<Vec<u8>>,
-    pub bind_deadline: Option<String>,
-}
-
-impl BindInstalledLaunchProcessResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
-        if let Some(value) = &self.bind_deadline { pairs.push(format!("bind_deadline={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["launch_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.bind_deadline = pairs.get("bind_deadline").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindLocalDevelopmentHostProcessRequest {
-    pub launch_id: Option<Vec<u8>>,
-    pub child_process_id: Option<u32>,
-}
-
-impl BindLocalDevelopmentHostProcessRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
-        if let Some(value) = &self.child_process_id { pairs.push(format!("child_process_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["launch_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.child_process_id = pairs.get("child_process_id").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindLocalDevelopmentHostProcessResponse {
+pub struct BindLocalAppProcessResponse {
     pub launch_id: Option<Vec<u8>>,
     pub bind_deadline: Option<String>,
     pub reason_code: Option<ReasonCode>,
 }
 
-impl BindLocalDevelopmentHostProcessResponse {
+impl BindLocalAppProcessResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
@@ -9612,9 +9220,69 @@ impl CreateSourceMaterializationChallengeResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct DecideLocalAppGrantRequest {
+    pub request_id: Option<Vec<u8>>,
+    pub approved: Option<bool>,
+    pub presence_challenge_id: Option<Vec<u8>>,
+}
+
+impl DecideLocalAppGrantRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.request_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode request_id"); }
+        if let Some(value) = &self.approved { pairs.push(format!("approved={}", value)); }
+        if self.presence_challenge_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode presence_challenge_id"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["request_id", "presence_challenge_id"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.approved = pairs.get("approved").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DecideLocalAppGrantResponse {
+    pub projection: Option<Box<LocalAppGrantProjection>>,
+}
+
+impl DecideLocalAppGrantResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["projection"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DecideLocalDevelopmentProjectRequest {
     pub evaluation_id: Option<Vec<u8>>,
     pub decision: Option<LocalDevelopmentDecision>,
+    pub risk_disclosure_acknowledged: Option<bool>,
 }
 
 impl DecideLocalDevelopmentProjectRequest {
@@ -9622,6 +9290,7 @@ impl DecideLocalDevelopmentProjectRequest {
         let mut pairs: Vec<String> = Vec::new();
         if self.evaluation_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode evaluation_id"); }
         if let Some(value) = &self.decision { pairs.push(format!("decision={:?}", value)); }
+        if let Some(value) = &self.risk_disclosure_acknowledged { pairs.push(format!("risk_disclosure_acknowledged={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -9633,11 +9302,8 @@ impl DecideLocalDevelopmentProjectRequest {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.risk_disclosure_acknowledged = pairs.get("risk_disclosure_acknowledged").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -13043,6 +12709,57 @@ impl GetDelegatedReplayTraceResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetDeveloperModeStatusRequest {
+
+}
+
+impl GetDeveloperModeStatusRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetDeveloperModeStatusResponse {
+    pub state: Option<DeveloperModeState>,
+    pub revision: Option<u64>,
+    pub account_generation: Option<u64>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl GetDeveloperModeStatusResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
+        out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetEngineStatusRequest {
     pub engine: Option<String>,
 }
@@ -13207,52 +12924,54 @@ impl GetKnowledgeBankResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalDevelopmentSessionStatusRequest {
-
+pub struct GetLocalAppGrantStatusRequest {
+    pub operation_id: Option<String>,
+    pub resource_ref: Option<String>,
 }
 
-impl GetLocalDevelopmentSessionStatusRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalDevelopmentSessionStatusResponse {
-    pub state: Option<LocalDevelopmentBootstrapState>,
-    pub app_id: Option<String>,
-    pub expires_at: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl GetLocalDevelopmentSessionStatusResponse {
+impl GetLocalAppGrantStatusRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.operation_id { pairs.push(format!("operation_id={}", value)); }
+        if let Some(value) = &self.resource_ref { pairs.push(format!("resource_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["state", "reason_code"] {
+
+        out.operation_id = pairs.get("operation_id").cloned();
+        out.resource_ref = pairs.get("resource_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppGrantStatusResponse {
+    pub projection: Option<Box<LocalAppGrantProjection>>,
+}
+
+impl GetLocalAppGrantStatusResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["projection"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
 
-        out.app_id = pairs.get("app_id").cloned();
-        out.expires_at = pairs.get("expires_at").cloned();
+
         out
     }
 }
@@ -15319,76 +15038,6 @@ impl InvokeRealmUnaryResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct IssueDelegatedAccessTokenRequest {
-    pub app_id: Option<String>,
-    pub parent_token_id: Option<String>,
-    pub scopes: Vec<String>,
-    pub resource_selectors: Option<Box<ResourceSelectors>>,
-    pub ttl_seconds: Option<i32>,
-}
-
-impl IssueDelegatedAccessTokenRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.parent_token_id { pairs.push(format!("parent_token_id={}", value)); }
-        for value in &self.scopes { pairs.push(format!("scopes={}", value)); }
-        if self.resource_selectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resource_selectors"); }
-        if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["resource_selectors"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.parent_token_id = pairs.get("parent_token_id").cloned();
-        out.scopes = parse_repeated_string(raw, "scopes");
-        out.ttl_seconds = pairs.get("ttl_seconds").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct IssueDelegatedAccessTokenResponse {
-    pub token_id: Option<String>,
-    pub parent_token_id: Option<String>,
-    pub effective_scopes: Vec<String>,
-    pub expires_at: Option<String>,
-    pub secret: Option<String>,
-}
-
-impl IssueDelegatedAccessTokenResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.token_id { pairs.push(format!("token_id={}", value)); }
-        if let Some(value) = &self.parent_token_id { pairs.push(format!("parent_token_id={}", value)); }
-        for value in &self.effective_scopes { pairs.push(format!("effective_scopes={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.secret { pairs.push(format!("secret={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.token_id = pairs.get("token_id").cloned();
-        out.parent_token_id = pairs.get("parent_token_id").cloned();
-        out.effective_scopes = parse_repeated_string(raw, "effective_scopes");
-        out.expires_at = pairs.get("expires_at").cloned();
-        out.secret = pairs.get("secret").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct IssueScopedAppBindingRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub relation: Option<Box<ScopedAppBindingRelation>>,
@@ -17071,54 +16720,6 @@ impl ListLinksResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppAdoptionsRequest {
-
-}
-
-impl ListLocalAppAdoptionsRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppAdoptionsResponse {
-    pub adoptions: Vec<Box<LocalAppAdoption>>,
-    pub reason_code: Option<ReasonCode>,
-    pub detail: Option<String>,
-}
-
-impl ListLocalAppAdoptionsResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if !self.adoptions.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode adoptions"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["adoptions", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.detail = pairs.get("detail").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAssetsRequest {
     pub status_filter: Option<LocalAssetStatus>,
     pub kind_filter: Option<LocalAssetKind>,
@@ -18041,70 +17642,6 @@ impl ListScenarioProfilesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListTokenChainRequest {
-    pub app_id: Option<String>,
-    pub root_token_id: Option<String>,
-    pub include_revoked: Option<bool>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-impl ListTokenChainRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.root_token_id { pairs.push(format!("root_token_id={}", value)); }
-        if let Some(value) = &self.include_revoked { pairs.push(format!("include_revoked={}", value)); }
-        if let Some(value) = &self.page_size { pairs.push(format!("page_size={}", value)); }
-        if let Some(value) = &self.page_token { pairs.push(format!("page_token={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.root_token_id = pairs.get("root_token_id").cloned();
-        out.include_revoked = pairs.get("include_revoked").and_then(|value| value.parse().ok());
-        out.page_size = pairs.get("page_size").and_then(|value| value.parse().ok());
-        out.page_token = pairs.get("page_token").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListTokenChainResponse {
-    pub entries: Vec<Box<TokenChainEntry>>,
-    pub next_page_token: Option<String>,
-    pub has_more: Option<bool>,
-}
-
-impl ListTokenChainResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if !self.entries.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode entries"); }
-        if let Some(value) = &self.next_page_token { pairs.push(format!("next_page_token={}", value)); }
-        if let Some(value) = &self.has_more { pairs.push(format!("has_more={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["entries"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.next_page_token = pairs.get("next_page_token").cloned();
-        out.has_more = pairs.get("has_more").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListUsageStatsRequest {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
@@ -18417,63 +17954,49 @@ impl LocalAgentSourceCoverageSectionStatus {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAdoption {
-    pub app_id: Option<String>,
-    pub root_path: Option<String>,
-    pub manifest_path: Option<String>,
-    pub display_name: Option<String>,
-    pub version: Option<String>,
-    pub entry_ref: Option<String>,
-    pub permission_scope_ref: Option<String>,
-    pub storage_policy_ref: Option<String>,
-    pub state: Option<LocalAppAdoptionState>,
-    pub trust: Option<LocalAppAdoptionTrust>,
-    pub adopted_at: Option<String>,
-    pub updated_at: Option<String>,
+pub struct LocalAppGrantProjection {
+    pub state: Option<LocalAppGrantState>,
+    pub operation_id: Option<String>,
+    pub resource_ref: Option<String>,
+    pub request_id: Option<Vec<u8>>,
+    pub grant_id: Option<Vec<u8>>,
+    pub grant_generation: Option<u64>,
+    pub grant_revision: Option<u64>,
+    pub expires_at: Option<String>,
     pub reason_code: Option<ReasonCode>,
-    pub detail: Option<String>,
+    pub presence_challenge_id: Option<Vec<u8>>,
 }
 
-impl LocalAppAdoption {
+impl LocalAppGrantProjection {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.root_path { pairs.push(format!("root_path={}", value)); }
-        if let Some(value) = &self.manifest_path { pairs.push(format!("manifest_path={}", value)); }
-        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
-        if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
-        if let Some(value) = &self.entry_ref { pairs.push(format!("entry_ref={}", value)); }
-        if let Some(value) = &self.permission_scope_ref { pairs.push(format!("permission_scope_ref={}", value)); }
-        if let Some(value) = &self.storage_policy_ref { pairs.push(format!("storage_policy_ref={}", value)); }
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.trust { pairs.push(format!("trust={:?}", value)); }
-        if let Some(value) = &self.adopted_at { pairs.push(format!("adopted_at={}", value)); }
-        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if let Some(value) = &self.operation_id { pairs.push(format!("operation_id={}", value)); }
+        if let Some(value) = &self.resource_ref { pairs.push(format!("resource_ref={}", value)); }
+        if self.request_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode request_id"); }
+        if self.grant_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grant_id"); }
+        if let Some(value) = &self.grant_generation { pairs.push(format!("grant_generation={}", value)); }
+        if let Some(value) = &self.grant_revision { pairs.push(format!("grant_revision={}", value)); }
+        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        if self.presence_challenge_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode presence_challenge_id"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["state", "trust", "reason_code"] {
+        for key in ["state", "request_id", "grant_id", "reason_code", "presence_challenge_id"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
 
-        out.app_id = pairs.get("app_id").cloned();
-        out.root_path = pairs.get("root_path").cloned();
-        out.manifest_path = pairs.get("manifest_path").cloned();
-        out.display_name = pairs.get("display_name").cloned();
-        out.version = pairs.get("version").cloned();
-        out.entry_ref = pairs.get("entry_ref").cloned();
-        out.permission_scope_ref = pairs.get("permission_scope_ref").cloned();
-        out.storage_policy_ref = pairs.get("storage_policy_ref").cloned();
-        out.adopted_at = pairs.get("adopted_at").cloned();
-        out.updated_at = pairs.get("updated_at").cloned();
-        out.detail = pairs.get("detail").cloned();
+        out.operation_id = pairs.get("operation_id").cloned();
+        out.resource_ref = pairs.get("resource_ref").cloned();
+        out.grant_generation = pairs.get("grant_generation").and_then(|value| value.parse().ok());
+        out.grant_revision = pairs.get("grant_revision").and_then(|value| value.parse().ok());
+        out.expires_at = pairs.get("expires_at").cloned();
         out
     }
 }
@@ -22616,69 +22139,6 @@ impl ObservationalMemoryRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenAppRequest {
-    pub app_id: Option<String>,
-    pub scope: Option<Box<AppOpenScopeRef>>,
-    pub lifecycle_intent_id: Option<String>,
-    pub displayed_impact_digest: Option<String>,
-}
-
-impl OpenAppRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if self.scope.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scope"); }
-        if let Some(value) = &self.lifecycle_intent_id { pairs.push(format!("lifecycle_intent_id={}", value)); }
-        if let Some(value) = &self.displayed_impact_digest { pairs.push(format!("displayed_impact_digest={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["scope"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.lifecycle_intent_id = pairs.get("lifecycle_intent_id").cloned();
-        out.displayed_impact_digest = pairs.get("displayed_impact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenAppResponse {
-    pub projection: Option<Box<AppOpenProjection>>,
-}
-
-impl OpenAppResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["projection"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OpenCompanionParticipationReplayRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -22819,64 +22279,6 @@ impl OpenConversationAnchorResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenDesktopLaunchedAppSessionRequest {
-
-}
-
-impl OpenDesktopLaunchedAppSessionRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenDesktopLaunchedAppSessionResponse {
-    pub installed_session_id: Option<Vec<u8>>,
-    pub installed_session_proof: Option<Vec<u8>>,
-    pub expires_at: Option<String>,
-    pub app_id: Option<String>,
-    pub release_digest: Option<Vec<u8>>,
-    pub account_generation: Option<u64>,
-    pub runtime_boot_epoch: Option<Vec<u8>>,
-}
-
-impl OpenDesktopLaunchedAppSessionResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.installed_session_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode installed_session_id"); }
-        if self.installed_session_proof.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode installed_session_proof"); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if self.release_digest.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode release_digest"); }
-        if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
-        if self.runtime_boot_epoch.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode runtime_boot_epoch"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["installed_session_id", "installed_session_proof", "release_digest", "runtime_boot_epoch"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.expires_at = pairs.get("expires_at").cloned();
-        out.app_id = pairs.get("app_id").cloned();
-        out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OpenDesktopSessionRequest {
 
 }
@@ -22990,11 +22392,11 @@ impl OpenExternalPrincipalSessionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenLocalDevelopmentAppSessionRequest {
+pub struct OpenLocalAppSessionRequest {
 
 }
 
-impl OpenLocalDevelopmentAppSessionRequest {
+impl OpenLocalAppSessionRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         Vec::new()
     }
@@ -23008,23 +22410,19 @@ impl OpenLocalDevelopmentAppSessionRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenLocalDevelopmentAppSessionResponse {
-    pub state: Option<LocalDevelopmentBootstrapState>,
-    pub app_id: Option<String>,
-    pub bootstrap_artifact_id: Option<String>,
-    pub expires_at: Option<String>,
+pub struct OpenLocalAppSessionResponse {
+    pub state: Option<LocalAppSessionState>,
+    pub trust_class: Option<LocalAppTrustClass>,
     pub account_generation: Option<u64>,
     pub runtime_boot_epoch: Option<Vec<u8>>,
     pub reason_code: Option<ReasonCode>,
 }
 
-impl OpenLocalDevelopmentAppSessionResponse {
+impl OpenLocalAppSessionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.bootstrap_artifact_id { pairs.push(format!("bootstrap_artifact_id={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        if let Some(value) = &self.trust_class { pairs.push(format!("trust_class={:?}", value)); }
         if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
         if self.runtime_boot_epoch.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode runtime_boot_epoch"); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
@@ -23034,15 +22432,12 @@ impl OpenLocalDevelopmentAppSessionResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["state", "runtime_boot_epoch", "reason_code"] {
+        for key in ["state", "trust_class", "runtime_boot_epoch", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
 
-        out.app_id = pairs.get("app_id").cloned();
-        out.bootstrap_artifact_id = pairs.get("bootstrap_artifact_id").cloned();
-        out.expires_at = pairs.get("expires_at").cloned();
         out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
         out
     }
@@ -23801,7 +23196,6 @@ pub struct PrepareAppLifecycleIntentRequest {
     pub app_id: Option<String>,
     pub expected_release_ref: Option<String>,
     pub expected_artifact_digest: Option<String>,
-    pub expected_adoption_generation: Option<u64>,
     pub destructive_options: Option<Box<AppLifecycleDestructiveOptions>>,
 }
 
@@ -23812,7 +23206,6 @@ impl PrepareAppLifecycleIntentRequest {
         if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
         if let Some(value) = &self.expected_release_ref { pairs.push(format!("expected_release_ref={}", value)); }
         if let Some(value) = &self.expected_artifact_digest { pairs.push(format!("expected_artifact_digest={}", value)); }
-        if let Some(value) = &self.expected_adoption_generation { pairs.push(format!("expected_adoption_generation={}", value)); }
         if self.destructive_options.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode destructive_options"); }
         pairs.join(";").into_bytes()
     }
@@ -23829,7 +23222,6 @@ impl PrepareAppLifecycleIntentRequest {
         out.app_id = pairs.get("app_id").cloned();
         out.expected_release_ref = pairs.get("expected_release_ref").cloned();
         out.expected_artifact_digest = pairs.get("expected_artifact_digest").cloned();
-        out.expected_adoption_generation = pairs.get("expected_adoption_generation").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -23871,48 +23263,44 @@ impl PrepareAppLifecycleIntentResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PrepareLocalDevelopmentLaunchRequest {
-    pub authorization_id: Option<Vec<u8>>,
+pub struct PrepareLocalAppLaunchRequest {
+    pub local_app_handle: Option<Vec<u8>>,
     pub supervisor_run_id: Option<Vec<u8>>,
-    pub shell_kind: Option<LocalDevelopmentShellKind>,
-    pub host_executable_path: Option<String>,
-    pub renderer_origin: Option<String>,
 }
 
-impl PrepareLocalDevelopmentLaunchRequest {
+impl PrepareLocalAppLaunchRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
+        if self.local_app_handle.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_app_handle"); }
         if self.supervisor_run_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode supervisor_run_id"); }
-        if let Some(value) = &self.shell_kind { pairs.push(format!("shell_kind={:?}", value)); }
-        if let Some(value) = &self.host_executable_path { pairs.push(format!("host_executable_path={}", value)); }
-        if let Some(value) = &self.renderer_origin { pairs.push(format!("renderer_origin={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["authorization_id", "supervisor_run_id", "shell_kind"] {
+        for key in ["local_app_handle", "supervisor_run_id"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
 
-        out.host_executable_path = pairs.get("host_executable_path").cloned();
-        out.renderer_origin = pairs.get("renderer_origin").cloned();
+
         out
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PrepareLocalDevelopmentLaunchResponse {
+pub struct PrepareLocalAppLaunchResponse {
     pub launch_id: Option<Vec<u8>>,
     pub bind_deadline: Option<String>,
     pub reason_code: Option<ReasonCode>,
 }
 
-impl PrepareLocalDevelopmentLaunchResponse {
+impl PrepareLocalAppLaunchResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if self.launch_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode launch_id"); }
@@ -24499,6 +23887,65 @@ impl RawChunk {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
         for key in ["value"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReactivateLocalDevelopmentProjectRequest {
+    pub authorization_id: Option<Vec<u8>>,
+    pub risk_disclosure_acknowledged: Option<bool>,
+}
+
+impl ReactivateLocalDevelopmentProjectRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
+        if let Some(value) = &self.risk_disclosure_acknowledged { pairs.push(format!("risk_disclosure_acknowledged={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["authorization_id"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.risk_disclosure_acknowledged = pairs.get("risk_disclosure_acknowledged").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReactivateLocalDevelopmentProjectResponse {
+    pub authorization: Option<Box<LocalDevelopmentAuthorizationProjection>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl ReactivateLocalDevelopmentProjectResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.authorization.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["authorization", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -25420,7 +24867,6 @@ pub struct RegisterAppRequest {
     pub app_version: Option<String>,
     pub capabilities: Vec<String>,
     pub mode_manifest: Option<Box<AppModeManifest>>,
-    pub developer_registration: Option<bool>,
 }
 
 impl RegisterAppRequest {
@@ -25432,7 +24878,6 @@ impl RegisterAppRequest {
         if let Some(value) = &self.app_version { pairs.push(format!("app_version={}", value)); }
         for value in &self.capabilities { pairs.push(format!("capabilities={}", value)); }
         if self.mode_manifest.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode mode_manifest"); }
-        if let Some(value) = &self.developer_registration { pairs.push(format!("developer_registration={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -25450,7 +24895,6 @@ impl RegisterAppRequest {
         out.device_id = pairs.get("device_id").cloned();
         out.app_version = pairs.get("app_version").cloned();
         out.capabilities = parse_repeated_string(raw, "capabilities");
-        out.developer_registration = pairs.get("developer_registration").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -25674,66 +25118,6 @@ impl RemoveLinkResponse {
         }
 
 
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RemoveLocalAppAdoptionRequest {
-    pub app_id: Option<String>,
-    pub delete_durable_data_confirmed: Option<bool>,
-    pub lifecycle_intent_id: Option<String>,
-    pub displayed_impact_digest: Option<String>,
-}
-
-impl RemoveLocalAppAdoptionRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.delete_durable_data_confirmed { pairs.push(format!("delete_durable_data_confirmed={}", value)); }
-        if let Some(value) = &self.lifecycle_intent_id { pairs.push(format!("lifecycle_intent_id={}", value)); }
-        if let Some(value) = &self.displayed_impact_digest { pairs.push(format!("displayed_impact_digest={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.delete_durable_data_confirmed = pairs.get("delete_durable_data_confirmed").and_then(|value| value.parse().ok());
-        out.lifecycle_intent_id = pairs.get("lifecycle_intent_id").cloned();
-        out.displayed_impact_digest = pairs.get("displayed_impact_digest").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RemoveLocalAppAdoptionResponse {
-    pub adoption: Option<Box<LocalAppAdoption>>,
-    pub reason_code: Option<ReasonCode>,
-    pub detail: Option<String>,
-}
-
-impl RemoveLocalAppAdoptionResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.adoption.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode adoption"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["adoption", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -26145,6 +25529,62 @@ impl RequestCompanionParticipationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestLocalAppGrantRequest {
+    pub operation_id: Option<String>,
+    pub resource_ref: Option<String>,
+    pub purpose: Option<String>,
+}
+
+impl RequestLocalAppGrantRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.operation_id { pairs.push(format!("operation_id={}", value)); }
+        if let Some(value) = &self.resource_ref { pairs.push(format!("resource_ref={}", value)); }
+        if let Some(value) = &self.purpose { pairs.push(format!("purpose={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.operation_id = pairs.get("operation_id").cloned();
+        out.resource_ref = pairs.get("resource_ref").cloned();
+        out.purpose = pairs.get("purpose").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestLocalAppGrantResponse {
+    pub projection: Option<Box<LocalAppGrantProjection>>,
+}
+
+impl RequestLocalAppGrantResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["projection"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RequestMemoryEmbeddingRuntimeBindRequest {
     pub context: Option<Box<MemoryRequestContext>>,
     pub locator: Option<Box<MemoryBankLocator>>,
@@ -26343,6 +25783,52 @@ impl RequestPresenceVerificationResponse {
         out.verified_until = pairs.get("verified_until").cloned();
         out.purpose = pairs.get("purpose").cloned();
         out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestRuntimeRestartRequest {
+
+}
+
+impl RequestRuntimeRestartRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestRuntimeRestartResponse {
+    pub accepted: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl RequestRuntimeRestartResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -27250,30 +26736,6 @@ impl RetryLocalEnvironmentDependencyJobResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeAppAccessTokenRequest {
-    pub app_id: Option<String>,
-    pub token_id: Option<String>,
-}
-
-impl RevokeAppAccessTokenRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.token_id { pairs.push(format!("token_id={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.token_id = pairs.get("token_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevokeExternalPrincipalSessionRequest {
     pub external_session_id: Option<String>,
 }
@@ -27290,6 +26752,64 @@ impl RevokeExternalPrincipalSessionRequest {
         let mut out = Self::default();
 
         out.external_session_id = pairs.get("external_session_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevokeLocalAppGrantRequest {
+    pub grant_id: Option<Vec<u8>>,
+}
+
+impl RevokeLocalAppGrantRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.grant_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grant_id"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["grant_id"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevokeLocalAppGrantResponse {
+    pub projection: Option<Box<LocalAppGrantProjection>>,
+}
+
+impl RevokeLocalAppGrantResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["projection"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
         out
     }
 }
@@ -29573,6 +29093,60 @@ impl SetDelegatedProviderStateResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetDeveloperModeRequest {
+    pub enabled: Option<bool>,
+}
+
+impl SetDeveloperModeRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.enabled { pairs.push(format!("enabled={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.enabled = pairs.get("enabled").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetDeveloperModeResponse {
+    pub state: Option<DeveloperModeState>,
+    pub revision: Option<u64>,
+    pub account_generation: Option<u64>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl SetDeveloperModeResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if let Some(value) = &self.account_generation { pairs.push(format!("account_generation={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
+        out.account_generation = pairs.get("account_generation").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SetProductControlFirstRunInstallLevelRequest {
     pub install_level: Option<String>,
     pub ai_profile_alias: Option<String>,
@@ -30921,6 +30495,8 @@ pub struct SubscribeAppMessagesRequest {
     pub cursor: Option<String>,
     pub from_app_ids: Vec<String>,
     pub scoped_binding: Option<Box<ScopedRuntimeBindingAttachment>>,
+    pub local_agent_ref: Option<String>,
+    pub conversation_anchor_id: Option<String>,
 }
 
 impl SubscribeAppMessagesRequest {
@@ -30931,6 +30507,8 @@ impl SubscribeAppMessagesRequest {
         if let Some(value) = &self.cursor { pairs.push(format!("cursor={}", value)); }
         for value in &self.from_app_ids { pairs.push(format!("from_app_ids={}", value)); }
         if self.scoped_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scoped_binding"); }
+        if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -30947,6 +30525,8 @@ impl SubscribeAppMessagesRequest {
         out.subject_user_id = pairs.get("subject_user_id").cloned();
         out.cursor = pairs.get("cursor").cloned();
         out.from_app_ids = parse_repeated_string(raw, "from_app_ids");
+        out.local_agent_ref = pairs.get("local_agent_ref").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
         out
     }
 }
@@ -31482,57 +31062,6 @@ impl TextStreamDelta {
         let mut out = Self::default();
 
         out.text = pairs.get("text").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TokenChainEntry {
-    pub token_id: Option<String>,
-    pub parent_token_id: Option<String>,
-    pub principal_id: Option<String>,
-    pub principal_type: Option<String>,
-    pub effective_scopes: Vec<String>,
-    pub issued_at: Option<String>,
-    pub expires_at: Option<String>,
-    pub revoked: Option<bool>,
-    pub delegation_depth: Option<i32>,
-    pub policy_version: Option<String>,
-    pub issued_scope_catalog_version: Option<String>,
-}
-
-impl TokenChainEntry {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.token_id { pairs.push(format!("token_id={}", value)); }
-        if let Some(value) = &self.parent_token_id { pairs.push(format!("parent_token_id={}", value)); }
-        if let Some(value) = &self.principal_id { pairs.push(format!("principal_id={}", value)); }
-        if let Some(value) = &self.principal_type { pairs.push(format!("principal_type={}", value)); }
-        for value in &self.effective_scopes { pairs.push(format!("effective_scopes={}", value)); }
-        if let Some(value) = &self.issued_at { pairs.push(format!("issued_at={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.revoked { pairs.push(format!("revoked={}", value)); }
-        if let Some(value) = &self.delegation_depth { pairs.push(format!("delegation_depth={}", value)); }
-        if let Some(value) = &self.policy_version { pairs.push(format!("policy_version={}", value)); }
-        if let Some(value) = &self.issued_scope_catalog_version { pairs.push(format!("issued_scope_catalog_version={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.token_id = pairs.get("token_id").cloned();
-        out.parent_token_id = pairs.get("parent_token_id").cloned();
-        out.principal_id = pairs.get("principal_id").cloned();
-        out.principal_type = pairs.get("principal_type").cloned();
-        out.effective_scopes = parse_repeated_string(raw, "effective_scopes");
-        out.issued_at = pairs.get("issued_at").cloned();
-        out.expires_at = pairs.get("expires_at").cloned();
-        out.revoked = pairs.get("revoked").and_then(|value| value.parse().ok());
-        out.delegation_depth = pairs.get("delegation_depth").and_then(|value| value.parse().ok());
-        out.policy_version = pairs.get("policy_version").cloned();
-        out.issued_scope_catalog_version = pairs.get("issued_scope_catalog_version").cloned();
         out
     }
 }
@@ -32552,86 +32081,6 @@ impl UsageStats {
         out.compute_ms = pairs.get("compute_ms").and_then(|value| value.parse().ok());
         out.cached_input_tokens = pairs.get("cached_input_tokens").and_then(|value| value.parse().ok());
         out.reasoning_output_tokens = pairs.get("reasoning_output_tokens").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ValidateAppAccessTokenRequest {
-    pub app_id: Option<String>,
-    pub token_id: Option<String>,
-    pub subject_user_id: Option<String>,
-    pub operation: Option<String>,
-    pub requested_scopes: Vec<String>,
-    pub resource_selectors: Option<Box<ResourceSelectors>>,
-}
-
-impl ValidateAppAccessTokenRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.token_id { pairs.push(format!("token_id={}", value)); }
-        if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
-        if let Some(value) = &self.operation { pairs.push(format!("operation={}", value)); }
-        for value in &self.requested_scopes { pairs.push(format!("requested_scopes={}", value)); }
-        if self.resource_selectors.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resource_selectors"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["resource_selectors"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.app_id = pairs.get("app_id").cloned();
-        out.token_id = pairs.get("token_id").cloned();
-        out.subject_user_id = pairs.get("subject_user_id").cloned();
-        out.operation = pairs.get("operation").cloned();
-        out.requested_scopes = parse_repeated_string(raw, "requested_scopes");
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ValidateAppAccessTokenResponse {
-    pub valid: Option<bool>,
-    pub reason_code: Option<ReasonCode>,
-    pub effective_scopes: Vec<String>,
-    pub policy_version: Option<String>,
-    pub issued_scope_catalog_version: Option<String>,
-    pub action_hint: Option<String>,
-}
-
-impl ValidateAppAccessTokenResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.valid { pairs.push(format!("valid={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        for value in &self.effective_scopes { pairs.push(format!("effective_scopes={}", value)); }
-        if let Some(value) = &self.policy_version { pairs.push(format!("policy_version={}", value)); }
-        if let Some(value) = &self.issued_scope_catalog_version { pairs.push(format!("issued_scope_catalog_version={}", value)); }
-        if let Some(value) = &self.action_hint { pairs.push(format!("action_hint={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.valid = pairs.get("valid").and_then(|value| value.parse().ok());
-        out.effective_scopes = parse_repeated_string(raw, "effective_scopes");
-        out.policy_version = pairs.get("policy_version").cloned();
-        out.issued_scope_catalog_version = pairs.get("issued_scope_catalog_version").cloned();
-        out.action_hint = pairs.get("action_hint").cloned();
         out
     }
 }
@@ -34235,18 +33684,6 @@ impl From<Vec<u8>> for AdmitProductControlReadyForUseRequest {
     }
 }
 
-impl From<Vec<u8>> for AdoptLocalAppRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AdoptLocalAppResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AgentAutonomyConfig {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34571,18 +34008,6 @@ impl From<Vec<u8>> for AppModeManifest {
     }
 }
 
-impl From<Vec<u8>> for AppOpenProjection {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AppOpenScopeRef {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AppPackageReadinessProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34673,18 +34098,6 @@ impl From<Vec<u8>> for AuditExportChunk {
     }
 }
 
-impl From<Vec<u8>> for AuthorizeExternalPrincipalRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for AuthorizeExternalPrincipalResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for AvatarDebugProbeRequestEnvelope {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -34733,25 +34146,13 @@ impl From<Vec<u8>> for BeginSourceMaterializationUploadResponse {
     }
 }
 
-impl From<Vec<u8>> for BindInstalledLaunchProcessRequest {
+impl From<Vec<u8>> for BindLocalAppProcessRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for BindInstalledLaunchProcessResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for BindLocalDevelopmentHostProcessRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for BindLocalDevelopmentHostProcessResponse {
+impl From<Vec<u8>> for BindLocalAppProcessResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35148,6 +34549,18 @@ impl From<Vec<u8>> for CreateSourceMaterializationChallengeRequest {
 }
 
 impl From<Vec<u8>> for CreateSourceMaterializationChallengeResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DecideLocalAppGrantRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DecideLocalAppGrantResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35801,6 +35214,18 @@ impl From<Vec<u8>> for GetDelegatedReplayTraceResponse {
     }
 }
 
+impl From<Vec<u8>> for GetDeveloperModeStatusRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetDeveloperModeStatusResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for GetEngineStatusRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35837,13 +35262,13 @@ impl From<Vec<u8>> for GetKnowledgeBankResponse {
     }
 }
 
-impl From<Vec<u8>> for GetLocalDevelopmentSessionStatusRequest {
+impl From<Vec<u8>> for GetLocalAppGrantStatusRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for GetLocalDevelopmentSessionStatusResponse {
+impl From<Vec<u8>> for GetLocalAppGrantStatusResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36251,18 +35676,6 @@ impl From<Vec<u8>> for InvokeRealmUnaryResponse {
     }
 }
 
-impl From<Vec<u8>> for IssueDelegatedAccessTokenRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for IssueDelegatedAccessTokenResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for IssueScopedAppBindingRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36575,18 +35988,6 @@ impl From<Vec<u8>> for ListLinksResponse {
     }
 }
 
-impl From<Vec<u8>> for ListLocalAppAdoptionsRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListLocalAppAdoptionsResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ListLocalAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36779,18 +36180,6 @@ impl From<Vec<u8>> for ListScenarioProfilesResponse {
     }
 }
 
-impl From<Vec<u8>> for ListTokenChainRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListTokenChainResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ListUsageStatsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36839,7 +36228,7 @@ impl From<Vec<u8>> for LocalAgentSourceCoverageSectionStatus {
     }
 }
 
-impl From<Vec<u8>> for LocalAppAdoption {
+impl From<Vec<u8>> for LocalAppGrantProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37421,18 +36810,6 @@ impl From<Vec<u8>> for ObservationalMemoryRecord {
     }
 }
 
-impl From<Vec<u8>> for OpenAppRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for OpenAppResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for OpenCompanionParticipationReplayRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -37452,18 +36829,6 @@ impl From<Vec<u8>> for OpenConversationAnchorRequest {
 }
 
 impl From<Vec<u8>> for OpenConversationAnchorResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for OpenDesktopLaunchedAppSessionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for OpenDesktopLaunchedAppSessionResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37493,13 +36858,13 @@ impl From<Vec<u8>> for OpenExternalPrincipalSessionResponse {
     }
 }
 
-impl From<Vec<u8>> for OpenLocalDevelopmentAppSessionRequest {
+impl From<Vec<u8>> for OpenLocalAppSessionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for OpenLocalDevelopmentAppSessionResponse {
+impl From<Vec<u8>> for OpenLocalAppSessionResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37637,13 +37002,13 @@ impl From<Vec<u8>> for PrepareAppLifecycleIntentResponse {
     }
 }
 
-impl From<Vec<u8>> for PrepareLocalDevelopmentLaunchRequest {
+impl From<Vec<u8>> for PrepareLocalAppLaunchRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for PrepareLocalDevelopmentLaunchResponse {
+impl From<Vec<u8>> for PrepareLocalAppLaunchResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37746,6 +37111,18 @@ impl From<Vec<u8>> for QueryAgentMemoryResponse {
 }
 
 impl From<Vec<u8>> for RawChunk {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReactivateLocalDevelopmentProjectRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReactivateLocalDevelopmentProjectResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37955,18 +37332,6 @@ impl From<Vec<u8>> for RemoveLinkResponse {
     }
 }
 
-impl From<Vec<u8>> for RemoveLocalAppAdoptionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RemoveLocalAppAdoptionResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for RemoveLocalAssetRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -38045,6 +37410,18 @@ impl From<Vec<u8>> for RequestCompanionParticipationResponse {
     }
 }
 
+impl From<Vec<u8>> for RequestLocalAppGrantRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RequestLocalAppGrantResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RequestMemoryEmbeddingRuntimeBindRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -38076,6 +37453,18 @@ impl From<Vec<u8>> for RequestPresenceVerificationRequest {
 }
 
 impl From<Vec<u8>> for RequestPresenceVerificationResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RequestRuntimeRestartRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RequestRuntimeRestartResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -38249,13 +37638,19 @@ impl From<Vec<u8>> for RetryLocalEnvironmentDependencyJobResponse {
     }
 }
 
-impl From<Vec<u8>> for RevokeAppAccessTokenRequest {
+impl From<Vec<u8>> for RevokeExternalPrincipalSessionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for RevokeExternalPrincipalSessionRequest {
+impl From<Vec<u8>> for RevokeLocalAppGrantRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RevokeLocalAppGrantResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -38657,6 +38052,18 @@ impl From<Vec<u8>> for SetDelegatedProviderStateResponse {
     }
 }
 
+impl From<Vec<u8>> for SetDeveloperModeRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SetDeveloperModeResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for SetProductControlFirstRunInstallLevelRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -39023,12 +38430,6 @@ impl From<Vec<u8>> for TextStreamDelta {
     }
 }
 
-impl From<Vec<u8>> for TokenChainEntry {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ToolApprovalRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -39210,18 +38611,6 @@ impl From<Vec<u8>> for UsageStatRecord {
 }
 
 impl From<Vec<u8>> for UsageStats {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ValidateAppAccessTokenRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ValidateAppAccessTokenResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -39534,6 +38923,16 @@ where
         Ok(CompleteLoginResponse::from_transport(&raw))
     }
 
+    pub fn decide_local_app_grant(&self, request: DecideLocalAppGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DecideLocalAppGrantResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(DecideLocalAppGrantResponse::from_transport(&raw))
+    }
+
     pub fn get_account_session_status(&self, request: GetAccountSessionStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountSessionStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
@@ -39542,6 +38941,16 @@ where
             timeout,
         })?;
         Ok(GetAccountSessionStatusResponse::from_transport(&raw))
+    }
+
+    pub fn get_local_app_grant_status(&self, request: GetLocalAppGrantStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppGrantStatusResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetLocalAppGrantStatusResponse::from_transport(&raw))
     }
 
     pub fn invoke_realm_unary(&self, request: InvokeRealmUnaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvokeRealmUnaryResponse, T::Error> {
@@ -39584,6 +38993,16 @@ where
         Ok(LogoutResponse::from_transport(&raw))
     }
 
+    pub fn request_local_app_grant(&self, request: RequestLocalAppGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestLocalAppGrantResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RequestLocalAppGrantResponse::from_transport(&raw))
+    }
+
     pub fn request_presence_verification(&self, request: RequestPresenceVerificationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestPresenceVerificationResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification".to_string(),
@@ -39592,6 +39011,16 @@ where
             timeout,
         })?;
         Ok(RequestPresenceVerificationResponse::from_transport(&raw))
+    }
+
+    pub fn revoke_local_app_grant(&self, request: RevokeLocalAppGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeLocalAppGrantResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RevokeLocalAppGrantResponse::from_transport(&raw))
     }
 
     pub fn revoke_scoped_app_binding(&self, request: RevokeScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeScopedAppBindingResponse, T::Error> {
@@ -40469,24 +39898,14 @@ where
         panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact");
     }
 
-    pub fn adopt_local_app(&self, request: AdoptLocalAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AdoptLocalAppResponse, T::Error> {
+    pub fn bind_local_app_process(&self, request: BindLocalAppProcessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindLocalAppProcessResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(AdoptLocalAppResponse::from_transport(&raw))
-    }
-
-    pub fn bind_installed_launch_process(&self, request: BindInstalledLaunchProcessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindInstalledLaunchProcessResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(BindInstalledLaunchProcessResponse::from_transport(&raw))
+        Ok(BindLocalAppProcessResponse::from_transport(&raw))
     }
 
     pub fn get_account_app_inventory(&self, request: GetAccountAppInventoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountAppInventoryResponse, T::Error> {
@@ -40569,26 +39988,6 @@ where
         Ok(ListAppInstallJobsResponse::from_transport(&raw))
     }
 
-    pub fn list_local_app_adoptions(&self, request: ListLocalAppAdoptionsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppAdoptionsResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListLocalAppAdoptionsResponse::from_transport(&raw))
-    }
-
-    pub fn open_app(&self, request: OpenAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenAppResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/OpenApp".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(OpenAppResponse::from_transport(&raw))
-    }
-
     pub fn prepare_app_lifecycle_intent(&self, request: PrepareAppLifecycleIntentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrepareAppLifecycleIntentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent".to_string(),
@@ -40599,14 +39998,14 @@ where
         Ok(PrepareAppLifecycleIntentResponse::from_transport(&raw))
     }
 
-    pub fn remove_local_app_adoption(&self, request: RemoveLocalAppAdoptionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppAdoptionResponse, T::Error> {
+    pub fn prepare_local_app_launch(&self, request: PrepareLocalAppLaunchRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrepareLocalAppLaunchResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(RemoveLocalAppAdoptionResponse::from_transport(&raw))
+        Ok(PrepareLocalAppLaunchResponse::from_transport(&raw))
     }
 
     pub fn send_app_message(&self, request: SendAppMessageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SendAppMessageResponse, T::Error> {
@@ -40764,16 +40163,6 @@ where
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
-    pub fn open_desktop_launched_app_session(&self, request: OpenDesktopLaunchedAppSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenDesktopLaunchedAppSessionResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(OpenDesktopLaunchedAppSessionResponse::from_transport(&raw))
-    }
-
     pub fn open_desktop_session(&self, request: OpenDesktopSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenDesktopSessionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession".to_string(),
@@ -40792,6 +40181,16 @@ where
             timeout,
         })?;
         Ok(OpenExternalPrincipalSessionResponse::from_transport(&raw))
+    }
+
+    pub fn open_local_app_session(&self, request: OpenLocalAppSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenLocalAppSessionResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(OpenLocalAppSessionResponse::from_transport(&raw))
     }
 
     pub fn open_session(&self, request: OpenSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenSessionResponse, T::Error> {
@@ -41297,16 +40696,6 @@ where
         Ok(UpsertModelCatalogProviderResponse::from_transport(&raw))
     }
 
-    pub fn bind_local_development_host_process(&self, request: BindLocalDevelopmentHostProcessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindLocalDevelopmentHostProcessResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(BindLocalDevelopmentHostProcessResponse::from_transport(&raw))
-    }
-
     pub fn decide_local_development_project(&self, request: DecideLocalDevelopmentProjectRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DecideLocalDevelopmentProjectResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject".to_string(),
@@ -41337,14 +40726,14 @@ where
         Ok(EvaluateLocalDevelopmentProjectResponse::from_transport(&raw))
     }
 
-    pub fn get_local_development_session_status(&self, request: GetLocalDevelopmentSessionStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalDevelopmentSessionStatusResponse, T::Error> {
+    pub fn get_developer_mode_status(&self, request: GetDeveloperModeStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetDeveloperModeStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(GetLocalDevelopmentSessionStatusResponse::from_transport(&raw))
+        Ok(GetDeveloperModeStatusResponse::from_transport(&raw))
     }
 
     pub fn list_local_development_authorizations(&self, request: ListLocalDevelopmentAuthorizationsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalDevelopmentAuthorizationsResponse, T::Error> {
@@ -41357,24 +40746,14 @@ where
         Ok(ListLocalDevelopmentAuthorizationsResponse::from_transport(&raw))
     }
 
-    pub fn open_local_development_app_session(&self, request: OpenLocalDevelopmentAppSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenLocalDevelopmentAppSessionResponse, T::Error> {
+    pub fn reactivate_local_development_project(&self, request: ReactivateLocalDevelopmentProjectRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReactivateLocalDevelopmentProjectResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(OpenLocalDevelopmentAppSessionResponse::from_transport(&raw))
-    }
-
-    pub fn prepare_local_development_launch(&self, request: PrepareLocalDevelopmentLaunchRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrepareLocalDevelopmentLaunchResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(PrepareLocalDevelopmentLaunchResponse::from_transport(&raw))
+        Ok(ReactivateLocalDevelopmentProjectResponse::from_transport(&raw))
     }
 
     pub fn revoke_local_development_authorization(&self, request: RevokeLocalDevelopmentAuthorizationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeLocalDevelopmentAuthorizationResponse, T::Error> {
@@ -41385,6 +40764,16 @@ where
             timeout,
         })?;
         Ok(RevokeLocalDevelopmentAuthorizationResponse::from_transport(&raw))
+    }
+
+    pub fn set_developer_mode(&self, request: SetDeveloperModeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetDeveloperModeResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(SetDeveloperModeResponse::from_transport(&raw))
     }
 
     pub fn get_external_agent_gateway_status(&self, request: ExternalAgentGatewayStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExternalAgentGatewayStatusResponse, T::Error> {
@@ -41425,56 +40814,6 @@ where
             timeout,
         })?;
         Ok(Ack::from_transport(&raw))
-    }
-
-    pub fn authorize_external_principal(&self, request: AuthorizeExternalPrincipalRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AuthorizeExternalPrincipalResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(AuthorizeExternalPrincipalResponse::from_transport(&raw))
-    }
-
-    pub fn issue_delegated_access_token(&self, request: IssueDelegatedAccessTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IssueDelegatedAccessTokenResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(IssueDelegatedAccessTokenResponse::from_transport(&raw))
-    }
-
-    pub fn list_token_chain(&self, request: ListTokenChainRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListTokenChainResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeGrantService/ListTokenChain".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListTokenChainResponse::from_transport(&raw))
-    }
-
-    pub fn revoke_app_access_token(&self, request: RevokeAppAccessTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(Ack::from_transport(&raw))
-    }
-
-    pub fn validate_app_access_token(&self, request: ValidateAppAccessTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ValidateAppAccessTokenResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ValidateAppAccessTokenResponse::from_transport(&raw))
     }
 
     pub fn admit_product_control_ready_for_use(&self, request: AdmitProductControlReadyForUseRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
@@ -42188,6 +41527,16 @@ where
             timeout,
         })?;
         Ok(Ack::from_transport(&raw))
+    }
+
+    pub fn request_runtime_restart(&self, request: RequestRuntimeRestartRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestRuntimeRestartResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RequestRuntimeRestartResponse::from_transport(&raw))
     }
 
     pub fn cancel_workflow(&self, request: CancelWorkflowRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
