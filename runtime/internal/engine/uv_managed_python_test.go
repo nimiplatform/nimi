@@ -2,6 +2,8 @@ package engine
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -9,6 +11,7 @@ func TestEnsureManagedPythonRuntimeReusesVerifiedManagedInterpreter(t *testing.T
 	installCalls := 0
 	findCalls := 0
 	path, version, err := ensureManagedPythonRuntimeWithCommands(
+		"3.12",
 		func() (string, error) {
 			findCalls++
 			return `D:\shared-payload\environments\speech\_python-installations\cpython-3.12\python.exe`, nil
@@ -36,6 +39,7 @@ func TestEnsureManagedPythonRuntimeInstallsOnlyWhenManagedFindIsMissing(t *testi
 	findCalls := 0
 	installCalls := 0
 	path, version, err := ensureManagedPythonRuntimeWithCommands(
+		"3.12",
 		func() (string, error) {
 			findCalls++
 			if findCalls == 1 {
@@ -60,6 +64,7 @@ func TestEnsureManagedPythonRuntimeInstallsOnlyWhenManagedFindIsMissing(t *testi
 func TestEnsureManagedPythonRuntimeDoesNotOverwriteUnverifiableExistingPayload(t *testing.T) {
 	installCalls := 0
 	_, _, err := ensureManagedPythonRuntimeWithCommands(
+		"3.12",
 		func() (string, error) { return `D:\managed\python.exe`, nil },
 		func(string) (string, error) { return "", errors.New("interpreter rejected") },
 		func() error {
@@ -69,5 +74,48 @@ func TestEnsureManagedPythonRuntimeDoesNotOverwriteUnverifiableExistingPayload(t
 	)
 	if err == nil || installCalls != 0 {
 		t.Fatalf("unverifiable existing payload must fail without install, err=%v install=%d", err, installCalls)
+	}
+}
+
+func TestEnsureManagedPythonRuntimeDoesNotInstallWhenFinderItselfFails(t *testing.T) {
+	installCalls := 0
+	_, _, err := ensureManagedPythonRuntimeWithCommands(
+		"3.12",
+		func() (string, error) { return "", errors.New("uv failed: exit status 0xc0000142") },
+		func(string) (string, error) { return "", nil },
+		func() error {
+			installCalls++
+			return nil
+		},
+	)
+	if err == nil || installCalls != 0 {
+		t.Fatalf("finder execution failure must not be rewritten as missing, err=%v install=%d", err, installCalls)
+	}
+}
+
+func TestDiscoverManagedPythonRuntimeRequiresCanonicalPayloadFiles(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "environments", "speech", "0.1.0-qwen3-asr")
+	candidate := filepath.Join(managedPythonInstallationDir(root), "cpython-3.12.13-windows-x86_64-none")
+	if err := os.MkdirAll(candidate, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	required := []string{filepath.Join(candidate, executableName("python"))}
+	if currentGOOS() == "windows" {
+		required = append(required, filepath.Join(candidate, "python3.dll"), filepath.Join(candidate, "python312.dll"))
+	}
+	for _, file := range required {
+		if err := os.WriteFile(file, []byte("verified fixture"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	path, found, err := discoverManagedPythonRuntime(root, "3.12")
+	if err != nil || !found || path != required[0] {
+		t.Fatalf("discover managed python = (%q, %v, %v), want %q", path, found, err, required[0])
+	}
+	if err := os.Remove(required[len(required)-1]); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := discoverManagedPythonRuntime(root, "3.12"); err == nil {
+		t.Fatal("incomplete managed python payload must not be admitted")
 	}
 }

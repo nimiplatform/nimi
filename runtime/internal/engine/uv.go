@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -157,22 +158,31 @@ func ensureManagedPythonRuntime(ctx context.Context, uvPath string, root string,
 	verify := func(interpreterPath string) (string, error) {
 		return runCommandOutput(ctx, "", env, interpreterPath, "--version")
 	}
+	if interpreterPath, found, err := discoverManagedPythonRuntime(root, pythonVersion); err != nil {
+		return "", "", err
+	} else if found {
+		return verifyManagedPythonRuntime(interpreterPath, pythonVersion, verify)
+	}
 	install := func() error {
 		// Managed-only Python preference is carried by UV_PYTHON_PREFERENCE in
 		// env; the --managed-python CLI flag is its alias and uv rejects both.
 		return runCommand(ctx, root, env, uvPath, "python", "install", "--install-dir", managedPythonInstallationDir(root), pythonVersion)
 	}
-	return ensureManagedPythonRuntimeWithCommands(find, verify, install)
+	return ensureManagedPythonRuntimeWithCommands(pythonVersion, find, verify, install)
 }
 
 func ensureManagedPythonRuntimeWithCommands(
+	pythonVersion string,
 	find func() (string, error),
 	verify func(string) (string, error),
 	install func() error,
 ) (string, string, error) {
 	interpreterPath, findErr := find()
 	if findErr == nil {
-		return verifyManagedPythonRuntime(interpreterPath, verify)
+		return verifyManagedPythonRuntime(interpreterPath, pythonVersion, verify)
+	}
+	if !isManagedPythonRuntimeMissing(findErr) {
+		return "", "", fmt.Errorf("find managed python runtime: %w", findErr)
 	}
 	if err := install(); err != nil {
 		return "", "", err
@@ -181,11 +191,12 @@ func ensureManagedPythonRuntimeWithCommands(
 	if err != nil {
 		return "", "", err
 	}
-	return verifyManagedPythonRuntime(interpreterPath, verify)
+	return verifyManagedPythonRuntime(interpreterPath, pythonVersion, verify)
 }
 
 func verifyManagedPythonRuntime(
 	interpreterPath string,
+	pythonVersion string,
 	verify func(string) (string, error),
 ) (string, string, error) {
 	interpreterPath = strings.TrimSpace(interpreterPath)
@@ -200,7 +211,68 @@ func verifyManagedPythonRuntime(
 	if versionOutput == "" {
 		return "", "", fmt.Errorf("verify managed python runtime: empty version output")
 	}
+	expectedVersion := "Python " + strings.TrimSpace(pythonVersion)
+	if expectedVersion != "Python " && versionOutput != expectedVersion && !strings.HasPrefix(versionOutput, expectedVersion+".") {
+		return "", "", fmt.Errorf("verify managed python runtime: version %q does not match %q", versionOutput, expectedVersion)
+	}
 	return interpreterPath, versionOutput, nil
+}
+
+func discoverManagedPythonRuntime(root string, pythonVersion string) (string, bool, error) {
+	versionParts := strings.Split(strings.TrimSpace(pythonVersion), ".")
+	if len(versionParts) < 2 || versionParts[0] == "" || versionParts[1] == "" {
+		return "", false, fmt.Errorf("managed python runtime requires a major.minor version, got %q", pythonVersion)
+	}
+	installationRoot := managedPythonInstallationDir(root)
+	candidates, err := filepath.Glob(filepath.Join(
+		installationRoot,
+		"cpython-"+versionParts[0]+"."+versionParts[1]+".*",
+	))
+	if err != nil {
+		return "", false, fmt.Errorf("discover managed python runtime: %w", err)
+	}
+	if len(candidates) == 0 {
+		return "", false, nil
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(candidates)))
+	var rejected []string
+	for _, candidate := range candidates {
+		interpreterPath := filepath.Join(candidate, executableName("python"))
+		requiredPaths := []string{interpreterPath}
+		if currentGOOS() == "windows" {
+			requiredPaths = append(requiredPaths,
+				filepath.Join(candidate, "python3.dll"),
+				filepath.Join(candidate, "python"+versionParts[0]+versionParts[1]+".dll"),
+			)
+		}
+		missing := ""
+		for _, requiredPath := range requiredPaths {
+			info, statErr := os.Stat(requiredPath)
+			if statErr != nil || info.IsDir() {
+				missing = requiredPath
+				break
+			}
+		}
+		if missing == "" {
+			return interpreterPath, true, nil
+		}
+		rejected = append(rejected, missing)
+	}
+	return "", false, fmt.Errorf(
+		"managed python payload under %s is incomplete; required files missing: %s",
+		installationRoot,
+		strings.Join(rejected, ", "),
+	)
+}
+
+func isManagedPythonRuntimeMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	detail := strings.ToLower(err.Error())
+	return strings.Contains(detail, "no interpreter found") ||
+		strings.Contains(detail, "no managed python installation found") ||
+		strings.Contains(detail, "managed python missing")
 }
 
 func ensureManagedPythonVenv(ctx context.Context, uvPath string, pythonRuntimePath string, root string) (string, error) {
