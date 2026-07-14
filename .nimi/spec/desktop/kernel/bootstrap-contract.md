@@ -117,7 +117,7 @@ must not enter ordinary shell or default to Runtime as normal product use.
 正常路径：
 - `bootstrapReady = true`、`bootstrapError = null`。
 - `bootstrapReady=true` only means shell bootstrap completed. Ordinary product
-  use additionally requires `~/.nimi/nimi.json` state `ready_for_use`, selected
+  use additionally requires `<runtime_owner_state_root>/nimi.json` state `ready_for_use`, selected
   `nimi_data`, authenticated account session projection, and first-run baseline
   evidence.
 - 日志级别：shell/bootstrap 致命失败为 `error`。

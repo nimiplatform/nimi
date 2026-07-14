@@ -81,8 +81,9 @@ For `BINDING_ONLY`, effective domains and effective scopes are empty.
 
 Ordinary `OpenSession` has no broker, AI, artifact, realtime, media, lifecycle,
 or local-app launch authority. Local-app sessions are created only by
-request-empty `OpenLocalAppSession` on a verified `local_app_host` connection
-already bound to current lease/process/principal/record; the following table
+request-empty `OpenLocalAppSession` on a verified `local_app_bootstrap` connection
+already bound to current lease/process/principal/record; success atomically
+promotes that same connection to `local_app_host`. The following table
 remains a ceiling, not blanket effective rights：
 
 | AppMode | runtime.* ceiling | realm.* ceiling | 静态上限说明 |
@@ -183,14 +184,16 @@ Proto 枚举冻结约束：
 ## K-AUTHSVC-014 Retired Developer Registration Boundary
 
 The predecessor `RegisterAppRequest.developer_registration` gate is retired and
-must be removed in the public wire epoch. It cannot create a local principal,
-project authorization, account caller, grant, launch lease, or local-app
-session. Until deletion, any retained field is ignored for authority and the
-binding-only path remains deny/no-upgrade.
+is physically absent from the public wire. Field number `7` and field name
+`developer_registration` are both reserved and cannot be reused. No ignored
+field, alias, compatibility decoder or alternate request intent may preserve
+the predecessor shape. `RegisterApp` cannot create a local principal, project
+authorization, account caller, grant, launch lease, or local-app session.
 
 Local development enters only through Runtime-owned Developer Mode project
 authorization, K-APP principal/record creation, K-PLOCAL protected launch, and
-the common request-empty local-app session. `auth.developerRegistration`,
-request intent, `RegisterApp`, app id, manifest, ordinary app session, metadata,
-or a temporary bearer is never a compatibility path. Rejected predecessor
-attempts remain auditable without preserving positive behavior.
+the common request-empty local-app session. `auth.developerRegistration`, its
+environment/CLI/config projections, request intent, `RegisterApp`, app id,
+manifest, ordinary app session, metadata, or a temporary bearer do not exist as
+compatibility paths. Unknown predecessor config keys fail schema validation;
+the service does not decode or special-case predecessor wire payloads.

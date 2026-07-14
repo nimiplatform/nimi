@@ -261,7 +261,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Runtime config owner split requires runtime config/data-root consumer validation
+    evidence_scope_note: structural only; Runtime config owner split and native-host exact service-SID data-root preparation require Runtime, Kit, Desktop Rust, and real fixed-service consumer validation
   - rule_id: P-COLD-014
     evidence_refs:
       - platform_kernel_consistency

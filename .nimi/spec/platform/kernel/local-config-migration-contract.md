@@ -9,7 +9,7 @@
 
 本契约是 T10 portfolio 的 cross-cutting authority：它**不**重新拥有任何单个
 `~/.nimi` schema 文件的字段定义。每个 schema 文件的字段权威仍归其 surface owner
-authority family（`~/.nimi/nimi.json` → T1；
+authority family（`<runtime_owner_state_root>/nimi.json` → T1；
 `~/.nimi/profiles/factory-index.json` / `~/.nimi/runtime/default.json` → T2）。
 Runtime-owned local-app principal, record, grant, session, inventory, and
 package-seam state is service-owned protected state and is never a `~/.nimi`
@@ -32,7 +32,7 @@ must not inspect, repair, migrate, recreate, or point at that retired file.
 
 - 任何单个 `~/.nimi` schema 文件的字段定义、默认值或 reload 语义；
 - Runtime service-state transition or retired user-config import（the latter is forbidden）；
-- `~/.nimi/nimi.json` 的 product-control 状态机（`P-COLD-009..016`）；
+- `<runtime_owner_state_root>/nimi.json` 的 product-control 状态机（`P-COLD-009..016`）；
 - Runtime model / dependency / environment materializer 对 `nimi_data` 子目录的
   写入与清理执行（`K-LENV-*`）。
 
@@ -42,7 +42,7 @@ must not inspect, repair, migrate, recreate, or point at that retired file.
 
 | File | Schema field owner authority | Notes |
 |---|---|---|
-| `~/.nimi/nimi.json` | T1 | product-control record；`P-COLD-009` |
+| `<runtime_owner_state_root>/nimi.json` | T1 | product-control record；`P-COLD-009`；production root is installer-verified service state |
 | `~/.nimi/runtime/default.json` | T2 | Runtime default seed |
 | `~/.nimi/profiles/factory-index.json` | T2 | factory AIProfile index |
 
@@ -119,7 +119,7 @@ renderer / 上层 bubble 一个 raw error 字符串：
 
 路由目标：
 
-- 对 `~/.nimi/nimi.json`，修复状态使用 `P-COLD-009` 的 product-control
+- 对 `<runtime_owner_state_root>/nimi.json`，修复状态使用 `P-COLD-009` 的 product-control
   `state` 集合（`config_missing` / `repair_required` / `blocked`），由
   product-control backend 拥有。
 - 对其他 governed config 文件，修复状态使用本契约的 typed 修复结果
@@ -187,7 +187,7 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 
 ## Cross-Authority Boundaries
 
-- `~/.nimi/nimi.json` 的 product-control 状态机仍归 `P-COLD-009..016`；本契约
+- `<runtime_owner_state_root>/nimi.json` 的 product-control 状态机仍归 `P-COLD-009..016`；本契约
   对该文件只提供 governed-family 成员资格与统一 fail-closed/repair-routing
   floor，不重定义其 `state` 集合。
 - Runtime service-owned state transition remains under `K-CFG-014..016` and is

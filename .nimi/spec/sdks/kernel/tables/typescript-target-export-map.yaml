@@ -14,7 +14,7 @@ entries:
     semantics: Explicit low-level generated Runtime core boundary for typed client, method descriptors, wire codecs, and generated Runtime DTO and enum values.
   - id: runtime-wire-types
     owner: sdks/typescript/runtime/wire-types
-    semantics: Lightweight generated Runtime wire DTO and enum boundary for consumers that need stable protobuf-shaped values/types without importing the monolithic typed client or wire-codec barrel.
+    semantics: Lightweight generated Runtime wire DTO and enum boundary for admitted consumers that need stable protobuf-shaped values/types without importing the monolithic typed client or wire-codec barrel; 0K excludes immutable-package mutation, job, and positive-readiness vocabulary while runtime-generated preserves the complete protobuf seam.
   - id: realm
     owner: sdks/typescript/realm
     semantics: Realm SDK projection facade over generated Realm core, without raw generated DTO or enum namespace re-export.
@@ -26,7 +26,7 @@ entries:
     semantics: Shared public TypeScript core request, metadata, and error shape boundary.
   - id: app
     owner: sdks/typescript/core/app
-    semantics: Third-party app identity, installation, scope, permission, binding, ecosystem entry contracts, and Desktop Open Intent parser/types.
+    semantics: Third-party app identity, catalog/account/local-record read projections, typed-unavailable immutable-package posture, scope, permission, binding, ecosystem entry contracts, and Desktop Open Intent parser/types; no install/import/update/repair lifecycle surface.
   - id: contracts
     owner: sdks/typescript/core/contracts
     semantics: Nimi-native AI, Tool, Trace, and adapter contract types.

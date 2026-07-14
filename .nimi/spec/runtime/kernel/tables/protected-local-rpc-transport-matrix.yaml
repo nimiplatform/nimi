@@ -1,14 +1,16 @@
-version: 5
+version: 6
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
 surfaces:
   - RuntimeAuthService
+  - RuntimeServiceControlService
   - RuntimeAccountService
   - RuntimeAppService
   - RuntimeArtifactService
   - RuntimeAgentService
   - RuntimeDevelopmentService
+  - RuntimeLocalService
 description: >-
   Closed transport and verified-origin admission for Desktop control and the
   common third-party local-app kernel. Immutable package/install/update/
@@ -58,6 +60,7 @@ operation_classes:
   - binding_bootstrap
   - desktop_session_bootstrap
   - local_app_session_bootstrap
+  - runtime_service_control
   - desktop_account_projection
   - desktop_account_control
   - desktop_binding_control
@@ -69,6 +72,7 @@ operation_classes:
   - local_app_process_binding
   - local_development_control
   - local_development_run_end
+  - desktop_product_control
   - local_app_artifact_read
   - local_app_agent_conversation
   - blocked_pending_separate_authority
@@ -86,6 +90,10 @@ matrix_schema:
 public_tcp_privileged_disposition: deny
 request_role_selection: forbidden
 portable_privileged_session: forbidden
+desktop_session_requirement:
+  bootstrap_exemption: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
+  all_other_desktop_control_methods: live_boot_scoped_desktop_session_required
+  correlation_or_metadata_rebind: forbidden
 open_desktop_session_wire:
   request:
     message: OpenDesktopSessionRequest
@@ -130,6 +138,7 @@ open_local_app_session_wire:
   ordinary_grpc_disposition: deny
   source_rule: K-PLOCAL-008
 methods:
+  - { method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart, operation_class: runtime_service_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-003 }
   - { method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp, operation_class: binding_bootstrap, allowed_transport_classes: [public_tcp], required_origin_roles: [binding_only], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: binding_only, source_rule: K-PLOCAL-001 }
   - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenSession, operation_class: binding_bootstrap, allowed_transport_classes: [public_tcp], required_origin_roles: [binding_only], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: binding_only, source_rule: K-PLOCAL-001 }
   - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession, operation_class: desktop_session_bootstrap, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
@@ -170,6 +179,35 @@ methods:
   - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
   - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization, operation_class: local_development_control, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
   - { method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun, operation_class: local_development_run_end, allowed_transport_classes: [desktop_control], required_origin_roles: [local_app_control], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-009 }
+
+  # The fixed production service exposes no ordinary public listener. These
+  # are the exact existing Desktop first-run/product-control methods carried
+  # on the verified Desktop connection after OpenDesktopSession. This is not
+  # a generic RuntimeLocalService proxy and does not admit package/import,
+  # arbitrary asset/model lifecycle, transfer, engine, or method-id/bytes
+  # access. The four dependency-job control methods below are the bounded
+  # Runtime-owned first-run materialization surface defined by K-RPC-004.
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
+  - { method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
 
   - { method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes, operation_class: local_app_artifact_read, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-053 }
   - { method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }

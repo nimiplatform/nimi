@@ -153,6 +153,50 @@ before protected listeners open. It is deterministic, idempotent, atomic, and
 anti-rollback anchored. Failure leaves no partially admitted state and keeps
 the service unavailable. Desktop/CLI/SDK never execute or select transitions.
 
+The signed `dev_kernel_checkpoint` profile is a closed non-release exception
+for acceptance-round isolation, not a production schema transition. Each
+successful signed-installer `Install` generates a cryptographically random
+`acceptanceRoundId`. The service-owned checkpoint partition is derived from the
+bounded trial id, the exact Runtime candidate id verified against the signed
+build record, and that protected round id. Different rounds or candidates
+cannot read, inherit, migrate, or write each other's checkpoint databases,
+product-control state, model registry, account state, audit state, or generated
+Runtime identity. Restarting Runtime under the same protected profile preserves
+the same partition and completed First Run state; only a subsequent signed
+installer `Install` can create a new round identity. This state isolation does
+not require duplicating large data-plane payloads. A signed checkpoint profile
+may bind an explicit operator-selected development `nimi_data` root; each round
+must reconstruct its own registry and readiness evidence by verifying the bound
+root against its own admitted catalog hashes and activation checks. File
+presence, an older registry, or prior-round readiness is never inherited as
+truth. A new round never deletes or mutates the shared payload root. Existing
+or partially damaged records retain the normal Product Control
+repair/fail-closed path. Production configuration, HOME/TEMP, renderer state,
+environment, argv, endpoint selection, and request payloads cannot activate
+this behavior, choose a round, or choose its root.
+
+The same profile binds account OAuth, token exchange, JWT issuer, JWKS, and
+revocation to one exact real Realm development deployment so the checkpoint
+exercises a controlled production account through Runtime custody. The binding
+is installer-owned and candidate-bound; user environment, argv, renderer state,
+or a request cannot select it. Its loopback fixture origin is a separate
+non-authorizing field used only for the signed non-release provider seed. A
+shared Realm/provider endpoint field, fixture-issued account token, automatic
+fixture authorization redirect, alias, or fallback is forbidden.
+
+For First Run acceptance, Runtime may additionally project one visible
+`nimi_data` proposal. When the signed installer recorded an explicit absolute
+development data-root binding, that candidate-bound protected profile field is
+the proposal and the Runtime data-plane roots resolve below it. Otherwise the
+proposal is derived from the verified interactive Windows SID's OS profile
+mapping, the signed trial id, and the build-record-verified Runtime candidate
+id. The proposal is not a Product Control record field and cannot select the
+data root or create readiness; explicit confirmation through the normal typed
+Product Control operation is still required. The binding cannot originate from
+HOME, USERPROFILE, TEMP, renderer state, environment, argv, endpoint, or a
+Runtime request payload. The signed installer must reject a missing,
+non-absolute, volume-root, reparse-point, or inaccessible explicit binding.
+
 ## K-CFG-016 Transition Backup & Drift Boundary
 
 Automatic backups cannot restore older security-critical generations, executable trust,
@@ -190,6 +234,18 @@ library, account profile library, permission grants, or app durable data.
 The product-control service may project selected `nimi_data` through an exact
 typed protected operation. Conflicts fail closed; Runtime never reads the
 user-writable product-control file as configuration truth.
+
+On Windows, before that exact mutation is sent, the verified native Desktop
+host must prepare the user-selected data-plane root through the shared Kit OS
+adapter. Preparation preserves the interactive user as the root owner, rejects
+a reparse-point root, and grants inheritable modify authority only to the exact
+restricted `NT SERVICE\NimiRuntime` service SID needed for Runtime-managed
+children. Runtime still independently validates the absolute path, creates the
+closed managed-root layout, and owns the service-state write. Renderer code may
+neither name a SID nor mutate an ACL, and an environment variable, endpoint,
+direct daemon, broad principal grant, or test-only service identity cannot
+satisfy this handoff. Failure to prepare or validate the root leaves
+`dataRootRef` empty and first-run blocked.
 
 The Runtime page `Environment` surface reads the `nimi_data` data-plane roots
 (`models`, `dependencies`, `environments`, `logs`, `audit`) as a Runtime-owned

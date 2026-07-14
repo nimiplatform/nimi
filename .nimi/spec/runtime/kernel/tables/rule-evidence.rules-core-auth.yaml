@@ -263,7 +263,7 @@ rules:
     evidence_requirement: required
     note: Owner-only Runtime allocation for authenticated Realm unary, realtime, media, account, token, and private refresh authority; detailed cross-wave rows remain blocked conflicts.
     test_files:
-      - scripts/check-installed-realm-owner-boundary.mjs
+      - scripts/check-local-app-owner-boundary.mjs
   - rule_id: K-ACCSVC-002
     evidence_refs:
       - runtime_kernel_consistency
@@ -357,8 +357,8 @@ rules:
       - runtime/internal/services/account/service_test.go
       - sdks/typescript/runtime/app-session.test.ts
       - kit/shell/electron/test/electron-runtime-account-auth.test.ts
-      - apps/desktop/test/desktop-installed-app-launcher.test.ts
-      - scripts/check-installed-realm-owner-boundary.mjs
+      - apps/desktop/test/local-development-contract.test.ts
+      - scripts/check-local-app-owner-boundary.mjs
   - rule_id: K-ACCSVC-023
     evidence_refs:
       - runtime_kernel_consistency
@@ -371,7 +371,7 @@ rules:
     test_files:
       - runtime/internal/services/account/realm_unary_test.go
       - sdks/typescript/core/app/runtime-account-realm.test.ts
-      - scripts/check-installed-realm-owner-boundary.mjs
+      - scripts/check-local-app-owner-boundary.mjs
   - rule_id: K-ACCSVC-024
     evidence_refs:
       - runtime_kernel_consistency
@@ -384,7 +384,7 @@ rules:
     test_files:
       - runtime/internal/services/account/service_test.go
       - runtime/internal/services/account/realm_unary_test.go
-      - scripts/check-installed-realm-owner-boundary.mjs
+      - scripts/check-local-app-owner-boundary.mjs
       - scripts/check-public-raw-token-authority.mjs
   - rule_id: K-ACCSVC-025
     evidence_refs:
@@ -398,9 +398,9 @@ rules:
     evidence_scope_note: Runtime/SDK/Kit tests must prove native origin and ordinary gRPC/renderer denial.
     test_files:
       - runtime/internal/services/account/realm_unary_test.go
-      - runtime/internal/appregistry/registry_test.go
+      - runtime/internal/protectedlocal/local_app_launch_registry_test.go
       - kit/shell/electron/test/electron-runtime-account-auth.test.ts
-      - scripts/check-installed-realm-owner-boundary.mjs
+      - scripts/check-local-app-owner-boundary.mjs
   - rule_id: K-ACCSVC-026
     evidence_refs: [runtime_kernel_consistency, runtime_go_test, protected_local_authority_gate]
     evidence_requirement: required

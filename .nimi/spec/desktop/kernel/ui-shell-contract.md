@@ -657,7 +657,7 @@ Fixed rules:
 
 ## D-SHELL-038 - Local App Launch Host
 
-`tables/installed-app-launch-hosts.yaml` records the final host-neutral local-app
+`tables/local-app-launch-hosts.yaml` records the final host-neutral local-app
 launch behavior despite its retained authority-file path. Desktop may launch an
 isolated `local_development` Electron or Tauri child only after the Runtime-owned
 record and Desktop decision path succeed. The native supervisor obtains a
@@ -673,8 +673,9 @@ package launch remains typed unavailable until 0P/P and cannot fall back to
 identity, process liveness, renderer metadata or ordinary gRPC.
 
 Every process replacement and Runtime restart requires a new lease, bind and
-session. Desktop exposes only Kit typed session/permission posture and selected
-operations; it injects no account/token/principal/grant/endpoint material.
+session. Desktop exposes only Kit typed session status, read-only permission
+posture, explicit exact-operation permission request and selected operations; it
+injects no account/token/principal/grant/endpoint material.
 
 ## D-SHELL-039 - Desktop Open Intent Navigation Targets
 
@@ -701,7 +702,7 @@ require page-owned focus state.
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举
-- `tables/installed-app-launch-hosts.yaml` - local-app launch host behavior
+- `tables/local-app-launch-hosts.yaml` - local-app launch host behavior
   registry
 - `tables/desktop-open-targets.yaml` - aggregate Desktop Open target catalog
 - `tables/runtime-config-open-actions.yaml` - Runtime Config Desktop Open action targets

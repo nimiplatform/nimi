@@ -183,7 +183,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalHostCarrier
-    description: Shared native protected-local carrier for mutual service/process/executable verification, empty OpenDesktopSession, typed fixed-service status/start/restart, PrepareLocalAppLaunch process binding, request-empty OpenLocalAppSession, zero-grant posture, and exact owner-admitted local-app operations. Kit carries typed calls only; Runtime and the OS remain principal, provenance, account, grant, launch/session, artifact, Agent, and lifecycle authorities.
+    description: Shared native protected-local carrier for mutual service/process/executable verification, empty OpenDesktopSession, typed fixed-service status/start/restart, PrepareLocalAppLaunch process binding, request-empty OpenLocalAppSession, zero-grant posture, explicit exact-operation grant request, and exact owner-admitted local-app operations. Kit carries typed calls only; Runtime and the OS remain principal, provenance, account, grant, launch/session, artifact, Agent, and lifecycle authorities.
     dependencies: []
     peer_dependencies: []
     exports: []
@@ -193,13 +193,13 @@ modules:
     admission_status: authority_admitted_implementation_pending
     owner: platform
     source_rule: P-KIT-041
-    notes: Non-npm Rust crate/native transport with no renderer import or generic npm API. The fixed @nimiplatform/kit-protected-local-win32-x64 optional package is only its Node-API ABI projection for Electron main and exposes the exact local-app session/status/artifact/selected-Agent operations. Fixed production AppHost and native development consume distinct execution profiles through the same client contract. Unadmitted OS/architecture adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer privilege, method-id/bytes proxy, and portable local-app session material are absent.
+    notes: Non-npm Rust crate/native transport with no renderer import or generic npm API. The fixed @nimiplatform/kit-protected-local-win32-x64 optional package is only its Node-API ABI projection for Electron main and exposes the exact local-app session/status/permission-request/artifact/selected-Agent operations. Fixed production AppHost and native development consume distinct execution profiles through the same client contract. Unadmitted OS/architecture adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer privilege, method-id/bytes proxy, and portable local-app session material are absent.
   - id: kit.shell.protected-local-node
     subpath: /shell/protected-local-node
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalNodeAbiProjection
-    description: Host-only Node-API ABI projection of kit.shell.protected-local for Electron main; the Windows x64 package exposes only exact common local-app session/status/artifact/selected-Agent operations while all transport, peer, executable, launch, session, account, grant, artifact, and Agent authority remains in the shared Rust carrier and Runtime.
+    description: Host-only Node-API ABI projection of kit.shell.protected-local for Electron main; the Windows x64 package exposes the exact common local-app session/status/permission-request/artifact/selected-Agent operations plus the closed Desktop fixed-service, account, product-control, Developer Mode, local-development, and grant-control operations already admitted by the underlying typed carrier. All transport, peer, executable, launch, session, account, grant, artifact, Agent, product-control, and lifecycle authority remains in the shared Rust carrier and Runtime.
     dependencies:
       - kit.shell.protected-local
     peer_dependencies: []
@@ -210,7 +210,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Non-npm Rust crate with a fixed platform npm binary package consumed only by kit.shell.electron. The package is admitted for Windows x64, has no renderer/preload import or direct public Kit export, and cannot add methods beyond the underlying typed carrier contract. Windows arm64, macOS, and Linux have no package and fail closed.
+    notes: Non-npm Rust crate with a fixed platform npm binary package consumed only by kit.shell.electron. The package is admitted for Windows x64, has no renderer/preload import or direct public Kit export, and cannot add methods beyond the underlying typed carrier contract. Desktop product-control is one closed operation family with an exact Runtime-owned method enum; arbitrary method-id/bytes proxying, endpoint selection, portable session material, and renderer-provided authority are forbidden. Windows arm64, macOS, and Linux have no package and fail closed.
   - id: kit.shell.tauri
     subpath: /shell/tauri
     kind: infra
@@ -230,7 +230,7 @@ modules:
     public_crate_name: nimi-shell-tauri
     standalone_dependency: published_crate_after_api_publication_admission
     workspace_dependency: cargo_path_dependency
-    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. The local-app invoke surface is exactly session/permission posture, artifacts_read_runtime_bytes, and selected RuntimeAgent conversation operations plus app-owned commands; generic Runtime unary, stream, storage, config, account, lifecycle, Realm, AI, realtime, media, or generic RuntimeAgent forwarding is forbidden. Standard capability truth comes from kit.shell.capabilities and standard-shell-capabilities.yaml. Protected service/origin truth comes only from kit.shell.protected-local and Runtime K-PLOCAL authority. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
+    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. The local-app invoke surface is exactly session status, read-only permission posture, explicit exact-operation permission request, artifacts_read_runtime_bytes, and selected RuntimeAgent conversation operations plus app-owned commands; generic Runtime unary, stream, storage, config, account, lifecycle, Realm, AI, realtime, media, admin, generic RuntimeAgent forwarding or any other Account mutation is forbidden. Standard capability truth comes from kit.shell.capabilities and standard-shell-capabilities.yaml. Protected service/origin truth comes only from kit.shell.protected-local and Runtime K-PLOCAL authority. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
   - id: kit.shell.renderer
     subpath: /shell/renderer
     kind: infra
@@ -360,7 +360,7 @@ modules:
     subpath: /features/chat
     kind: feature
     surface_level: headless+ui+runtime+realm
-    adapter_contract: ConversationSourceAdapter + ConversationShellAdapter + ConversationThreadAdapter + ConversationComposerAdapter + ConversationOrchestrationProvider + ConversationOrchestrationRegistry + ConversationRuntimeAdapter + ConversationContinuityAdapter + RuntimeChatComposerAdapterOptions + RealmChatComposerAdapterOptions + RealmChatOutboxStore
+    adapter_contract: ConversationSourceAdapter + ConversationShellAdapter + ConversationThreadAdapter + ConversationComposerAdapter + ConversationOrchestrationProvider + ConversationOrchestrationRegistry + ConversationRuntimeAdapter + ConversationContinuityAdapter + RuntimeChatComposerAdapterOptions + RealmChatComposerAdapterOptions + RealmChatOutboxStore + RealmChatTimelineMediaResolver
     description: Reusable unified conversation shell with target-first AI/human/agent contracts, a canonical presentational and message shell, orchestration provider registry/contracts, active simple-ai runtime integration, active realm typed human chat integration, direct-human chat filtering and target/thread projection helpers, realtime normalization, timeline composition/display helpers, injected Realm chat outbox state-machine helpers, and a socket-agnostic transport controller
     notes: Kit chat timeline authority is limited to reusable DTO normalization, display model, and shell composition helpers; Desktop feature hooks that bind app store, profile navigation, stream controller, query cache, and source-specific canonical role mapping remain app-owned. Ordinary Nimi Chat prompt authority is unchanged by Runtime LocalAgent context composition.
     authority_relations:

@@ -153,5 +153,5 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK local-app bootstrap accepts only the host-neutral standardShell carrier and exposes the exact P-KIT-044 artifact and RuntimeAgent operations; zero grant and unavailable owners fail closed without generic Runtime forwarding.
+    note: SDK local-app bootstrap accepts only the host-neutral standardShell carrier and exposes exact read-only posture, exact-operation permission request, artifact and RuntimeAgent operations; zero grant and unavailable owners fail closed without generic Runtime forwarding.
     evidence_requirement: required

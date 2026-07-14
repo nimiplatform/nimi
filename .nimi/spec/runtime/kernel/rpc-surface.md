@@ -33,6 +33,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 - `ConnectorService`（design-first，proto 仍在迁移）
 - `RuntimeLocalService`
 - `RuntimeAuthService`
+- `RuntimeServiceControlService`（仅受保护 Desktop control 上的 request-empty Runtime self-exit；SCM recovery 与新进程验证后才完成重启）
 - `RuntimeExternalAgentService`
 - `RuntimeAccountService`（local first-party account session / scoped app binding 权威，方法集合见 `account-session-contract.md` `K-ACCSVC-002`，与 `RuntimeAuthService` 不重叠）
 

@@ -39,6 +39,18 @@ ties service lifetime to Desktop lifetime. Production Desktop quit leaves the
 Runtime service running. Administrative uninstall and updater-controlled drain
 remain service-manager operations outside Desktop process ownership.
 
+The protected `RuntimeServiceControlService.RequestRuntimeRestart` wire is the
+sole Runtime-side restart trigger. Its request is empty and it is admitted only
+on the exact `desktop_control` connection after that connection has opened its
+boot-scoped Desktop session. Runtime begins a graceful drain and self-exits;
+the fixed OS service manager, not Desktop, starts the replacement process.
+Success is never the RPC acknowledgement alone: Kit must observe a different
+SCM PID and creation marker, a different `runtime_boot_epoch`, and a fresh
+mutually verified protected handshake before projecting `running`. Public TCP,
+local-app transports, portable credentials, service-name/path arguments,
+direct SCM stop/start, and caller-selected timeout or recovery policy are
+forbidden.
+
 `RuntimeAuthService.RegisterApp` and `RuntimeAuthService.OpenSession` remain
 `BINDING_ONLY` bootstrap surfaces. They may establish only a non-privileged app
 binding and MUST NOT derive account-control, Realm broker, AI, artifact,
@@ -97,8 +109,9 @@ Runtime requires the native peer PID to match the retained bound process.
 PID/bootstrap/path/argv/env/preload/renderer metadata are selectors only.
 
 `OpenLocalAppSession` has an empty request and exists only on the verified
-`local_app_host` connection already bound to the current lease/process/record.
-Success atomically consumes the bootstrap and creates a session bound to
+`local_app_bootstrap` connection already bound to the current lease/process/record.
+Success atomically consumes the bootstrap, promotes that same connection to
+`local_app_host`, and creates a session bound to
 OS-user anchor, principal/record, provenance revision, release-or-project
 generation, execution profile/digests, process tuple, account generation, and
 current account id, and Runtime boot epoch. A valid identity may open with zero grant for permission

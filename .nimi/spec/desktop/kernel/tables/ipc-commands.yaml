@@ -217,11 +217,6 @@ commands:
     description: Read the avatar-published live instance projection for desktop session-link inventory without inventing local carrier truth
     source_rule: D-IPC-005
 
-  - command: oauth_token_exchange
-    module: oauth
-    description: Exchange OAuth authorization code for tokens
-    source_rule: D-IPC-006
-
   - command: oauth_listen_for_code
     module: oauth
     description: Listen for OAuth callback code on redirect URI
@@ -466,7 +461,7 @@ commands:
   # Runtime bridge (runtime_bridge) — gRPC transport
   - command: runtime_bridge_unary
     module: runtime-bridge
-    description: Forward only binding-only or independently admitted ordinary public unary calls; protected methods are rejected and require the native protected carrier.
+    description: Forward generated allowlisted ordinary unary calls and the exact Desktop product-control subset; the product-control subset uses the verified Desktop carrier, while every other protected method is rejected or uses its dedicated typed native command.
     source_rule: D-IPC-012
 
   - command: runtime_bridge_stream_open
@@ -483,6 +478,41 @@ commands:
     module: protected-local-host
     description: Project exact Runtime account state over the verified Desktop control carrier with no renderer input and no token, session, credential, endpoint, or native authority material.
     source_rule: D-IPC-001
+
+  - command: runtime_account_begin_login
+    module: protected-local-host
+    description: Begin Runtime-owned Desktop login through the verified account-host carrier; native code supplies the exact caller envelope and returns no token or technical session material.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_complete_login
+    module: protected-local-host
+    description: Complete one Runtime-owned login attempt through the verified account-host carrier; renderer input cannot supply caller authority, endpoint, token custody, or a portable session.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_invoke_realm_unary
+    module: protected-local-host
+    description: Invoke only the exact Runtime-mediated Realm broker vocabulary through the verified account-host carrier; Runtime retains bearer custody and the response is credential-scrubbed.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_logout
+    module: protected-local-host
+    description: Request Runtime-owned logout through the verified account-host carrier with no renderer-held bearer, refresh token, or caller authority.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_switch_account
+    module: protected-local-host
+    description: Request Runtime-owned account switch through the verified account-host carrier; Runtime owns custody, generation change, revocation, and the redacted account projection.
+    source_rule: D-IPC-001
+
+  - command: developer_mode_status
+    module: desktop-local-development
+    description: Project the Runtime-owned production Developer Mode state; renderer storage and preferences are not authority inputs.
+    source_rule: D-IPC-019
+
+  - command: developer_mode_set
+    module: desktop-local-development
+    description: Enable or disable Runtime-owned Developer Mode through the verified Desktop control session; the toggle grants no project or operation capability.
+    source_rule: D-IPC-019
 
   - command: runtime_bridge_status
     module: protected-local-host
@@ -519,6 +549,27 @@ commands:
     module: desktop-local-development
     description: List stable Desktop supervisor run states without PID, launch ticket, Runtime epoch, protected endpoint, credential, or technical-session proof.
     source_rule: D-IPC-019
+
+  # Exact-operation local-app grant approval and management
+  - command: local_app_grant_pending_list
+    module: desktop-local-app-grants
+    description: List renderer-safe exact-operation grant requests selected by native memory handles; raw request, challenge, grant, session, principal, and presence identifiers remain native-only.
+    source_rule: D-IPC-020
+
+  - command: local_app_grant_decide
+    module: desktop-local-app-grants
+    description: Approve or deny one native-selected pending request; approval requires Runtime-owned fresh presence while denial consumes the request without presence.
+    source_rule: D-IPC-020
+
+  - command: local_app_grant_list
+    module: desktop-local-app-grants
+    description: List renderer-safe current local-app grants with app, operation, resource, state, and expiry only; native grant identifiers remain in the Desktop host vault.
+    source_rule: D-IPC-020
+
+  - command: local_app_grant_revoke
+    module: desktop-local-app-grants
+    description: Revoke one grant selected by a native-only management handle; renderer cannot supply or recover the Runtime grant identifier.
+    source_rule: D-IPC-020
 
   - command: local_development_authorization_revoke
     module: desktop-local-development

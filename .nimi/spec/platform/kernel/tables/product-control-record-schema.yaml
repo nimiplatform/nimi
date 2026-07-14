@@ -1,8 +1,14 @@
-version: 1
+version: 2
 table_family: product_record_schema
 owner: platform
 record_id: nimi_product_control_record
-path: ~/.nimi/nimi.json
+path: <runtime_owner_state_root>/nimi.json
+path_binding:
+  production_fixed_service: installer_verified_service_state_root
+  non_production_runtime: parent_owner_root_derived_from_runtime_local_state_path
+  non_release_dev_kernel_checkpoint: signed_candidate_profile_derived_service_owned_checkpoint_partition
+  caller_or_environment_override: forbidden
+  dual_read_or_migration_fallback: forbidden
 source_rule: P-COLD-015
 schema_version: 1
 required_top_level_fields:
@@ -20,11 +26,11 @@ state_field:
   ready_state: ready_for_use
 invariants:
   - id: product-control-record-owner
-    requirement: ~/.nimi/nimi.json is the only installed product readiness control record.
+    requirement: <runtime_owner_state_root>/nimi.json is the only installed product readiness control record; production binds runtime_owner_state_root to the installer-verified service root before listener startup.
   - id: selected-data-root-required-before-heavy-setup
     requirement: dataRoot.path must be an absolute user-selected nimi_data path before downloads, dependency installation, app package install, model materialization, or environment setup.
   - id: selected-data-root-evidence
-    requirement: dataRoot selectedAt and verifiedAt evidence must exist after selection; ready_for_use requires dataRoot.status=ready.
+    requirement: dataRoot selectedAt and verifiedAt evidence must exist after native-host OS service-principal access preparation and Runtime verification; ready_for_use requires dataRoot.status=ready. On Windows the user remains root owner, only the exact fixed NimiRuntime service SID receives inherited selected-tree access, and reparse-point roots fail closed.
   - id: local-install-level-only
     requirement: firstRun.installLevel must be minimal or recommended; cloud, hybrid, connector, video, and app-specific levels are invalid.
   - id: ready-evidence-required
@@ -39,11 +45,24 @@ invariants:
     requirement: pointers.appRegistry and pointers.appPackages are forbidden; product control cannot point at, recreate, migrate, or treat user-local app registry/package projections as discovery, identity, package, grant, inventory, or readiness truth.
   - id: repair-fail-closed
     requirement: repair.required or invalid product-control shape routes to repair_required or blocked, never ordinary ready.
+  - id: non-release-checkpoint-round-partition
+    requirement: Only a successful signed-installer dev_kernel_checkpoint Install may create a fresh acceptance round by writing a cryptographically random acceptanceRoundId into the protected candidate profile. Product Control state is partitioned by exact trial id, build-record-verified Runtime candidate id, and acceptance round id; Runtime restart with the same profile preserves the same record, while a new round starts with a new installId without deleting or mutating the shared data-plane root. Existing or damaged records and every production profile retain normal repair/fail-closed semantics; HOME, TEMP, renderer state, endpoint, environment, argv, and request fields cannot select a round or enable reset.
+projection_fields:
+  dataRootProposal:
+    record_field: false
+    required_profile: dev_kernel_checkpoint
+    owner: runtime_protected_product_control
+    derivation: signed_installer_explicit_development_data_root_binding_or_verified_interactive_windows_sid_os_profile_mapping_plus_signed_trial_id_plus_build_record_verified_runtime_candidate_id
+    semantics: visible_confirmable_proposal_only
+    selection_effect: none
+    forbidden_inputs: [home, userprofile, temp, renderer_state, environment, argv, endpoint, request_field]
+    explicit_binding_constraints: [existing_absolute_non_volume_root, non_reparse_directory, fixed_service_accessible, candidate_bound_protected_profile]
+    payload_reuse_semantics: current_candidate_reverifies_catalog_hash_manifest_compatibility_and_activation_without_importing_prior_registry_or_readiness
 ready_admission:
   source_rule: P-COLD-016
   logical_operation: AdmitProductReadyForUse
   owner: runtime_product_control_service
-  writable_record: ~/.nimi/nimi.json
+  writable_record: <runtime_owner_state_root>/nimi.json
   caller_boundary:
     allowed_callers:
       - desktop_host_first_run_coordinator

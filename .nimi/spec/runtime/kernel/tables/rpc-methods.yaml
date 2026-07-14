@@ -8,6 +8,7 @@ surfaces:
   - ConnectorService
   - RuntimeLocalService
   - RuntimeAuthService
+  - RuntimeServiceControlService
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeWorkflowService
@@ -134,6 +135,7 @@ services:
         type: unary
       - name: CollectDeviceProfile
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
       - name: ScanUnregisteredAssets
         type: unary
       - name: ScaffoldOrphanAsset
@@ -184,54 +186,74 @@ services:
         type: unary
       - name: ResolveLocalEnvironmentPlan
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
       - name: PrepareProfileRuntimeDescriptor
         type: unary
       - name: ListLocalEnvironmentSelectedSources
         type: unary
       - name: ListLocalEnvironmentDependencyJobs
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
       - name: ResolveLocalEnvironmentActivationGate
         type: unary
       - name: MintRuntimeBaselineReadiness
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
       - name: ResolveRuntimeBaselineReadiness
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
       - name: MintFirstRunExecutionEvidence
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence
       - name: ResolveFirstRunExecutionEvidence
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
       - name: GetProductControlRecord
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
       - name: GetProductControlSelectedDataRoot
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
       - name: EnsureProductControlRecordCreated
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated
       - name: SelectProductControlDataRoot
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
       - name: SetProductControlFirstRunInstallLevel
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
       - name: CompleteProductControlFirstRunDeviceEnvironmentScan
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
       - name: AdmitProductControlReadyForUse
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
       - name: RecordProductControlAccountDefaultProfileEvidence
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
       - name: RecordProductControlFirstRunLocalAiReadyEvidence
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
       - name: ReconcileProductControlFirstRunSetupState
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
       - name: ResolveLocalStateReconciliation
         type: unary
       - name: ExecuteLocalStateCutover
         type: unary
       - name: StartLocalEnvironmentDependencyJob
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
       - name: CancelLocalEnvironmentDependencyJob
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob
       - name: RetryLocalEnvironmentDependencyJob
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob
       - name: RepairLocalEnvironmentDependency
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency
   - name: RuntimeAuthService
     source_rule: K-AUTHSVC-002
     methods:
@@ -257,6 +279,12 @@ services:
         type: unary
       - name: RevokeExternalPrincipalSession
         type: unary
+  - name: RuntimeServiceControlService
+    source_rule: K-PLOCAL-003
+    methods:
+      - name: RequestRuntimeRestart
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart
   - name: RuntimeExternalAgentService
     source_rule: K-RPC-026
     methods:

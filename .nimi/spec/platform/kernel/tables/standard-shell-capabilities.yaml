@@ -134,6 +134,7 @@ capability_sets:
     allowed_operations:
       - local-app.sessionStatus
       - local-app.permissionPosture
+      - local-app.permissionRequest
       - local-app.artifactsReadRuntimeBytes
       - local-app.agentOpenConversation
       - local-app.agentSendTurn
@@ -432,6 +433,9 @@ capabilities:
       - id: permissionPosture
         command: nimi.shell.localApp.permissionPosture
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-unauthenticated, no-grant, grant-revoked, grant-superseded, account-changed, runtime-restarted]
+      - id: permissionRequest
+        command: nimi.shell.localApp.permissionRequest
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-unauthenticated, invalid-payload, request-pending, account-changed, runtime-restarted]
       - id: artifactsReadRuntimeBytes
         command: nimi.shell.localApp.artifacts.readRuntimeBytes
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, not-found, resource-exhausted]

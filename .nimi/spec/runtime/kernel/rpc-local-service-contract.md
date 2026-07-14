@@ -42,7 +42,7 @@ surfaces.
 This family owns managed engine lifecycle/status projection. Desktop, SDK, and
 apps must not maintain a second engine process truth.
 
-**Tier 5 — product-control record (`~/.nimi/nimi.json`)：**
+**Tier 5 — product-control record (`<runtime_owner_state_root>/nimi.json`)：**
 
 `RuntimeLocalService` owns the product-control record state-machine surface for
 ordinary first-run setup. Desktop may expose bounded OS helpers such as a native
@@ -59,6 +59,17 @@ materialization reconciliation RPC: Runtime derives the non-ready setup state,
 repair posture, and diagnostic reason from Runtime-owned first-run activation
 and materialization evidence. Apps/SDK clients must not submit product-control
 state or reason fields for this reconciliation.
+
+The fixed production Runtime has no ordinary public TCP/HTTP listener. The
+exact first-run and product-control method set listed under
+`desktop_product_control` in
+`tables/protected-local-rpc-transport-matrix.yaml` therefore runs only on the
+mutually verified `desktop_control` connection after its current boot-scoped
+Desktop session has opened. Registration of `RuntimeLocalService` on that
+server does not admit the rest of the service: import/package, asset/model,
+transfer, engine, local-service, audit, and unlisted method-id/bytes calls fail
+before handler execution. Renderer metadata, portable credentials, and public
+TCP cannot manufacture this carrier.
 
 Runtime-managed shared accelerator dependency jobs are admitted under
 `RuntimeLocalService` as the authority surface for supervised local engine

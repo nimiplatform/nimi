@@ -194,7 +194,7 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
-    note: dataRootRef and managed root owner split admitted as Runtime config boundary; product-local first-run/data-root consumer validation is required.
+    note: dataRootRef and managed root owner split admitted as Runtime config boundary; Windows exact service-SID selected-root preparation plus Runtime, Kit, Desktop Rust, and real fixed-service first-run/data-root consumer validation are required.
     evidence_requirement: required
   - rule_id: K-KEYSRC-000
     evidence_refs:

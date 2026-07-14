@@ -298,7 +298,7 @@ roots:
 an immutable release. Same-app-id principals remain isolated. Tombstoned data
 is not rebound to a new authorization and is delete-only after fresh presence.
 
-`MUST NOT`：apps, Desktop, or SDK consumers must not read `~/.nimi/nimi.json`,
+`MUST NOT`：apps, Desktop, or SDK consumers must not read `<runtime_owner_state_root>/nimi.json`,
 `~/.nimi/runtime/config.json`, or concatenate `<nimi_data>/apps/<app-id>` as an
 alternate storage authority. Missing `dataRootRef`, invalid principal/path shape,
 symlink/non-directory corruption, or unsupported storage policy must fail

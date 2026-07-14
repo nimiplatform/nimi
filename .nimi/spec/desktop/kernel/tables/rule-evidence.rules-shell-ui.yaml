@@ -256,7 +256,7 @@ rules:
   note: Desktop UX/process-launch owner boundary and Runtime authenticated Realm data-plane ownership; detailed realtime clauses remain blocked.
   evidence_scope_note: Desktop implementation gates remain compatibility evidence only; the owner-boundary checker validates the owner allocation, and neither evidence class admits detailed realtime transport.
   test_files:
-  - scripts/check-installed-realm-owner-boundary.mjs
+  - scripts/check-local-app-owner-boundary.mjs
 - rule_id: D-NET-007
   evidence_refs:
   - desktop_kernel_consistency
@@ -266,7 +266,6 @@ rules:
   note: Blocked detailed polling/realtime/replay coordination conflict; compatibility evidence and Runtime replay authority must precede implementation.
   evidence_scope_note: Desktop implementation gates remain compatibility evidence only; the owner-boundary checker validates the blocked authority disposition, and neither evidence class admits polling/replay details.
   test_files:
-  - scripts/check-installed-realm-owner-boundary.mjs
 - rule_id: D-SHELL-001
   evidence_refs:
   - desktop_kernel_consistency
@@ -502,8 +501,8 @@ rules:
     single-use lease, live process proof, request-empty carrier attachment,
     bundled-component exclusion, and immutable-package-unavailable negatives.
   test_files:
-  - apps/desktop/test/desktop-installed-app-launcher.test.ts
-  - apps/desktop/test/desktop-installed-app-launch-resolution.test.ts
+  - apps/desktop/test/local-development-contract.test.ts
+  - apps/desktop/test/apps-immutable-package-unavailable.test.ts
   evidence_requirement: required
 - rule_id: D-SHELL-039
   evidence_refs:

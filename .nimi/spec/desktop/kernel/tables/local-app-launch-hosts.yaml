@@ -7,8 +7,8 @@ entries:
   - desktop-tauri-local-app-host
 authority_status: admitted
 description: >-
-  Final host-neutral local-app launch behavior. The authority file path is
-  retained, but no installed-app identity or public installed session remains.
+  Final host-neutral local-app launch behavior. No installed-app identity or
+  public installed session remains.
 host_schema:
   owner: desktop_ui_shell
   source_rule: D-SHELL-038

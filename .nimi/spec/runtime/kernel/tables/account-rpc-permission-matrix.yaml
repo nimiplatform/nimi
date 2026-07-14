@@ -33,22 +33,22 @@ callers:
   - caller_class: desktop_account_and_local_app_control
     runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
     methods:
-      GetAccountSessionStatus: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
-      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
-      BeginLogin: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
-      CompleteLogin: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, matching_login_attempt] }
-      RequestPresenceVerification: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
-      Logout: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
-      SwitchAccount: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
-      InvokeRealmUnary: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, broker_operation_policy] }
-      IssueScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, binding_relation_match] }
-      RevokeScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, binding_relation_match] }
+      GetAccountSessionStatus: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
+      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
+      BeginLogin: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
+      CompleteLogin: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, matching_login_attempt] }
+      RequestPresenceVerification: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
+      Logout: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
+      SwitchAccount: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
+      InvokeRealmUnary: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, broker_operation_policy] }
+      IssueScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, binding_relation_match] }
+      RevokeScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, binding_relation_match] }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
       GetLocalAppGrantStatus: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, registry_admitted_desktop_instance] }
       RequestLocalAppGrant: { decision: deny, reason: local_app_child_request_only }
-      DecideLocalAppGrant: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, registry_admitted_desktop_instance, matching_pending_request, fresh_presence_when_required] }
-      RevokeLocalAppGrant: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, registry_admitted_desktop_instance, exact_current_grant] }
+      DecideLocalAppGrant: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, host_bound_desktop_caller_envelope, matching_pending_request, fresh_presence_when_required] }
+      RevokeLocalAppGrant: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, host_bound_desktop_caller_envelope, exact_current_grant] }
     source_rule: K-ACCSVC-024
 
   - caller_class: local_first_party_app

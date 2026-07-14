@@ -80,6 +80,12 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
       - runtime_proto_linkage
+      - protected_local_authority_gate
+    test_files:
+      - scripts/check-runtime-proto-spec-linkage.mjs
+      - scripts/check-protected-local-authority.mjs
+      - scripts/check-protected-local-authority.test.mjs
+      - scripts/testdata/protected-local-authority/negative-fixtures.json
     evidence_requirement: required
   - rule_id: K-RPC-005
     evidence_refs:

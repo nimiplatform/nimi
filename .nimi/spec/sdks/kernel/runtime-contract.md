@@ -95,7 +95,7 @@ high-level convenience targeting 必须满足：
 
 其中 high-level `model` 只表示具体模型，不承担 provider/route alias 语义；fully-qualified remote model id 必须留在低层 `runtime.ai.text.*` surface，不得作为 high-level convenience public contract。
 
-SDK 不解析 `~/.nimi/runtime/config.json` 或 `~/.nimi/nimi.json`；模型默认值
+SDK 不解析 `~/.nimi/runtime/config.json` 或 `<runtime_owner_state_root>/nimi.json`；模型默认值
 （`defaultLocalTextModel`、`defaultCloudProvider`、`provider.defaultModel`）由
 runtime 按 K-CFG-002 优先级解析后通过 RPC 响应返回。SDK convenience 方法仅
 传递调用方意图，不做本地 config 回退。
@@ -494,7 +494,8 @@ Fixed rules:
 - `local-first-party-app` and `local-app` are the only local app modes. A mode
   name, app id, manifest, registry row, project path or loopback connectivity
   does not authorize.
-- The `local-app` facade exposes session/permission posture and only the exact
+- The `local-app` facade exposes session status, read-only permission posture,
+  explicit exact-operation permission request, and only the exact
   artifact/RuntimeAgent operations admitted by `S-APP-022`. It does not expose
   login/logout/switch, account control, presence mutation, scoped/workspace
   binding control, generic Realm, generic Runtime or generic RuntimeAgent APIs.

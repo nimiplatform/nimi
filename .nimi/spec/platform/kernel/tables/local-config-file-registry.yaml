@@ -1,9 +1,10 @@
-version: 1
+version: 2
 table_family: owner_matrix
 owner: platform
 matrix_id: platform_local_config_migration_registry
 description: >-
-  Canonical membership registry for the ~/.nimi governed config file family.
+  Canonical membership registry for the Runtime-owner and ~/.nimi governed
+  config file family.
   Source authority is local-config-migration-contract.md (P-MIG-001, P-MIG-003).
   Records which ~/.nimi user-local config files share the cross-file validation
   framework and which authority owns each file's schema field definitions. Does
@@ -21,6 +22,9 @@ rows:
     owner packet explicitly adds a migration capability
   - Runtime service-owned configuration is outside this user-local registry;
     retired ~/.nimi/runtime/config.json import is forbidden by K-CFG-001
+  - Runtime product control is rooted at <runtime_owner_state_root>/nimi.json;
+    production binds that root to installer-verified service state and never
+    reads an interactive-user copy or fallback
   - Runtime-owned local-app principal, record, grant, session, inventory, and
     package-seam state is excluded; retired user-local app projections are not
     repair or migration inputs
@@ -29,7 +33,7 @@ rows:
 
 config_files:
   - config_file_id: nimi_json
-    path: "~/.nimi/nimi.json"
+    path: "<runtime_owner_state_root>/nimi.json"
     schema_owner: runtime_product_control_service
     framework_authority: P-MIG-003
     source_rule: P-MIG-001

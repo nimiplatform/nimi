@@ -33,6 +33,7 @@ challenge:
     - provenance_or_generation_change
     - policy_revision_change
 assignments:
+  initial_exact_local_app_operation_grant: grant_presence
   developer_project_trust: grant_presence
   remembered_project_reactivation: grant_presence
   development_capability_expansion: grant_presence

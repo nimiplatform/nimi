@@ -342,11 +342,12 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
-    posture: anonymous_read
-    rationale: local environment plan resolution; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor
     posture: anonymous_read
     rationale: profile runtime descriptor preparation writes Runtime-private materialization cache/local-state projection but the local Runtime handler performs no JWT validation; SDK classifies it as write for idempotency
@@ -360,11 +361,12 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
-    posture: anonymous_read
-    rationale: local environment dependency job list; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate
     posture: anonymous_read
     rationale: local environment activation gate evaluation; no JWT validation
@@ -372,113 +374,131 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness
-    posture: anonymous_read
-    rationale: first-run runtime baseline readiness mint; local desktop runtime; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness
-    posture: anonymous_read
-    rationale: first-run runtime baseline readiness resolution; local desktop runtime; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence
-    posture: anonymous_read
-    rationale: first-run baseline execution evidence mint; local desktop runtime; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
-    posture: anonymous_read
-    rationale: first-run baseline execution evidence resolution; local desktop runtime; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
-    posture: anonymous_read
-    rationale: product-control readiness projection; local product record read with Runtime owner-evidence verification, no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
-    posture: anonymous_read
-    rationale: selected data-root projection; local product record read, no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated
-    posture: anonymous_read
-    rationale: local product-control record initialization; no JWT validation, no Realm subject binding
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
-    posture: anonymous_read
-    rationale: local first-run data-root selection; no JWT validation, no Realm subject binding
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
-    posture: anonymous_read
-    rationale: local first-run install-level selection; no JWT validation, no Realm subject binding
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
-    posture: anonymous_read
-    rationale: local device profile scan and product-control state update; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
-    posture: anonymous_read
-    rationale: local product ready admission composes Runtime/account/AIConfig evidence via explicit owner projections; no JWT validation at the RPC interceptor
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
-    posture: anonymous_read
-    rationale: local product-control evidence recording consumes explicit account profile evidence; no JWT validation at the RPC interceptor
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
-    posture: anonymous_read
-    rationale: local product-control evidence recording consumes Runtime baseline and execution evidence; no JWT validation at the RPC interceptor
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
-    posture: anonymous_read
-    rationale: local first-run setup state reconciliation; no JWT validation, no Realm subject binding
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
-    posture: anonymous_read
-    rationale: local environment job start; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob
-    posture: anonymous_read
-    rationale: local environment job cancel; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob
-    posture: anonymous_read
-    rationale: local environment job retry; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency
-    posture: anonymous_read
-    rationale: local environment dependency repair; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation
     posture: anonymous_read
     rationale: local state reconciliation resolution; no JWT validation
@@ -492,11 +512,12 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
-    posture: anonymous_read
-    rationale: machine-local device profile collection; no JWT validation
+    posture: protected_origin_required
+    rationale: K-RPC-004 desktop product-control method; verified Desktop process and live boot-scoped Desktop session are required before handler parsing
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-RPC-004
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveProfile
     posture: anonymous_read
     rationale: profile resolution; no JWT validation

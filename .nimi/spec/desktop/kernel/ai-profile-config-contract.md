@@ -401,7 +401,7 @@ placement surface, not the global writer authority.
   `scopeRef`, the applied `AIProfile` ref / hash, the committed `AIConfig`
   version or content hash, the responsible scope owner / SDK writer identity,
   and `committedAt`
-- `builtInAiConfigRefs` in `~/.nimi/nimi.json` must contain backend-verifiable
+- `builtInAiConfigRefs` in `<runtime_owner_state_root>/nimi.json` must contain backend-verifiable
   durable refs for both required scopes; the refs are valid only when the host
   SDK Runtime / Kit projection can resolve them to committed full materialized
   configs and Runtime execution evidence proof for those exact scopes

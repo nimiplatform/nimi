@@ -68,6 +68,9 @@ surfaces:
   - registered_command_families_34
   - registered_command_families_35
   - registered_command_families_36
+  - registered_command_families_37
+  - registered_command_families_38
+  - registered_command_families_39
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
 schema_version: desktop-tauri-command-execution/v1
@@ -426,8 +429,41 @@ registered_command_families:
     match:
       exact:
         - runtime_account_session_status
+        - runtime_account_begin_login
+        - runtime_account_complete_login
+        - runtime_account_invoke_realm_unary
+        - runtime_account_logout
+        - runtime_account_switch_account
     origin_crate: kit/shell/tauri
     owner_domain: runtime-account-protected-carrier
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: protected_desktop_developer_mode_control
+    match:
+      exact:
+        - developer_mode_status
+        - developer_mode_set
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-developer-mode-protected-carrier
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: protected_desktop_local_app_grant_control
+    match:
+      exact:
+        - local_app_grant_pending_list
+        - local_app_grant_decide
+        - local_app_grant_list
+        - local_app_grant_revoke
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-local-app-grant-protected-carrier
     execution_class: request_response_async
     remediation_required: false
     admitted_risks:
@@ -486,7 +522,6 @@ registered_command_families:
         - product_control_record_get
         - product_control_selected_data_root_get
         - product_control_record_ensure_created
-        - product_control_record_select_data_root
         - product_control_record_complete_first_run_device_environment_scan
         - product_control_record_set_first_run_install_level
         - product_control_record_admit_ready_for_use
@@ -497,6 +532,18 @@ registered_command_families:
     admitted_risks:
       - runtime_bridge_block_on
       - std_fs
+    source_rule: D-GATE-094
+
+  - family: product_control_selected_data_root
+    match:
+      exact:
+        - product_control_record_select_data_root
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-product-control-bridge-and-desktop-bounded-os-helper
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - spawn_blocking
     source_rule: D-GATE-094
 
   - family: product_control_os_helpers
@@ -580,6 +627,14 @@ dormant_command_families:
       exact:
         - app_host_bootstrap
         - artifacts_read_runtime_bytes
+        - local_app_session_status
+        - local_app_permission_posture
+        - local_app_permission_request
+        - local_app_artifacts_read_runtime_bytes
+        - local_app_agent_open_conversation
+        - local_app_agent_send_turn
+        - local_app_agent_subscribe_turn
+        - local_app_agent_get_conversation_snapshot
     origin_crate: kit/shell/tauri
     owner_domain: local-app-standard-shell
     dormant_class: dormant_admitted

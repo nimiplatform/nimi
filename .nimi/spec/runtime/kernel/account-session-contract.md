@@ -152,6 +152,14 @@ Unauthenticated / anonymous status may be projected only after the caller mode's
 registry/envelope admission succeeds; shape-only `AccountCaller` is never
 sufficient.
 
+For `ACCOUNT_CALLER_MODE_DESKTOP_SHELL`, admission is the live K-PLOCAL-006
+`desktop_account_host` connection joined to the native host-owned app,
+app-instance, device, caller-kind, and source-host envelope. The generic
+binding-only `RegisterApp` registry is neither required nor sufficient for
+Desktop account status or control. This keeps the request-body `AccountCaller`
+non-authoritative while allowing the fixed production service, which exposes
+no ordinary public TCP listener, to perform Desktop-owned login.
+
 任何方法都不允许接受 raw Realm token、refresh token、raw JWT、或 caller 提供的 `subject_user_id` 作为 account truth。
 
 The removed public token and refresh identities are reserved. No registry,

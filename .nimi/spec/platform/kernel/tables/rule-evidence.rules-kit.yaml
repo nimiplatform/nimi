@@ -148,12 +148,12 @@ rules:
       - platform_kernel_consistency
       - nimi_kit_gate
     evidence_requirement: required
-    note: Kit typed-shell and trusted-carrier owner boundary; detailed capability-set and launch-binding fields remain blocked until canonical owner admissions.
-    evidence_scope_note: Kit/Desktop implementation tests remain compatibility evidence only; the owner-boundary checker validates owner allocation and blocked detail disposition, and neither evidence class admits launch-binding fields.
+    note: Final Kit typed-shell and request-empty trusted local-app carrier owner boundary.
+    evidence_scope_note: Kit Electron/Tauri behavior plus the owner-boundary checker prove shared carrier semantics without creating account, principal, grant, session, or operation truth.
     test_files:
       - kit/shell/electron/test/electron-shell-capabilities.test.ts
-      - apps/desktop/test/desktop-installed-app-launcher.test.ts
-      - scripts/check-installed-realm-owner-boundary.mjs
+      - apps/desktop/test/local-development-contract.test.ts
+      - scripts/check-local-app-owner-boundary.mjs
   - rule_id: P-KIT-045
     evidence_refs:
       - platform_kernel_consistency

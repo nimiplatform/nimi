@@ -34,7 +34,11 @@ service_mappings:
   - design_service: RuntimeAuthService
     proto_service: RuntimeAuthService
     source_rule: K-AUTHSVC-002
-    mapping_posture: hardcut_epoch_pending
+    mapping_posture: aligned
+  - design_service: RuntimeServiceControlService
+    proto_service: RuntimeServiceControlService
+    source_rule: K-PLOCAL-003
+    mapping_posture: aligned
   - design_service: RuntimeExternalAgentService
     proto_service: RuntimeExternalAgentService
     source_rule: K-RPC-026
@@ -42,7 +46,7 @@ service_mappings:
   - design_service: RuntimeAccountService
     proto_service: RuntimeAccountService
     source_rule: K-ACCSVC-002
-    mapping_posture: hardcut_epoch_pending
+    mapping_posture: aligned
   - design_service: RuntimeWorkflowService
     proto_service: RuntimeWorkflowService
     source_rule: K-WF-003
@@ -62,7 +66,7 @@ service_mappings:
   - design_service: RuntimeAppService
     proto_service: RuntimeAppService
     source_rule: K-APP-001
-    mapping_posture: hardcut_epoch_pending
+    mapping_posture: aligned
   - design_service: RuntimeArtifactService
     proto_service: RuntimeArtifactService
     source_rule: K-AGCORE-053
@@ -70,7 +74,7 @@ service_mappings:
   - design_service: RuntimeDevelopmentService
     proto_service: RuntimeDevelopmentService
     source_rule: K-PLOCAL-009
-    mapping_posture: hardcut_epoch_pending
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     proto_service: RuntimeAgentService
     source_rule: K-RPC-004b

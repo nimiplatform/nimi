@@ -121,7 +121,7 @@ rules:
   evidence_requirement: structural_required
   evidence_scope_note: structural only; Platform single-owner allocation and app/self-certification non-authorization are checked without admitting detailed catalog, release, or launch rows
   test_files:
-  - scripts/check-installed-realm-owner-boundary.mjs
+  - scripts/check-local-app-owner-boundary.mjs
 - rule_id: P-NAPP-010
   evidence_refs:
   - platform_kernel_consistency
@@ -257,14 +257,14 @@ rules:
   evidence_requirement: structural_required
   evidence_scope_note: verified catalog review has one ordinary-release-proof track; CI/local-development fixtures are not catalog rows and create no local package readiness.
   test_files:
-  - scripts/check-installed-realm-owner-boundary.mjs
+  - scripts/check-local-app-owner-boundary.mjs
 - rule_id: P-NAPP-034
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: Windows local-app launch requires the fixed Runtime service, verified control origin, single-use lease, live process binding, and request-empty session; macOS/Linux remain fail closed pending independent admission.
   test_files:
-  - scripts/check-installed-realm-owner-boundary.mjs
+  - scripts/check-local-app-owner-boundary.mjs
   - scripts/check-protected-local-authority.mjs
   - scripts/check-protected-local-authority.test.mjs
 - rule_id: P-NAPP-035

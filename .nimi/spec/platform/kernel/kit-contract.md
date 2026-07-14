@@ -205,6 +205,14 @@
   renderer payloads. Protected session/origin material stays inside the native
   carrier and is neither injected by Electron main providers nor exposed to
   preload/renderer.
+- The Windows x64 Node-API projection may expose the same closed Desktop
+  control operation families as `shell/protected-local`, including the exact
+  K-RPC-004 product-control method enum. It must validate the enum before
+  opening the verified channel and must not expose an arbitrary method-id
+  proxy, endpoint, metadata, credential, session, process, or boot-epoch
+  selector. Electron main may forward generated request/response bytes only
+  after this native exact-operation selection; preload and renderer never
+  receive the native binding.
 - Runtime restart invalidates public/binding-only host registration metadata
   and every native protected session. On the exact typed restart boundary,
   public/binding-only metadata may be rebuilt and a unary call or server stream
@@ -241,10 +249,13 @@ facts from renderer, app, endpoint, environment, or caller metadata.
 The Electron and Tauri host adapters consume the same local-app client and
 typed failure model. Fixed production AppHost and native development remain
 different execution profiles, but provenance has no permission effect. The
-selected checkpoint operations are exact typed artifact read and RuntimeAgent
-conversation surfaces; no method-id/bytes proxy or generic protected Runtime
-forwarding is admitted. Missing operation families return typed owner-
-unavailable without app-id fallback.
+selected checkpoint surface is exact typed permission posture, explicit
+single-operation permission request, artifact read and RuntimeAgent conversation
+operations; no method-id/bytes proxy or generic protected Runtime forwarding is
+admitted. `permission.posture` is read-only. `permission.request` maps only to
+`RequestLocalAppGrant`, accepts exact operation/resource/purpose, returns a
+redacted pending posture, and cannot approve its own request. Missing operation
+families return typed owner-unavailable without app-id fallback.
 
 A zero-grant session may project permission posture, but it authorizes no
 protected operation. Every operation is evaluated against the current

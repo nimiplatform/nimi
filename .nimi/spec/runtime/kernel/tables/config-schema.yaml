@@ -32,7 +32,6 @@ surfaces:
   - auth.jwt.audience
   - auth.jwt.jwksUrl
   - auth.jwt.revocationUrl
-  - auth.developerRegistration.enabled
   - providers
   - engines.llama.enabled
   - engines.llama.version
@@ -100,7 +99,6 @@ production_authority:
       - localAuditCapacity
       - sessionTtlMinSeconds
       - sessionTtlMaxSeconds
-      - auth.developerRegistration.enabled
       - engines.llama.enabled
       - engines.llama.version
       - engines.llama.port
@@ -134,6 +132,43 @@ production_authority:
   retired_import: forbidden_pre_release_hardcut
   read_projection: typed_redacted_no_physical_path_no_secret
   non_product_fixture: separately_signed_synthetic_only_no_product_evidence
+  non_release_checkpoint_profile:
+    profile: dev_kernel_checkpoint
+    activation_source: signed_runtime_candidate_projection_only
+    schema_version: 4
+    product_control_root: service_owned_trial_runtime_candidate_and_acceptance_round_partition
+    partition_identity: exact_trial_id_plus_build_record_verified_runtime_candidate_id_plus_installer_generated_acceptance_round_id
+    acceptance_round_binding:
+      field: acceptanceRoundId
+      source: cryptographically_random_value_generated_by_each_successful_signed_installer_install
+      restart_semantics: same_protected_profile_preserves_same_round_and_completed_first_run_state
+      next_round_semantics: subsequent_signed_installer_install_creates_new_isolated_control_partition
+      shared_payload_effect: none
+      forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
+    explicit_development_data_root_binding:
+      field: developmentDataRootRef
+      source: signed_installer_explicit_operator_selection
+      validation: existing_absolute_non_volume_root_non_reparse_directory_accessible_to_fixed_service
+      runtime_effect: dataRootRef_and_managed_payload_roots_resolve_below_binding
+      product_control_effect: visible_confirmable_proposal_only_until_typed_user_confirmation
+    first_run_data_root_proposal: signed_explicit_development_data_root_binding_or_verified_interactive_windows_sid_profile_mapping_plus_trial_id_plus_runtime_candidate_id
+    first_run_data_root_proposal_disposition: non_record_visible_confirmable_proposal_only
+    first_run_data_root_proposal_forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
+    cross_candidate_state_inheritance: forbidden
+    cross_candidate_payload_reuse: independently_verify_current_candidate_catalog_hash_manifest_compatibility_and_activation_then_write_fresh_isolated_evidence
+    fresh_round_condition: new_installer_generated_acceptance_round_id
+    fresh_round_effect: new_isolated_control_partition_with_new_install_id_and_no_shared_payload_mutation
+    forbidden_activation_sources: [environment_variable, argv, home, temp, renderer_metadata, endpoint, request_field]
+    existing_or_partially_damaged_record: normal_repair_fail_closed_within_same_round
+    account_realm_authority: installer_owned_candidate_bound_real_realm_development_deployment
+    account_web_login_origin: candidate_bound_expected_oauth_redirect_only
+    account_realm_runtime_env_override: forbidden
+    account_oauth_flow: real_system_browser_pkce_loopback_callback_runtime_token_custody
+    fixture_account_realm_authority: none
+    fixture_provider_scope: exact_loopback_non_release_provider_seed_only
+    forbidden_account_fixture_behaviors: [fixture_authorize_redirect, fixture_token_exchange, fixture_jwks, fixture_revocation, fixture_issuer, shared_realm_provider_endpoint]
+    release_posture: non_release
+    product_close_promotion: non_promotable_to_product_close
 # Production service-owned Runtime state schema; no user-writable config file is an input.
 # Source rule: K-CFG-017, K-DAEMON-009
 fields:
@@ -341,13 +376,6 @@ fields:
     reload: restart
     description: JWT 会话撤销内省地址；非 loopback host 必须使用 https，且与 issuer / audience / jwksUrl 同时配置
     source_rule: K-AUTHN-006
-
-  - key: auth.developerRegistration.enabled
-    type: bool
-    default: "false"
-    reload: restart
-    description: 本地开发者注册门（K-AUTHSVC-014）；为 true 时 RegisterApp 才放行带 developer_registration 标记的未准入本地 app，默认 false fail-close。由 Desktop「本地 app 测试」开关经配置同步写入
-    source_rule: K-AUTHSVC-014
 
   - key: providers
     type: map

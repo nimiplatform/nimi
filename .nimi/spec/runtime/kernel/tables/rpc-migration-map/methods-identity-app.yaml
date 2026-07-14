@@ -8,6 +8,7 @@ owner: runtime
 protocol_id: runtime_rpc_design_proto_mapping
 surfaces:
   - RuntimeAuthService
+  - RuntimeServiceControlService
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
@@ -15,12 +16,18 @@ surfaces:
   - method_mappings
 services:
   - RuntimeAuthService
+  - RuntimeServiceControlService
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
   - RuntimeDevelopmentService
-method_count: 53
+method_count: 54
 method_mappings:
+  - design_service: RuntimeServiceControlService
+    design_method: RequestRuntimeRestart
+    proto_service: RuntimeServiceControlService
+    proto_method: RequestRuntimeRestart
+    mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: RegisterApp
     proto_service: RuntimeAuthService
@@ -63,9 +70,9 @@ method_mappings:
     mapping_posture: aligned
   - design_service: RuntimeAuthService
     design_method: OpenLocalAppSession
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeAuthService
+    proto_method: OpenLocalAppSession
+    mapping_posture: aligned
   - design_service: RuntimeExternalAgentService
     design_method: GetExternalAgentGatewayStatus
     proto_service: RuntimeExternalAgentService
@@ -148,24 +155,24 @@ method_mappings:
     mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: GetLocalAppGrantStatus
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeAccountService
+    proto_method: GetLocalAppGrantStatus
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: RequestLocalAppGrant
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeAccountService
+    proto_method: RequestLocalAppGrant
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: DecideLocalAppGrant
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeAccountService
+    proto_method: DecideLocalAppGrant
+    mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: RevokeLocalAppGrant
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeAccountService
+    proto_method: RevokeLocalAppGrant
+    mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: SendAppMessage
     proto_service: RuntimeAppService
@@ -238,24 +245,24 @@ method_mappings:
     mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: PrepareLocalAppLaunch
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeAppService
+    proto_method: PrepareLocalAppLaunch
+    mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: BindLocalAppProcess
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeAppService
+    proto_method: BindLocalAppProcess
+    mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: GetDeveloperModeStatus
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeDevelopmentService
+    proto_method: GetDeveloperModeStatus
+    mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: SetDeveloperMode
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeDevelopmentService
+    proto_method: SetDeveloperMode
+    mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: EvaluateLocalDevelopmentProject
     proto_service: RuntimeDevelopmentService
@@ -273,9 +280,9 @@ method_mappings:
     mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: ReactivateLocalDevelopmentProject
-    proto_service: ""
-    proto_method: ""
-    mapping_posture: proto_target_unassigned
+    proto_service: RuntimeDevelopmentService
+    proto_method: ReactivateLocalDevelopmentProject
+    mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: RevokeLocalDevelopmentAuthorization
     proto_service: RuntimeDevelopmentService

@@ -71,8 +71,9 @@ projection"作为 ready。
 
 ## P-COLD-009 — Product-Local Control Record
 
-`MUST`：installed Nimi product shell 的 user-local control record 固定为
-`~/.nimi/nimi.json`。该文件拥有 ordinary product readiness gate 的小型本地
+`MUST`：installed Nimi product shell 的 Runtime-owner control record 固定为
+`<runtime_owner_state_root>/nimi.json`。Production 将该 root 绑定到 installer-verified
+service state root；request、env、argv、renderer 与 interactive-user home 都不能改写或回退该绑定。该文件拥有 ordinary product readiness gate 的小型本地
 控制状态，包括 `schemaVersion`、`installId`、`productVersion`、`state`、
 `dataRoot`、`firstRun`、`pointers`、and `repair`。
 
@@ -92,14 +93,14 @@ Allowed `state` values are:
 - `ready_for_use`
 
 `MUST NOT`：repo `.nimi/spec/**`、Runtime config、Desktop path cache、or
-app-local state must not replace `~/.nimi/nimi.json` as product readiness
-owner. Missing or invalid `~/.nimi/nimi.json` routes to `config_missing` /
+app-local state must not replace `<runtime_owner_state_root>/nimi.json` as product readiness
+owner. Missing or invalid `<runtime_owner_state_root>/nimi.json` routes to `config_missing` /
 repair; it must not be treated as ordinary ready.
 
 ## P-COLD-010 — User-Selected Data Root
 
 `MUST`：first-run must record an absolute user-selected `nimi_data` path in
-`~/.nimi/nimi.json` before heavy downloads, dependency installation, app
+`<runtime_owner_state_root>/nimi.json` before heavy downloads, dependency installation, app
 package install, model materialization, or environment setup starts. The path is
 ready only after writability and required root directory creation evidence.
 
@@ -120,7 +121,7 @@ tmp/
 
 `MUST NOT`：first-run readiness may not silently default `nimi_data` to
 `~/.nimi/data`. Existing Desktop path records may be migration inputs only; they
-are not readiness truth until reconciled into `~/.nimi/nimi.json`.
+are not readiness truth until reconciled into `<runtime_owner_state_root>/nimi.json`.
 App storage subpaths are Runtime-private principal partitions; app ID is never
 a positive storage key and the displayed skeleton does not admit immutable
 release materialization before 0P.
@@ -135,7 +136,7 @@ provider/model/dependency routing. Both levels must be local baselines.
   GPU support when Runtime evidence and user confirmation support the plan.
 
 Only `ready_for_use` enters ordinary shell, and it requires login, valid
-`~/.nimi/nimi.json`, selected `nimi_data`, Account Default Profile, built-in
+`<runtime_owner_state_root>/nimi.json`, selected `nimi_data`, Account Default Profile, built-in
 AIConfigs, Runtime baseline readiness, and execution evidence.
 
 `MUST NOT`：Cloud API, cloud-only, cloud-first, hybrid, connector setup, video
@@ -163,8 +164,16 @@ send selected `nimi_data` only through an exact typed protected operation;
 Runtime stores `dataRootRef`/managed roots in service-owned state. Physical
 Runtime config paths are never product-control pointers.
 
+`MUST`：On Windows the native Desktop host, through the shared Kit protected
+local adapter, prepares the user-selected data-plane root for the exact fixed
+`NimiRuntime` service SID before invoking that typed operation. The user
+remains the root owner, the service access is inheritable only to the selected
+tree, reparse-point roots fail closed, and Runtime independently verifies and
+records the result. Renderer ACL mutation, broad service/user grants, or a
+test-only principal are forbidden.
+
 `MUST NOT`：`~/.nimi/config.json`, retired
-`~/.nimi/runtime/config.json`, `~/.nimi/nimi.json`, Desktop caches, env, argv,
+`~/.nimi/runtime/config.json`, `<runtime_owner_state_root>/nimi.json`, Desktop caches, env, argv,
 or renderer metadata cannot become Runtime security/configuration truth. The
 pre-release hardcut imports no old Runtime config or credentials; ambiguity
 fails closed and requires fresh service configuration.
@@ -188,7 +197,7 @@ the primary user-facing copy.
 `MUST`：the canonical product-control record schema invariants are recorded in
 `tables/product-control-record-schema.yaml`.
 
-`MUST`：any path that transitions `~/.nimi/nimi.json` to `ready_for_use` must
+`MUST`：any path that transitions `<runtime_owner_state_root>/nimi.json` to `ready_for_use` must
 validate selected `nimi_data`, local install level, Account Default Profile,
 built-in `AIConfig` refs, Runtime baseline ref, and execution evidence ref.
 
@@ -196,6 +205,45 @@ built-in `AIConfig` refs, Runtime baseline ref, and execution evidence ref.
 completion, import success, endpoint probe, script exit, or renderer-local
 state may satisfy product readiness without the `ready_for_use` product-control
 record and required evidence fields.
+
+For the signed `dev_kernel_checkpoint` non-release profile only, each real-app
+acceptance round uses a Product Control record below a service-owned checkpoint
+partition derived from the signed Runtime candidate profile. Every successful
+installer `Install` writes a new cryptographically random `acceptanceRoundId`
+into that protected profile, and the partition identity is the exact signed
+trial id, build-record-verified Runtime candidate id, and acceptance round id.
+The new partition starts with a fresh `installId` and isolated Product Control,
+Runtime local state, account, audit, model-registry, and generated identity
+state. Runtime restart with the same protected profile must reuse the same
+partition and preserve completed First Run state. Starting a new round never
+deletes, resets, or mutates the selected data-plane root. Existing or damaged
+records inside a round and every production-profile record follow the normal
+repair/fail-closed state machine and must not be reset in place.
+
+The checkpoint partition and round identity must not be selected by HOME,
+TEMP, renderer state, endpoint, environment, argv, or a request field. The
+signed checkpoint profile may affect only the visible directory proposal, the
+candidate's Runtime data-plane roots, and the user's explicit selection through
+the normal typed Product Control operation. When the signed installer records
+an explicit absolute development data-root binding, Runtime uses that protected,
+candidate-bound field as its proposal and data-plane root. Otherwise Runtime
+derives the proposal from the verified interactive Windows SID's OS profile
+mapping plus the signed trial id and build-record-verified Runtime candidate id.
+Desktop must prefer the Runtime projection and must not reconstruct a checkpoint
+path from HOME, USERPROFILE, TEMP, renderer state, argv, endpoint, or request
+data. The proposal never selects or writes `dataRoot`; explicit user confirmation
+through the normal typed operation remains required.
+
+An explicit development data-root binding does not import Product Control,
+account, audit, model-registry, or generated-identity state from another Runtime
+partition. Existing model, dependency, and environment payload bytes may be
+reused only after the current candidate independently verifies catalog hashes,
+manifests, compatibility, and activation readiness and writes new evidence into
+its isolated service-owned state. Existing files or an older local-state record
+alone cannot satisfy First Run.
+The checkpoint profile remains `non_release` and
+`non_promotable_to_product_close`; it cannot become a product bypass or a
+parallel Product Control store.
 
 ## P-COLD-016 — Product Ready Admission Evidence Composition
 
@@ -205,7 +253,7 @@ product-control service operation defined in
 finalization, but it cannot write `ready_for_use`, mint evidence refs, or
 declare refs valid. Desktop shell may provide bounded OS helpers such as native
 directory picking, but product-control validation, readiness admission, and
-`~/.nimi/nimi.json` writes belong to Runtime.
+`<runtime_owner_state_root>/nimi.json` writes belong to Runtime.
 
 Admission composes evidence in this order:
 
@@ -222,7 +270,7 @@ Admission composes evidence in this order:
 6. built-in Desktop AIConfig refs for `desktop.chat.nimi` and
    `desktop.chat.agent` from `P-AISC-006` / `D-AIPC-013`
 7. Runtime baseline execution `executionEvidenceRef` from `K-AIEXEC-007`
-8. atomic `~/.nimi/nimi.json` write to `ready_for_use`
+8. atomic `<runtime_owner_state_root>/nimi.json` write to `ready_for_use`
 
 `MUST`：each ref is a durable, owner-verifiable evidence ref. String shape,
 field presence, UUID/ULID format, or renderer-provided equality checks are not

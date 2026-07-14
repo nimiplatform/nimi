@@ -408,7 +408,7 @@ local-app storage operation. `data.pathResolve` and `storage.*` remain typed
 unavailable on the local-app carrier until their exact operation, grant,
 relative-path, quota, and owner-policy contracts are separately admitted.
 
-`MUST NOT`：SDK must not read `~/.nimi/nimi.json`, parse Runtime config, or
+`MUST NOT`：SDK must not read `<runtime_owner_state_root>/nimi.json`, parse Runtime config, or
 concatenate `<nimi_data>/apps/<app-id>` as a local fallback. It must not accept
 app id, project path, renderer metadata, manifest data, or an app-supplied
 principal as a storage selector. Enforcement and storage truth remain
@@ -486,11 +486,17 @@ path, app id or file existence.
 ## S-APP-022 - Local App Bootstrap Custody Boundary
 
 `MUST`: the local-app SDK bootstrap accepts exactly one host-neutral
-`standardShell` input and exposes session/permission posture plus the selected
-typed operations admitted by `P-KIT-044`: Runtime artifact bytes and explicit
+`standardShell` input and exposes session status, read-only permission posture,
+explicit exact-operation permission request, plus the selected typed operations
+admitted by `P-KIT-044`: Runtime artifact bytes and explicit
 RuntimeAgent open-conversation, send-turn, subscribe-turn and
 conversation-snapshot. It preserves typed carrier failures and treats a valid
 zero-grant session as denied for those operations.
+
+`permission.request` maps only to Runtime `RequestLocalAppGrant`, carries exact
+operation/resource/purpose, and returns only redacted request posture. It never
+returns request/challenge/grant/principal/record identifiers and cannot approve,
+revoke, enumerate grants, or proxy an Account method.
 
 `MUST NOT`: SDK input/output must not contain Runtime or Realm clients, account
 caller posture, local-app principal/record/grant ids, launch binding/nonce,
@@ -533,7 +539,8 @@ Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
 - `.nimi/spec/sdks/kernel/surface-contract.md` — `S-SURFACE-*`
 - `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-010` (`S-PERM-010` records the S-APP-vs-S-PERM placement anti-target for the review-evidence accessor admitted at `S-APP-015`)
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-036` (`P-NAPP-015` storage policy, `P-NAPP-018` catalog descriptor shape, `P-NAPP-019` opaque immutable-package slots, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-031` unified inventory, `P-NAPP-032` local record creation boundary, `P-NAPP-034..036` local-app kernel)
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-029`, `P-NAPP-033..P-NAPP-034` (`P-NAPP-015` storage policy, `P-NAPP-018` catalog descriptor shape, `P-NAPP-019` opaque immutable-package slots, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-034` protected local-app launch)
+- `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`, `P-NAPP-035..P-NAPP-036` (`P-NAPP-030` listing closure, `P-NAPP-031` unified inventory, `P-NAPP-032` local record creation boundary, `P-NAPP-035..036` local-app development/principal kernel)
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app authorization, `P-PERM-011` `app-local-drafts` qualifier semantics)
 - `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-001..P-AUDIT-006` (`P-AUDIT-006` review-evidence shape)
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`

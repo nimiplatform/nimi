@@ -9,6 +9,7 @@ protocol_id: runtime_identity_access
 surfaces:
   - RuntimeAccountService
   - RuntimeAuthService
+  - RuntimeServiceControlService
   - RuntimeExternalAgentService
   - RuntimeAppService
   - RuntimeDevelopmentService
@@ -47,6 +48,7 @@ description: Account, auth, protected local-app grants, app binding, and local-d
 services:
   - RuntimeAccountService
   - RuntimeAuthService
+  - RuntimeServiceControlService
   - RuntimeExternalAgentService
   - RuntimeAppService
   - RuntimeDevelopmentService
@@ -337,6 +339,12 @@ methods:
     required_origin_role: local_app_control
     rationale: binds the exact live native child and executable to the current launch lease before session open
     kernel_refs: [K-PLOCAL-008]
+  - method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: verified_desktop_process
+    rationale: request-empty self-exit trigger requires the exact mutually verified boot-scoped Desktop control session; SCM recovery and a fresh process/boot epoch handshake determine success
+    kernel_refs: [K-PLOCAL-003, K-PLOCAL-004, K-PLOCAL-005, K-PLOCAL-006]
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
     posture: binding_only_bootstrap
     protected_transport_class: public_tcp

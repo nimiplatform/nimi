@@ -25,7 +25,8 @@ entries:
   - permission_scope_ref carries the admitted first-party Avatar seed grant set
 
 # Canonical Nimi App registry — Platform admission/catalog authority.
-# See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-032).
+# See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029)
+# and nimi-app-local-admission-contract.md (P-NAPP-030..P-NAPP-032).
 
 app_schema:
   owner: platform_nimi_app_registry

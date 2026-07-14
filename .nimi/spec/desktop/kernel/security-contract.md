@@ -58,8 +58,17 @@ They cannot construct protected origin metadata, select a trust set, mint a
 Desktop session, or forward a portable protected credential. Desktop trust
 comes from Runtime/OS process verification and Platform's exact executable
 trust-set row, not from code calling itself trusted. Production builds cannot
-load the non-product E2E trust set; test Runtime configuration cannot connect
-to production account/Realm endpoints.
+load the non-product E2E trust set. Ordinary synthetic test Runtime
+configuration cannot connect to a real account Realm. The separately signed
+`dev_kernel_checkpoint` candidate is a closed exception: its installer-owned,
+candidate-bound profile may bind the exact real Realm development deployment
+used for browser OAuth while separately admitting only the isolated
+service-owned checkpoint partition and an exact loopback provider fixture. A
+checkpoint partition is bound to both the trial id and exact signed Runtime
+candidate id; another candidate cannot inherit its databases or product state.
+A user environment variable or renderer/argv override cannot select that account
+authority, and the provider fixture cannot issue account authorization codes,
+tokens, JWKS, revocation truth, or issuer authority.
 
 Production Desktop configuration is immutable signed-release input. It must
 ignore environment/argv overrides for renderer URL, Runtime binary/endpoint,

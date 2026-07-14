@@ -156,7 +156,8 @@ failure before a business call. Session material never enters renderer IPC,
 application state, telemetry, errors, or retry callbacks.
 
 Local-development transport does not widen the Runtime method set. It carries
-only typed session/permission posture, `artifacts.readRuntimeBytes`, and the
+only typed session status, read-only permission posture, explicit exact-operation
+permission request, `artifacts.readRuntimeBytes`, and the
 selected RuntimeAgent open-conversation, send-turn, subscribe-turn and
 conversation-snapshot operations. Missing operation families remain typed
 unavailable; every account-control, lifecycle mutation, Realm, broad AI,
