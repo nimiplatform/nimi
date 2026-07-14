@@ -599,6 +599,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     }));
     await setWindowBounds(connection, 1440, 940);
 
+    const serviceBeforeStorage = readFixedServiceStatus();
     const continueStorage = page.getByTestId('first-run-storage-continue');
     if (await continueStorage.isDisabled()) throw new Error('first-run Storage continue is disabled for the isolated proposal');
     const storageContinueHandled = typeof options.beforeStorageContinue === 'function'
@@ -623,15 +624,18 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     if (storageTransition.kind !== 'advanced') {
       throw new Error(`first-run Storage failed: ${storageTransition.message}`);
     }
+    serviceAfterStorage = await waitUntil(() => {
+      const status = readFixedServiceStatus();
+      return status.processId !== serviceBeforeStorage.processId ? status : null;
+    }, {
+      timeoutMs: 120_000,
+      intervalMs: 500,
+      label: 'fixed service PID replacement after first-run Storage sync',
+    });
     selectedDataRoot = await readProductControlJSONProjection(page, PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD);
     if (comparablePath(selectedDataRoot?.dataRoot?.path) !== expectedDataRoot) {
       throw new Error(`Runtime selected data root ${selectedDataRoot?.dataRoot?.path || '<missing>'}, expected ${trial.paths.runtimeData}`);
     }
-    serviceAfterStorage = await waitUntil(() => readFixedServiceStatus(), {
-      timeoutMs: 120_000,
-      intervalMs: 500,
-      label: 'fixed service after first-run Storage sync',
-    });
   } else {
     selectedDataRoot = await readProductControlJSONProjection(page, PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD);
     if (comparablePath(selectedDataRoot?.dataRoot?.path) !== expectedDataRoot) {

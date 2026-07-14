@@ -115,6 +115,11 @@ test('First Run runner diagnoses persisted failed or interrupted rounds without 
   assert.match(source, /fresh installer-owned round is still required for final acceptance/);
 });
 
+test('First Run waits for fixed-service PID replacement after Storage mutation', () => {
+  const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  assert.match(driver, /const serviceBeforeStorage = readFixedServiceStatus\(\)[\s\S]*status\.processId !== serviceBeforeStorage\.processId[\s\S]*fixed service PID replacement after first-run Storage sync/iu);
+});
+
 test('First Run Device retry observes pending and disabled controls in one DOM snapshot', () => {
   const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
   assert.match(driver, /page\.evaluate\(\(\) => \{[\s\S]*data-device-scan[\s\S]*HTMLButtonElement[\s\S]*retryDisabled:\s*retryButton\.disabled[\s\S]*continueDisabled:\s*continueButton\.disabled/u);
