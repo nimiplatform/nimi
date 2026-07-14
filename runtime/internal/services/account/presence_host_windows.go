@@ -184,6 +184,62 @@ func requestWindowsHelloPresence(ctx context.Context, prompt string) (string, ui
 	return strings.TrimSpace(string(output.bytes)), exitCode, nil
 }
 
+func startWindowsProcessInActiveSession(applicationPath string, args []string) error {
+	sessionID := windows.WTSGetActiveConsoleSessionId()
+	if sessionID == ^uint32(0) {
+		return fmt.Errorf("no active interactive Windows session")
+	}
+
+	var userToken windows.Token
+	if err := windows.WTSQueryUserToken(sessionID, &userToken); err != nil {
+		return fmt.Errorf("query active Windows session token: %w", err)
+	}
+	defer userToken.Close()
+
+	var environment *uint16
+	if err := windows.CreateEnvironmentBlock(&environment, userToken, false); err != nil {
+		return fmt.Errorf("create active-session environment: %w", err)
+	}
+	defer windows.DestroyEnvironmentBlock(environment)
+
+	applicationName, err := windows.UTF16PtrFromString(applicationPath)
+	if err != nil {
+		return fmt.Errorf("encode active-session application: %w", err)
+	}
+	commandArgs := append([]string{applicationPath}, args...)
+	commandLine, err := windows.UTF16PtrFromString(windows.ComposeCommandLine(commandArgs))
+	if err != nil {
+		return fmt.Errorf("encode active-session command: %w", err)
+	}
+	desktop, err := windows.UTF16PtrFromString(`winsta0\default`)
+	if err != nil {
+		return fmt.Errorf("encode active-session desktop: %w", err)
+	}
+	startup := windows.StartupInfo{
+		Cb:      uint32(unsafe.Sizeof(windows.StartupInfo{})),
+		Desktop: desktop,
+	}
+	var process windows.ProcessInformation
+	if err := windows.CreateProcessAsUser(
+		userToken,
+		applicationName,
+		commandLine,
+		nil,
+		nil,
+		false,
+		windows.CREATE_UNICODE_ENVIRONMENT,
+		environment,
+		nil,
+		&startup,
+		&process,
+	); err != nil {
+		return fmt.Errorf("start process in active Windows session: %w", err)
+	}
+	_ = windows.CloseHandle(process.Thread)
+	_ = windows.CloseHandle(process.Process)
+	return nil
+}
+
 func windowsHelloPresenceScript(prompt string) string {
 	promptBase64 := base64.StdEncoding.EncodeToString([]byte(prompt))
 	return fmt.Sprintf(`

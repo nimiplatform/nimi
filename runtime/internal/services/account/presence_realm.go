@@ -7,8 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os/exec"
-	goruntime "runtime"
 	"strings"
 	"time"
 
@@ -240,21 +238,4 @@ func (l realmPresenceLoopback) close() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	_ = l.server.Shutdown(shutdownCtx)
-}
-
-func openExternalURL(ctx context.Context, rawURL string) error {
-	var command string
-	var args []string
-	switch goruntime.GOOS {
-	case "windows":
-		command = "rundll32"
-		args = []string{"url.dll,FileProtocolHandler", rawURL}
-	case "darwin":
-		command = "open"
-		args = []string{rawURL}
-	default:
-		command = "xdg-open"
-		args = []string{rawURL}
-	}
-	return exec.CommandContext(ctx, command, args...).Start()
 }

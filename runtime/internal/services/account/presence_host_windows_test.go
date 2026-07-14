@@ -8,6 +8,20 @@ import (
 	"testing"
 )
 
+func TestWindowsRealmPresenceBrowserUsesActiveInteractiveSession(t *testing.T) {
+	source, err := os.ReadFile("presence_realm_open_url_windows.go")
+	if err != nil {
+		t.Fatalf("read Windows Realm presence launcher source: %v", err)
+	}
+	text := string(source)
+	if !strings.Contains(text, "startWindowsProcessInActiveSession") {
+		t.Fatalf("Windows Realm presence browser must launch in the active interactive session")
+	}
+	if strings.Contains(text, "exec.Command") {
+		t.Fatalf("Windows Realm presence browser must not launch inside service Session 0")
+	}
+}
+
 func TestWindowsHostPresenceProviderUsesHelloPinVerifier(t *testing.T) {
 	source, err := os.ReadFile("presence_host_windows.go")
 	if err != nil {
