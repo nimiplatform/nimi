@@ -195,8 +195,12 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 		if err := s.localDevelopment.RequireDeveloperMode(ctx, currentAccountID, currentAccountGeneration); err != nil {
 			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED)
 		}
+		presenceContext, presenceContextErr := withLocalDevelopmentPresenceBrowser(ctx)
+		if presenceContextErr != nil {
+			return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
 		var presenceErr error
-		presenceEvidenceRef, _, presenceErr = s.verifyLocalDevelopmentPresence(ctx, "local-app.developer-project.approve")
+		presenceEvidenceRef, _, presenceErr = s.verifyLocalDevelopmentPresence(presenceContext, "local-app.developer-project.approve")
 		if presenceErr != nil {
 			return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PRESENCE_REQUIRED)
 		}
@@ -236,7 +240,11 @@ func (s *Service) ReactivateLocalDevelopmentProject(ctx context.Context, req *ru
 	if !authenticated {
 		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
-	if _, _, err := s.verifyLocalDevelopmentPresence(ctx, "local-app.developer-project.reactivate"); err != nil {
+	presenceContext, presenceContextErr := withLocalDevelopmentPresenceBrowser(ctx)
+	if presenceContextErr != nil {
+		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if _, _, err := s.verifyLocalDevelopmentPresence(presenceContext, "local-app.developer-project.reactivate"); err != nil {
 		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PRESENCE_REQUIRED)
 	}
 	authorization, err := s.localDevelopment.Reactivate(ctx, authorizationID, account.GetAccountId(), generation)

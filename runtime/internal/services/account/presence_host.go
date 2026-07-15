@@ -17,9 +17,10 @@ const (
 )
 
 type hostPresenceRequest struct {
-	AccountID   string
-	DisplayName string
-	Purpose     string
+	AccountID       string
+	DisplayName     string
+	Purpose         string
+	BrowserLauncher presenceBrowserLauncher
 }
 
 type hostPresenceResult struct {
@@ -50,9 +51,10 @@ func (h hostPresenceVerifier) RequestPresenceVerification(ctx context.Context, r
 		return PresenceVerification{}, ErrPresenceVerificationUnavailable
 	}
 	hostRequest := hostPresenceRequest{
-		AccountID:   strings.TrimSpace(request.Account.AccountID),
-		DisplayName: strings.TrimSpace(request.Account.DisplayName),
-		Purpose:     strings.TrimSpace(request.Purpose),
+		AccountID:       strings.TrimSpace(request.Account.AccountID),
+		DisplayName:     strings.TrimSpace(request.Account.DisplayName),
+		Purpose:         strings.TrimSpace(request.Purpose),
+		BrowserLauncher: presenceBrowserLauncherFromContext(ctx),
 	}
 
 	for _, provider := range h.providers {

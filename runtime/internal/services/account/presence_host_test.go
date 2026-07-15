@@ -127,6 +127,35 @@ func TestHostPresenceVerifierFallsBackToRealmReauthWhenLocalUnavailable(t *testi
 	}
 }
 
+func TestHostPresenceVerifierCarriesRequestScopedBrowserLauncher(t *testing.T) {
+	provider := &fakeHostPresenceProvider{outcome: hostPresenceVerified}
+	verifier := hostPresenceVerifier{providers: []hostPresenceProvider{provider}}
+	launchedURL := ""
+	ctx := WithPresenceBrowserLauncher(context.Background(), func(_ context.Context, rawURL string) error {
+		launchedURL = rawURL
+		return nil
+	})
+
+	_, err := verifier.RequestPresenceVerification(ctx, PresenceVerificationRequest{
+		Account:      PresenceVerificationAccountContext{AccountID: "acct-1"},
+		Purpose:      "local-app.developer-project.approve",
+		RequestedTTL: time.Minute,
+		Now:          time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("RequestPresenceVerification: %v", err)
+	}
+	if provider.seen.BrowserLauncher == nil {
+		t.Fatal("provider did not receive the request-scoped browser launcher")
+	}
+	if err := provider.seen.BrowserLauncher(context.Background(), "https://realm.example/authorize"); err != nil {
+		t.Fatalf("BrowserLauncher: %v", err)
+	}
+	if launchedURL != "https://realm.example/authorize" {
+		t.Fatalf("launched URL = %q", launchedURL)
+	}
+}
+
 func TestHostPresenceVerifierDoesNotFallBackWhenLocalRejects(t *testing.T) {
 	local := &fakeHostPresenceProvider{outcome: hostPresenceRejected}
 	realm := &fakeHostPresenceProvider{

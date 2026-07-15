@@ -100,7 +100,11 @@ func (p realmOAuthPresenceProvider) RequestHostPresence(ctx context.Context, req
 	if err != nil {
 		return hostPresenceResult{Outcome: hostPresenceUnavailable}, err
 	}
-	if err := p.openURL(ctx, authorizationURL); err != nil {
+	openURL := p.openURL
+	if request.BrowserLauncher != nil {
+		openURL = request.BrowserLauncher
+	}
+	if err := openURL(ctx, authorizationURL); err != nil {
 		return hostPresenceResult{Outcome: hostPresenceUnavailable}, err
 	}
 	received, err := callback.wait(ctx, p.timeout)

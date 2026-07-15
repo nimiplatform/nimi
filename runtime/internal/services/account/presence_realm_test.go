@@ -59,7 +59,17 @@ func TestRealmOAuthPresenceProviderCompletesFreshReauth(t *testing.T) {
 		TokenURL:         realm.URL + "/api/auth/oauth/token",
 		ClientID:         "nimi-desktop",
 		HTTPClient:       realm.Client(),
-		OpenURL: func(ctx context.Context, raw string) error {
+		OpenURL: func(context.Context, string) error {
+			t.Fatal("request-scoped protected Desktop launcher was not used")
+			return nil
+		},
+	})
+
+	result, err := provider.RequestHostPresence(context.Background(), hostPresenceRequest{
+		AccountID:   "acct-1",
+		DisplayName: "Alice",
+		Purpose:     "shijing.profile.reveal",
+		BrowserLauncher: func(ctx context.Context, raw string) error {
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
 			if err != nil {
 				return err
@@ -71,12 +81,6 @@ func TestRealmOAuthPresenceProviderCompletesFreshReauth(t *testing.T) {
 			defer func() { _ = resp.Body.Close() }()
 			return nil
 		},
-	})
-
-	result, err := provider.RequestHostPresence(context.Background(), hostPresenceRequest{
-		AccountID:   "acct-1",
-		DisplayName: "Alice",
-		Purpose:     "shijing.profile.reveal",
 	})
 	if err != nil {
 		t.Fatalf("RequestHostPresence: %v", err)

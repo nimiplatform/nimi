@@ -17,6 +17,7 @@ use crate::generated::{
     SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
+use crate::windows_presence_browser_broker::PresenceBrowserBroker;
 use crate::windows_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
     DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthorization,
@@ -236,15 +237,31 @@ pub(crate) async fn decide_project(
     request: LocalDevelopmentDecisionRequest,
 ) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
     validate_identifier(request.evaluation_id)?;
+    let broker = if request.decision == LocalDevelopmentDecision::Deny {
+        None
+    } else {
+        Some(PresenceBrowserBroker::start().await?)
+    };
+    let mut rpc_request = tonic::Request::new(DecideLocalDevelopmentProjectRequest {
+        evaluation_id: request.evaluation_id.to_vec(),
+        decision: request.decision.proto_value(),
+        risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
+    });
+    if let Some(value) = broker.as_ref() {
+        if let Err(error) = value.bind(&mut rpc_request) {
+            if let Some(value) = broker {
+                value.finish().await;
+            }
+            return Err(error);
+        }
+    }
     let response = RuntimeDevelopmentServiceClient::new(channel)
-        .decide_local_development_project(DecideLocalDevelopmentProjectRequest {
-            evaluation_id: request.evaluation_id.to_vec(),
-            decision: request.decision.proto_value(),
-            risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
-        })
-        .await
-        .map_err(host_error_from_status)?
-        .into_inner();
+        .decide_local_development_project(rpc_request)
+        .await;
+    if let Some(value) = broker {
+        value.finish().await;
+    }
+    let response = response.map_err(host_error_from_status)?.into_inner();
     let expected_reason = match request.decision {
         LocalDevelopmentDecision::Deny => 650,
         LocalDevelopmentDecision::AllowRunOnce | LocalDevelopmentDecision::AllowRememberProject => {
@@ -268,14 +285,20 @@ pub(crate) async fn reactivate_project(
             false,
         ));
     }
+    let broker = PresenceBrowserBroker::start().await?;
+    let mut rpc_request = tonic::Request::new(ReactivateLocalDevelopmentProjectRequest {
+        authorization_id: request.authorization_id.to_vec(),
+        risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
+    });
+    if let Err(error) = broker.bind(&mut rpc_request) {
+        broker.finish().await;
+        return Err(error);
+    }
     let response = RuntimeDevelopmentServiceClient::new(channel)
-        .reactivate_local_development_project(ReactivateLocalDevelopmentProjectRequest {
-            authorization_id: request.authorization_id.to_vec(),
-            risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
-        })
-        .await
-        .map_err(host_error_from_status)?
-        .into_inner();
+        .reactivate_local_development_project(rpc_request)
+        .await;
+    broker.finish().await;
+    let response = response.map_err(host_error_from_status)?.into_inner();
     require_success_reason(response.reason_code)?;
     let authorization = authorization_projection(response.authorization.ok_or_else(untrusted)?)?;
     if authorization.authorization_id != request.authorization_id

@@ -459,6 +459,19 @@ Fixed rules:
   state/code-verifier exchange, verifies the returned account subject matches
   the current Runtime account, and discards any token material instead of
   turning it into app-owned session truth.
+- On Windows, the fixed restricted-service principal cannot acquire an
+  interactive-user token merely to launch a browser. For a protected Desktop
+  control operation only, Runtime may therefore deliver its generated
+  authorization URL to a single-use, random, loopback-only Desktop browser
+  launcher. Runtime MUST first derive the protected Desktop transport/process
+  origin and MUST reject non-loopback, redirected, or malformed launchers. The
+  launcher endpoint MUST be random and single-use; reuse or delivery failure
+  fails closed. Runtime MUST retain the OAuth attempt, state, nonce, PKCE
+  verifier, callback, exchange, subject match, and final presence verdict. The
+  launcher receives no bearer or verifier, cannot select a provider, cannot
+  assert completion, and is neither authorization nor presence proof. The
+  launcher endpoint is request-scoped technical metadata only and MUST NOT be
+  persisted or logged.
 - The request must carry a non-empty `purpose` and a bounded TTL. Runtime may
   clamp TTL downward. A positive response must include a `verified_until`
   timestamp no later than the accepted TTL window.
