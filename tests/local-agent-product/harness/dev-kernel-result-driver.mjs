@@ -27,9 +27,9 @@ export async function persistOwnerMinimalResult(context) {
     observer, desktop, runOnceZhiyu, observedPages, observations, trial, serviceBefore,
     artifactsRoot, screenshotsRoot, sourceState, outputDir, started,
   } = context;
-      await observer.flush();
       const desktopAudit = await pageAudit(desktop, 'owner-minimal Desktop');
       const zhiyuAudit = await pageAudit(runOnceZhiyu, 'owner-minimal Zhiyu');
+      await observer.flush();
       const privacyOk = observedPages.every((page) => page.authorizationHeaderObserved === false
         && page.secretTextObserved === false
         && page.consoleErrors.length === 0

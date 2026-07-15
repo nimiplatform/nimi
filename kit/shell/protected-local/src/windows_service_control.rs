@@ -432,9 +432,12 @@ pub(crate) async fn open_verified_runtime_channel(
     diagnose_desktop_session("pipe-scm-binding-verified");
     let runtime_peer = verify_runtime_peer_code_signing(pipe_server_pid)?;
     diagnose_desktop_session("runtime-peer-verified");
-    let channel = channel_from_verified_pipe(pipe).await.map_err(|error| {
+    let channel = channel_from_verified_pipe(pipe).await.map_err(|_| {
+        // SCM PID stability and Authenticode identity are already verified.
+        // A transport handshake that then fails is an availability race, not
+        // evidence that an unverified Runtime gained authority.
         diagnose_desktop_session("grpc-channel-open-failed");
-        error
+        unavailable()
     })?;
     diagnose_desktop_session("grpc-channel-opened");
     Ok((channel, runtime_peer))

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -18,7 +18,6 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
   await withTempDir('acceptance', async (tmpRoot) => {
     const dataRoot = path.join(tmpRoot, 'data');
     const assetRoot = path.join(tmpRoot, 'assets');
-    const openedUrlsPath = path.join(tmpRoot, 'opened-urls.txt');
     const assetPath = path.join(assetRoot, 'preview.txt');
     const runtimeConfigPath = path.join(dataRoot, 'runtime', 'config.json');
     await mkdir(assetRoot, { recursive: true });
@@ -40,7 +39,6 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
         NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT: '127.0.0.1:1',
         NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: assetRoot,
-        NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: openedUrlsPath,
         NIMI_REALM_URL: 'http://localhost',
         NIMI_REALM_JWKS_URL: '',
         NIMI_REALM_REVOCATION_URL: '',
@@ -140,12 +138,6 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
       const spoofedCaller = await captureInvokeError(page, 'local-agent.runtimeTrustedCaller', { appId: 'renderer-spoof' });
       assert.equal(spoofedCaller.code, 'forbidden-renderer-access');
       assert.equal(spoofedCaller.reasonCode, 'electron-renderer-local-agent-caller-field-forbidden');
-
-      const oauthOpen = await invokeShell(page, 'oauth.openExternalUrl', {
-        payload: { url: 'https://auth.example.test/authorize' },
-      });
-      assert.deepEqual(oauthOpen, { opened: true });
-      assert.equal(await readFile(openedUrlsPath, 'utf8'), 'https://auth.example.test/authorize\n');
 
       const oauthForbidden = await captureInvokeError(page, 'oauth.openExternalUrl', {
         payload: { url: 'http://evil.example.test/authorize' },

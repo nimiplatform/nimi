@@ -88,3 +88,14 @@ test('owner-minimal resolves the Desktop-owned presence file from the real launc
   assert.match(driver, /function startZhiyuDev[\s\S]*const launcherHome = os\.homedir\(\)[\s\S]*HOME: launcherHome, USERPROFILE: launcherHome/iu);
   assert.match(driver, /NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT: trial\.paths\.zhiyuUserData/iu);
 });
+
+test('owner-minimal drives every fresh login and approval through isolated real Chrome', () => {
+  const driver = ownerDriverSource();
+  const firstRun = fs.readFileSync(path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'), 'utf8');
+  assert.match(driver, /createDevKernelBrowserAuthDriver[\s\S]*requiredCredentialRoles: executionMode === 'core' \? \['primary', 'secondary'\] : \['primary'\]/u);
+  assert.match(driver, /browserAuthSafeChildEnvironment\(process\.env\)/u);
+  assert.match(driver, /NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: browserCaptureFile/u);
+  assert.match(driver, /authenticatePresence[\s\S]*runtime_account_session_status/u);
+  assert.match(firstRun, /createDevKernelBrowserAuthDriver[\s\S]*credentialRole: 'primary'/u);
+  assert.doesNotMatch(driver, /shell\.openExternal|passwordLogin|\/api\/auth\/login/u);
+});

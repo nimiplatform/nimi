@@ -12,6 +12,10 @@ import {
   waitForObservedProcessConnection,
 } from './dev-kernel-contract.mjs';
 import { startProcess, terminateProcessTree } from './cross-app-driver.mjs';
+import {
+  browserAuthSafeChildEnvironment,
+  createDevKernelBrowserAuthDriver,
+} from './dev-kernel-browser-auth-driver.mjs';
 import { repoRoot } from './registry.mjs';
 import { registerTrialProcessIdentity } from './sandbox-hygiene.mjs';
 
@@ -90,6 +94,19 @@ export {
 } from './dev-kernel-first-run-driver.mjs';
 export { pageAudit } from './dev-kernel-local-development-driver.mjs';
 
+function requireLiveDesktopCheckpoint(handle, connection, stage) {
+  const exitCode = handle?.child?.exitCode;
+  const pageClosed = connection?.page?.isClosed() !== false;
+  if (exitCode === null && !pageClosed) return;
+  let livePageCount = 0;
+  try {
+    livePageCount = connection.context.pages().filter((page) => !page.isClosed()).length;
+  } catch {
+    livePageCount = 0;
+  }
+  throw new Error(`Desktop terminal checkpoint failed ${stage}: ${JSON.stringify({ exitCode, pageClosed, livePageCount })}`);
+}
+
 export async function runDevKernelCoreTrial(input) {
   return runDevKernelTrial({ ...input, executionMode: 'core' });
 }
@@ -149,6 +166,13 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
   };
 
   try {
+    const browserCaptureFile = path.join(trial.paths.control, 'browser-auth.capture');
+    const browserAuthDriver = createDevKernelBrowserAuthDriver({
+      trialRoot: trial.paths.root,
+      captureFile: browserCaptureFile,
+      diagnosticsRoot: path.join(artifactsRoot, 'browser-auth'),
+      requiredCredentialRoles: executionMode === 'core' ? ['primary', 'secondary'] : ['primary'],
+    });
     const serviceBefore = readFixedServiceStatus();
     observations.serviceBefore = serviceBefore;
     processLedger.observe('runtime', `pid:${serviceBefore.processId}`, {
@@ -198,7 +222,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       }
     }
     const baseEnv = {
-      ...process.env,
+      ...browserAuthSafeChildEnvironment(process.env),
       NO_COLOR: '1',
       FORCE_COLOR: '0',
       NIMI_REALM_URL: ACCOUNT_REALM_ORIGIN,
@@ -217,11 +241,11 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       NIMI_LOCAL_AGENT_PRODUCT_ACCOUNT_ID: fixtureConfig.primaryAccountId,
       NIMI_LOCAL_AGENT_PRODUCT_JOURNEY_ID: 'dev-kernel-core',
       NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID: trial.identity.journeyTrialId,
+      NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: browserCaptureFile,
       RUSTUP_HOME: hostToolchainHomes.rustupHome,
       CARGO_HOME: hostToolchainHomes.cargoHome,
-      // Desktop/Runtime trial state has explicit owner-scoped roots. Preserve
-      // the user's APPDATA/LOCALAPPDATA so shell.openExternal reuses the real
-      // browser profile instead of creating a disposable Chrome first-run.
+      // The harness owns an isolated real-Chrome profile for every fresh auth
+      // interaction. Desktop receives only the trial-owned one-URL capture seam.
       HOME: trial.paths.root,
       USERPROFILE: trial.paths.root,
     };
@@ -263,7 +287,17 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     if (desktopBootstrapOutcome !== 'anonymous-login') {
       throw new Error(`isolated Desktop checkpoint entered invalid pre-auth state ${desktopBootstrapOutcome}`);
     }
-    const primaryLogin = await loginDesktop(desktop, fixtureConfig.primaryAccountId);
+    const browserAuth = (credentialRole, expectedAccountId, label) => ({
+      driver: browserAuthDriver,
+      credentialRole,
+      expectedAccountId,
+      label,
+    });
+    const primaryLogin = await loginDesktop(
+      desktop,
+      fixtureConfig.primaryAccountId,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'primary-login'),
+    );
     if (primaryLogin.outcome === 'first-run') {
       const productControl = await readProductControlJSONProjection(
         desktop.page,
@@ -331,6 +365,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       'allow-run-once',
       screenshotsRoot,
       true,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'run-once-local-development'),
     );
     const runOnceZhiyu = await waitForObservedProcessConnection({
       connectionPromise: runOnceLaunch.connectionPromise,
@@ -356,7 +391,11 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     }));
     await setWindowBounds(runOnceZhiyu, 1060, 780);
 
-    await grantOpenConversation(desktop.page, runOnceZhiyu.page);
+    await grantOpenConversation(
+      desktop.page,
+      runOnceZhiyu.page,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'run-once-grant'),
+    );
     const ownerOpen = await openConversation(runOnceZhiyu.page);
     observations.ownerSelectedOperation = ownerOpen;
 
@@ -393,14 +432,17 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     await rawZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-raw-process-mismatch.png') });
     await terminateProcessTree(rawHandle);
     rawHandle = null;
+    requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after raw process mismatch');
 
     await revokeOperationGrant(desktop.page, OPEN_OPERATION);
+    requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after grant revoke');
     await runOnceZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open').click();
     observations.grantRevoked = await waitUntil(async () => {
       const value = await runOnceZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
       return ['grant-revoked', 'revoked'].includes(value?.lastError?.reasonCode) ? value : null;
     }, { timeoutMs: 30_000, label: 'revoked grant denial' });
     await runOnceZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-grant-revoked.png') });
+    requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after revoked-operation evidence');
 
     if (executionMode === 'owner-minimal') {
       return persistOwnerMinimalResult({
@@ -422,6 +464,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       'allow-remember-project',
       screenshotsRoot,
       false,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'remembered-local-development'),
     );
     let zhiyu = await waitForObservedProcessConnection({
       connectionPromise: rememberedLaunch.connectionPromise,
@@ -437,9 +480,17 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       }),
       { timeoutMs: 30_000, label: 'active remembered authorization' },
     );
-    await grantOpenConversation(desktop.page, zhiyu.page);
+    await grantOpenConversation(
+      desktop.page,
+      zhiyu.page,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'remembered-open-grant'),
+    );
     const fullOpen = await openConversation(zhiyu.page);
-    await grantConversationOperations(desktop.page, zhiyu.page);
+    await grantConversationOperations(
+      desktop.page,
+      zhiyu.page,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'remembered-conversation-grant'),
+    );
     const firstTurn = await sendTurnWithKeyboard(
       zhiyu.page,
       '第一轮：请确认固定 Windows Runtime 服务、Desktop 授权与知语 local_development carrier 已真实连通。',
@@ -523,6 +574,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       'allow-remember-project',
       screenshotsRoot,
       false,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'reactivated-local-development'),
     );
     zhiyu = await waitForObservedProcessConnection({
       connectionPromise: reactivatedLaunch.connectionPromise,
@@ -595,7 +647,11 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     const desktopAuditBeforeSwitch = await pageAudit(desktop, 'desktop-before-account-switch');
     const zhiyuAuditBeforeSwitch = await pageAudit(zhiyu, 'zhiyu-before-account-switch');
     const preAccountSwitchEvidence = await zhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
-    const secondaryLogin = await loginDesktop(desktop, fixtureConfig.secondaryAccountId);
+    const secondaryLogin = await loginDesktop(
+      desktop,
+      fixtureConfig.secondaryAccountId,
+      browserAuth('secondary', fixtureConfig.secondaryAccountId, 'secondary-login'),
+    );
     await setFixtureAccount(fixture.origin, fixtureConfig.secondaryAccountId, '开发内核第二账号');
     const postSwitchOperation = zhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open');
     await postSwitchOperation.waitFor({ state: 'visible', timeout: 30_000 });
@@ -620,7 +676,11 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     if (reactivatedHandle.child.exitCode === null) await terminateProcessTree(reactivatedHandle);
     reactivatedHandle = null;
 
-    const restoredPrimaryLogin = await loginDesktop(desktop, fixtureConfig.primaryAccountId);
+    const restoredPrimaryLogin = await loginDesktop(
+      desktop,
+      fixtureConfig.primaryAccountId,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'primary-login-restored'),
+    );
     await setFixtureAccount(fixture.origin, fixtureConfig.primaryAccountId, '开发内核主账号');
     observations.primaryAccountRestored = restoredPrimaryLogin;
     await setDeveloperMode(desktop.page, true);
@@ -635,6 +695,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       'allow-remember-project',
       screenshotsRoot,
       false,
+      browserAuth('primary', fixtureConfig.primaryAccountId, 'final-local-development'),
     );
     const finalZhiyu = await waitForObservedProcessConnection({
       connectionPromise: finalLaunch.connectionPromise,

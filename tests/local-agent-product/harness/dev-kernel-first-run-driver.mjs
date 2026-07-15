@@ -532,15 +532,24 @@ export async function setFixtureAccount(fixtureOrigin, accountId, displayName) {
   return response.json();
 }
 
-export async function loginDesktop(connection, expectedAccountId) {
+export async function loginDesktop(connection, expectedAccountId, browserAuth) {
   const { page } = connection;
+  if (!browserAuth?.driver || !['primary', 'secondary'].includes(browserAuth.credentialRole)) {
+    throw new Error('Desktop login requires the harness-owned real Chrome auth driver');
+  }
   const mainShell = page.getByTestId('main-shell');
   if (await mainShell.isVisible().catch(() => false)) {
     await page.getByTestId('desktop-account-menu-trigger').click();
     await page.getByTestId('desktop-account-switch').click();
   }
   await waitForTestId(page, 'login-screen', 60_000);
-  await page.getByTestId('login-logo-trigger').click();
+  const browser = await browserAuth.driver.authenticate({
+    credentialRole: browserAuth.credentialRole,
+    expectedAccountId,
+    label: browserAuth.label,
+    trigger: () => page.getByTestId('login-logo-trigger').click(),
+    readAccountProjection: () => invokeDesktop(page, 'runtime_account_session_status'),
+  });
   let outcome;
   try {
     outcome = await waitUntil(async () => {
@@ -550,7 +559,7 @@ export async function loginDesktop(connection, expectedAccountId) {
       return /Authorization failed|授权失败|App is still starting|Runtime account service is unavailable/iu.test(bodyText)
         ? 'auth-error'
         : false;
-    }, { timeoutMs: 300_000, label: 'Desktop login completion after real browser authentication' });
+    }, { timeoutMs: 30_000, label: 'Desktop login completion after harness-owned real Chrome authentication' });
   } catch (error) {
     const diagnostics = await readDesktopRuntimeDiagnostics(page);
     let cleanup;
@@ -577,6 +586,7 @@ export async function loginDesktop(connection, expectedAccountId) {
   return {
     outcome,
     accountId: account.accountProjection.accountId,
+    browser,
     accountLabel: outcome === 'main-shell'
       ? await page.getByTestId('desktop-account-menu-trigger').textContent()
       : '',

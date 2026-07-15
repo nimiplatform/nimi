@@ -38,6 +38,10 @@ const firstRunConnectivitySource = fs.readFileSync(
   path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'),
   'utf8',
 );
+const browserAuthDriverSource = [
+  'dev-kernel-browser-auth-driver.mjs',
+  'dev-kernel-browser-auth-chrome.mjs',
+].map((file) => fs.readFileSync(path.join(import.meta.dirname, file), 'utf8')).join('\n');
 
 test('portable process invocation executes the pnpm CLI through Node without a Windows shell', () => {
   assert.deepEqual(
@@ -81,12 +85,17 @@ test('Runtime unary decoder accepts a canonical empty protobuf but rejects a mis
   );
 });
 
-test('dev-kernel Electron journeys preserve the established external browser profile', () => {
+test('dev-kernel Electron journeys isolate real Chrome auth inside the trial root', () => {
   for (const source of [devKernelCrossAppDriverSource, firstRunConnectivitySource]) {
-    assert.doesNotMatch(source, /^\s*APPDATA:\s*trial\.paths\./mu);
-    assert.doesNotMatch(source, /^\s*LOCALAPPDATA:\s*trial\.paths\./mu);
+    assert.match(source, /NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: browserCaptureFile/u);
+    assert.match(source, /browserAuthSafeChildEnvironment\(process\.env\)/u);
     assert.match(source, /NIMI_LOCAL_AGENT_PRODUCT_DESKTOP_USER_DATA_ROOT/);
   }
+  assert.match(browserAuthDriverSource, /launchPersistentContext\(profileRoot,[\s\S]*channel: 'chrome'/u);
+  assert.match(browserAuthDriverSource, /requireTrialDescendant[\s\S]*browser-auth-private/u);
+  assert.match(browserAuthDriverSource, /page\.locator\('input'\)[\s\S]*replaceAll\(credential\.email/u);
+  assert.doesNotMatch(browserAuthDriverSource, /request\.postData|allHeaders|authorization.*header/iu);
+  assert.doesNotMatch(browserAuthDriverSource, /dev-kernel-browser-auth-failed[^\n]+cause/iu);
 });
 
 test('real Realm login preflight requires a web login continuation and rejects automatic callback', async () => {

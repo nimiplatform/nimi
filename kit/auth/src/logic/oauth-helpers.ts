@@ -11,7 +11,11 @@ export const DESKTOP_CALLBACK_PATH = '/oauth/callback';
 const DESKTOP_CALLBACK_STATE_PREFIX = 'desktop';
 const DESKTOP_CALLBACK_STATE_VERSION = 'v1';
 const DESKTOP_CALLBACK_PORT_MIN = 1024;
-const DESKTOP_CALLBACK_PORT_MAX = 65535;
+// Keep browser callbacks below the OS dynamic-port range. On Windows, Hyper-V
+// and container networking reserve rotating blocks from the default dynamic
+// range (49152-65535); selecting there can produce a URL whose listener was
+// rejected before the browser follows the Realm redirect.
+const DESKTOP_CALLBACK_PORT_MAX = 49151;
 const GENERIC_AUTH_ERROR_MESSAGE = 'Authentication failed. Please try again.';
 
 function envFlagEnabled(value: string | undefined): boolean {

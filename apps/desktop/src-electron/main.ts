@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
   NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION,
@@ -16,6 +16,7 @@ import {
   type DesktopElectronLocalDevelopmentHost,
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
+import { createDevKernelExternalUrlCapture } from './dev-kernel-external-url-capture.js';
 
 const APP_ID = 'nimi.desktop';
 
@@ -49,6 +50,7 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
 });
 let mainWindow: BrowserWindow | undefined;
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
+const devKernelExternalUrlCapture = createDevKernelExternalUrlCapture();
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -224,11 +226,7 @@ function createDesktopAiConfigStore(dataRoot: string) {
 }
 
 async function openDesktopExternalUrl(url: string): Promise<void> {
-  const capturePath = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE);
-  if (capturePath) {
-    const resolved = path.resolve(capturePath);
-    await mkdir(path.dirname(resolved), { recursive: true });
-    await appendFile(resolved, `${url}\n`, 'utf8');
+  if (await devKernelExternalUrlCapture.capture(url)) {
     return;
   }
   await shell.openExternal(url);

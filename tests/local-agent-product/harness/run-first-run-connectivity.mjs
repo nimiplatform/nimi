@@ -37,6 +37,10 @@ import {
 } from './dev-kernel-cross-app-driver.mjs';
 import { validateFirstRunConnectivityObservation } from './dev-kernel-first-run-contract.mjs';
 import { startProcess, terminateProcessTree } from './cross-app-driver.mjs';
+import {
+  browserAuthSafeChildEnvironment,
+  createDevKernelBrowserAuthDriver,
+} from './dev-kernel-browser-auth-driver.mjs';
 import { registerTrialProcessIdentity } from './sandbox-hygiene.mjs';
 import { createIsolatedJourneyRoot, removeIsolatedTrialRoot } from './trial-root.mjs';
 import { repoRoot } from './registry.mjs';
@@ -90,6 +94,13 @@ let runtimeDataRoot;
 let completed = false;
 
 try {
+  const browserCaptureFile = path.join(trial.paths.control, 'browser-auth.capture');
+  const browserAuthDriver = createDevKernelBrowserAuthDriver({
+    trialRoot: trial.paths.root,
+    captureFile: browserCaptureFile,
+    diagnosticsRoot: path.join(artifactRoot, 'browser-auth'),
+    requiredCredentialRoles: ['primary'],
+  });
   const serviceBefore = readFixedServiceStatus();
   const electronHost = verifyElectronHost();
   const manifest = createRealmFixtureManifest(FIXTURE_ORIGIN);
@@ -119,7 +130,7 @@ try {
   const observer = createEarlyCdpObserver(observedPages);
   const toolchainHomes = resolveHostRustToolchainHomes({ env: process.env, hostHome: os.homedir() });
   const env = {
-    ...process.env,
+    ...browserAuthSafeChildEnvironment(process.env),
     NO_COLOR: '1',
     FORCE_COLOR: '0',
     NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE: 'reuse',
@@ -137,6 +148,7 @@ try {
     NIMI_LOCAL_AGENT_PRODUCT_ACCOUNT_ID: acceptance.primaryAccountId,
     NIMI_LOCAL_AGENT_PRODUCT_JOURNEY_ID: 'dev-kernel-first-run',
     NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID: trial.identity.journeyTrialId,
+    NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: browserCaptureFile,
     RUSTUP_HOME: toolchainHomes.rustupHome,
     CARGO_HOME: toolchainHomes.cargoHome,
   };
@@ -187,7 +199,12 @@ try {
   await page.evaluate(() => window.localStorage.setItem('nimi.shell.locale', 'zh'));
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 60_000 });
-  const login = await loginDesktop(desktopConnection, acceptance.primaryAccountId);
+  const login = await loginDesktop(desktopConnection, acceptance.primaryAccountId, {
+    driver: browserAuthDriver,
+    credentialRole: 'primary',
+    expectedAccountId: acceptance.primaryAccountId,
+    label: 'first-run-primary-login',
+  });
   if (login.outcome !== 'first-run') throw new Error(`expected First Run after login, got ${login.outcome}`);
 
   if (resumedDeviceDiagnostic) {

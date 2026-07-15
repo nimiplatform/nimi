@@ -105,7 +105,7 @@ export function SettingsPanelBody() {
   };
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3" data-testid="panel:settings">
+    <div ref={containerRef} className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3" data-testid="panel:settings-body">
       <SidebarShell width={sidebarWidth} data-testid="panel:settings-sidebar">
         <SidebarHeader title={<h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>} className="px-5" />
         <ScrollArea className="flex-1" contentClassName="space-y-4 px-3 pb-3 pt-1">
