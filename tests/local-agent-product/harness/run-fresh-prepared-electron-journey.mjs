@@ -77,8 +77,11 @@ function requireElectronCarriersStopped(stage) {
     const rows = text ? JSON.parse(text) : [];
     latest = (Array.isArray(rows) ? rows : [rows]).filter((row) => {
       const executable = String(row?.ExecutablePath || '').replaceAll('/', '\\').toLowerCase();
+      const processName = String(row?.Name || '').trim().toLowerCase();
+      const repositoryExecutable = executable.startsWith(`${repoRoot.toLowerCase()}\\`);
       return executable.includes('\\.nimi\\local\\electron-desktop-runtime\\')
-        || executable.endsWith('\\apps\\zhiyu\\node_modules\\electron\\dist\\electron.exe');
+        || executable.endsWith('\\apps\\zhiyu\\node_modules\\electron\\dist\\electron.exe')
+        || (processName === 'electron.exe' && repositoryExecutable);
     });
     if (latest.length === 0) return;
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
