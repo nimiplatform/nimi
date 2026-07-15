@@ -35,6 +35,24 @@ user_development_authorization:
   remembered_reactivation_requires_fresh_presence: true
   account_switch_transfers_authorization: false
   app_owned_or_renderer_storage: forbidden
+runtime_scoped_binding_requests:
+  manifest_field: local_development.runtime_scoped_binding_requests
+  owner: runtime_k_app_request_eligibility
+  admitted_request_scopes:
+    - runtime.agent.turn.read
+    - runtime.agent.turn.write
+  item_shape:
+    required_fields: [scope, purpose]
+    qualifier: forbidden
+    duplicate_scope: forbidden
+    unknown_scope: forbidden
+  capability_fingerprint_inclusion: canonical_sorted_set
+  request_eligibility_only: true
+  creates_operation_grant: false
+  creates_scoped_binding: false
+  runtime_issued_binding_still_required: true
+  platform_registry_permission_equivalence: forbidden
+  app_renderer_or_manifest_positive_authority: forbidden
 technical_launch_and_session:
   owner: runtime_k_plocal
   transport: local_app_host

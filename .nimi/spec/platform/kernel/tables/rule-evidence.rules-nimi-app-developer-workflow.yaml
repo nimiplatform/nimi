@@ -61,9 +61,11 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: one production Developer Mode/Dev Trust Set, zero-grant toggle, explicit lifetimes and invalidation require Runtime/Desktop/real-shell checkpoint evidence.
+    evidence_scope_note: one production Developer Mode/Dev Trust Set, zero-grant toggle, explicit lifetimes and invalidation require Runtime/Desktop/real-shell checkpoint evidence; local_development runtime scoped binding declarations are closed request eligibility included in the capability fingerprint and never a grant or binding.
     test_files:
       - scripts/check-local-development-admission-authority.mjs
+      - runtime/internal/services/app/local_development_project_test.go
+      - apps/zhiyu/test/nimi-app-manifest-authority.test.mjs
   - rule_id: P-DEV-007
     evidence_refs:
       - platform_kernel_consistency

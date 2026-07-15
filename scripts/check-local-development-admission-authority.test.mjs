@@ -50,6 +50,14 @@ test('gate rejects loss of required v2 prose rather than accepting a machine-tab
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_AUTHORITY_CLAUSE_MISSING'));
 });
 
+test('gate rejects Runtime scoped binding requests that claim positive authority', () => {
+  const bundle = loadAuthorityBundle();
+  const policy = YAML.parse(bundle.policy);
+  policy.runtime_scoped_binding_requests.creates_scoped_binding = true;
+  const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_RUNTIME_BINDING_REQUESTS_INVALID'));
+});
+
 test('gate rejects a missing selected RuntimeAgent carrier row', () => {
   const bundle = loadAuthorityBundle();
   const matrix = YAML.parse(bundle.transportMatrix);

@@ -10,11 +10,13 @@ required_top_level_fields:
   - scopes
   - capability_refs
   - runtime_turn_authority
+  - runtime_scoped_binding_request_projection
   - runtime_agent_ai_config_authority
 invariants:
   - platform_registry_scopes_are_not_runtime_turn_authority
   - ai_config_scopes_only_admit_runtime_config_edit_and_readiness_projection
   - zhiyu_must_not_recompute_execution_readiness_or_author_per_turn_bindings
+  - local_development_binding_requests_are_eligibility_only_and_never_runtime_binding_truth
 scopes:
   account.session.read:
     allowed_interpretation: account_session_projection_support
@@ -63,6 +65,18 @@ runtime_turn_authority:
   source: runtime_scoped_binding
   required_scopes: [runtime.agent.turn.read, runtime.agent.turn.write]
   forbidden_sources: [platform_registry_permission_scope, account_session, subject_user_id, partner_id]
+runtime_scoped_binding_request_projection:
+  source: apps/zhiyu/nimi.app.yaml#local_development.runtime_scoped_binding_requests
+  source_rule: Z-AUTH-003
+  trust_class: local_development
+  requested_scopes: [runtime.agent.turn.read, runtime.agent.turn.write]
+  request_eligibility_only: true
+  included_in_runtime_capability_fingerprint: true
+  creates_operation_grant: false
+  creates_scoped_binding: false
+  positive_authority_owner: runtime_account_service
+  required_positive_authority: runtime_issued_scoped_binding_and_exact_current_operation_grant
+  forbidden_interpretations: [platform_registry_permission, app_owned_binding, renderer_binding_proof, manifest_grant, operation_authorization]
 runtime_agent_ai_config_authority:
   source: runtime_scoped_binding
   source_rule: K-AGCORE-144

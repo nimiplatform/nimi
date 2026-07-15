@@ -227,6 +227,20 @@ function checkRegistryScopePosture() {
   if (parsed?.runtime_turn_authority?.source !== 'runtime_scoped_binding') {
     fail(`${rel} runtime_turn_authority.source must be runtime_scoped_binding`);
   }
+  const requestProjection = parsed?.runtime_scoped_binding_request_projection;
+  if (requestProjection?.source !== 'apps/zhiyu/nimi.app.yaml#local_development.runtime_scoped_binding_requests'
+    || requestProjection?.source_rule !== 'Z-AUTH-003'
+    || requestProjection?.request_eligibility_only !== true
+    || requestProjection?.included_in_runtime_capability_fingerprint !== true
+    || requestProjection?.creates_operation_grant !== false
+    || requestProjection?.creates_scoped_binding !== false
+    || requestProjection?.positive_authority_owner !== 'runtime_account_service') {
+    fail(`${rel} runtime_scoped_binding_request_projection must remain request-only Runtime-owned authority input`);
+  }
+  expectSetContains(rel, requestProjection?.requested_scopes, [
+    'runtime.agent.turn.read',
+    'runtime.agent.turn.write',
+  ], 'runtime_scoped_binding_request_projection.requested_scopes');
 }
 
 function checkCapabilityPosture() {

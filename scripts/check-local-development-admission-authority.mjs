@@ -45,6 +45,11 @@ const authorizationBindings = Object.freeze([
   'fixed_shell_entry_policy',
 ]);
 
+const runtimeScopedBindingRequestScopes = Object.freeze([
+  'runtime.agent.turn.read',
+  'runtime.agent.turn.write',
+]);
+
 const sessionBindings = Object.freeze([
   'development_authorization_id',
   'local_app_principal_id',
@@ -113,7 +118,7 @@ const selectedOperationMethods = Object.freeze([
 ]);
 
 const requiredRuleClauses = Object.freeze([
-  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*remember_project/isu, /Every build\/host replacement receives a new lease/iu, /account switch, mode-off,\s*revoke/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
+  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*remember_project/isu, /runtime_scoped_binding_requests/iu, /request eligibility only/iu, /Every build\/host replacement receives a new lease/iu, /account switch, mode-off,\s*revoke/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
   ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /remember_project.*dormant/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /It never autostarts/iu]],
   ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /exact grant revision/iu, /owner.*resource policy/iu, /opening a session grants nothing/iu]],
   ['grant', ['K-GRANT-014', /create zero grant/iu, /Account switch never transfers/iu, /next protected operation reads the\s+current revision/isu, /separate from principal\/record and launch\/session stores/iu]],
@@ -254,6 +259,26 @@ export function validateLocalDevelopmentAuthority(bundle) {
       || authorization?.app_owned_or_renderer_storage !== 'forbidden'
     ) {
       issues.push(issue('LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID', authorityPaths.policy, 'Project authorization must use the exact principal/project/account/shell bindings, zero-grant start, and run-once/remember lifetimes.'));
+    }
+
+    const bindingRequests = policy.runtime_scoped_binding_requests;
+    if (
+      bindingRequests?.manifest_field !== 'local_development.runtime_scoped_binding_requests'
+      || bindingRequests?.owner !== 'runtime_k_app_request_eligibility'
+      || !exactArray(bindingRequests?.admitted_request_scopes, runtimeScopedBindingRequestScopes)
+      || !exactArray(bindingRequests?.item_shape?.required_fields, ['scope', 'purpose'])
+      || bindingRequests?.item_shape?.qualifier !== 'forbidden'
+      || bindingRequests?.item_shape?.duplicate_scope !== 'forbidden'
+      || bindingRequests?.item_shape?.unknown_scope !== 'forbidden'
+      || bindingRequests?.capability_fingerprint_inclusion !== 'canonical_sorted_set'
+      || bindingRequests?.request_eligibility_only !== true
+      || bindingRequests?.creates_operation_grant !== false
+      || bindingRequests?.creates_scoped_binding !== false
+      || bindingRequests?.runtime_issued_binding_still_required !== true
+      || bindingRequests?.platform_registry_permission_equivalence !== 'forbidden'
+      || bindingRequests?.app_renderer_or_manifest_positive_authority !== 'forbidden'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_RUNTIME_BINDING_REQUESTS_INVALID', authorityPaths.policy, 'Runtime scoped binding requests must be a closed fingerprint input that grants no operation or scoped binding authority.'));
     }
 
     const session = policy.technical_launch_and_session;
