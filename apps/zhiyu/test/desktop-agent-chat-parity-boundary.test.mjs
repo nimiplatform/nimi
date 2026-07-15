@@ -138,6 +138,16 @@ test('Desktop Agent Chat Runtime binding host equivalence is Electron-host owned
   assert.match(preloadSource, /failureSemantics:\s*['"]fail-closed['"]/);
 });
 
+test('local-development identity reaches the sandbox preload only through fixed additional arguments', async () => {
+  const mainSource = await readFile(path.join(appRoot, 'src-electron', 'main.ts'), 'utf8');
+  const preloadSource = await readFile(path.join(appRoot, 'src-electron', 'preload.cts'), 'utf8');
+  assert.match(mainSource, /additionalArguments:\s*localDevelopmentPreloadArguments\(\)/u);
+  assert.match(mainSource, /--nimi-local-development=1/u);
+  assert.match(mainSource, /`--nimi-dev-agent-id=\$\{localDevelopmentAgentId\}`/u);
+  assert.match(preloadSource, /process\.argv\.includes\(LOCAL_DEVELOPMENT_PRELOAD_MARKER\)/u);
+  assert.doesNotMatch(preloadSource, /startsWith\('--nimi-dev-renderer-url='\)/u);
+});
+
 test('primary agent chat surface does not import Capability Studio direct AI consume path', async () => {
   const files = await collectProductionFiles(path.join(productionRoot, 'shell'));
   const violations = [];

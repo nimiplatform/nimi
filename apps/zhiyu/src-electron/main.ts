@@ -20,6 +20,7 @@ import {
 
 const APP_ID = 'nimi.zhiyu';
 const LOCAL_AGENT_ID_PATTERN = /^local-agent:runtime-[0-9a-f]{32}$/u;
+const LOCAL_DEVELOPMENT_PRELOAD_MARKER = '--nimi-local-development=1';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -103,6 +104,14 @@ void app.whenReady().then(async () => {
   });
 });
 
+function localDevelopmentPreloadArguments(): string[] {
+  if (!isLocalDevelopmentBuild) return [];
+  return [
+    LOCAL_DEVELOPMENT_PRELOAD_MARKER,
+    `--nimi-dev-agent-id=${localDevelopmentAgentId}`,
+  ];
+}
+
 function configureZhiyuElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
 }
@@ -124,6 +133,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
+      additionalArguments: localDevelopmentPreloadArguments(),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

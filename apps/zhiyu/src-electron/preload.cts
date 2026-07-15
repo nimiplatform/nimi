@@ -7,13 +7,14 @@ const ZHIYU_AVATAR_LAUNCH_HANDOFF_COMMANDS = new Set([
   'avatar.launch',
 ]);
 const LOCAL_AGENT_ID_PATTERN = /^local-agent:runtime-[0-9a-f]{32}$/u;
+const LOCAL_DEVELOPMENT_PRELOAD_MARKER = '--nimi-local-development=1';
 
 installNimiElectronRuntimeBridge({
   contextBridge,
   ipcRenderer,
 });
 
-const localDevelopment = process.argv.some((argument) => argument.startsWith('--nimi-dev-renderer-url='));
+const localDevelopment = process.argv.includes(LOCAL_DEVELOPMENT_PRELOAD_MARKER);
 const localDevelopmentAgentId = readArgument('--nimi-dev-agent-id');
 if (localDevelopment && !LOCAL_AGENT_ID_PATTERN.test(localDevelopmentAgentId)) {
   throw new Error('Zhiyu local-development Agent selector is missing or invalid.');

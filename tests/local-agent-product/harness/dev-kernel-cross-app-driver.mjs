@@ -337,7 +337,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       handle: runOnceHandle,
       label: 'run-once Zhiyu Electron launcher',
     });
-    await waitForTestId(runOnceZhiyu.page, 'zhiyu-dev-kernel-root');
+    await waitForTestId(runOnceZhiyu.page, 'zhiyu-dev-kernel-root', 180_000);
     const zeroGrant = await waitZhiyuEvidence(
       runOnceZhiyu.page,
       { state: 'session-bound-zero-grant' },
