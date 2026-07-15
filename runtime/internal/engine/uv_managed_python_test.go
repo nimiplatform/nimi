@@ -27,6 +27,10 @@ func TestEnsureManagedPythonRuntimeReusesVerifiedManagedInterpreter(t *testing.T
 			installCalls++
 			return nil
 		},
+		func() (string, error) {
+			t.Fatal("reuse unexpectedly requested post-install discovery")
+			return "", nil
+		},
 	)
 	if err != nil {
 		t.Fatalf("reuse verified managed interpreter: %v", err)
@@ -43,15 +47,16 @@ func TestEnsureManagedPythonRuntimeInstallsOnlyWhenManagedFindIsMissing(t *testi
 		"3.12",
 		func() (string, error) {
 			findCalls++
-			if findCalls == 1 {
-				return "", errors.New("managed Python missing")
-			}
-			return `D:\managed\python.exe`, nil
+			return "", errors.New("managed Python missing")
 		},
 		func(string) (string, error) { return "Python 3.12.13", nil },
 		func() error {
 			installCalls++
 			return nil
+		},
+		func() (string, error) {
+			findCalls++
+			return `D:\managed\python.exe`, nil
 		},
 	)
 	if err != nil {
@@ -72,6 +77,7 @@ func TestEnsureManagedPythonRuntimeDoesNotOverwriteUnverifiableExistingPayload(t
 			installCalls++
 			return nil
 		},
+		func() (string, error) { return `D:\managed\python.exe`, nil },
 	)
 	if err == nil || installCalls != 0 {
 		t.Fatalf("unverifiable existing payload must fail without install, err=%v install=%d", err, installCalls)
@@ -88,6 +94,7 @@ func TestEnsureManagedPythonRuntimeDoesNotInstallWhenFinderItselfFails(t *testin
 			installCalls++
 			return nil
 		},
+		func() (string, error) { return `D:\managed\python.exe`, nil },
 	)
 	if err == nil || installCalls != 0 {
 		t.Fatalf("finder execution failure must not be rewritten as missing, err=%v install=%d", err, installCalls)

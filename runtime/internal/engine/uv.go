@@ -171,7 +171,17 @@ func ensureManagedPythonRuntime(ctx context.Context, uvPath string, root string,
 		// env; the --managed-python CLI flag is its alias and uv rejects both.
 		return runCommand(ctx, root, env, uvPath, "python", "install", "--install-dir", managedPythonInstallationDir(root), pythonVersion)
 	}
-	return ensureManagedPythonRuntimeWithCommands(pythonVersion, find, verify, install)
+	findInstalled := func() (string, error) {
+		interpreterPath, found, err := discoverManagedPythonRuntime(root, pythonVersion)
+		if err != nil {
+			return "", err
+		}
+		if !found {
+			return "", fmt.Errorf("managed python installation missing after uv install")
+		}
+		return interpreterPath, nil
+	}
+	return ensureManagedPythonRuntimeWithCommands(pythonVersion, find, verify, install, findInstalled)
 }
 
 func ensureManagedPythonRuntimeWithCommands(
@@ -179,6 +189,7 @@ func ensureManagedPythonRuntimeWithCommands(
 	find func() (string, error),
 	verify func(string) (string, error),
 	install func() error,
+	findInstalled func() (string, error),
 ) (string, string, error) {
 	interpreterPath, findErr := find()
 	if findErr == nil {
@@ -190,7 +201,7 @@ func ensureManagedPythonRuntimeWithCommands(
 	if err := install(); err != nil {
 		return "", "", err
 	}
-	interpreterPath, err := find()
+	interpreterPath, err := findInstalled()
 	if err != nil {
 		return "", "", err
 	}

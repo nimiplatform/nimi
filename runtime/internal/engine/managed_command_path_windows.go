@@ -10,6 +10,13 @@ import (
 const windowsLegacyMaxPath = 260
 
 func managedCommandEnvironmentValue(value string) string {
+	cleaned := filepath.Clean(strings.TrimSpace(value))
+	if cleaned == "." || !filepath.IsAbs(cleaned) || strings.HasPrefix(cleaned, `\\?\`) {
+		return value
+	}
+	if shortPath, ok := windowsShortCommandPath(cleaned); ok && len(shortPath) < len(cleaned) {
+		return shortPath
+	}
 	return managedCommandExecutablePath(value)
 }
 
