@@ -144,6 +144,14 @@ test('First Run bounds exact Runtime-unavailable Setup recovery without weakenin
   assert.match(driver, /first-run-setup-retry[\s\S]*setupRuntimeUnavailableRetryIssued[\s\S]*return null[\s\S]*classifyFirstRunTerminalSnapshot/iu);
 });
 
+test('First Run bounds exact Runtime-unavailable finalization recovery to one protected retry', () => {
+  const driver = firstRunDriverSource();
+  assert.match(driver, /finalizationFailure\.text\.trim\(\) === 'runtime-service-unavailable'/u);
+  assert.match(driver, /finalizationRuntimeUnavailableGraceMs = 360_000[\s\S]*RUNTIME_STATUS_COMMAND[\s\S]*PRODUCT_CONTROL_RECORD_METHOD[\s\S]*finalizationRuntimeUnavailableCarrierRecovered/iu);
+  assert.match(driver, /product-first-run-finalization-retry[\s\S]*finalizationRuntimeUnavailableRetryIssued = true[\s\S]*return null[\s\S]*classifyFirstRunTerminalSnapshot/iu);
+  assert.match(driver, /&& !finalizationRuntimeUnavailableRetryIssued/u);
+});
+
 test('First Run Device retry observes pending and disabled controls in one DOM snapshot', () => {
   const driver = firstRunDriverSource();
   assert.match(driver, /page\.evaluate\(\(\) => \{[\s\S]*data-device-scan[\s\S]*HTMLButtonElement[\s\S]*retryDisabled:\s*retryButton\.disabled[\s\S]*continueDisabled:\s*continueButton\.disabled/u);

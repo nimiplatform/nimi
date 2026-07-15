@@ -265,6 +265,10 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
   let setupRuntimeUnavailableCarrierRecovered = false;
   let setupRuntimeUnavailableRetryIssued = false;
   const setupRuntimeUnavailableGraceMs = 360_000;
+  let finalizationRuntimeUnavailableObservedAt = 0;
+  let finalizationRuntimeUnavailableCarrierRecovered = false;
+  let finalizationRuntimeUnavailableRetryIssued = false;
+  const finalizationRuntimeUnavailableGraceMs = 360_000;
   const ready = await waitUntil(async () => {
     const authShellVisible = await page.getByTestId('login-screen').isVisible().catch(() => false)
       || await page.getByTestId('main-shell').isVisible().catch(() => false);
@@ -317,6 +321,48 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
           await setupRetry.click();
           setupRuntimeUnavailableRetryIssued = true;
           if (phaseAcceptance) phaseAcceptance.setupRuntimeUnavailableRetryIssued = true;
+        }
+        return null;
+      }
+    }
+    const finalizationFailure = explicitFailures.find(
+      (failure) => failure.testId === 'product-first-run-finalization-error',
+    );
+    if (!authShellVisible
+      && finalizationFailure?.visible === true
+      && finalizationFailure.text.trim() === 'runtime-service-unavailable'
+      && !finalizationRuntimeUnavailableRetryIssued) {
+      if (finalizationRuntimeUnavailableObservedAt === 0) {
+        finalizationRuntimeUnavailableObservedAt = Date.now();
+        if (phaseAcceptance) {
+          phaseAcceptance.finalizationRuntimeUnavailableObserved = true;
+          phaseAcceptance.finalizationRuntimeUnavailablePath = path.join(
+            screenshotsRoot,
+            'desktop-first-run-finalization-runtime-unavailable.png',
+          );
+          await page.screenshot({ path: phaseAcceptance.finalizationRuntimeUnavailablePath });
+        }
+      }
+      if (Date.now() - finalizationRuntimeUnavailableObservedAt <= finalizationRuntimeUnavailableGraceMs) {
+        if (!finalizationRuntimeUnavailableCarrierRecovered) {
+          const [status, record] = await Promise.all([
+            invokeDesktop(page, RUNTIME_STATUS_COMMAND).catch(() => null),
+            readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null),
+          ]);
+          finalizationRuntimeUnavailableCarrierRecovered = Boolean(
+            status?.running === true && status?.managed === true && record?.state,
+          );
+          if (phaseAcceptance && finalizationRuntimeUnavailableCarrierRecovered) {
+            phaseAcceptance.finalizationRuntimeUnavailableCarrierRecovered = true;
+          }
+        }
+        const finalizationRetry = page.getByTestId('product-first-run-finalization-retry');
+        if (finalizationRuntimeUnavailableCarrierRecovered
+          && await finalizationRetry.isVisible().catch(() => false)
+          && await finalizationRetry.isEnabled().catch(() => false)) {
+          await finalizationRetry.click();
+          finalizationRuntimeUnavailableRetryIssued = true;
+          if (phaseAcceptance) phaseAcceptance.finalizationRuntimeUnavailableRetryIssued = true;
         }
         return null;
       }
