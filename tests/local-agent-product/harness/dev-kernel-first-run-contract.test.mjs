@@ -163,7 +163,7 @@ test('First Run terminal failure captures the bounded Runtime dependency-job own
   assert.match(driver, /ListLocalEnvironmentDependencyJobs/);
   assert.match(driver, /first-run-terminal-failure\.json/);
   assert.match(driver, /failureDetail:\s*String\(job\.failureDetail/);
-  assert.match(driver, /intervalMs:\s*500,\s*label:\s*'Desktop first-run backend admission'/);
+  assert.match(driver, /timeoutMs:\s*1_800_000,\s*intervalMs:\s*500,\s*label:\s*'Desktop first-run backend admission'/);
 });
 
 test('First Run connectivity contract admits a pristine candidate with no Product Control record', () => {

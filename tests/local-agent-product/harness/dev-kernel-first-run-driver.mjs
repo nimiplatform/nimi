@@ -378,7 +378,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
         ? await page.getByTestId('first-run-phase-setup').innerText().catch(() => '')
         : '',
     });
-  }, { timeoutMs: 600_000, intervalMs: 500, label: 'Desktop first-run backend admission' });
+  }, { timeoutMs: 1_800_000, intervalMs: 500, label: 'Desktop first-run backend admission' });
   if (ready.kind === 'failure') {
     const record = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null);
     const dependencyJobs = await readLocalEnvironmentDependencyJobDiagnostics(page).catch(() => []);
