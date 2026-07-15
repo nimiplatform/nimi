@@ -2,6 +2,10 @@
 
 package engine
 
+func managedCommandEnvironmentValue(value string) string {
+	return value
+}
+
 func managedCommandArguments(arguments []string) []string {
 	return arguments
 }

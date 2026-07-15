@@ -9,6 +9,10 @@ import (
 
 const windowsLegacyMaxPath = 260
 
+func managedCommandEnvironmentValue(value string) string {
+	return managedCommandExecutablePath(value)
+}
+
 func managedCommandArguments(arguments []string) []string {
 	normalized := make([]string, len(arguments))
 	for index, argument := range arguments {

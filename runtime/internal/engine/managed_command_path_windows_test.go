@@ -29,6 +29,12 @@ func TestManagedCommandExecutablePathUsesVerbatimFormBeyondLegacyLimit(t *testin
 	if len(arguments) != 3 || arguments[0] != "--python" || arguments[1] != verbatim || arguments[2] != "https://example.invalid/package" {
 		t.Fatalf("managed command arguments = %#v", arguments)
 	}
+	if got := managedCommandEnvironmentValue(long); got != verbatim {
+		t.Fatalf("managed command environment path = %q, want %q", got, verbatim)
+	}
+	if got := managedCommandEnvironmentValue("only-managed"); got != "only-managed" {
+		t.Fatalf("non-path environment value changed to %q", got)
+	}
 }
 
 func TestRunCommandOutputStartsExecutableBeyondLegacyPathLimit(t *testing.T) {

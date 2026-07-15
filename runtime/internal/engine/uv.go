@@ -71,7 +71,7 @@ func runCommandOutput(ctx context.Context, dir string, env map[string]string, bi
 			if key == "" {
 				continue
 			}
-			commandEnv = append(commandEnv, key+"="+value)
+			commandEnv = append(commandEnv, key+"="+managedCommandEnvironmentValue(value))
 		}
 		cmd.Env = commandEnv
 	}
