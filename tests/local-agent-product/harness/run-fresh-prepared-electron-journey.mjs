@@ -23,6 +23,7 @@ if (String(process.env.NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE || '').trim()) {
   throw new Error('fresh-prepared Electron journey owns NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE');
 }
 
+requireElectronCarriersStopped('before fresh carrier preparation');
 const sourceState = captureSourceState(repoRoot);
 run('pnpm', ['build:dev-kernel-electron-carrier']);
 assertSourceState(sourceState, repoRoot);
@@ -58,7 +59,35 @@ const result = spawnSync(process.execPath, targetArgs, {
 });
 if (result.error) throw result.error;
 if (result.signal) throw new Error(`fresh-prepared Electron journey terminated by ${result.signal}`);
+requireElectronCarriersStopped('after fresh-prepared journey cleanup');
 process.exitCode = result.status ?? 1;
+
+function requireElectronCarriersStopped(stage) {
+  const deadline = Date.now() + 10_000;
+  let latest = [];
+  do {
+    const probe = spawnSync('powershell.exe', [
+      '-NoProfile',
+      '-Command',
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,Name,ExecutablePath | ConvertTo-Json -Compress',
+    ], { encoding: 'utf8', windowsHide: true });
+    if (probe.error) throw probe.error;
+    if (probe.status !== 0) throw new Error(`Electron carrier process checkpoint failed ${stage}`);
+    const text = String(probe.stdout || '').trim();
+    const rows = text ? JSON.parse(text) : [];
+    latest = (Array.isArray(rows) ? rows : [rows]).filter((row) => {
+      const executable = String(row?.ExecutablePath || '').replaceAll('/', '\\').toLowerCase();
+      return executable.includes('\\.nimi\\local\\electron-desktop-runtime\\')
+        || executable.endsWith('\\apps\\zhiyu\\node_modules\\electron\\dist\\electron.exe');
+    });
+    if (latest.length === 0) return;
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+  } while (Date.now() < deadline);
+  throw new Error(`Electron carrier process checkpoint failed ${stage}: ${JSON.stringify(latest.map((row) => ({
+    processId: row.ProcessId,
+    name: row.Name,
+  })))}`);
+}
 
 function run(command, args) {
   const invocation = resolvePortableProcessInvocation(command, args);

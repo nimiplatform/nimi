@@ -52,14 +52,20 @@ test('owner-minimal contract rejects reordered, failed, private, or screenshot-f
   );
 });
 
-test('owner-minimal runner reuses the core driver and does not create another carrier', () => {
+test('owner-minimal runner reuses the core driver and prepares carriers only between processes', () => {
   const runner = fs.readFileSync(path.join(import.meta.dirname, 'run-owner-minimal.mjs'), 'utf8');
+  const freshPreparation = fs.readFileSync(path.join(import.meta.dirname, 'run-fresh-prepared-electron-journey.mjs'), 'utf8');
   const driver = ownerDriverSource();
   assert.match(runner, /runDevKernelOwnerMinimalTrial/);
   assert.match(driver, /runDevKernelTrial\(\{ \.\.\.input, executionMode: 'owner-minimal' \}\)/);
   assert.match(driver, /return await persistOwnerMinimalResult/);
   assert.match(driver, /return await persistCoreResult/);
   assert.doesNotMatch(runner, /go(?:\.exe)?['"\s,]+run|serve|node-grpc|runtime_bridge_status/iu);
+  assert.match(freshPreparation, /before fresh carrier preparation/);
+  assert.match(freshPreparation, /after fresh-prepared journey cleanup/);
+  assert.match(freshPreparation, /deadline = Date\.now\(\) \+ 10_000/);
+  assert.match(freshPreparation, /electron-desktop-runtime/iu);
+  assert.match(freshPreparation, /\\\\apps\\\\zhiyu/iu);
 });
 
 test('owner-minimal orchestrator imports its Runtime host dependencies explicitly', () => {
