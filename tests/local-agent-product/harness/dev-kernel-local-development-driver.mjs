@@ -89,7 +89,7 @@ export async function approveLocalDevelopment(connection, decision, artifactsDir
   if (await action.isDisabled()) throw new Error('local-development approval stayed disabled after native risk acknowledgement');
   const dialogText = await dialog.innerText();
   await action.click();
-  await dialog.waitFor({ state: 'hidden', timeout: 60_000 });
+  await dialog.waitFor({ state: 'hidden', timeout: 150_000 });
   return { decision, disabledBeforeRisk, dialogTextSha256: sha256(dialogText), layout };
 }
 

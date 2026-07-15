@@ -30,6 +30,9 @@ const MAX_REQUEST_BYTES = 32 * 1024;
 const HEARTBEAT_MS = 3_000;
 const HEALTH_MS = 2_000;
 const REBUILD_DEBOUNCE_MS = 450;
+const LOCAL_DEVELOPMENT_PACKAGE_SCRIPTS = new Set(['build:electron', 'dev:renderer']);
+
+type LocalDevelopmentPackageScript = 'build:electron' | 'dev:renderer';
 
 type RunStatus = {
   readonly schemaVersion: 1;
@@ -485,7 +488,7 @@ class ElectronLocalDevelopmentHost {
     }
   }
 
-  private async runPackageScript(run: RunContext, script: string): Promise<void> {
+  private async runPackageScript(run: RunContext, script: LocalDevelopmentPackageScript): Promise<void> {
     const child = this.spawnPackageScript(run, script);
     run.buildChild = child;
     let code: number | null;
@@ -501,11 +504,13 @@ class ElectronLocalDevelopmentHost {
     if (code !== 0) throw new Error(`local-development-build-failed-${code ?? -1}`);
   }
 
-  private spawnPackageScript(run: RunContext, script: string): ChildProcessWithoutNullStreams {
-    const child = spawn('corepack.cmd', ['pnpm', 'run', script], {
+  private spawnPackageScript(run: RunContext, script: LocalDevelopmentPackageScript): ChildProcessWithoutNullStreams {
+    const invocation = resolveLocalDevelopmentPackageScriptInvocation(script);
+    const child = spawn(invocation.command, invocation.args, {
       cwd: run.plan.projectRoot,
       env: process.env,
-      shell: false,
+      shell: invocation.shell,
+      detached: process.platform === 'win32',
       windowsHide: true,
       stdio: 'pipe',
     });
@@ -733,6 +738,17 @@ function selector(value: unknown, prefix: string): string {
     throw new Error('local-development-selector-invalid');
   }
   return selected;
+}
+
+export function resolveLocalDevelopmentPackageScriptInvocation(
+  script: LocalDevelopmentPackageScript,
+  platform: NodeJS.Platform = process.platform,
+): { readonly command: string; readonly args: readonly string[]; readonly shell: boolean } {
+  if (!LOCAL_DEVELOPMENT_PACKAGE_SCRIPTS.has(script)) throw new Error('local-development-supervisor-required');
+  if (platform === 'win32') {
+    return { command: `corepack.cmd pnpm run ${script}`, args: [], shell: true };
+  }
+  return { command: 'corepack', args: ['pnpm', 'run', script], shell: false };
 }
 
 function localDecision(value: unknown): NimiElectronLocalDevelopmentDecision {

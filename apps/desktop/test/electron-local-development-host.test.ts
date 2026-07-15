@@ -11,6 +11,7 @@ import type {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   createDesktopElectronLocalDevelopmentHost,
+  resolveLocalDevelopmentPackageScriptInvocation,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host';
 
@@ -124,6 +125,23 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
     await host.shutdown();
     await rm(home, { recursive: true, force: true });
   }
+});
+
+test('Electron local-development package scripts use a fixed Windows shell allowlist', () => {
+  assert.deepEqual(resolveLocalDevelopmentPackageScriptInvocation('build:electron', 'win32'), {
+    command: 'corepack.cmd pnpm run build:electron',
+    args: [],
+    shell: true,
+  });
+  assert.deepEqual(resolveLocalDevelopmentPackageScriptInvocation('dev:renderer', 'linux'), {
+    command: 'corepack',
+    args: ['pnpm', 'run', 'dev:renderer'],
+    shell: false,
+  });
+  assert.throws(
+    () => resolveLocalDevelopmentPackageScriptInvocation('arbitrary' as never, 'win32'),
+    /local-development-supervisor-required/u,
+  );
 });
 
 test('Electron local-development project equality accepts the Windows extended-length canonical path', {
