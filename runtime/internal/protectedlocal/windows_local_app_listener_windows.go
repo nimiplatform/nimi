@@ -23,7 +23,7 @@ func OpenWindowsVerifiedLocalAppListener(ctx context.Context, state *WindowsRunt
 	if state.closed || state.localAppTransport != nil {
 		return nil, verifiedWindowsListenerFailure("open verified local-app listener", fmt.Errorf("local-app listener is closed or already claimed"))
 	}
-	initial, err := createWindowsDesktopPipeInstance(ctx, profile.localAppPipeName, state.principal, state.desktopIdentity, true)
+	initial, err := createWindowsLocalAppPipeInstance(ctx, profile.localAppPipeName, state.principal, state.desktopIdentity, true)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (listener *windowsVerifiedLocalAppListener) nextPipe() (*WindowsDesktopPipe
 		return pipe, nil
 	}
 	listener.mu.Unlock()
-	return createWindowsDesktopPipeInstance(listener.ctx, mustActiveWindowsRuntimeProfile().localAppPipeName, listener.state.principal, listener.state.desktopIdentity, false)
+	return createWindowsLocalAppPipeInstance(listener.ctx, mustActiveWindowsRuntimeProfile().localAppPipeName, listener.state.principal, listener.state.desktopIdentity, false)
 }
 
 func (listener *windowsVerifiedLocalAppListener) track(connection *windowsVerifiedLocalAppNetConn) bool {

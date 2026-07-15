@@ -233,7 +233,20 @@ func OpenWindowsProductionDesktopPipe(ctx context.Context, principal WindowsServ
 	return instance, identity, nil
 }
 
+const (
+	windowsDesktopPipeMaxInstances  = 1
+	windowsLocalAppPipeMaxInstances = windows.PIPE_UNLIMITED_INSTANCES
+)
+
 func createWindowsDesktopPipeInstance(ctx context.Context, name string, principal WindowsServicePrincipal, identity WindowsDesktopIdentity, firstInstance bool) (*WindowsDesktopPipeInstance, error) {
+	return createWindowsPipeInstance(ctx, name, principal, identity, firstInstance, windowsDesktopPipeMaxInstances)
+}
+
+func createWindowsLocalAppPipeInstance(ctx context.Context, name string, principal WindowsServicePrincipal, identity WindowsDesktopIdentity, firstInstance bool) (*WindowsDesktopPipeInstance, error) {
+	return createWindowsPipeInstance(ctx, name, principal, identity, firstInstance, windowsLocalAppPipeMaxInstances)
+}
+
+func createWindowsPipeInstance(ctx context.Context, name string, principal WindowsServicePrincipal, identity WindowsDesktopIdentity, firstInstance bool, maxInstances uint32) (*WindowsDesktopPipeInstance, error) {
 	profile := mustActiveWindowsRuntimeProfile()
 	if err := ctx.Err(); err != nil {
 		return nil, windowsPipeOperationFailure(WindowsPipeStageContext, "create Windows desktop pipe", err)
@@ -246,6 +259,9 @@ func createWindowsDesktopPipeInstance(ctx context.Context, name string, principa
 	}
 	if !strings.HasPrefix(name, `\\.\pipe\`) || strings.ContainsRune(name, '\x00') {
 		return nil, windowsPipeOperationFailure(WindowsPipeStageEndpointName, "validate pipe endpoint name", fmt.Errorf("local named-pipe path required"))
+	}
+	if maxInstances == 0 || maxInstances > windows.PIPE_UNLIMITED_INSTANCES {
+		return nil, windowsPipeOperationFailure(WindowsPipeStageCreateInvalidParameter, "validate pipe instance limit", fmt.Errorf("invalid named-pipe instance limit"))
 	}
 	securityDescriptor, err := windowsDesktopPipeSecurityDescriptor(identity.userSID)
 	if err != nil {
@@ -269,7 +285,7 @@ func createWindowsDesktopPipeInstance(ctx context.Context, name string, principa
 		namePointer,
 		openMode,
 		pipeMode,
-		1,
+		maxInstances,
 		windowsPipeBufferBytes,
 		windowsPipeBufferBytes,
 		0,

@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
 )
 
 func TestWindowsVerifiedLocalAppListenerRequiresSupervisedDevelopmentPeer(t *testing.T) {
 	identity, principal := resolveWindowsDesktopTestBootstrap(t)
 	pipeName := fmt.Sprintf(`\\.\pipe\nimi-runtime-development-listener-%d-%d`, os.Getpid(), time.Now().UnixNano())
-	initial, err := createWindowsDesktopPipeInstance(context.Background(), pipeName, principal, identity, true)
+	initial, err := createWindowsLocalAppPipeInstance(context.Background(), pipeName, principal, identity, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,6 +59,15 @@ func TestWindowsVerifiedLocalAppListenerRequiresSupervisedDevelopmentPeer(t *tes
 	connection, ok := NativeLocalAppConnectionFromNetConn(server)
 	if !ok || connection.LaunchID() != launchID || connection.Process() != bound || connection.Process().ExecutableTrustSetID != WindowsLocalDevelopmentTrustSetID || connection.RuntimeBootEpoch() != boot || connection.TrustClass() != LocalAppTrustLocalDevelopment {
 		t.Fatalf("local-development native authority mismatch: connection=%+v ok=%v", connection, ok)
+	}
+}
+
+func TestWindowsLocalAppPipeKeepsDesktopSingleInstanceAndLocalAppsConcurrent(t *testing.T) {
+	if windowsDesktopPipeMaxInstances != 1 {
+		t.Fatalf("Desktop pipe max instances = %d, want 1", windowsDesktopPipeMaxInstances)
+	}
+	if windowsLocalAppPipeMaxInstances != windows.PIPE_UNLIMITED_INSTANCES || windowsLocalAppPipeMaxInstances <= windowsDesktopPipeMaxInstances {
+		t.Fatalf("local-app pipe max instances = %d, want PIPE_UNLIMITED_INSTANCES", windowsLocalAppPipeMaxInstances)
 	}
 }
 
