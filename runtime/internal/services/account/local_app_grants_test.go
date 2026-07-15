@@ -331,6 +331,25 @@ func TestLocalAppGrantExplicitDenialConsumesChallengeWithoutPresence(t *testing.
 	}
 }
 
+func TestLocalAppGrantPendingProjectionUsesRequestedOperationForSharedGrant(t *testing.T) {
+	fixture := newLocalAppGrantFixture(t)
+	const resourceRef = "agent:agent-a/conversation:anchor-a"
+	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{
+		OperationId: "runtime_agent.conversation.turn_subscribe", ResourceRef: resourceRef, Purpose: "Subscribe to conversation events",
+	})
+	if err != nil || pending.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_PENDING {
+		t.Fatalf("subscribe pending grant = (%+v, %v)", pending, err)
+	}
+	shared, err := fixture.service.GetLocalAppGrantStatus(context.Background(), &runtimev1.GetLocalAppGrantStatusRequest{
+		OperationId: "runtime_agent.conversation.snapshot", ResourceRef: resourceRef,
+	})
+	if err != nil || shared.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_PENDING ||
+		shared.GetProjection().GetOperationId() != "runtime_agent.conversation.snapshot" ||
+		string(shared.GetProjection().GetGrantId()) != string(pending.GetProjection().GetGrantId()) {
+		t.Fatalf("shared pending projection = (%+v, %v)", shared, err)
+	}
+}
+
 func TestLocalAppGrantOperationMapIsClosedAndDeterministic(t *testing.T) {
 	writeOpen, err := localAppGrantOperation("runtime_agent.conversation.open", "agent:1")
 	if err != nil {

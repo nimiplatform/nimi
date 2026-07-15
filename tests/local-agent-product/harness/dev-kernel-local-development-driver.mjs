@@ -15,10 +15,12 @@ import {
 } from './dev-kernel-host-driver.mjs';
 
 const OPEN_OPERATION = 'runtime_agent.conversation.open';
-const CONVERSATION_OPERATIONS = [
+// Subscribe and snapshot share the exact read capability/resource grant. Only
+// the operation that creates that pending grant receives a Desktop decision;
+// the final posture check still requires all three operations to be granted.
+const CONVERSATION_GRANT_APPROVAL_OPERATIONS = [
   'runtime_agent.conversation.turn_send',
   'runtime_agent.conversation.turn_subscribe',
-  'runtime_agent.conversation.snapshot',
 ];
 const REQUIRED_PROVIDER_CONTEXT_LANES = [
   'runtime_policy', 'output_contract', 'source_identity', 'source_behavior', 'world_context',
@@ -64,7 +66,7 @@ export async function setDeveloperMode(page, enabled) {
   return card.getAttribute('data-developer-mode');
 }
 
-export async function approveLocalDevelopment(connection, decision, artifactsDir, captureLayout) {
+export async function approveLocalDevelopment(connection, decision, artifactsDir, captureLayout, browserAuth) {
   const { page } = connection;
   const dialog = await waitForTestId(page, 'local-development-approval-dialog', 90_000);
   const targetId = decision === 'allow-run-once' ? 'local-development-allow-once' : 'local-development-remember';
@@ -88,9 +90,25 @@ export async function approveLocalDevelopment(connection, decision, artifactsDir
   await page.getByTestId('local-development-native-risk-ack').check();
   if (await action.isDisabled()) throw new Error('local-development approval stayed disabled after native risk acknowledgement');
   const dialogText = await dialog.innerText();
-  await action.click();
-  await dialog.waitFor({ state: 'hidden', timeout: 150_000 });
-  return { decision, disabledBeforeRisk, dialogTextSha256: sha256(dialogText), layout };
+  const browser = await authenticatePresence(browserAuth, page, () => action.click());
+  await dialog.waitFor({ state: 'hidden', timeout: 30_000 });
+  return { decision, disabledBeforeRisk, dialogTextSha256: sha256(dialogText), layout, browser };
+}
+
+async function authenticatePresence(browserAuth, desktopPage, trigger) {
+  if (!browserAuth?.driver
+    || !['primary', 'secondary'].includes(browserAuth.credentialRole)
+    || typeof browserAuth.expectedAccountId !== 'string'
+    || typeof browserAuth.label !== 'string') {
+    throw new Error('sensitive Desktop approval requires the harness-owned real Chrome auth driver');
+  }
+  return browserAuth.driver.authenticate({
+    credentialRole: browserAuth.credentialRole,
+    expectedAccountId: browserAuth.expectedAccountId,
+    label: browserAuth.label,
+    trigger,
+    readAccountProjection: () => invokeDesktop(desktopPage, 'runtime_account_session_status'),
+  });
 }
 
 export function startZhiyuDev(env, captureOptions = {}) {
@@ -106,24 +124,45 @@ export function startZhiyuDev(env, captureOptions = {}) {
 }
 
 export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_000) {
-  await page.waitForFunction((condition) => {
-    const evidence = window.__nimiZhiyuDevKernelEvidence;
-    if (!evidence) return false;
-    if (condition.state && evidence.state !== condition.state) return false;
-    if (condition.errorReason && evidence.lastError?.reasonCode !== condition.errorReason) return false;
-    if (condition.openPermission && evidence.openPermission?.state !== condition.openPermission) return false;
-    if (condition.anchor && !evidence.conversationAnchorId) return false;
-    if (condition.completed && (evidence.state !== 'completed' || evidence.transcript.length < condition.completed)) return false;
-    if (condition.buildMarker && evidence.buildMarker !== condition.buildMarker) return false;
-    if (condition.conversationGranted) {
-      const values = Object.values(evidence.conversationPermissions || {});
-      if (values.length !== 3 || values.some((value) => value.state !== 'granted')) return false;
+  const deadline = Date.now() + timeoutMs;
+  let latest = null;
+  while (Date.now() < deadline) {
+    const observation = await page.evaluate((condition) => {
+      const evidence = window.__nimiZhiyuDevKernelEvidence;
+      if (!evidence) return { matched: false, terminal: false, evidence: null };
+      let matched = true;
+      if (condition.state && evidence.state !== condition.state) matched = false;
+      if (condition.errorReason && evidence.lastError?.reasonCode !== condition.errorReason) matched = false;
+      if (condition.openPermission && evidence.openPermission?.state !== condition.openPermission) matched = false;
+      if (condition.anchor && !evidence.conversationAnchorId) matched = false;
+      if (condition.completed && (evidence.state !== 'completed' || evidence.transcript.length < condition.completed)) matched = false;
+      if (condition.buildMarker && evidence.buildMarker !== condition.buildMarker) matched = false;
+      if (condition.conversationGranted) {
+        const values = Object.values(evidence.conversationPermissions || {});
+        if (values.length !== 3 || values.some((value) => value.state !== 'granted')) matched = false;
+      }
+      return {
+        matched,
+        terminal: Boolean(evidence.lastError) && ['error', 'access-lost', 'runtime-unavailable'].includes(evidence.state),
+        evidence: {
+          state: evidence.state,
+          openPermission: evidence.openPermission,
+          lastError: evidence.lastError,
+        },
+      };
+    }, predicate);
+    latest = observation.evidence;
+    if (observation.matched) {
+      const evidence = await page.evaluate(() => window.__nimiZhiyuDevKernelEvidence);
+      if (!evidence) throw new Error(`${label} did not expose Zhiyu evidence`);
+      return evidence;
     }
-    return true;
-  }, predicate, { timeout: timeoutMs });
-  const evidence = await page.evaluate(() => window.__nimiZhiyuDevKernelEvidence);
-  if (!evidence) throw new Error(`${label} did not expose Zhiyu evidence`);
-  return evidence;
+    if (observation.terminal) {
+      throw new Error(`${label} failed with evidence: ${JSON.stringify(latest)}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`${label} timed out with evidence: ${JSON.stringify(latest)}`);
 }
 
 export function projectRuntimeUiEvidence(evidence) {
@@ -135,23 +174,26 @@ export function projectRuntimeUiEvidence(evidence) {
   };
 }
 
-async function approveGrant(page, expectedOperation) {
+async function approveGrant(page, expectedOperation, browserAuth) {
   const dialog = await waitForTestId(page, 'local-app-grant-approval-dialog', 60_000);
   await waitUntil(async () => (await dialog.innerText()).includes(expectedOperation), {
     timeoutMs: 30_000,
     label: `grant dialog ${expectedOperation}`,
   });
-  await page.getByTestId('local-app-grant-approve').click();
+  await authenticatePresence({
+    ...browserAuth,
+    label: `${browserAuth?.label || 'grant'}-${expectedOperation.replace(/[^a-z0-9]+/gu, '-')}`.slice(0, 80),
+  }, page, () => page.getByTestId('local-app-grant-approve').click());
   await waitUntil(async () => !(await dialog.isVisible()) || !(await dialog.innerText()).includes(expectedOperation), {
     timeoutMs: 30_000,
     label: `grant approval ${expectedOperation}`,
   });
 }
 
-export async function grantOpenConversation(desktopPage, zhiyuPage) {
+export async function grantOpenConversation(desktopPage, zhiyuPage, browserAuth) {
   await zhiyuPage.getByTestId('zhiyu-dev-kernel-request-open-grant').click();
   await waitZhiyuEvidence(zhiyuPage, { state: 'open-grant-pending' }, 'open grant pending');
-  await approveGrant(desktopPage, OPEN_OPERATION);
+  await approveGrant(desktopPage, OPEN_OPERATION, browserAuth);
   await zhiyuPage.getByTestId('zhiyu-dev-kernel-refresh').click();
   await waitZhiyuEvidence(zhiyuPage, { openPermission: 'granted' }, 'open grant approved');
 }
@@ -161,9 +203,9 @@ export async function openConversation(zhiyuPage) {
   return waitZhiyuEvidence(zhiyuPage, { anchor: true }, 'conversation open');
 }
 
-export async function grantConversationOperations(desktopPage, zhiyuPage) {
+export async function grantConversationOperations(desktopPage, zhiyuPage, browserAuth) {
   await zhiyuPage.getByTestId('zhiyu-dev-kernel-request-conversation-grants').click();
-  for (const operation of CONVERSATION_OPERATIONS) await approveGrant(desktopPage, operation);
+  for (const operation of CONVERSATION_GRANT_APPROVAL_OPERATIONS) await approveGrant(desktopPage, operation, browserAuth);
   await zhiyuPage.getByTestId('zhiyu-dev-kernel-refresh').click();
   return waitZhiyuEvidence(zhiyuPage, { conversationGranted: true }, 'conversation grants approved');
 }
@@ -184,8 +226,12 @@ export async function sendTurnWithKeyboard(zhiyuPage, text, minimumTranscriptMes
 }
 
 async function openSettingsSecurity(page) {
-  await page.getByTestId('nav-tab:settings').click();
-  await waitForTestId(page, 'panel:settings');
+  if (!(await page.getByTestId('panel:settings').isVisible().catch(() => false))) {
+    await page.getByTestId('desktop-account-menu-trigger').click();
+    const settingsEntry = page.getByRole('button', { name: /^(Settings|设置)$/iu });
+    await settingsEntry.click();
+    await waitForTestId(page, 'panel:settings');
+  }
   await page.getByTestId('settings-nav:security').click();
   await waitForTestId(page, 'local-development-authorizations');
 }
@@ -200,10 +246,15 @@ export async function revokeOperationGrant(desktopPage, operationId) {
   const row = section.locator('[data-nimi-tone="card"]').filter({ hasText: operationId }).first();
   const revoke = row.locator('[data-testid^="local-app-grant-revoke:"]');
   await revoke.click();
-  await waitUntil(async () => !(await section.innerText()).includes(operationId), {
-    timeoutMs: 30_000,
-    label: `revoked grant ${operationId}`,
-  });
+  try {
+    await waitUntil(async () => !(await section.innerText()).includes(operationId), {
+      timeoutMs: 30_000,
+      label: `revoked grant ${operationId}`,
+    });
+  } catch {
+    const evidence = (await section.innerText()).replace(/\s+/gu, ' ').trim().slice(0, 2_000);
+    throw new Error(`revoked grant ${operationId} failed with evidence: ${JSON.stringify(evidence)}`);
+  }
 }
 
 export async function revokeProjectAuthorization(desktopPage) {
@@ -262,7 +313,35 @@ async function processIds(connection) {
 }
 
 export async function pageAudit(connection, label) {
-  const { page, context } = connection;
+  const deadline = Date.now() + 5_000;
+  let lastError;
+  while (Date.now() < deadline) {
+    let page;
+    try {
+      page = !connection.page.isClosed()
+        ? connection.page
+        : connection.context.pages().find((candidate) => !candidate.isClosed() && !candidate.url().startsWith('devtools://'));
+    } catch (error) {
+      lastError = error;
+    }
+    if (page) {
+      try {
+        return await pageAuditLivePage(connection, page, label);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/(?:target page, context or browser has been closed|execution context was destroyed|frame was detached)/iu.test(message)) {
+          throw error;
+        }
+        lastError = error;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`${label} has no stable live renderer page for terminal audit`, { cause: lastError });
+}
+
+async function pageAuditLivePage(connection, page, label) {
+  const { context } = connection;
   const dom = await page.evaluate(() => ({
     title: document.title,
     lang: document.documentElement.lang,
@@ -305,7 +384,7 @@ export async function pageAudit(connection, label) {
   } catch {
     accessibility = [];
   }
-  return { label, dom, storage, accessibility, processIds: await processIds(connection) };
+  return { label, dom, storage, accessibility, processIds: await processIds({ ...connection, page }) };
 }
 
 function providerContextLaneSequence(request) {

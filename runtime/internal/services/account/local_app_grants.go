@@ -424,7 +424,13 @@ func (s *Service) getCurrentLocalAppGrantLocked(ctx context.Context, decision Lo
 func (s *Service) localAppGrantProjectionLocked(grant localappkernel.Grant, binding localAppGrantOperationBinding) *runtimev1.LocalAppGrantProjection {
 	if grant.State == localappkernel.GrantStatePending {
 		if pending, found := s.pendingLocalAppGrantRequestLocked(grant.GrantID); found {
-			return localAppGrantProjectionFromPending(pending, grant)
+			projection := localAppGrantProjectionFromPending(pending, grant)
+			// Operations that share one capability/resource fingerprint share one
+			// grant. The local app must still receive the exact operation it asked
+			// about; Desktop keeps the original pending decision correlation.
+			projection.OperationId = binding.operationID
+			projection.ResourceRef = binding.resourceRef
+			return projection
 		}
 	}
 	return localAppGrantProjectionFor(grant, binding.operationID, binding.resourceRef, nil, time.Time{})
