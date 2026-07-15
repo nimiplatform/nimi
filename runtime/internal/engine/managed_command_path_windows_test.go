@@ -53,6 +53,11 @@ func TestRunCommandOutputStartsExecutableBeyondLegacyPathLimit(t *testing.T) {
 	if err := os.WriteFile(target, payload, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if shortPath, ok := windowsShortCommandPath(target); ok && len(shortPath) < windowsLegacyMaxPath {
+		if got := managedCommandExecutablePath(target); got != shortPath {
+			t.Fatalf("existing long executable path = %q, want short alias %q", got, shortPath)
+		}
+	}
 	output, err := runCommandOutput(context.Background(), "", nil, target, "/d", "/c", "echo", "nimi-long-path-ready")
 	if err != nil {
 		t.Fatal(err)
