@@ -3,7 +3,9 @@ package engine
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -23,6 +25,53 @@ func TestStableDiffusionCPPPackageSetDeclaresNoExternalPackages(t *testing.T) {
 	}
 	if len(manifest.ImportProbes) != 1 || manifest.ImportProbes[0] != "json" {
 		t.Fatalf("import probes = %v, want json probe", manifest.ImportProbes)
+	}
+}
+
+func TestEnsurePythonPackageSetDependencySerializesSharedUVBuildCache(t *testing.T) {
+	root := t.TempDir()
+	manager, err := NewManager(slog.Default(), ManagedRoots{
+		Environments: filepath.Join(root, "environments"),
+		Dependencies: filepath.Join(root, "dependencies"),
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	manager.pythonPackageSetMu.Lock()
+	locked := true
+	defer func() {
+		if locked {
+			manager.pythonPackageSetMu.Unlock()
+		}
+	}()
+	started := make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		close(started)
+		_, ensureErr := manager.EnsurePythonPackageSetDependency(
+			context.Background(),
+			filepath.Join(root, "missing-uv"),
+			filepath.Join(root, "missing-venv"),
+			"speech.qwen3-asr.python",
+		)
+		done <- ensureErr
+	}()
+	<-started
+	select {
+	case ensureErr := <-done:
+		t.Fatalf("Python package set bypassed shared uv build-cache lock: %v", ensureErr)
+	case <-time.After(50 * time.Millisecond):
+	}
+	manager.pythonPackageSetMu.Unlock()
+	locked = false
+	select {
+	case ensureErr := <-done:
+		if ensureErr == nil {
+			t.Fatal("missing uv unexpectedly materialized a Python package set")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Python package set did not resume after shared uv build-cache lock release")
 	}
 }
 

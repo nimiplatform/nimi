@@ -86,6 +86,12 @@ func verifyPythonImportProbe(ctx context.Context, venvRoot string, interpreterPa
 }
 
 func (m *Manager) EnsurePythonPackageSetDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (PythonPackageSetDependencyStatus, error) {
+	// Package sets use one Runtime-managed uv cache beneath the shared engine
+	// family root. Serialize build/install/verification so two consumers cannot
+	// mutate the same source-build workspace concurrently.
+	m.pythonPackageSetMu.Lock()
+	defer m.pythonPackageSetMu.Unlock()
+
 	manifest, err := resolvePythonPackageSetManifest(consumer)
 	if err != nil {
 		return PythonPackageSetDependencyStatus{}, err
