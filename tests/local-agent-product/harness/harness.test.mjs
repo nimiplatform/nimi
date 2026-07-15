@@ -326,6 +326,14 @@ test('process-mismatch checkpoint distinguishes stale supervised and raw uncarri
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'process-replaced' } }), true);
   assert.equal(isRuntimeObservedProcessMismatch({ probeKind: 'raw-uncarried', lastError: { reasonCode: 'runtime-service-untrusted' } }), true);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'runtime-service-untrusted' } }), false);
+  assert.equal(isRuntimeObservedProcessMismatch({
+    probeKind: 'raw-uncarried',
+    fixedServiceStable: true,
+    fixedServiceProcessId: 42,
+    runtimeCandidateId: `dev-kernel-runtime-${'a'.repeat(32)}`,
+    lastError: { reasonCode: 'runtime-service-unavailable' },
+  }), true);
+  assert.equal(isRuntimeObservedProcessMismatch({ probeKind: 'raw-uncarried', lastError: { reasonCode: 'runtime-service-unavailable' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ probeKind: 'raw-uncarried', lastError: { reasonCode: 'process-replaced' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'protected-carrier-required' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'no-grant' } }), false);

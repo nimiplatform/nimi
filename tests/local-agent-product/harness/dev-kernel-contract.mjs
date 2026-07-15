@@ -1,6 +1,11 @@
 export function isRuntimeObservedProcessMismatch(evidence) {
   if (evidence?.probeKind === 'raw-uncarried') {
-    return evidence?.lastError?.reasonCode === 'runtime-service-untrusted';
+    return evidence?.lastError?.reasonCode === 'runtime-service-untrusted'
+      || (evidence?.lastError?.reasonCode === 'runtime-service-unavailable'
+        && evidence?.fixedServiceStable === true
+        && Number.isSafeInteger(evidence?.fixedServiceProcessId)
+        && evidence.fixedServiceProcessId > 0
+        && /^dev-kernel-runtime-[a-f0-9]{32}$/u.test(String(evidence?.runtimeCandidateId || '')));
   }
   return evidence?.lastError?.reasonCode === 'process-replaced';
 }

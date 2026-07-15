@@ -452,6 +452,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     observations.ownerSelectedOperation = ownerOpen;
 
     phase = 'raw-uncarried-process-probe';
+    const rawServiceBefore = readFixedServiceStatus();
     const rawLaunch = beginObservedProcess({
       connect: () => connectCdp(rawCdpPort, 'raw mismatched Zhiyu', 90_000, observer),
       start: () => startRawMismatchedZhiyu({
@@ -486,9 +487,24 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     }
     const rawDenied = await waitUntil(async () => {
       const value = await rawZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
-      return value?.lastError?.reasonCode === 'runtime-service-untrusted' ? value : null;
+      return ['runtime-service-untrusted', 'runtime-service-unavailable'].includes(value?.lastError?.reasonCode)
+        ? value
+        : null;
     }, { timeoutMs: 30_000, label: 'raw process mismatch denial' });
-    observations.processMismatch = { ...rawDenied, probeKind: 'raw-uncarried' };
+    const rawServiceAfter = readFixedServiceStatus();
+    if (rawServiceBefore.state !== 'running'
+      || rawServiceAfter.state !== 'running'
+      || rawServiceAfter.processId !== rawServiceBefore.processId
+      || rawServiceAfter.runtimeCandidateId !== rawServiceBefore.runtimeCandidateId) {
+      throw new Error('raw process denial overlapped a fixed Runtime service transition');
+    }
+    observations.processMismatch = {
+      ...rawDenied,
+      probeKind: 'raw-uncarried',
+      fixedServiceStable: true,
+      fixedServiceProcessId: rawServiceAfter.processId,
+      runtimeCandidateId: rawServiceAfter.runtimeCandidateId,
+    };
     await rawZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-raw-process-mismatch.png') });
     await terminateProcessTree(rawHandle);
     rawHandle = null;

@@ -90,7 +90,8 @@ test('owner-minimal bounds only the exact supervised-host startup transport race
   assert.match(driver, /latest\?\.state === 'runtime-unavailable'[\s\S]*lastError\?\.reasonCode === 'runtime-service-unavailable'[\s\S]*transientRuntimeUnavailableMs/iu);
   assert.match(driver, /'zero-grant session',[\s\S]*transientRuntimeUnavailableMs:\s*15_000/iu);
   assert.match(driver, /rawInitial\.lastError\?\.reasonCode === 'runtime-service-unavailable'[\s\S]*zhiyu-dev-kernel-refresh[\s\S]*raw process exact transport recovery/iu);
-  assert.match(driver, /lastError\?\.reasonCode === 'runtime-service-untrusted'[\s\S]*raw process mismatch denial/iu);
+  assert.match(driver, /\['runtime-service-untrusted', 'runtime-service-unavailable'\][\s\S]*raw process mismatch denial/iu);
+  assert.match(driver, /rawServiceAfter\.processId !== rawServiceBefore\.processId[\s\S]*raw process denial overlapped a fixed Runtime service transition/iu);
 });
 
 test('owner-minimal resolves the Desktop-owned presence file from the real launcher home only', () => {
