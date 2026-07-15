@@ -66,6 +66,7 @@ test('owner-minimal runner reuses the core driver and prepares carriers only bet
   assert.match(freshPreparation, /deadline = Date\.now\(\) \+ 10_000/);
   assert.match(freshPreparation, /electron-desktop-runtime/iu);
   assert.match(freshPreparation, /\\\\apps\\\\zhiyu/iu);
+  assert.match(freshPreparation, /--port\(\?:=\|\\s\+\)1472/);
 });
 
 test('owner-minimal orchestrator imports its Runtime host dependencies explicitly', () => {

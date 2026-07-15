@@ -69,7 +69,7 @@ function requireElectronCarriersStopped(stage) {
     const probe = spawnSync('powershell.exe', [
       '-NoProfile',
       '-Command',
-      'Get-CimInstance Win32_Process | Select-Object ProcessId,Name,ExecutablePath | ConvertTo-Json -Compress',
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,Name,ExecutablePath,CommandLine | ConvertTo-Json -Compress',
     ], { encoding: 'utf8', windowsHide: true });
     if (probe.error) throw probe.error;
     if (probe.status !== 0) throw new Error(`Electron carrier process checkpoint failed ${stage}`);
@@ -78,10 +78,15 @@ function requireElectronCarriersStopped(stage) {
     latest = (Array.isArray(rows) ? rows : [rows]).filter((row) => {
       const executable = String(row?.ExecutablePath || '').replaceAll('/', '\\').toLowerCase();
       const processName = String(row?.Name || '').trim().toLowerCase();
+      const commandLine = String(row?.CommandLine || '').replaceAll('/', '\\').toLowerCase();
       const repositoryExecutable = executable.startsWith(`${repoRoot.toLowerCase()}\\`);
+      const zhiyuCheckpointRenderer = commandLine.includes('\\apps\\zhiyu\\')
+        && commandLine.includes('vite')
+        && /--port(?:=|\s+)1472(?:\s|$)/u.test(commandLine);
       return executable.includes('\\.nimi\\local\\electron-desktop-runtime\\')
         || executable.endsWith('\\apps\\zhiyu\\node_modules\\electron\\dist\\electron.exe')
-        || (processName === 'electron.exe' && repositoryExecutable);
+        || (processName === 'electron.exe' && repositoryExecutable)
+        || zhiyuCheckpointRenderer;
     });
     if (latest.length === 0) return;
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
