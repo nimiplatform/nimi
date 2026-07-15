@@ -250,8 +250,6 @@ func TestSetAgentPresentationProfileRequiresExpectedRevision(t *testing.T) {
 }
 
 func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBoundary(t *testing.T) {
-	t.Parallel()
-
 	invalidRefs := map[string]string{
 		"posix absolute path":         "/tmp/avatar.vrm",
 		"windows drive path":          `C:\avatars\avatar.vrm`,
@@ -295,13 +293,12 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 		"IPv6 zone escaped space":     "profile_media_url:https://[fe80::1%25en%200]/avatar.png",
 		"IPv6 zone escaped backslash": "profile_media_url:https://[fe80::1%25en%5C0]/avatar.png",
 	}
+	svc := newRuntimeAgentTestService(t)
 
 	for name, invalidRef := range invalidRefs {
 		name := name
 		invalidRef := invalidRef
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			assertInvalid := func(t *testing.T, err error, boundary string) {
 				t.Helper()
 				if status.Code(err) != codes.InvalidArgument {
@@ -310,7 +307,6 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 			}
 
 			t.Run("full profile", func(t *testing.T) {
-				svc := newRuntimeAgentTestService(t)
 				ctx := testRuntimeAgentIdentityContext("invalid-full-" + strings.ReplaceAll(name, " ", "-"))
 				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
 					t.Fatalf("InitializeAgent: %v", err)
@@ -327,7 +323,6 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 			})
 
 			t.Run("merged patch", func(t *testing.T) {
-				svc := newRuntimeAgentTestService(t)
 				ctx := testRuntimeAgentIdentityContext("invalid-patch-" + strings.ReplaceAll(name, " ", "-"))
 				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
 					t.Fatalf("InitializeAgent: %v", err)
@@ -343,7 +338,6 @@ func TestAgentPresentationOpaqueRefGrammarRejectsInvalidRefsAtEveryRuntimeBounda
 			})
 
 			t.Run("typed persisted read", func(t *testing.T) {
-				svc := newRuntimeAgentTestService(t)
 				ctx := testRuntimeAgentIdentityContext("invalid-read-" + strings.ReplaceAll(name, " ", "-"))
 				if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: ctx}); err != nil {
 					t.Fatalf("InitializeAgent: %v", err)

@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -139,15 +138,16 @@ func setLocalRuntimeProbeHooksForTest(
 	})
 }
 
-func textOutputCommandForTest(ctx context.Context, text string) *exec.Cmd {
-	if runtime.GOOS == "windows" {
-		cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command", "[Console]::Out.WriteLine($env:NIMI_TEST_OUTPUT)")
-		cmd.Env = append(os.Environ(), "NIMI_TEST_OUTPUT="+text)
-		return cmd
-	}
-	cmd := exec.CommandContext(ctx, "sh", "-c", "printf '%s\n' \"$NIMI_TEST_OUTPUT\"")
-	cmd.Env = append(os.Environ(), "NIMI_TEST_OUTPUT="+text)
-	return cmd
+func setLocalRuntimeCommandOutputForTest(
+	t *testing.T,
+	output func(context.Context, string, ...string) ([]byte, error),
+) {
+	t.Helper()
+	original := localRuntimeCommandOutput
+	localRuntimeCommandOutput = output
+	t.Cleanup(func() {
+		localRuntimeCommandOutput = original
+	})
 }
 
 func setNvidiaGPUProbeForTest(t *testing.T, cudaReady bool) {
@@ -165,16 +165,17 @@ func setNvidiaGPUProbeForTest(t *testing.T, cudaReady bool) {
 			}
 			return "", exec.ErrNotFound
 		},
-		func(ctx context.Context, name string, args ...string) *exec.Cmd {
-			if name == "nvidia-smi" {
-				return textOutputCommandForTest(ctx, "NVIDIA RTX 4090, 24576, 20000")
-			}
-			return exec.CommandContext(ctx, name, args...)
-		},
+		exec.CommandContext,
 		func(string) (os.FileInfo, error) {
 			return nil, os.ErrNotExist
 		},
 	)
+	setLocalRuntimeCommandOutputForTest(t, func(_ context.Context, name string, _ ...string) ([]byte, error) {
+		if name == "nvidia-smi" {
+			return []byte("NVIDIA RTX 4090, 24576, 20000\n"), nil
+		}
+		return nil, exec.ErrNotFound
+	})
 }
 
 func setUnsupportedGPUProbeForTest(t *testing.T) {
@@ -198,16 +199,17 @@ func setManagedImageHostForTest(t *testing.T, chip string) {
 		func(string) (string, error) {
 			return "", exec.ErrNotFound
 		},
-		func(ctx context.Context, name string, args ...string) *exec.Cmd {
-			if name == "sysctl" && len(args) == 2 && args[0] == "-n" && args[1] == "machdep.cpu.brand_string" {
-				return textOutputCommandForTest(ctx, chip)
-			}
-			return exec.CommandContext(ctx, name, args...)
-		},
+		exec.CommandContext,
 		func(string) (os.FileInfo, error) {
 			return nil, os.ErrNotExist
 		},
 	)
+	setLocalRuntimeCommandOutputForTest(t, func(_ context.Context, name string, args ...string) ([]byte, error) {
+		if name == "sysctl" && len(args) == 2 && args[0] == "-n" && args[1] == "machdep.cpu.brand_string" {
+			return []byte(chip + "\n"), nil
+		}
+		return nil, exec.ErrNotFound
+	})
 }
 
 func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModelID string) *runtimev1.LocalAssetRecord {

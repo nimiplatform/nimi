@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "1.5.0"
+registry_version: "1.6.0"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -1224,11 +1224,11 @@ gates:
   # owner: runtime (Go runtime)
   # =====================================================================
   - id: gate.runtime.go-build
-    description: Runtime Go build.
+    description: Runtime Go build diagnostic; final release admission is owned by gate.runtime.compliance.
     command: go build ./...
     runner: shell
     cwd: runtime
-    tiers: [release, release-target:runtime]
+    tiers: [nightly]
     targets: [runtime]
     timeout_seconds: 300
     requires_binaries: [go]
@@ -1239,13 +1239,14 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
+    notes: Standalone owner diagnostic only; runtime-compliance executes the final source-bound build check.
 
   - id: gate.runtime.go-vet
-    description: Runtime Go vet.
+    description: Runtime Go vet diagnostic; final release admission is owned by gate.runtime.compliance.
     command: go vet ./...
     runner: shell
     cwd: runtime
-    tiers: [release, release-target:runtime]
+    tiers: [nightly]
     targets: [runtime]
     timeout_seconds: 300
     requires_binaries: [go]
@@ -1256,13 +1257,14 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
+    notes: Standalone owner diagnostic only; runtime-compliance executes the final source-bound vet check.
 
   - id: gate.runtime.go-test
-    description: Runtime Go test (full suite).
+    description: Runtime Go test diagnostic; final fresh full-suite admission is owned by gate.runtime.compliance.
     command: go test ./...
     runner: shell
     cwd: runtime
-    tiers: [release, release-target:runtime]
+    tiers: [nightly]
     targets: [runtime]
     timeout_seconds: 1200
     requires_binaries: [go]
@@ -1273,15 +1275,16 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
+    notes: Standalone owner diagnostic only; it cannot replace the source-bound compliance gate.
 
   - id: gate.runtime.compliance
-    description: Runtime compliance gate (Go binary that emits compliance report).
+    description: Sole final Runtime admission gate; source-bound fresh full tests plus build, vet, and all 63 compliance items.
     command: go run ./cmd/runtime-compliance --gate
     runner: shell
     cwd: runtime
     tiers: [release, release-target:runtime]
     targets: [runtime]
-    timeout_seconds: 600
+    timeout_seconds: 1500
     requires_binaries: [go]
     blocker_semantics:
       on_binary_missing: blocked

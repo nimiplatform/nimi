@@ -74,6 +74,10 @@ type Config struct {
 	// AllowLoopbackEndpoint allows HTTP loopback endpoints while endpoint
 	// security is enabled.
 	AllowLoopbackEndpoint bool
+
+	// providerPollWait is an internal owner seam used by deterministic tests.
+	// Nil preserves the production timer/backoff path.
+	providerPollWait func(context.Context, time.Duration) error
 }
 
 // cloudProviderEnvBindings maps canonical provider IDs to their environment variable pairs.

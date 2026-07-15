@@ -34,6 +34,7 @@ var (
 	localRuntimeGOARCH          = runtime.GOARCH
 	localRuntimeLookPath        = exec.LookPath
 	localRuntimeCommand         = exec.CommandContext
+	localRuntimeCommandOutput   = defaultLocalRuntimeCommandOutput
 	localRuntimeStat            = os.Stat
 	localRuntimeProbeRAM        = probeRAM
 	localRuntimeGPUProbeTimeout = 2 * time.Second
@@ -156,8 +157,8 @@ func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, ar
 	// Snapshot the hook before starting the worker. A timed-out command may keep
 	// unwinding after this function returns; retaining the per-call runner keeps
 	// that goroutine independent from test cleanup (or any later hook change).
-	command := localRuntimeCommand
-	if command == nil {
+	commandOutput := localRuntimeCommandOutput
+	if commandOutput == nil {
 		return nil, fmt.Errorf("local runtime command runner unavailable")
 	}
 	if timeout <= 0 {
@@ -170,15 +171,7 @@ func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, ar
 		err    error
 	}, 1)
 	go func() {
-		cmd := command(ctx, name, args...)
-		if cmd == nil {
-			result <- struct {
-				output []byte
-				err    error
-			}{err: fmt.Errorf("local runtime command runner returned nil command")}
-			return
-		}
-		output, err := cmd.Output()
+		output, err := commandOutput(ctx, name, args...)
 		result <- struct {
 			output []byte
 			err    error
@@ -190,6 +183,18 @@ func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, ar
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+}
+
+func defaultLocalRuntimeCommandOutput(ctx context.Context, name string, args ...string) ([]byte, error) {
+	command := localRuntimeCommand
+	if command == nil {
+		return nil, fmt.Errorf("local runtime command runner unavailable")
+	}
+	cmd := command(ctx, name, args...)
+	if cmd == nil {
+		return nil, fmt.Errorf("local runtime command runner returned nil command")
+	}
+	return cmd.Output()
 }
 
 // parseNvidiaSmiOutput parses "name, total_mib, free_mib" CSV line from nvidia-smi.

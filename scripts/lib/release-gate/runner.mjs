@@ -122,9 +122,10 @@ export function isVerdictPermissive(verdict, gate, options) {
  * @param {Map<string,string>} args.selectedTier - gate.id → tier
  * @param {object} args.options - parsed CLI options
  * @param {(line: string) => void} [args.onProgress] - per-gate TTY hook
+ * @param {(line: string) => void} [args.onLiveProgress] - bounded in-gate progress hook
  * @returns {Promise<{ rows: object[], total: number }>}
  */
-export async function executeGates({ gates, selectedTier, options, onProgress }) {
+export async function executeGates({ gates, selectedTier, options, onProgress, onLiveProgress }) {
   const ordered = topoSort(gates);
   const total = ordered.length;
   const verdictById = new Map(); // gate.id → verdict (string)
@@ -245,7 +246,17 @@ export async function executeGates({ gates, selectedTier, options, onProgress })
     }
 
     // Step 4: execute
-    const execResult = await runByKind(gate);
+    const execResult = await runByKind(gate, {
+      onStderrLine: (line) => {
+        if (
+          gate.id === 'gate.runtime.compliance' &&
+          line.startsWith('[runtime-compliance]') &&
+          onLiveProgress
+        ) {
+          onLiveProgress(line + '\n');
+        }
+      },
+    });
     const elapsedMs = Date.parse(execResult.finishedAt) - Date.parse(execResult.startedAt);
 
     let verdict;

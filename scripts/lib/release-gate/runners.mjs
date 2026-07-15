@@ -35,6 +35,7 @@ const DEFAULT_LOG_TAIL_BYTES = 16 * 1024; // 16 KiB tail of stdout+stderr
  * @param {string} [options.cwd] - working directory; defaults to gate.cwd or process.cwd()
  * @param {object} [options.env] - environment overlay; merged with process.env
  * @param {number} [options.tailBytes] - max bytes to retain from output
+ * @param {(line: string) => void} [options.onStderrLine] - bounded live stderr line observer
  * @returns {Promise<{
  *   exitCode: number | null,
  *   timedOut: boolean,
@@ -99,8 +100,13 @@ export async function runByKind(gate, options = {}) {
     const stdoutRef = { bytes: 0 };
     const stderrRef = { bytes: 0 };
 
+    const stderrForwarder = createLineForwarder(options.onStderrLine);
+
     child.stdout.on('data', (chunk) => pushBounded(stdoutChunks, chunk, stdoutRef));
-    child.stderr.on('data', (chunk) => pushBounded(stderrChunks, chunk, stderrRef));
+    child.stderr.on('data', (chunk) => {
+      pushBounded(stderrChunks, chunk, stderrRef);
+      stderrForwarder.push(chunk);
+    });
 
     let timedOut = false;
     let killTimer = null;
@@ -140,6 +146,7 @@ export async function runByKind(gate, options = {}) {
           /* race with natural exit; ignore */
         }
         if (process.platform === 'win32') {
+          stderrForwarder.flush();
           settle({
             exitCode: null,
             timedOut: true,
@@ -155,6 +162,7 @@ export async function runByKind(gate, options = {}) {
     }
 
     child.on('error', (error) => {
+      stderrForwarder.flush();
       const finishedAt = new Date().toISOString();
       const stderrBuf = Buffer.concat(stderrChunks);
       const errMsg = Buffer.from(`runner spawn error: ${error.message}\n`, 'utf8');
@@ -171,6 +179,7 @@ export async function runByKind(gate, options = {}) {
     });
 
     child.on('close', (code, signal) => {
+      stderrForwarder.flush();
       const finishedAt = new Date().toISOString();
       // When killed via SIGKILL, code is null and signal is "SIGKILL".
       // We surface exitCode as null in the timeout case so the runner
@@ -439,6 +448,36 @@ function tailToBuf(chunks, tailBytes) {
   return all.subarray(all.length - tailBytes);
 }
 
+function createLineForwarder(onLine) {
+  let pending = '';
+  function emit(line) {
+    if (typeof onLine !== 'function') return;
+    try {
+      onLine(line);
+    } catch {
+      // A display observer must never change gate execution semantics.
+    }
+  }
+  return {
+    push(chunk) {
+      if (typeof onLine !== 'function') return;
+      pending += chunk.toString('utf8');
+      while (true) {
+        const newline = pending.indexOf('\n');
+        if (newline < 0) break;
+        const line = pending.slice(0, newline).replace(/\r$/, '');
+        pending = pending.slice(newline + 1);
+        emit(line);
+      }
+    },
+    flush() {
+      if (pending.length === 0) return;
+      emit(pending.replace(/\r$/, ''));
+      pending = '';
+    },
+  };
+}
+
 export const _internal = {
   VALID_RUNNERS,
   DEFAULT_LOG_TAIL_BYTES,
@@ -449,4 +488,5 @@ export const _internal = {
   resolveShellExecutable,
   parseArgv,
   tailToBuf,
+  createLineForwarder,
 };

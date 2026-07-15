@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -124,6 +125,9 @@ func (s *Service) submitScenarioAsyncJob(
 	jobID := ulid.Make().String()
 	traceID := ulid.Make().String()
 	jobCtx := context.Background()
+	if s.config.providerPollWait != nil {
+		jobCtx = nimillm.WithProviderPollWait(jobCtx, s.config.providerPollWait)
+	}
 	var cancel context.CancelFunc
 	timeout := scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(req.GetScenarioType()), remoteTarget == nil)
 	if scenarioJobUsesDetachedPolling(req.GetScenarioType(), adapterName) {

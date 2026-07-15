@@ -182,8 +182,9 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
+	ctx := WithProviderPollWait(loopbackProviderTestContext(context.Background()), immediateProviderPollWait)
 	artifacts, usage, providerJobID, err := PollProviderTaskForArtifact(
-		loopbackProviderTestContext(context.Background()),
+		ctx,
 		updater,
 		"job-1",
 		server.URL,
@@ -336,6 +337,7 @@ func TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached(t *testin
 	// Cancel-only context: no deadline → detached polling.
 	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
 	defer cancel()
+	ctx = WithProviderPollWait(ctx, immediateProviderPollWait)
 
 	artifacts, _, providerJobID, err := PollProviderTaskForArtifact(
 		ctx,
@@ -376,6 +378,15 @@ func TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached(t *testin
 	}
 	if !hasErrorEntry {
 		t.Fatal("expected at least one poll state update with error from transient failure")
+	}
+}
+
+func immediateProviderPollWait(ctx context.Context, _ time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
 	}
 }
 

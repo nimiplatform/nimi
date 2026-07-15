@@ -122,8 +122,11 @@ func runtimeChecklistPart2(
 		},
 		{
 			ID:          "RS-11-41",
-			Requirement: "go vet passes",
-			Commands:    []commandCheckSpec{{Name: "go-vet", Binary: "go", Args: []string{"vet", "./..."}}},
+			Requirement: "go build and go vet pass",
+			Commands: []commandCheckSpec{
+				{Name: "go-build", Binary: "go", Args: []string{"build", "./..."}},
+				{Name: "go-vet", Binary: "go", Args: []string{"vet", "./..."}},
+			},
 		},
 		{
 			ID:          "RS-11-42",

@@ -512,18 +512,6 @@ jobs:
         working-directory: runtime
         run: go run ./cmd/runtime-compliance --gate
 
-      - name: Runtime Go build
-        working-directory: runtime
-        run: go build ./...
-
-      - name: Runtime Go test
-        working-directory: runtime
-        run: go test ./...
-
-      - name: Runtime Go vet
-        working-directory: runtime
-        run: go vet ./...
-
       - name: Runtime golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:

@@ -416,7 +416,7 @@ func TestScenarioJobStoreDetachedVideoJobCompletesAfterLongPoll(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, fastProviderPollingConfig())
 	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -510,7 +510,7 @@ func TestScenarioJobStoreDetachedVideoJobFailsFromProviderFailure(t *testing.T) 
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, fastProviderPollingConfig())
 	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -593,7 +593,7 @@ func TestScenarioJobStoreDetachedVideoJobExpiredFromProvider(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, fastProviderPollingConfig())
 	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -685,7 +685,7 @@ func TestScenarioJobStoreDetachedVideoJobSurvivesTransientPollFailure(t *testing
 	}))
 	defer func() { server.Close() }()
 
-	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, fastProviderPollingConfig())
 	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -739,6 +739,22 @@ func TestScenarioJobStoreDetachedVideoJobSurvivesTransientPollFailure(t *testing
 				atomic.LoadInt32(&requestCount))
 		}
 		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func fastProviderPollingConfig() Config {
+	return Config{
+		AllowLoopbackEndpoint: true,
+		providerPollWait:      immediateScenarioProviderPollWait,
+	}
+}
+
+func immediateScenarioProviderPollWait(ctx context.Context, _ time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
 	}
 }
 

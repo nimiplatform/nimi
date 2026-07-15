@@ -443,7 +443,9 @@ func TestDaemonRunDoesNotRestoreLegacyMemoryReplicationBacklog(t *testing.T) {
 		done <- daemon.Run(ctx)
 	}()
 	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
-	time.Sleep(1200 * time.Millisecond)
+	// Ready is the bounded startup condition: persisted Runtime services have
+	// completed restoration before this transition. A fixed post-ready sleep
+	// added no additional synchronization or integration coverage.
 	assertMemoryReplicationBacklogAbsent(t, daemon.grpc.MemoryService(), memoryID)
 	cancel()
 	if err := <-done; err != nil {
@@ -467,7 +469,6 @@ func TestDaemonRunDoesNotRestoreLegacyMemoryReplicationBacklog(t *testing.T) {
 		done2 <- daemon2.Run(ctx2)
 	}()
 	waitForDaemonStatus(t, daemon2, health.StatusReady, 2*time.Second)
-	time.Sleep(1200 * time.Millisecond)
 	assertMemoryReplicationBacklogAbsent(t, daemon2.grpc.MemoryService(), memoryID)
 	cancel2()
 	if err := <-done2; err != nil {

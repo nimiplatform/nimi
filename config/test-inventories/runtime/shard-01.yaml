@@ -203,6 +203,43 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: runtime/cmd/runtime-compliance/process_tree_windows_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-RELG-007
+      - K-GATE-070
+  - path: runtime/cmd/runtime-compliance/source_binding_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - K-GATE-070
+  - path: runtime/cmd/runtime-compliance/test_collection_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - K-GATE-070
   - path: runtime/internal/aicapabilities/capabilities_test.go
     owner: runtime
     classification: behavior_unit

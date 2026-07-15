@@ -93,6 +93,7 @@ async function main() {
     selectedTier,
     options: { ...options, color: colorEnabled },
     onProgress: (line) => process.stdout.write(line),
+    onLiveProgress: (line) => process.stderr.write(line),
   });
 
   const finishedAt = new Date().toISOString();

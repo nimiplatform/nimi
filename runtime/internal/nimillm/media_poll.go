@@ -23,6 +23,22 @@ const maxProviderPollAttempts int32 = int32(defaultHTTPTimeout / providerPollInt
 // endpoint downtime. Only applies when the context has no deadline.
 const maxDetachedPollConsecutiveErrors int32 = 10
 
+type providerPollWait func(context.Context, time.Duration) error
+
+type providerPollWaitContextKey struct{}
+
+// WithProviderPollWait installs an internal owner seam for deterministic poll
+// scheduling. Production callers do not set it and retain the real timer path.
+func WithProviderPollWait(ctx context.Context, wait func(context.Context, time.Duration) error) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if wait == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, providerPollWaitContextKey{}, providerPollWait(wait))
+}
+
 // isDetachedPollContext returns true when the context has no deadline, meaning
 // the caller intended the poll to run indefinitely until a provider terminal
 // state or an explicit cancel. In this mode, transient per-request failures
@@ -105,6 +121,9 @@ func providerPollDelay(retryCount int32) time.Duration {
 }
 
 func sleepWithContext(ctx context.Context, delay time.Duration) error {
+	if wait, ok := ctx.Value(providerPollWaitContextKey{}).(providerPollWait); ok && wait != nil {
+		return wait(ctx, delay)
+	}
 	if delay <= 0 {
 		return nil
 	}

@@ -299,6 +299,50 @@ test('runByKind shell: piped command honors pipefail', { timeout: 10000 }, async
   assert.equal(result.exitCode, 1);
 });
 
+test('runByKind: bounded stderr line observer receives complete lines', { timeout: 10000 }, async () => {
+  const lines = [];
+  const result = await runByKind(
+    {
+      id: 'gate.test.stderr-lines',
+      runner: 'shell',
+      command: `printf '[runtime-compliance] phase=tests item=pkg\\npartial' >&2`,
+      timeout_seconds: 5,
+    },
+    { onStderrLine: (line) => lines.push(line) }
+  );
+  assert.equal(result.exitCode, 0);
+  assert.deepEqual(lines, [
+    '[runtime-compliance] phase=tests item=pkg',
+    'partial',
+  ]);
+});
+
+test('executeGates: runtime compliance progress streams without unrelated stderr', { timeout: 10000 }, async () => {
+  const live = [];
+  const gates = [{
+    id: 'gate.runtime.compliance',
+    runner: 'shell',
+    command: `printf '[runtime-compliance] phase=tests item=pkg\\nnoise\\n' >&2`,
+    tiers: ['release'],
+    targets: ['runtime'],
+    timeout_seconds: 5,
+    prerequisites: [],
+  }];
+  const result = await executeGates({
+    gates,
+    selectedTier: new Map([['gate.runtime.compliance', 'release']]),
+    options: {
+      target: 'runtime',
+      color: false,
+      requireRelease: true,
+      allowBlockedTiers: [],
+    },
+    onLiveProgress: (line) => live.push(line),
+  });
+  assert.equal(result.rows[0].verdict, 'pass');
+  assert.deepEqual(live, ['[runtime-compliance] phase=tests item=pkg\n']);
+});
+
 test('runByKind pnpm: Windows command shim executes through cmd wrapper', { timeout: 10000, skip: process.platform !== 'win32' }, async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-run-pnpm-'));
   try {
