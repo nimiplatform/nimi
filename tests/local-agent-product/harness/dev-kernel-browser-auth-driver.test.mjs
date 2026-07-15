@@ -9,6 +9,7 @@ import {
   createDevKernelBrowserAuthDriver,
   loadDevKernelBrowserAuthCredentials,
   requireCapturedAuthorizationUrl,
+  requireDevKernelRealmPolicyProjection,
 } from './dev-kernel-browser-auth-driver.mjs';
 
 const PASSWORD = 'browser-auth-test-secret';
@@ -147,6 +148,66 @@ test('browser auth driver fails closed instead of sleeping through Realm throttl
   });
 });
 
+test('browser auth driver admits the exact formal test-Realm budget projection', async () => {
+  assert.deepEqual(requireDevKernelRealmPolicyProjection({
+    schemaVersion: 'nimi.realm-test-policy/v1',
+    profile: 'dev_kernel_checkpoint',
+    passwordLoginLimit: 24,
+    passwordLoginWindowMs: 15 * 60 * 1_000,
+    loopbackOnly: true,
+    freshPasswordVerificationRequired: true,
+  }), {
+    schemaVersion: 'nimi.realm-test-policy/v1',
+    profile: 'dev_kernel_checkpoint',
+    passwordLoginLimit: 24,
+    passwordLoginWindowMs: 15 * 60 * 1_000,
+    loopbackOnly: true,
+    freshPasswordVerificationRequired: true,
+  });
+  assert.throws(() => requireDevKernelRealmPolicyProjection({
+    schemaVersion: 'nimi.realm-test-policy/v1',
+    profile: 'dev_kernel_checkpoint',
+    passwordLoginLimit: 25,
+    passwordLoginWindowMs: 15 * 60 * 1_000,
+    loopbackOnly: true,
+    freshPasswordVerificationRequired: true,
+  }), /dev-kernel-browser-auth-realm-policy-invalid/u);
+
+  await withTrial(async ({ trialRoot, captureFile, diagnosticsRoot }) => {
+    const realmPolicy = requireDevKernelRealmPolicyProjection({
+      schemaVersion: 'nimi.realm-test-policy/v1',
+      profile: 'dev_kernel_checkpoint',
+      passwordLoginLimit: 24,
+      passwordLoginWindowMs: 15 * 60 * 1_000,
+      loopbackOnly: true,
+      freshPasswordVerificationRequired: true,
+    });
+    const driver = createDriver({ trialRoot, captureFile, diagnosticsRoot, realmPolicy });
+    for (let attempt = 0; attempt < 11; attempt += 1) {
+      await driver.authenticate({
+        credentialRole: 'primary',
+        expectedAccountId: EXPECTED_ACCOUNT_ID,
+        label: `formal-${attempt}`,
+        trigger: async () => fs.writeFileSync(
+          captureFile,
+          `${authorizationUrl(`state-formal-${String(attempt).padStart(4, '0')}`)}\n`,
+          { mode: 0o600 },
+        ),
+        readAccountProjection: async () => ({
+          state: 'authenticated', accountProjection: { accountId: EXPECTED_ACCOUNT_ID },
+        }),
+      });
+    }
+    assert.deepEqual(driver.audit(), {
+      profile: 'dev_kernel_checkpoint',
+      passwordLoginLimit: 24,
+      passwordLoginWindowMs: 15 * 60 * 1_000,
+      attemptCount: 11,
+      remainingAttempts: 13,
+    });
+  });
+});
+
 test('browser auth driver fails before startup when credentials are missing', () => {
   assert.throws(() => loadDevKernelBrowserAuthCredentials({
     roles: ['primary'],
@@ -198,7 +259,7 @@ function authorizationUrl(state) {
   return url.toString();
 }
 
-function createDriver({ trialRoot, captureFile, diagnosticsRoot, browserFlow, captureTimeoutMs } = {}) {
+function createDriver({ trialRoot, captureFile, diagnosticsRoot, browserFlow, captureTimeoutMs, realmPolicy } = {}) {
   return createDevKernelBrowserAuthDriver({
     trialRoot,
     captureFile,
@@ -214,6 +275,7 @@ function createDriver({ trialRoot, captureFile, diagnosticsRoot, browserFlow, ca
     })),
     captureTimeoutMs,
     accountProjectionTimeoutMs: 50,
+    realmPolicy,
   });
 }
 

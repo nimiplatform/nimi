@@ -133,6 +133,7 @@
     "test:local-agent-conversation-report-contract": "node --test tests/local-agent-product/conversation-report/*.test.mjs",
     "test:local-agent-product-contract": "node tests/local-agent-product/harness/run-gate.mjs --gate contract",
     "test:e2e:local-agent-product:core": "node tests/local-agent-product/harness/run-gate.mjs --gate core",
+    "test:dev-kernel:grant-preflight": "node tests/local-agent-product/harness/run-dev-kernel-grant-preflight.mjs",
     "test:e2e:dev-kernel:fixed-service-smoke": "node tests/local-agent-product/harness/run-fixed-service-smoke.mjs",
     "test:e2e:dev-kernel:first-run": "node tests/local-agent-product/harness/run-first-run-connectivity.mjs",
     "test:e2e:dev-kernel:owner-minimal": "node tests/local-agent-product/harness/run-owner-minimal.mjs",

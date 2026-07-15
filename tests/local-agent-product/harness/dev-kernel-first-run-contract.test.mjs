@@ -100,8 +100,14 @@ function validObservation() {
   };
 }
 
-test('First Run connectivity contract admits the complete Electron/fixed-service observation', () => {
+test('First Run connectivity contract admits fresh acceptance and diagnostic-only bound reuse', () => {
   assert.deepEqual(validateFirstRunConnectivityObservation(validObservation()), []);
+  assert.deepEqual(validateFirstRunConnectivityObservation({
+    ...validObservation(), diagnosticBuildMode: 'fresh', finalAcceptanceEvidence: true,
+  }), []);
+  assert.ok(validateFirstRunConnectivityObservation({
+    ...validObservation(), diagnosticBuildMode: 'reuse', finalAcceptanceEvidence: true,
+  }).some((issue) => issue.includes('diagnostic-only reuse')));
 });
 
 test('First Run driver imports its host dependencies explicitly', () => {

@@ -40,8 +40,10 @@ import { startProcess, terminateProcessTree } from './cross-app-driver.mjs';
 import {
   browserAuthSafeChildEnvironment,
   createDevKernelBrowserAuthDriver,
+  probeDevKernelRealmPolicy,
 } from './dev-kernel-browser-auth-driver.mjs';
 import { registerTrialProcessIdentity } from './sandbox-hygiene.mjs';
+import { captureSourceState } from './source-state.mjs';
 import { createIsolatedJourneyRoot, removeIsolatedTrialRoot } from './trial-root.mjs';
 import { repoRoot } from './registry.mjs';
 
@@ -92,14 +94,18 @@ let desktopHandle;
 let desktopConnection;
 let runtimeDataRoot;
 let completed = false;
+const sourceState = captureSourceState(repoRoot);
+const electronBuildMode = String(process.env.NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE || 'fresh').trim().toLowerCase();
 
 try {
   const browserCaptureFile = path.join(trial.paths.control, 'browser-auth.capture');
+  const realmAuthPolicy = await probeDevKernelRealmPolicy(ACCOUNT_REALM_ORIGIN);
   const browserAuthDriver = createDevKernelBrowserAuthDriver({
     trialRoot: trial.paths.root,
     captureFile: browserCaptureFile,
     diagnosticsRoot: path.join(artifactRoot, 'browser-auth'),
     requiredCredentialRoles: ['primary'],
+    realmPolicy: realmAuthPolicy,
   });
   const serviceBefore = readFixedServiceStatus();
   const electronHost = verifyElectronHost();
@@ -133,7 +139,7 @@ try {
     ...browserAuthSafeChildEnvironment(process.env),
     NO_COLOR: '1',
     FORCE_COLOR: '0',
-    NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE: 'reuse',
+    NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE: electronBuildMode,
     NIMI_PROTECTED_LOCAL_DIAGNOSTICS: '1',
     NIMI_REALM_URL: ACCOUNT_REALM_ORIGIN,
     VITE_NIMI_REALM_URL: ACCOUNT_REALM_ORIGIN,
@@ -148,6 +154,7 @@ try {
     NIMI_LOCAL_AGENT_PRODUCT_ACCOUNT_ID: acceptance.primaryAccountId,
     NIMI_LOCAL_AGENT_PRODUCT_JOURNEY_ID: 'dev-kernel-first-run',
     NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID: trial.identity.journeyTrialId,
+    NIMI_LOCAL_AGENT_PRODUCT_SOURCE_DIGEST: sourceState.sourceDigest,
     NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: browserCaptureFile,
     RUSTUP_HOME: toolchainHomes.rustupHome,
     CARGO_HOME: toolchainHomes.cargoHome,
@@ -316,12 +323,14 @@ try {
   const observation = {
     schemaVersion: 'nimi.dev-kernel-first-run-connectivity/v1',
     observedAt: new Date().toISOString(),
-    diagnosticBuildMode: 'reuse',
-    finalAcceptanceEvidence: false,
+    diagnosticBuildMode: electronBuildMode,
+    finalAcceptanceEvidence: electronBuildMode === 'fresh',
     serviceBefore,
     initialProjection,
     electronHost,
     accountAuthority,
+    realmAuthPolicy,
+    sourceState,
     commands: { status: STATUS_COMMAND, restart: RESTART_COMMAND, productControl: RUNTIME_UNARY_COMMAND },
     baseline,
     login,

@@ -99,8 +99,10 @@ export function validateFirstRunConnectivityObservation(observation) {
     || observation?.privacy?.storageAuthorityMaterialObserved !== false) {
     issues.push('renderer/network/storage authority material was observed');
   }
-  if (observation?.diagnosticBuildMode !== 'reuse' || observation?.finalAcceptanceEvidence !== false) {
-    issues.push('First Run developer layer must be marked diagnostic and non-final');
+  const buildPostureValid = (observation?.diagnosticBuildMode === 'fresh' && observation?.finalAcceptanceEvidence === true)
+    || (observation?.diagnosticBuildMode === 'reuse' && observation?.finalAcceptanceEvidence === false);
+  if (!buildPostureValid) {
+    issues.push('First Run build posture must bind fresh acceptance or diagnostic-only reuse');
   }
   return issues;
 }

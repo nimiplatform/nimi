@@ -331,7 +331,7 @@ func TestLocalAppGrantExplicitDenialConsumesChallengeWithoutPresence(t *testing.
 	}
 }
 
-func TestLocalAppGrantPendingProjectionUsesRequestedOperationForSharedGrant(t *testing.T) {
+func TestLocalAppGrantPreflightExactSharedGrantProjection(t *testing.T) {
 	fixture := newLocalAppGrantFixture(t)
 	const resourceRef = "agent:agent-a/conversation:anchor-a"
 	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{

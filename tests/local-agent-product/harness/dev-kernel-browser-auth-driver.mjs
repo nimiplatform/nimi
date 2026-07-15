@@ -31,8 +31,16 @@ const DEFAULT_CREDENTIALS_FILE = path.join(
   'local',
   'dev-kernel-browser-auth-credentials.json',
 );
-const PASSWORD_LOGIN_RATE_LIMIT = 5;
-const PASSWORD_LOGIN_RATE_WINDOW_MS = 15 * 60 * 1_000;
+const STANDARD_PASSWORD_LOGIN_RATE_LIMIT = 5;
+const STANDARD_PASSWORD_LOGIN_RATE_WINDOW_MS = 15 * 60 * 1_000;
+const DEV_KERNEL_REALM_POLICY = Object.freeze({
+  schemaVersion: 'nimi.realm-test-policy/v1',
+  profile: 'dev_kernel_checkpoint',
+  passwordLoginLimit: 24,
+  passwordLoginWindowMs: 15 * 60 * 1_000,
+  loopbackOnly: true,
+  freshPasswordVerificationRequired: true,
+});
 const CREDENTIAL_ENV_NAMES = Object.freeze([
   'NIMI_DEV_KERNEL_BROWSER_AUTH_CREDENTIALS_FILE',
   'NIMI_DEV_KERNEL_PRIMARY_EMAIL',
@@ -49,6 +57,7 @@ export function createDevKernelBrowserAuthDriver({
   browserFlow = runRealChromeLogin,
   captureTimeoutMs = 30_000,
   accountProjectionTimeoutMs = 15_000,
+  realmPolicy,
 } = {}) {
   const canonicalTrialRoot = requireDirectory(trialRoot, 'trial root');
   const resolvedCaptureFile = requireTrialDescendant(canonicalTrialRoot, captureFile, 'capture file');
@@ -60,11 +69,21 @@ export function createDevKernelBrowserAuthDriver({
   const roles = requireRoles(requiredCredentialRoles);
   const credentials = loadDevKernelBrowserAuthCredentials({ roles, env });
   const childEnvironment = Object.freeze(browserAuthSafeChildEnvironment(env));
+  const ratePolicy = realmPolicy === undefined
+    ? Object.freeze({ profile: 'standard', passwordLoginLimit: STANDARD_PASSWORD_LOGIN_RATE_LIMIT, passwordLoginWindowMs: STANDARD_PASSWORD_LOGIN_RATE_WINDOW_MS })
+    : requireDevKernelRealmPolicyProjection(realmPolicy);
   const credentialAttemptTimes = [];
   let sequence = 0;
 
   return Object.freeze({
     captureFile: resolvedCaptureFile,
+    audit: () => Object.freeze({
+      profile: ratePolicy.profile,
+      passwordLoginLimit: ratePolicy.passwordLoginLimit,
+      passwordLoginWindowMs: ratePolicy.passwordLoginWindowMs,
+      attemptCount: credentialAttemptTimes.length,
+      remainingAttempts: Math.max(0, ratePolicy.passwordLoginLimit - credentialAttemptTimes.length),
+    }),
     async authenticate({ credentialRole, expectedAccountId, trigger, readAccountProjection, label }) {
       if (!roles.includes(credentialRole) || typeof trigger !== 'function' || typeof readAccountProjection !== 'function') {
         throw new Error('dev-kernel-browser-auth-request-invalid');
@@ -85,7 +104,7 @@ export function createDevKernelBrowserAuthDriver({
       fs.rmSync(resolvedCaptureFile, { force: true });
       fs.rmSync(privateProfileRoot, { recursive: true, force: true });
       try {
-        admitPasswordLoginAttempt(credentialAttemptTimes);
+        admitPasswordLoginAttempt(credentialAttemptTimes, ratePolicy);
         await trigger();
         const authorization = await waitForCapturedAuthorizationUrl(resolvedCaptureFile, {
           timeoutMs: captureTimeoutMs,
@@ -116,15 +135,51 @@ export function createDevKernelBrowserAuthDriver({
   });
 }
 
-function admitPasswordLoginAttempt(attemptTimes) {
+function admitPasswordLoginAttempt(attemptTimes, ratePolicy) {
   const now = Date.now();
-  while (attemptTimes.length > 0 && now - attemptTimes[0] >= PASSWORD_LOGIN_RATE_WINDOW_MS) {
+  while (attemptTimes.length > 0 && now - attemptTimes[0] >= ratePolicy.passwordLoginWindowMs) {
     attemptTimes.shift();
   }
-  if (attemptTimes.length >= PASSWORD_LOGIN_RATE_LIMIT) {
+  if (attemptTimes.length >= ratePolicy.passwordLoginLimit) {
     throw new Error('dev-kernel-browser-auth-rate-window-exhausted');
   }
   attemptTimes.push(now);
+}
+
+export async function probeDevKernelRealmPolicy(realmOrigin = AUTHORIZATION_ORIGIN) {
+  const origin = new URL(realmOrigin);
+  if (origin.origin !== AUTHORIZATION_ORIGIN || origin.pathname !== '/' || origin.search || origin.hash) {
+    throw new Error('dev-kernel-browser-auth-realm-policy-origin-invalid');
+  }
+  const response = await fetch(`${origin.origin}/api/auth/dev-kernel-policy`, {
+    method: 'GET',
+    redirect: 'error',
+  }).catch(() => null);
+  if (!response || response.status !== 200) {
+    throw new Error('dev-kernel-browser-auth-realm-policy-unavailable');
+  }
+  return requireDevKernelRealmPolicyProjection(await response.json().catch(() => null));
+}
+
+export function requireDevKernelRealmPolicyProjection(value) {
+  if (!plainObject(value)
+    || Object.keys(value).sort().join('|') !== [
+      'freshPasswordVerificationRequired',
+      'loopbackOnly',
+      'passwordLoginLimit',
+      'passwordLoginWindowMs',
+      'profile',
+      'schemaVersion',
+    ].sort().join('|')
+    || value.schemaVersion !== DEV_KERNEL_REALM_POLICY.schemaVersion
+    || value.profile !== DEV_KERNEL_REALM_POLICY.profile
+    || value.passwordLoginLimit !== DEV_KERNEL_REALM_POLICY.passwordLoginLimit
+    || value.passwordLoginWindowMs !== DEV_KERNEL_REALM_POLICY.passwordLoginWindowMs
+    || value.loopbackOnly !== true
+    || value.freshPasswordVerificationRequired !== true) {
+    throw new Error('dev-kernel-browser-auth-realm-policy-invalid');
+  }
+  return DEV_KERNEL_REALM_POLICY;
 }
 
 export function browserAuthSafeChildEnvironment(env = process.env) {

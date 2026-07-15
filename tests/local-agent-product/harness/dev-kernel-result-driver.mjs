@@ -75,9 +75,16 @@ export async function persistOwnerMinimalResult(context) {
       const pageSummaryPath = path.join(artifactsRoot, 'owner-minimal-dom-console-a11y.json');
       writeJson(pageSummaryPath, { observedPages, desktopAudit, zhiyuAudit });
       const screenshotFiles = allFiles(screenshotsRoot).filter((file) => path.extname(file).toLowerCase() === '.png');
-      const outcome = checkpoints.every((checkpoint) => checkpoint.outcome === 'passed') && privacyOk
-        ? 'passed'
-        : 'failed';
+      const browserAuthBudgetValid = observations.realmAuthPolicy?.profile === 'dev_kernel_checkpoint'
+        && observations.browserAuthBudget?.attemptCount === observations.browserAuthPlan?.length
+        && observations.browserAuthBudget?.attemptCount <= observations.browserAuthBudget?.passwordLoginLimit;
+      const electronArtifactsAcceptanceEligible = observations.electronArtifactPosture?.mode === 'fresh'
+        && observations.electronArtifactPosture?.acceptanceEligible === true
+        && observations.electronArtifactPosture?.sourceDigest === sourceState.sourceDigest;
+      const outcome = checkpoints.every((checkpoint) => checkpoint.outcome === 'passed')
+        && privacyOk
+        && browserAuthBudgetValid
+        && electronArtifactsAcceptanceEligible ? 'passed' : 'failed';
       const result = {
         schemaVersion: 'nimi.local-agent-product-owner-minimal-result/v1',
         journeyTrialId: trial.identity.journeyTrialId,
@@ -86,6 +93,7 @@ export async function persistOwnerMinimalResult(context) {
         batch: trial.identity.batch,
         repeatIndex: trial.identity.repeatIndex,
         sourceState,
+        electronArtifactPosture: observations.electronArtifactPosture,
         durationMs: Math.round(performance.now() - started),
         checkpoints,
         artifacts: [],
@@ -108,6 +116,8 @@ export async function persistOwnerMinimalResult(context) {
       if (persisted.result.outcome !== 'passed') {
         const failed = checkpoints.filter((checkpoint) => checkpoint.outcome !== 'passed')
           .map((checkpoint) => checkpoint.checkpointId);
+        if (!browserAuthBudgetValid) failed.push('formal-test-realm-browser-auth-budget');
+        if (!electronArtifactsAcceptanceEligible) failed.push('diagnostic-electron-artifact-reuse');
         throw new Error(`dev-kernel owner-minimal failed: ${failed.join(', ') || 'privacy'}`);
       }
       return persisted;
@@ -274,6 +284,16 @@ export async function persistCoreResult(context) {
     const processProblems = processBudget.ok
       ? []
       : [...processBudget.overages, ...processBudget.missing].map((problem) => `observed-process-budget:${problem}`);
+    if (observations.realmAuthPolicy?.profile !== 'dev_kernel_checkpoint'
+      || observations.browserAuthBudget?.attemptCount !== observations.browserAuthPlan?.length
+      || observations.browserAuthBudget?.attemptCount > observations.browserAuthBudget?.passwordLoginLimit) {
+      processProblems.push('formal-test-realm-browser-auth-budget-invalid');
+    }
+    if (observations.electronArtifactPosture?.mode !== 'fresh'
+      || observations.electronArtifactPosture?.acceptanceEligible !== true
+      || observations.electronArtifactPosture?.sourceDigest !== sourceState.sourceDigest) {
+      processProblems.push('diagnostic-electron-artifact-reuse-is-not-acceptance-eligible');
+    }
 
     const facts = new Map();
     const pass = (checkpointId, passed, correlations = {}) => facts.set(checkpointId, {
@@ -424,6 +444,7 @@ export async function persistCoreResult(context) {
       batch: trial.identity.batch,
       repeatIndex: trial.identity.repeatIndex,
       sourceState,
+      electronArtifactPosture: observations.electronArtifactPosture,
       environmentIdentity,
       durationMs: Math.round(performance.now() - started),
       checkpoints,

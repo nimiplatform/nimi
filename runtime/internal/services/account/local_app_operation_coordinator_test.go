@@ -60,6 +60,48 @@ func TestAuthorizeLocalAppProtectedOperationAllowsOnlyExactLiveProcessAndGrant(t
 	}
 }
 
+func TestLocalAppGrantPreflightStaleSupervisedProcessIsProcessReplaced(t *testing.T) {
+	fixture := newLocalAppGrantFixture(t)
+	establishLocalAppOperationGrant(t, fixture, localappkernel.GrantStateGranted)
+	staleProcess := fixture.resolver.binding.Process
+	staleProcess.PID++
+	ctx := localAppOperationConnectionContext(t, staleProcess, fixture.resolver.binding.RuntimeBootEpoch)
+	_, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
+	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH {
+		t.Fatalf("stale supervised process reason = %s err=%v", got, err)
+	}
+}
+
+func TestLocalAppGrantPreflightRevokeDeniesNextOperation(t *testing.T) {
+	fixture := newLocalAppGrantFixture(t)
+	const operationID = "runtime_agent.conversation.open"
+	const resourceRef = "agent:agent:matrix"
+	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{
+		OperationId: operationID, ResourceRef: resourceRef, Purpose: "Open the selected conversation",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	granted, err := fixture.service.DecideLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.DecideLocalAppGrantRequest{
+		RequestId: pending.GetProjection().GetRequestId(), Approved: true,
+		PresenceChallengeId: fixture.control.challenge.PresenceChallengeID,
+	})
+	if err != nil || granted.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_GRANTED {
+		t.Fatalf("grant = (%+v, %v)", granted, err)
+	}
+	revoked, err := fixture.service.RevokeLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.RevokeLocalAppGrantRequest{
+		GrantId: granted.GetProjection().GetGrantId(),
+	})
+	if err != nil || revoked.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_REVOKED {
+		t.Fatalf("revoke = (%+v, %v)", revoked, err)
+	}
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	_, err = fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
+	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED {
+		t.Fatalf("next operation reason = %s err=%v", got, err)
+	}
+}
+
 func TestAuthorizeLocalAppProtectedOperationPreservesStaleBindingReasons(t *testing.T) {
 	for _, test := range []struct {
 		name   string

@@ -15,6 +15,7 @@ import { startProcess, terminateProcessTree } from './cross-app-driver.mjs';
 import {
   browserAuthSafeChildEnvironment,
   createDevKernelBrowserAuthDriver,
+  probeDevKernelRealmPolicy,
 } from './dev-kernel-browser-auth-driver.mjs';
 import { repoRoot } from './registry.mjs';
 import { registerTrialProcessIdentity } from './sandbox-hygiene.mjs';
@@ -64,11 +65,28 @@ import {
   waitZhiyuEvidence,
 } from './dev-kernel-local-development-driver.mjs';
 import { persistCoreResult, persistOwnerMinimalResult } from './dev-kernel-result-driver.mjs';
+import { persistDevKernelFailureBundle } from './dev-kernel-failure-bundle.mjs';
 
 const FIXTURE_ORIGIN = 'http://127.0.0.1:19443';
 const OPEN_OPERATION = 'runtime_agent.conversation.open';
 const ACCOUNT_REALM_ORIGIN = 'http://localhost:3002';
 const ACCOUNT_WEB_ORIGIN = 'http://localhost:3000';
+const OWNER_MINIMAL_BROWSER_AUTH_PLAN = Object.freeze([
+  'primary-login',
+  'run-once-local-development',
+  'run-once-open-grant',
+]);
+const CORE_BROWSER_AUTH_PLAN = Object.freeze([
+  ...OWNER_MINIMAL_BROWSER_AUTH_PLAN,
+  'remembered-local-development',
+  'remembered-open-grant',
+  'remembered-conversation-turn-send-grant',
+  'remembered-conversation-turn-subscribe-grant',
+  'remembered-reactivation',
+  'secondary-login',
+  'primary-login-restored',
+  'final-local-development',
+]);
 
 export {
   acquireFixedServiceLock,
@@ -150,10 +168,20 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
   let reactivatedHandle;
   let finalHandle;
   let rawHandle;
+  let desktopConnection;
+  let activeZhiyuConnection;
+  let serviceBefore;
+  let phase = 'preflight';
   let probeRestored = false;
   const observedPages = [];
   const observer = createEarlyCdpObserver(observedPages);
-  const observations = {};
+  const observations = {
+    electronArtifactPosture: {
+      mode: String(process.env.NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE || 'fresh').trim().toLowerCase(),
+      sourceDigest: sourceState.sourceDigest,
+      acceptanceEligible: String(process.env.NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE || 'fresh').trim().toLowerCase() !== 'reuse',
+    },
+  };
   const processLedger = createObservedProcessLedger();
   const observeRegisteredProcess = (role, handle, label) => {
     const registration = registerTrialProcessIdentity(trial, handle, label);
@@ -167,13 +195,23 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
 
   try {
     const browserCaptureFile = path.join(trial.paths.control, 'browser-auth.capture');
+    phase = 'realm-policy-preflight';
+    const realmAuthPolicy = await probeDevKernelRealmPolicy(ACCOUNT_REALM_ORIGIN);
+    observations.realmAuthPolicy = realmAuthPolicy;
+    const browserAuthPlan = executionMode === 'core' ? CORE_BROWSER_AUTH_PLAN : OWNER_MINIMAL_BROWSER_AUTH_PLAN;
+    if (realmAuthPolicy.passwordLoginLimit < browserAuthPlan.length) {
+      throw new Error(`formal test-Realm policy cannot admit ${executionMode} browser auth plan`);
+    }
+    observations.browserAuthPlan = browserAuthPlan;
     const browserAuthDriver = createDevKernelBrowserAuthDriver({
       trialRoot: trial.paths.root,
       captureFile: browserCaptureFile,
       diagnosticsRoot: path.join(artifactsRoot, 'browser-auth'),
       requiredCredentialRoles: executionMode === 'core' ? ['primary', 'secondary'] : ['primary'],
+      realmPolicy: realmAuthPolicy,
     });
-    const serviceBefore = readFixedServiceStatus();
+    phase = 'fixed-service-preflight';
+    serviceBefore = readFixedServiceStatus();
     observations.serviceBefore = serviceBefore;
     processLedger.observe('runtime', `pid:${serviceBefore.processId}`, {
       kind: 'fixed-service-process',
@@ -181,6 +219,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       phase: 'initial',
     });
 
+    phase = 'realm-fixture-start';
     const realmManifest = createRealmFixtureManifest(FIXTURE_ORIGIN);
     realmManifest.scenarioId = 'dev-kernel-checkpoint.fixed-service-local-development';
     realmManifest.devKernelCheckpoint = {
@@ -241,6 +280,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       NIMI_LOCAL_AGENT_PRODUCT_ACCOUNT_ID: fixtureConfig.primaryAccountId,
       NIMI_LOCAL_AGENT_PRODUCT_JOURNEY_ID: 'dev-kernel-core',
       NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ID: trial.identity.journeyTrialId,
+      NIMI_LOCAL_AGENT_PRODUCT_SOURCE_DIGEST: sourceState.sourceDigest,
       NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: browserCaptureFile,
       RUSTUP_HOME: hostToolchainHomes.rustupHome,
       CARGO_HOME: hostToolchainHomes.cargoHome,
@@ -250,6 +290,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       USERPROFILE: trial.paths.root,
     };
 
+    phase = 'desktop-start';
     const desktopLaunch = beginObservedProcess({
       connect: () => connectCdp(desktopCdpPort, 'Desktop', 300_000, observer),
       start: () => startProcess(process.execPath, [
@@ -267,6 +308,8 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       handle: desktopHandle,
       label: 'Desktop Electron checkpoint launcher',
     });
+    desktopConnection = desktop;
+    phase = 'desktop-fixed-service-baseline';
     observations.fixedServicePreflight = await prepareDesktopFixedServiceBaseline(desktop.page);
     const desktopBootstrapOutcome = await waitUntil(async () => {
       if (await desktop.page.getByTestId('login-screen').isVisible().catch(() => false)) return 'anonymous-login';
@@ -293,6 +336,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       expectedAccountId,
       label,
     });
+    phase = 'desktop-primary-login';
     const primaryLogin = await loginDesktop(
       desktop,
       fixtureConfig.primaryAccountId,
@@ -352,14 +396,17 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       desktop.page,
       'runtime_account_session_status',
     );
+    phase = 'developer-mode-enable';
     observations.developerModeEnabled = await setDeveloperMode(desktop.page, true);
 
+    phase = 'run-once-local-development-start';
     const runOnceLaunch = beginObservedProcess({
       connect: () => connectCdp(zhiyuCdpPort, 'run-once Zhiyu', 180_000, observer),
       start: () => startZhiyuDev(baseEnv, processLogOptions('zhiyu-run-once-launcher')),
     });
     runOnceHandle = runOnceLaunch.handle;
     observeRegisteredProcess('zhiyu', runOnceHandle, 'zhiyu-run-once-launcher');
+    phase = 'run-once-local-development-approval';
     observations.runOnceApproval = await approveLocalDevelopment(
       desktop,
       'allow-run-once',
@@ -372,6 +419,8 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       handle: runOnceHandle,
       label: 'run-once Zhiyu Electron launcher',
     });
+    activeZhiyuConnection = runOnceZhiyu;
+    phase = 'run-once-zero-grant';
     await waitForTestId(runOnceZhiyu.page, 'zhiyu-dev-kernel-root', 180_000);
     const zeroGrant = await waitZhiyuEvidence(
       runOnceZhiyu.page,
@@ -391,6 +440,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     }));
     await setWindowBounds(runOnceZhiyu, 1060, 780);
 
+    phase = 'run-once-open-grant';
     await grantOpenConversation(
       desktop.page,
       runOnceZhiyu.page,
@@ -399,6 +449,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     const ownerOpen = await openConversation(runOnceZhiyu.page);
     observations.ownerSelectedOperation = ownerOpen;
 
+    phase = 'raw-uncarried-process-probe';
     const rawLaunch = beginObservedProcess({
       connect: () => connectCdp(rawCdpPort, 'raw mismatched Zhiyu', 90_000, observer),
       start: () => startRawMismatchedZhiyu({
@@ -434,6 +485,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     rawHandle = null;
     requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after raw process mismatch');
 
+    phase = 'grant-revoke';
     await revokeOperationGrant(desktop.page, OPEN_OPERATION);
     requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after grant revoke');
     await runOnceZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open').click();
@@ -445,6 +497,8 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after revoked-operation evidence');
 
     if (executionMode === 'owner-minimal') {
+      observations.browserAuthBudget = browserAuthDriver.audit();
+      phase = 'owner-minimal-persist';
       return persistOwnerMinimalResult({
         observer, desktop, runOnceZhiyu, observedPages, observations, trial, serviceBefore,
         artifactsRoot, screenshotsRoot, sourceState, outputDir, started,
@@ -453,12 +507,14 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     await terminateProcessTree(runOnceHandle);
     runOnceHandle = null;
 
+    phase = 'remembered-local-development-start';
     const rememberedLaunch = beginObservedProcess({
       connect: () => connectCdp(zhiyuCdpPort, 'remembered Zhiyu', 180_000, observer),
       start: () => startZhiyuDev(baseEnv, processLogOptions('zhiyu-remembered-launcher')),
     });
     rememberedHandle = rememberedLaunch.handle;
     observeRegisteredProcess('zhiyu', rememberedHandle, 'zhiyu-remembered-launcher');
+    phase = 'remembered-local-development-approval';
     observations.rememberedApproval = await approveLocalDevelopment(
       desktop,
       'allow-remember-project',
@@ -466,11 +522,13 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       false,
       browserAuth('primary', fixtureConfig.primaryAccountId, 'remembered-local-development'),
     );
+    phase = 'remembered-local-development-approval';
     let zhiyu = await waitForObservedProcessConnection({
       connectionPromise: rememberedLaunch.connectionPromise,
       handle: rememberedHandle,
       label: 'remembered Zhiyu Electron launcher',
     });
+    activeZhiyuConnection = zhiyu;
     await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
     await waitZhiyuEvidence(zhiyu.page, { state: 'session-bound-zero-grant' }, 'remembered zero-grant session');
     observations.rememberedAuthorization = await waitUntil(
@@ -480,6 +538,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       }),
       { timeoutMs: 30_000, label: 'active remembered authorization' },
     );
+    phase = 'remembered-grant-batch';
     await grantOpenConversation(
       desktop.page,
       zhiyu.page,
@@ -508,10 +567,12 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       `export const DEV_KERNEL_RESTART_PROBE = '${buildMarker}';`,
     );
     if (editedProbe === originalProbe.toString('utf8')) throw new Error('restart probe baseline marker is missing');
+    phase = 'supervised-process-replacement';
     const rebuiltZhiyuPromise = waitForRebuiltZhiyu(zhiyuCdpPort, buildMarker, observer, zhiyu);
     fs.writeFileSync(probePath, editedProbe, 'utf8');
     const preEditRuns = await invokeDesktop(desktop.page, 'local_development_runs_list');
     zhiyu = await rebuiltZhiyuPromise;
+    activeZhiyuConnection = zhiyu;
     await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
     await zhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
     await waitZhiyuEvidence(zhiyu.page, { openPermission: 'granted', buildMarker }, 'post-edit grants');
@@ -545,6 +606,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       transcriptAfter: secondTurn.evidence.transcript.length,
     };
 
+    phase = 'developer-mode-cycle';
     observations.modeOff = await setDeveloperMode(desktop.page, false);
     await waitUntil(async () => rememberedHandle.child.exitCode !== null || zhiyu.page.isClosed(), {
       timeoutMs: 60_000,
@@ -563,6 +625,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     fs.writeFileSync(probePath, originalProbe);
     probeRestored = true;
     observations.modeOn = await setDeveloperMode(desktop.page, true);
+    phase = 'remembered-reactivation';
     const reactivatedLaunch = beginObservedProcess({
       connect: () => connectCdp(zhiyuCdpPort, 'reactivated Zhiyu', 180_000, observer),
       start: () => startZhiyuDev(baseEnv, processLogOptions('zhiyu-reactivated-launcher')),
@@ -581,6 +644,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       handle: reactivatedHandle,
       label: 'reactivated Zhiyu Electron launcher',
     });
+    activeZhiyuConnection = zhiyu;
     await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
     await zhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
     await waitZhiyuEvidence(zhiyu.page, { openPermission: 'granted', buildMarker: 'baseline' }, 'reactivated grants');
@@ -595,6 +659,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     const reactivatedOpen = await openConversation(zhiyu.page);
     if (reactivatedOpen.conversationAnchorId !== anchorId) throw new Error('conversation anchor changed after remembered-project reactivation');
 
+    phase = 'fixed-service-restart';
     const runtimeBeforeRestart = readFixedServiceStatus();
     await desktop.page.getByTestId('nav-tab:runtime').click();
     const restartButton = await waitForTestId(desktop.page, 'runtime-service-restart');
@@ -647,6 +712,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     const desktopAuditBeforeSwitch = await pageAudit(desktop, 'desktop-before-account-switch');
     const zhiyuAuditBeforeSwitch = await pageAudit(zhiyu, 'zhiyu-before-account-switch');
     const preAccountSwitchEvidence = await zhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
+    phase = 'secondary-account-switch';
     const secondaryLogin = await loginDesktop(
       desktop,
       fixtureConfig.secondaryAccountId,
@@ -676,6 +742,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     if (reactivatedHandle.child.exitCode === null) await terminateProcessTree(reactivatedHandle);
     reactivatedHandle = null;
 
+    phase = 'primary-account-restore';
     const restoredPrimaryLogin = await loginDesktop(
       desktop,
       fixtureConfig.primaryAccountId,
@@ -684,6 +751,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     await setFixtureAccount(fixture.origin, fixtureConfig.primaryAccountId, '开发内核主账号');
     observations.primaryAccountRestored = restoredPrimaryLogin;
     await setDeveloperMode(desktop.page, true);
+    phase = 'final-primary-reactivation';
     const finalLaunch = beginObservedProcess({
       connect: () => connectCdp(zhiyuCdpPort, 'final primary Zhiyu', 180_000, observer),
       start: () => startZhiyuDev(baseEnv, processLogOptions('zhiyu-final-primary-launcher')),
@@ -702,12 +770,14 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       handle: finalHandle,
       label: 'final primary Zhiyu Electron launcher',
     });
+    activeZhiyuConnection = finalZhiyu;
     await waitForTestId(finalZhiyu.page, 'zhiyu-dev-kernel-root');
     await finalZhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
     await waitZhiyuEvidence(finalZhiyu.page, { openPermission: 'granted' }, 'final primary grant posture');
     const finalOpen = await openConversation(finalZhiyu.page);
     if (finalOpen.conversationAnchorId !== anchorId) throw new Error('conversation anchor changed after returning to primary account');
 
+    phase = 'project-authorization-revoke';
     const revokeProject = revokeProjectAuthorization(desktop.page);
     await revokeProject;
     if (finalZhiyu.page.isClosed()) {
@@ -751,6 +821,8 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     }));
     await setWindowBounds(desktop, 1440, 940);
 
+    observations.browserAuthBudget = browserAuthDriver.audit();
+    phase = 'core-persist';
     return persistCoreResult({
       fixture, providerRawPath, observations, artifactsRoot, desktop, observer, observedPages,
       desktopAuditBeforeSwitch, desktopAuditAfterSwitch, zhiyuAudit, zhiyuAuditBeforeSwitch,
@@ -759,6 +831,41 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       anchorId, firstTurn, processLedger, journey, architecture, trial, sourceState, outputDir,
       startedAt, started, buildMarker,
     });
+  } catch (error) {
+    try {
+      await persistDevKernelFailureBundle({
+        artifactsRoot,
+        executionMode,
+        phase,
+        error,
+        sourceState,
+        desktop: desktopConnection,
+        zhiyuConnections: [activeZhiyuConnection].filter(Boolean),
+        readDesktopGrantProjection: async () => {
+          if (!desktopConnection?.page || desktopConnection.page.isClosed()) return null;
+          const [pending, grants] = await Promise.all([
+            invokeDesktop(desktopConnection.page, 'local_app_grant_pending_list'),
+            invokeDesktop(desktopConnection.page, 'local_app_grant_list'),
+          ]);
+          return { pending, grants };
+        },
+        runtimeService: (() => {
+          try { return readFixedServiceStatus(); } catch { return serviceBefore; }
+        })(),
+        processLedger,
+        observations,
+        observedPages,
+      });
+    } catch {
+      fs.writeFileSync(path.join(artifactsRoot, 'sanitized-failure-bundle-fallback.json'), `${JSON.stringify({
+        schemaVersion: 'nimi.dev-kernel-sanitized-failure/v1',
+        acceptanceEligible: false,
+        executionMode,
+        phase,
+        errorCode: 'failure-bundle-projection-failed',
+      }, null, 2)}\n`, { mode: 0o600 });
+    }
+    throw error;
   } finally {
     if (!probeRestored) fs.writeFileSync(probePath, originalProbe);
     await Promise.all([

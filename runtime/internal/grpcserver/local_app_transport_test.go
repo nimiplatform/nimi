@@ -99,6 +99,32 @@ func TestProtectedLocalAppUnaryPolicyRequiresAtomicBootstrapPromotion(t *testing
 	}
 }
 
+func TestLocalAppGrantPreflightDistinguishesRawUncarriedFromStaleProcess(t *testing.T) {
+	interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{})
+	invoke := func(ctx context.Context) runtimev1.ReasonCode {
+		_, err := interceptor(ctx, &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-a"}, &grpc.UnaryServerInfo{FullMethod: protectedOpenConversationAnchorMethod}, func(context.Context, any) (any, error) {
+			t.Fatal("untrusted process reached selected operation")
+			return nil, nil
+		})
+		return localAppTransportReason(err)
+	}
+	if got := invoke(context.Background()); got != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+		t.Fatalf("raw uncarried reason = %s", got)
+	}
+
+	stale := newGRPCLocalAppConnection(t, 0xa7)
+	if err := stale.BindSession(protectedlocal.LocalAppSessionHandle{
+		SessionID: grpcLocalAppIdentifier(0xa8), SessionProof: grpcLocalAppIdentifier(0xa9),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	stale.Revoke()
+	staleCtx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: stale}})
+	if got := invoke(staleCtx); got != runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH {
+		t.Fatalf("stale supervised process reason = %s", got)
+	}
+}
+
 func TestProtectedLocalAppPoliciesExposeOnlyFinalSelectedOperations(t *testing.T) {
 	for _, method := range []string{
 		protectedOpenLocalAppSessionMethod,

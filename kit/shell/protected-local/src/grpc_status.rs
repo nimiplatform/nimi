@@ -214,6 +214,18 @@ mod tests {
     }
 
     #[test]
+    fn local_app_preflight_stale_process_projects_process_replaced() {
+        assert_eq!(
+            local_app_reason_from_runtime_reason("LOCAL_APP_PROCESS_MISMATCH"),
+            Some(LocalAppReasonCode::ProcessReplaced)
+        );
+        assert_ne!(
+            local_app_reason_from_runtime_reason("PROTECTED_ORIGIN_ROLE_MISMATCH"),
+            Some(LocalAppReasonCode::ProcessReplaced)
+        );
+    }
+
+    #[test]
     fn structured_runtime_error_keeps_bounded_diagnostic_stage() {
         let info = GoogleRpcErrorInfo {
             reason: "LOCAL_DEVELOPMENT_PROJECT_CHANGED".to_string(),

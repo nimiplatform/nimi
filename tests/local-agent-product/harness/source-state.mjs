@@ -11,6 +11,11 @@ function gitFiles(repoRoot) {
   }).toString('utf8').split('\0').filter(Boolean).sort();
 }
 
+const executionCarrierPaths = new Set([
+  'apps/desktop/product-control-node/npm/win32-x64/nimi_desktop_product_control.node',
+  'kit/shell/protected-local-node/npm/win32-x64/nimi_shell_protected_local.node',
+]);
+
 function fileSha256(file) {
   return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
@@ -31,7 +36,10 @@ export function sourceTreeSha256(repoRoot) {
     if (stat.isSymbolicLink()) {
       digest.update('symlink\0').update(fs.readlinkSync(absolute)).update('\0');
     } else if (stat.isFile()) {
-      digest.update('file\0').update(String(stat.mode & 0o111)).update('\0').update(fs.readFileSync(absolute)).update('\0');
+      const content = executionCarrierPaths.has(relative)
+        ? execFileSync('git', ['show', `HEAD:${relative}`], { cwd: repoRoot, encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 })
+        : fs.readFileSync(absolute);
+      digest.update('file\0').update(String(stat.mode & 0o111)).update('\0').update(content).update('\0');
     } else if (stat.isDirectory()) {
       digest.update('directory\0');
     } else {

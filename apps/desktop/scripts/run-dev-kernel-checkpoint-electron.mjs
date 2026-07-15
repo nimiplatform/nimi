@@ -12,6 +12,7 @@ import {
 import {
   requireReusableElectronArtifacts,
   resolveDevKernelElectronBuildMode,
+  writeReusableElectronArtifactBinding,
 } from './lib/electron-build-mode.mjs';
 
 if (process.platform !== 'win32' || process.arch !== 'x64') {
@@ -47,10 +48,31 @@ const executablePath = path.join(
 if (!fs.existsSync(executablePath)) throw new Error(`signed Desktop Electron executable is missing: ${executablePath}`);
 const signingIdentity = requireWindowsDevSigningIdentity({ cwd: repoRoot });
 const mainEntry = path.join(desktopRoot, 'dist-electron', 'main.js');
-requireReusableElectronArtifacts([
+const sourceDigest = requiredSourceDigest('NIMI_LOCAL_AGENT_PRODUCT_SOURCE_DIGEST');
+const artifactBindingPath = path.join(
+  repoRoot, '.nimi', 'local', 'electron-desktop-runtime', electronVersion, 'diagnostic-artifact-binding.json',
+);
+const artifactFiles = [
   path.join(desktopRoot, 'dist', 'index.html'),
   mainEntry,
-]);
+  path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'win32-x64', 'nimi_shell_protected_local.node'),
+  path.join(desktopRoot, 'product-control-node', 'npm', 'win32-x64', 'nimi_desktop_product_control.node'),
+  executablePath,
+];
+if (buildMode === 'reuse') {
+  requireReusableElectronArtifacts(artifactFiles, {
+    manifestPath: artifactBindingPath,
+    repoRoot,
+    sourceDigest,
+  });
+} else {
+  requireReusableElectronArtifacts(artifactFiles);
+  writeReusableElectronArtifactBinding(artifactFiles, {
+    manifestPath: artifactBindingPath,
+    repoRoot,
+    sourceDigest,
+  });
+}
 requireWindowsDevSignedFiles([executablePath], signingIdentity.certificateSha256, { cwd: repoRoot });
 if (buildMode === 'reuse') {
   process.stderr.write('[dev-kernel Electron] diagnostic build mode=reuse; output is not final acceptance evidence\n');
@@ -104,6 +126,12 @@ function requiredDirectory(name) {
   if (!value || !path.isAbsolute(value)) throw new Error(`${name} must be an absolute directory`);
   fs.mkdirSync(value, { recursive: true });
   return fs.realpathSync.native(value);
+}
+
+function requiredSourceDigest(name) {
+  const value = String(process.env[name] || '').trim();
+  if (!/^[a-f0-9]{64}$/u.test(value)) throw new Error(`${name} must be an exact source digest`);
+  return value;
 }
 
 function requiredPort(name) {
