@@ -61,10 +61,11 @@ type Manager struct {
 	sharedAcceleratorDependenciesPath string
 	managedImageBackend               *ManagedImageBackendConfig
 
-	mu          sync.RWMutex
-	uvToolMu    sync.Mutex
-	supervisors map[EngineKind]*Supervisor
-	starting    map[EngineKind]bool
+	mu              sync.RWMutex
+	uvToolMu        sync.Mutex
+	pythonRuntimeMu sync.Mutex
+	supervisors     map[EngineKind]*Supervisor
+	starting        map[EngineKind]bool
 }
 
 // NewManager creates a new engine manager.

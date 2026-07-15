@@ -83,6 +83,54 @@ func TestEnsureUVToolDependencySerializesSharedExecutableMaterialization(t *test
 	}
 }
 
+func TestEnsurePythonRuntimeDependencySerializesSharedInterpreterMaterialization(t *testing.T) {
+	root := t.TempDir()
+	manager, err := NewManager(slog.Default(), ManagedRoots{
+		Environments: filepath.Join(root, "environments"),
+		Dependencies: filepath.Join(root, "dependencies"),
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	manager.pythonRuntimeMu.Lock()
+	locked := true
+	defer func() {
+		if locked {
+			manager.pythonRuntimeMu.Unlock()
+		}
+	}()
+	started := make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		close(started)
+		_, ensureErr := manager.EnsurePythonRuntimeDependency(
+			context.Background(),
+			filepath.Join(root, "missing-uv"),
+			"speech",
+			"test-speech-runtime",
+			defaultManagedPythonVersion,
+		)
+		done <- ensureErr
+	}()
+	<-started
+	select {
+	case ensureErr := <-done:
+		t.Fatalf("shared Python runtime materialization bypassed lock: %v", ensureErr)
+	case <-time.After(50 * time.Millisecond):
+	}
+	manager.pythonRuntimeMu.Unlock()
+	locked = false
+	select {
+	case ensureErr := <-done:
+		if ensureErr == nil {
+			t.Fatal("missing uv unexpectedly materialized a Python runtime")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("shared Python runtime materialization did not resume after lock release")
+	}
+}
+
 func TestManagedUVArchiveSpecPinsOfficialWindowsX64Hash(t *testing.T) {
 	spec, ok := managedUVArchiveSpecForCurrentHost()
 	if !ok {

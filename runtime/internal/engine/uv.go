@@ -307,6 +307,12 @@ func ensureManagedPython(ctx context.Context, uvPath string, root string, versio
 }
 
 func (m *Manager) EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engineName string, version string, pythonVersion string) (PythonRuntimeDependencyStatus, error) {
+	// Speech consumers use distinct venvs but share uv's managed interpreter
+	// installation directory. Keep discovery, installation, and verification
+	// atomic so a sibling consumer cannot admit a partially extracted runtime.
+	m.pythonRuntimeMu.Lock()
+	defer m.pythonRuntimeMu.Unlock()
+
 	trimmedEngine := strings.TrimSpace(engineName)
 	trimmedVersion := strings.TrimSpace(version)
 	if trimmedVersion == "" {
