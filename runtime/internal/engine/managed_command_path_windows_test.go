@@ -63,6 +63,14 @@ func TestRunCommandOutputStartsExecutableBeyondLegacyPathLimit(t *testing.T) {
 		if got := managedCommandExecutablePath(target); got != shortPath {
 			t.Fatalf("existing long executable path = %q, want short alias %q", got, shortPath)
 		}
+		futureCachePath := filepath.Join(longRoot, "future-cache", "query-script")
+		shortFuturePath, futureOK := windowsShortCommandPath(futureCachePath)
+		if !futureOK || len(shortFuturePath) >= windowsLegacyMaxPath {
+			t.Fatalf("future managed cache path did not reuse existing short ancestor: path=%q ok=%v", shortFuturePath, futureOK)
+		}
+		if got := managedCommandEnvironmentValue(futureCachePath); got != shortFuturePath {
+			t.Fatalf("future managed cache environment path = %q, want %q", got, shortFuturePath)
+		}
 	}
 	output, err := runCommandOutput(context.Background(), "", nil, target, "/d", "/c", "echo", "nimi-long-path-ready")
 	if err != nil {

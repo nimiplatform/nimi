@@ -39,6 +39,25 @@ func managedCommandExecutablePath(path string) string {
 }
 
 func windowsShortCommandPath(path string) (string, bool) {
+	candidate := filepath.Clean(path)
+	var suffix []string
+	for {
+		if shortPath, ok := windowsExistingShortPath(candidate); ok {
+			for index := len(suffix) - 1; index >= 0; index-- {
+				shortPath = filepath.Join(shortPath, suffix[index])
+			}
+			return shortPath, true
+		}
+		parent := filepath.Dir(candidate)
+		if parent == candidate {
+			return "", false
+		}
+		suffix = append(suffix, filepath.Base(candidate))
+		candidate = parent
+	}
+}
+
+func windowsExistingShortPath(path string) (string, bool) {
 	longPath, err := windows.UTF16PtrFromString(path)
 	if err != nil {
 		return "", false
