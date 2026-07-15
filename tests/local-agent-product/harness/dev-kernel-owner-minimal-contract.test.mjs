@@ -60,6 +60,14 @@ test('owner-minimal runner reuses the core driver and does not create another ca
   assert.doesNotMatch(runner, /go(?:\.exe)?['"\s,]+run|serve|node-grpc|runtime_bridge_status/iu);
 });
 
+test('owner-minimal orchestrator imports its Runtime host dependencies explicitly', () => {
+  const source = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
+  assert.match(
+    source,
+    /import\s*\{[\s\S]*invokeDesktop[\s\S]*probeRealRealmBrowserLoginAuthority[\s\S]*\}\s*from '\.\/dev-kernel-host-driver\.mjs'/u,
+  );
+});
+
 test('owner-minimal reuses a protected ready round after a transient First Run gate', () => {
   const driver = ownerDriverSource();
   assert.match(driver, /primaryLogin\.outcome === 'first-run'[\s\S]*productControl\?\.state === 'ready_for_use'[\s\S]*captureReusedReadyFirstRun/iu);

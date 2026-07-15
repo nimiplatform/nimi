@@ -20,6 +20,8 @@ import {
   acquireFixedServiceLock,
   connectCdp,
   createEarlyCdpObserver,
+  invokeDesktop,
+  probeRealRealmBrowserLoginAuthority,
   readAcceptanceFixture,
   readFixedServiceStatus,
   readProductControlJSONProjection,

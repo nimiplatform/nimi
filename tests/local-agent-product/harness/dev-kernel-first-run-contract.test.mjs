@@ -104,11 +104,11 @@ test('First Run connectivity contract admits the complete Electron/fixed-service
   assert.deepEqual(validateFirstRunConnectivityObservation(validObservation()), []);
 });
 
-test('First Run driver imports its terminal classifier dependency explicitly', () => {
+test('First Run driver imports its host dependencies explicitly', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-first-run-driver.mjs'), 'utf8');
   assert.match(
     source,
-    /import\s*\{[\s\S]*classifyFirstRunTerminalSnapshot[\s\S]*\}\s*from '\.\/dev-kernel-host-driver\.mjs'/u,
+    /import\s*\{[\s\S]*classifyFirstRunTerminalSnapshot[\s\S]*requireCheckpointDataRootProposal[\s\S]*\}\s*from '\.\/dev-kernel-host-driver\.mjs'/u,
   );
 });
 

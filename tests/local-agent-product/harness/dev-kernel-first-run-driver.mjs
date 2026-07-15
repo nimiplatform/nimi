@@ -12,6 +12,7 @@ import {
   invokeDesktopRuntimeUnary,
   readFixedServiceStatus,
   readProductControlJSONProjection,
+  requireCheckpointDataRootProposal,
   setWindowBounds,
   sha256,
   waitForTestId,
