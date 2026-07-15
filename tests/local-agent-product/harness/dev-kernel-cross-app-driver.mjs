@@ -470,16 +470,23 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       label: 'raw mismatched Zhiyu Electron launcher',
     });
     await waitForTestId(rawZhiyu.page, 'zhiyu-dev-kernel-root');
-    const rawInitial = await waitUntil(
+    let rawInitial = await waitUntil(
       () => rawZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null),
       { timeoutMs: 30_000, label: 'raw Zhiyu evidence' },
     );
+    if (rawInitial.lastError?.reasonCode === 'runtime-service-unavailable') {
+      await rawZhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
+      rawInitial = await waitUntil(async () => {
+        const value = await rawZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
+        return value?.lastError?.reasonCode !== 'runtime-service-unavailable' ? value : null;
+      }, { timeoutMs: 30_000, intervalMs: 100, label: 'raw process exact transport recovery' });
+    }
     if (!rawInitial.lastError) {
       await rawZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open').click();
     }
     const rawDenied = await waitUntil(async () => {
       const value = await rawZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
-      return value?.lastError ? value : null;
+      return value?.lastError?.reasonCode === 'runtime-service-untrusted' ? value : null;
     }, { timeoutMs: 30_000, label: 'raw process mismatch denial' });
     observations.processMismatch = { ...rawDenied, probeKind: 'raw-uncarried' };
     await rawZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-raw-process-mismatch.png') });
