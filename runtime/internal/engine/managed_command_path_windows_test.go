@@ -21,8 +21,13 @@ func TestManagedCommandExecutablePathUsesVerbatimFormBeyondLegacyLimit(t *testin
 	if len(long) < windowsLegacyMaxPath {
 		t.Fatalf("test path length = %d, want at least %d", len(long), windowsLegacyMaxPath)
 	}
-	if got, want := managedCommandExecutablePath(long), `\\?\`+long; got != want {
-		t.Fatalf("long executable path = %q, want %q", got, want)
+	verbatim := `\\?\` + long
+	if got := managedCommandExecutablePath(long); got != verbatim {
+		t.Fatalf("long executable path = %q, want %q", got, verbatim)
+	}
+	arguments := managedCommandArguments([]string{"--python", long, "https://example.invalid/package"})
+	if len(arguments) != 3 || arguments[0] != "--python" || arguments[1] != verbatim || arguments[2] != "https://example.invalid/package" {
+		t.Fatalf("managed command arguments = %#v", arguments)
 	}
 }
 

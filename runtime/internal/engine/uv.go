@@ -58,7 +58,8 @@ func runCommandOutput(ctx context.Context, dir string, env map[string]string, bi
 	commandCtx, cancel := contextWithManagedCommandTimeout(ctx, managedCommandTimeout(args))
 	defer cancel()
 	commandExecutable := managedCommandExecutablePath(bin)
-	cmd := exec.CommandContext(commandCtx, commandExecutable, args...)
+	commandArguments := managedCommandArguments(args)
+	cmd := exec.CommandContext(commandCtx, commandExecutable, commandArguments...)
 	configureManagedCommand(cmd)
 	if strings.TrimSpace(dir) != "" {
 		cmd.Dir = dir
