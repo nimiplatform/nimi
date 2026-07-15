@@ -10,6 +10,7 @@ import {
   requireWindowsDevSigningIdentity,
 } from '../../../scripts/lib/windows-dev-signing.mjs';
 import {
+  requireFreshPreparedElectronArtifacts,
   requireReusableElectronArtifacts,
   resolveDevKernelElectronBuildMode,
   writeReusableElectronArtifactBinding,
@@ -52,6 +53,9 @@ const sourceDigest = requiredSourceDigest('NIMI_LOCAL_AGENT_PRODUCT_SOURCE_DIGES
 const artifactBindingPath = path.join(
   repoRoot, '.nimi', 'local', 'electron-desktop-runtime', electronVersion, 'diagnostic-artifact-binding.json',
 );
+const freshPreparedBindingPath = path.join(
+  repoRoot, '.nimi', 'local', 'electron-desktop-runtime', electronVersion, 'fresh-prepared-artifact-binding.json',
+);
 const artifactFiles = [
   path.join(desktopRoot, 'dist', 'index.html'),
   mainEntry,
@@ -64,6 +68,13 @@ if (buildMode === 'reuse') {
     manifestPath: artifactBindingPath,
     repoRoot,
     sourceDigest,
+  });
+} else if (buildMode === 'fresh-prepared') {
+  requireFreshPreparedElectronArtifacts(artifactFiles, {
+    manifestPath: freshPreparedBindingPath,
+    repoRoot,
+    sourceDigest,
+    preparationId: process.env.NIMI_DEV_KERNEL_ELECTRON_PREPARATION_ID,
   });
 } else {
   requireReusableElectronArtifacts(artifactFiles);

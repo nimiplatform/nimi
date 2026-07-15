@@ -78,7 +78,7 @@ export async function persistOwnerMinimalResult(context) {
       const browserAuthBudgetValid = observations.realmAuthPolicy?.profile === 'dev_kernel_checkpoint'
         && observations.browserAuthBudget?.attemptCount === observations.browserAuthPlan?.length
         && observations.browserAuthBudget?.attemptCount <= observations.browserAuthBudget?.passwordLoginLimit;
-      const electronArtifactsAcceptanceEligible = observations.electronArtifactPosture?.mode === 'fresh'
+      const electronArtifactsAcceptanceEligible = ['fresh', 'fresh-prepared'].includes(observations.electronArtifactPosture?.mode)
         && observations.electronArtifactPosture?.acceptanceEligible === true
         && observations.electronArtifactPosture?.sourceDigest === sourceState.sourceDigest;
       const outcome = checkpoints.every((checkpoint) => checkpoint.outcome === 'passed')
@@ -289,7 +289,7 @@ export async function persistCoreResult(context) {
       || observations.browserAuthBudget?.attemptCount > observations.browserAuthBudget?.passwordLoginLimit) {
       processProblems.push('formal-test-realm-browser-auth-budget-invalid');
     }
-    if (observations.electronArtifactPosture?.mode !== 'fresh'
+    if (!['fresh', 'fresh-prepared'].includes(observations.electronArtifactPosture?.mode)
       || observations.electronArtifactPosture?.acceptanceEligible !== true
       || observations.electronArtifactPosture?.sourceDigest !== sourceState.sourceDigest) {
       processProblems.push('diagnostic-electron-artifact-reuse-is-not-acceptance-eligible');

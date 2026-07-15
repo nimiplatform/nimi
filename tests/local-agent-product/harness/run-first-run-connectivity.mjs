@@ -324,7 +324,7 @@ try {
     schemaVersion: 'nimi.dev-kernel-first-run-connectivity/v1',
     observedAt: new Date().toISOString(),
     diagnosticBuildMode: electronBuildMode,
-    finalAcceptanceEvidence: electronBuildMode === 'fresh',
+    finalAcceptanceEvidence: ['fresh', 'fresh-prepared'].includes(electronBuildMode),
     serviceBefore,
     initialProjection,
     electronHost,

@@ -105,6 +105,9 @@ test('First Run connectivity contract admits fresh acceptance and diagnostic-onl
   assert.deepEqual(validateFirstRunConnectivityObservation({
     ...validObservation(), diagnosticBuildMode: 'fresh', finalAcceptanceEvidence: true,
   }), []);
+  assert.deepEqual(validateFirstRunConnectivityObservation({
+    ...validObservation(), diagnosticBuildMode: 'fresh-prepared', finalAcceptanceEvidence: true,
+  }), []);
   assert.ok(validateFirstRunConnectivityObservation({
     ...validObservation(), diagnosticBuildMode: 'reuse', finalAcceptanceEvidence: true,
   }).some((issue) => issue.includes('diagnostic-only reuse')));

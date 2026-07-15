@@ -4,8 +4,8 @@ import path from 'node:path';
 
 export function resolveDevKernelElectronBuildMode(env = process.env) {
   const value = String(env.NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE || 'fresh').trim().toLowerCase();
-  if (value !== 'fresh' && value !== 'reuse') {
-    throw new Error(`NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE must be fresh or reuse, got ${value || '<empty>'}`);
+  if (value !== 'fresh' && value !== 'fresh-prepared' && value !== 'reuse') {
+    throw new Error(`NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE must be fresh, fresh-prepared, or reuse, got ${value || '<empty>'}`);
   }
   return value;
 }
@@ -40,24 +40,84 @@ export function requireReusableElectronArtifacts(files, binding = undefined) {
 }
 
 export function writeReusableElectronArtifactBinding(files, binding) {
-  const resolved = requireArtifactFiles(files);
-  const repoRoot = path.resolve(String(binding.repoRoot || ''));
-  const manifestPath = path.resolve(String(binding.manifestPath || ''));
-  const sourceDigest = requireSourceDigest(binding.sourceDigest);
-  const artifacts = resolved.map((file) => ({
-    path: path.relative(repoRoot, file).replaceAll('\\', '/'),
-    sha256: fileSha256(file),
-  })).sort((left, right) => left.path.localeCompare(right.path));
+  const prepared = prepareArtifactBinding(files, binding);
   const manifest = {
     schemaVersion: 'nimi.dev-kernel-electron-artifact-binding/v1',
     posture: 'diagnostic_reuse_only',
     acceptanceEligible: false,
-    sourceDigest,
-    artifacts,
+    sourceDigest: prepared.sourceDigest,
+    artifacts: prepared.artifacts,
   };
+  writeArtifactBinding(prepared.manifestPath, manifest);
+  return manifest;
+}
+
+export function writeFreshPreparedElectronArtifactBinding(files, binding) {
+  const prepared = prepareArtifactBinding(files, binding);
+  const preparationId = requirePreparationId(binding.preparationId);
+  const manifest = {
+    schemaVersion: 'nimi.dev-kernel-electron-fresh-prepared-binding/v1',
+    posture: 'fresh_prepared_acceptance',
+    acceptanceEligible: true,
+    sourceDigest: prepared.sourceDigest,
+    preparationId,
+    preparedAt: new Date().toISOString(),
+    artifacts: prepared.artifacts,
+  };
+  writeArtifactBinding(prepared.manifestPath, manifest);
+  return manifest;
+}
+
+export function requireFreshPreparedElectronArtifacts(files, binding) {
+  const resolved = requireArtifactFiles(files);
+  const manifestPath = path.resolve(String(binding.manifestPath || ''));
+  const sourceDigest = requireSourceDigest(binding.sourceDigest);
+  const preparationId = requirePreparationId(binding.preparationId);
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch {
+    throw new Error('fresh-prepared Electron artifact binding is missing or invalid');
+  }
+  if (manifest?.schemaVersion !== 'nimi.dev-kernel-electron-fresh-prepared-binding/v1'
+    || manifest?.posture !== 'fresh_prepared_acceptance'
+    || manifest?.acceptanceEligible !== true
+    || manifest?.sourceDigest !== sourceDigest
+    || manifest?.preparationId !== preparationId
+    || !Array.isArray(manifest?.artifacts)
+    || manifest.artifacts.length !== resolved.length) {
+    throw new Error('fresh-prepared Electron artifact binding is stale');
+  }
+  requireBoundArtifactHashes(resolved, manifest.artifacts, binding.repoRoot, 'fresh-prepared');
+  return resolved;
+}
+
+function prepareArtifactBinding(files, binding) {
+  const resolved = requireArtifactFiles(files);
+  const repoRoot = path.resolve(String(binding.repoRoot || ''));
+  return {
+    manifestPath: path.resolve(String(binding.manifestPath || '')),
+    sourceDigest: requireSourceDigest(binding.sourceDigest),
+    artifacts: resolved.map((file) => ({
+      path: path.relative(repoRoot, file).replaceAll('\\', '/'),
+      sha256: fileSha256(file),
+    })).sort((left, right) => left.path.localeCompare(right.path)),
+  };
+}
+
+function writeArtifactBinding(manifestPath, manifest) {
   fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
-  return manifest;
+}
+
+function requireBoundArtifactHashes(resolved, artifacts, repoRoot, label) {
+  for (const file of resolved) {
+    const key = path.relative(path.resolve(repoRoot), file).replaceAll('\\', '/');
+    const row = artifacts.find((entry) => entry?.path === key);
+    if (!row || row.sha256 !== fileSha256(file)) {
+      throw new Error(`${label} Electron artifact binding drifted: ${key}`);
+    }
+  }
 }
 
 function requireArtifactFiles(files) {
@@ -75,9 +135,17 @@ function requireArtifactFiles(files) {
 function requireSourceDigest(value) {
   const digest = String(value || '').trim();
   if (!/^[a-f0-9]{64}$/u.test(digest)) {
-    throw new Error('reusable Electron artifacts require an exact source digest');
+    throw new Error('Electron artifacts require an exact source digest');
   }
   return digest;
+}
+
+function requirePreparationId(value) {
+  const preparationId = String(value || '').trim();
+  if (!/^[a-f0-9]{32}$/u.test(preparationId)) {
+    throw new Error('fresh-prepared Electron artifacts require an exact preparation id');
+  }
+  return preparationId;
 }
 
 function fileSha256(file) {
