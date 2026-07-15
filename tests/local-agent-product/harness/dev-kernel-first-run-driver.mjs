@@ -6,6 +6,7 @@ import {
   PRODUCT_CONTROL_RECORD_METHOD,
   PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD,
   RUNTIME_STATUS_COMMAND,
+  classifyFirstRunTerminalSnapshot,
   comparablePath,
   invokeDesktop,
   invokeDesktopRuntimeUnary,

@@ -104,6 +104,14 @@ test('First Run connectivity contract admits the complete Electron/fixed-service
   assert.deepEqual(validateFirstRunConnectivityObservation(validObservation()), []);
 });
 
+test('First Run driver imports its terminal classifier dependency explicitly', () => {
+  const source = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-first-run-driver.mjs'), 'utf8');
+  assert.match(
+    source,
+    /import\s*\{[\s\S]*classifyFirstRunTerminalSnapshot[\s\S]*\}\s*from '\.\/dev-kernel-host-driver\.mjs'/u,
+  );
+});
+
 test('First Run runner never uses process home or renderer env as the data-root proposal authority', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'run-first-run-connectivity.mjs'), 'utf8');
   assert.match(source, /requireCheckpointDataRootProposal/);
