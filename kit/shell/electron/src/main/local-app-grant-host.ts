@@ -131,19 +131,23 @@ class ElectronLocalAppGrantHost implements NimiElectronLocalAppGrantHost {
     if (!pending) throw grantError('local-app-grant-request-not-found', false, command);
     this.pending.delete(selector);
     let native: NativeGrantProjection;
+    const approved = payload.approved as boolean;
     try {
       native = parseGrant(await invokeBinding(() => this.binding.desktopDecideLocalAppGrant({
         requestId: pending.requestId,
         presenceChallengeId: pending.presenceChallengeId,
-        approved: payload.approved as boolean,
+        approved,
       }), command), command);
+      if ((approved && native.state !== 'granted')
+        || (!approved && native.state !== 'denied')
+        || native.grantId !== pending.pendingGrantId
+        || native.operationId !== pending.projection.operationId
+        || native.resourceRef !== pending.projection.resourceRef) {
+        throw grantError('runtime-service-untrusted', false, command);
+      }
     } catch (error) {
       this.pending.set(selector, pending);
       throw error;
-    }
-    const approved = payload.approved as boolean;
-    if ((approved && native.state !== 'granted') || (!approved && native.state !== 'denied')) {
-      throw grantError('runtime-service-untrusted', false, command);
     }
     const controlSelector = randomSelector('grant-control');
     const projection: ManagementProjection = {
@@ -169,7 +173,9 @@ class ElectronLocalAppGrantHost implements NimiElectronLocalAppGrantHost {
       () => this.binding.desktopRevokeLocalAppGrant({ grantId: granted.grantId }),
       command,
     ), command);
-    if (native.state !== 'revoked' || native.grantId !== granted.grantId) {
+    if (native.state !== 'revoked'
+      || native.grantId !== granted.grantId
+      || native.resourceRef !== granted.projection.resourceRef) {
       throw grantError('runtime-service-untrusted', false, command);
     }
     this.grants.delete(selector);
@@ -253,10 +259,14 @@ function parseGrant(value: unknown, command: LocalAppGrantCommand): NativeGrantP
   if (!['granted', 'denied', 'revoked'].includes(String(record.state))) {
     throw grantError('runtime-service-untrusted', false, command);
   }
+  const state = record.state as NativeGrantProjection['state'];
+  const operationId = state === 'revoked'
+    ? exactEmptyText(record.operationId, command)
+    : boundedText(record.operationId, command);
   return {
-    state: record.state as NativeGrantProjection['state'],
+    state,
     grantId: privateIdentifier(record.grantId, command),
-    operationId: boundedText(record.operationId, command),
+    operationId,
     resourceRef: boundedText(record.resourceRef, command),
   };
 }
@@ -273,6 +283,11 @@ function privateIdentifier(value: unknown, command: LocalAppGrantCommand): strin
     throw grantError('runtime-service-untrusted', false, command);
   }
   return value;
+}
+
+function exactEmptyText(value: unknown, command: LocalAppGrantCommand): '' {
+  if (value !== '') throw grantError('runtime-service-untrusted', false, command);
+  return '';
 }
 
 function boundedText(value: unknown, command: LocalAppGrantCommand): string {

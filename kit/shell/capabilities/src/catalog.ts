@@ -37,7 +37,8 @@ export type NimiStandardShellNegativeState =
   | 'no-grant'
   | 'request-pending'
   | 'grant-revoked'
-  | 'grant-superseded';
+  | 'grant-superseded'
+  | 'presence-expired';
 
 export interface NimiStandardShellOperation {
   id: string;
@@ -151,7 +152,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     id: 'local-app',
     operations: [
       { id: 'sessionStatus', command: 'nimi.shell.localApp.sessionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked'] },
-      { id: 'permissionPosture', command: 'nimi.shell.localApp.permissionPosture', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'no-grant', 'grant-revoked', 'grant-superseded', 'account-changed', 'runtime-restarted'] },
+      { id: 'permissionPosture', command: 'nimi.shell.localApp.permissionPosture', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'no-grant', 'grant-revoked', 'grant-superseded', 'presence-expired', 'account-changed', 'runtime-restarted'] },
       { id: 'permissionRequest', command: 'nimi.shell.localApp.permissionRequest', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'invalid-payload', 'request-pending', 'account-changed', 'runtime-restarted'] },
       { id: 'artifactsReadRuntimeBytes', command: 'nimi.shell.localApp.artifacts.readRuntimeBytes', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found', 'resource-exhausted'] },
       { id: 'agentOpenConversation', command: 'nimi.shell.localApp.agent.openConversation', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },

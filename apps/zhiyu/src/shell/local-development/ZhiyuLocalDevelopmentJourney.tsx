@@ -663,7 +663,7 @@ function nonEmptyText(value: unknown): string {
 
 function stateForError(reasonCode: string): JourneyState {
   if (reasonCode === 'runtime-service-unavailable' || reasonCode === 'runtime-restarted') return 'runtime-unavailable';
-  if (['revoked', 'grant-revoked', 'account-changed', 'process-replaced', 'project-changed'].includes(reasonCode)) return 'access-lost';
+  if (['revoked', 'grant-revoked', 'grant-superseded', 'presence-expired', 'account-changed', 'process-replaced', 'project-changed'].includes(reasonCode)) return 'access-lost';
   return 'error';
 }
 
@@ -675,6 +675,8 @@ function errorMessage(error: JourneyErrorEvidence): string {
     case 'account-changed': return 'Desktop account 已切换，旧 account 下的 session 与 grant 不会继承。';
     case 'revoked':
     case 'grant-revoked': return 'Desktop 已撤销访问。后续操作被拒绝，必须重新申请。';
+    case 'grant-superseded': return '这项授权已被更新版本替代。刷新权限状态后重新申请。';
+    case 'presence-expired': return '授权所需的在场验证已过期。请返回 Desktop 重新验证。';
     case 'process-replaced': return '开发进程已替换，旧 lease/session 不能继续使用。请等待 Desktop 监督的新进程。';
     default: return error.message;
   }

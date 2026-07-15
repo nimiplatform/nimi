@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
@@ -44,6 +45,10 @@ type localAppConversationScopeValidator interface {
 	ValidateLocalAppConversationScope(context.Context, string, string) error
 }
 
+type localAppOperationAuthorizer interface {
+	AuthorizeLocalAppProtectedOperation(context.Context, accountservice.LocalAppOperation, localappop.Selector) (accountservice.LocalAppCallerDecision, error)
+}
+
 type Option func(*Service)
 
 type subscriber struct {
@@ -72,6 +77,7 @@ type Service struct {
 	sessionValidator          sessionValidator
 	bindingValidator          scopedBindingValidator
 	localAppConversationScope localAppConversationScopeValidator
+	localAppOperationAuth     localAppOperationAuthorizer
 	rateLimiter               *appRateLimiter
 	loopDetector              *appLoopDetector
 	appStorageDataRoot        string
@@ -100,6 +106,12 @@ func WithScopedBindingValidator(validator scopedBindingValidator) Option {
 func WithLocalAppConversationScopeValidator(validator localAppConversationScopeValidator) Option {
 	return func(s *Service) {
 		s.localAppConversationScope = validator
+	}
+}
+
+func WithLocalAppOperationAuthorizer(authorizer localAppOperationAuthorizer) Option {
+	return func(s *Service) {
+		s.localAppOperationAuth = authorizer
 	}
 }
 
@@ -309,6 +321,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(stream.Context())
+	localAppSelector := localappop.Selector{}
 	if localAppAuthorized {
 		if localDecision.Operation != accountservice.LocalAppOperationSubscribeConversation || req.GetScopedBinding() != nil || len(req.GetFromAppIds()) != 1 || req.GetFromAppIds()[0] != "runtime.agent" || strings.TrimSpace(req.GetLocalAgentRef()) == "" || strings.TrimSpace(req.GetConversationAnchorId()) == "" {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
@@ -324,6 +337,12 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 			stream.Context(), strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetConversationAnchorId()),
 		) != nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		}
+		if s.localAppOperationAuth == nil {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
+		localAppSelector = localappop.Selector{
+			AgentID: strings.TrimSpace(req.GetLocalAgentRef()), ConversationAnchorID: strings.TrimSpace(req.GetConversationAnchorId()),
 		}
 	}
 	if strings.TrimSpace(req.GetAppId()) == "" {
@@ -355,6 +374,18 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	defer s.removeSubscriber(sub.id)
 
 	err := sub.relay.Run(stream.Context(), func(event *runtimev1.AppMessageEvent) error {
+		if localAppAuthorized {
+			current, authorizeErr := s.localAppOperationAuth.AuthorizeLocalAppProtectedOperation(
+				stream.Context(), accountservice.LocalAppOperationSubscribeConversation, localAppSelector,
+			)
+			if authorizeErr != nil {
+				reason := accountservice.LocalAppOperationAuthorizationReason(authorizeErr)
+				return grpcerr.WithReasonCode(codes.PermissionDenied, reason)
+			}
+			if current.LocalAppPrincipalID != localDecision.LocalAppPrincipalID || current.LocalAppRecordID != localDecision.LocalAppRecordID || current.AccountID != localDecision.AccountID || current.SessionID != localDecision.SessionID {
+				return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+			}
+		}
 		return stream.Send(event)
 	})
 	if err == nil && rpcctx.WasServerShutdown(stream.Context()) {

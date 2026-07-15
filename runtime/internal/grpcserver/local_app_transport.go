@@ -197,10 +197,14 @@ func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Unar
 			return nil, protectedLocalAppRoleError(policy.missingRoleReason)
 		}
 		protectedContext := protectedlocal.ContextWithLocalAppConnection(ctx, connection)
-		if operation, selector, selected := selectedLocalAppUnaryOperation(info.FullMethod, req); selected && operationAuthorizer != nil {
+		if operation, selector, selected := selectedLocalAppUnaryOperation(info.FullMethod, req); selected {
+			if operationAuthorizer == nil {
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+			}
 			decision, authorizeErr := operationAuthorizer.AuthorizeLocalAppProtectedOperation(protectedContext, operation, selector)
 			if authorizeErr != nil {
-				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_GRANT_REQUIRED)
+				reason := accountservice.LocalAppOperationAuthorizationReason(authorizeErr)
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, reason)
 			}
 			protectedContext = accountservice.ContextWithAuthorizedLocalAppDecision(protectedContext, decision)
 		}
@@ -225,6 +229,7 @@ func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
 	}
 	stream.authorizeOnce.Do(func() {
 		if stream.operationAuthorizer == nil {
+			stream.authorizeErr = grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 			return
 		}
 		if stream.method != protectedSubscribeAppMessagesMethod {
@@ -239,7 +244,8 @@ func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
 		selector := localappop.Selector{AgentID: strings.TrimSpace(request.GetLocalAgentRef()), ConversationAnchorID: strings.TrimSpace(request.GetConversationAnchorId())}
 		decision, err := stream.operationAuthorizer.AuthorizeLocalAppProtectedOperation(stream.ctx, accountservice.LocalAppOperationSubscribeConversation, selector)
 		if err != nil {
-			stream.authorizeErr = grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_GRANT_REQUIRED)
+			reason := accountservice.LocalAppOperationAuthorizationReason(err)
+			stream.authorizeErr = grpcerr.WithReasonCode(codes.PermissionDenied, reason)
 			return
 		}
 		stream.ctx = accountservice.ContextWithAuthorizedLocalAppDecision(stream.ctx, decision)

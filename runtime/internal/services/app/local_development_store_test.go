@@ -175,17 +175,38 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 	if session.AppID != project.AppID || session.AuthorizationID != authorization.ID || session.SessionProof == (protectedlocal.Identifier{}) {
 		t.Fatalf("unexpected local-development session: %#v", session)
 	}
+	binding := localDevelopmentSessionBinding{
+		SessionID: session.SessionID, SessionProof: session.SessionProof, Process: process,
+		AccountGeneration: project.AccountGeneration, RuntimeBootEpoch: store.BootEpoch(),
+	}
+	if _, err := store.ValidateSession(ctx, binding); err != nil {
+		t.Fatalf("exact session binding was rejected: %v", err)
+	}
+	accountChanged := binding
+	accountChanged.AccountGeneration++
+	if _, err := store.ValidateSession(ctx, accountChanged); !errors.Is(err, errLocalDevelopmentAccountChanged) {
+		t.Fatalf("account generation drift reason = %v", err)
+	}
+	processChanged := binding
+	processChanged.Process.PID++
+	if _, err := store.ValidateSession(ctx, processChanged); !errors.Is(err, errLocalDevelopmentProcessMismatch) {
+		t.Fatalf("process replacement reason = %v", err)
+	}
+	proofChanged := binding
+	proofChanged.SessionProof[0] ^= 0xff
+	if _, err := store.ValidateSession(ctx, proofChanged); !errors.Is(err, errLocalDevelopmentSessionRevoked) {
+		t.Fatalf("session proof drift reason = %v", err)
+	}
+	bootChanged := binding
+	bootChanged.RuntimeBootEpoch[0] ^= 0xff
+	if _, err := store.ValidateSession(ctx, bootChanged); !errors.Is(err, errLocalDevelopmentSessionRevoked) {
+		t.Fatalf("Runtime boot epoch drift reason = %v", err)
+	}
 
 	if err := store.EndRun(ctx, authorization.ID, runID); err != nil {
 		t.Fatalf("EndRun: %v", err)
 	}
-	if _, err := store.ValidateSession(ctx, localDevelopmentSessionBinding{
-		SessionID:         session.SessionID,
-		SessionProof:      session.SessionProof,
-		Process:           process,
-		AccountGeneration: project.AccountGeneration,
-		RuntimeBootEpoch:  store.BootEpoch(),
-	}); err != errLocalDevelopmentSessionRevoked {
+	if _, err := store.ValidateSession(ctx, binding); err != errLocalDevelopmentSessionRevoked {
 		t.Fatalf("session must revoke immediately when the supervised run ends, got %v", err)
 	}
 }

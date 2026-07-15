@@ -38,6 +38,33 @@ describe('Electron protected local-app host', () => {
     ]);
   });
 
+  it('preserves the closed terminal authorization reasons and rejects unknown native reasons', async () => {
+    for (const reasonCode of [
+      'no-grant',
+      'grant-revoked',
+      'grant-superseded',
+      'presence-expired',
+      'process-replaced',
+      'account-changed',
+      'revoked',
+    ]) {
+      const candidate = {
+        ...binding([]),
+        localAppAgentOpenConversation: async () => ({ status: 'error' as const, reasonCode, retryable: false }),
+      };
+      await expect(createNimiElectronLocalAppHostForBinding(candidate).agentOpenConversation({
+        agentId: 'agent-a', requestedAnchorDisposition: 'create-or-resume',
+      })).rejects.toMatchObject({ reasonCode, retryable: false });
+    }
+    const unknown = {
+      ...binding([]),
+      localAppAgentOpenConversation: async () => ({ status: 'error' as const, reasonCode: 'private-detail', retryable: false }),
+    };
+    await expect(createNimiElectronLocalAppHostForBinding(unknown).agentOpenConversation({
+      agentId: 'agent-a', requestedAnchorDisposition: 'create-or-resume',
+    })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+  });
+
   it('rejects protected authority material returned by the native carrier', async () => {
     const candidate = {
       ...binding([]),

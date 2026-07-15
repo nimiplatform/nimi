@@ -87,6 +87,8 @@ func evaluate(req Request, snapshot Snapshot) Decision {
 		return deny(ReasonLocalAppGrantRevoked)
 	case GrantStateSuperseded:
 		return deny(ReasonLocalAppGrantSuperseded)
+	case GrantStateExpired:
+		return deny(ReasonLocalAppPresenceExpired)
 	case GrantStateGranted:
 		// Continue.
 	default:

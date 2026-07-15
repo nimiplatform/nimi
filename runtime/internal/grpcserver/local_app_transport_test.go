@@ -2,13 +2,16 @@ package grpcserver
 
 import (
 	"context"
+	"errors"
 	"net"
 	"sync"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -32,7 +35,7 @@ func TestProtectedLocalAppTransportRejectsOrdinaryConnection(t *testing.T) {
 
 func TestProtectedLocalAppUnaryPolicyRequiresAtomicBootstrapPromotion(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0xa1)
-	interceptor := newUnaryProtectedLocalAppTransportInterceptor()
+	interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{})
 	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
 
 	handlerCalled := false
@@ -127,7 +130,7 @@ func TestProtectedLocalAppPoliciesExposeOnlyFinalSelectedOperations(t *testing.T
 func TestProtectedLocalAppStreamRequiresCurrentSession(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0xb1)
 	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
-	interceptor := newStreamProtectedLocalAppTransportInterceptor()
+	interceptor := newStreamProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{})
 	stream := &localAppTransportTestStream{ctx: ctx}
 	handlerCalled := false
 	err := interceptor(nil, stream, &grpc.StreamServerInfo{FullMethod: protectedSubscribeAppMessagesMethod}, func(_ any, handlerStream grpc.ServerStream) error {
@@ -159,6 +162,90 @@ func TestProtectedLocalAppStreamRequiresCurrentSession(t *testing.T) {
 	if err != nil || !handlerCalled {
 		t.Fatalf("current local-app session did not reach admitted stream: called=%v err=%v", handlerCalled, err)
 	}
+}
+
+func TestProtectedLocalAppTransportPreservesClosedAuthorizationReasons(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0xc1)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{
+		SessionID: grpcLocalAppIdentifier(0xc2), SessionProof: grpcLocalAppIdentifier(0xc3),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	for _, reason := range []runtimev1.ReasonCode{
+		runtimev1.ReasonCode_LOCAL_APP_GRANT_REQUIRED,
+		runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED,
+		runtimev1.ReasonCode_LOCAL_APP_GRANT_SUPERSEDED,
+		runtimev1.ReasonCode_LOCAL_APP_PRESENCE_EXPIRED,
+		runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH,
+		runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED,
+		runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED,
+	} {
+		authorizer := localAppTransportAuthorizer{err: localAppTransportReasonError{reason: reason}}
+		interceptor := newUnaryProtectedLocalAppTransportInterceptor(authorizer)
+		handlerCalled := false
+		_, err := interceptor(ctx, &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-a"}, &grpc.UnaryServerInfo{FullMethod: protectedOpenConversationAnchorMethod}, func(context.Context, any) (any, error) {
+			handlerCalled = true
+			return nil, nil
+		})
+		if handlerCalled || localAppTransportReason(err) != reason {
+			t.Fatalf("reason %s collapsed: called=%v got=%s err=%v", reason, handlerCalled, localAppTransportReason(err), err)
+		}
+	}
+
+	interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{err: errors.New("private failure")})
+	_, err := interceptor(ctx, &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-a"}, &grpc.UnaryServerInfo{FullMethod: protectedOpenConversationAnchorMethod}, func(context.Context, any) (any, error) {
+		t.Fatal("arbitrary authorization error reached handler")
+		return nil, nil
+	})
+	if got := localAppTransportReason(err); got != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+		t.Fatalf("arbitrary error projected as %s", got)
+	}
+
+	stream := &localAppTransportTestStream{ctx: ctx}
+	streamInterceptor := newStreamProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{
+		err: localAppTransportReasonError{reason: runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED},
+	})
+	err = streamInterceptor(nil, stream, &grpc.StreamServerInfo{FullMethod: protectedSubscribeAppMessagesMethod}, func(_ any, handlerStream grpc.ServerStream) error {
+		return handlerStream.RecvMsg(&runtimev1.SubscribeAppMessagesRequest{})
+	})
+	if got := localAppTransportReason(err); got != runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED {
+		t.Fatalf("stream revoked reason collapsed to %s", got)
+	}
+}
+
+func TestProtectedLocalAppSelectedOperationsFailClosedWithoutAuthorizer(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0xd1)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{
+		SessionID: grpcLocalAppIdentifier(0xd2), SessionProof: grpcLocalAppIdentifier(0xd3),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	interceptor := newUnaryProtectedLocalAppTransportInterceptor()
+	_, err := interceptor(ctx, &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-a"}, &grpc.UnaryServerInfo{FullMethod: protectedOpenConversationAnchorMethod}, func(context.Context, any) (any, error) {
+		t.Fatal("missing operation authorizer reached handler")
+		return nil, nil
+	})
+	if got := localAppTransportReason(err); got != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+		t.Fatalf("missing authorizer reason = %s", got)
+	}
+}
+
+type localAppTransportReasonError struct{ reason runtimev1.ReasonCode }
+
+func (err localAppTransportReasonError) Error() string { return "local-app operation denied" }
+func (err localAppTransportReasonError) LocalAppOperationReasonCode() runtimev1.ReasonCode {
+	return err.reason
+}
+
+type localAppTransportAuthorizer struct{ err error }
+
+func (authorizer localAppTransportAuthorizer) AuthorizeLocalAppProtectedOperation(context.Context, accountservice.LocalAppOperation, localappop.Selector) (accountservice.LocalAppCallerDecision, error) {
+	if authorizer.err != nil {
+		return accountservice.LocalAppCallerDecision{}, authorizer.err
+	}
+	return accountservice.LocalAppCallerDecision{LocalAppPrincipalID: "principal-a", LocalAppRecordID: "record-a"}, nil
 }
 
 type localAppTransportTestStream struct{ ctx context.Context }

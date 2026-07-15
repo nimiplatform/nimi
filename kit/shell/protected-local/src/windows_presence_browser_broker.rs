@@ -21,6 +21,9 @@ const METADATA_KEY: &str = "x-nimi-presence-browser-launcher";
 const ENDPOINT_PREFIX: &str = "/v1/presence-browser/";
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
 const MAX_AUTHORIZATION_URL_BYTES: usize = 4096;
+#[path = "windows_checkpoint_browser_capture.rs"]
+mod windows_checkpoint_browser_capture;
+use windows_checkpoint_browser_capture::capture_configured_checkpoint_authorization_url;
 
 type BrowserOpener = Arc<dyn Fn(&str) -> Result<(), ()> + Send + Sync>;
 
@@ -223,6 +226,9 @@ fn validate_authorization_url(raw_url: &str) -> Result<(), ()> {
 }
 
 fn open_authorization_url(raw_url: &str) -> Result<(), ()> {
+    if let Some(captured) = capture_configured_checkpoint_authorization_url(raw_url) {
+        return captured;
+    }
     let mut child = Command::new(system_rundll32_path()?)
         .arg("url.dll,FileProtocolHandler")
         .arg(raw_url)

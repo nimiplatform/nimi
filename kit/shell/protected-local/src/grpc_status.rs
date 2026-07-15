@@ -103,7 +103,7 @@ pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationEr
 pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCode> {
     Some(match value {
         1 => LocalAppReasonCode::ActionExecuted,
-        642 | 643 | 644 | 645 | 655 | 656 | 657 | 658 | 659 | 660 => {
+        642 | 643 | 644 | 645 | 655 | 656 | 658 | 659 | 660 => {
             LocalAppReasonCode::RuntimePermissionDenied
         }
         646 | 647 | 648 => LocalAppReasonCode::RuntimeUnauthenticated,
@@ -113,6 +113,7 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         652 => LocalAppReasonCode::GrantRevoked,
         653 => LocalAppReasonCode::GrantSuperseded,
         654 => LocalAppReasonCode::AccountChanged,
+        657 => LocalAppReasonCode::PresenceExpired,
         _ => return None,
     })
 }
@@ -131,6 +132,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "LOCAL_APP_GRANT_REQUIRED" => LocalAppReasonCode::NoGrant,
         "LOCAL_APP_GRANT_REVOKED" => LocalAppReasonCode::GrantRevoked,
         "LOCAL_APP_GRANT_SUPERSEDED" => LocalAppReasonCode::GrantSuperseded,
+        "LOCAL_APP_PRESENCE_EXPIRED" => LocalAppReasonCode::PresenceExpired,
         "PROTOCOL_ENVELOPE_INVALID" => LocalAppReasonCode::InvalidPayload,
         "ARTIFACT_NOT_FOUND" => LocalAppReasonCode::NotFound,
         "RESOURCE_EXHAUSTED" | "ARTIFACT_TOO_LARGE" => LocalAppReasonCode::ResourceExhausted,
@@ -142,7 +144,6 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         | "LOCAL_APP_PROVENANCE_UNAVAILABLE"
         | "LOCAL_APP_OPERATION_UNAVAILABLE"
         | "LOCAL_APP_PRESENCE_REQUIRED"
-        | "LOCAL_APP_PRESENCE_EXPIRED"
         | "LOCAL_APP_DEVELOPER_MODE_DISABLED"
         | "LOCAL_APP_REMEMBERED_PROJECT_DORMANT"
         | "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"

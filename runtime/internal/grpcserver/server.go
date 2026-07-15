@@ -602,6 +602,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appservice.WithSessionValidator(authSvc),
 		appservice.WithScopedBindingValidator(accountSvc),
 		appservice.WithLocalAppConversationScopeValidator(agentSvc),
+		appservice.WithLocalAppOperationAuthorizer(accountSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 	}

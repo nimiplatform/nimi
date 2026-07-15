@@ -96,6 +96,7 @@ func TestCoordinatorRejectsZeroGrantAndRevocationWithoutRotatingSession(t *testi
 		{name: "pending grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStatePending }, reason: ReasonLocalAppGrantRequired},
 		{name: "revoked grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStateRevoked }, reason: ReasonLocalAppGrantRevoked},
 		{name: "superseded grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStateSuperseded }, reason: ReasonLocalAppGrantSuperseded},
+		{name: "expired grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStateExpired }, reason: ReasonLocalAppPresenceExpired},
 	}
 
 	for _, tc := range tests {

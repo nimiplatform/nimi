@@ -5,7 +5,8 @@ import test from 'node:test';
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 
 function declaredScopes() {
-  return [...manifest.matchAll(
+  const permissionSection = manifest.match(/permissions:\r?\n([\s\S]*?)disposition:/u)?.[1] || '';
+  return [...permissionSection.matchAll(
     /^    - scope: ([^\r\n]+)\r?\n(?:      qualifier: ([^\r\n]+)\r?\n)?      purpose: ([^\r\n]+)$/gmu,
   )].map((match) => ({
     scope: match[1],
@@ -31,5 +32,17 @@ test('Zhiyu local-development manifest mirrors the active registry transparency 
 });
 
 test('Zhiyu manifest declarations do not claim Runtime turn binding authority', () => {
-  assert.doesNotMatch(manifest, /^\s+scope: runtime\.agent\.turn\.(?:read|write)$/mu);
+  const permissionScopes = declaredScopes().map(({ scope }) => scope);
+  assert.ok(!permissionScopes.includes('runtime.agent.turn.read'));
+  assert.ok(!permissionScopes.includes('runtime.agent.turn.write'));
+
+  const requestSection = manifest.match(/  runtime_scoped_binding_requests:\r?\n([\s\S]*?)  electron:/u)?.[1] || '';
+  const requests = [...requestSection.matchAll(
+    /^    - scope: ([^\r\n]+)\r?\n      purpose: ([^\r\n]+)$/gmu,
+  )].map((match) => ({ scope: match[1], purpose: match[2] }));
+  assert.deepEqual(requests.map(({ scope }) => scope), [
+    'runtime.agent.turn.read',
+    'runtime.agent.turn.write',
+  ]);
+  assert.ok(requests.every(({ purpose }) => purpose.trim().length >= 24));
 });

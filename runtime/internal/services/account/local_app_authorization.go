@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 
 var (
 	ErrLocalAppCallerUnauthorized   = errors.New("local-app caller is not currently authorized")
+	ErrLocalAppAccountChanged       = fmt.Errorf("%w: account generation changed", ErrLocalAppCallerUnauthorized)
+	ErrLocalAppProcessMismatch      = fmt.Errorf("%w: process binding changed", ErrLocalAppCallerUnauthorized)
 	ErrLocalAppOperationNotAdmitted = errors.New("local-app operation capability and grant are not admitted")
 )
 
@@ -108,7 +111,7 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 	}
 	projection, generation, authenticated := s.AuthenticatedRuntimeSecurityContext(ctx)
 	if !authenticated || generation == 0 || projection == nil {
-		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
+		return LocalAppCallerDecision{}, ErrLocalAppAccountChanged
 	}
 	accountID := strings.TrimSpace(projection.GetAccountId())
 	realmEnvironmentID := strings.TrimSpace(projection.GetRealmEnvironmentId())
@@ -116,8 +119,17 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
 	}
 	binding, err := s.localAppSessions.ResolveLocalAppSession(ctx, generation)
-	if err != nil || binding.SessionID == (protectedlocal.Identifier{}) || strings.TrimSpace(binding.AppID) == "" ||
-		binding.HostExecutableDigest == (protectedlocal.Identifier{}) || binding.AccountGeneration != generation ||
+	if err != nil {
+		if errors.Is(err, ErrLocalAppAccountChanged) || errors.Is(err, ErrLocalAppProcessMismatch) {
+			return LocalAppCallerDecision{}, err
+		}
+		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
+	}
+	if binding.AccountGeneration != generation {
+		return LocalAppCallerDecision{}, ErrLocalAppAccountChanged
+	}
+	if binding.SessionID == (protectedlocal.Identifier{}) || strings.TrimSpace(binding.AppID) == "" ||
+		binding.HostExecutableDigest == (protectedlocal.Identifier{}) ||
 		binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) || binding.Process.PID == 0 || !s.now().UTC().Before(binding.ExpiresAt.UTC()) ||
 		binding.TrustClass != LocalAppTrustClassDevelopment || binding.AuthorizationID == (protectedlocal.Identifier{}) ||
 		binding.AuthorizationGeneration == 0 || strings.TrimSpace(binding.ProjectRoot) == "" ||
@@ -169,9 +181,18 @@ func (s *Service) AuthorizeLocalAppOperation(ctx context.Context, operation Loca
 		return LocalAppCallerDecision{}, err
 	}
 	binding, resolveErr := s.localAppSessions.ResolveLocalAppSession(ctx, decision.AccountGeneration)
-	if resolveErr != nil || binding.TrustClass != LocalAppTrustClassDevelopment || !containsLocalAppCapability(binding.Capabilities, required) ||
+	if resolveErr != nil {
+		if errors.Is(resolveErr, ErrLocalAppAccountChanged) || errors.Is(resolveErr, ErrLocalAppProcessMismatch) {
+			return LocalAppCallerDecision{}, resolveErr
+		}
+		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
+	}
+	if binding.TrustClass != LocalAppTrustClassDevelopment ||
 		binding.AuthorizationID != decision.AuthorizationID || binding.AuthorizationGeneration != decision.AuthorizationGeneration ||
 		binding.CapabilityFingerprint != decision.CapabilityFingerprint {
+		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
+	}
+	if !containsLocalAppCapability(binding.Capabilities, required) {
 		return LocalAppCallerDecision{}, ErrLocalAppOperationNotAdmitted
 	}
 	decision.Operation = operation

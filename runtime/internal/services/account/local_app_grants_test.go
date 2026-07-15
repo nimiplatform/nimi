@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"google.golang.org/grpc/metadata"
 )
 
 type testLocalAppGrantControl struct {
@@ -205,6 +206,14 @@ func TestLocalAppGrantZeroRequestPresenceDecisionAndReplay(t *testing.T) {
 	if len(fixture.control.challenge.PresenceChallengeID) != 32 || string(fixture.control.challenge.PresenceChallengeID) == string(pending.GetProjection().GetRequestId()) {
 		t.Fatalf("Runtime must issue distinct exact request/challenge ids: %+v", fixture.control.challenge)
 	}
+	wrongRequestID := append([]byte(nil), pending.GetProjection().GetRequestId()...)
+	wrongRequestID[0] ^= 0xff
+	wrongRequest, err := fixture.service.DecideLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.DecideLocalAppGrantRequest{
+		RequestId: wrongRequestID, Approved: true, PresenceChallengeId: fixture.control.challenge.PresenceChallengeID,
+	})
+	if err != nil || wrongRequest.GetProjection().GetReasonCode() != runtimev1.ReasonCode_LOCAL_APP_PRESENCE_EXPIRED || fixture.presence.calls != 0 {
+		t.Fatalf("wrong request id mutated pending grant: response=%+v err=%v presence_calls=%d", wrongRequest, err, fixture.presence.calls)
+	}
 	wrongChallenge := append([]byte(nil), fixture.control.challenge.PresenceChallengeID...)
 	wrongChallenge[0] ^= 0xff
 	wrong, err := fixture.service.DecideLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.DecideLocalAppGrantRequest{
@@ -224,6 +233,27 @@ func TestLocalAppGrantZeroRequestPresenceDecisionAndReplay(t *testing.T) {
 	})
 	if err != nil || replay.GetProjection().GetReasonCode() != runtimev1.ReasonCode_LOCAL_APP_PRESENCE_EXPIRED || fixture.presence.calls != 1 {
 		t.Fatalf("replayed challenge = (%+v, %v), presence_calls=%d", replay, err, fixture.presence.calls)
+	}
+}
+
+func TestLocalAppGrantApprovalConsumesProtectedPresenceBrowserMetadata(t *testing.T) {
+	fixture := newLocalAppGrantFixture(t)
+	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{
+		OperationId: "runtime_agent.conversation.open", ResourceRef: "agent:browser", Purpose: "Open this agent conversation",
+	})
+	if err != nil || pending.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_PENDING {
+		t.Fatalf("request grant = (%+v, %v)", pending, err)
+	}
+	ctx := metadata.NewIncomingContext(protectedDesktopAccountContext(t), metadata.Pairs(
+		presenceBrowserLauncherMetadata,
+		"http://127.0.0.1:4567/v1/presence-browser/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+	))
+	granted, err := fixture.service.DecideLocalAppGrant(ctx, &runtimev1.DecideLocalAppGrantRequest{
+		RequestId: pending.GetProjection().GetRequestId(), Approved: true,
+		PresenceChallengeId: fixture.control.challenge.PresenceChallengeID,
+	})
+	if err != nil || granted.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_GRANTED || !fixture.presence.launcherBound {
+		t.Fatalf("protected browser metadata was not consumed: response=%+v err=%v launcher=%v", granted, err, fixture.presence.launcherBound)
 	}
 }
 

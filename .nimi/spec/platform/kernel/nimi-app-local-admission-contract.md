@@ -76,7 +76,10 @@ project requires fresh presence and an explicit `run_once` or
 
 Authorization binds canonical project-root file identity, declared app id,
 capability fingerprint, current account, fixed shell/entry policy, and
-development authorization. Every build/host replacement receives a new lease,
+development authorization. The fingerprint may include closed, typed
+`local_development.runtime_scoped_binding_requests`; those declarations are
+request eligibility only and never substitute for a Runtime grant or
+Runtime-issued scoped binding. Every build/host replacement receives a new lease,
 process binding, and local-app session. Controlled HMR/rebuild/restart and
 Runtime restart may rebind without repeated consent only while those durable
 bindings and the supervisor run remain exact. Account switch, mode-off,

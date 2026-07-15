@@ -27,6 +27,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'no-grant',
   'grant-revoked',
   'grant-superseded',
+  'presence-expired',
   'runtime-permission-denied',
   'invalid-payload',
   'not-found',

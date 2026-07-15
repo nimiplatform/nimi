@@ -231,7 +231,7 @@ func (s *Service) DecideLocalAppGrant(ctx context.Context, req *runtimev1.Decide
 	}
 	projection, generation, authenticated := s.AuthenticatedRuntimeSecurityContext(ctx)
 	if !authenticated || projection == nil || projection.GetAccountId() != pending.accountID || generation != pending.accountGeneration {
-		return &runtimev1.DecideLocalAppGrantResponse{Projection: localAppGrantDeniedProjection(pending.operationID, pending.resourceRef, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)}, nil
+		return &runtimev1.DecideLocalAppGrantResponse{Projection: localAppGrantDeniedProjection(pending.operationID, pending.resourceRef, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)}, nil
 	}
 	controlRef, err := s.localAppGrantControl.AuthorizeLocalAppGrantControl(ctx)
 	if err != nil || controlRef != pending.controlSessionRef {
@@ -241,8 +241,12 @@ func (s *Service) DecideLocalAppGrant(ctx context.Context, req *runtimev1.Decide
 	presenceEvidenceRef := ""
 	if req.GetApproved() {
 		target = localappkernel.GrantStateGranted
+		presenceContext, presenceContextErr := WithPresenceBrowserLauncherMetadata(ctx)
+		if presenceContextErr != nil {
+			return &runtimev1.DecideLocalAppGrantResponse{Projection: localAppGrantDeniedProjection(pending.operationID, pending.resourceRef, runtimev1.ReasonCode_LOCAL_APP_PRESENCE_REQUIRED)}, nil
+		}
 		var verifiedUntil time.Time
-		presenceEvidenceRef, verifiedUntil, err = s.VerifyRuntimePresence(ctx, pending.presencePurpose)
+		presenceEvidenceRef, verifiedUntil, err = s.VerifyRuntimePresence(presenceContext, pending.presencePurpose)
 		if err != nil || !verifiedUntil.After(s.now().UTC()) {
 			return &runtimev1.DecideLocalAppGrantResponse{Projection: localAppGrantDeniedProjection(pending.operationID, pending.resourceRef, runtimev1.ReasonCode_LOCAL_APP_PRESENCE_REQUIRED)}, nil
 		}
@@ -353,17 +357,29 @@ func (s *Service) localAppGrantCallerBinding(ctx context.Context, operationID, r
 		record.TrustClass != localappkernel.TrustClassLocalDevelopment || record.LifecycleState != localappkernel.LifecycleStateActive {
 		return LocalAppCallerDecision{}, localAppGrantOperationBinding{}, ErrLocalAppCallerUnauthorized
 	}
-	if !containsLocalAppCapabilityFromDecision(s, ctx, decision, binding.capability) {
-		return LocalAppCallerDecision{}, localAppGrantOperationBinding{}, ErrLocalAppOperationNotAdmitted
+	if err := requireLocalAppCapabilityFromDecision(s, ctx, decision, binding.capability); err != nil {
+		return LocalAppCallerDecision{}, localAppGrantOperationBinding{}, err
 	}
 	return decision, binding, nil
 }
 
-func containsLocalAppCapabilityFromDecision(s *Service, ctx context.Context, decision LocalAppCallerDecision, capability string) bool {
+func requireLocalAppCapabilityFromDecision(s *Service, ctx context.Context, decision LocalAppCallerDecision, capability string) error {
 	binding, err := s.localAppSessions.ResolveLocalAppSession(ctx, decision.AccountGeneration)
-	return err == nil && binding.LocalAppPrincipalID == decision.LocalAppPrincipalID && binding.LocalAppRecordID == decision.LocalAppRecordID &&
-		binding.ProvenanceRevision == decision.ProvenanceRevision && binding.ProjectGeneration == decision.ProjectGeneration &&
-		binding.PayloadDigest == decision.PayloadDigest && containsLocalAppCapability(binding.Capabilities, capability)
+	if err != nil {
+		if errors.Is(err, ErrLocalAppAccountChanged) || errors.Is(err, ErrLocalAppProcessMismatch) {
+			return err
+		}
+		return ErrLocalAppCallerUnauthorized
+	}
+	if binding.LocalAppPrincipalID != decision.LocalAppPrincipalID || binding.LocalAppRecordID != decision.LocalAppRecordID ||
+		binding.ProvenanceRevision != decision.ProvenanceRevision || binding.ProjectGeneration != decision.ProjectGeneration ||
+		binding.PayloadDigest != decision.PayloadDigest {
+		return ErrLocalAppCallerUnauthorized
+	}
+	if !containsLocalAppCapability(binding.Capabilities, capability) {
+		return ErrLocalAppOperationNotAdmitted
+	}
+	return nil
 }
 
 func localAppGrantOperation(operationID, resourceRef string) (localAppGrantOperationBinding, error) {
@@ -520,6 +536,10 @@ func localAppGrantIDFromBytes(value []byte) (string, error) {
 
 func localAppGrantErrorReason(err error) runtimev1.ReasonCode {
 	switch {
+	case errors.Is(err, ErrLocalAppAccountChanged):
+		return runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED
+	case errors.Is(err, ErrLocalAppProcessMismatch):
+		return runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH
 	case errors.Is(err, ErrLocalAppCallerUnauthorized), errors.Is(err, localappkernel.ErrPrincipalTombstoned):
 		return runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED
 	case errors.Is(err, ErrLocalAppOperationNotAdmitted):

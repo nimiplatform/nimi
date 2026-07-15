@@ -509,7 +509,7 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 	}
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
 	if !ok || connection.Process().ExecutableTrustSetID != protectedlocal.WindowsLocalDevelopmentTrustSetID {
-		return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
+		return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppProcessMismatch
 	}
 	handle, ok := connection.Session()
 	if !ok {
@@ -519,7 +519,13 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 		SessionID: handle.SessionID, SessionProof: handle.SessionProof, Process: connection.Process(),
 		AccountGeneration: accountGeneration, RuntimeBootEpoch: connection.RuntimeBootEpoch(),
 	})
-	if err != nil || !connection.Live() {
+	if errors.Is(err, errLocalDevelopmentAccountChanged) {
+		return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppAccountChanged
+	}
+	if errors.Is(err, errLocalDevelopmentProcessMismatch) || !connection.Live() {
+		return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppProcessMismatch
+	}
+	if err != nil {
 		return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
 	}
 	principal, record, err := s.resolveLocalDevelopmentRecord(ctx, session)

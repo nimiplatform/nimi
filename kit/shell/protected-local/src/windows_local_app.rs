@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use std::time::Duration;
 
 use prost_types::{value::Kind as ProtoValueKind, Struct as ProtoStruct, Value as ProtoValue};
 use serde_json::{json, Map as JsonMap, Number as JsonNumber, Value as JsonValue};
@@ -16,7 +17,7 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::{
     AppMessageEvent, GetLocalAppGrantStatusRequest, GetPublicChatSessionSnapshotRequest,
     LocalAppGrantProjection, OpenConversationAnchorRequest, OpenLocalAppSessionRequest,
-    ReadArtifactBytesRequest, ReadArtifactBytesResponse, RequestLocalAppGrantRequest,
+    ReadArtifactBytesRequest, ReadArtifactBytesResponse, ReasonCode, RequestLocalAppGrantRequest,
     SendAppMessageRequest, SubscribeAppMessagesRequest,
 };
 use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
@@ -258,7 +259,7 @@ impl NimiLocalAppCarrier for WindowsLocalAppCarrier {
 }
 
 async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalAppOperationError> {
-    let (channel, runtime_peer) = open_verified_runtime_channel(RUNTIME_LOCAL_APP_PIPE_NAME)
+    let (channel, runtime_peer) = open_local_app_runtime_channel()
         .await
         .map_err(local_app_error_from_protected)?;
     let response = RuntimeAuthServiceClient::new(channel.clone())
@@ -286,6 +287,37 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         _runtime_boot_epoch: runtime_boot_epoch,
         turn_streams: Mutex::new(HashMap::new()),
     }))
+}
+
+async fn open_local_app_runtime_channel(
+) -> Result<(Channel, VerifiedRuntimePeer), crate::ProtectedCarrierError> {
+    with_one_unavailable_retry(
+        || open_verified_runtime_channel(RUNTIME_LOCAL_APP_PIPE_NAME),
+        Duration::from_millis(100),
+    )
+    .await
+}
+
+async fn with_one_unavailable_retry<T, F, Fut>(
+    mut open: F,
+    retry_delay: Duration,
+) -> Result<T, crate::ProtectedCarrierError>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, crate::ProtectedCarrierError>>,
+{
+    match open().await {
+        Ok(value) => Ok(value),
+        Err(error)
+            if error.reason_code()
+                == crate::ProtectedCarrierReasonCode::RuntimeServiceUnavailable
+                && error.retryable() =>
+        {
+            tokio::time::sleep(retry_delay).await;
+            open().await
+        }
+        Err(error) => Err(error),
+    }
 }
 
 async fn local_app_permission_posture(
@@ -332,8 +364,17 @@ async fn request_local_app_permission(
         request.operation_id,
         request.resource_ref,
     )?;
+    require_pending_permission(projection)
+}
+
+fn require_pending_permission(
+    projection: LocalAppPermissionPosture,
+) -> Result<LocalAppPermissionPosture, LocalAppOperationError> {
     if projection.state != LocalAppPermissionState::Pending {
-        return Err(untrusted());
+        return Err(LocalAppOperationError::new(
+            projection.reason_code,
+            projection.retryable,
+        ));
     }
     Ok(projection)
 }
@@ -346,39 +387,60 @@ fn project_permission_posture(
     if projection.operation_id != operation_id || projection.resource_ref != resource_ref {
         return Err(untrusted());
     }
-    let (state, reason_code, action_hint, retryable) = match projection.state {
-        1 => (
+    let runtime_reason = ReasonCode::try_from(projection.reason_code).map_err(|_| untrusted())?;
+    let (state, reason_code, action_hint, retryable) = match (projection.state, runtime_reason) {
+        (1, ReasonCode::LocalAppGrantRequired) => (
             LocalAppPermissionState::ZeroGrant,
             LocalAppReasonCode::NoGrant,
             "request_local_app_operation_grant",
             false,
         ),
-        2 => (
+        (2, ReasonCode::LocalAppPresenceRequired) => (
             LocalAppPermissionState::Pending,
             LocalAppReasonCode::NoGrant,
             "await_local_app_grant_decision",
             true,
         ),
-        3 => (
+        (3, ReasonCode::ActionExecuted) => (
             LocalAppPermissionState::Granted,
-            local_app_reason_from_proto(projection.reason_code)
-                .unwrap_or(LocalAppReasonCode::RuntimePermissionDenied),
+            LocalAppReasonCode::ActionExecuted,
             "continue_local_app_operation",
             false,
         ),
-        4 => (
-            LocalAppPermissionState::Denied,
-            LocalAppReasonCode::RuntimePermissionDenied,
+        (4, _) => {
+            let reason =
+                local_app_reason_from_proto(projection.reason_code).ok_or_else(untrusted)?;
+            if !matches!(
+                reason,
+                LocalAppReasonCode::RuntimePermissionDenied
+                    | LocalAppReasonCode::RuntimeUnauthenticated
+                    | LocalAppReasonCode::ProcessReplaced
+                    | LocalAppReasonCode::AccountChanged
+                    | LocalAppReasonCode::Revoked
+                    | LocalAppReasonCode::NoGrant
+            ) {
+                return Err(untrusted());
+            }
+            (
+                LocalAppPermissionState::Denied,
+                reason,
+                "request_local_app_operation_grant",
+                false,
+            )
+        }
+        (5, ReasonCode::LocalAppPresenceExpired) => (
+            LocalAppPermissionState::Revoked,
+            LocalAppReasonCode::PresenceExpired,
             "request_local_app_operation_grant",
             false,
         ),
-        5 | 6 => (
+        (6, ReasonCode::LocalAppGrantRevoked) => (
             LocalAppPermissionState::Revoked,
             LocalAppReasonCode::GrantRevoked,
             "request_local_app_operation_grant",
             false,
         ),
-        7 => (
+        (7, ReasonCode::LocalAppGrantSuperseded) => (
             LocalAppPermissionState::Superseded,
             LocalAppReasonCode::GrantSuperseded,
             "refresh_local_app_permission_posture",
@@ -788,6 +850,48 @@ fn untrusted() -> LocalAppOperationError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::VecDeque;
+
+    #[tokio::test]
+    async fn local_app_channel_retries_one_exact_unavailable_handshake() {
+        let mut outcomes = VecDeque::from([
+            Err(crate::ProtectedCarrierError::new(
+                crate::ProtectedCarrierReasonCode::RuntimeServiceUnavailable,
+                true,
+            )),
+            Ok(7u8),
+        ]);
+        let result = with_one_unavailable_retry(
+            || std::future::ready(outcomes.pop_front().expect("bounded outcome")),
+            Duration::ZERO,
+        )
+        .await
+        .expect("one unavailable retry");
+        assert_eq!(result, 7);
+        assert!(outcomes.is_empty());
+    }
+
+    #[tokio::test]
+    async fn local_app_channel_never_retries_untrusted_failures() {
+        let mut calls = 0;
+        let error = with_one_unavailable_retry(
+            || {
+                calls += 1;
+                std::future::ready(Err::<u8, _>(crate::ProtectedCarrierError::new(
+                    crate::ProtectedCarrierReasonCode::RuntimeServiceUntrusted,
+                    false,
+                )))
+            },
+            Duration::ZERO,
+        )
+        .await
+        .expect_err("untrusted failure");
+        assert_eq!(calls, 1);
+        assert_eq!(
+            error.reason_code(),
+            crate::ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+        );
+    }
 
     #[test]
     fn artifact_response_requires_exact_size_and_mime() {
@@ -826,6 +930,95 @@ mod tests {
             );
         }
         assert!(validate_safe_projection(&json!({"conversationAnchorId": "anchor-a"})).is_ok());
+    }
+
+    #[test]
+    fn denied_permission_request_preserves_the_runtime_projection_reason() {
+        let denied = project_permission_posture(
+            LocalAppGrantProjection {
+                state: 4,
+                operation_id: "runtime_agent.conversation.open".to_string(),
+                resource_ref: "agent-a".to_string(),
+                request_id: Vec::new(),
+                grant_id: Vec::new(),
+                presence_challenge_id: Vec::new(),
+                grant_generation: 0,
+                grant_revision: 0,
+                expires_at: None,
+                reason_code: 655,
+            },
+            "runtime_agent.conversation.open".to_string(),
+            "agent-a".to_string(),
+        )
+        .expect("denied projection");
+        let error = require_pending_permission(denied).expect_err("request must stay denied");
+        assert_eq!(
+            error.reason_code(),
+            LocalAppReasonCode::RuntimePermissionDenied
+        );
+    }
+
+    #[test]
+    fn permission_projection_preserves_terminal_reason_matrix() {
+        for (state, runtime_reason, expected) in [
+            (4, 651, LocalAppReasonCode::NoGrant),
+            (5, 657, LocalAppReasonCode::PresenceExpired),
+            (6, 652, LocalAppReasonCode::GrantRevoked),
+            (7, 653, LocalAppReasonCode::GrantSuperseded),
+        ] {
+            let projection = project_permission_posture(
+                LocalAppGrantProjection {
+                    state,
+                    operation_id: "runtime_agent.conversation.open".to_string(),
+                    resource_ref: "agent-a".to_string(),
+                    request_id: Vec::new(),
+                    grant_id: Vec::new(),
+                    presence_challenge_id: Vec::new(),
+                    grant_generation: 1,
+                    grant_revision: 1,
+                    expires_at: None,
+                    reason_code: runtime_reason,
+                },
+                "runtime_agent.conversation.open".to_string(),
+                "agent-a".to_string(),
+            )
+            .expect("terminal projection");
+            assert_eq!(projection.reason_code, expected);
+        }
+        assert!(project_permission_posture(
+            LocalAppGrantProjection {
+                state: 4,
+                operation_id: "runtime_agent.conversation.open".to_string(),
+                resource_ref: "agent-a".to_string(),
+                request_id: Vec::new(),
+                grant_id: Vec::new(),
+                presence_challenge_id: Vec::new(),
+                grant_generation: 1,
+                grant_revision: 1,
+                expires_at: None,
+                reason_code: 652,
+            },
+            "runtime_agent.conversation.open".to_string(),
+            "agent-a".to_string(),
+        )
+        .is_err());
+        assert!(project_permission_posture(
+            LocalAppGrantProjection {
+                state: 6,
+                operation_id: "runtime_agent.conversation.open".to_string(),
+                resource_ref: "agent-a".to_string(),
+                request_id: Vec::new(),
+                grant_id: Vec::new(),
+                presence_challenge_id: Vec::new(),
+                grant_generation: 1,
+                grant_revision: 1,
+                expires_at: None,
+                reason_code: 651,
+            },
+            "runtime_agent.conversation.open".to_string(),
+            "agent-a".to_string(),
+        )
+        .is_err());
     }
 
     #[test]

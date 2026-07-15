@@ -11,7 +11,11 @@ for upstream-owned concepts.
 Zhiyu is a binding-only first-party consumer for Runtime Agent turn surfaces.
 Runtime Agent turn read/write authority comes from Runtime-issued scoped
 binding, including `runtime.agent.turn.read` and `runtime.agent.turn.write`, not
-from Platform registry permission scopes.
+from Platform registry permission scopes. Zhiyu local development may list
+`runtime.agent.turn.read` and `runtime.agent.turn.write` only as typed
+`local_development.runtime_scoped_binding_requests`. Those entries declare
+request eligibility and participate in the Runtime-owned capability
+fingerprint; they do not grant or author a scoped binding.
 
 If a Runtime/SDK-authority-admitted first-party Electron host equivalence is
 later used for Zhiyu Runtime Agent consumption, this consumer-mode classification

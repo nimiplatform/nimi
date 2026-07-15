@@ -40,6 +40,8 @@ var (
 	errLocalDevelopmentLaunchMismatch    = errors.New("local-development launch binding mismatch")
 	errLocalDevelopmentLaunchExpired     = errors.New("local-development launch expired")
 	errLocalDevelopmentSessionRevoked    = errors.New("local-development session expired or revoked")
+	errLocalDevelopmentAccountChanged    = errors.New("local-development session account generation changed")
+	errLocalDevelopmentProcessMismatch   = errors.New("local-development session process binding changed")
 )
 
 type localDevelopmentProjectSnapshot struct {

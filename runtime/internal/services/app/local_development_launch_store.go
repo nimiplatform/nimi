@@ -293,8 +293,11 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 
 func (store *localDevelopmentStore) ValidateSession(ctx context.Context, binding localDevelopmentSessionBinding) (localDevelopmentSessionProjection, error) {
 	if store == nil || store.db == nil || binding.SessionID == (protectedlocal.Identifier{}) || binding.SessionProof == (protectedlocal.Identifier{}) ||
-		binding.AccountGeneration == 0 || binding.RuntimeBootEpoch != store.bootEpoch || protectedlocal.ValidateProcessTuple(binding.Process) != nil {
+		binding.AccountGeneration == 0 || binding.RuntimeBootEpoch != store.bootEpoch {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentSessionRevoked
+	}
+	if protectedlocal.ValidateProcessTuple(binding.Process) != nil {
+		return localDevelopmentSessionProjection{}, errLocalDevelopmentProcessMismatch
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -309,8 +312,11 @@ func (store *localDevelopmentStore) ValidateSession(ctx context.Context, binding
 		&launchID, &proofHash, &authorizationID, &runID, &appID, &projectRoot, &accountID, &accountGeneration, &capabilityFingerprint, &bootEpoch, &processJSON,
 		&principalID, &recordID, &provenanceRevision, &projectGeneration, &payloadDigest, &expiresAt, &revokedAt,
 	)
-	if err != nil || revokedAt.Valid || accountGeneration != binding.AccountGeneration || !store.now().UTC().Before(time.Unix(0, expiresAt).UTC()) {
+	if err != nil || revokedAt.Valid || !store.now().UTC().Before(time.Unix(0, expiresAt).UTC()) {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentSessionRevoked
+	}
+	if accountGeneration != binding.AccountGeneration {
+		return localDevelopmentSessionProjection{}, errLocalDevelopmentAccountChanged
 	}
 	expectedProofHash := sha256.Sum256(binding.SessionProof[:])
 	if len(proofHash) != len(expectedProofHash) || subtle.ConstantTimeCompare(proofHash, expectedProofHash[:]) != 1 {
@@ -338,7 +344,7 @@ func (store *localDevelopmentStore) ValidateSession(ctx context.Context, binding
 	}
 	process, err := unmarshalLocalDevelopmentProcess(processJSON)
 	if err != nil || process != binding.Process {
-		return localDevelopmentSessionProjection{}, errLocalDevelopmentSessionRevoked
+		return localDevelopmentSessionProjection{}, errLocalDevelopmentProcessMismatch
 	}
 	authorization, err := scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, parsedAuthorizationID[:]))
 	if err != nil || authorization.State != localDevelopmentAuthorizationActive || authorization.Project.AppID != appID || authorization.Project.ProjectRoot != projectRoot || authorization.Project.AccountID != accountID || authorization.Project.CapabilityFingerprint != parsedFingerprint ||

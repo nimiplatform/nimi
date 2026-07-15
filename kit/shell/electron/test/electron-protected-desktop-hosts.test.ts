@@ -158,7 +158,7 @@ describe('Electron local-app grant host', () => {
   const requestId = '11'.repeat(32);
   const presenceChallengeId = '22'.repeat(32);
   const pendingGrantId = '33'.repeat(32);
-  const grantId = '44'.repeat(32);
+  const grantId = pendingGrantId;
 
   function binding(overrides: Partial<NimiElectronLocalAppGrantBinding> = {}): NimiElectronLocalAppGrantBinding {
     return {
@@ -187,7 +187,7 @@ describe('Electron local-app grant host', () => {
         value: {
           state: 'revoked',
           grantId,
-          operationId: 'runtime_agent.conversation.open',
+          operationId: '',
           resourceRef: 'agent:agent-a',
         },
       }),
@@ -221,6 +221,47 @@ describe('Electron local-app grant host', () => {
     expect(revoked).toMatchObject({ state: 'revoked', reasonCode: 'local-app-grant-revoked' });
     expect(revoke).toHaveBeenCalledWith({ grantId });
     expect(await host.invoke('local_app_grant_list', {})).toEqual([]);
+  });
+
+  it('rejects decision projections that drift from the pending Runtime identity', async () => {
+    for (const drift of [
+      { grantId: '44'.repeat(32), operationId: 'runtime_agent.conversation.open', resourceRef: 'agent:agent-a' },
+      { grantId, operationId: 'runtime_agent.conversation.snapshot', resourceRef: 'agent:agent-a' },
+      { grantId, operationId: 'runtime_agent.conversation.open', resourceRef: 'agent:other' },
+    ]) {
+      const host = createNimiElectronLocalAppGrantHostForBinding(binding({
+        desktopDecideLocalAppGrant: async () => ({
+          status: 'ok' as const,
+          value: { state: 'granted', ...drift },
+        }),
+      }));
+      const pending = await host.invoke('local_app_grant_pending_list', {}) as Array<Record<string, unknown>>;
+      const selector = String(pending[0]?.selector);
+      await expect(host.invoke('local_app_grant_decide', { payload: { selector, approved: true } }))
+        .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+      expect(await host.invoke('local_app_grant_pending_list', {})).toHaveLength(1);
+      expect(await host.invoke('local_app_grant_list', {})).toEqual([]);
+    }
+  });
+
+  it('rejects revoke projections that drift from the Runtime grant identity', async () => {
+    for (const drift of [
+      { operationId: 'runtime_agent.conversation.open', resourceRef: 'agent:agent-a' },
+      { operationId: '', resourceRef: 'agent:other' },
+    ]) {
+      const host = createNimiElectronLocalAppGrantHostForBinding(binding({
+        desktopRevokeLocalAppGrant: async () => ({
+          status: 'ok' as const,
+          value: { state: 'revoked', grantId, ...drift },
+        }),
+      }));
+      const pending = await host.invoke('local_app_grant_pending_list', {}) as Array<Record<string, unknown>>;
+      await host.invoke('local_app_grant_decide', { payload: { selector: String(pending[0]?.selector), approved: true } });
+      const grants = await host.invoke('local_app_grant_list', {}) as Array<Record<string, unknown>>;
+      await expect(host.invoke('local_app_grant_revoke', { payload: { selector: String(grants[0]?.selector) } }))
+        .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+      expect(await host.invoke('local_app_grant_list', {})).toHaveLength(1);
+    }
   });
 
   it('pins only the four grant commands and restores a pending selector after native denial', async () => {

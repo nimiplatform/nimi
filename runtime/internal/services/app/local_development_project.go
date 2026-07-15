@@ -16,6 +16,9 @@ var localDevelopmentCanonicalScopes = map[string]struct{}{
 	"memory.read.bounded": {}, "memory.write.admitted": {}, "knowledge.read.bounded": {}, "knowledge.write.admitted": {},
 	"notification.send": {}, "notification.subscribe": {}, "file.read.scoped": {}, "file.write.scoped": {},
 	"device.use.scoped": {}, "audit.read.scoped": {}, "ai_profile.selection.consume": {},
+}
+
+var localDevelopmentRuntimeScopedBindingRequests = map[string]struct{}{
 	"runtime.agent.turn.read": {}, "runtime.agent.turn.write": {},
 }
 
@@ -37,7 +40,10 @@ func resolveLocalDevelopmentProject(rootPath string, expectedAppID string, shell
 	if expected := strings.TrimSpace(expectedAppID); expected == "" || expected != expectedAppID || expected != appID {
 		return localDevelopmentProjectSnapshot{}, fmt.Errorf("local-development manifest app_id %s does not match expected app_id %s", appID, expectedAppID)
 	}
-	capabilities, err := normalizeLocalDevelopmentCapabilities(manifest.Permissions.DeclaredNimiAPIScopes)
+	capabilities, err := normalizeLocalDevelopmentCapabilities(
+		manifest.Permissions.DeclaredNimiAPIScopes,
+		manifest.LocalDevelopment.RuntimeScopedBindingRequests,
+	)
 	if err != nil {
 		return localDevelopmentProjectSnapshot{}, err
 	}
@@ -58,12 +64,12 @@ func resolveLocalDevelopmentProject(rootPath string, expectedAppID string, shell
 	return project, nil
 }
 
-func normalizeLocalDevelopmentCapabilities(declarations []localAppManifestCapability) ([]string, error) {
+func normalizeLocalDevelopmentCapabilities(declarations, runtimeBindingRequests []localAppManifestCapability) ([]string, error) {
 	if len(declarations) == 0 {
 		return nil, errors.New("local-development manifest must declare at least one Nimi API capability")
 	}
-	capabilities := make([]string, 0, len(declarations))
-	seen := make(map[string]struct{}, len(declarations))
+	capabilities := make([]string, 0, len(declarations)+len(runtimeBindingRequests))
+	seen := make(map[string]struct{}, len(declarations)+len(runtimeBindingRequests))
 	for index, declaration := range declarations {
 		scope := strings.TrimSpace(declaration.Scope)
 		qualifier := strings.TrimSpace(declaration.Qualifier)
@@ -91,6 +97,21 @@ func normalizeLocalDevelopmentCapabilities(declarations []localAppManifestCapabi
 		}
 		seen[capability] = struct{}{}
 		capabilities = append(capabilities, capability)
+	}
+	for index, request := range runtimeBindingRequests {
+		scope := strings.TrimSpace(request.Scope)
+		purpose := strings.TrimSpace(request.Purpose)
+		if scope != request.Scope || request.Qualifier != "" || purpose == "" || purpose != request.Purpose {
+			return nil, fmt.Errorf("local-development Runtime scoped binding request %d is not canonical", index)
+		}
+		if _, admitted := localDevelopmentRuntimeScopedBindingRequests[scope]; !admitted {
+			return nil, fmt.Errorf("local-development Runtime scoped binding request %d uses unknown scope %s", index, scope)
+		}
+		if _, duplicate := seen[scope]; duplicate {
+			return nil, fmt.Errorf("local-development capability %s is duplicated", scope)
+		}
+		seen[scope] = struct{}{}
+		capabilities = append(capabilities, scope)
 	}
 	sort.Strings(capabilities)
 	return capabilities, nil

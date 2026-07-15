@@ -787,6 +787,19 @@ async function collectProductionFiles(root) {
   return files.sort();
 }
 
+test('local-development journey treats every terminal grant reason as lost access', async () => {
+  const source = await readFile(path.join(
+    appRoot,
+    'src',
+    'shell',
+    'local-development',
+    'ZhiyuLocalDevelopmentJourney.tsx',
+  ), 'utf8');
+  for (const reason of ['grant-revoked', 'grant-superseded', 'presence-expired']) {
+    assert.match(source, new RegExp(`['\"]${reason}['\"]`, 'u'));
+  }
+});
+
 async function readAgentChatSource() {
   return readAppFiles(agentChatParitySourceFiles);
 }

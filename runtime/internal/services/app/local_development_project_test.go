@@ -10,11 +10,14 @@ func TestNormalizeLocalDevelopmentCapabilitiesAcceptsClosedScopesAndCanonicalQua
 		{Scope: "data.scope.read", Qualifier: "runtime.artifacts", Purpose: "Read the Runtime artifact audience."},
 		{Scope: "data.scope.read", Qualifier: "realm.core.worlds", Purpose: "Declare the reviewed world-read boundary."},
 		{Scope: "ai.spend.meter", Purpose: "Declare metered AI execution."},
+	}, []localAppManifestCapability{
+		{Scope: "runtime.agent.turn.read", Purpose: "Request a Runtime-issued conversation read binding."},
+		{Scope: "runtime.agent.turn.write", Purpose: "Request a Runtime-issued conversation write binding."},
 	})
 	if err != nil {
 		t.Fatalf("normalize canonical declarations: %v", err)
 	}
-	want := []string{"ai.spend.meter", "data.scope.read#realm.core.worlds", "data.scope.read#runtime.artifacts"}
+	want := []string{"ai.spend.meter", "data.scope.read#realm.core.worlds", "data.scope.read#runtime.artifacts", "runtime.agent.turn.read", "runtime.agent.turn.write"}
 	if !reflect.DeepEqual(capabilities, want) {
 		t.Fatalf("unexpected normalized capabilities: got %v want %v", capabilities, want)
 	}
@@ -32,9 +35,26 @@ func TestNormalizeLocalDevelopmentCapabilitiesRejectsNonCanonicalDeclarations(t 
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if _, err := normalizeLocalDevelopmentCapabilities([]localAppManifestCapability{test.declaration}); err == nil {
+			if _, err := normalizeLocalDevelopmentCapabilities([]localAppManifestCapability{test.declaration}, nil); err == nil {
 				t.Fatal("invalid local-development permission declaration was accepted")
 			}
 		})
+	}
+}
+
+func TestNormalizeLocalDevelopmentCapabilitiesSeparatesRuntimeBindingRequests(t *testing.T) {
+	declarations := []localAppManifestCapability{{Scope: "account.session.read", Purpose: "Read the current account projection."}}
+	for _, request := range []localAppManifestCapability{
+		{Scope: "runtime.agent.turn.read", Qualifier: "conversation", Purpose: "Qualifier is not admitted."},
+		{Scope: "runtime.agent.ai_config.write", Purpose: "Open Runtime scope is not admitted."},
+	} {
+		if _, err := normalizeLocalDevelopmentCapabilities(declarations, []localAppManifestCapability{request}); err == nil {
+			t.Fatalf("invalid Runtime scoped binding request was accepted: %#v", request)
+		}
+	}
+	if _, err := normalizeLocalDevelopmentCapabilities([]localAppManifestCapability{{
+		Scope: "runtime.agent.turn.read", Purpose: "Runtime binding scopes are not registry permission declarations.",
+	}}, nil); err == nil {
+		t.Fatal("Runtime scoped binding request was accepted as a permission declaration")
 	}
 }

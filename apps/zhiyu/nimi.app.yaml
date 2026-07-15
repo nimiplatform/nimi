@@ -28,6 +28,11 @@ permissions:
       purpose: Read Zhiyu-scoped audit projections for diagnostics.
 disposition: bundled_component_with_isolated_integration_build
 local_development:
+  runtime_scoped_binding_requests:
+    - scope: runtime.agent.turn.read
+      purpose: Request a Runtime-issued binding for conversation state projection.
+    - scope: runtime.agent.turn.write
+      purpose: Request a Runtime-issued binding for user-authored conversation turns.
   electron:
     renderer_origin: http://127.0.0.1:1472
     execution_profile_ref: opaque:windows-native-electron-development-v1

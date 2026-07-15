@@ -118,7 +118,11 @@ canonical project-root file identity, declared app id, capability fingerprint,
 current account, and fixed shell/entry policy without creating authority.
 `DecideLocalDevelopmentProject` consumes fresh grant presence and exactly
 `run_once | remember_project`, then creates a new isolated development
-principal/record with zero grant.
+principal/record with zero grant. A developer manifest may include closed,
+typed `local_development.runtime_scoped_binding_requests` in the capability
+fingerprint. Such a declaration is request eligibility only: it grants no
+operation, binding, account authority, or Runtime Agent turn authority. The
+common K-GRANT flow and a Runtime-issued scoped binding remain required.
 
 Every supervised host process uses `PrepareLocalAppLaunch`, a new process bind,
 and a new common local-app session. Controlled HMR/rebuild/restart and Runtime

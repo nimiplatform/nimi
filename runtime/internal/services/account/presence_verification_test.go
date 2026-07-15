@@ -10,15 +10,17 @@ import (
 )
 
 type staticPresenceVerifier struct {
-	result PresenceVerification
-	err    error
-	seen   PresenceVerificationRequest
-	calls  int
+	result        PresenceVerification
+	err           error
+	seen          PresenceVerificationRequest
+	calls         int
+	launcherBound bool
 }
 
-func (s *staticPresenceVerifier) RequestPresenceVerification(_ context.Context, request PresenceVerificationRequest) (PresenceVerification, error) {
+func (s *staticPresenceVerifier) RequestPresenceVerification(ctx context.Context, request PresenceVerificationRequest) (PresenceVerification, error) {
 	s.calls++
 	s.seen = request
+	s.launcherBound = presenceBrowserLauncherFromContext(ctx) != nil
 	if s.err != nil {
 		return PresenceVerification{}, s.err
 	}

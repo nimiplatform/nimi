@@ -55,15 +55,20 @@ func TestAuthorizeLocalAppOperationRequiresExactLiveCapability(t *testing.T) {
 func TestAuthorizeLocalAppCallerFailsClosedOnResolverAndAccountInvalidation(t *testing.T) {
 	service := newHarnessService(t, nil)
 	completeLogin(t, service)
-	service.SetLocalAppSessionResolver(&localAppAuthorizationResolver{err: errors.New("revoked")})
+	resolver := &localAppAuthorizationResolver{err: errors.New("revoked")}
+	service.SetLocalAppSessionResolver(resolver)
 	if _, err := service.AuthorizeLocalAppCaller(context.Background()); !errors.Is(err, ErrLocalAppCallerUnauthorized) {
 		t.Fatalf("resolver failure err = %v", err)
+	}
+	resolver.err = ErrLocalAppProcessMismatch
+	if _, err := service.AuthorizeLocalAppCaller(context.Background()); !errors.Is(err, ErrLocalAppProcessMismatch) {
+		t.Fatalf("process mismatch err = %v", err)
 	}
 	logout, err := service.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
 	if err != nil || !logout.GetAccepted() {
 		t.Fatalf("logout = (%+v, %v)", logout, err)
 	}
-	if _, err := service.AuthorizeLocalAppCaller(context.Background()); !errors.Is(err, ErrLocalAppCallerUnauthorized) {
+	if _, err := service.AuthorizeLocalAppCaller(context.Background()); !errors.Is(err, ErrLocalAppAccountChanged) {
 		t.Fatalf("logout authorization err = %v", err)
 	}
 }
