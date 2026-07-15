@@ -13,7 +13,11 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-const realmPresenceCallbackPath = "/oauth/callback"
+const (
+	realmPresenceCallbackPath    = "/oauth/callback"
+	realmPresenceCallbackPortMin = 32_768
+	realmPresenceCallbackPortMax = 49_151
+)
 
 type realmOAuthPresenceProviderConfig struct {
 	AuthorizationURL string
@@ -186,7 +190,7 @@ type realmPresenceLoopback struct {
 }
 
 func (p realmOAuthPresenceProvider) startLoopbackCallback(ctx context.Context) (realmPresenceLoopback, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := listenRealmPresenceLoopback()
 	if err != nil {
 		return realmPresenceLoopback{}, err
 	}
@@ -223,6 +227,21 @@ func (p realmOAuthPresenceProvider) startLoopbackCallback(ctx context.Context) (
 		}
 	}()
 	return realmPresenceLoopback{redirectURI: redirectURI, server: server, callbacks: callbacks}, nil
+}
+
+func listenRealmPresenceLoopback() (net.Listener, error) {
+	portCount := realmPresenceCallbackPortMax - realmPresenceCallbackPortMin + 1
+	startOffset := int(time.Now().UnixNano() % int64(portCount))
+	var lastErr error
+	for offset := 0; offset < portCount; offset++ {
+		port := realmPresenceCallbackPortMin + (startOffset+offset)%portCount
+		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", port))
+		if err == nil {
+			return listener, nil
+		}
+		lastErr = err
+	}
+	return nil, fmt.Errorf("allocate Realm presence callback in %d-%d: %w", realmPresenceCallbackPortMin, realmPresenceCallbackPortMax, lastErr)
 }
 
 func (l realmPresenceLoopback) wait(ctx context.Context, timeout time.Duration) (realmPresenceCallback, error) {

@@ -6,11 +6,36 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestRealmPresenceCallbackStaysBelowOSDynamicPortRange(t *testing.T) {
+	provider := realmOAuthPresenceProvider{}
+	callback, err := provider.startLoopbackCallback(context.Background())
+	if err != nil {
+		t.Fatalf("startLoopbackCallback: %v", err)
+	}
+	defer callback.close()
+
+	parsed, err := url.Parse(callback.redirectURI)
+	if err != nil {
+		t.Fatalf("parse callback redirect: %v", err)
+	}
+	port, err := strconv.Atoi(parsed.Port())
+	if err != nil {
+		t.Fatalf("parse callback port: %v", err)
+	}
+	if parsed.Scheme != "http" || parsed.Hostname() != "127.0.0.1" || parsed.Path != realmPresenceCallbackPath {
+		t.Fatalf("callback redirect = %q, want exact loopback callback", callback.redirectURI)
+	}
+	if port < 1_024 || port > realmPresenceCallbackPortMax {
+		t.Fatalf("callback port = %d, want 1024-%d", port, realmPresenceCallbackPortMax)
+	}
+}
 
 func TestRealmOAuthPresenceProviderCompletesFreshReauth(t *testing.T) {
 	var authorizeQuery url.Values

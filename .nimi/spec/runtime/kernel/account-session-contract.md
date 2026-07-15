@@ -455,8 +455,9 @@ Fixed rules:
 - Realm login, access-token refresh, `GetAccessToken`, `InvokeRealmUnary`,
   server-side `/me`, or app-owned session checks do not satisfy this method.
 - Runtime-owned `NIMI_REAUTH` may satisfy this method only when Runtime forces a
-  fresh Realm OAuth login prompt, owns the loopback callback, validates
-  state/code-verifier exchange, verifies the returned account subject matches
+  fresh Realm OAuth login prompt, owns the loopback callback, allocates that
+  callback only on loopback ports `1024..49151` below the OS dynamic-port
+  range, validates state/code-verifier exchange, verifies the returned account subject matches
   the current Runtime account, and discards any token material instead of
   turning it into app-owned session truth.
 - On Windows, the fixed restricted-service principal cannot acquire an
