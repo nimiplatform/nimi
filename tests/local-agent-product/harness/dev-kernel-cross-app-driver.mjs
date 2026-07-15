@@ -501,7 +501,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     if (executionMode === 'owner-minimal') {
       observations.browserAuthBudget = browserAuthDriver.audit();
       phase = 'owner-minimal-persist';
-      return persistOwnerMinimalResult({
+      return await persistOwnerMinimalResult({
         observer, desktop, runOnceZhiyu, observedPages, observations, trial, serviceBefore,
         artifactsRoot, screenshotsRoot, sourceState, outputDir, started,
       });
@@ -825,7 +825,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
 
     observations.browserAuthBudget = browserAuthDriver.audit();
     phase = 'core-persist';
-    return persistCoreResult({
+    return await persistCoreResult({
       fixture, providerRawPath, observations, artifactsRoot, desktop, observer, observedPages,
       desktopAuditBeforeSwitch, desktopAuditAfterSwitch, zhiyuAudit, zhiyuAuditBeforeSwitch,
       zhiyuAuditAfterSwitch, zhiyuRevokedNarrowMethod, zhiyuRevokedNarrowMetrics,

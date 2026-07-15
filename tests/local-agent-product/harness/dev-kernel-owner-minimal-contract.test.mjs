@@ -57,6 +57,8 @@ test('owner-minimal runner reuses the core driver and does not create another ca
   const driver = ownerDriverSource();
   assert.match(runner, /runDevKernelOwnerMinimalTrial/);
   assert.match(driver, /runDevKernelTrial\(\{ \.\.\.input, executionMode: 'owner-minimal' \}\)/);
+  assert.match(driver, /return await persistOwnerMinimalResult/);
+  assert.match(driver, /return await persistCoreResult/);
   assert.doesNotMatch(runner, /go(?:\.exe)?['"\s,]+run|serve|node-grpc|runtime_bridge_status/iu);
 });
 
