@@ -83,6 +83,12 @@ test('owner-minimal waits for the Runtime-owned Developer Mode projection before
   assert.match(driver, /card\.getAttribute\('data-developer-mode'\) === expected[\s\S]*button\.isEnabled/iu);
 });
 
+test('owner-minimal bounds only the exact supervised-host startup transport race', () => {
+  const driver = ownerDriverSource();
+  assert.match(driver, /latest\?\.state === 'runtime-unavailable'[\s\S]*lastError\?\.reasonCode === 'runtime-service-unavailable'[\s\S]*transientRuntimeUnavailableMs/iu);
+  assert.match(driver, /'zero-grant session',[\s\S]*transientRuntimeUnavailableMs:\s*15_000/iu);
+});
+
 test('owner-minimal resolves the Desktop-owned presence file from the real launcher home only', () => {
   const driver = ownerDriverSource();
   assert.match(driver, /function startZhiyuDev[\s\S]*const launcherHome = os\.homedir\(\)[\s\S]*HOME: launcherHome, USERPROFILE: launcherHome/iu);

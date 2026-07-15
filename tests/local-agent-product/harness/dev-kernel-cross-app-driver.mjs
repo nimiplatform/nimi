@@ -426,6 +426,8 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       runOnceZhiyu.page,
       { state: 'session-bound-zero-grant' },
       'zero-grant session',
+      90_000,
+      { transientRuntimeUnavailableMs: 15_000 },
     );
     await runOnceZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open').click();
     const noGrant = await waitZhiyuEvidence(runOnceZhiyu.page, { errorReason: 'no-grant' }, 'no-grant denial');

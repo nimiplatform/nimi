@@ -123,8 +123,11 @@ export function startZhiyuDev(env, captureOptions = {}) {
   });
 }
 
-export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_000) {
-  const deadline = Date.now() + timeoutMs;
+export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_000, {
+  transientRuntimeUnavailableMs = 0,
+} = {}) {
+  const startedAt = Date.now();
+  const deadline = startedAt + timeoutMs;
   let latest = null;
   while (Date.now() < deadline) {
     const observation = await page.evaluate((condition) => {
@@ -158,7 +161,12 @@ export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_0
       return evidence;
     }
     if (observation.terminal) {
-      throw new Error(`${label} failed with evidence: ${JSON.stringify(latest)}`);
+      const transientRuntimeUnavailable = latest?.state === 'runtime-unavailable'
+        && latest?.lastError?.reasonCode === 'runtime-service-unavailable'
+        && Date.now() - startedAt < transientRuntimeUnavailableMs;
+      if (!transientRuntimeUnavailable) {
+        throw new Error(`${label} failed with evidence: ${JSON.stringify(latest)}`);
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
