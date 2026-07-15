@@ -481,7 +481,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       const value = await rawZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
       return value?.lastError ? value : null;
     }, { timeoutMs: 30_000, label: 'raw process mismatch denial' });
-    observations.processMismatch = rawDenied;
+    observations.processMismatch = { ...rawDenied, probeKind: 'raw-uncarried' };
     await rawZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-raw-process-mismatch.png') });
     await terminateProcessTree(rawHandle);
     rawHandle = null;

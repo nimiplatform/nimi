@@ -1,4 +1,7 @@
 export function isRuntimeObservedProcessMismatch(evidence) {
+  if (evidence?.probeKind === 'raw-uncarried') {
+    return evidence?.lastError?.reasonCode === 'runtime-service-untrusted';
+  }
   return evidence?.lastError?.reasonCode === 'process-replaced';
 }
 

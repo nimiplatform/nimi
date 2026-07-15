@@ -322,8 +322,11 @@ test('architecture rejects reactivating historical direct-daemon mappings', () =
   expectFailure(validateArchitecture(mutated), /non-executable|historical|direct-daemon|core gates/i);
 });
 
-test('process-mismatch checkpoint requires a Runtime-observed mismatch', () => {
+test('process-mismatch checkpoint distinguishes stale supervised and raw uncarried denial', () => {
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'process-replaced' } }), true);
+  assert.equal(isRuntimeObservedProcessMismatch({ probeKind: 'raw-uncarried', lastError: { reasonCode: 'runtime-service-untrusted' } }), true);
+  assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'runtime-service-untrusted' } }), false);
+  assert.equal(isRuntimeObservedProcessMismatch({ probeKind: 'raw-uncarried', lastError: { reasonCode: 'process-replaced' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'protected-carrier-required' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'no-grant' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch(null), false);
