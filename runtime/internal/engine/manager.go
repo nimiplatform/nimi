@@ -62,6 +62,7 @@ type Manager struct {
 	managedImageBackend               *ManagedImageBackendConfig
 
 	mu          sync.RWMutex
+	uvToolMu    sync.Mutex
 	supervisors map[EngineKind]*Supervisor
 	starting    map[EngineKind]bool
 }

@@ -57,6 +57,13 @@ var managedUVArchiveSpecs = []managedUVArchiveSpec{
 }
 
 func (m *Manager) EnsureUVToolDependency(ctx context.Context) (UVToolDependencyStatus, error) {
+	// Multiple admitted Python consumers share this exact executable. Keep
+	// verification and first materialization in one Manager-owned critical
+	// section so a later consumer cannot replace uv.exe after an earlier
+	// consumer has started using the verified payload.
+	m.uvToolMu.Lock()
+	defer m.uvToolMu.Unlock()
+
 	// The uv tool is a standalone downloaded dependency payload
 	// (python.tool.uv -> managed_root: dependencies in
 	// local-environment-dependencies.yaml), so it installs under the
