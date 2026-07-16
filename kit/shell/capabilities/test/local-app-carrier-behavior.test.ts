@@ -20,10 +20,11 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',
+  'desktop-open.openIntent',
 ] as const;
 
 describe('local-app public capability behavior', () => {
-  it('projects the exact final fourteen-operation allowlist and command set', () => {
+  it('projects the exact final fifteen-operation allowlist and command set', () => {
     const set = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (entry) => entry.setId === 'local-app-standard-shell-v1',
     );

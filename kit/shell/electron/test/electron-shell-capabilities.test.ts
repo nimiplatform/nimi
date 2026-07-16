@@ -106,6 +106,7 @@ describe('Electron standard shell capability catalog', () => {
       'storage.readJson',
       'storage.writeJson',
       'storage.removeJson',
+      'desktop-open.openIntent',
     ]);
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
@@ -122,11 +123,12 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.storage.readJson',
       'nimi.shell.storage.writeJson',
       'nimi.shell.storage.removeJson',
+      'nimi.shell.desktopOpen.openIntent',
     ]);
     expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
       'ai-config.get',
-      'desktop-open.openIntent',
     ]));
+    expect(localAppSet?.plannedOperations).not.toContain('desktop-open.openIntent');
     expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']);
     expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']);
     expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']);

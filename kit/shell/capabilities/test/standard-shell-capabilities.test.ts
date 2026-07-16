@@ -211,6 +211,7 @@ describe('standard shell capabilities', () => {
       'storage.readJson',
       'storage.writeJson',
       'storage.removeJson',
+      'desktop-open.openIntent',
     ]);
     expect(localAppSet?.authorityStatus).toBe('0k_final_surface_windows_development_positive');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');

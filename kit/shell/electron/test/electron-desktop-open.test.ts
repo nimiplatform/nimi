@@ -19,7 +19,7 @@ import {
 const nowIso = '2026-07-08T00:00:05.000Z';
 
 describe('Electron Desktop Open Intent host client', () => {
-  it('denies Desktop Open for local-app hosts until separately admitted', async () => {
+  it('admits the exact local-app intent and host-stamps its source class', async () => {
     await withTempDir('desktop-open', async (dir) => {
       const descriptorPath = path.join(dir, 'presence.v1.json');
       await writeDescriptor(descriptorPath, {
@@ -61,7 +61,7 @@ describe('Electron Desktop Open Intent host client', () => {
         },
       });
 
-      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      const result = await invokeBridge(ipcMain, createInvokeEvent().event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
         payload: {
           payload: {
@@ -69,11 +69,37 @@ describe('Electron Desktop Open Intent host client', () => {
             intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
           },
         },
-      })).rejects.toMatchObject({
-        code: 'capability-unavailable',
-        reasonCode: 'electron-standard-capability-not-in-host-set',
       });
-      expect(fetchCalls).toEqual([]);
+      expect(result).toEqual({
+        status: 'accepted',
+        confirmation: 'desktop-accepted',
+        bridgeId: 'desktop-open-20260708-bridge',
+        requestId: 'desktop-open-20260708-request',
+        appliedTarget: 'open-explore',
+      });
+      expect(fetchCalls).toHaveLength(1);
+      expect(fetchCalls[0]?.url).toBe('http://127.0.0.1:49152/v1/open-intent');
+      expect(JSON.parse(String(fetchCalls[0]?.init.body))).toEqual({
+        schemaVersion: 1,
+        sourceApp: 'nimi.zhiyu',
+        sourceHost: 'desktop-electron-local-app-host',
+        requestId: 'desktop-open-20260708-request',
+        intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+      });
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
+        payload: {
+          payload: {
+            sourceHost: 'electron-standard-shell',
+            intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+          },
+        },
+      })).resolves.toEqual({
+        status: 'rejected',
+        reasonCode: 'desktop-open-intent-invalid',
+        actionHint: 'fix_desktop_open_intent',
+      });
+      expect(fetchCalls).toHaveLength(1);
     });
   });
 
@@ -145,7 +171,7 @@ describe('Electron Desktop Open Intent host client', () => {
     });
   });
 
-  it('denies local-app source-host overrides before dispatch', async () => {
+  it('ignores local-app host source-class overrides and injects the canonical class', async () => {
     await withTempDir('desktop-open-installed-sourcehost-override', async (dir) => {
       const descriptorPath = path.join(dir, 'presence.v1.json');
       await writeDescriptor(descriptorPath, {
@@ -189,7 +215,7 @@ describe('Electron Desktop Open Intent host client', () => {
         },
       });
 
-      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      const result = await invokeBridge(ipcMain, createInvokeEvent().event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
         payload: {
           payload: {
@@ -197,11 +223,15 @@ describe('Electron Desktop Open Intent host client', () => {
             intent: { kind: 'open-apps' },
           },
         },
-      })).rejects.toMatchObject({
-        code: 'capability-unavailable',
-        reasonCode: 'electron-standard-capability-not-in-host-set',
       });
-      expect(postedSourceHost).toBe('');
+      expect(result).toEqual({
+        status: 'accepted',
+        confirmation: 'desktop-accepted',
+        bridgeId: 'desktop-open-20260708-bridge',
+        requestId: 'desktop-open-20260708-installed',
+        appliedTarget: 'open-apps',
+      });
+      expect(postedSourceHost).toBe('desktop-electron-local-app-host');
     });
   });
 
