@@ -40,7 +40,7 @@ callers:
       RequestPresenceVerification: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
       Logout: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
       SwitchAccount: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope] }
-      InvokeRealmUnary: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, broker_operation_policy] }
+      InvokeRealmUnary: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, exact_desktop_source_readiness_broker_operation] }
       IssueScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, binding_relation_match] }
       RevokeScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, binding_relation_match] }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
@@ -61,7 +61,7 @@ callers:
       RequestPresenceVerification: { decision: deny, reason: desktop_presence_ux_only }
       Logout: { decision: deny, reason: desktop_account_ux_only }
       SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
-      InvokeRealmUnary: { decision: allow_when, requirements: [protected_bundled_origin, bundled_first_party_policy, broker_operation_policy] }
+      InvokeRealmUnary: { decision: deny, reason: no_bundled_realm_operation_admitted }
       IssueScopedAppBinding: { decision: deny, reason: binding_owner_issues }
       RevokeScopedAppBinding: { decision: deny, reason: binding_owner_revokes }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_app_surface }
@@ -114,6 +114,96 @@ internal_capabilities:
     consumers: [InvokeRealmUnary, proactive_refresh_scheduler, custody_recovery]
     source_rule: K-ACCSVC-024
 selected_operation_dependencies:
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldCoreController_createSourceMaterializationPacket
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldCoreController_getRealmPersona
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldCoreController_getWorldCharacter
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldCoreController_getWorldEntity
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldCoreController_listRealmPersonas
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldCoreController_listWorldRelationships
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldPublicController_getWorld
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldPublicController_getWorldDetailWithCharacters
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    operation_id: WorldPublicController_listWorlds
+    caller_class: desktop_account_and_local_app_control
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    decision: allow_when
+    requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, current_authenticated_account, runtime_realm_bearer_custody, exact_broker_operation_policy]
+    grant_requirement: none
+    caller_selected_realm_base: forbidden
+    authority_owner: RuntimeAccountService
+    source_rule: K-ACCSVC-023
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory
     caller_class: local_app
     runtime_caller_mode: ACCOUNT_CALLER_MODE_LOCAL_APP

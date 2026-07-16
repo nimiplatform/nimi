@@ -529,13 +529,22 @@ returns typed unavailable until 0P/P admits a producer.
 
 ## K-ACCSVC-023 Runtime Shared Auth Broker
 
-Exact per-operation Realm unary authority remains blocked pending a separate
-Runtime admission under K-ACCSVC-001. Existing operation tables and code are
-conflict inventory, not an admitted product surface. A future admission must
-retain Runtime-only bearer injection/private refresh, response credential
-denial, exact payload limits, and a verified protected origin; no public grant,
-portable envelope, renderer/app token provider, or direct Realm path is a
-fallback.
+`RuntimeAccountService.InvokeRealmUnary` admits only the exact Desktop
+source-readiness operations enumerated by
+`tables/realm-broker-operations.yaml`: world list/detail reads, public source
+detail, RealmPersona list/detail, WorldCharacter detail with its bound entity
+and relationships, and source-materialization packet creation. Each row is
+Desktop-shell-only and requires the verified protected Desktop control origin,
+the `desktop_account_host` role, the host-bound caller envelope, and the current
+authenticated account. An unlisted operation or any non-Desktop caller fails
+with `BROKER_OPERATION_NOT_ADMITTED`; generic proxy behavior is forbidden.
+
+Runtime alone selects the configured canonical Realm base, holds and refreshes
+the Realm bearer, injects authorization, validates the row-specific OpenAPI
+request shape and response-size limit, and rejects credential-bearing response
+headers or bodies. No public grant, portable envelope, renderer/app token
+provider, caller-selected Realm base, direct Realm path, or fallback is
+admitted.
 
 ## K-ACCSVC-024 Account RPC Permission Matrix
 

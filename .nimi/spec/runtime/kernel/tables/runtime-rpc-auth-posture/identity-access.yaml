@@ -150,7 +150,7 @@ methods:
     posture: protected_origin_required
     protected_transport_class: desktop_control
     required_origin_role: desktop_account_host
-    rationale: verified Desktop transport is admitted only for the exact K-ACCSVC-023 operation vocabulary; LOCAL_APP is denied until an exact Runtime-mediated operation is independently admitted
+    rationale: verified Desktop transport is admitted only for the nine exact K-ACCSVC-023 source-readiness operations; bundled and LOCAL_APP callers, unlisted operations, public TCP, and generic proxy behavior are denied
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006

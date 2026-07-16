@@ -366,8 +366,8 @@ rules:
       - sdk_runtime_test
       - desktop_boundary_test
     evidence_requirement: required
-    note: Blocked detailed per-operation unary policy conflict; K-ACCSVC-001 admits Runtime ownership, not individual operation rows.
-    evidence_scope_note: Runtime/SDK tests are retained as implementation compatibility evidence only; the owner-boundary checker validates the blocked authority disposition, and neither evidence class admits per-operation rows.
+    note: Nine exact Desktop source-readiness Realm operations are admitted through the protected Desktop account host; every unlisted operation, non-Desktop caller, public TCP path, and generic proxy posture remains denied.
+    evidence_scope_note: Runtime tests lock the generated exact operation set, protected-origin/caller-mode rejection, request and response bounds, canonical Realm base, Runtime-only bearer injection, and credential-response denial; SDK/Desktop tests prove the existing mediated carrier is the consumer path without renderer token custody.
     test_files:
       - runtime/internal/services/account/realm_unary_test.go
       - sdks/typescript/core/app/runtime-account-realm.test.ts
