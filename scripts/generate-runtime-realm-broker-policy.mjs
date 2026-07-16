@@ -16,15 +16,19 @@ const requiredFields = [
   'path_template',
   'request_schema_ref',
   'response_schema_ref',
-  'allowed_sdk_app_modes',
+  'authorization_profile',
   'allowed_runtime_caller_modes',
-  'required_app_capabilities',
-  'required_runtime_scopes',
+  'protected_transport_ref',
   'realm_base_policy',
   'response_max_bytes',
   'credential_response_policy',
+  'consumer_refs',
   'source_rule',
 ];
+
+const invokeRealmUnaryMethodID = '/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary';
+const desktopCallerMode = 'ACCOUNT_CALLER_MODE_DESKTOP_SHELL';
+const desktopSourceReadinessAuthorizationProfile = 'protected_desktop_source_readiness';
 
 function fail(message) {
   throw new Error(`realm broker policy generation failed: ${message}`);
@@ -32,21 +36,6 @@ function fail(message) {
 
 function quoted(value) {
   return JSON.stringify(String(value));
-}
-
-function canonicalCapability(candidate) {
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-    fail('required_app_capabilities.any_of entries must be objects');
-  }
-  const scopeName = String(candidate.scope_name ?? '').trim();
-  const qualifier = String(candidate.qualifier ?? '').trim();
-  const runtimeScope = String(candidate.runtime_scope ?? '').trim();
-  if (runtimeScope && (scopeName || qualifier)) {
-    fail('a capability alternative cannot mix runtime_scope with scope_name/qualifier');
-  }
-  if (runtimeScope) return runtimeScope;
-  if (!scopeName) fail('a capability alternative requires scope_name or runtime_scope');
-  return qualifier ? `${scopeName}#${qualifier}` : scopeName;
 }
 
 function readOpenAPIOperations(document) {
@@ -92,26 +81,23 @@ function renderPolicy(operations) {
     if (operation.credential_response_policy !== 'forbidden') {
       fail(`${operation.operation_id} must forbid credential responses`);
     }
+    if (operation.authorization_profile !== desktopSourceReadinessAuthorizationProfile) {
+      fail(`${operation.operation_id} has unsupported authorization_profile ${operation.authorization_profile}`);
+    }
+    if (operation.protected_transport_ref !== invokeRealmUnaryMethodID) {
+      fail(`${operation.operation_id} must use the protected InvokeRealmUnary transport`);
+    }
     if (!Number.isInteger(operation.response_max_bytes) || operation.response_max_bytes <= 0) {
       fail(`${operation.operation_id} response_max_bytes must be a positive integer`);
     }
     const callerModes = operation.allowed_runtime_caller_modes;
-    if (!Array.isArray(callerModes) || callerModes.length === 0) {
-      fail(`${operation.operation_id} must admit at least one Runtime caller mode`);
+    if (!Array.isArray(callerModes) || callerModes.length !== 1 || callerModes[0] !== desktopCallerMode) {
+      fail(`${operation.operation_id} must admit only ${desktopCallerMode}`);
     }
-    const sdkModes = operation.allowed_sdk_app_modes;
-    if (!Array.isArray(sdkModes) || sdkModes.length === 0) {
-      fail(`${operation.operation_id} must admit at least one SDK app mode`);
+    const consumerRefs = operation.consumer_refs;
+    if (!Array.isArray(consumerRefs) || consumerRefs.length === 0 || consumerRefs.some((ref) => !String(ref || '').trim())) {
+      fail(`${operation.operation_id} must declare non-empty consumer_refs`);
     }
-    const requiredRuntimeScopes = operation.required_runtime_scopes;
-    if (!Array.isArray(requiredRuntimeScopes) || requiredRuntimeScopes.length === 0) {
-      fail(`${operation.operation_id} must declare required_runtime_scopes`);
-    }
-    const alternatives = operation.required_app_capabilities?.any_of;
-    if (!Array.isArray(alternatives) || alternatives.length === 0) {
-      fail(`${operation.operation_id} must declare required_app_capabilities.any_of`);
-    }
-    const capabilities = alternatives.map(canonicalCapability);
     const projected = operation.__openapi;
     const pathParameters = projected.parameters.filter((parameter) => parameter.location === 'path');
     const queryParameters = projected.parameters.filter((parameter) => parameter.location === 'query');
@@ -121,9 +107,7 @@ function renderPolicy(operations) {
       `\t\tallowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{\n` +
       callerModes.map((mode) => `\t\t\truntimev1.AccountCallerMode_${mode}: {},`).join('\n') + '\n' +
       `\t\t},\n` +
-      `\t\tallowedSDKAppModes: []string{${sdkModes.map(quoted).join(', ')}},\n` +
-      `\t\trequiredAppCapabilities: []string{${capabilities.map(quoted).join(', ')}},\n` +
-      `\t\trequiredRuntimeScopes: []string{${requiredRuntimeScopes.map(quoted).join(', ')}},\n` +
+      `\t\tauthorizationProfile: ${quoted(operation.authorization_profile)},\n` +
       `\t\tallowedPathParameters: map[string]struct{}{${pathParameters.map((parameter) => `${quoted(parameter.name)}: {}`).join(', ')}},\n` +
       `\t\trequiredPathParameters: map[string]struct{}{${pathParameters.filter((parameter) => parameter.required).map((parameter) => `${quoted(parameter.name)}: {}`).join(', ')}},\n` +
       `\t\tallowedQueryParameters: map[string]struct{}{${queryParameters.map((parameter) => `${quoted(parameter.name)}: {}`).join(', ')}},\n` +
@@ -145,6 +129,16 @@ const [policyText, openAPIText] = await Promise.all([
 const policy = parse(policyText, { merge: true });
 const openAPI = parse(openAPIText);
 if (policy?.source_rule !== 'K-ACCSVC-023') fail('policy source_rule must be K-ACCSVC-023');
+if (policy?.authority_status !== 'admitted_exact_desktop_source_readiness_operations') {
+  fail('authority_status must admit only exact Desktop source-readiness operations');
+}
+if (policy?.production_consumption !== 'admitted_exact_rows_only') {
+  fail('production_consumption must be admitted_exact_rows_only');
+}
+if (policy?.generic_proxy !== 'forbidden') fail('generic_proxy must remain forbidden');
+if (policy?.unlisted_operation_disposition !== 'deny_broker_operation_not_admitted') {
+  fail('unlisted operations must fail as BROKER_OPERATION_NOT_ADMITTED');
+}
 const operations = policy?.operations;
 if (!Array.isArray(operations) || operations.length === 0) fail('operations must be a non-empty sequence');
 const openAPIOperations = readOpenAPIOperations(openAPI);
@@ -160,6 +154,14 @@ for (const operation of operations) {
     fail(`${operationID} method/path drift: policy=${operation.http_method} ${operation.path_template}, openapi=${projected.method} ${projected.path}`);
   }
   operation.__openapi = projected;
+}
+const surfaces = policy?.surfaces;
+if (!Array.isArray(surfaces) || surfaces.length !== seen.size) {
+  fail('surfaces must enumerate every admitted operation exactly once');
+}
+const surfaceSet = new Set(surfaces.map((surface) => String(surface || '').trim()));
+if (surfaceSet.size !== seen.size || [...seen].some((operationID) => !surfaceSet.has(operationID))) {
+  fail('surfaces and operations must contain the same exact operation ids');
 }
 for (const forbidden of policy?.explicitly_not_admitted ?? []) {
   if (seen.has(forbidden.operation_id)) fail(`${forbidden.operation_id} is both admitted and explicitly forbidden`);

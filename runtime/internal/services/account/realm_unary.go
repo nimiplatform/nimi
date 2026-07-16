@@ -17,18 +17,16 @@ import (
 const realmUnaryDefaultTimeout = 30 * time.Second
 
 type realmUnaryOperation struct {
-	method                  string
-	path                    string
-	allowedCallerModes      map[runtimev1.AccountCallerMode]struct{}
-	allowedSDKAppModes      []string
-	requiredAppCapabilities []string
-	requiredRuntimeScopes   []string
-	allowedPathParameters   map[string]struct{}
-	requiredPathParameters  map[string]struct{}
-	allowedQueryParameters  map[string]struct{}
-	requestBodyAllowed      bool
-	requestBodyRequired     bool
-	responseMaxBytes        int64
+	method                 string
+	path                   string
+	allowedCallerModes     map[runtimev1.AccountCallerMode]struct{}
+	authorizationProfile   string
+	allowedPathParameters  map[string]struct{}
+	requiredPathParameters map[string]struct{}
+	allowedQueryParameters map[string]struct{}
+	requestBodyAllowed     bool
+	requestBodyRequired    bool
+	responseMaxBytes       int64
 }
 
 type realmUnaryRequestJSON struct {
@@ -48,11 +46,8 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	if !ok {
 		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for Runtime mediation", 0), nil
 	}
-	if !operation.admitsCallerMode(req.GetCaller().GetMode()) {
+	if !operation.admitsProtectedDesktopSourceReadinessCaller(req.GetCaller()) {
 		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this Runtime caller mode", 0), nil
-	}
-	if !s.admitRealmBrokerCapabilities(req.GetCaller(), operation) {
-		return realmUnaryFailure(runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING, "realm broker capability policy is not satisfied", 0), nil
 	}
 	realmBaseURL, err := s.resolveRealmUnaryBaseURL(req.GetRealmBaseUrl())
 	if err != nil {
