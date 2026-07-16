@@ -143,8 +143,23 @@ export function OverlayShell({
   children,
   dataTestId,
 }: OverlayShellProps) {
+  const focusReturnTargetRef = React.useRef<HTMLElement | null>(null);
+
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && onClose) onClose();
+  };
+
+  const handleOpenAutoFocus = () => {
+    const activeElement = document.activeElement;
+    focusReturnTargetRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+  };
+
+  const handleCloseAutoFocus = (event: Event) => {
+    const focusReturnTarget = focusReturnTargetRef.current;
+    focusReturnTargetRef.current = null;
+    if (!focusReturnTarget?.isConnected || focusReturnTarget.matches(':disabled')) return;
+    event.preventDefault();
+    focusReturnTarget.focus({ preventScroll: true });
   };
 
   const backdropKindClass = kind === 'drawer'
@@ -224,13 +239,13 @@ export function OverlayShell({
             backdropKindClass,
             className,
           )}
-          onClick={closeOnBackdrop ? () => onClose?.() : undefined}
         />
         <DialogPrimitive.Content
           data-testid={dataTestId}
+          aria-modal="true"
           {...(description ? {} : { 'aria-describedby': undefined })}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onEscapeKeyDown={() => onClose?.()}
+          onOpenAutoFocus={handleOpenAutoFocus}
+          onCloseAutoFocus={handleCloseAutoFocus}
           onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
           onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
           className={cn(

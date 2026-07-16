@@ -1,4 +1,4 @@
-import { act } from 'react';
+import { act, useState } from 'react';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -586,6 +586,138 @@ test('overlay shell connects its visible title and description to dialog semanti
   expect(document.getElementById(descriptionId!)?.textContent).toBe(
     'Review the project identity and requested capabilities.',
   );
+});
+
+test('overlay shell moves, traps, and restores focus for modal dialogs', async () => {
+  function FocusHarness() {
+    const [open, setOpen] = useState(false);
+    const [closeCount, setCloseCount] = useState(0);
+    return (
+      <div data-testid="focus-harness">
+        <button type="button" data-testid="open-overlay" onClick={() => setOpen(true)}>
+          Open
+        </button>
+        <output data-testid="escape-close-count">{closeCount}</output>
+        <OverlayShell
+          open={open}
+          title="Focus contract"
+          description="Focus remains inside this modal until it closes."
+          dataTestId="focus-dialog"
+          onClose={() => {
+            setCloseCount((current) => current + 1);
+            setOpen(false);
+          }}
+        >
+          <input data-testid="first-focus-target" aria-label="First target" />
+          <button type="button" data-testid="last-focus-target">Last target</button>
+        </OverlayShell>
+      </div>
+    );
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(<FocusHarness />);
+    await flush();
+  });
+
+  const trigger = document.querySelector('[data-testid="open-overlay"]') as HTMLButtonElement;
+  trigger.focus();
+  await act(async () => {
+    trigger.click();
+    await flush();
+  });
+
+  const panel = document.querySelector('[data-testid="focus-dialog"]') as HTMLElement;
+  const first = document.querySelector('[data-testid="first-focus-target"]') as HTMLInputElement;
+  const last = document.querySelector('[data-testid="last-focus-target"]') as HTMLButtonElement;
+  expect(panel.getAttribute('role')).toBe('dialog');
+  expect(panel.getAttribute('aria-modal')).toBe('true');
+  expect(panel.contains(document.activeElement)).toBe(true);
+  expect(document.activeElement).toBe(first);
+  expect(container.getAttribute('aria-hidden')).toBe('true');
+
+  last.focus();
+  last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+  expect(document.activeElement).toBe(first);
+
+  first.focus();
+  first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }));
+  expect(document.activeElement).toBe(last);
+
+  await act(async () => {
+    last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flush();
+    await flush();
+  });
+
+  expect(document.querySelector('[data-testid="focus-dialog"]')).toBeNull();
+  expect(document.querySelector('[data-testid="escape-close-count"]')?.textContent).toBe('1');
+  expect(document.activeElement).toBe(trigger);
+  expect(container.hasAttribute('aria-hidden')).toBe(false);
+});
+
+test('overlay shell closes once from the backdrop and can keep the backdrop inert', async () => {
+  function BackdropHarness() {
+    const [open, setOpen] = useState(true);
+    const [closeCount, setCloseCount] = useState(0);
+    const [closeOnBackdrop, setCloseOnBackdrop] = useState(false);
+    return (
+      <div>
+        <button type="button" data-testid="allow-backdrop" onClick={() => setCloseOnBackdrop(true)}>
+          Allow backdrop close
+        </button>
+        <output data-testid="close-count">{closeCount}</output>
+        <OverlayShell
+          open={open}
+          title="Backdrop contract"
+          closeOnBackdrop={closeOnBackdrop}
+          dataTestId="backdrop-dialog"
+          onClose={() => {
+            setCloseCount((current) => current + 1);
+            setOpen(false);
+          }}
+        >
+          <button type="button">Inside</button>
+        </OverlayShell>
+      </div>
+    );
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(<BackdropHarness />);
+    await flush();
+  });
+
+  let backdrop = document.querySelector('.nimi-overlay-backdrop') as HTMLElement;
+  await act(async () => {
+    backdrop.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+    backdrop.click();
+    await flush();
+  });
+  expect(document.querySelector('[data-testid="backdrop-dialog"]')).toBeTruthy();
+  expect(document.querySelector('[data-testid="close-count"]')?.textContent).toBe('0');
+
+  await act(async () => {
+    (document.querySelector('[data-testid="allow-backdrop"]') as HTMLButtonElement).click();
+    await flush();
+  });
+  backdrop = document.querySelector('.nimi-overlay-backdrop') as HTMLElement;
+  await act(async () => {
+    backdrop.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+    backdrop.click();
+    await flush();
+    await flush();
+  });
+  expect(document.querySelector('[data-testid="backdrop-dialog"]')).toBeNull();
+  expect(document.querySelector('[data-testid="close-count"]')?.textContent).toBe('1');
 });
 
 test('overlay shell applies size width style and size class when size prop is set', async () => {
