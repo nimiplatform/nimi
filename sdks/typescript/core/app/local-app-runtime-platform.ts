@@ -121,10 +121,24 @@ export type NimiAppRuntimeAgentTurnEventPage = {
   readonly events: readonly [NimiRuntimeAgentConsumeEvent];
 };
 
+export type NimiAppRuntimeAgentInventoryItem = {
+  readonly localAgentRef: string;
+  readonly displayName: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly sourceReady: boolean;
+};
+
+export type NimiAppRuntimeAgentInventory = {
+  readonly ownerUserId: string;
+  readonly count: number;
+  readonly localAgents: readonly NimiAppRuntimeAgentInventoryItem[];
+};
+
 /**
  * Host-neutral structural contract implemented directly by Kit's
- * createNimiLocalAppStandardShellSurface. The nested namespaces and eight
- * operations are the complete 0K local-app carrier; this is not a Runtime
+ * createNimiLocalAppStandardShellSurface. The nested namespaces and nine
+ * operations are the complete admitted local-app carrier; this is not a Runtime
  * client and contains no generic forwarding surface.
  */
 export type NimiAppRuntimePlatformStandardShell = {
@@ -139,6 +153,7 @@ export type NimiAppRuntimePlatformStandardShell = {
     readonly readRuntimeBytes: (artifactId: string) => Promise<unknown>;
   };
   readonly agent: {
+    readonly inventory: () => Promise<unknown>;
     readonly openConversation: (input: NimiAppRuntimeAgentOpenConversationInput) => Promise<unknown>;
     readonly sendTurn: (input: NimiAppRuntimeAgentSendTurnInput) => Promise<unknown>;
     readonly subscribeTurn: (input: NimiAppRuntimeAgentSubscribeTurnInput) => Promise<unknown>;
@@ -162,6 +177,7 @@ export type NimiAppRuntimePlatformClient = {
     readonly readRuntimeBytes: (artifactId: string) => Promise<NimiAppRuntimeArtifactBytes>;
   };
   readonly agent: {
+    readonly listInventory: () => Promise<NimiAppRuntimeAgentInventory>;
     readonly openConversation: (
       input: NimiAppRuntimeAgentOpenConversationInput,
     ) => Promise<NimiRuntimeAgentConversationAnchorSnapshot>;
@@ -186,7 +202,7 @@ export function createNimiAppRuntimePlatformClient(
   assertExactMethodNamespace(standardShell.artifacts, ['readRuntimeBytes'], 'artifacts');
   assertExactMethodNamespace(
     standardShell.agent,
-    ['openConversation', 'sendTurn', 'subscribeTurn', 'getConversationSnapshot'],
+    ['inventory', 'openConversation', 'sendTurn', 'subscribeTurn', 'getConversationSnapshot'],
     'agent',
   );
 
@@ -231,6 +247,7 @@ export function createNimiAppRuntimePlatformClient(
       ),
     }),
     agent: Object.freeze({
+      listInventory: async () => projectAgentInventory(await standardShell.agent.inventory()),
       openConversation: async (agentInput: NimiAppRuntimeAgentOpenConversationInput) => {
         assertNoAuthorityMaterial(agentInput);
         assertExactKeys(
@@ -301,6 +318,37 @@ export function createNimiAppRuntimePlatformClient(
       },
     }),
   });
+}
+
+function projectAgentInventory(value: unknown): NimiAppRuntimeAgentInventory {
+  const record = asRecord(value);
+  assertSafeProjection(record);
+  assertExactProjectionKeys(record, ['ownerUserId', 'count', 'localAgents'], 'agent inventory');
+  const ownerUserId = projectionText(record.ownerUserId, 'ownerUserId');
+  const count = nonNegativeInteger(record.count, 'agent inventory count');
+  if (!Array.isArray(record.localAgents) || count !== record.localAgents.length || count > 200) {
+    localAppProjectionError('agent inventory count');
+  }
+  const localAgents = record.localAgents.map((entry, index): NimiAppRuntimeAgentInventoryItem => {
+    const item = asRecord(entry);
+    assertExactProjectionKeys(
+      item,
+      ['localAgentRef', 'displayName', 'ownerUserId', 'runtimeSourceRef', 'sourceReady'],
+      `agent inventory item ${index}`,
+    );
+    const itemOwnerUserId = projectionText(item.ownerUserId, 'ownerUserId');
+    if (itemOwnerUserId !== ownerUserId || typeof item.sourceReady !== 'boolean') {
+      localAppProjectionError(`agent inventory item ${index} correlation`);
+    }
+    return {
+      localAgentRef: projectionText(item.localAgentRef, 'localAgentRef'),
+      displayName: projectionText(item.displayName, 'displayName'),
+      ownerUserId: itemOwnerUserId,
+      runtimeSourceRef: projectionText(item.runtimeSourceRef, 'runtimeSourceRef'),
+      sourceReady: item.sourceReady,
+    };
+  });
+  return { ownerUserId, count, localAgents };
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {

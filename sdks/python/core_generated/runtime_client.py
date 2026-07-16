@@ -440,6 +440,14 @@ RUNTIME_METHODS = [
     "response_type": "ListDelegatedProviderProfilesResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppAgentInventory",
+    "kind": "unary",
+    "request_type": "ListLocalAppAgentInventoryRequest",
+    "response_type": "ListLocalAppAgentInventoryResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
     "service": "RuntimeAgentService",
     "method": "ListParticipationAuditEvents",

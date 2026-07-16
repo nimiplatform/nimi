@@ -3190,6 +3190,16 @@ class ListLinksResponse:
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
+class ListLocalAppAgentInventoryRequest:
+    pass
+
+@dataclass(frozen=True)
+class ListLocalAppAgentInventoryResponse:
+    owner_user_id: str | None = None
+    count: int | None = None
+    local_agents: tuple[LocalAppAgentInventoryItem, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ListLocalAssetsRequest:
     status_filter: LocalAssetStatus | None = None
     kind_filter: LocalAssetKind | None = None
@@ -3439,6 +3449,14 @@ class LocalAgentSourceCoverageSectionStatus:
     required_count: int | None = None
     resolved_count: int | None = None
     omitted_count: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentInventoryItem:
+    local_agent_ref: str | None = None
+    display_name: str | None = None
+    owner_user_id: str | None = None
+    runtime_source_ref: str | None = None
+    source_ready: bool | None = None
 
 @dataclass(frozen=True)
 class LocalAppGrantProjection:
@@ -7152,6 +7170,10 @@ class RuntimeTypedClient:
     async def list_delegated_provider_profiles(self, request: ListDelegatedProviderProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDelegatedProviderProfilesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedProviderProfilesResponse, raw)
+
+    async def list_local_app_agent_inventory(self, request: ListLocalAppAgentInventoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAgentInventoryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppAgentInventoryResponse, raw)
 
     async def list_participation_audit_events(self, request: ListParticipationAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListParticipationAuditEventsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

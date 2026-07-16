@@ -448,6 +448,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListDelegatedProviderProfilesResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
+        service: "RuntimeAgentService",
+        method: "ListLocalAppAgentInventory",
+        kind: "unary",
+        request_type: "ListLocalAppAgentInventoryRequest",
+        response_type: "ListLocalAppAgentInventoryResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
         service: "RuntimeAgentService",
         method: "ListParticipationAuditEvents",

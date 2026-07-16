@@ -16720,6 +16720,55 @@ impl ListLinksResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentInventoryRequest {
+
+}
+
+impl ListLocalAppAgentInventoryRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentInventoryResponse {
+    pub owner_user_id: Option<String>,
+    pub count: Option<u32>,
+    pub local_agents: Vec<Box<LocalAppAgentInventoryItem>>,
+}
+
+impl ListLocalAppAgentInventoryResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
+        if let Some(value) = &self.count { pairs.push(format!("count={}", value)); }
+        if !self.local_agents.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_agents"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["local_agents"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.owner_user_id = pairs.get("owner_user_id").cloned();
+        out.count = pairs.get("count").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAssetsRequest {
     pub status_filter: Option<LocalAssetStatus>,
     pub kind_filter: Option<LocalAssetKind>,
@@ -17949,6 +17998,39 @@ impl LocalAgentSourceCoverageSectionStatus {
         out.required_count = pairs.get("required_count").and_then(|value| value.parse().ok());
         out.resolved_count = pairs.get("resolved_count").and_then(|value| value.parse().ok());
         out.omitted_count = pairs.get("omitted_count").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentInventoryItem {
+    pub local_agent_ref: Option<String>,
+    pub display_name: Option<String>,
+    pub owner_user_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
+    pub source_ready: Option<bool>,
+}
+
+impl LocalAppAgentInventoryItem {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
+        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
+        if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
+        if let Some(value) = &self.source_ready { pairs.push(format!("source_ready={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.local_agent_ref = pairs.get("local_agent_ref").cloned();
+        out.display_name = pairs.get("display_name").cloned();
+        out.owner_user_id = pairs.get("owner_user_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
+        out.source_ready = pairs.get("source_ready").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -35988,6 +36070,18 @@ impl From<Vec<u8>> for ListLinksResponse {
     }
 }
 
+impl From<Vec<u8>> for ListLocalAppAgentInventoryRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListLocalAppAgentInventoryResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListLocalAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36223,6 +36317,12 @@ impl From<Vec<u8>> for LocalAgentSourceContextStatus {
 }
 
 impl From<Vec<u8>> for LocalAgentSourceCoverageSectionStatus {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppAgentInventoryItem {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -39444,6 +39544,16 @@ where
             timeout,
         })?;
         Ok(ListDelegatedProviderProfilesResponse::from_transport(&raw))
+    }
+
+    pub fn list_local_app_agent_inventory(&self, request: ListLocalAppAgentInventoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppAgentInventoryResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListLocalAppAgentInventoryResponse::from_transport(&raw))
     }
 
     pub fn list_participation_audit_events(&self, request: ListParticipationAuditEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListParticipationAuditEventsResponse, T::Error> {

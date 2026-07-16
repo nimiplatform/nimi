@@ -5055,6 +5055,16 @@ type ListLinksResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type ListLocalAppAgentInventoryRequest struct {
+
+}
+
+type ListLocalAppAgentInventoryResponse struct {
+	OwnerUserId string `json:"owner_user_id,omitempty"`
+	Count uint32 `json:"count,omitempty"`
+	LocalAgents []LocalAppAgentInventoryItem `json:"local_agents,omitempty"`
+}
+
 type ListLocalAssetsRequest struct {
 	StatusFilter LocalAssetStatus `json:"status_filter,omitempty"`
 	KindFilter LocalAssetKind `json:"kind_filter,omitempty"`
@@ -5304,6 +5314,14 @@ type LocalAgentSourceCoverageSectionStatus struct {
 	RequiredCount uint32 `json:"required_count,omitempty"`
 	ResolvedCount uint32 `json:"resolved_count,omitempty"`
 	OmittedCount uint32 `json:"omitted_count,omitempty"`
+}
+
+type LocalAppAgentInventoryItem struct {
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	OwnerUserId string `json:"owner_user_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
+	SourceReady bool `json:"source_ready,omitempty"`
 }
 
 type LocalAppGrantProjection struct {
@@ -9333,6 +9351,14 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 		return ListDelegatedProviderProfilesResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListDelegatedProviderProfilesResponse](raw, "ListDelegatedProviderProfilesResponse")
+}
+
+func (c RuntimeTypedClient) ListLocalAppAgentInventory(ctx context.Context, request ListLocalAppAgentInventoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentInventoryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppAgentInventoryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppAgentInventoryResponse](raw, "ListLocalAppAgentInventoryResponse")
 }
 
 func (c RuntimeTypedClient) ListParticipationAuditEvents(ctx context.Context, request ListParticipationAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListParticipationAuditEventsResponse, error) {

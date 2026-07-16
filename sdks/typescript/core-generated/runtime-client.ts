@@ -447,6 +447,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListDelegatedProviderProfilesResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppAgentInventory",
+    "kind": "unary",
+    "requestType": "ListLocalAppAgentInventoryRequest",
+    "responseType": "ListLocalAppAgentInventoryResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
     "service": "RuntimeAgentService",
     "method": "ListParticipationAuditEvents",

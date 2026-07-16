@@ -42,6 +42,7 @@ function standardShell(
       },
     },
     agent: {
+      async inventory() { return { ownerUserId: 'account-a', count: 0, localAgents: [] }; },
       async openConversation() { return {}; },
       async sendTurn() { return {}; },
       async subscribeTurn() { return {}; },
@@ -77,17 +78,73 @@ test('local-app Runtime platform client exposes only the selected typed operatio
   const client = createNimiAppRuntimePlatformClient({ standardShell: standardShell() });
   assert.deepEqual(Object.keys(client).sort(), ['agent', 'artifacts', 'auth', 'permissions']);
   assert.deepEqual(Object.keys(client.agent).sort(), [
-    'getConversationSnapshot', 'openConversation', 'sendTurn', 'subscribeTurn',
+    'getConversationSnapshot', 'listInventory', 'openConversation', 'sendTurn', 'subscribeTurn',
   ]);
   assert.deepEqual(await client.artifacts.readRuntimeBytes('artifact:one'), {
     bytes: new Uint8Array([1, 2]), mimeType: 'text/plain', sizeBytes: 2, mimeInferred: false,
   });
 });
 
+test('local-app agent inventory accepts only the bounded current-owner projection', async () => {
+  const client = createNimiAppRuntimePlatformClient({
+    standardShell: standardShell({
+      agent: {
+        async inventory() {
+          return {
+            ownerUserId: 'account-a',
+            count: 1,
+            localAgents: [{
+              localAgentRef: 'local-agent:runtime-a',
+              displayName: '苏轼',
+              ownerUserId: 'account-a',
+              runtimeSourceRef: 'runtime-source:a',
+              sourceReady: true,
+            }],
+          };
+        },
+        async openConversation() { return {}; },
+        async sendTurn() { return {}; },
+        async subscribeTurn() { return {}; },
+        async getConversationSnapshot() { return {}; },
+      },
+    }),
+  });
+  assert.deepEqual(await client.agent.listInventory(), {
+    ownerUserId: 'account-a',
+    count: 1,
+    localAgents: [{
+      localAgentRef: 'local-agent:runtime-a',
+      displayName: '苏轼',
+      ownerUserId: 'account-a',
+      runtimeSourceRef: 'runtime-source:a',
+      sourceReady: true,
+    }],
+  });
+
+  const invalid = createNimiAppRuntimePlatformClient({
+    standardShell: standardShell({
+      agent: {
+        async inventory() {
+          return { ownerUserId: 'account-a', count: 1, localAgents: [{ ownerUserId: 'account-b' }] };
+        },
+        async openConversation() { return {}; },
+        async sendTurn() { return {}; },
+        async subscribeTurn() { return {}; },
+        async getConversationSnapshot() { return {}; },
+      },
+    }),
+  });
+  await assert.rejects(
+    () => invalid.agent.listInventory(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
 test('local-app subscribeTurn is an honest cursor pull, not a cast Promise stream', async () => {
   const client = createNimiAppRuntimePlatformClient({
     standardShell: standardShell({
       agent: {
+        async inventory() { return { ownerUserId: 'account-a', count: 0, localAgents: [] }; },
         async openConversation() { return {}; },
         async sendTurn() { return {}; },
         async subscribeTurn() {

@@ -282,6 +282,15 @@
           "response_stream": false
         },
         {
+          "name": "ListLocalAppAgentInventory",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
+          "kind": "unary",
+          "request_type": "ListLocalAppAgentInventoryRequest",
+          "response_type": "ListLocalAppAgentInventoryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "OpenConversationAnchor",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
           "kind": "unary",
@@ -2574,6 +2583,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+    "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
     "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
@@ -3217,6 +3227,14 @@
       "kind": "unary",
       "request_type": "ListDelegatedProviderProfilesRequest",
       "response_type": "ListDelegatedProviderProfilesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppAgentInventory",
+      "kind": "unary",
+      "request_type": "ListLocalAppAgentInventoryRequest",
+      "response_type": "ListLocalAppAgentInventoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
@@ -5333,6 +5351,14 @@
       "response_type": "ListDelegatedProviderProfilesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppAgentInventory",
+      "kind": "unary",
+      "request_type": "ListLocalAppAgentInventoryRequest",
+      "response_type": "ListLocalAppAgentInventoryResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
       "service": "RuntimeAgentService",
       "method": "ListParticipationAuditEvents",
@@ -7413,6 +7439,8 @@
       "ListKnowledgeBanksResponse",
       "ListLinksRequest",
       "ListLinksResponse",
+      "ListLocalAppAgentInventoryRequest",
+      "ListLocalAppAgentInventoryResponse",
       "ListLocalAssetsRequest",
       "ListLocalAssetsResponse",
       "ListLocalAuditsRequest",
@@ -7453,6 +7481,7 @@
       "ListVoiceAssetsResponse",
       "LocalAgentSourceContextStatus",
       "LocalAgentSourceCoverageSectionStatus",
+      "LocalAppAgentInventoryItem",
       "LocalAppGrantProjection",
       "LocalAssetHealth",
       "LocalAssetRecord",
@@ -22361,6 +22390,38 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "ListLocalAppAgentInventoryRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ListLocalAppAgentInventoryResponse",
+        "fields": [
+          {
+            "name": "owner_user_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "local_agents",
+            "type": "LocalAppAgentInventoryItem",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "ListLocalAssetsRequest",
         "fields": [
           {
@@ -23476,6 +23537,47 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
+        "name": "LocalAppAgentInventoryItem",
+        "fields": [
+          {
+            "name": "local_agent_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "owner_user_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "runtime_source_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source_ready",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "LocalAppGrantProjection",

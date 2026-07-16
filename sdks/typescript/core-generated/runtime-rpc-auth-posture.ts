@@ -51,6 +51,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles": "anonymous_read",
+  "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay": "protected_or_scoped_binding_read",
   "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor": "protected_or_scoped_binding_or_local_app_operation",

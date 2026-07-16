@@ -1314,6 +1314,53 @@ export interface ListAgentsResponse {
     nextPageToken: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentInventoryItem
+ */
+export interface LocalAppAgentInventoryItem {
+    /**
+     * @generated from protobuf field: string local_agent_ref = 1
+     */
+    localAgentRef: string;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string owner_user_id = 3
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: string runtime_source_ref = 4
+     */
+    runtimeSourceRef: string;
+    /**
+     * @generated from protobuf field: bool source_ready = 5
+     */
+    sourceReady: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAgentInventoryRequest
+ */
+export interface ListLocalAppAgentInventoryRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAgentInventoryResponse
+ */
+export interface ListLocalAppAgentInventoryResponse {
+    /**
+     * @generated from protobuf field: string owner_user_id = 1
+     */
+    ownerUserId: string;
+    /**
+     * @generated from protobuf field: uint32 count = 2
+     */
+    count: number;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentInventoryItem local_agents = 3
+     */
+    localAgents: LocalAppAgentInventoryItem[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetAgentStateRequest
  */
 export interface GetAgentStateRequest {
@@ -6869,6 +6916,186 @@ class ListAgentsResponse$Type extends MessageType<ListAgentsResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.ListAgentsResponse
  */
 export const ListAgentsResponse = new ListAgentsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentInventoryItem$Type extends MessageType<LocalAppAgentInventoryItem> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentInventoryItem", [
+            { no: 1, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "source_ready", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentInventoryItem>): LocalAppAgentInventoryItem {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAgentRef = "";
+        message.displayName = "";
+        message.ownerUserId = "";
+        message.runtimeSourceRef = "";
+        message.sourceReady = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentInventoryItem>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentInventoryItem): LocalAppAgentInventoryItem {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_agent_ref */ 1:
+                    message.localAgentRef = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                case /* string owner_user_id */ 3:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* string runtime_source_ref */ 4:
+                    message.runtimeSourceRef = reader.string();
+                    break;
+                case /* bool source_ready */ 5:
+                    message.sourceReady = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentInventoryItem, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_agent_ref = 1; */
+        if (message.localAgentRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAgentRef);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* string owner_user_id = 3; */
+        if (message.ownerUserId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.ownerUserId);
+        /* string runtime_source_ref = 4; */
+        if (message.runtimeSourceRef !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.runtimeSourceRef);
+        /* bool source_ready = 5; */
+        if (message.sourceReady !== false)
+            writer.tag(5, WireType.Varint).bool(message.sourceReady);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentInventoryItem
+ */
+export const LocalAppAgentInventoryItem = new LocalAppAgentInventoryItem$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAgentInventoryRequest$Type extends MessageType<ListLocalAppAgentInventoryRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAgentInventoryRequest", []);
+    }
+    create(value?: PartialMessage<ListLocalAppAgentInventoryRequest>): ListLocalAppAgentInventoryRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAgentInventoryRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAgentInventoryRequest): ListLocalAppAgentInventoryRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAgentInventoryRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentInventoryRequest
+ */
+export const ListLocalAppAgentInventoryRequest = new ListLocalAppAgentInventoryRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAgentInventoryResponse$Type extends MessageType<ListLocalAppAgentInventoryResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAgentInventoryResponse", [
+            { no: 1, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "local_agents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentInventoryItem }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppAgentInventoryResponse>): ListLocalAppAgentInventoryResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.ownerUserId = "";
+        message.count = 0;
+        message.localAgents = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAgentInventoryResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAgentInventoryResponse): ListLocalAppAgentInventoryResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string owner_user_id */ 1:
+                    message.ownerUserId = reader.string();
+                    break;
+                case /* uint32 count */ 2:
+                    message.count = reader.uint32();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppAgentInventoryItem local_agents */ 3:
+                    message.localAgents.push(LocalAppAgentInventoryItem.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAgentInventoryResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string owner_user_id = 1; */
+        if (message.ownerUserId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.ownerUserId);
+        /* uint32 count = 2; */
+        if (message.count !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.count);
+        /* repeated nimi.runtime.v1.LocalAppAgentInventoryItem local_agents = 3; */
+        for (let i = 0; i < message.localAgents.length; i++)
+            LocalAppAgentInventoryItem.internalBinaryWrite(message.localAgents[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentInventoryResponse
+ */
+export const ListLocalAppAgentInventoryResponse = new ListLocalAppAgentInventoryResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetAgentStateRequest$Type extends MessageType<GetAgentStateRequest> {
     constructor() {
