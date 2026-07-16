@@ -5,7 +5,6 @@ mod plan;
 mod run_context;
 mod supervisor;
 
-use self::authority_summary::write_authority_summary;
 use self::domain::{
     append_log_locked, developer_mode_projection, evaluation_matches_plan,
     initial_authority_retryable, initial_status, path_text, project_authorization,
@@ -48,7 +47,6 @@ const AUTHORITY_SUMMARY_RELATIVE_PATH: &[&str] = &[
     "local-development",
     "authority-summary.v1.json",
 ];
-const PRESENCE_HEARTBEAT_INTERVAL_MS: u64 = 3_000;
 const INITIAL_AUTHORITY_RETRY_INTERVAL: Duration = Duration::from_millis(750);
 const MAX_RECENT_FAILURES: usize = 20;
 
@@ -122,7 +120,7 @@ impl DesktopLocalDevelopmentRuntime {
         };
         write_presence(&descriptor_path, &endpoint, &started_at)?;
         let (server_tx, server_rx) = oneshot::channel();
-        let (heartbeat_tx, mut heartbeat_rx) = oneshot::channel();
+        let (heartbeat_tx, heartbeat_rx) = oneshot::channel();
         {
             let mut shutdown = runtime
                 .inner
@@ -143,38 +141,13 @@ impl DesktopLocalDevelopmentRuntime {
                 eprintln!("[local-development] bridge server failed: {error}");
             }
         });
-        let heartbeat_path = descriptor_path.clone();
-        let heartbeat_authority_summary_path = authority_summary_path.clone();
-        let heartbeat_endpoint = endpoint.clone();
-        tauri::async_runtime::spawn(async move {
-            let mut interval =
-                tokio::time::interval(Duration::from_millis(PRESENCE_HEARTBEAT_INTERVAL_MS));
-            loop {
-                tokio::select! {
-                    _ = interval.tick() => {
-                        if let Err(error) = write_presence(&heartbeat_path, &heartbeat_endpoint, &started_at) {
-                            eprintln!("[local-development] presence heartbeat failed: {error}");
-                        }
-                        match runtime_bridge::get_local_development_authority_summary().await {
-                            Ok(summary) => {
-                                if let Err(error) = write_authority_summary(&heartbeat_authority_summary_path, summary) {
-                                    let _ = fs::remove_file(&heartbeat_authority_summary_path);
-                                    eprintln!("[local-development] authority summary write failed: {error}");
-                                }
-                            }
-                            Err(error) => {
-                                let _ = fs::remove_file(&heartbeat_authority_summary_path);
-                                eprintln!(
-                                    "[local-development] authority summary unavailable: {}",
-                                    error.reason_code().as_str()
-                                );
-                            }
-                        }
-                    }
-                    _ = &mut heartbeat_rx => break,
-                }
-            }
-        });
+        authority_summary::spawn_heartbeat(
+            descriptor_path,
+            authority_summary_path,
+            endpoint,
+            started_at,
+            heartbeat_rx,
+        );
         Ok(runtime)
     }
 

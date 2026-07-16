@@ -1,11 +1,17 @@
 use nimi_shell_tauri::capabilities::runtime::{
-    DeveloperModeState, LocalDevelopmentAuthoritySummary, LocalDevelopmentSummaryAvailability,
-    NimiHostErrorReasonCode,
+    self as runtime_bridge, DeveloperModeState, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentSummaryAvailability, NimiHostErrorReasonCode,
 };
 use serde::Serialize;
-use std::path::Path;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
+use tokio::sync::oneshot;
 
 const MAX_SAFE_JSON_INTEGER: u64 = 9_007_199_254_740_991;
+const PRESENCE_HEARTBEAT_INTERVAL: Duration = Duration::from_millis(3_000);
 const SUMMARY_UNTRUSTED: &str = "local-development-authority-summary-untrusted";
 
 #[derive(Debug, Serialize)]
@@ -50,6 +56,43 @@ struct GrantSummaryDescriptor {
     revoked_count: u64,
     superseded_count: u64,
     reason_code: String,
+}
+
+pub(super) fn spawn_heartbeat(
+    presence_path: PathBuf,
+    authority_summary_path: PathBuf,
+    endpoint: String,
+    started_at: String,
+    mut shutdown: oneshot::Receiver<()>,
+) {
+    tauri::async_runtime::spawn(async move {
+        let mut interval = tokio::time::interval(PRESENCE_HEARTBEAT_INTERVAL);
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    if let Err(error) = super::domain::write_presence(&presence_path, &endpoint, &started_at) {
+                        eprintln!("[local-development] presence heartbeat failed: {error}");
+                    }
+                    match runtime_bridge::get_local_development_authority_summary().await {
+                        Ok(summary) => {
+                            if let Err(error) = write_authority_summary(&authority_summary_path, summary) {
+                                let _ = fs::remove_file(&authority_summary_path);
+                                eprintln!("[local-development] authority summary write failed: {error}");
+                            }
+                        }
+                        Err(error) => {
+                            let _ = fs::remove_file(&authority_summary_path);
+                            eprintln!(
+                                "[local-development] authority summary unavailable: {}",
+                                error.reason_code().as_str()
+                            );
+                        }
+                    }
+                }
+                _ = &mut shutdown => break,
+            }
+        }
+    });
 }
 
 pub(super) fn write_authority_summary(
