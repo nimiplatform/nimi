@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  requireWindowsDevSignedFiles,
+  requireWindowsDevSigningIdentity,
+} from '../../../scripts/lib/windows-dev-signing.mjs';
+import {
+  resolvePersistentDesktopDevProfile,
+  resolveSignedDesktopDevCarrier,
+} from './lib/electron-dev-carrier.mjs';
 
 const require = createRequire(import.meta.url);
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -11,7 +19,16 @@ const appRoot = path.resolve(currentDir, '..');
 const workspaceRoot = path.resolve(appRoot, '../..');
 const sdkDistRoot = path.join(workspaceRoot, 'sdks', 'typescript', 'dist');
 const rendererUrl = process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1420';
-const electronBin = require('electron');
+const electronVersion = String(require('electron/package.json').version || '').trim();
+const electronBin = resolveSignedDesktopDevCarrier({
+  platform: process.platform,
+  architecture: process.arch,
+  electronVersion,
+  workspaceRoot,
+  existsSync,
+});
+const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
+const standardDataRoot = path.join(profileRoot, 'standard-shell-data');
 const children = new Set();
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
@@ -46,13 +63,21 @@ for (const signal of SIGNAL_EXIT_CODES.keys()) {
 
 try {
   ensureSdkDistForDesktopDev();
+  const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
+  requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
+  mkdirSync(standardDataRoot, { recursive: true });
   spawnRenderer();
   await waitForUrl(rendererUrl, 45_000);
-  const electron = spawnTracked(electronBin, ['dist-electron/main.js'], {
+  const electron = spawnTracked(electronBin, [
+    `--user-data-dir=${profileRoot}`,
+    'dist-electron/main.js',
+  ], {
     stdio: 'inherit',
     env: {
       ...process.env,
       NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererUrl,
+      NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: standardDataRoot,
+      NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: standardDataRoot,
     },
   });
   const exitCode = await waitForExit(electron);
