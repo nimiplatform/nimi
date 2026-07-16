@@ -141,11 +141,20 @@ function installGeneratedCandidateElevated() {
   const stdoutPath = path.join(tempRoot, 'stdout.json');
   const stderrPath = path.join(tempRoot, 'stderr.txt');
   const innerCommand = [
-    `$ErrorActionPreference = 'Continue'`,
+    `$ErrorActionPreference = 'Stop'`,
+    'try {',
     `$output = & '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint -Json 2> '${powerShellLiteral(stderrPath)}'`,
     '$exitCode = $LASTEXITCODE',
-    `[IO.File]::WriteAllText('${powerShellLiteral(stdoutPath)}', (($output | Out-String).Trim()), [Text.UTF8Encoding]::new($false))`,
-    'exit $exitCode',
+    "if ($exitCode -ne 0) { exit $exitCode }",
+    '$raw = ($output | Out-String).Trim()',
+    '$parsed = $raw | ConvertFrom-Json -ErrorAction Stop',
+    '$normalized = $parsed | ConvertTo-Json -Depth 20 -Compress',
+    `[IO.File]::WriteAllText('${powerShellLiteral(stdoutPath)}', $normalized, [Text.UTF8Encoding]::new($false))`,
+    'exit 0',
+    '} catch {',
+    `[IO.File]::AppendAllText('${powerShellLiteral(stderrPath)}', [Environment]::NewLine + $_.Exception.Message, [Text.UTF8Encoding]::new($false))`,
+    'exit 1',
+    '}',
   ].join('; ');
   const encodedCommand = Buffer.from(innerCommand, 'utf16le').toString('base64');
   const outerCommand = [
