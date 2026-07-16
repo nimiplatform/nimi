@@ -391,6 +391,19 @@ message ListAgentsResponse {
   repeated AgentRecord agents = 1;
   string next_page_token = 2;
 }
+message LocalAppAgentInventoryItem {
+  string local_agent_ref = 1;
+  string display_name = 2;
+  string owner_user_id = 3;
+  string runtime_source_ref = 4;
+  bool source_ready = 5;
+}
+message ListLocalAppAgentInventoryRequest {}
+message ListLocalAppAgentInventoryResponse {
+  string owner_user_id = 1;
+  uint32 count = 2;
+  repeated LocalAppAgentInventoryItem local_agents = 3;
+}
 message GetAgentStateRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -757,6 +770,7 @@ service RuntimeAgentService {
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  rpc ListLocalAppAgentInventory(ListLocalAppAgentInventoryRequest) returns (ListLocalAppAgentInventoryResponse);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);

@@ -20,6 +20,7 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant":         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant":          runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant":          runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory":     runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch":            runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess":              runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/SendAppMessage":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

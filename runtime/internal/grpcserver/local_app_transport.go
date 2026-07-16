@@ -20,14 +20,15 @@ import (
 )
 
 const (
-	protectedOpenLocalAppSessionMethod    = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
-	protectedGetLocalAppGrantStatusMethod = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus"
-	protectedRequestLocalAppGrantMethod   = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant"
-	protectedReadArtifactBytesMethod      = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
-	protectedOpenConversationAnchorMethod = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
-	protectedGetPublicChatSnapshotMethod  = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
-	protectedSendAppMessageMethod         = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
-	protectedSubscribeAppMessagesMethod   = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	protectedOpenLocalAppSessionMethod        = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
+	protectedGetLocalAppGrantStatusMethod     = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus"
+	protectedRequestLocalAppGrantMethod       = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant"
+	protectedReadArtifactBytesMethod          = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
+	protectedListLocalAppAgentInventoryMethod = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory"
+	protectedOpenConversationAnchorMethod     = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
+	protectedGetPublicChatSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	protectedSendAppMessageMethod             = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	protectedSubscribeAppMessagesMethod       = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
 )
 
 type protectedLocalAppMethodPolicy struct {
@@ -40,18 +41,23 @@ type protectedLocalAppOperationAuthorizer interface {
 	AuthorizeLocalAppProtectedOperation(context.Context, accountservice.LocalAppOperation, localappop.Selector) (accountservice.LocalAppCallerDecision, error)
 }
 
+type protectedLocalAppCallerAuthorizer interface {
+	AuthorizeLocalAppCaller(context.Context) (accountservice.LocalAppCallerDecision, error)
+}
+
 var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPolicy{
 	protectedOpenLocalAppSessionMethod: {
 		transport:         protectedlocal.TransportLocalAppBootstrap,
 		role:              protectedlocal.RoleLocalAppProcess,
 		missingRoleReason: runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH,
 	},
-	protectedGetLocalAppGrantStatusMethod: localAppSessionMethodPolicy(),
-	protectedRequestLocalAppGrantMethod:   localAppSessionMethodPolicy(),
-	protectedReadArtifactBytesMethod:      localAppSessionMethodPolicy(),
-	protectedOpenConversationAnchorMethod: localAppSessionMethodPolicy(),
-	protectedGetPublicChatSnapshotMethod:  localAppSessionMethodPolicy(),
-	protectedSendAppMessageMethod:         localAppSessionMethodPolicy(),
+	protectedGetLocalAppGrantStatusMethod:     localAppSessionMethodPolicy(),
+	protectedRequestLocalAppGrantMethod:       localAppSessionMethodPolicy(),
+	protectedReadArtifactBytesMethod:          localAppSessionMethodPolicy(),
+	protectedListLocalAppAgentInventoryMethod: localAppSessionMethodPolicy(),
+	protectedOpenConversationAnchorMethod:     localAppSessionMethodPolicy(),
+	protectedGetPublicChatSnapshotMethod:      localAppSessionMethodPolicy(),
+	protectedSendAppMessageMethod:             localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
@@ -175,8 +181,10 @@ func newProtectedLocalAppRPCServer(
 
 func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.UnaryServerInterceptor {
 	var operationAuthorizer protectedLocalAppOperationAuthorizer
+	var callerAuthorizer protectedLocalAppCallerAuthorizer
 	if len(authorizers) > 0 {
 		operationAuthorizer, _ = authorizers[0].(protectedLocalAppOperationAuthorizer)
+		callerAuthorizer, _ = authorizers[0].(protectedLocalAppCallerAuthorizer)
 	}
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if info == nil {
@@ -197,6 +205,16 @@ func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Unar
 			return nil, protectedLocalAppRoleError(policy.missingRoleReason)
 		}
 		protectedContext := protectedlocal.ContextWithLocalAppConnection(ctx, connection)
+		if info.FullMethod == protectedListLocalAppAgentInventoryMethod {
+			if callerAuthorizer == nil {
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+			}
+			decision, authorizeErr := callerAuthorizer.AuthorizeLocalAppCaller(protectedContext)
+			if authorizeErr != nil {
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, accountservice.LocalAppCallerAuthorizationReason(authorizeErr))
+			}
+			protectedContext = accountservice.ContextWithAuthorizedLocalAppDecision(protectedContext, decision)
+		}
 		if operation, selector, selected := selectedLocalAppUnaryOperation(info.FullMethod, req); selected {
 			if operationAuthorizer == nil {
 				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)

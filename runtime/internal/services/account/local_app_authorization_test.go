@@ -73,11 +73,27 @@ func TestAuthorizeLocalAppCallerFailsClosedOnResolverAndAccountInvalidation(t *t
 	}
 }
 
+func TestAuthorizeLocalAppCallerRejectsMissingOSUserAnchor(t *testing.T) {
+	service := newHarnessService(t, nil)
+	completeLogin(t, service)
+	_, generation, ok := service.AuthenticatedRuntimeSecurityContext(context.Background())
+	if !ok {
+		t.Fatal("runtime account context is unavailable")
+	}
+	resolver := &localAppAuthorizationResolver{binding: localAppCallerBindingFixture(t, generation)}
+	service.SetLocalAppSessionResolver(resolver)
+	resolver.binding.LocalOSUserAnchor = ""
+	if _, err := service.AuthorizeLocalAppCaller(context.Background()); !errors.Is(err, ErrLocalAppCallerUnauthorized) {
+		t.Fatalf("missing OS-user anchor err = %v", err)
+	}
+}
+
 func localAppCallerBindingFixture(t testing.TB, generation uint64) LocalAppCallerBinding {
 	t.Helper()
 	hostDigest := accountLocalAppIdentifier(0x71)
 	projectRoot := filepath.Clean(t.TempDir())
 	return LocalAppCallerBinding{
+		LocalOSUserAnchor:    "windows-sid:S-1-5-21-test",
 		SessionID:            accountLocalAppIdentifier(0x72),
 		AppID:                "sample.nimi.app",
 		HostExecutableDigest: hostDigest,

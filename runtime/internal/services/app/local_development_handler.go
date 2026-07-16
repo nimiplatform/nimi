@@ -533,6 +533,7 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 		return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
 	}
 	return accountservice.LocalAppCallerBinding{
+		LocalOSUserAnchor:       principal.LocalOSUserAnchor,
 		SessionID:               session.SessionID,
 		AppID:                   session.AppID,
 		HostExecutableDigest:    session.HostExecutableDigest,

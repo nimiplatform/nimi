@@ -28,6 +28,7 @@ const (
 	RuntimeAgentService_TerminateAgent_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
 	RuntimeAgentService_GetAgent_FullMethodName                               = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
 	RuntimeAgentService_ListAgents_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
+	RuntimeAgentService_ListLocalAppAgentInventory_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory"
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
 	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
@@ -100,6 +101,7 @@ type RuntimeAgentServiceClient interface {
 	TerminateAgent(ctx context.Context, in *TerminateAgentRequest, opts ...grpc.CallOption) (*TerminateAgentResponse, error)
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
+	ListLocalAppAgentInventory(ctx context.Context, in *ListLocalAppAgentInventoryRequest, opts ...grpc.CallOption) (*ListLocalAppAgentInventoryResponse, error)
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -251,6 +253,16 @@ func (c *runtimeAgentServiceClient) ListAgents(ctx context.Context, in *ListAgen
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAgentsResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_ListAgents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ListLocalAppAgentInventory(ctx context.Context, in *ListLocalAppAgentInventoryRequest, opts ...grpc.CallOption) (*ListLocalAppAgentInventoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalAppAgentInventoryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ListLocalAppAgentInventory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -849,6 +861,7 @@ type RuntimeAgentServiceServer interface {
 	TerminateAgent(context.Context, *TerminateAgentRequest) (*TerminateAgentResponse, error)
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
+	ListLocalAppAgentInventory(context.Context, *ListLocalAppAgentInventoryRequest) (*ListLocalAppAgentInventoryResponse, error)
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -941,6 +954,9 @@ func (UnimplementedRuntimeAgentServiceServer) GetAgent(context.Context, *GetAgen
 }
 func (UnimplementedRuntimeAgentServiceServer) ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAgents not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ListLocalAppAgentInventory(context.Context, *ListLocalAppAgentInventoryRequest) (*ListLocalAppAgentInventoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAgentInventory not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenConversationAnchor not implemented")
@@ -1285,6 +1301,24 @@ func _RuntimeAgentService_ListAgents_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).ListAgents(ctx, req.(*ListAgentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ListLocalAppAgentInventory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAppAgentInventoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentInventory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ListLocalAppAgentInventory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentInventory(ctx, req.(*ListLocalAppAgentInventoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2300,6 +2334,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAgents",
 			Handler:    _RuntimeAgentService_ListAgents_Handler,
+		},
+		{
+			MethodName: "ListLocalAppAgentInventory",
+			Handler:    _RuntimeAgentService_ListLocalAppAgentInventory_Handler,
 		},
 		{
 			MethodName: "OpenConversationAnchor",

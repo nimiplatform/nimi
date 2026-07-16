@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
@@ -35,6 +36,7 @@ const LocalAppTrustClassDevelopment LocalAppTrustClass = "local_development"
 // RuntimeAccountService. It carries no caller-selected capability or grant
 // decision.
 type LocalAppCallerBinding struct {
+	LocalOSUserAnchor       string
 	SessionID               protectedlocal.Identifier
 	AppID                   string
 	HostExecutableDigest    protectedlocal.Identifier
@@ -67,6 +69,7 @@ type AccountAuthorityRevoker interface {
 // A later grant evaluation extends this Account-owned boundary; consumers must
 // not add independent session caches.
 type LocalAppCallerDecision struct {
+	LocalOSUserAnchor       string
 	SessionID               protectedlocal.Identifier
 	AppID                   string
 	HostExecutableDigest    protectedlocal.Identifier
@@ -128,7 +131,8 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 	if binding.AccountGeneration != generation {
 		return LocalAppCallerDecision{}, ErrLocalAppAccountChanged
 	}
-	if binding.SessionID == (protectedlocal.Identifier{}) || strings.TrimSpace(binding.AppID) == "" ||
+	if strings.TrimSpace(binding.LocalOSUserAnchor) == "" || binding.LocalOSUserAnchor != strings.TrimSpace(binding.LocalOSUserAnchor) ||
+		binding.SessionID == (protectedlocal.Identifier{}) || strings.TrimSpace(binding.AppID) == "" ||
 		binding.HostExecutableDigest == (protectedlocal.Identifier{}) ||
 		binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) || binding.Process.PID == 0 || !s.now().UTC().Before(binding.ExpiresAt.UTC()) ||
 		binding.TrustClass != LocalAppTrustClassDevelopment || binding.AuthorizationID == (protectedlocal.Identifier{}) ||
@@ -143,6 +147,7 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
 	}
 	return LocalAppCallerDecision{
+		LocalOSUserAnchor:       binding.LocalOSUserAnchor,
 		SessionID:               binding.SessionID,
 		AppID:                   strings.TrimSpace(binding.AppID),
 		HostExecutableDigest:    binding.HostExecutableDigest,
@@ -163,6 +168,22 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 		ProjectGeneration:       binding.ProjectGeneration,
 		PayloadDigest:           binding.PayloadDigest,
 	}, nil
+}
+
+// LocalAppCallerAuthorizationReason maps the zero-grant caller revalidation
+// boundary to the same closed Runtime reason vocabulary used by selected
+// operations. Private resolver errors never cross the transport.
+func LocalAppCallerAuthorizationReason(err error) runtimev1.ReasonCode {
+	switch {
+	case err == nil:
+		return runtimev1.ReasonCode_ACTION_EXECUTED
+	case errors.Is(err, ErrLocalAppAccountChanged):
+		return runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED
+	case errors.Is(err, ErrLocalAppProcessMismatch):
+		return runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH
+	default:
+		return runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED
+	}
 }
 
 // AuthorizeLocalAppOperation keeps the closed operation map and exact session

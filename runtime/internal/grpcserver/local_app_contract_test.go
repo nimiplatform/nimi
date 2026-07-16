@@ -31,6 +31,17 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 	}
 }
 
+func TestLocalAppAgentInventoryWireIsEmptyAndBounded(t *testing.T) {
+	request := (&runtimev1.ListLocalAppAgentInventoryRequest{}).ProtoReflect().Descriptor()
+	if request.Fields().Len() != 0 {
+		t.Fatalf("inventory request must be empty, got %d fields", request.Fields().Len())
+	}
+	response := (&runtimev1.ListLocalAppAgentInventoryResponse{}).ProtoReflect().Descriptor()
+	assertExactProtoFields(t, response, []string{"owner_user_id", "count", "local_agents"})
+	item := (&runtimev1.LocalAppAgentInventoryItem{}).ProtoReflect().Descriptor()
+	assertExactProtoFields(t, item, []string{"local_agent_ref", "display_name", "owner_user_id", "runtime_source_ref", "source_ready"})
+}
+
 func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	if role, allowed := protectedDesktopMethodRole(protectedGetLocalAppGrantStatusMethod); !allowed || role != protectedlocal.RoleLocalAppControl {
 		t.Fatalf("Desktop grant-status role=(%q,%v)", role, allowed)
@@ -66,12 +77,13 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		protectedGetLocalAppGrantStatusMethod,
 		protectedRequestLocalAppGrantMethod,
 		protectedReadArtifactBytesMethod,
+		protectedListLocalAppAgentInventoryMethod,
 		protectedOpenConversationAnchorMethod,
 		protectedGetPublicChatSnapshotMethod,
 		protectedSendAppMessageMethod,
 	} {
 		assertProtectedLocalAppMethodPolicy(t, method, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
-		if _, blocked := publicTransportDenial(method); method == protectedRequestLocalAppGrantMethod || method == protectedReadArtifactBytesMethod {
+		if _, blocked := publicTransportDenial(method); method == protectedRequestLocalAppGrantMethod || method == protectedReadArtifactBytesMethod || method == protectedListLocalAppAgentInventoryMethod {
 			if !blocked {
 				t.Fatalf("host local-app method %s is reachable from public transport", method)
 			}
@@ -80,6 +92,18 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	streamPolicy, ok := protectedLocalAppStreamMethodPolicies[protectedSubscribeAppMessagesMethod]
 	if !ok || streamPolicy.transport != protectedlocal.TransportLocalAppHost || streamPolicy.role != protectedlocal.RoleLocalAppSession {
 		t.Fatalf("SubscribeAppMessages stream policy = %+v, present=%v", streamPolicy, ok)
+	}
+}
+
+func assertExactProtoFields(t testing.TB, descriptor protoreflect.MessageDescriptor, expected []string) {
+	t.Helper()
+	if descriptor.Fields().Len() != len(expected) {
+		t.Fatalf("%s fields = %d, want %d", descriptor.FullName(), descriptor.Fields().Len(), len(expected))
+	}
+	for _, field := range expected {
+		if descriptor.Fields().ByName(protoreflect.Name(field)) == nil {
+			t.Fatalf("%s missing field %q", descriptor.FullName(), field)
+		}
 	}
 }
 

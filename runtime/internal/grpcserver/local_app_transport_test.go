@@ -131,6 +131,7 @@ func TestProtectedLocalAppPoliciesExposeOnlyFinalSelectedOperations(t *testing.T
 		protectedGetLocalAppGrantStatusMethod,
 		protectedRequestLocalAppGrantMethod,
 		protectedReadArtifactBytesMethod,
+		protectedListLocalAppAgentInventoryMethod,
 		protectedOpenConversationAnchorMethod,
 		protectedGetPublicChatSnapshotMethod,
 		protectedSendAppMessageMethod,
@@ -256,6 +257,34 @@ func TestProtectedLocalAppSelectedOperationsFailClosedWithoutAuthorizer(t *testi
 	if got := localAppTransportReason(err); got != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
 		t.Fatalf("missing authorizer reason = %s", got)
 	}
+	_, err = interceptor(ctx, &runtimev1.ListLocalAppAgentInventoryRequest{}, &grpc.UnaryServerInfo{FullMethod: protectedListLocalAppAgentInventoryMethod}, func(context.Context, any) (any, error) {
+		t.Fatal("missing inventory caller authorizer reached handler")
+		return nil, nil
+	})
+	if got := localAppTransportReason(err); got != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+		t.Fatalf("missing inventory authorizer reason = %s", got)
+	}
+}
+
+func TestProtectedLocalAppInventoryBindsFreshZeroGrantCallerDecision(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0xe1)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0xe2), SessionProof: grpcLocalAppIdentifier(0xe3)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{})
+	called := false
+	_, err := interceptor(ctx, &runtimev1.ListLocalAppAgentInventoryRequest{}, &grpc.UnaryServerInfo{FullMethod: protectedListLocalAppAgentInventoryMethod}, func(handlerCtx context.Context, _ any) (any, error) {
+		called = true
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(handlerCtx)
+		if !ok || decision.LocalAppPrincipalID != "principal-a" || decision.Operation != "" {
+			t.Fatalf("inventory caller decision = %+v, present=%v", decision, ok)
+		}
+		return nil, nil
+	})
+	if err != nil || !called {
+		t.Fatalf("inventory decision handoff = called=%v err=%v", called, err)
+	}
 }
 
 type localAppTransportReasonError struct{ reason runtimev1.ReasonCode }
@@ -266,6 +295,13 @@ func (err localAppTransportReasonError) LocalAppOperationReasonCode() runtimev1.
 }
 
 type localAppTransportAuthorizer struct{ err error }
+
+func (authorizer localAppTransportAuthorizer) AuthorizeLocalAppCaller(context.Context) (accountservice.LocalAppCallerDecision, error) {
+	if authorizer.err != nil {
+		return accountservice.LocalAppCallerDecision{}, authorizer.err
+	}
+	return accountservice.LocalAppCallerDecision{LocalAppPrincipalID: "principal-a", LocalAppRecordID: "record-a"}, nil
+}
 
 func (authorizer localAppTransportAuthorizer) AuthorizeLocalAppProtectedOperation(context.Context, accountservice.LocalAppOperation, localappop.Selector) (accountservice.LocalAppCallerDecision, error) {
 	if authorizer.err != nil {
