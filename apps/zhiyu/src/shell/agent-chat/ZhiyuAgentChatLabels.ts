@@ -119,29 +119,13 @@ export function currentPartnerDisplayName(evidence: ZhiyuEvidence): string {
 }
 
 export function currentPartnerSubtitle(evidence: ZhiyuEvidence): string {
-  const selectedRef = evidence.localAgent.localAgentRef;
-  const fromInventory = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === selectedRef);
-  if (fromInventory?.sourceKind === 'worldCharacter') {
-    return '世界角色';
-  }
+  void evidence;
   return '本地伙伴';
 }
 
 export function agentCenterWorldLabel(evidence: ZhiyuEvidence): string | null {
-  const selectedRef = evidence.localAgent.localAgentRef;
-  const fromInventory = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === selectedRef);
-  if (fromInventory?.sourceKind !== 'worldCharacter') {
-    return null;
-  }
-  return normalizedWorldName(fromInventory.sourceWorldName);
-}
-
-function normalizedWorldName(value: string | null | undefined): string | null {
-  const worldName = value?.trim();
-  if (!worldName) {
-    return null;
-  }
-  return worldName;
+  void evidence;
+  return null;
 }
 
 function normalizedPartnerName(value: string | null | undefined): string | null {

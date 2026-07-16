@@ -69,14 +69,14 @@ async function supervisorSources() {
   ])));
 }
 
-test('G2 rejects drift in the exact inventory fail-closed contract', async () => {
+test('G2 rejects drift in the bounded local-app inventory contract', async () => {
   const sources = await zhiyuSources();
   assert.deepEqual(collectZhiyuLocalDevelopmentEntryViolations(sources), []);
   const drifted = {
     ...sources,
-    inventory: sources.inventory.replace('local-app-agent-inventory-unavailable', 'inventory-maybe-unavailable'),
+    inventory: sources.inventory.replace('zhiyuLocalAppRuntimePlatform.agent.listInventory()', 'Promise.resolve({})'),
   };
-  assert.match(collectZhiyuLocalDevelopmentEntryViolations(drifted).join('\n'), /inventory fail-closed/u);
+  assert.match(collectZhiyuLocalDevelopmentEntryViolations(drifted).join('\n'), /bounded SDK agent inventory/u);
 });
 
 test('G5 rejects one-sided supervisor timing drift', async () => {

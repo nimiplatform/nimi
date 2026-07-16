@@ -137,14 +137,11 @@ function ZhiyuBundledApp() {
         inventory,
         selectedLocalAgentRef,
       });
-      const selectedInventoryAgent = inventory.localAgents.find(
-        (agent) => agent.localAgentRef === localAgent.localAgentRef,
-      );
       const source = projectZhiyuRuntimeSourceProjection({
         ownerUserId: localAgent.ownerUserId,
         runtimeSourceRef: localAgent.runtimeSourceRef,
         localAgentRef: localAgent.localAgentRef,
-        sourceContextStatus: selectedInventoryAgent?.sourceContextStatus ?? null,
+        sourceContextStatus: null,
       });
       const diaryReflection = projectZhiyuDiaryReflectionArtifacts(localAgent);
       const [conversation, memory, companion, avatar] = await Promise.all([

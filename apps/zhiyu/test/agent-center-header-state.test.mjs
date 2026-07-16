@@ -69,7 +69,7 @@ test('Agent Center header hides Runtime LocalAgent refs from user-facing metadat
   );
 });
 
-test('Agent Center world metadata renders the Runtime-projected world name, not the world role tag', async () => {
+test('Agent Center world metadata stays absent from the bounded local-app inventory projection', async () => {
   const labels = await importTypescriptModule('src/shell/agent-chat/ZhiyuAgentChatLabels.ts');
   const evidence = {
     localAgent: {
@@ -78,14 +78,15 @@ test('Agent Center world metadata renders the Runtime-projected world name, not 
     inventory: {
       localAgents: [{
         localAgentRef: 'local-agent:world-character',
-        sourceKind: 'worldCharacter',
-        sourceWorldName: '唐代文人世界',
+        displayName: '颜真卿',
+        ownerUserId: 'user-a',
+        runtimeSourceRef: 'source-a',
+        sourceReady: true,
       }],
     },
   };
 
-  assert.equal(labels.agentCenterWorldLabel(evidence), '唐代文人世界');
-  assert.notEqual(labels.agentCenterWorldLabel(evidence), '世界角色');
+  assert.equal(labels.agentCenterWorldLabel(evidence), null);
 });
 
 test('Agent Center world metadata fails closed when Runtime does not project a world name', async () => {

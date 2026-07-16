@@ -243,12 +243,7 @@ export type ZhiyuEvidence = {
       readonly ownerUserId: string;
       readonly runtimeSourceRef: string;
       readonly displayName: string;
-      readonly sourceKind: string | null;
-      readonly sourceWorldId: string | null;
-      readonly sourceWorldName: string | null;
-      readonly sourceId: string | null;
-      readonly sourceContentHash: string | null;
-      readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
+      readonly sourceReady: boolean;
     }[];
   };
   readonly localAgent: {

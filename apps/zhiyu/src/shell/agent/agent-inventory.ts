@@ -1,6 +1,4 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
-import { Realm, loadNimiRealmWorldIdentityById } from '@nimiplatform/sdk/realm';
 import {
   createNimiRuntimeAgentClient,
   Runtime,
@@ -8,11 +6,8 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { appId, getRuntimeAccountCaller } from '../auth/runtime-platform';
-import {
-  hydrateZhiyuInventoryAgentWorldNames,
-  type ZhiyuInventoryWorldNameResolver,
-} from './agent-inventory-world-name';
+import { appId } from '../auth/runtime-platform';
+import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
 
 export type ZhiyuRuntimeAgentInventoryStatus = ZhiyuEvidence['inventory'];
 export type ZhiyuRuntimeAccountStatus = ZhiyuEvidence['auth'];
@@ -21,12 +16,22 @@ export async function probeZhiyuRuntimeAgentInventory(
   auth: ZhiyuRuntimeAccountStatus,
 ): Promise<ZhiyuRuntimeAgentInventoryStatus> {
   if (typeof window !== 'undefined' && window.__nimiZhiyuLocalDevelopment) {
-    return inventoryUnavailable({
-      reasonCode: 'local-app-agent-inventory-unavailable',
-      actionHint: 'request_bounded_local_app_agent_inventory_authority',
-      source: 'renderer',
-      message: 'The bounded local-app Agent inventory operation is not admitted yet.',
-    });
+    try {
+      const inventory = await zhiyuLocalAppRuntimePlatform.agent.listInventory();
+      return {
+        transport: 'electron-ipc',
+        ready: true,
+        reasonCode: 'runtime-local-agent-inventory-ready',
+        actionHint: 'select_runtime_local_agent',
+        source: 'runtime',
+        message: 'Runtime LocalAgent inventory was listed through the bounded local-app carrier.',
+        ownerUserId: inventory.ownerUserId,
+        count: inventory.count,
+        localAgents: inventory.localAgents,
+      };
+    } catch (error) {
+      return normalizeInventoryError(error, null);
+    }
   }
   if (!auth.ready || !auth.accountId) {
     return inventoryUnavailable({
@@ -59,10 +64,7 @@ export async function probeZhiyuRuntimeAgentInventory(
 
   try {
     const localAgents = await client.listLocalAgents({ ownerUserId: auth.accountId });
-    const inventoryAgents = await hydrateZhiyuInventoryAgentWorldNames(
-      localAgents.map(toInventoryAgent),
-      createZhiyuRuntimeWorldNameResolver(runtime),
-    );
+    const inventoryAgents = localAgents.map(toInventoryAgent);
     return {
       transport: 'electron-ipc',
       ready: true,
@@ -85,35 +87,11 @@ function toInventoryAgent(agent: NimiRuntimeAgentDiscoveredLocalAgent): ZhiyuRun
     ownerUserId: agent.ownerUserId,
     runtimeSourceRef: agent.runtimeSourceRef,
     displayName: agent.displayName,
-    sourceKind: agent.sourceKind,
-    sourceWorldId: agent.sourceWorldId,
-    sourceWorldName: agent.sourceWorldName,
-    sourceId: agent.sourceId,
-    sourceContentHash: agent.sourceContentHash,
-    sourceContextStatus: agent.sourceContextStatus,
+    sourceReady: agent.sourceContextStatus?.ready === true,
   };
 }
 
-function createZhiyuRuntimeWorldNameResolver(runtime: Runtime): ZhiyuInventoryWorldNameResolver {
-  let realm: Realm | null = null;
-  return async (worldId) => {
-    realm ??= new Realm({
-      transport: createRuntimeAccountMediatedRealmTransport({
-        runtime,
-        accountCaller: getRuntimeAccountCaller(),
-      }),
-    });
-    const identity = await loadNimiRealmWorldIdentityById(
-      realm,
-      () => {},
-      worldId,
-      { timeoutMs: 15_000 },
-    );
-    return identity.name;
-  };
-}
-
-function normalizeInventoryError(error: unknown, ownerUserId: string): ZhiyuRuntimeAgentInventoryStatus {
+function normalizeInventoryError(error: unknown, ownerUserId: string | null): ZhiyuRuntimeAgentInventoryStatus {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   return inventoryUnavailable({
     reasonCode: stringOr(record.reasonCode, 'zhiyu-runtime-agent-inventory-failed'),

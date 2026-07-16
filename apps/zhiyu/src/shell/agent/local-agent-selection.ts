@@ -32,7 +32,7 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   const selectedLocalAgentRef = stringOr(input.selectedLocalAgentRef, '');
   if (selectedLocalAgentRef) {
     const selected = localAgents.find((agent) => agent.localAgentRef === selectedLocalAgentRef);
-    if (selected && selected.sourceContextStatus?.ready === true) {
+    if (selected?.sourceReady === true) {
       return localAgentSelected(selected);
     }
     if (selected) {
@@ -73,7 +73,7 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   }
 
   const only = localAgents[0];
-  if (only?.sourceContextStatus?.ready === true) {
+  if (only?.sourceReady === true) {
     return localAgentSelected(only);
   }
   return localAgentUnavailable({

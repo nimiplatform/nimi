@@ -54,7 +54,7 @@ function inventoryAgent(overrides = {}) {
     sourceWorldName: null,
     sourceId: null,
     sourceContentHash: null,
-    sourceContextStatus: null,
+    sourceReady: false,
     ...overrides,
   };
 }
@@ -83,7 +83,7 @@ test('auto-selects the only inventory item only when bounded source status is re
     inventory: inventory([inventoryAgent({
       localAgentRef: 'runtime-local-agent:opaque-2',
       runtimeSourceRef: 'opaque-source-ref-2',
-      sourceContextStatus: { ready: true },
+      sourceReady: true,
     })]),
   });
 
@@ -100,7 +100,7 @@ test('promotes an explicitly selected Runtime inventory partner projection witho
         localAgentRef: 'runtime-local-agent:yan-zhenqing',
         runtimeSourceRef: 'runtime-source:yan-zhenqing',
         displayName: '颜真卿',
-        sourceContextStatus: { ready: true },
+        sourceReady: true,
       }),
       inventoryAgent({
         localAgentRef: 'runtime-local-agent:second',
