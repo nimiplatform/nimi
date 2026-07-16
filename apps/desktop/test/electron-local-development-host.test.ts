@@ -161,6 +161,15 @@ test('Electron local-development observation arguments require the explicit chec
     `--user-data-dir=${path.resolve(observation.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT)}`,
     `--nimi-dev-agent-id=${observation.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID}`,
   ]);
+  assert.deepEqual(resolveLocalDevelopmentObservationArguments({
+    ...observation,
+    NIMI_DEV_KERNEL_CHECKPOINT: '1',
+    NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID: '',
+  }), [
+    '--remote-debugging-address=127.0.0.1',
+    '--remote-debugging-port=19472',
+    `--user-data-dir=${path.resolve(observation.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT)}`,
+  ]);
   assert.throws(
     () => resolveLocalDevelopmentObservationArguments({
       ...observation,

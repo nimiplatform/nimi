@@ -20,6 +20,14 @@ export type ZhiyuRuntimeAccountStatus = ZhiyuEvidence['auth'];
 export async function probeZhiyuRuntimeAgentInventory(
   auth: ZhiyuRuntimeAccountStatus,
 ): Promise<ZhiyuRuntimeAgentInventoryStatus> {
+  if (typeof window !== 'undefined' && window.__nimiZhiyuLocalDevelopment) {
+    return inventoryUnavailable({
+      reasonCode: 'local-app-agent-inventory-unavailable',
+      actionHint: 'request_bounded_local_app_agent_inventory_authority',
+      source: 'renderer',
+      message: 'The bounded local-app Agent inventory operation is not admitted yet.',
+    });
+  }
   if (!auth.ready || !auth.accountId) {
     return inventoryUnavailable({
       reasonCode: 'zhiyu-runtime-account-required',

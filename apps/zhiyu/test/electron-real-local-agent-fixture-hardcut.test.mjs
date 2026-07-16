@@ -8,7 +8,12 @@ import { withFixtureRuntimeLocalAgent } from './e2e/electron-real-local-agent-fi
 
 const fixturePath = new URL('./e2e/electron-real-local-agent-fixture.mjs', import.meta.url);
 const electronMainPath = new URL('../src-electron/main.ts', import.meta.url);
+const appPath = new URL('../src/shell/app/App.tsx', import.meta.url);
 const packagePath = new URL('../package.json', import.meta.url);
+
+const { resolveZhiyuLocalDevelopmentAgentId } = await import(
+  '../src-electron/local-development-contract.ts'
+);
 
 test('Zhiyu Electron development enters the Desktop-owned supervisor', async () => {
   const packageDocument = JSON.parse(await readFile(packagePath, 'utf8'));
@@ -77,4 +82,34 @@ test('Zhiyu local-development build consumes only the final Kit Electron app bri
   assert.doesNotMatch(source, /createNimiElectronLocalAppHost/u);
   const appBridgeCall = source.match(/registerNimiElectronAppBridge\(\{([\s\S]*?)\}\);/u)?.[1] || '';
   assert.doesNotMatch(appBridgeCall, /endpoint|runtimeEndpoint|trustedRuntimeMetadataProvider|standardShellHost/u);
+});
+
+test('Zhiyu local development without an Agent selector starts the bundled UI contract', async () => {
+  assert.equal(resolveZhiyuLocalDevelopmentAgentId({
+    localDevelopment: true,
+    selector: undefined,
+  }), undefined);
+  const appSource = await readFile(appPath, 'utf8');
+  assert.match(appSource, /if \(localDevelopment\?\.agentId\) \{/u);
+  assert.match(appSource, /return <ZhiyuBundledApp \/>;/u);
+});
+
+test('Zhiyu local development rejects an invalid Agent selector', () => {
+  assert.throws(
+    () => resolveZhiyuLocalDevelopmentAgentId({
+      localDevelopment: true,
+      selector: 'local-agent:not-a-runtime-id',
+    }),
+    /selector is invalid/u,
+  );
+});
+
+test('Zhiyu rejects an Agent selector outside local development', () => {
+  assert.throws(
+    () => resolveZhiyuLocalDevelopmentAgentId({
+      localDevelopment: false,
+      selector: 'local-agent:runtime-0123456789abcdef0123456789abcdef',
+    }),
+    /selector is forbidden outside local development/u,
+  );
 });

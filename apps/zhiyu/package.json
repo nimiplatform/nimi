@@ -18,7 +18,7 @@
     "test:e2e:electron:live-runtime": "corepack pnpm run prepare:workspace-surfaces && corepack pnpm --filter @nimiplatform/avatar build:renderer && corepack pnpm --filter @nimiplatform/avatar build:electron && corepack pnpm run build && corepack pnpm run build:electron && node --import tsx --test --test-concurrency=1 test/scenario/apml.scenarios.test.mjs test/scenario/media.scenarios.test.mjs test/scenario/lifecycle.scenarios.test.mjs test/scenario/emotion.scenarios.test.mjs test/scenario/voice.scenarios.test.mjs",
     "test:e2e:electron:scenarios:bc": "corepack pnpm run build && corepack pnpm run build:electron && node --import tsx --test --test-concurrency=1 test/scenario/media.scenarios.test.mjs test/scenario/lifecycle.scenarios.test.mjs",
     "test:e2e:electron:real-local-agent": "corepack pnpm run build && corepack pnpm run build:electron && node --import tsx --test test/e2e/electron-real-local-agent-acceptance.test.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --import tsx --test test/*.test.mjs"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",

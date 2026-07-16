@@ -21,7 +21,7 @@ import {
   Surface,
   TextareaField,
 } from '@nimiplatform/kit/ui';
-import type { ZhiyuLocalDevelopmentTarget } from '../app/evidence-window';
+import type { ZhiyuSelectedLocalDevelopmentTarget } from '../app/evidence-window';
 
 const OPEN_OPERATION = 'runtime_agent.conversation.open';
 const CONVERSATION_OPERATIONS = [
@@ -127,7 +127,7 @@ const INITIAL_VIEW: Omit<JourneyView, 'agentId' | 'buildMarker'> = {
 export function ZhiyuLocalDevelopmentJourney({
   target,
 }: {
-  readonly target: ZhiyuLocalDevelopmentTarget;
+  readonly target: ZhiyuSelectedLocalDevelopmentTarget;
 }) {
   const platform = useMemo(() => createNimiAppRuntimePlatformClient({
     standardShell: createNimiLocalAppStandardShellSurface(),

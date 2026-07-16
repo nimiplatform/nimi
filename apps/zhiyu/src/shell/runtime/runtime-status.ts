@@ -2,6 +2,7 @@ import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Runtime } from '@nimiplatform/sdk/runtime';
 import { RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { ZhiyuEvidence } from '../app/evidence';
+import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from './electron-runtime-unavailable';
 
 export type ZhiyuRuntimeStatus = ZhiyuEvidence['runtime'];
@@ -16,6 +17,22 @@ export async function probeZhiyuRuntimeStatus(): Promise<ZhiyuRuntimeStatus> {
       source: 'renderer',
       message: 'Electron Runtime bridge is unavailable.',
     };
+  }
+
+  if (window.__nimiZhiyuLocalDevelopment) {
+    try {
+      const status = await zhiyuLocalAppRuntimePlatform.auth.status();
+      return {
+        transport: 'electron-ipc',
+        ready: status.sessionBound,
+        reasonCode: status.reasonCode,
+        actionHint: status.actionHint,
+        source: 'local-app.sessionStatus',
+        message: `Protected local-app session state: ${status.state}.`,
+      };
+    } catch (error) {
+      return serializeRuntimeStatusError(error);
+    }
   }
 
   const runtime = new Runtime({

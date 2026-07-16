@@ -17,9 +17,9 @@ import {
   ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND,
   createZhiyuRuntimeAgentScopedBindingCommandHandler,
 } from './runtime-agent-scoped-binding.js';
+import { resolveZhiyuLocalDevelopmentAgentId } from './local-development-contract.js';
 
 const APP_ID = 'nimi.zhiyu';
-const LOCAL_AGENT_ID_PATTERN = /^local-agent:runtime-[0-9a-f]{32}$/u;
 const LOCAL_DEVELOPMENT_PRELOAD_MARKER = '--nimi-local-development=1';
 
 const currentFilePath = fileURLToPath(import.meta.url);
@@ -32,13 +32,10 @@ const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readArgument('--nimi-dev-renderer-url')
   || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
 const isLocalDevelopmentBuild = Boolean(readArgument('--nimi-dev-renderer-url'));
-const localDevelopmentAgentId = readArgument('--nimi-dev-agent-id');
-if (isLocalDevelopmentBuild && !LOCAL_AGENT_ID_PATTERN.test(localDevelopmentAgentId)) {
-  throw new Error('Zhiyu local-development Agent selector is missing or invalid.');
-}
-if (!isLocalDevelopmentBuild && localDevelopmentAgentId) {
-  throw new Error('Zhiyu local-development Agent selector is forbidden outside local development.');
-}
+const localDevelopmentAgentId = resolveZhiyuLocalDevelopmentAgentId({
+  localDevelopment: isLocalDevelopmentBuild,
+  selector: readOptionalArgument('--nimi-dev-agent-id'),
+});
 let mainWindow: BrowserWindow | undefined;
 
 app.setName('织羽 Zhiyu');
@@ -108,7 +105,7 @@ function localDevelopmentPreloadArguments(): string[] {
   if (!isLocalDevelopmentBuild) return [];
   return [
     LOCAL_DEVELOPMENT_PRELOAD_MARKER,
-    `--nimi-dev-agent-id=${localDevelopmentAgentId}`,
+    ...(localDevelopmentAgentId ? [`--nimi-dev-agent-id=${localDevelopmentAgentId}`] : []),
   ];
 }
 
@@ -283,6 +280,11 @@ function normalizeText(value: unknown): string {
 }
 
 function readArgument(name: string): string {
+  return readOptionalArgument(name) || '';
+}
+
+function readOptionalArgument(name: string): string | undefined {
   const prefix = `${name}=`;
-  return normalizeText(process.argv.find((argument) => argument.startsWith(prefix))?.slice(prefix.length));
+  const argument = process.argv.find((candidate) => candidate.startsWith(prefix));
+  return argument === undefined ? undefined : normalizeText(argument.slice(prefix.length));
 }

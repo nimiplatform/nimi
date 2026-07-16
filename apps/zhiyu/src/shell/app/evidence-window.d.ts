@@ -3,8 +3,12 @@ import type { ZhiyuDevKernelEvidence } from '../local-development/ZhiyuLocalDeve
 
 export type ZhiyuLocalDevelopmentTarget = {
   readonly profile: 'isolated-local-development';
-  readonly agentId: string;
+  readonly agentId?: string;
   readonly buildMarker: string;
+};
+
+export type ZhiyuSelectedLocalDevelopmentTarget = ZhiyuLocalDevelopmentTarget & {
+  readonly agentId: string;
 };
 
 declare global {

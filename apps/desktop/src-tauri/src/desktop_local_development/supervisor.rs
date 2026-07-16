@@ -426,14 +426,21 @@ fn dev_kernel_electron_observation_arguments() -> Result<Vec<String>, String> {
         .map_err(|_| "local-development-observation-config-invalid".to_string())?;
     ensure_path_within(&trial_root, &user_data_root)?;
     let agent_id = std::env::var("NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID")
-        .map_err(|_| "local-development-observation-config-invalid".to_string())?;
-    validate_dev_kernel_agent_id(&agent_id)?;
-    Ok(vec![
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    if let Some(agent_id) = agent_id.as_deref() {
+        validate_dev_kernel_agent_id(agent_id)?;
+    }
+    let mut arguments = vec![
         "--remote-debugging-address=127.0.0.1".to_string(),
         format!("--remote-debugging-port={port}"),
         format!("--user-data-dir={}", user_data_root.display()),
-        format!("--nimi-dev-agent-id={agent_id}"),
-    ])
+    ];
+    if let Some(agent_id) = agent_id {
+        arguments.push(format!("--nimi-dev-agent-id={agent_id}"));
+    }
+    Ok(arguments)
 }
 
 #[cfg(feature = "dev-kernel-checkpoint")]

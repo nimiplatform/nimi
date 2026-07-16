@@ -652,14 +652,14 @@ export function resolveLocalDevelopmentObservationArguments(
   const root = String(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || '').trim();
   const agent = String(env.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID || '').trim();
   if (!Number.isInteger(port) || port < 1024 || port > 65535 || !path.isAbsolute(root)
-    || !/^local-agent:runtime-[0-9a-f]{32}$/u.test(agent)) {
+    || (agent && !/^local-agent:runtime-[0-9a-f]{32}$/u.test(agent))) {
     throw new Error('local-development-observation-config-invalid');
   }
   return [
     '--remote-debugging-address=127.0.0.1',
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${path.resolve(root)}`,
-    `--nimi-dev-agent-id=${agent}`,
+    ...(agent ? [`--nimi-dev-agent-id=${agent}`] : []),
   ];
 }
 

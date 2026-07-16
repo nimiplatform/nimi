@@ -1,12 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electron/preload-cjs';
 import { DEV_KERNEL_RESTART_PROBE } from './dev-kernel-restart-probe.js';
+import { resolveZhiyuLocalDevelopmentAgentId } from './local-development-contract.js';
 
 const ZHIYU_AVATAR_LAUNCH_HANDOFF_CHANNEL = 'zhiyu:avatar-launch-handoff';
 const ZHIYU_AVATAR_LAUNCH_HANDOFF_COMMANDS = new Set([
   'avatar.launch',
 ]);
-const LOCAL_AGENT_ID_PATTERN = /^local-agent:runtime-[0-9a-f]{32}$/u;
 const LOCAL_DEVELOPMENT_PRELOAD_MARKER = '--nimi-local-development=1';
 
 installNimiElectronRuntimeBridge({
@@ -15,17 +15,14 @@ installNimiElectronRuntimeBridge({
 });
 
 const localDevelopment = process.argv.includes(LOCAL_DEVELOPMENT_PRELOAD_MARKER);
-const localDevelopmentAgentId = readArgument('--nimi-dev-agent-id');
-if (localDevelopment && !LOCAL_AGENT_ID_PATTERN.test(localDevelopmentAgentId)) {
-  throw new Error('Zhiyu local-development Agent selector is missing or invalid.');
-}
-if (!localDevelopment && localDevelopmentAgentId) {
-  throw new Error('Zhiyu local-development Agent selector is forbidden outside local development.');
-}
+const localDevelopmentAgentId = resolveZhiyuLocalDevelopmentAgentId({
+  localDevelopment,
+  selector: readOptionalArgument('--nimi-dev-agent-id'),
+});
 if (localDevelopment) {
   contextBridge.exposeInMainWorld('__nimiZhiyuLocalDevelopment', Object.freeze({
     profile: 'isolated-local-development',
-    agentId: localDevelopmentAgentId,
+    ...(localDevelopmentAgentId ? { agentId: localDevelopmentAgentId } : {}),
     buildMarker: DEV_KERNEL_RESTART_PROBE,
   }));
 }
@@ -55,7 +52,8 @@ contextBridge.exposeInMainWorld('__nimiZhiyuAvatarLaunchHandoff', {
   },
 });
 
-function readArgument(name: string): string {
+function readOptionalArgument(name: string): string | undefined {
   const prefix = `${name}=`;
-  return process.argv.find((argument) => argument.startsWith(prefix))?.slice(prefix.length).trim() || '';
+  const argument = process.argv.find((candidate) => candidate.startsWith(prefix));
+  return argument === undefined ? undefined : argument.slice(prefix.length).trim();
 }
