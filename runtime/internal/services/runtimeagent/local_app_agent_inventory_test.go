@@ -8,7 +8,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -91,14 +90,14 @@ func localAppInventoryTestService(t testing.TB, currentAccountCount int, otherAc
 }
 
 func localAppInventoryContext(accountID string, seed byte) context.Context {
-	var sessionID protectedlocal.Identifier
-	for index := range sessionID {
-		sessionID[index] = seed
-	}
-	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{
+	decision := accountservice.LocalAppCallerDecision{
 		LocalOSUserAnchor: "windows-sid:S-1-5-21-current",
-		SessionID:         sessionID, AppID: "sample.nimi.app", AccountID: accountID, AccountGeneration: 3,
+		AppID:             "sample.nimi.app", AccountID: accountID, AccountGeneration: 3,
 		TrustClass:          accountservice.LocalAppTrustClassDevelopment,
 		LocalAppPrincipalID: "lap_v1_inventory", LocalAppRecordID: "lar_v1_inventory",
-	})
+	}
+	for index := range decision.SessionID {
+		decision.SessionID[index] = seed
+	}
+	return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
 }

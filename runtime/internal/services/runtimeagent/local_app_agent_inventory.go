@@ -10,7 +10,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -32,7 +31,7 @@ func (s *Service) ListLocalAppAgentInventory(
 	}
 	caller, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || caller.Operation != "" || caller.TrustClass != accountservice.LocalAppTrustClassDevelopment ||
-		caller.SessionID == (protectedlocal.Identifier{}) || caller.AccountGeneration == 0 ||
+		caller.SessionID == (accountservice.LocalAppCallerDecision{}).SessionID || caller.AccountGeneration == 0 ||
 		strings.TrimSpace(caller.AccountID) == "" || strings.TrimSpace(caller.LocalOSUserAnchor) == "" ||
 		strings.TrimSpace(caller.LocalAppPrincipalID) == "" || strings.TrimSpace(caller.LocalAppRecordID) == "" {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
