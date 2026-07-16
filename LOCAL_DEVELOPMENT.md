@@ -2,7 +2,7 @@
 
 本文面向在 Windows 上联调 Realm、Web、fixed Runtime、Desktop 与第三方 Nimi App 的开发者。联调沿用生产授权边界：账号认证、项目准入、精确 operation grant、Runtime owner enforcement 四层相互独立；本地开发不会获得 bearer、隐式 grant 或绕过 presence 的通道。
 
-> 当前恢复包状态（2026-07-16）：`dev:runtime` 与 Desktop 签名 carrier 入口已经实现；Zhiyu 零参数产品 UI 仍受 bounded Agent inventory 等权威缺口阻塞。不要把 harness selector 当作日常启动前置，也不要用普通 gRPC 补洞。
+> 当前恢复包状态（2026-07-17）：`dev:runtime`、Desktop 签名 carrier 与 bounded zero-grant Agent inventory 已从 protected Runtime RPC 贯通到 Kit、SDK 和 Zhiyu；验证过的 local-development session 可直接通过 `agent.listInventory()` 获得有界伙伴清单，日常启动不需要 harness selector。Realm broker 等尚未逐操作准入的能力仍保持 fail-closed，不要用普通 gRPC 补洞。
 
 ## 五个入口
 
@@ -20,9 +20,9 @@
 
 ## 签名 Desktop dev profile 的一次性 First Run
 
-签名 Desktop 使用持久 dev profile；新 profile 首次出现 First Run 是预期行为，完成记录按 data root 保存。Storage 页可以用 `Choose folder…` 选择既有 Nimi data root，但这**不等于**现有模型一定会被复用。
+签名 Desktop 使用持久 dev profile；新 profile 首次出现 First Run 是预期行为，完成记录按 data root 保存。决议 12 后，Storage 页用 `Choose folder…` 选择既有 Nimi data root 时，Product Control 会通过受保护的 typed config mutation 写入 Runtime service-owned `dataRootRef` 与派生 `managedRoots`，再由 typed fixed-service restart 使 localservice、engine manager 与 app storage 从同一根构造。既有模型只会在 catalog digest 和 managed-asset 校验通过后被收养；缺失、不完整或 hash 不匹配会 fail-closed 回到正常物化路径。
 
-2026-07-16 的真实签名 carrier 验证中，选择已有 `D:\DataNimi` 后，Storage 与 Device 步骤正常识别该目录；进入 Local AI 并选择 Minimal 后，Setup 仍启动了新的 8.4 GB 模型下载（40 秒时 225 MB / 3%），未跳过或大幅缩短物化。为避免第二份模型物化，在模型复用检测修复并复验前，已有 data root 的 dev profile 不要越过 Local AI 确认；若 Setup 显示非零下载总量，立即停止 carrier，不把它视为可安全复用。
+2026-07-16 的真实签名 carrier 复验选择既有 `D:\DataNimi` 与 Minimal：First Run 完成，Product Control 为 `ready_for_use`，local text/STT/TTS 均产生 `local_ai_ready` 执行证据，且没有出现第二份 GB 级模型 payload。后续新 candidate 复用同一 data root 时同样没有新增 GB 级下载；小型环境脚本或 PID 更新属于正常执行态，不代表模型被重复物化。
 
 ## 修改后的动作
 
