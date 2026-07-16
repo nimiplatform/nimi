@@ -95,6 +95,8 @@ export type {
   NimiAppRuntimePlatformClient,
   NimiAppRuntimePlatformClientInput,
   NimiAppRuntimePlatformStandardShell,
+  NimiAppRuntimeStorageDocument,
+  NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform.js';
 export {
   NIMI_APP_AI_PROFILE_FACTORY_CATALOG,

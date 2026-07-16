@@ -1,4 +1,4 @@
-import { createNimiError, type JsonObject } from '../../types';
+import { createNimiError, type JsonObject, type JsonValue } from '../../types';
 import {
   decodeNimiRuntimeAgentConversationAnchorSnapshot,
   projectNimiRuntimeAgentAppMessageEvent,
@@ -15,6 +15,8 @@ import type {
 } from '../../core-generated/runtime-typed-client';
 
 const MAX_INLINE_ARTIFACT_BYTES = 32 * 1024 * 1024;
+const MAX_LOCAL_APP_STORAGE_PATH_BYTES = 240;
+const MAX_LOCAL_APP_STORAGE_DOCUMENT_BYTES = 256 * 1024;
 const FORBIDDEN_AUTHORITY_FIELDS = new Set([
   'accountid',
   'authorization',
@@ -91,6 +93,15 @@ export type NimiAppRuntimeArtifactBytes = {
   readonly mimeInferred: boolean;
 };
 
+export type NimiAppRuntimeStorageDocument = {
+  readonly value: JsonValue;
+  readonly sizeBytes: number;
+};
+
+export type NimiAppRuntimeStorageRemoveResult = {
+  readonly removed: boolean;
+};
+
 export type NimiAppRuntimeAgentOpenConversationInput = {
   readonly agentId: string;
   readonly requestedAnchorDisposition: 'create-or-resume' | 'create-new';
@@ -137,7 +148,7 @@ export type NimiAppRuntimeAgentInventory = {
 
 /**
  * Host-neutral structural contract implemented directly by Kit's
- * createNimiLocalAppStandardShellSurface. The nested namespaces and nine
+ * createNimiLocalAppStandardShellSurface. The nested namespaces and twelve
  * operations are the complete admitted local-app carrier; this is not a Runtime
  * client and contains no generic forwarding surface.
  */
@@ -151,6 +162,11 @@ export type NimiAppRuntimePlatformStandardShell = {
   };
   readonly artifacts: {
     readonly readRuntimeBytes: (artifactId: string) => Promise<unknown>;
+  };
+  readonly storage: {
+    readonly readJson: (relativePath: string) => Promise<unknown>;
+    readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
+    readonly removeJson: (relativePath: string) => Promise<unknown>;
   };
   readonly agent: {
     readonly inventory: () => Promise<unknown>;
@@ -176,6 +192,14 @@ export type NimiAppRuntimePlatformClient = {
   readonly artifacts: {
     readonly readRuntimeBytes: (artifactId: string) => Promise<NimiAppRuntimeArtifactBytes>;
   };
+  readonly storage: {
+    readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
+    readonly writeJson: (
+      relativePath: string,
+      value: JsonValue,
+    ) => Promise<NimiAppRuntimeStorageDocument>;
+    readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
+  };
   readonly agent: {
     readonly listInventory: () => Promise<NimiAppRuntimeAgentInventory>;
     readonly openConversation: (
@@ -196,10 +220,15 @@ export function createNimiAppRuntimePlatformClient(
 ): NimiAppRuntimePlatformClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(standardShell, ['session', 'permission', 'artifacts', 'agent'], 'local-app standardShell');
+  assertExactKeys(
+    standardShell,
+    ['session', 'permission', 'artifacts', 'storage', 'agent'],
+    'local-app standardShell',
+  );
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   assertExactMethodNamespace(standardShell.permission, ['posture', 'request'], 'permission');
   assertExactMethodNamespace(standardShell.artifacts, ['readRuntimeBytes'], 'artifacts');
+  assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
   assertExactMethodNamespace(
     standardShell.agent,
     ['inventory', 'openConversation', 'sendTurn', 'subscribeTurn', 'getConversationSnapshot'],
@@ -244,6 +273,27 @@ export function createNimiAppRuntimePlatformClient(
     artifacts: Object.freeze({
       readRuntimeBytes: async (artifactId: string) => projectArtifact(
         await standardShell.artifacts.readRuntimeBytes(requireText(artifactId, 'artifactId')),
+      ),
+    }),
+    storage: Object.freeze({
+      readJson: async (relativePath: string) => projectStorageDocument(
+        await standardShell.storage.readJson(requireStorageRelativePath(relativePath)),
+      ),
+      writeJson: async (relativePath: string, value: JsonValue) => {
+        const path = requireStorageRelativePath(relativePath);
+        assertStorageJsonValue(value);
+        const encoded = JSON.stringify(value);
+        if (encoded === undefined || new TextEncoder().encode(encoded).byteLength > MAX_LOCAL_APP_STORAGE_DOCUMENT_BYTES) {
+          return localAppError(
+            'Local-app storage document exceeds the admitted bound.',
+            'SDK_LOCAL_APP_STORAGE_DOCUMENT_TOO_LARGE',
+            'reduce_storage_document_size',
+          );
+        }
+        return projectStorageDocument(await standardShell.storage.writeJson(path, value));
+      },
+      removeJson: async (relativePath: string) => projectStorageRemoveResult(
+        await standardShell.storage.removeJson(requireStorageRelativePath(relativePath)),
       ),
     }),
     agent: Object.freeze({
@@ -564,6 +614,100 @@ function projectArtifact(value: unknown): NimiAppRuntimeArtifactBytes {
     localAppProjectionError('artifact');
   }
   return { bytes: Uint8Array.from(bytes), mimeType, sizeBytes, mimeInferred: record.mimeInferred };
+}
+
+function projectStorageDocument(value: unknown): NimiAppRuntimeStorageDocument {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['value', 'sizeBytes'], 'storage document');
+  const sizeBytes = nonNegativeInteger(record.sizeBytes, 'storage document sizeBytes');
+  if (sizeBytes > MAX_LOCAL_APP_STORAGE_DOCUMENT_BYTES) {
+    localAppProjectionError('storage document sizeBytes');
+  }
+  assertStorageJsonValue(record.value, true);
+  return { value: record.value, sizeBytes };
+}
+
+function projectStorageRemoveResult(value: unknown): NimiAppRuntimeStorageRemoveResult {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['removed'], 'storage remove result');
+  if (typeof record.removed !== 'boolean') localAppProjectionError('storage remove result');
+  return { removed: record.removed };
+}
+
+function requireStorageRelativePath(value: unknown): string {
+  if (
+    typeof value !== 'string'
+    || value.length === 0
+    || value.trim() !== value
+    || value.length > MAX_LOCAL_APP_STORAGE_PATH_BYTES
+    || !/^[\x00-\x7f]+$/u.test(value)
+    || !value.endsWith('.json')
+    || value.startsWith('/')
+    || /[\\:\0]/u.test(value)
+    || value.split('/').some((segment) => !validStoragePathSegment(segment))
+  ) {
+    return localAppError(
+      'Local-app storage requires a canonical relative JSON path.',
+      'SDK_LOCAL_APP_STORAGE_PATH_INVALID',
+      'provide_canonical_relative_json_path',
+    );
+  }
+  return value;
+}
+
+function validStoragePathSegment(segment: string): boolean {
+  if (
+    segment.length === 0
+    || segment.length > 128
+    || segment === '.'
+    || segment === '..'
+    || segment.endsWith('.')
+    || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(segment)
+  ) {
+    return false;
+  }
+  const base = segment.split('.')[0]?.toUpperCase() || '';
+  return !['CON', 'PRN', 'AUX', 'NUL'].includes(base)
+    && !/^(?:COM|LPT)[1-9]$/u.test(base);
+}
+
+function assertStorageJsonValue(
+  value: unknown,
+  projection = false,
+  depth = 0,
+  state = { nodes: 0, ancestors: new Set<object>() },
+): asserts value is JsonValue {
+  state.nodes += 1;
+  if (depth > 32 || state.nodes > 100_000) {
+    return storageJsonError(projection);
+  }
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number' && Number.isFinite(value)) return;
+  if (!value || typeof value !== 'object' || state.ancestors.has(value)) {
+    return storageJsonError(projection);
+  }
+  state.ancestors.add(value);
+  if (Array.isArray(value)) {
+    for (const entry of value) assertStorageJsonValue(entry, projection, depth + 1, state);
+  } else {
+    const record = asRecord(value);
+    if (!record || Reflect.ownKeys(value).some((key) => typeof key !== 'string')) {
+      return storageJsonError(projection);
+    }
+    for (const entry of Object.values(record)) {
+      assertStorageJsonValue(entry, projection, depth + 1, state);
+    }
+  }
+  state.ancestors.delete(value);
+}
+
+function storageJsonError(projection: boolean): never {
+  if (projection) return localAppProjectionError('storage JSON value');
+  return localAppError(
+    'Local-app storage value must be bounded JSON.',
+    'SDK_LOCAL_APP_STORAGE_VALUE_INVALID',
+    'provide_bounded_json_value',
+  );
 }
 
 function localAppSessionState(

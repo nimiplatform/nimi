@@ -1029,6 +1029,33 @@
           "response_stream": false
         },
         {
+          "name": "ReadLocalAppStorageJson",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+          "kind": "unary",
+          "request_type": "ReadLocalAppStorageJsonRequest",
+          "response_type": "ReadLocalAppStorageJsonResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "WriteLocalAppStorageJson",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
+          "kind": "unary",
+          "request_type": "WriteLocalAppStorageJsonRequest",
+          "response_type": "WriteLocalAppStorageJsonResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RemoveLocalAppStorageJson",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+          "kind": "unary",
+          "request_type": "RemoveLocalAppStorageJsonRequest",
+          "response_type": "RemoveLocalAppStorageJsonResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetAccountAppInventory",
           "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
           "kind": "unary",
@@ -2648,11 +2675,14 @@
     "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
     "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
     "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
+    "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+    "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
     "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
     "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
+    "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
     "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
     "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
@@ -3687,6 +3717,22 @@
       "response_type": "PrepareLocalAppLaunchResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+      "service": "RuntimeAppService",
+      "method": "ReadLocalAppStorageJson",
+      "kind": "unary",
+      "request_type": "ReadLocalAppStorageJsonRequest",
+      "response_type": "ReadLocalAppStorageJsonResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+      "service": "RuntimeAppService",
+      "method": "RemoveLocalAppStorageJson",
+      "kind": "unary",
+      "request_type": "RemoveLocalAppStorageJsonRequest",
+      "response_type": "RemoveLocalAppStorageJsonResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
       "service": "RuntimeAppService",
       "method": "SendAppMessage",
@@ -3725,6 +3771,14 @@
       "kind": "server_stream",
       "request_type": "WatchAppInstallJobEventsRequest",
       "response_type": "AppInstallJobEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
+      "service": "RuntimeAppService",
+      "method": "WriteLocalAppStorageJson",
+      "kind": "unary",
+      "request_type": "WriteLocalAppStorageJsonRequest",
+      "response_type": "WriteLocalAppStorageJsonResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
@@ -5817,6 +5871,22 @@
       "response_type": "PrepareLocalAppLaunchResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+      "service": "RuntimeAppService",
+      "method": "ReadLocalAppStorageJson",
+      "kind": "unary",
+      "request_type": "ReadLocalAppStorageJsonRequest",
+      "response_type": "ReadLocalAppStorageJsonResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+      "service": "RuntimeAppService",
+      "method": "RemoveLocalAppStorageJson",
+      "kind": "unary",
+      "request_type": "RemoveLocalAppStorageJsonRequest",
+      "response_type": "RemoveLocalAppStorageJsonResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
       "service": "RuntimeAppService",
       "method": "SendAppMessage",
@@ -5855,6 +5925,14 @@
       "kind": "server_stream",
       "request_type": "WatchAppInstallJobEventsRequest",
       "response_type": "AppInstallJobEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
+      "service": "RuntimeAppService",
+      "method": "WriteLocalAppStorageJson",
+      "kind": "unary",
+      "request_type": "WriteLocalAppStorageJsonRequest",
+      "response_type": "WriteLocalAppStorageJsonResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
@@ -7663,6 +7741,8 @@
       "ReactivateLocalDevelopmentProjectResponse",
       "ReadArtifactBytesRequest",
       "ReadArtifactBytesResponse",
+      "ReadLocalAppStorageJsonRequest",
+      "ReadLocalAppStorageJsonResponse",
       "ReadRealtimeEventsRequest",
       "RealmGroupMessageCandidateCommitHandle",
       "RealmGroupMessageCandidateEvidence",
@@ -7695,6 +7775,8 @@
       "RegisterExternalPrincipalResponse",
       "RemoveLinkRequest",
       "RemoveLinkResponse",
+      "RemoveLocalAppStorageJsonRequest",
+      "RemoveLocalAppStorageJsonResponse",
       "RemoveLocalAssetRequest",
       "RemoveLocalAssetResponse",
       "RemoveLocalServiceRequest",
@@ -7953,7 +8035,9 @@
       "WorldGenerateVideoPrompt",
       "WorldSharedBankOwner",
       "WriteAgentMemoryRequest",
-      "WriteAgentMemoryResponse"
+      "WriteAgentMemoryResponse",
+      "WriteLocalAppStorageJsonRequest",
+      "WriteLocalAppStorageJsonResponse"
     ],
     "enums": [
       "AccountAppInstallState",
@@ -31775,6 +31859,46 @@
         "source_file": "proto/runtime/v1/artifact_service.proto"
       },
       {
+        "name": "ReadLocalAppStorageJsonRequest",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ReadLocalAppStorageJsonResponse",
+        "fields": [
+          {
+            "name": "json_value",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "ReadRealtimeEventsRequest",
         "fields": [
           {
@@ -32958,6 +33082,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "RemoveLocalAppStorageJsonRequest",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "RemoveLocalAppStorageJsonResponse",
+        "fields": [
+          {
+            "name": "removed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "RemoveLocalAssetRequest",
@@ -41499,6 +41656,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "WriteLocalAppStorageJsonRequest",
+        "fields": [
+          {
+            "name": "relative_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "json_value",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "WriteLocalAppStorageJsonResponse",
+        "fields": [
+          {
+            "name": "json_value",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       }
     ],
     "enum_schemas": [
@@ -43294,6 +43498,10 @@
           "AI_LOCAL_SPEECH_HOST_INIT_FAILED",
           "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED",
           "AI_LOCAL_SPEECH_BUNDLE_DEGRADED",
+          "APP_STORAGE_PATH_INVALID",
+          "APP_STORAGE_ENTRY_NOT_FOUND",
+          "APP_STORAGE_QUOTA_EXCEEDED",
+          "APP_STORAGE_UNAVAILABLE",
           "WORKSPACE_BINDING_MISSING",
           "WORKSPACE_BINDING_MALFORMED",
           "WORKSPACE_BINDING_NOT_FOUND",

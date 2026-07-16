@@ -895,6 +895,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PrepareLocalAppLaunchResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+    "service": "RuntimeAppService",
+    "method": "ReadLocalAppStorageJson",
+    "kind": "unary",
+    "requestType": "ReadLocalAppStorageJsonRequest",
+    "responseType": "ReadLocalAppStorageJsonResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+    "service": "RuntimeAppService",
+    "method": "RemoveLocalAppStorageJson",
+    "kind": "unary",
+    "requestType": "RemoveLocalAppStorageJsonRequest",
+    "responseType": "RemoveLocalAppStorageJsonResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "service": "RuntimeAppService",
     "method": "SendAppMessage",
@@ -933,6 +949,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "WatchAppInstallJobEventsRequest",
     "responseType": "AppInstallJobEvent"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
+    "service": "RuntimeAppService",
+    "method": "WriteLocalAppStorageJson",
+    "kind": "unary",
+    "requestType": "WriteLocalAppStorageJsonRequest",
+    "responseType": "WriteLocalAppStorageJsonResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",

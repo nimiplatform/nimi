@@ -1651,6 +1651,10 @@ const (
 	AILOCALSPEECHHOSTINITFAILED ReasonCode = "AI_LOCAL_SPEECH_HOST_INIT_FAILED"
 	AILOCALSPEECHCAPABILITYDOWNLOADFAILED ReasonCode = "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED"
 	AILOCALSPEECHBUNDLEDEGRADED ReasonCode = "AI_LOCAL_SPEECH_BUNDLE_DEGRADED"
+	APPSTORAGEPATHINVALID ReasonCode = "APP_STORAGE_PATH_INVALID"
+	APPSTORAGEENTRYNOTFOUND ReasonCode = "APP_STORAGE_ENTRY_NOT_FOUND"
+	APPSTORAGEQUOTAEXCEEDED ReasonCode = "APP_STORAGE_QUOTA_EXCEEDED"
+	APPSTORAGEUNAVAILABLE ReasonCode = "APP_STORAGE_UNAVAILABLE"
 	WORKSPACEBINDINGMISSING ReasonCode = "WORKSPACE_BINDING_MISSING"
 	WORKSPACEBINDINGMALFORMED ReasonCode = "WORKSPACE_BINDING_MALFORMED"
 	WORKSPACEBINDINGNOTFOUND ReasonCode = "WORKSPACE_BINDING_NOT_FOUND"
@@ -6825,6 +6829,16 @@ type ReadArtifactBytesResponse struct {
 	MimeInferred bool `json:"mime_inferred,omitempty"`
 }
 
+type ReadLocalAppStorageJsonRequest struct {
+	RelativePath string `json:"relative_path,omitempty"`
+}
+
+type ReadLocalAppStorageJsonResponse struct {
+	JsonValue []byte `json:"json_value,omitempty"`
+	SizeBytes int64 `json:"size_bytes,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type ReadRealtimeEventsRequest struct {
 	SessionId string `json:"session_id,omitempty"`
 	AfterSequence uint64 `json:"after_sequence,omitempty"`
@@ -7062,6 +7076,15 @@ type RemoveLinkRequest struct {
 
 type RemoveLinkResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
+}
+
+type RemoveLocalAppStorageJsonRequest struct {
+	RelativePath string `json:"relative_path,omitempty"`
+}
+
+type RemoveLocalAppStorageJsonResponse struct {
+	Removed bool `json:"removed,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type RemoveLocalAssetRequest struct {
@@ -8844,6 +8867,17 @@ type WriteAgentMemoryResponse struct {
 	Rejected []CanonicalMemoryRejection `json:"rejected,omitempty"`
 }
 
+type WriteLocalAppStorageJsonRequest struct {
+	RelativePath string `json:"relative_path,omitempty"`
+	JsonValue []byte `json:"json_value,omitempty"`
+}
+
+type WriteLocalAppStorageJsonResponse struct {
+	JsonValue []byte `json:"json_value,omitempty"`
+	SizeBytes int64 `json:"size_bytes,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type RuntimeTypedClient struct {
 	core coreclient.Client
 }
@@ -9828,6 +9862,22 @@ func (c RuntimeTypedClient) PrepareLocalAppLaunch(ctx context.Context, request P
 	return decodeRuntimeTypedResponse[PrepareLocalAppLaunchResponse](raw, "PrepareLocalAppLaunchResponse")
 }
 
+func (c RuntimeTypedClient) ReadLocalAppStorageJson(ctx context.Context, request ReadLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadLocalAppStorageJsonResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson", request, metadata, timeoutMS)
+	if err != nil {
+		return ReadLocalAppStorageJsonResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReadLocalAppStorageJsonResponse](raw, "ReadLocalAppStorageJsonResponse")
+}
+
+func (c RuntimeTypedClient) RemoveLocalAppStorageJson(ctx context.Context, request RemoveLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAppStorageJsonResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson", request, metadata, timeoutMS)
+	if err != nil {
+		return RemoveLocalAppStorageJsonResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RemoveLocalAppStorageJsonResponse](raw, "RemoveLocalAppStorageJsonResponse")
+}
+
 func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppMessageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendAppMessageResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/SendAppMessage", request, metadata, timeoutMS)
 	if err != nil {
@@ -9866,6 +9916,14 @@ func (c RuntimeTypedClient) WatchAppInstallJobEvents(ctx context.Context, reques
 		return nil, err
 	}
 	return &RuntimeTypedStream[AppInstallJobEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) WriteLocalAppStorageJson(ctx context.Context, request WriteLocalAppStorageJsonRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteLocalAppStorageJsonResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson", request, metadata, timeoutMS)
+	if err != nil {
+		return WriteLocalAppStorageJsonResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[WriteLocalAppStorageJsonResponse](raw, "WriteLocalAppStorageJsonResponse")
 }
 
 func (c RuntimeTypedClient) CleanupGeneratedVoiceArtifacts(ctx context.Context, request CleanupGeneratedVoiceArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CleanupGeneratedVoiceArtifactsResponse, error) {

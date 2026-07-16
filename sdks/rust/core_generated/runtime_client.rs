@@ -896,6 +896,22 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "PrepareLocalAppLaunchResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+        service: "RuntimeAppService",
+        method: "ReadLocalAppStorageJson",
+        kind: "unary",
+        request_type: "ReadLocalAppStorageJsonRequest",
+        response_type: "ReadLocalAppStorageJsonResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+        service: "RuntimeAppService",
+        method: "RemoveLocalAppStorageJson",
+        kind: "unary",
+        request_type: "RemoveLocalAppStorageJsonRequest",
+        response_type: "RemoveLocalAppStorageJsonResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
         service: "RuntimeAppService",
         method: "SendAppMessage",
@@ -934,6 +950,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "server_stream",
         request_type: "WatchAppInstallJobEventsRequest",
         response_type: "AppInstallJobEvent",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
+        service: "RuntimeAppService",
+        method: "WriteLocalAppStorageJson",
+        kind: "unary",
+        request_type: "WriteLocalAppStorageJsonRequest",
+        response_type: "WriteLocalAppStorageJsonResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",

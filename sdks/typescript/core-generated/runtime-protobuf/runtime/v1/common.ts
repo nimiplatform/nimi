@@ -785,6 +785,25 @@ export enum ReasonCode {
      */
     AI_LOCAL_SPEECH_BUNDLE_DEGRADED = 565,
     /**
+     * APP_STORAGE family (566+). Exact protected local-app JSON operations
+     * never expose Runtime-owned roots or absolute paths.
+     *
+     * @generated from protobuf enum value: APP_STORAGE_PATH_INVALID = 566;
+     */
+    APP_STORAGE_PATH_INVALID = 566,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_ENTRY_NOT_FOUND = 567;
+     */
+    APP_STORAGE_ENTRY_NOT_FOUND = 567,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_QUOTA_EXCEEDED = 568;
+     */
+    APP_STORAGE_QUOTA_EXCEEDED = 568,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_UNAVAILABLE = 569;
+     */
+    APP_STORAGE_UNAVAILABLE = 569,
+    /**
      * WORKSPACE_BINDING family (570+)
      *
      * @generated from protobuf enum value: WORKSPACE_BINDING_MISSING = 570;

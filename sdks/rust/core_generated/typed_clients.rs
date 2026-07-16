@@ -2441,6 +2441,10 @@ pub enum ReasonCode {
     AILOCALSPEECHHOSTINITFAILED,
     AILOCALSPEECHCAPABILITYDOWNLOADFAILED,
     AILOCALSPEECHBUNDLEDEGRADED,
+    APPSTORAGEPATHINVALID,
+    APPSTORAGEENTRYNOTFOUND,
+    APPSTORAGEQUOTAEXCEEDED,
+    APPSTORAGEUNAVAILABLE,
     WORKSPACEBINDINGMISSING,
     WORKSPACEBINDINGMALFORMED,
     WORKSPACEBINDINGNOTFOUND,
@@ -24227,6 +24231,57 @@ impl ReadArtifactBytesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppStorageJsonRequest {
+    pub relative_path: Option<String>,
+}
+
+impl ReadLocalAppStorageJsonRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppStorageJsonResponse {
+    pub json_value: Option<Vec<u8>>,
+    pub size_bytes: Option<i64>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl ReadLocalAppStorageJsonResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.json_value.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode json_value"); }
+        if let Some(value) = &self.size_bytes { pairs.push(format!("size_bytes={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["json_value", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.size_bytes = pairs.get("size_bytes").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReadRealtimeEventsRequest {
     pub session_id: Option<String>,
     pub after_sequence: Option<u64>,
@@ -25330,6 +25385,55 @@ impl RemoveLinkResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalAppStorageJsonRequest {
+    pub relative_path: Option<String>,
+}
+
+impl RemoveLocalAppStorageJsonRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalAppStorageJsonResponse {
+    pub removed: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl RemoveLocalAppStorageJsonResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.removed { pairs.push(format!("removed={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.removed = pairs.get("removed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -33790,6 +33894,64 @@ impl WriteAgentMemoryResponse {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WriteLocalAppStorageJsonRequest {
+    pub relative_path: Option<String>,
+    pub json_value: Option<Vec<u8>>,
+}
+
+impl WriteLocalAppStorageJsonRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
+        if self.json_value.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode json_value"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["json_value"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.relative_path = pairs.get("relative_path").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WriteLocalAppStorageJsonResponse {
+    pub json_value: Option<Vec<u8>>,
+    pub size_bytes: Option<i64>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+impl WriteLocalAppStorageJsonResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.json_value.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode json_value"); }
+        if let Some(value) = &self.size_bytes { pairs.push(format!("size_bytes={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["json_value", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.size_bytes = pairs.get("size_bytes").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
 pub trait CoreTypedStream {
     fn recv_typed_payload(&mut self) -> Option<Vec<u8>>;
 }
@@ -37388,6 +37550,18 @@ impl From<Vec<u8>> for ReadArtifactBytesResponse {
     }
 }
 
+impl From<Vec<u8>> for ReadLocalAppStorageJsonRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ReadLocalAppStorageJsonResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ReadRealtimeEventsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -37575,6 +37749,18 @@ impl From<Vec<u8>> for RemoveLinkRequest {
 }
 
 impl From<Vec<u8>> for RemoveLinkResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalAppStorageJsonRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalAppStorageJsonResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -39134,6 +39320,18 @@ impl From<Vec<u8>> for WriteAgentMemoryResponse {
     }
 }
 
+impl From<Vec<u8>> for WriteLocalAppStorageJsonRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for WriteLocalAppStorageJsonResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 pub struct RuntimeTypedClient<T, A>
 where
     T: CoreTransport,
@@ -40266,6 +40464,26 @@ where
         Ok(PrepareLocalAppLaunchResponse::from_transport(&raw))
     }
 
+    pub fn read_local_app_storage_json(&self, request: ReadLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReadLocalAppStorageJsonResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ReadLocalAppStorageJsonResponse::from_transport(&raw))
+    }
+
+    pub fn remove_local_app_storage_json(&self, request: RemoveLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppStorageJsonResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RemoveLocalAppStorageJsonResponse::from_transport(&raw))
+    }
+
     pub fn send_app_message(&self, request: SendAppMessageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SendAppMessageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage".to_string(),
@@ -40320,6 +40538,16 @@ where
             timeout,
         })?;
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
+    }
+
+    pub fn write_local_app_storage_json(&self, request: WriteLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WriteLocalAppStorageJsonResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(WriteLocalAppStorageJsonResponse::from_transport(&raw))
     }
 
     pub fn cleanup_generated_voice_artifacts(&self, request: CleanupGeneratedVoiceArtifactsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CleanupGeneratedVoiceArtifactsResponse, T::Error> {

@@ -608,6 +608,88 @@ export interface GetAppStorageResponse {
     projection?: AppStorageProjection;
 }
 /**
+ * Protected local-app JSON storage requests carry only a canonical relative
+ * path. Runtime derives the current principal partition from the verified
+ * process-bound session and exact operation grant.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ReadLocalAppStorageJsonRequest
+ */
+export interface ReadLocalAppStorageJsonRequest {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadLocalAppStorageJsonResponse
+ */
+export interface ReadLocalAppStorageJsonResponse {
+    /**
+     * @generated from protobuf field: bytes json_value = 1
+     */
+    jsonValue: Uint8Array;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 2
+     */
+    sizeBytes: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WriteLocalAppStorageJsonRequest
+ */
+export interface WriteLocalAppStorageJsonRequest {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: bytes json_value = 2
+     */
+    jsonValue: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WriteLocalAppStorageJsonResponse
+ */
+export interface WriteLocalAppStorageJsonResponse {
+    /**
+     * @generated from protobuf field: bytes json_value = 1
+     */
+    jsonValue: Uint8Array;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 2
+     */
+    sizeBytes: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
+ */
+export interface RemoveLocalAppStorageJsonRequest {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
+ */
+export interface RemoveLocalAppStorageJsonResponse {
+    /**
+     * @generated from protobuf field: bool removed = 1
+     */
+    removed: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * AccountAppInventoryRow is one Runtime-owned account app inventory row.
  * Consumers read it through GetAccountAppInventory; no renderer/app-supplied
  * account_id is accepted.
@@ -3059,6 +3141,336 @@ class GetAppStorageResponse$Type extends MessageType<GetAppStorageResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.GetAppStorageResponse
  */
 export const GetAppStorageResponse = new GetAppStorageResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadLocalAppStorageJsonRequest$Type extends MessageType<ReadLocalAppStorageJsonRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ReadLocalAppStorageJsonRequest", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadLocalAppStorageJsonRequest>): ReadLocalAppStorageJsonRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReadLocalAppStorageJsonRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadLocalAppStorageJsonRequest): ReadLocalAppStorageJsonRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadLocalAppStorageJsonRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadLocalAppStorageJsonRequest
+ */
+export const ReadLocalAppStorageJsonRequest = new ReadLocalAppStorageJsonRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadLocalAppStorageJsonResponse$Type extends MessageType<ReadLocalAppStorageJsonResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ReadLocalAppStorageJsonResponse", [
+            { no: 1, name: "json_value", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<ReadLocalAppStorageJsonResponse>): ReadLocalAppStorageJsonResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jsonValue = new Uint8Array(0);
+        message.sizeBytes = "0";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ReadLocalAppStorageJsonResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadLocalAppStorageJsonResponse): ReadLocalAppStorageJsonResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes json_value */ 1:
+                    message.jsonValue = reader.bytes();
+                    break;
+                case /* int64 size_bytes */ 2:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadLocalAppStorageJsonResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes json_value = 1; */
+        if (message.jsonValue.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.jsonValue);
+        /* int64 size_bytes = 2; */
+        if (message.sizeBytes !== "0")
+            writer.tag(2, WireType.Varint).int64(message.sizeBytes);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadLocalAppStorageJsonResponse
+ */
+export const ReadLocalAppStorageJsonResponse = new ReadLocalAppStorageJsonResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WriteLocalAppStorageJsonRequest$Type extends MessageType<WriteLocalAppStorageJsonRequest> {
+    constructor() {
+        super("nimi.runtime.v1.WriteLocalAppStorageJsonRequest", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "json_value", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WriteLocalAppStorageJsonRequest>): WriteLocalAppStorageJsonRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        message.jsonValue = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<WriteLocalAppStorageJsonRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WriteLocalAppStorageJsonRequest): WriteLocalAppStorageJsonRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                case /* bytes json_value */ 2:
+                    message.jsonValue = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WriteLocalAppStorageJsonRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        /* bytes json_value = 2; */
+        if (message.jsonValue.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.jsonValue);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WriteLocalAppStorageJsonRequest
+ */
+export const WriteLocalAppStorageJsonRequest = new WriteLocalAppStorageJsonRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WriteLocalAppStorageJsonResponse$Type extends MessageType<WriteLocalAppStorageJsonResponse> {
+    constructor() {
+        super("nimi.runtime.v1.WriteLocalAppStorageJsonResponse", [
+            { no: 1, name: "json_value", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<WriteLocalAppStorageJsonResponse>): WriteLocalAppStorageJsonResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jsonValue = new Uint8Array(0);
+        message.sizeBytes = "0";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<WriteLocalAppStorageJsonResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WriteLocalAppStorageJsonResponse): WriteLocalAppStorageJsonResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes json_value */ 1:
+                    message.jsonValue = reader.bytes();
+                    break;
+                case /* int64 size_bytes */ 2:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WriteLocalAppStorageJsonResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes json_value = 1; */
+        if (message.jsonValue.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.jsonValue);
+        /* int64 size_bytes = 2; */
+        if (message.sizeBytes !== "0")
+            writer.tag(2, WireType.Varint).int64(message.sizeBytes);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WriteLocalAppStorageJsonResponse
+ */
+export const WriteLocalAppStorageJsonResponse = new WriteLocalAppStorageJsonResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLocalAppStorageJsonRequest$Type extends MessageType<RemoveLocalAppStorageJsonRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLocalAppStorageJsonRequest", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLocalAppStorageJsonRequest>): RemoveLocalAppStorageJsonRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLocalAppStorageJsonRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLocalAppStorageJsonRequest): RemoveLocalAppStorageJsonRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLocalAppStorageJsonRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
+ */
+export const RemoveLocalAppStorageJsonRequest = new RemoveLocalAppStorageJsonRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLocalAppStorageJsonResponse$Type extends MessageType<RemoveLocalAppStorageJsonResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLocalAppStorageJsonResponse", [
+            { no: 1, name: "removed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLocalAppStorageJsonResponse>): RemoveLocalAppStorageJsonResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.removed = false;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLocalAppStorageJsonResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLocalAppStorageJsonResponse): RemoveLocalAppStorageJsonResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool removed */ 1:
+                    message.removed = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLocalAppStorageJsonResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool removed = 1; */
+        if (message.removed !== false)
+            writer.tag(1, WireType.Varint).bool(message.removed);
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
+ */
+export const RemoveLocalAppStorageJsonResponse = new RemoveLocalAppStorageJsonResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AccountAppInventoryRow$Type extends MessageType<AccountAppInventoryRow> {
     constructor() {

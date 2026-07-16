@@ -96,9 +96,15 @@ import type {
   GetAppStorageResponse,
   PrepareLocalAppLaunchRequest,
   PrepareLocalAppLaunchResponse,
+  ReadLocalAppStorageJsonRequest,
+  ReadLocalAppStorageJsonResponse,
+  RemoveLocalAppStorageJsonRequest,
+  RemoveLocalAppStorageJsonResponse,
   SendAppMessageRequest,
   SendAppMessageResponse,
   SubscribeAppMessagesRequest,
+  WriteLocalAppStorageJsonRequest,
+  WriteLocalAppStorageJsonResponse,
 } from "../../core-generated/runtime-protobuf/runtime/v1/app";
 
 export type {
@@ -114,9 +120,15 @@ export type {
   GetAppStorageResponse,
   PrepareLocalAppLaunchRequest,
   PrepareLocalAppLaunchResponse,
+  ReadLocalAppStorageJsonRequest,
+  ReadLocalAppStorageJsonResponse,
+  RemoveLocalAppStorageJsonRequest,
+  RemoveLocalAppStorageJsonResponse,
   SendAppMessageRequest,
   SendAppMessageResponse,
   SubscribeAppMessagesRequest,
+  WriteLocalAppStorageJsonRequest,
+  WriteLocalAppStorageJsonResponse,
 };
 
 import type {
