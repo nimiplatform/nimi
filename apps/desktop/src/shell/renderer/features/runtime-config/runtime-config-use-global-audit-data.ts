@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AIProviderHealthSnapshot,
-  AuditEventRecord,
+  DesktopAuditEventProjection,
   GetRuntimeHealthResponse,
   UsageStatRecord,
 } from '@nimiplatform/sdk/runtime/wire-types';
 import { UsageWindow } from '@nimiplatform/sdk/runtime/wire-types';
 import {
-  fetchGlobalAuditEvents,
+  fetchDesktopAuditEvents,
   fetchUsageStats,
-  startAuditExport,
-  dateToTimestamp,
+  resolveDesktopAuditTimeRange,
+  type DesktopAuditTimeRange,
 } from './runtime-config-audit-sdk-service.js';
 import { getRuntimeHealthCoordinator, useRuntimeHealthCoordinatorState } from './runtime-health-coordinator.js';
 
@@ -31,7 +31,7 @@ export function useGlobalAuditData(enabled: boolean) {
   const healthState = useRuntimeHealthCoordinatorState();
 
   // --- Section 2: Global Audit ---
-  const [auditEvents, setAuditEvents] = useState<AuditEventRecord[]>([]);
+  const [auditEvents, setAuditEvents] = useState<DesktopAuditEventProjection[]>([]);
   const [auditNextPageToken, setAuditNextPageToken] = useState('');
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
@@ -41,6 +41,7 @@ export function useGlobalAuditData(enabled: boolean) {
     timeFrom: '',
     timeTo: '',
   });
+  const auditPageWindowRef = useRef<DesktopAuditTimeRange | null>(null);
 
   // --- Section 3: Usage ---
   const [usageRecords, setUsageRecords] = useState<UsageStatRecord[]>([]);
@@ -73,12 +74,17 @@ export function useGlobalAuditData(enabled: boolean) {
     const f = filters ?? auditFilters;
     setAuditLoading(true);
     setAuditError(null);
+    setAuditNextPageToken('');
     try {
-      const res = await fetchGlobalAuditEvents({
+      const auditWindow = resolveDesktopAuditTimeRange({
+        from: f.timeFrom ? new Date(f.timeFrom) : undefined,
+        to: f.timeTo ? new Date(f.timeTo) : undefined,
+      });
+      auditPageWindowRef.current = auditWindow;
+      const res = await fetchDesktopAuditEvents({
         domain: f.domain || undefined,
         callerKind: f.callerKind || undefined,
-        fromTime: f.timeFrom ? dateToTimestamp(new Date(f.timeFrom)) : undefined,
-        toTime: f.timeTo ? dateToTimestamp(new Date(f.timeTo)) : undefined,
+        ...auditWindow,
         pageSize: 100,
         pageToken: '',
       });
@@ -93,14 +99,18 @@ export function useGlobalAuditData(enabled: boolean) {
 
   const loadNextAuditPage = useCallback(async () => {
     if (!auditNextPageToken || auditLoading) return;
+    const auditWindow = auditPageWindowRef.current;
+    if (!auditWindow) {
+      setAuditError('Audit pagination window is unavailable. Refresh the audit list.');
+      return;
+    }
     setAuditLoading(true);
     setAuditError(null);
     try {
-      const res = await fetchGlobalAuditEvents({
+      const res = await fetchDesktopAuditEvents({
         domain: auditFilters.domain || undefined,
         callerKind: auditFilters.callerKind || undefined,
-        fromTime: auditFilters.timeFrom ? dateToTimestamp(new Date(auditFilters.timeFrom)) : undefined,
-        toTime: auditFilters.timeTo ? dateToTimestamp(new Date(auditFilters.timeTo)) : undefined,
+        ...auditWindow,
         pageSize: 100,
         pageToken: auditNextPageToken,
       });
@@ -155,34 +165,6 @@ export function useGlobalAuditData(enabled: boolean) {
       setUsageLoading(false);
     }
   }, [usageFilters, usageLoading, usageNextPageToken]);
-
-  // --- Export audit ---
-  const exportAudit = useCallback(async (format: string = 'json') => {
-    try {
-      const stream = await startAuditExport({ format });
-      const chunks: Uint8Array[] = [];
-      for await (const chunk of stream) {
-        chunks.push(chunk.chunk);
-        if (chunk.eof) break;
-      }
-      const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
-      const merged = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const c of chunks) {
-        merged.set(c, offset);
-        offset += c.byteLength;
-      }
-      const blob = new Blob([merged], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `audit-export-${new Date().toISOString()}.${format}`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setAuditError(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
 
   // --- Update filter helpers ---
   const updateAuditFilters = useCallback((patch: Partial<AuditFilters>) => {
@@ -248,7 +230,6 @@ export function useGlobalAuditData(enabled: boolean) {
     updateAuditFilters,
     loadAuditEvents,
     loadNextAuditPage,
-    exportAudit,
 
     // Usage
     usageRecords,

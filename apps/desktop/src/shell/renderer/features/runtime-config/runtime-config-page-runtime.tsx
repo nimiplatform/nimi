@@ -155,7 +155,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             onUpdateFilters={auditData.updateAuditFilters}
             onRefresh={() => void auditData.loadAuditEvents()}
             onLoadMore={() => void auditData.loadNextAuditPage()}
-            onExport={(format) => void auditData.exportAudit(format)}
           />
 
           {/* Usage Stats */}

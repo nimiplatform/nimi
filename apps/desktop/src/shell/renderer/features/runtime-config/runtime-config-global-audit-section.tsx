@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AuditEventRecord } from '@nimiplatform/sdk/runtime/wire-types';
+import type { DesktopAuditEventProjection } from '@nimiplatform/sdk/runtime/wire-types';
 import { CallerKind } from '@nimiplatform/sdk/runtime/wire-types';
 import { Popover, PopoverContent, PopoverTrigger, ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button, RuntimeSelect } from './runtime-config-primitives.js';
@@ -8,7 +8,6 @@ import {
   callerKindLabel,
   timestampToIso,
   relativeTimeShort,
-  structToRecord,
 } from './runtime-config-global-audit-view-model.js';
 
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
@@ -492,7 +491,7 @@ function AuditDateTimeField({
 }
 
 type GlobalAuditSectionProps = {
-  events: AuditEventRecord[];
+  events: DesktopAuditEventProjection[];
   loading: boolean;
   error: string | null;
   hasNextPage: boolean;
@@ -505,7 +504,6 @@ type GlobalAuditSectionProps = {
   onUpdateFilters: (patch: Partial<{ domain: string; callerKind: number; timeFrom: string; timeTo: string }>) => void;
   onRefresh: () => void;
   onLoadMore: () => void;
-  onExport: (format: string) => void;
 };
 
 export function GlobalAuditSection({
@@ -517,7 +515,6 @@ export function GlobalAuditSection({
   onUpdateFilters,
   onRefresh,
   onLoadMore,
-  onExport,
 }: GlobalAuditSectionProps) {
   const { t } = useTranslation();
   return (
@@ -525,7 +522,7 @@ export function GlobalAuditSection({
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
-          {t('runtimeConfig.runtime.globalAuditTitle', { defaultValue: 'Global Audit Events' })}
+          {t('runtimeConfig.runtime.globalAuditTitle', { defaultValue: 'Runtime Audit Activity' })}
         </h3>
         <div className="flex items-center gap-1">
           <IconButton
@@ -536,8 +533,11 @@ export function GlobalAuditSection({
           />
           <IconButton
             icon={<ExportIcon />}
-            title={t('runtimeConfig.runtime.exportJson', { defaultValue: 'Export JSON' })}
-            onClick={() => onExport('json')}
+            title={t('runtimeConfig.runtime.auditExportUnavailable', {
+              defaultValue: 'Audit export is not available on Desktop',
+            })}
+            disabled
+            onClick={() => undefined}
           />
         </div>
       </div>
@@ -550,6 +550,7 @@ export function GlobalAuditSection({
           value={filters.domain}
           onChange={(e) => onUpdateFilters({ domain: e.target.value })}
           placeholder={t('runtimeConfig.runtime.filterDomain', { defaultValue: 'Filter domain…' })}
+          aria-label={t('runtimeConfig.runtime.filterDomain', { defaultValue: 'Filter domain…' })}
           className={cn(FILTER_INPUT_CLASS, 'w-44 max-w-full')}
         />
         <RuntimeSelect
@@ -621,7 +622,7 @@ export function GlobalAuditSection({
   );
 }
 
-function AuditEventRow({ event }: { event: AuditEventRecord }) {
+function AuditEventRow({ event }: { event: DesktopAuditEventProjection }) {
   const [expanded, setExpanded] = useState(false);
   const ts = timestampToIso(event.timestamp);
   const reasonCodeText = event.reasonCode !== undefined && event.reasonCode !== null ? String(event.reasonCode) : '';
@@ -633,13 +634,17 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
       <button
         type="button"
         onClick={() => setExpanded((p) => !p)}
+        aria-expanded={expanded}
         className="flex w-full min-w-0 items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-white/60"
       >
         <span className={cn('shrink-0 text-[10px]', TOKEN_TEXT_MUTED)}>{expanded ? '\u25BC' : '\u25B6'}</span>
-        <span className={cn('w-16 shrink-0 truncate font-mono text-[11px]', TOKEN_TEXT_MUTED)}>
+        <span className={cn('hidden w-16 shrink-0 truncate font-mono text-[11px] sm:block', TOKEN_TEXT_MUTED)}>
           {event.auditId ? `${event.auditId.slice(0, 8)}…` : '—'}
         </span>
-        <span className="inline-flex shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-1.5 py-0.5 text-[11px] font-medium text-[var(--nimi-action-primary-bg)]">
+        <span
+          className="inline-flex max-w-24 shrink-0 items-center truncate rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-1.5 py-0.5 text-[11px] font-medium text-[var(--nimi-action-primary-bg)] sm:max-w-36"
+          title={event.domain || undefined}
+        >
           {event.domain || '—'}
         </span>
         <span
@@ -648,12 +653,12 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
         >
           {event.operation || '—'}
         </span>
-        <span className={cn('shrink-0 text-[11px]', TOKEN_TEXT_MUTED)}>
+        <span className={cn('hidden shrink-0 text-[11px] md:inline', TOKEN_TEXT_MUTED)}>
           {callerKindLabel(event.callerKind)}
         </span>
         {hasReason ? (
           <span
-            className={cn('shrink-0 max-w-[180px] truncate rounded-full px-2 py-0.5 text-[10px] font-medium', REASON_BADGE_CLASS[tone])}
+            className={cn('hidden shrink-0 max-w-[180px] truncate rounded-full px-2 py-0.5 text-[10px] font-medium lg:inline-flex', REASON_BADGE_CLASS[tone])}
             title={reasonCodeText}
           >
             {reasonCodeText}
@@ -672,7 +677,7 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
   );
 }
 
-function ExpandedDetails({ event, timestampIso, reasonCodeText }: { event: AuditEventRecord; timestampIso: string; reasonCodeText: string }) {
+function ExpandedDetails({ event, timestampIso, reasonCodeText }: { event: DesktopAuditEventProjection; timestampIso: string; reasonCodeText: string }) {
   const { t } = useTranslation();
   return (
     <div className="space-y-4 border-t border-[var(--nimi-border-subtle)]/50 bg-[var(--nimi-surface-card)]/70 px-5 py-4">
@@ -681,7 +686,6 @@ function ExpandedDetails({ event, timestampIso, reasonCodeText }: { event: Audit
         items={[
           { label: t('runtimeConfig.runtime.domain', { defaultValue: 'Domain' }), value: event.domain, mono: true },
           { label: t('runtimeConfig.runtime.operation', { defaultValue: 'Operation' }), value: event.operation, mono: true },
-          { label: t('runtimeConfig.runtime.capability', { defaultValue: 'Capability' }), value: event.capability, mono: true },
           { label: t('runtimeConfig.runtime.reasonCode', { defaultValue: 'Reason Code' }), value: reasonCodeText, mono: true },
         ]}
       />
@@ -689,56 +693,18 @@ function ExpandedDetails({ event, timestampIso, reasonCodeText }: { event: Audit
         title={t('runtimeConfig.runtime.groupWho', { defaultValue: 'Who called' })}
         items={[
           { label: t('runtimeConfig.runtime.callerKind', { defaultValue: 'Caller Kind' }), value: callerKindLabel(event.callerKind) },
-          { label: t('runtimeConfig.runtime.callerId', { defaultValue: 'Caller ID' }), value: event.callerId, mono: true },
           { label: t('runtimeConfig.runtime.appId', { defaultValue: 'App ID' }), value: event.appId, mono: true },
-          { label: t('runtimeConfig.runtime.subjectUser', { defaultValue: 'Subject User' }), value: event.subjectUserId, mono: true },
-          { label: t('runtimeConfig.runtime.surfaceId', { defaultValue: 'Surface ID' }), value: event.surfaceId, mono: true },
-          { label: t('runtimeConfig.runtime.principalId', { defaultValue: 'Principal ID' }), value: event.principalId, mono: true },
-          { label: t('runtimeConfig.runtime.principalType', { defaultValue: 'Principal Type' }), value: event.principalType },
-          { label: t('runtimeConfig.runtime.externalPrincipalType', { defaultValue: 'Ext. Principal Type' }), value: event.externalPrincipalType },
-        ]}
-      />
-      <FieldGroup
-        title={t('runtimeConfig.runtime.groupAuthorization', { defaultValue: 'Authorization' })}
-        items={[
-          { label: t('runtimeConfig.runtime.tokenId', { defaultValue: 'Token ID' }), value: event.tokenId, mono: true },
-          { label: t('runtimeConfig.runtime.parentTokenId', { defaultValue: 'Parent Token' }), value: event.parentTokenId, mono: true },
-          { label: t('runtimeConfig.runtime.consentId', { defaultValue: 'Consent ID' }), value: event.consentId, mono: true },
-          { label: t('runtimeConfig.runtime.consentVersion', { defaultValue: 'Consent Version' }), value: event.consentVersion, mono: true },
-          { label: t('runtimeConfig.runtime.policyVersion', { defaultValue: 'Policy Version' }), value: event.policyVersion, mono: true },
-          { label: t('runtimeConfig.runtime.resourceSelectorHash', { defaultValue: 'Resource Selector Hash' }), value: event.resourceSelectorHash, mono: true },
-          { label: t('runtimeConfig.runtime.scopeCatalogVersion', { defaultValue: 'Scope Catalog Version' }), value: event.scopeCatalogVersion, mono: true },
         ]}
       />
       <FieldGroup
         title={t('runtimeConfig.runtime.groupTracing', { defaultValue: 'Tracing' })}
         items={[
           { label: t('runtimeConfig.runtime.auditId', { defaultValue: 'Audit ID' }), value: event.auditId, mono: true },
+          { label: t('runtimeConfig.runtime.requestId', { defaultValue: 'Request ID' }), value: event.requestId, mono: true },
           { label: t('runtimeConfig.runtime.traceId', { defaultValue: 'Trace ID' }), value: event.traceId, mono: true },
           { label: t('runtimeConfig.runtime.timestamp', { defaultValue: 'Timestamp' }), value: timestampIso },
         ]}
       />
-      {event.payload ? (
-        <div>
-          <p className={cn('mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
-            {t('runtimeConfig.runtime.payload', { defaultValue: 'Payload' })}
-          </p>
-          <ScrollArea
-            className="max-h-48 rounded-md border border-[var(--nimi-border-subtle)]/60 bg-[var(--nimi-surface-panel)]"
-            viewportClassName="max-h-48"
-            contentClassName="p-3"
-          >
-            <pre
-              className={cn(
-                'whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed',
-                TOKEN_TEXT_PRIMARY,
-              )}
-            >
-              {JSON.stringify(structToRecord(event.payload as { fields: Record<string, unknown> }), null, 2)}
-            </pre>
-          </ScrollArea>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -763,7 +729,7 @@ function FieldGroup({
             <span className={cn('shrink-0 text-[11px]', TOKEN_TEXT_MUTED)}>{item.label}</span>
             <span
               className={cn(
-                'min-w-0 break-all text-[11px]',
+                'min-w-0 select-text break-all text-[11px]',
                 item.mono ? 'font-mono' : '',
                 TOKEN_TEXT_PRIMARY,
               )}
