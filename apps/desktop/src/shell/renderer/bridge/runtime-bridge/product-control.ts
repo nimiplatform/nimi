@@ -17,6 +17,7 @@ import {
   type NimiAIConfig,
   type NimiAIProfile,
 } from '@nimiplatform/sdk/ai';
+import { restartRuntimeBridge } from './runtime-daemon';
 
 export type {
   NimiProductControlRecord,
@@ -67,9 +68,14 @@ export async function ensureProductControlRecordCreated(): Promise<NimiProductCo
 
 export async function selectProductDataRoot(dataRoot: string): Promise<NimiProductControlRecordProjection> {
   if (hasShellHostInvoke()) {
-    return invokeChecked('product_control_record_select_data_root', {
+    const selected = await invokeChecked('product_control_record_select_data_root', {
       payload: { dataRoot },
     }, parseNimiProductControlRecordProjection);
+    if (selected.configMutation?.reasonCode === 'CONFIG_RESTART_REQUIRED') {
+      await restartRuntimeBridge();
+      return getProductControlRecord();
+    }
+    return selected;
   }
   throw new Error('product_control_record_select_data_root requires standard shell Runtime');
 }

@@ -66,6 +66,7 @@ type Service struct {
 	productControlRootLocked         bool
 	productControlDataRootProposal   string
 	productControlProposalLocked     bool
+	productControlDataRootConfigWriter func(string) (bool, error)
 	localAuditCap                    int
 	productVersion                   string
 	localModelsPath                  string
@@ -274,6 +275,18 @@ func (s *Service) SetRuntimeAccountProjectionProvider(provider RuntimeAccountPro
 	}
 	s.mu.Lock()
 	s.runtimeAccountProvider = provider
+	s.mu.Unlock()
+}
+
+// SetProductControlDataRootConfigWriter binds the Runtime-owned, bounded
+// service config mutation used by SelectProductControlDataRoot. The writer is
+// injected from protected startup so no request can select its physical path.
+func (s *Service) SetProductControlDataRootConfigWriter(writer func(string) (bool, error)) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.productControlDataRootConfigWriter = writer
 	s.mu.Unlock()
 }
 

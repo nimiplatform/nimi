@@ -402,6 +402,24 @@ func writeProductControlRecord(path string, record *productControlRecord) error 
 	return nil
 }
 
+func restoreProductControlRecordSnapshot(path string, raw []byte, existed bool) error {
+	if !existed {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("rollback newly-created product-control record failed (%s): %w", path, err)
+		}
+		return nil
+	}
+	tmp := fmt.Sprintf("%s.rollback.%d.%d", path, os.Getpid(), nowProductControlUnixMS())
+	if err := os.WriteFile(tmp, raw, 0o644); err != nil {
+		return fmt.Errorf("write product-control rollback snapshot failed (%s): %w", tmp, err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("commit product-control rollback snapshot failed (%s): %w", path, err)
+	}
+	return nil
+}
+
 func productControlRootFromStateStorePath(stateStorePath string) string {
 	path := filepath.Clean(strings.TrimSpace(stateStorePath))
 	if path == "." || !filepath.IsAbs(path) {

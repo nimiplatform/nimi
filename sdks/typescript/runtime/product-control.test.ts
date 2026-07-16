@@ -324,6 +324,15 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
   assert.equal(parsedRecord.state, 'ready_for_use');
   assert.equal(parsedRecord.dataRootProposal?.authority, 'runtime_protected_product_control');
   assert.equal(parsedRecord.dataRootProposal?.profile, 'dev_kernel_checkpoint');
+  const restartProjection = parseNimiProductControlRecordProjection({
+    ...JSON.parse(productControlEnvelope('data_root_selected').json),
+    configMutation: {
+      disposition: 'restart_required',
+      reasonCode: 'CONFIG_RESTART_REQUIRED',
+      actionHint: 'request_typed_runtime_restart',
+    },
+  });
+  assert.equal(restartProjection.configMutation?.reasonCode, 'CONFIG_RESTART_REQUIRED');
   assert.equal(parseNimiProductControlSelectedDataRootProjection(JSON.parse(selectedDataRootEnvelope('ready_for_use').json)).dataRoot?.status, 'selected');
   assert.equal(parseNimiProductControlProjectionJson(productControlEnvelope('ready_for_use')).state, 'ready_for_use');
   assert.equal(parseNimiProductControlSelectedDataRootProjectionJson(selectedDataRootEnvelope('ready_for_use')).state, 'ready_for_use');
@@ -375,6 +384,22 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
       error: null,
     }),
     hasReasonCode('SDK_PRODUCT_CONTROL_DATA_ROOT_PROPOSAL_INVALID'),
+  );
+  assert.throws(
+    () => parseNimiProductControlRecordProjection({
+      path: '/tester/nimi.json',
+      exists: true,
+      state: 'data_root_selected',
+      record: null,
+      dataRootProposal: null,
+      configMutation: {
+        disposition: 'restart_required',
+        reasonCode: 'CONFIG_APPLIED',
+        actionHint: 'continue_product_setup',
+      },
+      error: null,
+    }),
+    hasReasonCode('SDK_PRODUCT_CONTROL_CONFIG_MUTATION_INVALID'),
   );
 });
 

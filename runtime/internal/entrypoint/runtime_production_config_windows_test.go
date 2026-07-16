@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
@@ -135,8 +135,19 @@ func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *t
 		t.Fatalf("load non-release checkpoint config: %v", err)
 	}
 	wantRoot := filepath.Join(root, "acceptance-runs", profile.TrialID, profile.RuntimeCandidateID, profile.AcceptanceRoundID, "runtime")
-	if filepath.Dir(cfg.LocalStatePath) != wantRoot || cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.ManagedRoots.Environments != filepath.Join(developmentDataRoot, "environments") || !strings.HasPrefix(cfg.ManagedRoots.Logs, wantRoot) || !strings.HasPrefix(cfg.ManagedRoots.Audit, wantRoot) || cfg.ManagedRoots.Logs == filepath.Join(developmentDataRoot, "logs") || cfg.ManagedRoots.Audit == filepath.Join(developmentDataRoot, "audit") || cfg.AccountRealmBaseURL != windowsDevKernelAccountRealmURL || cfg.AuthJWTIssuer != windowsDevKernelAccountRealmURL || cfg.AccountAuthorizationURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/authorize" || cfg.AccountTokenURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/token" || !cfg.AllowLoopbackProviderEndpoint || cfg.NonReleaseDevKernelCheckpoint == nil || cfg.NonReleaseDevKernelCheckpoint.LocalAgentRef != profile.LocalAgentRef || cfg.NonReleaseDevKernelCheckpoint.AcceptanceRoundID != profile.AcceptanceRoundID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentDataRootRef != developmentDataRoot {
+	if filepath.Dir(cfg.LocalStatePath) != wantRoot || cfg.DataRootRef != "" || cfg.LocalModelsPath != "" || cfg.ManagedRoots != (config.ManagedRootsConfig{}) || cfg.AccountRealmBaseURL != windowsDevKernelAccountRealmURL || cfg.AuthJWTIssuer != windowsDevKernelAccountRealmURL || cfg.AccountAuthorizationURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/authorize" || cfg.AccountTokenURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/token" || !cfg.AllowLoopbackProviderEndpoint || cfg.NonReleaseDevKernelCheckpoint == nil || cfg.NonReleaseDevKernelCheckpoint.LocalAgentRef != profile.LocalAgentRef || cfg.NonReleaseDevKernelCheckpoint.AcceptanceRoundID != profile.AcceptanceRoundID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentDataRootRef != developmentDataRoot {
 		t.Fatalf("checkpoint config did not retain its bounded service root: %+v", cfg)
+	}
+	serviceConfigPath := filepath.Join(wantRoot, config.ServiceOwnedConfigFilename)
+	if changed, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, developmentDataRoot); err != nil || !changed {
+		t.Fatalf("write selected service-owned data root changed=%v err=%v", changed, err)
+	}
+	cfg, err = loadWindowsProtectedRuntimeConfig(root)
+	if err != nil {
+		t.Fatalf("reload selected non-release checkpoint config: %v", err)
+	}
+	if cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.ManagedRoots.Environments != filepath.Join(developmentDataRoot, "environments") || cfg.ManagedRoots.Logs != filepath.Join(developmentDataRoot, "logs") || cfg.ManagedRoots.Audit != filepath.Join(developmentDataRoot, "audit") {
+		t.Fatalf("checkpoint config did not consume selected service-owned data root: %+v", cfg)
 	}
 	profile.DevelopmentDataRootRef = filepath.Join(root, "missing-development-data")
 	missingRootRaw, err := json.Marshal(profile)

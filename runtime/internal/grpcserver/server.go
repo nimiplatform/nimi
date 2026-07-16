@@ -380,6 +380,13 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err := localSvc.SetProductVersion(version); err != nil {
 		return nil, fmt.Errorf("init local service product version: %w", err)
 	}
+	serviceConfigPath, err := config.ServiceOwnedConfigPath(cfg.LocalStatePath)
+	if err != nil {
+		return nil, fmt.Errorf("resolve service-owned Runtime config path: %w", err)
+	}
+	localSvc.SetProductControlDataRootConfigWriter(func(dataRootRef string) (bool, error) {
+		return config.WriteServiceOwnedDataRoot(serviceConfigPath, dataRootRef)
+	})
 	if protected != nil {
 		if err := localSvc.SetProductControlRoot(protected.ServiceStateRoot); err != nil {
 			return nil, fmt.Errorf("bind protected product-control root: %w", err)

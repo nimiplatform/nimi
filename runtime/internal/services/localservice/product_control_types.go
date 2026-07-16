@@ -78,6 +78,13 @@ type productControlRecordProjection struct {
 	Record           *productControlRecord           `json:"record"`
 	DataRootProposal *productControlDataRootProposal `json:"dataRootProposal"`
 	Error            *string                         `json:"error"`
+	ConfigMutation   *productControlConfigMutation   `json:"configMutation,omitempty"`
+}
+
+type productControlConfigMutation struct {
+	Disposition string `json:"disposition"`
+	ReasonCode  string `json:"reasonCode"`
+	ActionHint  string `json:"actionHint"`
 }
 
 type productControlDataRootProposal struct {

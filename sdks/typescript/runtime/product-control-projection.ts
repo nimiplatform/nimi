@@ -248,6 +248,23 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
       actionHint: 'inspect_runtime_product_control_response',
     });
   }
+  const configMutation = record.configMutation == null
+    ? null
+    : asRecord(record.configMutation, 'product control configMutation');
+  if (configMutation && !(
+    (configMutation.disposition === 'applied'
+      && configMutation.reasonCode === 'CONFIG_APPLIED'
+      && configMutation.actionHint === 'continue_product_setup')
+    || (configMutation.disposition === 'restart_required'
+      && configMutation.reasonCode === 'CONFIG_RESTART_REQUIRED'
+      && configMutation.actionHint === 'request_typed_runtime_restart')
+  )) {
+    throw productControlError({
+      reasonCode: 'SDK_PRODUCT_CONTROL_CONFIG_MUTATION_INVALID',
+      message: 'Runtime product-control config mutation disposition is invalid.',
+      actionHint: 'inspect_runtime_product_control_response',
+    });
+  }
   return {
     path: String(record.path || ''),
     exists: record.exists === true,
@@ -261,6 +278,13 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
       }
       : null,
     error: parseOptionalString(record.error),
+    configMutation: configMutation
+      ? {
+        disposition: configMutation.disposition as 'applied' | 'restart_required',
+        reasonCode: configMutation.reasonCode as 'CONFIG_APPLIED' | 'CONFIG_RESTART_REQUIRED',
+        actionHint: configMutation.actionHint as 'continue_product_setup' | 'request_typed_runtime_restart',
+      }
+      : null,
   };
 }
 

@@ -98,6 +98,13 @@ export interface NimiProductControlRecordProjection {
   readonly record: NimiProductControlRecord | null;
   readonly dataRootProposal: NimiProductControlDataRootProposal | null;
   readonly error: string | null;
+  readonly configMutation?: NimiProductControlConfigMutation | null;
+}
+
+export interface NimiProductControlConfigMutation {
+  readonly disposition: 'applied' | 'restart_required';
+  readonly reasonCode: 'CONFIG_APPLIED' | 'CONFIG_RESTART_REQUIRED';
+  readonly actionHint: 'continue_product_setup' | 'request_typed_runtime_restart';
 }
 
 export interface NimiProductControlDataRootProposal {

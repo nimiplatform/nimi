@@ -40,6 +40,7 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 	if err := svc.SetProductVersion("test"); err != nil {
 		t.Fatalf("set test product version: %v", err)
 	}
+	svc.SetProductControlDataRootConfigWriter(func(string) (bool, error) { return false, nil })
 	testRuntimeRoot := t.TempDir()
 	svc.localModelsPath = filepath.Join(testRuntimeRoot, "models")
 	svc.managedLlamaModelsConfigPath = filepath.Join(testRuntimeRoot, "runtime", "llama-models.yaml")

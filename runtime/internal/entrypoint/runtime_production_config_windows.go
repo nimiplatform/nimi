@@ -136,16 +136,10 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 		HTTPAddr:        "127.0.0.1:46372",
 		ShutdownTimeout: 10 * time.Second,
 		LocalStatePath:  filepath.Join(runtimeRoot, "local-state.json"),
-		LocalModelsPath: filepath.Join(runtimeRoot, "models"),
+		LocalModelsPath: "",
 		RuntimeID:       runtimeID,
-		DataRootRef:     filepath.Join(runtimeRoot, "data"),
-		ManagedRoots: config.ManagedRootsConfig{
-			Models:       filepath.Join(runtimeRoot, "managed", "models"),
-			Dependencies: filepath.Join(runtimeRoot, "managed", "dependencies"),
-			Environments: filepath.Join(runtimeRoot, "managed", "environments"),
-			Logs:         filepath.Join(runtimeRoot, "managed", "logs"),
-			Audit:        filepath.Join(runtimeRoot, "managed", "audit"),
-		},
+		DataRootRef:     "",
+		ManagedRoots:    config.ManagedRootsConfig{},
 		LocalService: config.LocalServiceConfig{
 			Enabled: true,
 			Mode:    config.LocalServiceModeDesktopLocal,
@@ -184,19 +178,6 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 		cfg.DefaultLocalTextModel = "runtime-agent-live-e2e"
 		cfg.AllowLoopbackProviderEndpoint = true
 		cfg.ModelCatalogCustomDir = filepath.Join(runtimeRoot, "model-catalog-custom")
-		if profile.DevelopmentDataRootRef != "" {
-			isolatedLogsRoot := cfg.ManagedRoots.Logs
-			isolatedAuditRoot := cfg.ManagedRoots.Audit
-			cfg.DataRootRef = profile.DevelopmentDataRootRef
-			cfg.LocalModelsPath = filepath.Join(profile.DevelopmentDataRootRef, "models")
-			cfg.ManagedRoots = config.ManagedRootsConfig{
-				Models:       filepath.Join(profile.DevelopmentDataRootRef, "models"),
-				Dependencies: filepath.Join(profile.DevelopmentDataRootRef, "dependencies"),
-				Environments: filepath.Join(profile.DevelopmentDataRootRef, "environments"),
-				Logs:         isolatedLogsRoot,
-				Audit:        isolatedAuditRoot,
-			}
-		}
 		cfg.NonReleaseDevKernelCheckpoint = &config.DevKernelCheckpointAcceptance{
 			TrialID:                profile.TrialID,
 			RuntimeCandidateID:     profile.RuntimeCandidateID,
@@ -208,6 +189,10 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 			RuntimeSourceRef:       profile.RuntimeSourceRef,
 			AgentDisplayName:       profile.AgentDisplayName,
 		}
+	}
+	serviceConfigPath := filepath.Join(runtimeRoot, config.ServiceOwnedConfigFilename)
+	if err := config.ApplyServiceOwnedDataRoot(&cfg, serviceConfigPath); err != nil {
+		return config.Config{}, fmt.Errorf("apply fixed Windows Runtime mutable config: %w", err)
 	}
 	if err := cfg.Validate(); err != nil {
 		return config.Config{}, fmt.Errorf("validate fixed Windows Runtime config: %w", err)

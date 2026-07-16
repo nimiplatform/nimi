@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -145,6 +146,11 @@ func TestRuntimeProductControlBuiltInAIConfigRefreshCanReplaceStaleRefs(t *testi
 func TestRuntimeProductControlCreatesAndSelectsDataRoot(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
+	var configuredRoot string
+	service.SetProductControlDataRootConfigWriter(func(dataRootRef string) (bool, error) {
+		configuredRoot = dataRootRef
+		return true, nil
+	})
 
 	response, err := service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
 	missing := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
@@ -164,10 +170,36 @@ func TestRuntimeProductControlCreatesAndSelectsDataRoot(t *testing.T) {
 	if selected.State != productControlStateDataRootSelected {
 		t.Fatalf("selected state = %s", selected.State)
 	}
+	if configuredRoot != dataRoot || selected.ConfigMutation == nil || selected.ConfigMutation.ReasonCode != "CONFIG_RESTART_REQUIRED" || selected.ConfigMutation.Disposition != "restart_required" {
+		t.Fatalf("selected config mutation root=%q projection=%+v", configuredRoot, selected.ConfigMutation)
+	}
 	for _, dir := range []string{"models", "dependencies", "environments", "apps", "accounts", "cache", "logs", "audit", "generated", "tmp"} {
 		if _, err := os.Stat(filepath.Join(dataRoot, dir)); err != nil {
 			t.Fatalf("expected data-root directory %s: %v", dir, err)
 		}
+	}
+}
+
+func TestRuntimeProductControlSelectionRollsBackRecordWhenConfigMutationFails(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	response, err := service.EnsureProductControlRecordCreated(context.Background(), &runtimev1.EnsureProductControlRecordCreatedRequest{})
+	created := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if created.Record == nil {
+		t.Fatal("expected initial product-control record")
+	}
+	service.SetProductControlDataRootConfigWriter(func(string) (bool, error) {
+		return false, errors.New("config write denied")
+	})
+	if _, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{
+		DataRoot: filepath.Join(home, "transaction-rollback-root"),
+	}); err == nil || !strings.Contains(err.Error(), "config write denied") {
+		t.Fatalf("selection mutation error = %v", err)
+	}
+	response, err = service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	rolledBack := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if rolledBack.Record == nil || rolledBack.Record.InstallID != created.Record.InstallID || rolledBack.Record.DataRoot != nil || rolledBack.State != productControlStateDataRootMissing {
+		t.Fatalf("selection did not roll back product-control record: %+v", rolledBack)
 	}
 }
 

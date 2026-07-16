@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -74,6 +75,11 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 			return nil, err
 		}
 	}
+	originalRaw, originalReadErr := os.ReadFile(path)
+	originalExisted := originalReadErr == nil
+	if originalReadErr != nil && !errors.Is(originalReadErr, os.ErrNotExist) {
+		return nil, fmt.Errorf("snapshot product-control record before data-root transaction: %w", originalReadErr)
+	}
 	if err := ensureNimiDataRootLayout(normalized); err != nil {
 		return nil, err
 	}
@@ -93,7 +99,36 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 	if err := writeProductControlRecord(path, record); err != nil {
 		return nil, err
 	}
-	return productControlJSON(s.readProductControlProjection(context.Background()))
+	s.mu.RLock()
+	configWriter := s.productControlDataRootConfigWriter
+	s.mu.RUnlock()
+	if configWriter == nil {
+		rollbackErr := restoreProductControlRecordSnapshot(path, originalRaw, originalExisted)
+		return nil, errors.Join(errors.New("Runtime service-owned data-root config mutation is unavailable"), rollbackErr)
+	}
+	changed, err := configWriter(normalized)
+	if err != nil {
+		rollbackErr := restoreProductControlRecordSnapshot(path, originalRaw, originalExisted)
+		return nil, errors.Join(fmt.Errorf("commit Runtime service-owned data-root config: %w", err), rollbackErr)
+	}
+	projection, err := s.readProductControlProjection(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if changed {
+		projection.ConfigMutation = &productControlConfigMutation{
+			Disposition: "restart_required",
+			ReasonCode:  "CONFIG_RESTART_REQUIRED",
+			ActionHint:  "request_typed_runtime_restart",
+		}
+	} else {
+		projection.ConfigMutation = &productControlConfigMutation{
+			Disposition: "applied",
+			ReasonCode:  "CONFIG_APPLIED",
+			ActionHint:  "continue_product_setup",
+		}
+	}
+	return productControlJSON(projection, nil)
 }
 
 func (s *Service) SetProductControlFirstRunInstallLevel(_ context.Context, req *runtimev1.SetProductControlFirstRunInstallLevelRequest) (*runtimev1.ProductControlProjectionJson, error) {

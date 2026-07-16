@@ -251,6 +251,17 @@ test('the Storage phase wires the native folder picker to the selectProductDataR
   assert.doesNotMatch(bridgeSource, /invokeChecked\('product_control_pick_data_root_directory'/);
 });
 
+test('data-root selection consumes Runtime restart disposition through the typed lifecycle bridge', () => {
+  const bridgeSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
+    'utf8',
+  );
+  assert.match(bridgeSource, /selected\.configMutation\?\.reasonCode === 'CONFIG_RESTART_REQUIRED'/);
+  assert.match(bridgeSource, /await restartRuntimeBridge\(\)/);
+  assert.match(bridgeSource, /return getProductControlRecord\(\)/);
+  assert.doesNotMatch(bridgeSource, /Stop-Service|Start-Service|WriteFile|runtimeConfigPath/);
+});
+
 test('the Storage phase prefers the Runtime checkpoint proposal and keeps the OS default as production fallback', () => {
   // The workflow proposes the OS-conventional default so the field is never
   // empty, but it is only a candidate — the user still confirms it through
