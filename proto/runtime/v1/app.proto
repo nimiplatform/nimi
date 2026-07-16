@@ -357,6 +357,39 @@ message GetAppStorageResponse {
   AppStorageProjection projection = 1;
 }
 
+// Protected local-app JSON storage requests carry only a canonical relative
+// path. Runtime derives the current principal partition from the verified
+// process-bound session and exact operation grant.
+message ReadLocalAppStorageJsonRequest {
+  string relative_path = 1;
+}
+
+message ReadLocalAppStorageJsonResponse {
+  bytes json_value = 1;
+  int64 size_bytes = 2;
+  ReasonCode reason_code = 3;
+}
+
+message WriteLocalAppStorageJsonRequest {
+  string relative_path = 1;
+  bytes json_value = 2;
+}
+
+message WriteLocalAppStorageJsonResponse {
+  bytes json_value = 1;
+  int64 size_bytes = 2;
+  ReasonCode reason_code = 3;
+}
+
+message RemoveLocalAppStorageJsonRequest {
+  string relative_path = 1;
+}
+
+message RemoveLocalAppStorageJsonResponse {
+  bool removed = 1;
+  ReasonCode reason_code = 2;
+}
+
 // AccountAppInventoryState is the account-side authority for an app row. It is
 // not derived from local install evidence: a verified/entitled app may be
 // visible before any package is installed or adopted on this machine.
@@ -548,6 +581,9 @@ service RuntimeAppService {
   rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
   rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
   rpc GetAppStorage(GetAppStorageRequest) returns (GetAppStorageResponse);
+  rpc ReadLocalAppStorageJson(ReadLocalAppStorageJsonRequest) returns (ReadLocalAppStorageJsonResponse);
+  rpc WriteLocalAppStorageJson(WriteLocalAppStorageJsonRequest) returns (WriteLocalAppStorageJsonResponse);
+  rpc RemoveLocalAppStorageJson(RemoveLocalAppStorageJsonRequest) returns (RemoveLocalAppStorageJsonResponse);
   rpc GetAccountAppInventory(GetAccountAppInventoryRequest) returns (GetAccountAppInventoryResponse);
   rpc GetAppPackageReadiness(GetAppPackageReadinessRequest) returns (GetAppPackageReadinessResponse);
   rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);

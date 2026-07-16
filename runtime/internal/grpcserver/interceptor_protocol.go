@@ -222,6 +222,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeCognitionService/RemoveLink",
 		"/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
 		"/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+		"/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
+		"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
 		"/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
 		"/nimi.runtime.v1.RuntimeAppService/InstallApp",
 		"/nimi.runtime.v1.RuntimeAppService/UninstallApp",

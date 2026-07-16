@@ -9,6 +9,7 @@ const (
 	selectorAgent
 	selectorAgentAnchor
 	selectorAgentAnchorTurn
+	selectorStorage
 )
 
 var operationSpecs = map[Operation]selectorShape{
@@ -17,6 +18,9 @@ var operationSpecs = map[Operation]selectorShape{
 	OperationConversationTurnSend:  selectorAgentAnchor,
 	OperationConversationSubscribe: selectorAgentAnchor,
 	OperationConversationSnapshot:  selectorAgentAnchor,
+	OperationStorageJSONRead:       selectorStorage,
+	OperationStorageJSONWrite:      selectorStorage,
+	OperationStorageJSONRemove:     selectorStorage,
 }
 
 func validateRequest(req Request) Reason {
@@ -35,23 +39,27 @@ func validateRequest(req Request) Reason {
 
 func selectorMatches(shape selectorShape, selector Selector) bool {
 	if !validOptionalOpaque(selector.ArtifactID) || !validOptionalOpaque(selector.AgentID) ||
-		!validOptionalOpaque(selector.ConversationAnchorID) || !validOptionalOpaque(selector.TurnID) {
+		!validOptionalOpaque(selector.ConversationAnchorID) || !validOptionalOpaque(selector.TurnID) ||
+		!validOptionalOpaque(selector.StorageRelativePath) {
 		return false
 	}
 	artifact := selector.ArtifactID != ""
 	agent := selector.AgentID != ""
 	anchor := selector.ConversationAnchorID != ""
 	turn := selector.TurnID != ""
+	storage := selector.StorageRelativePath != ""
 
 	switch shape {
 	case selectorArtifact:
-		return artifact && !agent && !anchor && !turn
+		return artifact && !agent && !anchor && !turn && !storage
 	case selectorAgent:
-		return !artifact && agent && !anchor && !turn
+		return !artifact && agent && !anchor && !turn && !storage
 	case selectorAgentAnchor:
-		return !artifact && agent && anchor && !turn
+		return !artifact && agent && anchor && !turn && !storage
 	case selectorAgentAnchorTurn:
-		return !artifact && agent && anchor && turn
+		return !artifact && agent && anchor && turn && !storage
+	case selectorStorage:
+		return !artifact && !agent && !anchor && !turn && storage
 	default:
 		return false
 	}

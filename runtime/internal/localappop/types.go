@@ -20,6 +20,9 @@ const (
 	OperationConversationTurnSend  Operation = "runtime_agent.conversation.turn_send"
 	OperationConversationSubscribe Operation = "runtime_agent.conversation.turn_subscribe"
 	OperationConversationSnapshot  Operation = "runtime_agent.conversation.snapshot"
+	OperationStorageJSONRead       Operation = "app_storage.json.read"
+	OperationStorageJSONWrite      Operation = "app_storage.json.write"
+	OperationStorageJSONRemove     Operation = "app_storage.json.remove"
 )
 
 // Selector carries only domain-owned resource selectors. It contains no
@@ -29,6 +32,7 @@ type Selector struct {
 	AgentID              string
 	ConversationAnchorID string
 	TurnID               string
+	StorageRelativePath  string
 }
 
 // Request is the only input accepted by Coordinator. NativeConnectionRef is

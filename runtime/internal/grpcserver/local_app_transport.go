@@ -28,6 +28,9 @@ const (
 	protectedOpenConversationAnchorMethod     = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	protectedGetPublicChatSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
 	protectedSendAppMessageMethod             = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	protectedReadLocalAppStorageJSONMethod    = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
+	protectedWriteLocalAppStorageJSONMethod   = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
+	protectedRemoveLocalAppStorageJSONMethod  = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
 	protectedSubscribeAppMessagesMethod       = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
 )
 
@@ -58,6 +61,9 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedOpenConversationAnchorMethod:     localAppSessionMethodPolicy(),
 	protectedGetPublicChatSnapshotMethod:      localAppSessionMethodPolicy(),
 	protectedSendAppMessageMethod:             localAppSessionMethodPolicy(),
+	protectedReadLocalAppStorageJSONMethod:    localAppSessionMethodPolicy(),
+	protectedWriteLocalAppStorageJSONMethod:   localAppSessionMethodPolicy(),
+	protectedRemoveLocalAppStorageJSONMethod:  localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
@@ -222,7 +228,7 @@ func newUnaryProtectedLocalAppTransportInterceptor(authorizers ...any) grpc.Unar
 			decision, authorizeErr := operationAuthorizer.AuthorizeLocalAppProtectedOperation(protectedContext, operation, selector)
 			if authorizeErr != nil {
 				reason := accountservice.LocalAppOperationAuthorizationReason(authorizeErr)
-				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, reason)
+				return nil, protectedLocalAppOperationFailure(reason)
 			}
 			protectedContext = accountservice.ContextWithAuthorizedLocalAppDecision(protectedContext, decision)
 		}
@@ -329,9 +335,34 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			ConversationAnchorID: localAppStructString(req.GetPayload(), "conversation_anchor_id"),
 			TurnID:               localAppStructString(req.GetPayload(), "request_id"),
 		}, true
+	case protectedReadLocalAppStorageJSONMethod:
+		req, ok := request.(*runtimev1.ReadLocalAppStorageJsonRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationStorageJSONRead, localappop.Selector{StorageRelativePath: req.GetRelativePath()}, true
+	case protectedWriteLocalAppStorageJSONMethod:
+		req, ok := request.(*runtimev1.WriteLocalAppStorageJsonRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationStorageJSONWrite, localappop.Selector{StorageRelativePath: req.GetRelativePath()}, true
+	case protectedRemoveLocalAppStorageJSONMethod:
+		req, ok := request.(*runtimev1.RemoveLocalAppStorageJsonRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationStorageJSONRemove, localappop.Selector{StorageRelativePath: req.GetRelativePath()}, true
 	default:
 		return "", localappop.Selector{}, false
 	}
+}
+
+func protectedLocalAppOperationFailure(reason runtimev1.ReasonCode) error {
+	if reason == runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, reason)
+	}
+	return grpcerr.WithReasonCode(codes.PermissionDenied, reason)
 }
 
 func localAppStructString(value *structpb.Struct, key string) string {

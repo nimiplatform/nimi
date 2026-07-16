@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -74,6 +75,9 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 	}
 	resourceRef, err := localAppOperationResourceRef(operation, selector)
 	if err != nil {
+		if errors.Is(err, appstorage.ErrLocalAppJSONPathInvalid) {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
+		}
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	caller, binding, err := s.localAppGrantCallerBinding(ctx, string(operation), resourceRef)
@@ -216,6 +220,11 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "agent:" + selector.AgentID + "/conversation:" + selector.ConversationAnchorID, nil
+	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
+		if selector.ArtifactID != "" || selector.AgentID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return appstorage.LocalAppJSONResourceRef(selector.StorageRelativePath)
 	default:
 		return "", ErrLocalAppOperationNotAdmitted
 	}

@@ -26,6 +26,9 @@ const (
 	LocalAppOperationSendConversationTurn  LocalAppOperation = "runtime_agent.conversation.turn_send"
 	LocalAppOperationSubscribeConversation LocalAppOperation = "runtime_agent.conversation.turn_subscribe"
 	LocalAppOperationConversationSnapshot  LocalAppOperation = "runtime_agent.conversation.snapshot"
+	LocalAppOperationStorageJSONRead       LocalAppOperation = "app_storage.json.read"
+	LocalAppOperationStorageJSONWrite      LocalAppOperation = "app_storage.json.write"
+	LocalAppOperationStorageJSONRemove     LocalAppOperation = "app_storage.json.remove"
 )
 
 type LocalAppTrustClass string
@@ -238,6 +241,10 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 		return "runtime.agent.turn.write", true
 	case LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
 		return "runtime.agent.turn.read", true
+	case LocalAppOperationStorageJSONRead:
+		return "file.read.scoped#app-local-drafts", true
+	case LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
+		return "file.write.scoped#app-local-drafts", true
 	default:
 		return "", false
 	}

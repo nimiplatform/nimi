@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -394,10 +395,24 @@ func localAppGrantOperation(operationID, resourceRef string) (localAppGrantOpera
 		capability = "runtime.agent.turn.write"
 	case "runtime_agent.conversation.turn_subscribe", "runtime_agent.conversation.snapshot":
 		capability = "runtime.agent.turn.read"
+	case appstorage.LocalAppJSONReadOperationID:
+		if _, err := appstorage.ParseLocalAppJSONResourceRef(resourceRef); err != nil {
+			return localAppGrantOperationBinding{}, localappkernel.ErrInvalidArgument
+		}
+		capability = appstorage.LocalAppJSONReadCapability
+	case appstorage.LocalAppJSONWriteOperationID, appstorage.LocalAppJSONRemoveOperationID:
+		if _, err := appstorage.ParseLocalAppJSONResourceRef(resourceRef); err != nil {
+			return localAppGrantOperationBinding{}, localappkernel.ErrInvalidArgument
+		}
+		capability = appstorage.LocalAppJSONWriteCapability
 	default:
 		return localAppGrantOperationBinding{}, ErrLocalAppOperationNotAdmitted
 	}
-	digest := sha256.Sum256([]byte("nimi.local-app-capability-resource.v1\x00" + capability + "\x00" + resourceRef))
+	fingerprintInput := capability + "\x00" + resourceRef
+	if operationID == appstorage.LocalAppJSONReadOperationID || operationID == appstorage.LocalAppJSONWriteOperationID || operationID == appstorage.LocalAppJSONRemoveOperationID {
+		fingerprintInput = operationID + "\x00" + fingerprintInput
+	}
+	digest := sha256.Sum256([]byte("nimi.local-app-capability-resource.v1\x00" + fingerprintInput))
 	return localAppGrantOperationBinding{
 		operationID: operationID, resourceRef: resourceRef, capability: capability,
 		fingerprint: "lacrf_v1_" + base64.RawURLEncoding.EncodeToString(digest[:]),

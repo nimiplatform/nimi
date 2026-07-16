@@ -26,6 +26,9 @@ const (
 	RuntimeAppService_InstallApp_FullMethodName                  = "/nimi.runtime.v1.RuntimeAppService/InstallApp"
 	RuntimeAppService_UninstallApp_FullMethodName                = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
 	RuntimeAppService_GetAppStorage_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
+	RuntimeAppService_ReadLocalAppStorageJson_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
+	RuntimeAppService_WriteLocalAppStorageJson_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
+	RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
 	RuntimeAppService_GetAccountAppInventory_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory"
 	RuntimeAppService_GetAppPackageReadiness_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"
 	RuntimeAppService_GetAppInstallJob_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
@@ -50,6 +53,9 @@ type RuntimeAppServiceClient interface {
 	InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error)
 	UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error)
 	GetAppStorage(ctx context.Context, in *GetAppStorageRequest, opts ...grpc.CallOption) (*GetAppStorageResponse, error)
+	ReadLocalAppStorageJson(ctx context.Context, in *ReadLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*ReadLocalAppStorageJsonResponse, error)
+	WriteLocalAppStorageJson(ctx context.Context, in *WriteLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*WriteLocalAppStorageJsonResponse, error)
+	RemoveLocalAppStorageJson(ctx context.Context, in *RemoveLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*RemoveLocalAppStorageJsonResponse, error)
 	GetAccountAppInventory(ctx context.Context, in *GetAccountAppInventoryRequest, opts ...grpc.CallOption) (*GetAccountAppInventoryResponse, error)
 	GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error)
@@ -143,6 +149,36 @@ func (c *runtimeAppServiceClient) GetAppStorage(ctx context.Context, in *GetAppS
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAppStorageResponse)
 	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppStorage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) ReadLocalAppStorageJson(ctx context.Context, in *ReadLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*ReadLocalAppStorageJsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadLocalAppStorageJsonResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_ReadLocalAppStorageJson_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) WriteLocalAppStorageJson(ctx context.Context, in *WriteLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*WriteLocalAppStorageJsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WriteLocalAppStorageJsonResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_WriteLocalAppStorageJson_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) RemoveLocalAppStorageJson(ctx context.Context, in *RemoveLocalAppStorageJsonRequest, opts ...grpc.CallOption) (*RemoveLocalAppStorageJsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveLocalAppStorageJsonResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -261,6 +297,9 @@ type RuntimeAppServiceServer interface {
 	InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error)
 	UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error)
 	GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error)
+	ReadLocalAppStorageJson(context.Context, *ReadLocalAppStorageJsonRequest) (*ReadLocalAppStorageJsonResponse, error)
+	WriteLocalAppStorageJson(context.Context, *WriteLocalAppStorageJsonRequest) (*WriteLocalAppStorageJsonResponse, error)
+	RemoveLocalAppStorageJson(context.Context, *RemoveLocalAppStorageJsonRequest) (*RemoveLocalAppStorageJsonResponse, error)
 	GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error)
 	GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error)
@@ -300,6 +339,15 @@ func (UnimplementedRuntimeAppServiceServer) UninstallApp(context.Context, *Unins
 }
 func (UnimplementedRuntimeAppServiceServer) GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppStorage not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) ReadLocalAppStorageJson(context.Context, *ReadLocalAppStorageJsonRequest) (*ReadLocalAppStorageJsonResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReadLocalAppStorageJson not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) WriteLocalAppStorageJson(context.Context, *WriteLocalAppStorageJsonRequest) (*WriteLocalAppStorageJsonResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WriteLocalAppStorageJson not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) RemoveLocalAppStorageJson(context.Context, *RemoveLocalAppStorageJsonRequest) (*RemoveLocalAppStorageJsonResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAppStorageJson not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAccountAppInventory not implemented")
@@ -463,6 +511,60 @@ func _RuntimeAppService_GetAppStorage_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAppServiceServer).GetAppStorage(ctx, req.(*GetAppStorageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_ReadLocalAppStorageJson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadLocalAppStorageJsonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).ReadLocalAppStorageJson(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_ReadLocalAppStorageJson_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).ReadLocalAppStorageJson(ctx, req.(*ReadLocalAppStorageJsonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_WriteLocalAppStorageJson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WriteLocalAppStorageJsonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).WriteLocalAppStorageJson(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_WriteLocalAppStorageJson_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).WriteLocalAppStorageJson(ctx, req.(*WriteLocalAppStorageJsonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_RemoveLocalAppStorageJson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveLocalAppStorageJsonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).RemoveLocalAppStorageJson(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).RemoveLocalAppStorageJson(ctx, req.(*RemoveLocalAppStorageJsonRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -652,6 +754,18 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAppStorage",
 			Handler:    _RuntimeAppService_GetAppStorage_Handler,
+		},
+		{
+			MethodName: "ReadLocalAppStorageJson",
+			Handler:    _RuntimeAppService_ReadLocalAppStorageJson_Handler,
+		},
+		{
+			MethodName: "WriteLocalAppStorageJson",
+			Handler:    _RuntimeAppService_WriteLocalAppStorageJson_Handler,
+		},
+		{
+			MethodName: "RemoveLocalAppStorageJson",
+			Handler:    _RuntimeAppService_RemoveLocalAppStorageJson_Handler,
 		},
 		{
 			MethodName: "GetAccountAppInventory",

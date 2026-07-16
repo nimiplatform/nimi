@@ -89,6 +89,7 @@ type Service struct {
 	localDevelopmentVerifier  protectedlocal.LocalDevelopmentProcessVerifier
 	localDevelopmentArtifacts runtimeartifactservice.Store
 	localAppKernel            *localappkernel.Kernel
+	localAppStorageMu         sync.RWMutex
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
