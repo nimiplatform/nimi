@@ -71,6 +71,7 @@ pagination are non-identity list facts and must not mint durable target refs.
 | `ListLocalAudits` | RuntimeLocalService | 是（K-PAGE-005） | timestamp DESC | app_id, subject_user_id, time_range | K-LOCAL-029/030 |
 | `ListLocalTransfers` | RuntimeLocalService | 是（K-PAGE-005） | created_at DESC, install_session_id ASC | session_kind, state, model_id, artifact_id | K-LOCAL-030 |
 | `ListAuditEvents` | RuntimeAuditService | 是（K-PAGE-005） | timestamp DESC | app_id, subject_user_id, domain, reason_code, caller_kind, caller_id, time_range | K-AUDIT-007 |
+| `ListDesktopAuditEvents` | RuntimeAuditService | 是（K-AUDIT-024） | timestamp DESC, audit_id DESC | trace_id, request_id, app_id, domain, operation, reason_code, caller_kind, required bounded time_range | K-AUDIT-024 |
 | `ListUsageStats` | RuntimeAuditService | 是（K-PAGE-005） | bucket_start DESC | app_id, subject_user_id, caller_kind, caller_id, capability, model_id | K-AUDIT-008 |
 | `ListAIProviderHealth` | RuntimeAuditService | 否（全量返回） | provider_name ASC | — | K-AUDIT-013 |
 | `ListModels` | RuntimeModelService | 是（K-PAGE-005） | model_id ASC | status_filter | K-MODEL-004 |

@@ -153,16 +153,22 @@ Current baseline 固定 `request_id == trace_id`（同一 ULID），为后续 fa
 `RuntimeAuditService` 方法固定为：
 
 1. `ListAuditEvents` — 分页查询审计事件
-2. `ExportAuditEvents` — 流式导出审计事件
-3. `ListUsageStats` — 分页查询使用量统计
-4. `GetRuntimeHealth` — 获取运行时健康快照
-5. `ListAIProviderHealth` — 列出所有 AI Provider 健康快照
-6. `SubscribeAIProviderHealthEvents` — 订阅 AI Provider 健康变更事件流
-7. `SubscribeRuntimeHealthEvents` — 订阅运行时健康变更事件流
+2. `ListDesktopAuditEvents` — Desktop 受保护管道上的有界、脱敏审计投影
+3. `ExportAuditEvents` — 流式导出审计事件
+4. `ListUsageStats` — 分页查询使用量统计
+5. `GetRuntimeHealth` — 获取运行时健康快照
+6. `ListAIProviderHealth` — 列出所有 AI Provider 健康快照
+7. `SubscribeAIProviderHealthEvents` — 订阅 AI Provider 健康变更事件流
+8. `SubscribeRuntimeHealthEvents` — 订阅运行时健康变更事件流
 
 **消费契约状态**：
-- 方法 1-3（审计查询/导出/使用量统计）：SDK 和 Desktop **均无消费契约**。用户当前无法通过 SDK 或 Desktop UI 查看审计记录和使用量统计。Phase 2 启动时需优先创建 SDK 方法投影和 Desktop 审计查看 UI。
-- 方法 4-7（健康查询/订阅）：Desktop 通过 D-LLM-004/D-IPC-002 间接消费（healthz 端点 + daemon status），但未使用 gRPC 方法。SDK 方法投影 deferred。
+- 原始 `ListAuditEvents` 与 `ExportAuditEvents` 不属于 Desktop protected
+  consumer set，且不得作为 `ListDesktopAuditEvents` 的 renderer、SDK、Kit
+  或公共 TCP fallback。
+- `ListDesktopAuditEvents` 由 Desktop 经 K-PLOCAL-006 的精确受保护方法消费，
+  其请求、响应、分页和脱敏边界由 K-AUDIT-024 固定。
+- `ListUsageStats` 与方法 5-8 保留各自现行 SDK/Desktop 消费姿态；本规则不
+  扩张它们的字段、调用方或传输权威。
 
 ## K-AUDIT-014 AIProviderHealthSnapshot 字段
 
@@ -299,3 +305,50 @@ L0 envelope field and is correlated under `K-AUDIT-020`. This rule governs only
 the audit-context header-to-field mapping; redaction and query semantics for the
 mapped fields remain owned by `K-AUDIT-017` and `K-AUDIT-019` through
 `K-AUDIT-021`.
+
+## K-AUDIT-024 Desktop Bounded Audit Projection
+
+`ListDesktopAuditEvents` is the only Desktop product audit-event read. It is
+admitted only on the live `desktop_control` connection for the verified Nimi
+Desktop process under K-PLOCAL-006. Public TCP, ordinary gRPC, portable
+credentials, renderer-selected origin, local-app transports and generic
+method-id/bytes proxying cannot authorize it. The raw `ListAuditEvents` and
+`ExportAuditEvents` methods are not fallbacks.
+
+The request admits exactly these filters: `trace_id`, `request_id`, `app_id`,
+`domain`, `operation`, `reason_code`, `caller_kind`, `from_time`, `to_time`,
+`page_size`, and `page_token`. `from_time` and `to_time` are both required,
+must be valid timestamps with `from_time <= to_time`, and may span at most
+seven days. `page_size=0` uses 50; values above 100 are rejected rather than
+clamped. Every non-empty textual filter is an exact, bounded identifier and a
+page token is valid only for the same complete filter set. Subject-user,
+caller-id, principal, token, consent, policy, resource-selector, scope,
+payload-content and arbitrary-text filters are forbidden.
+
+The response contains `events`, `next_page_token`, and no other top-level
+fields. Each event contains exactly:
+
+- `audit_id`
+- `request_id`
+- `app_id`
+- `domain`
+- `operation`
+- `reason_code`
+- `trace_id`
+- `timestamp`
+- `caller_kind`
+
+The projection must be built inside Runtime from the canonical K-AUDIT-006
+store before bytes cross the protected transport. It must not contain
+`payload`, `subject_user_id`, `caller_id`, `surface_id`, `principal_id`,
+`principal_type`, `external_principal_type`, `capability`, `token_id`,
+`parent_token_id`, `consent_id`, `consent_version`, `policy_version`,
+`resource_selector_hash`, `scope_catalog_version`, credential material, proof
+material, or raw log text. Missing canonical audit storage fails closed; a
+synthetic event list, local audit store, usage aggregate, app cache, or UI-side
+field deletion cannot substitute for it.
+
+Runtime records successful and rejected projection reads in the canonical
+audit store without copying request filters or returned event payloads into the
+read event. Desktop must present the projected `trace_id` as selectable text
+for K-AUDIT-019 correlation while preserving the returned value verbatim.

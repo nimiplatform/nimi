@@ -23,6 +23,7 @@ surfaces:
   - methods_11
   - methods_12
   - methods_13
+  - methods_14
 description: Audit, artifact, and workflow posture entries.
 services:
   - RuntimeAuditService
@@ -53,6 +54,15 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_roles: [verified_desktop_process]
+    rationale: exact bounded and redacted Desktop audit projection; public TCP, portable credentials, raw audit methods and generic proxying cannot authorize it
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUDIT-024
+      - K-PLOCAL-006
   - method_id: /nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents
     posture: anonymous_read
     rationale: machine-local audit export stream; no JWT validation

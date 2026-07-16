@@ -368,6 +368,11 @@ services:
     methods:
       - name: ListAuditEvents
         type: unary
+      - name: ListDesktopAuditEvents
+        type: unary
+        authority_status: admitted_exact_desktop_audit_projection
+        transport_disposition: protected_desktop_control_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents
       - name: ExportAuditEvents
         type: server_stream
       - name: ListUsageStats

@@ -17,7 +17,7 @@ services:
   - RuntimeAuditService
   - RuntimeModelService
   - RuntimeArtifactService
-method_count: 17
+method_count: 18
 method_mappings:
   - design_service: RuntimeWorkflowService
     design_method: SubmitWorkflow
@@ -43,6 +43,11 @@ method_mappings:
     design_method: ListAuditEvents
     proto_service: RuntimeAuditService
     proto_method: ListAuditEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: ListDesktopAuditEvents
+    proto_service: RuntimeAuditService
+    proto_method: ListDesktopAuditEvents
     mapping_posture: aligned
   - design_service: RuntimeAuditService
     design_method: ExportAuditEvents

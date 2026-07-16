@@ -292,13 +292,15 @@ groups:
     status: active
     note: >
       Promoted from Phase 2 to Phase 1 during pre-launch audit (2026-03-18).
-      Desktop actively consumes ExportAuditEvents and ListUsageStats via
-      runtime-config-audit-sdk-service.ts. Runtime implementation complete
-      with streaming export (JSON/NDJSON + gzip), paginated query, and
-      time-windowed usage statistics.
+      Desktop consumes ListDesktopAuditEvents through the protected Desktop
+      carrier and consumes other methods only where their exact transport is
+      separately admitted. Raw ListAuditEvents and ExportAuditEvents are not
+      Desktop fallbacks. Runtime retains the raw SDK methods for their
+      separately governed callers.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - ListAuditEvents
+      - ListDesktopAuditEvents
       - ExportAuditEvents
       - ListUsageStats
     source_rule: S-SURFACE-002

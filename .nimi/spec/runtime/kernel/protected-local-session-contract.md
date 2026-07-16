@@ -386,6 +386,7 @@ exact unary consumer set. It consists only of:
 - `RuntimeConnectorService/ListConnectors`;
 - `RuntimeAuditService/GetRuntimeHealth`;
 - `RuntimeAuditService/ListAIProviderHealth`;
+- `RuntimeAuditService/ListDesktopAuditEvents`;
 - `RuntimeAuditService/ListUsageStats`;
 - `RuntimeAiService/PeekScheduling`;
 - `RuntimeAiService/ExecuteScenario`; and
@@ -397,6 +398,13 @@ method ids, and serialized request bytes cannot add another method or role.
 `ExecuteScenario` transport admission does not authorize a scenario, route, or
 capability and does not bypass the existing handler-level request validation,
 scheduling, execution, account, grant, or policy checks.
+
+`ListDesktopAuditEvents` is additionally constrained by K-AUDIT-024: both
+timestamps and the seven-day window are mandatory, pagination rejects values
+above 100, and Runtime projects the exact nine-field event whitelist before
+transport. Its admission does not admit raw `ListAuditEvents`, audit export,
+payload content, subject/caller identifiers, authorization lineage, or audit
+storage access.
 
 This consumer set admits no stream and no generic Runtime proxy. In particular,
 health-event subscriptions, connector-model enumeration, connector testing,

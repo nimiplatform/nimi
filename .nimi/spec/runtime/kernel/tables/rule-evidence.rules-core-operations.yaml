@@ -47,6 +47,7 @@ entries:
   - K-AUDIT-021
   - K-AUDIT-022
   - K-AUDIT-023
+  - K-AUDIT-024
   - K-CLI-001
   - K-CLI-002
   - K-CLI-003
@@ -251,6 +252,11 @@ rules:
       header read evidence lives in runtime/internal/grpcserver/interceptor_audit_metadata.go
       and is owned by Runtime audit implementation authority.
     evidence_requirement: deferred
+  - rule_id: K-AUDIT-024
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
   - rule_id: K-CLI-001
     evidence_refs:
       - runtime_kernel_consistency
