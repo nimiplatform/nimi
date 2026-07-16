@@ -115,6 +115,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents": "anonymous_read",
+  "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents": "anonymous_read",

@@ -122,6 +122,7 @@ export * from './app-storage';
 export * from './app-session';
 export * from './agent-local-identity';
 export * from './audit-projections';
+export * from './desktop-audit';
 export * from './runtime-avatar-configuration';
 export * from './bridge-config';
 export * from './connector-auth-acquisition';

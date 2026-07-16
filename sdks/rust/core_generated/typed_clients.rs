@@ -10263,6 +10263,54 @@ impl DescribeParticipationProfilesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAuditEventProjection {
+    pub audit_id: Option<String>,
+    pub request_id: Option<String>,
+    pub app_id: Option<String>,
+    pub domain: Option<String>,
+    pub operation: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+    pub trace_id: Option<String>,
+    pub timestamp: Option<String>,
+    pub caller_kind: Option<CallerKind>,
+}
+
+impl DesktopAuditEventProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.audit_id { pairs.push(format!("audit_id={}", value)); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        if let Some(value) = &self.domain { pairs.push(format!("domain={}", value)); }
+        if let Some(value) = &self.operation { pairs.push(format!("operation={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        if let Some(value) = &self.timestamp { pairs.push(format!("timestamp={}", value)); }
+        if let Some(value) = &self.caller_kind { pairs.push(format!("caller_kind={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason_code", "caller_kind"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.audit_id = pairs.get("audit_id").cloned();
+        out.request_id = pairs.get("request_id").cloned();
+        out.app_id = pairs.get("app_id").cloned();
+        out.domain = pairs.get("domain").cloned();
+        out.operation = pairs.get("operation").cloned();
+        out.trace_id = pairs.get("trace_id").cloned();
+        out.timestamp = pairs.get("timestamp").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DiagnosticProbeRefBlock {
     pub probe_id: Option<String>,
     pub probe_kind: Option<String>,
@@ -16537,6 +16585,88 @@ impl ListDelegatedProviderProfilesResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListDesktopAuditEventsRequest {
+    pub trace_id: Option<String>,
+    pub request_id: Option<String>,
+    pub app_id: Option<String>,
+    pub domain: Option<String>,
+    pub operation: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+    pub caller_kind: Option<CallerKind>,
+    pub from_time: Option<String>,
+    pub to_time: Option<String>,
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
+
+impl ListDesktopAuditEventsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.trace_id { pairs.push(format!("trace_id={}", value)); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        if let Some(value) = &self.domain { pairs.push(format!("domain={}", value)); }
+        if let Some(value) = &self.operation { pairs.push(format!("operation={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.caller_kind { pairs.push(format!("caller_kind={:?}", value)); }
+        if let Some(value) = &self.from_time { pairs.push(format!("from_time={}", value)); }
+        if let Some(value) = &self.to_time { pairs.push(format!("to_time={}", value)); }
+        if let Some(value) = &self.page_size { pairs.push(format!("page_size={}", value)); }
+        if let Some(value) = &self.page_token { pairs.push(format!("page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason_code", "caller_kind"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.trace_id = pairs.get("trace_id").cloned();
+        out.request_id = pairs.get("request_id").cloned();
+        out.app_id = pairs.get("app_id").cloned();
+        out.domain = pairs.get("domain").cloned();
+        out.operation = pairs.get("operation").cloned();
+        out.from_time = pairs.get("from_time").cloned();
+        out.to_time = pairs.get("to_time").cloned();
+        out.page_size = pairs.get("page_size").and_then(|value| value.parse().ok());
+        out.page_token = pairs.get("page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListDesktopAuditEventsResponse {
+    pub events: Vec<Box<DesktopAuditEventProjection>>,
+    pub next_page_token: Option<String>,
+}
+
+impl ListDesktopAuditEventsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if !self.events.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode events"); }
+        if let Some(value) = &self.next_page_token { pairs.push(format!("next_page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["events"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.next_page_token = pairs.get("next_page_token").cloned();
         out
     }
 }
@@ -34822,6 +34952,12 @@ impl From<Vec<u8>> for DescribeParticipationProfilesResponse {
     }
 }
 
+impl From<Vec<u8>> for DesktopAuditEventProjection {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for DiagnosticProbeRefBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36029,6 +36165,18 @@ impl From<Vec<u8>> for ListDelegatedProviderProfilesRequest {
 }
 
 impl From<Vec<u8>> for ListDelegatedProviderProfilesResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListDesktopAuditEventsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListDesktopAuditEventsResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -40235,6 +40383,16 @@ where
             timeout,
         })?;
         Ok(ListAuditEventsResponse::from_transport(&raw))
+    }
+
+    pub fn list_desktop_audit_events(&self, request: ListDesktopAuditEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListDesktopAuditEventsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListDesktopAuditEventsResponse::from_transport(&raw))
     }
 
     pub fn list_usage_stats(&self, request: ListUsageStatsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListUsageStatsResponse, T::Error> {

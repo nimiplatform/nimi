@@ -155,6 +155,7 @@ export const RUNTIME_AUDIT_METHODS = [
   'subscribeAIProviderHealthEvents',
   'subscribeRuntimeHealthEvents',
   'listAuditEvents',
+  'listDesktopAuditEvents',
   'exportAuditEvents',
   'listUsageStats',
 ] as const satisfies readonly RuntimeTypedMethodName[];

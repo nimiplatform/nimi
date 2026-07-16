@@ -984,6 +984,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAuditEventsResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
+        service: "RuntimeAuditService",
+        method: "ListDesktopAuditEvents",
+        kind: "unary",
+        request_type: "ListDesktopAuditEventsRequest",
+        response_type: "ListDesktopAuditEventsResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
         service: "RuntimeAuditService",
         method: "ListUsageStats",

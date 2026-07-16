@@ -178,6 +178,116 @@ export interface ListAuditEventsResponse {
     nextPageToken: string;
 }
 /**
+ * K-AUDIT-024: exact bounded filters for the protected Desktop projection.
+ * Both timestamps are required and may span at most seven days.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ListDesktopAuditEventsRequest
+ */
+export interface ListDesktopAuditEventsRequest {
+    /**
+     * @generated from protobuf field: string trace_id = 1
+     */
+    traceId: string;
+    /**
+     * @generated from protobuf field: string request_id = 2
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string app_id = 3
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string domain = 4
+     */
+    domain: string;
+    /**
+     * @generated from protobuf field: string operation = 5
+     */
+    operation: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 6
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CallerKind caller_kind = 7
+     */
+    callerKind: CallerKind;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp from_time = 8
+     */
+    fromTime?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp to_time = 9
+     */
+    toTime?: Timestamp;
+    /**
+     * @generated from protobuf field: int32 page_size = 10
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 11
+     */
+    pageToken: string;
+}
+/**
+ * K-AUDIT-024: wire-level field whitelist. Sensitive payload, subject,
+ * caller, principal, token, consent, policy and resource fields do not exist
+ * on this message and therefore cannot cross the Desktop protected transport.
+ *
+ * @generated from protobuf message nimi.runtime.v1.DesktopAuditEventProjection
+ */
+export interface DesktopAuditEventProjection {
+    /**
+     * @generated from protobuf field: string audit_id = 1
+     */
+    auditId: string;
+    /**
+     * @generated from protobuf field: string request_id = 2
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string app_id = 3
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string domain = 4
+     */
+    domain: string;
+    /**
+     * @generated from protobuf field: string operation = 5
+     */
+    operation: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 6
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string trace_id = 7
+     */
+    traceId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp timestamp = 8
+     */
+    timestamp?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CallerKind caller_kind = 9
+     */
+    callerKind: CallerKind;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListDesktopAuditEventsResponse
+ */
+export interface ListDesktopAuditEventsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.DesktopAuditEventProjection events = 1
+     */
+    events: DesktopAuditEventProjection[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ExportAuditEventsRequest
  */
 export interface ExportAuditEventsRequest {
@@ -1023,6 +1133,296 @@ class ListAuditEventsResponse$Type extends MessageType<ListAuditEventsResponse> 
  * @generated MessageType for protobuf message nimi.runtime.v1.ListAuditEventsResponse
  */
 export const ListAuditEventsResponse = new ListAuditEventsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDesktopAuditEventsRequest$Type extends MessageType<ListDesktopAuditEventsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListDesktopAuditEventsRequest", [
+            { no: 1, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "domain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "operation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 7, name: "caller_kind", kind: "enum", T: () => ["nimi.runtime.v1.CallerKind", CallerKind, "CALLER_KIND_"] },
+            { no: 8, name: "from_time", kind: "message", T: () => Timestamp },
+            { no: 9, name: "to_time", kind: "message", T: () => Timestamp },
+            { no: 10, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 11, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListDesktopAuditEventsRequest>): ListDesktopAuditEventsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.traceId = "";
+        message.requestId = "";
+        message.appId = "";
+        message.domain = "";
+        message.operation = "";
+        message.reasonCode = 0;
+        message.callerKind = 0;
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListDesktopAuditEventsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDesktopAuditEventsRequest): ListDesktopAuditEventsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string trace_id */ 1:
+                    message.traceId = reader.string();
+                    break;
+                case /* string request_id */ 2:
+                    message.requestId = reader.string();
+                    break;
+                case /* string app_id */ 3:
+                    message.appId = reader.string();
+                    break;
+                case /* string domain */ 4:
+                    message.domain = reader.string();
+                    break;
+                case /* string operation */ 5:
+                    message.operation = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 6:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.CallerKind caller_kind */ 7:
+                    message.callerKind = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp from_time */ 8:
+                    message.fromTime = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.fromTime);
+                    break;
+                case /* google.protobuf.Timestamp to_time */ 9:
+                    message.toTime = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.toTime);
+                    break;
+                case /* int32 page_size */ 10:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 11:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDesktopAuditEventsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string trace_id = 1; */
+        if (message.traceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.traceId);
+        /* string request_id = 2; */
+        if (message.requestId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.requestId);
+        /* string app_id = 3; */
+        if (message.appId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.appId);
+        /* string domain = 4; */
+        if (message.domain !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.domain);
+        /* string operation = 5; */
+        if (message.operation !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.operation);
+        /* nimi.runtime.v1.ReasonCode reason_code = 6; */
+        if (message.reasonCode !== 0)
+            writer.tag(6, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.CallerKind caller_kind = 7; */
+        if (message.callerKind !== 0)
+            writer.tag(7, WireType.Varint).int32(message.callerKind);
+        /* google.protobuf.Timestamp from_time = 8; */
+        if (message.fromTime)
+            Timestamp.internalBinaryWrite(message.fromTime, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp to_time = 9; */
+        if (message.toTime)
+            Timestamp.internalBinaryWrite(message.toTime, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* int32 page_size = 10; */
+        if (message.pageSize !== 0)
+            writer.tag(10, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 11; */
+        if (message.pageToken !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListDesktopAuditEventsRequest
+ */
+export const ListDesktopAuditEventsRequest = new ListDesktopAuditEventsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DesktopAuditEventProjection$Type extends MessageType<DesktopAuditEventProjection> {
+    constructor() {
+        super("nimi.runtime.v1.DesktopAuditEventProjection", [
+            { no: 1, name: "audit_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "domain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "operation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 7, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "timestamp", kind: "message", T: () => Timestamp },
+            { no: 9, name: "caller_kind", kind: "enum", T: () => ["nimi.runtime.v1.CallerKind", CallerKind, "CALLER_KIND_"] }
+        ]);
+    }
+    create(value?: PartialMessage<DesktopAuditEventProjection>): DesktopAuditEventProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.auditId = "";
+        message.requestId = "";
+        message.appId = "";
+        message.domain = "";
+        message.operation = "";
+        message.reasonCode = 0;
+        message.traceId = "";
+        message.callerKind = 0;
+        if (value !== undefined)
+            reflectionMergePartial<DesktopAuditEventProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DesktopAuditEventProjection): DesktopAuditEventProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string audit_id */ 1:
+                    message.auditId = reader.string();
+                    break;
+                case /* string request_id */ 2:
+                    message.requestId = reader.string();
+                    break;
+                case /* string app_id */ 3:
+                    message.appId = reader.string();
+                    break;
+                case /* string domain */ 4:
+                    message.domain = reader.string();
+                    break;
+                case /* string operation */ 5:
+                    message.operation = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 6:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string trace_id */ 7:
+                    message.traceId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp timestamp */ 8:
+                    message.timestamp = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.timestamp);
+                    break;
+                case /* nimi.runtime.v1.CallerKind caller_kind */ 9:
+                    message.callerKind = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DesktopAuditEventProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string audit_id = 1; */
+        if (message.auditId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.auditId);
+        /* string request_id = 2; */
+        if (message.requestId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.requestId);
+        /* string app_id = 3; */
+        if (message.appId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.appId);
+        /* string domain = 4; */
+        if (message.domain !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.domain);
+        /* string operation = 5; */
+        if (message.operation !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.operation);
+        /* nimi.runtime.v1.ReasonCode reason_code = 6; */
+        if (message.reasonCode !== 0)
+            writer.tag(6, WireType.Varint).int32(message.reasonCode);
+        /* string trace_id = 7; */
+        if (message.traceId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.traceId);
+        /* google.protobuf.Timestamp timestamp = 8; */
+        if (message.timestamp)
+            Timestamp.internalBinaryWrite(message.timestamp, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.CallerKind caller_kind = 9; */
+        if (message.callerKind !== 0)
+            writer.tag(9, WireType.Varint).int32(message.callerKind);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DesktopAuditEventProjection
+ */
+export const DesktopAuditEventProjection = new DesktopAuditEventProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListDesktopAuditEventsResponse$Type extends MessageType<ListDesktopAuditEventsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListDesktopAuditEventsResponse", [
+            { no: 1, name: "events", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DesktopAuditEventProjection },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListDesktopAuditEventsResponse>): ListDesktopAuditEventsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.events = [];
+        message.nextPageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListDesktopAuditEventsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListDesktopAuditEventsResponse): ListDesktopAuditEventsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.DesktopAuditEventProjection events */ 1:
+                    message.events.push(DesktopAuditEventProjection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListDesktopAuditEventsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.DesktopAuditEventProjection events = 1; */
+        for (let i = 0; i < message.events.length; i++)
+            DesktopAuditEventProjection.internalBinaryWrite(message.events[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListDesktopAuditEventsResponse
+ */
+export const ListDesktopAuditEventsResponse = new ListDesktopAuditEventsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ExportAuditEventsRequest$Type extends MessageType<ExportAuditEventsRequest> {
     constructor() {

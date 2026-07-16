@@ -3784,6 +3784,18 @@ type DescribeParticipationProfilesResponse struct {
 	Profiles []ParticipationProfileDescriptor `json:"profiles,omitempty"`
 }
 
+type DesktopAuditEventProjection struct {
+	AuditId string `json:"audit_id,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	AppId string `json:"app_id,omitempty"`
+	Domain string `json:"domain,omitempty"`
+	Operation string `json:"operation,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	TraceId string `json:"trace_id,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
+	CallerKind CallerKind `json:"caller_kind,omitempty"`
+}
+
 type DiagnosticProbeRefBlock struct {
 	ProbeId string `json:"probe_id,omitempty"`
 	ProbeKind string `json:"probe_kind,omitempty"`
@@ -5018,6 +5030,25 @@ type ListDelegatedProviderProfilesRequest struct {
 
 type ListDelegatedProviderProfilesResponse struct {
 	ProviderProfiles []DelegatedProviderProfile `json:"provider_profiles,omitempty"`
+}
+
+type ListDesktopAuditEventsRequest struct {
+	TraceId string `json:"trace_id,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	AppId string `json:"app_id,omitempty"`
+	Domain string `json:"domain,omitempty"`
+	Operation string `json:"operation,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	CallerKind CallerKind `json:"caller_kind,omitempty"`
+	FromTime string `json:"from_time,omitempty"`
+	ToTime string `json:"to_time,omitempty"`
+	PageSize int32 `json:"page_size,omitempty"`
+	PageToken string `json:"page_token,omitempty"`
+}
+
+type ListDesktopAuditEventsResponse struct {
+	Events []DesktopAuditEventProjection `json:"events,omitempty"`
+	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
 type ListEnginesRequest struct {
@@ -9883,6 +9914,14 @@ func (c RuntimeTypedClient) ListAuditEvents(ctx context.Context, request ListAud
 		return ListAuditEventsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListAuditEventsResponse](raw, "ListAuditEventsResponse")
+}
+
+func (c RuntimeTypedClient) ListDesktopAuditEvents(ctx context.Context, request ListDesktopAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDesktopAuditEventsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return ListDesktopAuditEventsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListDesktopAuditEventsResponse](raw, "ListDesktopAuditEventsResponse")
 }
 
 func (c RuntimeTypedClient) ListUsageStats(ctx context.Context, request ListUsageStatsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListUsageStatsResponse, error) {

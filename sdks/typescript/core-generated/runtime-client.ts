@@ -983,6 +983,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAuditEventsResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
+    "service": "RuntimeAuditService",
+    "method": "ListDesktopAuditEvents",
+    "kind": "unary",
+    "requestType": "ListDesktopAuditEventsRequest",
+    "responseType": "ListDesktopAuditEventsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
     "service": "RuntimeAuditService",
     "method": "ListUsageStats",

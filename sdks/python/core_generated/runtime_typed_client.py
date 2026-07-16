@@ -1919,6 +1919,18 @@ class DescribeParticipationProfilesResponse:
     profiles: tuple[ParticipationProfileDescriptor, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class DesktopAuditEventProjection:
+    audit_id: str | None = None
+    request_id: str | None = None
+    app_id: str | None = None
+    domain: str | None = None
+    operation: str | None = None
+    reason_code: ReasonCode | None = None
+    trace_id: str | None = None
+    timestamp: str | None = None
+    caller_kind: CallerKind | None = None
+
+@dataclass(frozen=True)
 class DiagnosticProbeRefBlock:
     probe_id: str | None = None
     probe_kind: str | None = None
@@ -3153,6 +3165,25 @@ class ListDelegatedProviderProfilesRequest:
 @dataclass(frozen=True)
 class ListDelegatedProviderProfilesResponse:
     provider_profiles: tuple[DelegatedProviderProfile, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ListDesktopAuditEventsRequest:
+    trace_id: str | None = None
+    request_id: str | None = None
+    app_id: str | None = None
+    domain: str | None = None
+    operation: str | None = None
+    reason_code: ReasonCode | None = None
+    caller_kind: CallerKind | None = None
+    from_time: str | None = None
+    to_time: str | None = None
+    page_size: int | None = None
+    page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListDesktopAuditEventsResponse:
+    events: tuple[DesktopAuditEventProjection, ...] = field(default_factory=tuple)
+    next_page_token: str | None = None
 
 @dataclass(frozen=True)
 class ListEnginesRequest:
@@ -7428,6 +7459,10 @@ class RuntimeTypedClient:
     async def list_audit_events(self, request: ListAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAuditEventsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAuditEventsResponse, raw)
+
+    async def list_desktop_audit_events(self, request: ListDesktopAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDesktopAuditEventsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListDesktopAuditEventsResponse, raw)
 
     async def list_usage_stats(self, request: ListUsageStatsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListUsageStatsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
