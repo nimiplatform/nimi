@@ -16,6 +16,8 @@
 
 建议顺序：Realm → Web → fixed Runtime status → Desktop → Zhiyu。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
 
+运行 `pnpm doctor:dev` 可在一屏检查 Realm/Web 可达性、fixed service 完整状态、Desktop local-development presence 的 exact shape/新鲜度、遗留 carrier，以及 SDK/Kit canonical dist stamp。任一 Tier-1 项不满足时命令非零退出。Developer Mode、项目授权与 grant 摘要目前没有获准的 bounded doctor projection，输出固定为“bounded projection 未准入”，不读取 renderer private bridge，也不把缺失投影算作通过。
+
 ## 签名 Desktop dev profile 的一次性 First Run
 
 签名 Desktop 使用持久 dev profile；新 profile 首次出现 First Run 是预期行为，完成记录按 data root 保存。Storage 页可以用 `Choose folder…` 选择既有 Nimi data root，但这**不等于**现有模型一定会被复用。

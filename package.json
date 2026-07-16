@@ -327,6 +327,7 @@
     "deploy:install-gateway": "pnpm --filter @nimiplatform/install-gateway deploy",
     "dev:prepare": "pnpm build:sdk && pnpm build:kit",
     "dev:prepare:watch": "node scripts/dev-prepare-watch.mjs",
+    "doctor:dev": "node scripts/doctor-dev.mjs",
     "dev:desktop": "node apps/desktop/scripts/run-tauri-dev.mjs",
     "dev:electron:desktop": "pnpm --filter @nimiplatform/desktop dev:electron",
     "dev:electron:zhiyu": "pnpm --filter @nimiplatform/zhiyu dev:electron",
