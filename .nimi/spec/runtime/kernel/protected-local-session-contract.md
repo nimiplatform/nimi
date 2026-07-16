@@ -377,6 +377,35 @@ forbidden, and a new connection must repeat the full mutual endpoint, process,
 and executable verification. At most one live Desktop control session exists
 per process tuple.
 
+After that session exists, the verified Nimi Desktop shell has one additional
+exact unary consumer set. It consists only of:
+
+- `RuntimeLocalService/ListLocalAssets`;
+- `RuntimeLocalService/ListNodeCatalog`;
+- `RuntimeLocalService/CheckLocalAssetHealth`;
+- `RuntimeConnectorService/ListConnectors`;
+- `RuntimeAuditService/GetRuntimeHealth`;
+- `RuntimeAuditService/ListAIProviderHealth`;
+- `RuntimeAuditService/ListUsageStats`;
+- `RuntimeAiService/PeekScheduling`;
+- `RuntimeAiService/ExecuteScenario`; and
+- `RuntimeAgentService/ListAgents`.
+
+Each call remains connection-, process-, session-, and boot-epoch-bound. The
+protected carrier selects from this compiled method set; renderer metadata,
+method ids, and serialized request bytes cannot add another method or role.
+`ExecuteScenario` transport admission does not authorize a scenario, route, or
+capability and does not bypass the existing handler-level request validation,
+scheduling, execution, account, grant, or policy checks.
+
+This consumer set admits no stream and no generic Runtime proxy. In particular,
+health-event subscriptions, connector-model enumeration, connector testing,
+asset warming, conversation streaming, and every method missing from the exact
+matrix remain typed unavailable before handler dispatch. The Desktop must not
+fall back to public TCP. This addition changes no account custody, grant,
+presence, Realm broker, storage, memory, media, local-app, development
+authorization, lifecycle, dormancy, epoch, or public-listener semantics.
+
 ## K-PLOCAL-007 Lifecycle Transactions, Boot Epoch, and Recovery
 
 Every admitted local-app control mutation requires the same live protected
