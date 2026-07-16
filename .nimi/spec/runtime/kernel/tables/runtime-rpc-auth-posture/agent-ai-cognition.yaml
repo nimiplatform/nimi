@@ -489,6 +489,16 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio
+    posture: protected_origin_required
+    protected_transport_class: local_app_host
+    required_origin_role: local_app_session
+    rationale: bounded audio transcription derives the committed Runtime Agent AI Config route and requires the exact current local-app operation/resource grant
+    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-AGCORE-146, K-VOICE-021]
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
+    posture: protected_or_scoped_binding_read
+    rationale: ordinary callers require Runtime Agent identity/scoped turn-read authority; protected local apps require exact agent/anchor/turn/voice-stream grant and current conversation ownership
+    kernel_refs: [K-AUTHN-001, K-AUTH-006, K-GRANT-014, K-AGCORE-133, K-VOICE-019, K-VOICE-021]
   - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession
     posture: anonymous_read
     rationale: subject_user_id taken from request head; no JWT validation in handler

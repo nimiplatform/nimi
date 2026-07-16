@@ -265,6 +265,14 @@ path and, for write, one JSON value. The native host invokes the corresponding
 closed RuntimeAppService methods; it does not call `GetAppStorage`, expose a
 data root, accept an app/principal selector, or fall back to Node filesystem
 access. Read/write return `{ value, sizeBytes }`; remove returns `{ removed }`.
+The same exact client carries the two K-VOICE-021 selected voice operations.
+`agent.transcribeVoice` accepts only agent/request correlation, bounded audio
+bytes, and a closed audio MIME value; Runtime derives the committed
+`audio.transcribe` route. `agent.subscribeVoiceStream` accepts only the exact
+agent/anchor/turn/voice-stream correlation plus an opaque carrier cursor and
+returns one bounded event page. Provider/model/connector/target/fallback fields,
+generic AI/Agent forwarding, public transport fallback, and renderer-owned
+route truth are rejected before dispatch.
 `agent.listInventory()` accepts no input and returns only the K-AGCORE-006e
 field whitelist. `permission.posture` is read-only. `permission.request` maps only to
 `RequestLocalAppGrant`, accepts exact operation/resource/purpose, returns a

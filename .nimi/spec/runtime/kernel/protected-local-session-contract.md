@@ -421,6 +421,14 @@ current local-app session plus exact per-operation/resource grant before
 handler dispatch. Public TCP, `GetAppStorage`, generic file IPC, and Node
 filesystem fallback remain denied.
 
+The same matrix admits the two K-VOICE-021 selected local-app voice operations:
+bounded Runtime-selected transcription and exact Agent voice-stream
+subscription. Neither operation accepts provider/model/target/fallback truth or
+an arbitrary Runtime method. Transcription public TCP is denied; the stream
+reuses the existing protected native pipe and existing Runtime Agent voice
+broker. No public listener, portable session, raw credential, generic AI proxy,
+or renderer route authority is added.
+
 ## K-PLOCAL-007 Lifecycle Transactions, Boot Epoch, and Recovery
 
 Every admitted local-app control mutation requires the same live protected

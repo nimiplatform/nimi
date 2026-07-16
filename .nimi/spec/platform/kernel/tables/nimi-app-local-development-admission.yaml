@@ -1,4 +1,4 @@
-version: 2
+version: 3
 table_family: owner_matrix
 owner: platform
 matrix_id: nimi_app_local_development_admission
@@ -41,6 +41,8 @@ runtime_scoped_binding_requests:
   admitted_request_scopes:
     - runtime.agent.turn.read
     - runtime.agent.turn.write
+    - runtime.agent.voice.read
+    - runtime.agent.voice.transcribe
   item_shape:
     required_fields: [scope, purpose]
     qualifier: forbidden
@@ -114,6 +116,7 @@ operation_posture:
   selected_checkpoint_families:
     - runtime_artifact_read
     - runtime_agent_conversation
+    - runtime_agent_selected_voice
   missing_families: typed_owner_unavailable
   generic_protected_proxy: forbidden
 owners: &nimi_app_local_development_admission_rows

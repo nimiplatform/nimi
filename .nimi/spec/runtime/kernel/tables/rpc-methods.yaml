@@ -671,8 +671,15 @@ services:
         type: unary
       - name: SubscribeAgentEvents
         type: server_stream
+      - name: TranscribeLocalAppAgentAudio
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio
       - name: SubscribeAgentVoiceStream
         type: server_stream
+        authority_status: admitted_local_app_and_existing_scoped_consumer
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
       - name: InterruptAgentVoicePlayback
         type: unary
       - name: GetRuntimeAgentAIConfig

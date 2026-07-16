@@ -65,6 +65,7 @@ entries:
   - K-VOICE-018
   - K-VOICE-019
   - K-VOICE-020
+  - K-VOICE-021
 rules:
   - rule_id: K-PROV-001
     evidence_refs:
@@ -289,4 +290,14 @@ rules:
       - sdk_runtime_test
     note: Durable generated agent voice artifacts require Runtime artifact identity, retention, and
       cleanup behavior evidence.
+    evidence_requirement: required
+  - rule_id: K-VOICE-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Protected local-app voice transcription and playback subscription require exact
+      operation admission, Runtime-owned route selection, bounded payloads, and fail-closed app
+      consumption evidence.
     evidence_requirement: required

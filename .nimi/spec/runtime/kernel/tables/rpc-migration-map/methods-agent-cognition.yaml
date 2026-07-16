@@ -461,6 +461,11 @@ method_mappings:
     proto_method: SubscribeAgentVoiceStream
     mapping_posture: aligned
   - design_service: RuntimeAgentService
+    design_method: TranscribeLocalAppAgentAudio
+    proto_service: RuntimeAgentService
+    proto_method: TranscribeLocalAppAgentAudio
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
     design_method: InterruptAgentVoicePlayback
     proto_service: RuntimeAgentService
     proto_method: InterruptAgentVoicePlayback

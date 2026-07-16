@@ -394,3 +394,55 @@ Cleanup must be Runtime-owned and must support at least:
 
 Avatar must not own durable voice cache state. Desktop may expose cleanup UI, but
 the cleanup action must call the Runtime-owned artifact/voice cleanup surface.
+
+## K-VOICE-021 Protected Local-App Selected Voice Operations
+
+The protected `local_app_host` transport admits exactly two local-app voice
+operations. They are selected Runtime Agent operations, not a generic
+`RuntimeAiService` or `RuntimeAgentService` proxy:
+
+- `runtime_agent.voice.transcribe` invokes
+  `RuntimeAgentService.TranscribeLocalAppAgentAudio`. The request carries only
+  `agent_id`, `client_request_id`, bounded audio bytes, and an `audio/*` MIME
+  type. Runtime resolves the current account-owned agent, reads the committed
+  `audio.transcribe` Runtime Agent AI Config intent, verifies current readiness,
+  forces `FALLBACK_POLICY_DENY`, and executes the job through its private AI
+  bridge. The local app cannot select model, connector, provider, target ref,
+  route, prompt, language, diarization, timestamps, response format, timeout,
+  labels, or extensions. The response contains only the correlated request id
+  and transcript text.
+- `runtime_agent.voice.stream_subscribe` uses the existing typed
+  `RuntimeAgentService.SubscribeAgentVoiceStream` stream with an additional
+  protected local-app request shape. That shape carries `agent_id`,
+  `conversation_anchor_id`, `turn_id`, and `voice_stream_id`, requires no
+  `AgentRequestContext`, and is accepted only when all four values match the
+  current principal-owned conversation and Runtime voice-stream broker truth.
+
+Both operations require a live process-bound local-app session, a current exact
+operation/resource grant, and owner-policy evaluation on every call. Their
+permission scopes are respectively `runtime.agent.voice.transcribe` and
+`runtime.agent.voice.read`; manifest declarations are request eligibility only
+and never grant, route, or binding truth. The resource refs are:
+
+```text
+agent:<agent-id>/voice-transcription
+agent:<agent-id>/conversation:<anchor-id>/turn:<turn-id>/voice-stream:<voice-stream-id>
+```
+
+Transcription audio is limited to 8 MiB. Runtime accepts only the closed MIME
+set `audio/webm`, `audio/ogg`, `audio/wav`, `audio/mpeg`, `audio/mp4`, and
+`audio/flac`; an optional MIME parameter suffix is normalized away before
+execution. Transcript text is limited to 64 KiB UTF-8. Invalid or oversized
+input, missing/unready committed binding, mismatched agent/conversation/turn,
+missing current grant, broker truncation, or provider failure must fail closed
+with a typed Runtime/host error. No audio or transcript content, provider
+credential, model/connector/target selection, principal/session/grant material,
+endpoint, or absolute path may appear in the local-app audit projection.
+
+Public TCP remains denied for the local-app transcription RPC. The ordinary
+authenticated/scoped-binding form of `SubscribeAgentVoiceStream` remains
+unchanged; the local-app branch is available only on the existing protected
+native pipe and does not add a listener. Generic AI execution, realtime audio,
+voice workflow mutation, voice asset mutation, playback interruption, arbitrary
+Agent forwarding, provider fallback, and renderer-owned route selection remain
+forbidden.

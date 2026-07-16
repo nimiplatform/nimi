@@ -545,6 +545,35 @@ executable LocalAgent truth.
 
 Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
 
+## S-APP-024 - Protected Local-App Selected Voice Client
+
+The local-app runtime platform client exposes exactly two additional Agent
+methods from `K-VOICE-021`:
+
+- `agent.transcribeVoice({ agentId, clientRequestId, audio, mimeType })`
+- `agent.subscribeVoiceStream({ agentId, conversationAnchorId, turnId,
+  voiceStreamId, cursor? })`
+
+`transcribeVoice` accepts only a `Uint8Array` up to 8 MiB and the closed Runtime
+audio MIME set. It returns only `{ clientRequestId, text }`, with transcript text
+bounded to 64 KiB UTF-8. `subscribeVoiceStream` returns one correlated page with
+an opaque cursor and exactly one typed Runtime voice event; chunk bytes are
+decoded to `Uint8Array`, and every event must match all caller-supplied
+agent/anchor/turn/voice-stream selectors. A terminal event ends consumption.
+
+The SDK and Kit carrier must reject model, connector, provider, target ref,
+route policy, fallback, prompt, language, diarization, timestamps, response
+format, timeout, label, extension, principal, account, grant, session, endpoint,
+or token fields before dispatch. They must not construct `ExecuteScenario`,
+`SubmitScenarioJob`, generic Runtime unary/stream calls, realtime sessions, or a
+provider fallback. Missing protected carrier, grant, committed Runtime Agent AI
+Config intent/readiness, conversation correlation, or stream truth fails closed
+with the typed local-app error envelope.
+
+These methods carry data only. Runtime owns local-app authorization, AI route,
+job execution, stream truth, artifacts, and audit; the SDK owns no route cache,
+voice truth, credential, playback state, or durable audio bytes.
+
 ## Fact Sources
 
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
@@ -570,3 +599,4 @@ Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
 - `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app helper naming, final local-app mode and no first-party self-declaration consumed by `S-APP-016`)
 - `.nimi/spec/platform/kernel/desktop-open-intent-contract.md` — `P-DOPEN-*`
 - `.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`
+- `.nimi/spec/runtime/kernel/voice-contract.md` — `K-VOICE-021`

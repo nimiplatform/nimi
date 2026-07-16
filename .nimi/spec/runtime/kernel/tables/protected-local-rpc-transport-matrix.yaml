@@ -1,4 +1,4 @@
-version: 8
+version: 9
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
@@ -32,6 +32,7 @@ authority_refs:
   - K-AGCORE-053
   - K-AUDIT-024
   - K-APP-032
+  - K-VOICE-021
 transport_classes: [public_tcp, desktop_control, local_app_bootstrap, local_app_host]
 platform_admission:
   windows: admitted_fixed_service_and_process_verification
@@ -80,6 +81,7 @@ operation_classes:
   - local_app_artifact_read
   - local_app_json_storage
   - local_app_agent_conversation
+  - local_app_selected_voice
   - blocked_pending_separate_authority
 matrix_schema:
   fields:
@@ -251,6 +253,8 @@ methods:
   - { method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
   - { method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
   - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio, operation_class: local_app_selected_voice, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-VOICE-021 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream, operation_class: local_app_selected_voice, allowed_transport_classes: [public_tcp, local_app_host], required_origin_roles_by_transport: { public_tcp: authenticated_or_scoped_binding, local_app_host: local_app_session }, request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: existing_authenticated_or_scoped_binding_only, generic_proxy: forbidden, source_rule: K-VOICE-021 }
 blocked_or_unadmitted:
   immutable_package_methods: typed_unavailable_until_0p_or_p
   workspace_binding_methods: blocked_pending_separate_authority

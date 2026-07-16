@@ -168,6 +168,8 @@ capability_sets:
       - local-app.agentSendTurn
       - local-app.agentSubscribeTurn
       - local-app.agentGetConversationSnapshot
+      - local-app.agentTranscribeVoice
+      - local-app.agentSubscribeVoiceStream
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
@@ -247,6 +249,11 @@ capability_sets:
       - local-app-storage-cross-principal-denied
       - local-app-storage-quota-exceeded
       - local-app-storage-root-never-projected
+      - local-app-voice-zero-grant-denied
+      - local-app-voice-selector-mismatch-denied
+      - local-app-voice-route-selector-fields-denied
+      - local-app-voice-generic-ai-proxy-denied
+      - local-app-voice-public-transport-denied
     source_rule: P-KIT-044
 
 local_app_operation_contract:
@@ -304,6 +311,26 @@ local_app_operation_contract:
       owner: runtime_agent_service
     agentGetConversationSnapshot:
       request_fields: [agentId, conversationAnchorId]
+      owner: runtime_agent_service
+    agentTranscribeVoice:
+      command: local-app.agentTranscribeVoice
+      operation_id: runtime_agent.voice.transcribe
+      permission_scope: runtime.agent.voice.transcribe
+      resource_ref: "agent:<agent-id>/voice-transcription"
+      request_fields: [agentId, clientRequestId, audioBase64, mimeType]
+      response_fields: [clientRequestId, text]
+      forbidden_request_fields: [modelId, connectorId, provider, targetRef, routePolicy, fallback, prompt, language, timestamps, diarization, responseFormat, timeoutMs, labels, extensions]
+      audio_max_bytes: 8388608
+      transcript_max_utf8_bytes: 65536
+      owner: runtime_agent_service
+    agentSubscribeVoiceStream:
+      command: local-app.agentSubscribeVoiceStream
+      operation_id: runtime_agent.voice.stream_subscribe
+      permission_scope: runtime.agent.voice.read
+      resource_ref: "agent:<agent-id>/conversation:<anchor-id>/turn:<turn-id>/voice-stream:<voice-stream-id>"
+      request_fields: [agentId, conversationAnchorId, turnId, voiceStreamId, cursor]
+      response_fields: [cursor, events]
+      event_fields: [voiceStreamId, conversationAnchorId, turnId, streamId, messageId, chunkSequence, chunkBase64, mimeType, voiceOutputMode, playbackTarget, terminal, voicePlaybackState, terminalReason, replayTruncated]
       owner: runtime_agent_service
 
 capabilities:
@@ -505,6 +532,12 @@ capabilities:
       - id: agentGetConversationSnapshot
         command: nimi.shell.localApp.agent.getConversationSnapshot
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, not-found]
+      - id: agentTranscribeVoice
+        command: nimi.shell.localApp.agent.transcribeVoice
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, resource-exhausted, host-internal-error]
+      - id: agentSubscribeVoiceStream
+        command: nimi.shell.localApp.agent.subscribeVoiceStream
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, not-found, resource-exhausted]
   - id: local-agent
     host_contract: NimiStandardShellCapabilityHost
     operations:
