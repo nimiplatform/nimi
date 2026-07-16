@@ -186,3 +186,10 @@ test('Desktop source-readiness Realm transport rejects bundled caller modes', ()
     reasonCode: 'SDK_RUNTIME_REALM_DESKTOP_CALLER_REQUIRED',
   });
 });
+
+test('built Runtime Realm account module loads under strict Node ESM resolution', async () => {
+  const builtModuleUrl = new URL('../../dist/core/app/runtime-account-realm.js', import.meta.url);
+  const builtModule = await import(builtModuleUrl.href);
+  assert.equal(typeof builtModule.createRuntimeAccountMediatedRealmTransport, 'function');
+  assert.equal(typeof builtModule.createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport, 'function');
+});

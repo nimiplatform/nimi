@@ -8,12 +8,12 @@ import type { NimiRuntimeAccountCaller, Runtime } from '../../runtime';
 import { createNimiClientId, createNimiError, type CoreStreamRequest, type CoreUnaryRequest, ReasonCode } from '../../types';
 import {
   isNimiDesktopSourceReadinessRealmOperationID,
-} from './runtime-account-realm-source-readiness.generated';
+} from './runtime-account-realm-source-readiness.generated.js';
 
 export {
   NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS,
   type NimiDesktopSourceReadinessRealmOperationID,
-} from './runtime-account-realm-source-readiness.generated';
+} from './runtime-account-realm-source-readiness.generated.js';
 
 export type RuntimeAccountMediatedRealmRuntime = {
   readonly account: Pick<Runtime['account'], 'invokeRealmUnary'>;
