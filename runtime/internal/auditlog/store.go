@@ -176,6 +176,60 @@ func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) (*runtimev1.Li
 	}, nil
 }
 
+// ListDesktopEvents applies the K-AUDIT-024 filter set and projects the exact
+// Desktop-safe wire shape before any event leaves the canonical audit store.
+func (s *Store) ListDesktopEvents(req *runtimev1.ListDesktopAuditEventsRequest) (*runtimev1.ListDesktopAuditEventsResponse, error) {
+	filterDigest := desktopEventFilterDigest(req)
+	s.mu.RLock()
+	ordered := s.snapshotEventsLocked()
+	filtered := make([]*runtimev1.DesktopAuditEventProjection, 0, len(ordered))
+	for _, event := range ordered {
+		if !matchesDesktopEventFilter(event, req) {
+			continue
+		}
+		filtered = append(filtered, projectDesktopAuditEvent(event))
+	}
+	s.mu.RUnlock()
+
+	sort.Slice(filtered, func(i, j int) bool {
+		left := filtered[i].GetTimestamp().AsTime()
+		right := filtered[j].GetTimestamp().AsTime()
+		if left.Equal(right) {
+			return filtered[i].GetAuditId() > filtered[j].GetAuditId()
+		}
+		return left.After(right)
+	})
+
+	start, err := parsePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		return nil, err
+	}
+	if start > len(filtered) {
+		start = 0
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	end := start + pageSize
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	nextToken := ""
+	if end < len(filtered) {
+		nextToken = pagination.Encode(strconv.Itoa(end), filterDigest)
+	}
+
+	return &runtimev1.ListDesktopAuditEventsResponse{
+		Events:        filtered[start:end],
+		NextPageToken: nextToken,
+	}, nil
+}
+
 func (s *Store) snapshotEventsLocked() []*runtimev1.AuditEventRecord {
 	if len(s.events) == 0 {
 		return nil
@@ -326,6 +380,61 @@ func matchesEventFilter(event *runtimev1.AuditEventRecord, req *runtimev1.ListAu
 	return true
 }
 
+func matchesDesktopEventFilter(event *runtimev1.AuditEventRecord, req *runtimev1.ListDesktopAuditEventsRequest) bool {
+	if req == nil {
+		return false
+	}
+	if req.GetTraceId() != "" && req.GetTraceId() != event.GetTraceId() {
+		return false
+	}
+	if req.GetRequestId() != "" && req.GetRequestId() != event.GetRequestId() {
+		return false
+	}
+	if req.GetAppId() != "" && req.GetAppId() != event.GetAppId() {
+		return false
+	}
+	if req.GetDomain() != "" && req.GetDomain() != event.GetDomain() {
+		return false
+	}
+	if req.GetOperation() != "" && req.GetOperation() != event.GetOperation() {
+		return false
+	}
+	if req.GetReasonCode() != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED && req.GetReasonCode() != event.GetReasonCode() {
+		return false
+	}
+	if req.GetCallerKind() != runtimev1.CallerKind_CALLER_KIND_UNSPECIFIED && req.GetCallerKind() != event.GetCallerKind() {
+		return false
+	}
+	if event.GetTimestamp() == nil {
+		return false
+	}
+	if req.GetFromTime() != nil && event.GetTimestamp().AsTime().Before(req.GetFromTime().AsTime()) {
+		return false
+	}
+	if req.GetToTime() != nil && event.GetTimestamp().AsTime().After(req.GetToTime().AsTime()) {
+		return false
+	}
+	return true
+}
+
+func projectDesktopAuditEvent(event *runtimev1.AuditEventRecord) *runtimev1.DesktopAuditEventProjection {
+	var timestamp *timestamppb.Timestamp
+	if event.GetTimestamp() != nil {
+		timestamp = timestamppb.New(event.GetTimestamp().AsTime())
+	}
+	return &runtimev1.DesktopAuditEventProjection{
+		AuditId:    event.GetAuditId(),
+		RequestId:  event.GetRequestId(),
+		AppId:      event.GetAppId(),
+		Domain:     event.GetDomain(),
+		Operation:  event.GetOperation(),
+		ReasonCode: event.GetReasonCode(),
+		TraceId:    event.GetTraceId(),
+		Timestamp:  timestamp,
+		CallerKind: event.GetCallerKind(),
+	}
+}
+
 func matchesUsageFilter(sample UsageInput, req *runtimev1.ListUsageStatsRequest) bool {
 	if req == nil {
 		return true
@@ -441,6 +550,23 @@ func eventFilterDigest(req *runtimev1.ListAuditEventsRequest) string {
 		req.GetReasonCode().String(),
 		req.GetCallerKind().String(),
 		strings.TrimSpace(req.GetCallerId()),
+		formatPageTime(req.GetFromTime()),
+		formatPageTime(req.GetToTime()),
+	)
+}
+
+func desktopEventFilterDigest(req *runtimev1.ListDesktopAuditEventsRequest) string {
+	if req == nil {
+		return pagination.FilterDigest()
+	}
+	return pagination.FilterDigest(
+		strings.TrimSpace(req.GetTraceId()),
+		strings.TrimSpace(req.GetRequestId()),
+		strings.TrimSpace(req.GetAppId()),
+		strings.TrimSpace(req.GetDomain()),
+		strings.TrimSpace(req.GetOperation()),
+		req.GetReasonCode().String(),
+		req.GetCallerKind().String(),
 		formatPageTime(req.GetFromTime()),
 		formatPageTime(req.GetToTime()),
 	)

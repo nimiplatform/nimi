@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	RuntimeAuditService_ListAuditEvents_FullMethodName                 = "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents"
+	RuntimeAuditService_ListDesktopAuditEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
 	RuntimeAuditService_ExportAuditEvents_FullMethodName               = "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents"
 	RuntimeAuditService_ListUsageStats_FullMethodName                  = "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats"
 	RuntimeAuditService_GetRuntimeHealth_FullMethodName                = "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth"
@@ -33,6 +34,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeAuditServiceClient interface {
 	ListAuditEvents(ctx context.Context, in *ListAuditEventsRequest, opts ...grpc.CallOption) (*ListAuditEventsResponse, error)
+	ListDesktopAuditEvents(ctx context.Context, in *ListDesktopAuditEventsRequest, opts ...grpc.CallOption) (*ListDesktopAuditEventsResponse, error)
 	ExportAuditEvents(ctx context.Context, in *ExportAuditEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AuditExportChunk], error)
 	ListUsageStats(ctx context.Context, in *ListUsageStatsRequest, opts ...grpc.CallOption) (*ListUsageStatsResponse, error)
 	GetRuntimeHealth(ctx context.Context, in *GetRuntimeHealthRequest, opts ...grpc.CallOption) (*GetRuntimeHealthResponse, error)
@@ -53,6 +55,16 @@ func (c *runtimeAuditServiceClient) ListAuditEvents(ctx context.Context, in *Lis
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAuditEventsResponse)
 	err := c.cc.Invoke(ctx, RuntimeAuditService_ListAuditEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAuditServiceClient) ListDesktopAuditEvents(ctx context.Context, in *ListDesktopAuditEventsRequest, opts ...grpc.CallOption) (*ListDesktopAuditEventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDesktopAuditEventsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAuditService_ListDesktopAuditEvents_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +163,7 @@ type RuntimeAuditService_SubscribeRuntimeHealthEventsClient = grpc.ServerStreami
 // for forward compatibility.
 type RuntimeAuditServiceServer interface {
 	ListAuditEvents(context.Context, *ListAuditEventsRequest) (*ListAuditEventsResponse, error)
+	ListDesktopAuditEvents(context.Context, *ListDesktopAuditEventsRequest) (*ListDesktopAuditEventsResponse, error)
 	ExportAuditEvents(*ExportAuditEventsRequest, grpc.ServerStreamingServer[AuditExportChunk]) error
 	ListUsageStats(context.Context, *ListUsageStatsRequest) (*ListUsageStatsResponse, error)
 	GetRuntimeHealth(context.Context, *GetRuntimeHealthRequest) (*GetRuntimeHealthResponse, error)
@@ -168,6 +181,9 @@ type UnimplementedRuntimeAuditServiceServer struct{}
 
 func (UnimplementedRuntimeAuditServiceServer) ListAuditEvents(context.Context, *ListAuditEventsRequest) (*ListAuditEventsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAuditEvents not implemented")
+}
+func (UnimplementedRuntimeAuditServiceServer) ListDesktopAuditEvents(context.Context, *ListDesktopAuditEventsRequest) (*ListDesktopAuditEventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDesktopAuditEvents not implemented")
 }
 func (UnimplementedRuntimeAuditServiceServer) ExportAuditEvents(*ExportAuditEventsRequest, grpc.ServerStreamingServer[AuditExportChunk]) error {
 	return status.Error(codes.Unimplemented, "method ExportAuditEvents not implemented")
@@ -221,6 +237,24 @@ func _RuntimeAuditService_ListAuditEvents_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAuditServiceServer).ListAuditEvents(ctx, req.(*ListAuditEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAuditService_ListDesktopAuditEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDesktopAuditEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAuditServiceServer).ListDesktopAuditEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAuditService_ListDesktopAuditEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAuditServiceServer).ListDesktopAuditEvents(ctx, req.(*ListDesktopAuditEventsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -322,6 +356,10 @@ var RuntimeAuditService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAuditEvents",
 			Handler:    _RuntimeAuditService_ListAuditEvents_Handler,
+		},
+		{
+			MethodName: "ListDesktopAuditEvents",
+			Handler:    _RuntimeAuditService_ListDesktopAuditEvents_Handler,
 		},
 		{
 			MethodName: "ListUsageStats",

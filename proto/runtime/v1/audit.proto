@@ -55,6 +55,42 @@ message ListAuditEventsResponse {
   string next_page_token = 2;
 }
 
+// K-AUDIT-024: exact bounded filters for the protected Desktop projection.
+// Both timestamps are required and may span at most seven days.
+message ListDesktopAuditEventsRequest {
+  string trace_id = 1;
+  string request_id = 2;
+  string app_id = 3;
+  string domain = 4;
+  string operation = 5;
+  ReasonCode reason_code = 6;
+  CallerKind caller_kind = 7;
+  google.protobuf.Timestamp from_time = 8;
+  google.protobuf.Timestamp to_time = 9;
+  int32 page_size = 10;
+  string page_token = 11;
+}
+
+// K-AUDIT-024: wire-level field whitelist. Sensitive payload, subject,
+// caller, principal, token, consent, policy and resource fields do not exist
+// on this message and therefore cannot cross the Desktop protected transport.
+message DesktopAuditEventProjection {
+  string audit_id = 1;
+  string request_id = 2;
+  string app_id = 3;
+  string domain = 4;
+  string operation = 5;
+  ReasonCode reason_code = 6;
+  string trace_id = 7;
+  google.protobuf.Timestamp timestamp = 8;
+  CallerKind caller_kind = 9;
+}
+
+message ListDesktopAuditEventsResponse {
+  repeated DesktopAuditEventProjection events = 1;
+  string next_page_token = 2;
+}
+
 message ExportAuditEventsRequest {
   string app_id = 1;
   string subject_user_id = 2;
@@ -194,6 +230,7 @@ message AuditExportChunk {
 
 service RuntimeAuditService {
   rpc ListAuditEvents(ListAuditEventsRequest) returns (ListAuditEventsResponse);
+  rpc ListDesktopAuditEvents(ListDesktopAuditEventsRequest) returns (ListDesktopAuditEventsResponse);
   rpc ExportAuditEvents(ExportAuditEventsRequest) returns (stream AuditExportChunk);
   rpc ListUsageStats(ListUsageStatsRequest) returns (ListUsageStatsResponse);
   rpc GetRuntimeHealth(GetRuntimeHealthRequest) returns (GetRuntimeHealthResponse);

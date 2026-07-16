@@ -38,6 +38,9 @@ const deferredStreamCapability = "__deferred__"
 
 func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		if info != nil && info.FullMethod == "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents" {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
 		capability, required := protectedCapabilityForUnary(info.FullMethod, req)
 		if !required {
 			return handler(ctx, req)

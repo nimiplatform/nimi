@@ -14,6 +14,7 @@ import (
 var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth":                      true,
 	"/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents":                       true,
+	"/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents":                true,
 	"/nimi.runtime.v1.RuntimeAuditService/ListUsageStats":                        true,
 	"/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth":                  true,
 	"/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":                     true,

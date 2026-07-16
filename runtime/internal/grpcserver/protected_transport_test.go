@@ -77,6 +77,7 @@ func TestProtectedDesktopRuntimeConsumerAdmitsExactUnarySet(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
 		"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
 		"/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
+		"/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
 		"/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
 		"/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
 		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -97,6 +98,7 @@ func TestProtectedDesktopRuntimeConsumerAdmitsExactUnarySet(t *testing.T) {
 
 	excluded := []string{
 		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
+		"/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
 		"/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
 		"/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
 		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
@@ -107,7 +109,7 @@ func TestProtectedDesktopRuntimeConsumerAdmitsExactUnarySet(t *testing.T) {
 			t.Fatalf("unadmitted method %q escaped the exact Desktop Runtime consumer classifier", method)
 		}
 	}
-	for _, method := range excluded[1:4] {
+	for _, method := range excluded[2:5] {
 		if protectedDesktopStreamMethodAllowed(method) {
 			t.Fatalf("unadmitted stream %q escaped the protected Desktop stream allowlist", method)
 		}
@@ -125,13 +127,14 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		authservice.WithDesktopSessionManager(manager),
 	)
 	accountService := &protectedDesktopAccountTestService{}
+	auditService := &protectedDesktopAuditTestService{}
 	localService := &protectedDesktopLocalTestService{}
 	appService := &protectedDesktopAppTestService{}
 	server := newProtectedDesktopRPCServer(
 		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
 		authService,
 		accountService,
-		&runtimev1.UnimplementedRuntimeAuditServiceServer{},
+		auditService,
 		localService,
 		&runtimev1.UnimplementedRuntimeAiServiceServer{},
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
@@ -173,6 +176,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	t.Cleanup(func() { _ = clientConn.Close() })
 	client := runtimev1.NewRuntimeAuthServiceClient(clientConn)
 	accountClient := runtimev1.NewRuntimeAccountServiceClient(clientConn)
+	auditClient := runtimev1.NewRuntimeAuditServiceClient(clientConn)
 	localClient := runtimev1.NewRuntimeLocalServiceClient(clientConn)
 
 	_, err = accountClient.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{})
@@ -182,6 +186,10 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	_, err = localClient.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 		t.Fatalf("product-control request without Desktop session reason = %v (present=%v), err=%v", reason, ok, err)
+	}
+	_, err = auditClient.ListDesktopAuditEvents(context.Background(), &runtimev1.ListDesktopAuditEventsRequest{})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || auditService.projectionCalled {
+		t.Fatalf("audit projection without Desktop session reason = %v (present=%v), called=%v err=%v", reason, ok, auditService.projectionCalled, err)
 	}
 	dependencyJobCallsWithoutSession := []struct {
 		name string
@@ -267,6 +275,14 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	_, err = localClient.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
 	if err != nil || !localService.localAssetsCalled {
 		t.Fatalf("ListLocalAssets protected carrier: called=%v err=%v", localService.localAssetsCalled, err)
+	}
+	projection, err := auditClient.ListDesktopAuditEvents(context.Background(), &runtimev1.ListDesktopAuditEventsRequest{})
+	if err != nil || projection.GetNextPageToken() != "" || !auditService.projectionCalled {
+		t.Fatalf("ListDesktopAuditEvents protected carrier: called=%v response=%+v err=%v", auditService.projectionCalled, projection, err)
+	}
+	_, err = auditClient.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || auditService.rawCalled {
+		t.Fatalf("raw ListAuditEvents escaped protected deny: reason=%v present=%v called=%v err=%v", reason, ok, auditService.rawCalled, err)
 	}
 	accountStream, err := accountClient.SubscribeAccountSessionEvents(context.Background(), &runtimev1.SubscribeAccountSessionEventsRequest{})
 	if err != nil {
@@ -356,6 +372,22 @@ type protectedDesktopAccountTestService struct {
 	statusBound            bool
 	subscriptionBound      bool
 	workspaceBindingCalled bool
+}
+
+type protectedDesktopAuditTestService struct {
+	runtimev1.UnimplementedRuntimeAuditServiceServer
+	projectionCalled bool
+	rawCalled        bool
+}
+
+func (s *protectedDesktopAuditTestService) ListDesktopAuditEvents(context.Context, *runtimev1.ListDesktopAuditEventsRequest) (*runtimev1.ListDesktopAuditEventsResponse, error) {
+	s.projectionCalled = true
+	return &runtimev1.ListDesktopAuditEventsResponse{}, nil
+}
+
+func (s *protectedDesktopAuditTestService) ListAuditEvents(context.Context, *runtimev1.ListAuditEventsRequest) (*runtimev1.ListAuditEventsResponse, error) {
+	s.rawCalled = true
+	return &runtimev1.ListAuditEventsResponse{}, nil
 }
 
 type protectedDesktopLocalTestService struct {
