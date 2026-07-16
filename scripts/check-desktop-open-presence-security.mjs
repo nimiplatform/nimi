@@ -23,6 +23,9 @@ const failures = [
   ...requireText('apps/desktop/src-tauri/src/desktop_open_intent.rs', [
     'PRESENCE_RELATIVE_PATH',
     '"run", "desktop", "open-intent", "presence.v1.json"',
+    'last_heartbeat_at',
+  ]),
+  ...requireText('apps/desktop/src-tauri/src/desktop_open_intent_presence.rs', [
     '0o700',
     '0o600',
     'reject_symlink_ancestry(parent',
@@ -32,7 +35,8 @@ const failures = [
     '.create_new(true)',
     'libc::O_NOFOLLOW',
     'replace_presence_descriptor_atomically(&temp_path, path)',
-    'last_heartbeat_at',
+  ]),
+  ...requireText('apps/desktop/src-tauri/src/desktop_open_intent_presence_tests.rs', [
     'desktop_open_presence_descriptor_replaces_existing_descriptor',
     'desktop_open_presence_descriptor_rejects_temp_symlink_before_token_write',
   ]),
