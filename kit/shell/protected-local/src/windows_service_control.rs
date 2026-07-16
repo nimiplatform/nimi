@@ -26,9 +26,9 @@ use crate::{
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
     DesktopProductControlResponse, DesktopRuntimeConsumerError, DesktopRuntimeConsumerRequest,
     DesktopRuntimeConsumerResponse, DeveloperModeStatus, LocalAppGrantControlDecisionRequest,
-    LocalAppGrantControlPending, LocalAppGrantControlProjection, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalAppGrantControlPending, LocalAppGrantControlProjection, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiDesktopControl,
     NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
     ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
@@ -213,6 +213,20 @@ impl NimiDesktopControl for WindowsDesktopControl {
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>> {
         Box::pin(crate::windows_local_development::get_developer_mode_status(
+            self.channel(),
+        ))
+    }
+
+    fn get_local_development_authority_summary(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalDevelopmentAuthoritySummary, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::windows_local_development::get_authority_summary(
             self.channel(),
         ))
     }

@@ -73,12 +73,15 @@ pub use desktop_runtime_consumer::{
     DesktopRuntimeConsumerResponse,
 };
 pub use local_development::{
-    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthorization,
-    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentDeveloperModeSummary,
     LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
-    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind, NimiHostError,
-    NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
+    LocalDevelopmentGrantSummary, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
+    LocalDevelopmentProject, LocalDevelopmentProjectAuthorizationSummary,
+    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind,
+    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
+    LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{

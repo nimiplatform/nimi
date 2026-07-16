@@ -11,22 +11,28 @@ use crate::generated::{
     BindLocalAppProcessRequest, DecideLocalDevelopmentProjectRequest,
     EndLocalDevelopmentRunRequest, EvaluateLocalDevelopmentProjectRequest,
     EvaluateLocalDevelopmentProjectResponse, GetDeveloperModeStatusRequest,
+    GetLocalDevelopmentAuthoritySummaryRequest, GetLocalDevelopmentAuthoritySummaryResponse,
     ListLocalDevelopmentAuthorizationsRequest, LocalDevelopmentAuthorizationProjection,
+    LocalDevelopmentDeveloperModeSummary as ProtoDeveloperModeSummary,
+    LocalDevelopmentGrantSummary as ProtoGrantSummary,
+    LocalDevelopmentProjectAuthorizationSummary as ProtoProjectAuthorizationSummary,
     LocalDevelopmentProjectProjection, PrepareLocalAppLaunchRequest,
-    ReactivateLocalDevelopmentProjectRequest, RevokeLocalDevelopmentAuthorizationRequest,
-    SetDeveloperModeRequest,
+    ReactivateLocalDevelopmentProjectRequest, ReasonCode,
+    RevokeLocalDevelopmentAuthorizationRequest, SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
 use crate::windows_presence_browser_broker::PresenceBrowserBroker;
 use crate::windows_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
-    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthorization,
-    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentDeveloperModeSummary,
     LocalDevelopmentEndRunRequest as NativeEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest as NativeEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentReactivationRequest,
-    LocalDevelopmentShellKind, NimiHostError, NimiHostErrorReasonCode,
-    LOCAL_DEVELOPMENT_TRUST_CLASS,
+    LocalDevelopmentEvaluationRequest as NativeEvaluationRequest, LocalDevelopmentGrantSummary,
+    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentReactivationRequest,
+    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiHostError,
+    NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 
 const ACTION_EXECUTED: i32 = 1;
@@ -45,6 +51,143 @@ pub(crate) async fn get_developer_mode_status(
         response.account_generation,
         response.reason_code,
     )
+}
+
+pub(crate) async fn get_authority_summary(
+    channel: Channel,
+) -> Result<LocalDevelopmentAuthoritySummary, NimiHostError> {
+    let response = RuntimeDevelopmentServiceClient::new(channel)
+        .get_local_development_authority_summary(GetLocalDevelopmentAuthoritySummaryRequest {})
+        .await
+        .map_err(host_error_from_status)?
+        .into_inner();
+    authority_summary_projection(response)
+}
+
+fn authority_summary_projection(
+    response: GetLocalDevelopmentAuthoritySummaryResponse,
+) -> Result<LocalDevelopmentAuthoritySummary, NimiHostError> {
+    require_success_reason(response.reason_code)?;
+    Ok(LocalDevelopmentAuthoritySummary {
+        developer_mode: developer_mode_summary_projection(
+            response.developer_mode.ok_or_else(untrusted)?,
+        )?,
+        project_authorization: project_authorization_summary_projection(
+            response.project_authorization.ok_or_else(untrusted)?,
+        )?,
+        grant_summary: grant_summary_projection(response.grant_summary.ok_or_else(untrusted)?)?,
+    })
+}
+
+fn developer_mode_summary_projection(
+    summary: ProtoDeveloperModeSummary,
+) -> Result<LocalDevelopmentDeveloperModeSummary, NimiHostError> {
+    match summary.availability {
+        1 if summary.reason_code == ACTION_EXECUTED && matches!(summary.state, 1 | 2) => {
+            Ok(LocalDevelopmentDeveloperModeSummary {
+                availability: LocalDevelopmentSummaryAvailability::Available,
+                state: if summary.state == 1 {
+                    DeveloperModeState::Disabled
+                } else {
+                    DeveloperModeState::Enabled
+                },
+                unavailable_reason: None,
+            })
+        }
+        2 if summary.state == 3 && summary.reason_code != ACTION_EXECUTED => {
+            Ok(LocalDevelopmentDeveloperModeSummary {
+                availability: LocalDevelopmentSummaryAvailability::Unavailable,
+                state: DeveloperModeState::Unavailable,
+                unavailable_reason: Some(summary_unavailable_reason(summary.reason_code)?),
+            })
+        }
+        _ => Err(untrusted()),
+    }
+}
+
+fn project_authorization_summary_projection(
+    summary: ProtoProjectAuthorizationSummary,
+) -> Result<LocalDevelopmentProjectAuthorizationSummary, NimiHostError> {
+    let counts = [
+        summary.active_count,
+        summary.dormant_count,
+        summary.denied_count,
+        summary.revoked_count,
+    ];
+    let (availability, unavailable_reason) = summary_availability(
+        summary.availability,
+        summary.reason_code,
+        counts.iter().all(|count| *count == 0),
+    )?;
+    Ok(LocalDevelopmentProjectAuthorizationSummary {
+        availability,
+        active_count: summary.active_count,
+        dormant_count: summary.dormant_count,
+        denied_count: summary.denied_count,
+        revoked_count: summary.revoked_count,
+        unavailable_reason,
+    })
+}
+
+fn grant_summary_projection(
+    summary: ProtoGrantSummary,
+) -> Result<LocalDevelopmentGrantSummary, NimiHostError> {
+    let counts = [
+        summary.pending_count,
+        summary.granted_count,
+        summary.denied_count,
+        summary.expired_count,
+        summary.revoked_count,
+        summary.superseded_count,
+    ];
+    let (availability, unavailable_reason) = summary_availability(
+        summary.availability,
+        summary.reason_code,
+        counts.iter().all(|count| *count == 0),
+    )?;
+    Ok(LocalDevelopmentGrantSummary {
+        availability,
+        pending_count: summary.pending_count,
+        granted_count: summary.granted_count,
+        denied_count: summary.denied_count,
+        expired_count: summary.expired_count,
+        revoked_count: summary.revoked_count,
+        superseded_count: summary.superseded_count,
+        unavailable_reason,
+    })
+}
+
+fn summary_availability(
+    availability: i32,
+    reason_code: i32,
+    counts_empty: bool,
+) -> Result<
+    (
+        LocalDevelopmentSummaryAvailability,
+        Option<NimiHostErrorReasonCode>,
+    ),
+    NimiHostError,
+> {
+    match availability {
+        1 if reason_code == ACTION_EXECUTED => {
+            Ok((LocalDevelopmentSummaryAvailability::Available, None))
+        }
+        2 if reason_code != ACTION_EXECUTED && counts_empty => Ok((
+            LocalDevelopmentSummaryAvailability::Unavailable,
+            Some(summary_unavailable_reason(reason_code)?),
+        )),
+        _ => Err(untrusted()),
+    }
+}
+
+fn summary_unavailable_reason(reason_code: i32) -> Result<NimiHostErrorReasonCode, NimiHostError> {
+    match ReasonCode::try_from(reason_code).map_err(|_| untrusted())? {
+        ReasonCode::PrincipalUnauthorized => Ok(NimiHostErrorReasonCode::PrincipalUnauthorized),
+        ReasonCode::LocalAppOperationUnavailable => {
+            Ok(NimiHostErrorReasonCode::LocalAppOperationUnavailable)
+        }
+        _ => Err(untrusted()),
+    }
 }
 
 pub(crate) async fn set_developer_mode(
@@ -123,6 +266,89 @@ mod developer_mode_projection_tests {
     fn actionable_mode_states_require_revision_and_action_evidence() {
         assert!(developer_mode_projection(1, 0, 0, ACTION_EXECUTED).is_err());
         assert!(developer_mode_projection(1, 1, 0, 0).is_err());
+    }
+}
+
+#[cfg(test)]
+mod authority_summary_projection_tests {
+    use super::*;
+
+    fn valid_response() -> GetLocalDevelopmentAuthoritySummaryResponse {
+        GetLocalDevelopmentAuthoritySummaryResponse {
+            developer_mode: Some(ProtoDeveloperModeSummary {
+                availability: 1,
+                state: 2,
+                reason_code: ACTION_EXECUTED,
+            }),
+            project_authorization: Some(ProtoProjectAuthorizationSummary {
+                availability: 1,
+                active_count: 2,
+                dormant_count: 1,
+                denied_count: 0,
+                revoked_count: 3,
+                reason_code: ACTION_EXECUTED,
+            }),
+            grant_summary: Some(ProtoGrantSummary {
+                availability: 1,
+                pending_count: 1,
+                granted_count: 2,
+                denied_count: 3,
+                expired_count: 4,
+                revoked_count: 5,
+                superseded_count: 6,
+                reason_code: ACTION_EXECUTED,
+            }),
+            reason_code: ACTION_EXECUTED,
+        }
+    }
+
+    #[test]
+    fn accepts_only_closed_identifier_free_summary_sections() {
+        let projection = authority_summary_projection(valid_response()).expect("valid summary");
+        assert_eq!(
+            projection.developer_mode.availability,
+            LocalDevelopmentSummaryAvailability::Available
+        );
+        assert_eq!(projection.project_authorization.active_count, 2);
+        assert_eq!(projection.grant_summary.superseded_count, 6);
+    }
+
+    #[test]
+    fn unavailable_sections_require_zero_counts_and_a_known_failure_reason() {
+        let mut response = valid_response();
+        response.project_authorization = Some(ProtoProjectAuthorizationSummary {
+            availability: 2,
+            reason_code: ReasonCode::PrincipalUnauthorized as i32,
+            ..Default::default()
+        });
+        let projection =
+            authority_summary_projection(response.clone()).expect("unavailable section");
+        assert_eq!(
+            projection.project_authorization.unavailable_reason,
+            Some(NimiHostErrorReasonCode::PrincipalUnauthorized)
+        );
+
+        response
+            .project_authorization
+            .as_mut()
+            .expect("section")
+            .active_count = 1;
+        assert!(authority_summary_projection(response).is_err());
+    }
+
+    #[test]
+    fn rejects_missing_sections_and_action_reason_on_unavailable_state() {
+        let mut missing = valid_response();
+        missing.grant_summary = None;
+        assert!(authority_summary_projection(missing).is_err());
+
+        let mut malformed = valid_response();
+        malformed.developer_mode = Some(ProtoDeveloperModeSummary {
+            availability: 2,
+            state: 3,
+            reason_code: ACTION_EXECUTED,
+        });
+        assert!(authority_summary_projection(malformed).is_err());
     }
 }
 

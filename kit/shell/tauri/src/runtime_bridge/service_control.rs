@@ -9,7 +9,8 @@ use nimi_shell_protected_local::{
 use nimi_shell_protected_local::{
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DeveloperModeStatus,
     FixedRuntimeServiceControl, LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
-    LocalAppGrantControlProjection, LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest,
+    LocalAppGrantControlProjection, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest,
     LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
     LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
     LocalDevelopmentReactivationRequest, NimiDesktopControl, NimiHostError,
@@ -273,6 +274,22 @@ pub(super) async fn get_developer_mode_status() -> Result<DeveloperModeStatus, N
         Err(error) if should_reconnect(error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.get_developer_mode_status().await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn get_local_development_authority_summary(
+) -> Result<LocalDevelopmentAuthoritySummary, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.get_local_development_authority_summary().await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call()
+                .await?
+                .get_local_development_authority_summary()
+                .await
         }
         Err(error) => Err(error),
     }

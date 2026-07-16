@@ -30,6 +30,48 @@ pub struct DeveloperModeStatus {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LocalDevelopmentSummaryAvailability {
+    Available,
+    Unavailable,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentDeveloperModeSummary {
+    pub availability: LocalDevelopmentSummaryAvailability,
+    pub state: DeveloperModeState,
+    pub unavailable_reason: Option<NimiHostErrorReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentProjectAuthorizationSummary {
+    pub availability: LocalDevelopmentSummaryAvailability,
+    pub active_count: u64,
+    pub dormant_count: u64,
+    pub denied_count: u64,
+    pub revoked_count: u64,
+    pub unavailable_reason: Option<NimiHostErrorReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentGrantSummary {
+    pub availability: LocalDevelopmentSummaryAvailability,
+    pub pending_count: u64,
+    pub granted_count: u64,
+    pub denied_count: u64,
+    pub expired_count: u64,
+    pub revoked_count: u64,
+    pub superseded_count: u64,
+    pub unavailable_reason: Option<NimiHostErrorReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentAuthoritySummary {
+    pub developer_mode: LocalDevelopmentDeveloperModeSummary,
+    pub project_authorization: LocalDevelopmentProjectAuthorizationSummary,
+    pub grant_summary: LocalDevelopmentGrantSummary,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalDevelopmentShellKind {
     Electron,
     Tauri,

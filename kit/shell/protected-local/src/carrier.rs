@@ -5,8 +5,9 @@ use crate::{
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
     DesktopProductControlResponse, DesktopRuntimeConsumerError, DesktopRuntimeConsumerRequest,
     DesktopRuntimeConsumerResponse, DeveloperModeStatus, FixedRuntimeServiceControl,
-    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiHostError,
     ProtectedCarrierError, RuntimeServiceActionOutcome,
 };
@@ -407,6 +408,16 @@ pub trait NimiDesktopControl: Send + Sync {
     fn get_developer_mode_status(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>>;
+
+    fn get_local_development_authority_summary(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalDevelopmentAuthoritySummary, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    >;
 
     fn set_developer_mode(
         &self,
