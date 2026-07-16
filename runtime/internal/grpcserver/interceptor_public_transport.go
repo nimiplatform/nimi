@@ -27,7 +27,6 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":             runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
-	"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/StreamScenario":                    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":                 runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob":                    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
@@ -71,7 +70,7 @@ func publicTransportDenial(fullMethod string) (runtimev1.ReasonCode, bool) {
 	if reason, blocked := publicTransportBlockedMethods[fullMethod]; blocked {
 		return reason, true
 	}
-	if protectedDesktopProductControlMethod(fullMethod) {
+	if protectedDesktopProductControlMethod(fullMethod) || protectedDesktopRuntimeConsumerMethod(fullMethod) {
 		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
 	}
 	if strings.HasPrefix(fullMethod, "/nimi.runtime.v1.RuntimeAccountService/") {

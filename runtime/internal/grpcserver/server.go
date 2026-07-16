@@ -340,7 +340,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		),
 	)
 	healthpb.RegisterHealthServer(g, h)
-	runtimev1.RegisterRuntimeAuditServiceServer(g, auditservice.New(state, logger, aiHealth, auditStore))
+	auditSvc := auditservice.New(state, logger, aiHealth, auditStore)
+	runtimev1.RegisterRuntimeAuditServiceServer(g, auditSvc)
 
 	connectorBasePath := filepath.Join(filepath.Dir(cfg.LocalStatePath), "connectors")
 	connStore := connectorservice.NewConnectorStore(connectorBasePath)
@@ -630,7 +631,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	accountSvc.SetAccountAuthorityRevoker(appSvc)
 	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithLocalAppOperationAuthorizer(accountSvc))
 	if protected != nil {
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, localSvc, appSvc, appSvc, protected.DesktopSessions)
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, appSvc, appSvc, protected.DesktopSessions)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, appSvc, artifactSvc, agentSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)

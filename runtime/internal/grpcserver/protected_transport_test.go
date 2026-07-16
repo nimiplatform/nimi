@@ -82,7 +82,19 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	accountService := &protectedDesktopAccountTestService{}
 	localService := &protectedDesktopLocalTestService{}
 	appService := &protectedDesktopAppTestService{}
-	server := newProtectedDesktopRPCServer(&runtimev1.UnimplementedRuntimeServiceControlServiceServer{}, authService, accountService, localService, appService, &runtimev1.UnimplementedRuntimeDevelopmentServiceServer{}, manager)
+	server := newProtectedDesktopRPCServer(
+		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
+		authService,
+		accountService,
+		&runtimev1.UnimplementedRuntimeAuditServiceServer{},
+		localService,
+		&runtimev1.UnimplementedRuntimeAiServiceServer{},
+		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
+		&runtimev1.UnimplementedRuntimeConnectorServiceServer{},
+		appService,
+		&runtimev1.UnimplementedRuntimeDevelopmentServiceServer{},
+		manager,
+	)
 	baseListener := bufconn.Listen(1024 * 1024)
 	listener := &protectedDesktopTestListener{Listener: baseListener, connection: connection}
 	serveDone := make(chan error, 1)
@@ -197,8 +209,8 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		t.Fatalf("RepairLocalEnvironmentDependency protected carrier = (%+v, %v), bound=%v", repairResponse, err, localService.repairDependencyJobBound)
 	}
 	_, err = localClient.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || localService.localAssetsCalled {
-		t.Fatalf("unlisted RuntimeLocalService method escaped protected gate: reason=%v present=%v called=%v err=%v", reason, ok, localService.localAssetsCalled, err)
+	if err != nil || !localService.localAssetsCalled {
+		t.Fatalf("ListLocalAssets protected carrier: called=%v err=%v", localService.localAssetsCalled, err)
 	}
 	accountStream, err := accountClient.SubscribeAccountSessionEvents(context.Background(), &runtimev1.SubscribeAccountSessionEventsRequest{})
 	if err != nil {

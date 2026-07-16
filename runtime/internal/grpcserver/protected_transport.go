@@ -29,7 +29,7 @@ func protectedDesktopStreamMethodAllowed(method string) bool {
 }
 
 func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool) {
-	if protectedDesktopProductControlMethod(method) {
+	if protectedDesktopProductControlMethod(method) || protectedDesktopRuntimeConsumerMethod(method) {
 		return protectedlocal.RoleVerifiedDesktopProcess, true
 	}
 	switch method {
@@ -62,6 +62,24 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		return protectedlocal.RoleLocalAppControl, true
 	default:
 		return "", false
+	}
+}
+
+func protectedDesktopRuntimeConsumerMethod(method string) bool {
+	switch method {
+	case "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
+		"/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
+		"/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
+		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
+		"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
+		"/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
+		"/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
+		"/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
+		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+		"/nimi.runtime.v1.RuntimeAgentService/ListAgents":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -197,7 +215,11 @@ func newProtectedDesktopRPCServer(
 	runtimeControlService runtimev1.RuntimeServiceControlServiceServer,
 	authService runtimev1.RuntimeAuthServiceServer,
 	accountService runtimev1.RuntimeAccountServiceServer,
+	auditService runtimev1.RuntimeAuditServiceServer,
 	localService runtimev1.RuntimeLocalServiceServer,
+	aiService runtimev1.RuntimeAiServiceServer,
+	agentService runtimev1.RuntimeAgentServiceServer,
+	connectorService runtimev1.RuntimeConnectorServiceServer,
 	appService runtimev1.RuntimeAppServiceServer,
 	developmentService runtimev1.RuntimeDevelopmentServiceServer,
 	desktopSessions *protectedlocal.DesktopSessionManager,
@@ -215,7 +237,11 @@ func newProtectedDesktopRPCServer(
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountService)
+	runtimev1.RegisterRuntimeAuditServiceServer(server, auditService)
 	runtimev1.RegisterRuntimeLocalServiceServer(server, localService)
+	runtimev1.RegisterRuntimeAiServiceServer(server, aiService)
+	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
+	runtimev1.RegisterRuntimeConnectorServiceServer(server, connectorService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
 	runtimev1.RegisterRuntimeDevelopmentServiceServer(server, developmentService)
 	return server
