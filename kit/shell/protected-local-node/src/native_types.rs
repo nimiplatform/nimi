@@ -42,6 +42,13 @@ pub struct NativeDesktopProductControlInput {
 }
 
 #[napi(object)]
+pub struct NativeDesktopRuntimeConsumerInput {
+    pub method_id: String,
+    pub request_bytes: Buffer,
+    pub timeout_ms: Option<u32>,
+}
+
+#[napi(object)]
 pub struct NativeDesktopAccountBeginLoginInput {
     pub redirect_uri: String,
     pub callback_origin: String,

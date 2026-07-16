@@ -3,7 +3,8 @@ use crate::{
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionStatus,
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
-    DesktopProductControlResponse, DeveloperModeStatus, FixedRuntimeServiceControl,
+    DesktopProductControlResponse, DesktopRuntimeConsumerError, DesktopRuntimeConsumerRequest,
+    DesktopRuntimeConsumerResponse, DeveloperModeStatus, FixedRuntimeServiceControl,
     LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
     LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiHostError,
@@ -253,6 +254,17 @@ pub trait NimiDesktopControl: Send + Sync {
     ) -> Pin<
         Box<
             dyn Future<Output = Result<DesktopProductControlResponse, DesktopProductControlError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn invoke_runtime_consumer(
+        &self,
+        request: DesktopRuntimeConsumerRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopRuntimeConsumerResponse, DesktopRuntimeConsumerError>>
                 + Send
                 + '_,
         >,

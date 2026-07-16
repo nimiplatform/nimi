@@ -215,7 +215,7 @@ export function registerNimiElectronRuntimeBridge(
       const runtimePayload = electronRuntimeCommandPayload(payload, command);
       parseElectronRuntimeUnaryRequest(runtimePayload);
       return invokeElectronRuntimeUnary({
-        client: await ensureClient(),
+        client: desktopControlHost ? undefined : await ensureClient(),
         payload: runtimePayload,
         appId,
         event,
@@ -229,7 +229,7 @@ export function registerNimiElectronRuntimeBridge(
       const runtimePayload = electronRuntimeCommandPayload(payload, command);
       parseElectronRuntimeStreamOpenRequest(runtimePayload);
       return openElectronRuntimeStream({
-        client: await ensureClient(),
+        client: desktopControlHost ? undefined : await ensureClient(),
         payload: runtimePayload,
         appId,
         runtimeEndpoint,
@@ -239,6 +239,7 @@ export function registerNimiElectronRuntimeBridge(
         eventChannelPrefix,
         streams,
         trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
+        desktopProtectedOnly: Boolean(desktopControlHost),
       });
     }
     if (command === commandNames.stream_close) {

@@ -3,7 +3,8 @@
 `kit/shell/protected-local` is the shared native Rust boundary for the fixed
 Windows Runtime service. It exposes two connection-bound surfaces:
 
-- Desktop control for fixed-service account and Developer Mode operations; and
+- Desktop control for fixed-service account, Developer Mode, exact product
+  control, and exact Desktop runtime-consumer unary operations; and
 - the common third-party Local App carrier.
 
 The Local App carrier connects only to `\\.\pipe\nimi-runtime-local-app-v1`,

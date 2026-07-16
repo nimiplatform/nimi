@@ -24,7 +24,8 @@ use crate::{
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionStatus,
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
-    DesktopProductControlResponse, DeveloperModeStatus, LocalAppGrantControlDecisionRequest,
+    DesktopProductControlResponse, DesktopRuntimeConsumerError, DesktopRuntimeConsumerRequest,
+    DesktopRuntimeConsumerResponse, DeveloperModeStatus, LocalAppGrantControlDecisionRequest,
     LocalAppGrantControlPending, LocalAppGrantControlProjection, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
@@ -93,6 +94,22 @@ impl NimiDesktopControl for WindowsDesktopControl {
         >,
     > {
         Box::pin(crate::desktop_product_control::invoke(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn invoke_runtime_consumer(
+        &self,
+        request: DesktopRuntimeConsumerRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopRuntimeConsumerResponse, DesktopRuntimeConsumerError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::desktop_runtime_consumer::invoke(
             self.channel(),
             request,
         ))

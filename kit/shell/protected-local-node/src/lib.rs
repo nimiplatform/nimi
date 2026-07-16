@@ -6,11 +6,11 @@ use nimi_shell_protected_local::{
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlMethod,
-    DesktopProductControlRequest, FixedRuntimeServiceControl,
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
-    LocalAppAgentOpenConversationRequest, LocalAppAgentSendTurnRequest,
-    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
-    LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
+    DesktopProductControlRequest, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
+    FixedRuntimeServiceControl, LocalAppAgentConversationSnapshotRequest,
+    LocalAppAgentInventoryRequest, LocalAppAgentOpenConversationRequest,
+    LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes,
+    LocalAppArtifactReadRequest, LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
     LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
     LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
     LocalAppReasonCode, LocalAppSessionStatus, LocalDevelopmentAuthorization,
@@ -63,8 +63,42 @@ pub async fn desktop_product_control_unary(
     {
         Ok(response) => NativeBytesOutcome::success(response.response_bytes),
         Err(error) => {
-            clear_desktop_control_on_transport_failure(&control, &error).await;
+            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
             NativeBytesOutcome::product_control_error(error)
+        }
+    }
+}
+
+#[napi(js_name = "desktopRuntimeConsumerUnary")]
+pub async fn desktop_runtime_consumer_unary(
+    input: NativeDesktopRuntimeConsumerInput,
+) -> NativeBytesOutcome {
+    let Some(method) = DesktopRuntimeConsumerMethod::from_method_id(input.method_id.trim()) else {
+        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    };
+    let timeout = input
+        .timeout_ms
+        .map(u64::from)
+        .map(std::time::Duration::from_millis);
+    if timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(300)) {
+        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    }
+    let control = match current_or_open_desktop_control().await {
+        Ok(control) => control,
+        Err(error) => return NativeBytesOutcome::host_error(error),
+    };
+    match control
+        .invoke_runtime_consumer(DesktopRuntimeConsumerRequest {
+            method,
+            request_bytes: input.request_bytes.to_vec(),
+            timeout,
+        })
+        .await
+    {
+        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
+        Err(error) => {
+            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+            NativeBytesOutcome::error(error.reason_code(), error.retryable())
         }
     }
 }
@@ -587,12 +621,12 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
     Ok(control)
 }
 
-async fn clear_desktop_control_on_transport_failure(
+async fn clear_desktop_control_on_transport_reason(
     control: &Arc<dyn NimiDesktopControl>,
-    error: &DesktopProductControlError,
+    reason_code: &str,
 ) {
     if !matches!(
-        error.reason_code(),
+        reason_code,
         "runtime-service-unavailable"
             | "runtime-service-untrusted"
             | "runtime-service-repair-required"

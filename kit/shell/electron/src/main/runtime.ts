@@ -2,6 +2,7 @@ import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type 
 import { runtimeRpcAuthPosture } from '@nimiplatform/sdk/runtime/generated';
 import {
   isElectronDesktopProductControlMethod,
+  isElectronDesktopRuntimeConsumerMethod,
   NimiElectronDesktopControlHostError,
   type NimiElectronDesktopControlHost,
 } from './desktop-control-host.js';
@@ -60,7 +61,7 @@ export function createElectronRuntimeBridgeEventName(
   return `${normalizeRequiredToken(eventNamespace, 'eventNamespace')}:stream:${normalizeRequiredToken(streamId, 'streamId')}`;
 }
 export async function invokeElectronRuntimeUnary(input: {
-  readonly client: RuntimeGrpcBridgeClient;
+  readonly client?: RuntimeGrpcBridgeClient;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly appId: string;
   readonly event: NimiElectronIpcMainInvokeEvent;
@@ -96,9 +97,39 @@ export async function invokeElectronRuntimeUnary(input: {
       );
     }
   }
+  if (input.appId === 'nimi.desktop' && isElectronDesktopRuntimeConsumerMethod(request.methodId)) {
+    if (!input.desktopControlHost) {
+      throw electronDesktopControlError(
+        new NimiElectronDesktopControlHostError('protected-carrier-required', false),
+        input.command,
+        request.methodId,
+      );
+    }
+    try {
+      const responseBytes = await input.desktopControlHost.runtimeConsumerUnary({
+        methodId: request.methodId,
+        requestBytes: fromBase64(request.requestBytesBase64),
+        timeoutMs: request.timeoutMs,
+      });
+      return { responseBytesBase64: toBase64(responseBytes) };
+    } catch (error) {
+      if (error instanceof NimiElectronDesktopControlHostError) {
+        throw electronDesktopControlError(error, input.command, request.methodId);
+      }
+      throw electronDesktopControlError(
+        new NimiElectronDesktopControlHostError('runtime-service-untrusted', false),
+        input.command,
+        request.methodId,
+      );
+    }
+  }
+  if (input.desktopControlHost) {
+    throw electronDesktopRuntimeMethodNotAdmitted(input.command, request.methodId);
+  }
   assertElectronGenericRuntimeMethodAllowed(request.methodId);
+  const client = requireElectronRuntimeClient(input.client, input.command);
   const response = await invokeElectronRuntimeTrustedUnary({
-    client: input.client,
+    client,
     request,
     requestBytes: fromBase64(request.requestBytesBase64),
     appId: input.appId,
@@ -134,6 +165,48 @@ function electronDesktopControlError(
     actionHint: error.retryable ? 'retry_verified_desktop_control_operation' : 'refresh_desktop_control_projection',
     source: error.reasonCode === 'protected-carrier-required' ? 'electron' : 'runtime',
     details: { command, methodId, retryable: error.retryable },
+  });
+}
+
+function electronDesktopRuntimeMethodNotAdmitted(
+  command: string,
+  methodId: string,
+): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'forbidden-renderer-access',
+    message: `Desktop Runtime method is not admitted on the protected carrier: ${methodId}`,
+    reasonCode: 'electron-desktop-runtime-method-not-admitted',
+    actionHint: 'use_exact_protected_desktop_runtime_method',
+    details: { command, methodId },
+  });
+}
+
+function electronDesktopRuntimeStreamNotAdmitted(
+  command: string,
+  methodId: string,
+): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'forbidden-renderer-access',
+    message: `Desktop Runtime stream is not admitted on the protected carrier: ${methodId}`,
+    reasonCode: 'electron-desktop-runtime-stream-not-admitted',
+    actionHint: 'use_admitted_unary_runtime_refresh',
+    details: { command, methodId },
+  });
+}
+
+function requireElectronRuntimeClient(
+  client: RuntimeGrpcBridgeClient | undefined,
+  command: string,
+): RuntimeGrpcBridgeClient {
+  if (client) {
+    return client;
+  }
+  throw new NimiElectronShellHostError({
+    code: 'host-internal-error',
+    message: 'Electron Runtime client is unavailable for the generic bridge',
+    reasonCode: 'electron-runtime-client-unavailable',
+    actionHint: 'configure_external_runtime_transport',
+    details: { command },
   });
 }
 
@@ -195,7 +268,7 @@ export async function invokeElectronRuntimeTrustedUnary(input: {
 }
 
 export async function openElectronRuntimeStream(input: {
-  readonly client: RuntimeGrpcBridgeClient;
+  readonly client?: RuntimeGrpcBridgeClient;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly appId: string;
   readonly runtimeEndpoint: string;
@@ -205,9 +278,14 @@ export async function openElectronRuntimeStream(input: {
   readonly eventChannelPrefix: string;
   readonly streams: Map<string, RuntimeGrpcBridgeStream>;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
+  readonly desktopProtectedOnly?: boolean;
 }): Promise<ElectronRuntimeBridgeStreamOpenResponse> {
   const request = parseElectronRuntimeStreamOpenRequest(input.payload);
+  if (input.desktopProtectedOnly) {
+    throw electronDesktopRuntimeStreamNotAdmitted(input.command, request.methodId);
+  }
   assertElectronGenericRuntimeMethodAllowed(request.methodId);
+  const client = requireElectronRuntimeClient(input.client, input.command);
   const metadataInput = {
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
@@ -220,7 +298,7 @@ export async function openElectronRuntimeStream(input: {
   let invalidationConsumed = initialResolution.invalidationConsumed;
   const requestBytes = fromBase64(request.requestBytesBase64);
   const createStream = (trusted: ElectronRuntimeBridgeTrustedMetadata | undefined): RuntimeGrpcBridgeStream =>
-    input.client.serverStream({
+    client.serverStream({
       methodId: request.methodId,
       requestBytes,
       metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),

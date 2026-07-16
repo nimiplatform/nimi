@@ -4,6 +4,8 @@ mod adapters;
 mod carrier;
 mod desktop_account;
 mod desktop_product_control;
+mod desktop_runtime_consumer;
+mod desktop_unary;
 mod grpc_status;
 mod local_development;
 mod reason;
@@ -61,6 +63,10 @@ pub use desktop_account::{
 pub use desktop_product_control::{
     DesktopProductControlError, DesktopProductControlMethod, DesktopProductControlRequest,
     DesktopProductControlResponse,
+};
+pub use desktop_runtime_consumer::{
+    DesktopRuntimeConsumerError, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
+    DesktopRuntimeConsumerResponse,
 };
 pub use local_development::{
     DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthorization,

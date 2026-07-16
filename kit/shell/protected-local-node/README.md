@@ -12,10 +12,15 @@ main processes. The addon exposes the exact nine Local App operations:
 - `localAppAgentSubscribeTurn`
 - `localAppAgentGetConversationSnapshot`
 
-For Nimi Desktop it additionally exposes `desktopProductControlUnary`, a
-single closed family whose selector must be one of the 21 K-RPC-004 Desktop
-product-control operations. The selector is converted to the native enum
-before the verified channel opens; unrelated Runtime methods fail closed.
+For Nimi Desktop it additionally exposes two closed unary families:
+
+- `desktopProductControlUnary`, whose selector must be one of the 21
+  K-RPC-004 Desktop product-control operations; and
+- `desktopRuntimeConsumerUnary`, whose selector must be one of the 10 exact
+  K-PLOCAL-006 Desktop runtime-consumer methods.
+
+Each selector is converted to its native enum before the verified channel
+opens; unrelated Runtime methods and every stream fail closed.
 
 Every call returns either `{ status: "ok", value }` or
 `{ status: "error", reasonCode, retryable }`. The addon has no arbitrary Runtime
