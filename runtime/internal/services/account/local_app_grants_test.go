@@ -369,4 +369,22 @@ func TestLocalAppGrantOperationMapIsClosedAndDeterministic(t *testing.T) {
 	if _, err := localAppGrantOperation("runtime_agent.unadmitted", "agent:1"); !errors.Is(err, ErrLocalAppOperationNotAdmitted) {
 		t.Fatalf("unadmitted operation error = %v", err)
 	}
+	storageRead, err := localAppGrantOperation("app_storage.json.read", "storage:state/value.json")
+	if err != nil || storageRead.capability != "file.read.scoped#app-local-drafts" {
+		t.Fatalf("storage read mapping = %+v err=%v", storageRead, err)
+	}
+	storageWrite, err := localAppGrantOperation("app_storage.json.write", "storage:state/value.json")
+	if err != nil || storageWrite.capability != "file.write.scoped#app-local-drafts" {
+		t.Fatalf("storage write mapping = %+v err=%v", storageWrite, err)
+	}
+	storageRemove, err := localAppGrantOperation("app_storage.json.remove", "storage:state/value.json")
+	if err != nil || storageRemove.capability != "file.write.scoped#app-local-drafts" {
+		t.Fatalf("storage remove mapping = %+v err=%v", storageRemove, err)
+	}
+	if storageRead.fingerprint == storageWrite.fingerprint || storageRead.fingerprint == storageRemove.fingerprint || storageWrite.fingerprint == storageRemove.fingerprint {
+		t.Fatalf("storage operation fingerprints are not distinct: read=%q write=%q remove=%q", storageRead.fingerprint, storageWrite.fingerprint, storageRemove.fingerprint)
+	}
+	if _, err := localAppGrantOperation("app_storage.json.read", "storage:../secret.json"); err == nil {
+		t.Fatal("invalid storage resource was admitted")
+	}
 }

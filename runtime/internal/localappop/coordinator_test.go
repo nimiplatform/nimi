@@ -17,6 +17,9 @@ func TestCoordinatorAllowsOnlySelectedOperationFamily(t *testing.T) {
 		OperationConversationTurnSend,
 		OperationConversationSubscribe,
 		OperationConversationSnapshot,
+		OperationStorageJSONRead,
+		OperationStorageJSONWrite,
+		OperationStorageJSONRemove,
 	}
 	for _, operation := range operations {
 		operation := operation
@@ -344,7 +347,7 @@ func TestRequestAndAuthorizationHaveNoPortableAuthorityFields(t *testing.T) {
 	t.Parallel()
 
 	assertFields(t, reflect.TypeOf(Request{}), []string{"NativeConnectionRef", "Operation", "Selector"})
-	assertFields(t, reflect.TypeOf(Selector{}), []string{"ArtifactID", "AgentID", "ConversationAnchorID", "TurnID"})
+	assertFields(t, reflect.TypeOf(Selector{}), []string{"ArtifactID", "AgentID", "ConversationAnchorID", "TurnID", "StorageRelativePath"})
 
 	for _, typ := range []reflect.Type{reflect.TypeOf(Request{}), reflect.TypeOf(AuthorizationContext{})} {
 		for index := 0; index < typ.NumField(); index++ {
@@ -451,6 +454,8 @@ func selectorFor(operation Operation) Selector {
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
 	case OperationConversationSubscribe:
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
+	case OperationStorageJSONRead, OperationStorageJSONWrite, OperationStorageJSONRemove:
+		return Selector{StorageRelativePath: "state/value.json"}
 	default:
 		return Selector{}
 	}

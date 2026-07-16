@@ -27,6 +27,8 @@ test('Zhiyu local-development manifest mirrors the active registry transparency 
     'memory.write.admitted#session-scoped-chat-derived-projection',
     'notification.subscribe#proactive_interruptibility_v1.in_app_surface',
     'audit.read.scoped#zhiyu-own-audit-projections',
+    'file.read.scoped#app-local-drafts',
+    'file.write.scoped#app-local-drafts',
   ]);
   assert.ok(scopes.every(({ purpose }) => purpose.trim().length >= 24));
 });

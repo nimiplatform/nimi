@@ -153,13 +153,15 @@ mod tests {
                 "local_app_agent_send_turn",
                 "local_app_agent_subscribe_turn",
                 "local_app_agent_get_conversation_snapshot",
+                "storage_read_json",
+                "storage_write_json",
+                "storage_remove_json",
             ]
         );
         for forbidden in [
             "runtime_bridge_unary",
             "runtime_bridge_restart",
             "oauth_token_exchange",
-            "storage_read_json",
             "file_dialog_open",
         ] {
             assert!(!names.contains(&forbidden));
@@ -336,6 +338,9 @@ mod tests {
                 "local_app_agent_send_turn",
                 "local_app_agent_subscribe_turn",
                 "local_app_agent_get_conversation_snapshot",
+                "storage_read_json",
+                "storage_write_json",
+                "storage_remove_json",
             ]
         );
         for forbidden in [
@@ -344,9 +349,6 @@ mod tests {
             "runtime_bridge_stream_close",
             "desktop_open_intent_open_intent",
             "data_path_resolve",
-            "storage_read_json",
-            "storage_write_json",
-            "storage_remove_json",
             "ai_config_get",
             "ai_config_set",
             "confirm_dialog",

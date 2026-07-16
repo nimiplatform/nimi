@@ -41,6 +41,17 @@ function standardShell(
         return { bytes: new Uint8Array([1, 2]), mimeType: 'text/plain', sizeBytes: 2, mimeInferred: false };
       },
     },
+    storage: {
+      async readJson() {
+        return { value: { version: 1 }, sizeBytes: 13 };
+      },
+      async writeJson(_relativePath, value) {
+        return { value, sizeBytes: new TextEncoder().encode(JSON.stringify(value)).byteLength };
+      },
+      async removeJson() {
+        return { removed: true };
+      },
+    },
     agent: {
       async inventory() { return { ownerUserId: 'account-a', count: 0, localAgents: [] }; },
       async openConversation() { return {}; },
@@ -76,13 +87,75 @@ test('local-app Runtime platform client consumes the nested Kit zero-grant postu
 
 test('local-app Runtime platform client exposes only the selected typed operation set', async () => {
   const client = createNimiAppRuntimePlatformClient({ standardShell: standardShell() });
-  assert.deepEqual(Object.keys(client).sort(), ['agent', 'artifacts', 'auth', 'permissions']);
+  assert.deepEqual(Object.keys(client).sort(), ['agent', 'artifacts', 'auth', 'permissions', 'storage']);
   assert.deepEqual(Object.keys(client.agent).sort(), [
     'getConversationSnapshot', 'listInventory', 'openConversation', 'sendTurn', 'subscribeTurn',
   ]);
   assert.deepEqual(await client.artifacts.readRuntimeBytes('artifact:one'), {
     bytes: new Uint8Array([1, 2]), mimeType: 'text/plain', sizeBytes: 2, mimeInferred: false,
   });
+});
+
+test('local-app storage accepts only bounded relative JSON operations and exact projections', async () => {
+  const calls: unknown[] = [];
+  const client = createNimiAppRuntimePlatformClient({
+    standardShell: standardShell({
+      storage: {
+        async readJson(relativePath) {
+          calls.push(['read', relativePath]);
+          return { value: { token: 'app-owned-content' }, sizeBytes: 29 };
+        },
+        async writeJson(relativePath, value) {
+          calls.push(['write', relativePath, value]);
+          return { value, sizeBytes: new TextEncoder().encode(JSON.stringify(value)).byteLength };
+        },
+        async removeJson(relativePath) {
+          calls.push(['remove', relativePath]);
+          return { removed: false };
+        },
+      },
+    }),
+  });
+
+  assert.deepEqual(await client.storage.readJson('agent-chat/state.json'), {
+    value: { token: 'app-owned-content' },
+    sizeBytes: 29,
+  });
+  assert.deepEqual(await client.storage.writeJson('agent-chat/state.json', { version: 2 }), {
+    value: { version: 2 },
+    sizeBytes: 13,
+  });
+  assert.deepEqual(await client.storage.removeJson('agent-chat/state.json'), { removed: false });
+  assert.deepEqual(calls, [
+    ['read', 'agent-chat/state.json'],
+    ['write', 'agent-chat/state.json', { version: 2 }],
+    ['remove', 'agent-chat/state.json'],
+  ]);
+
+  for (const relativePath of ['../state.json', '/state.json', 'agent\\state.json', 'CON.json', 'state.txt']) {
+    await assert.rejects(
+      () => client.storage.readJson(relativePath),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_STORAGE_PATH_INVALID',
+    );
+  }
+  await assert.rejects(
+    () => client.storage.writeJson('state.json', { value: Number.NaN } as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_STORAGE_VALUE_INVALID',
+  );
+
+  const expanded = createNimiAppRuntimePlatformClient({
+    standardShell: standardShell({
+      storage: {
+        async readJson() { return { value: {}, sizeBytes: 2, path: 'forbidden' }; },
+        async writeJson() { return { value: {}, sizeBytes: 2 }; },
+        async removeJson() { return { removed: true }; },
+      },
+    }),
+  });
+  await assert.rejects(
+    () => expanded.storage.readJson('state.json'),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
 });
 
 test('local-app agent inventory accepts only the bounded current-owner projection', async () => {

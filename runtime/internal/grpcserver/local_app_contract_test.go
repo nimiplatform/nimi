@@ -81,9 +81,12 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		protectedOpenConversationAnchorMethod,
 		protectedGetPublicChatSnapshotMethod,
 		protectedSendAppMessageMethod,
+		protectedReadLocalAppStorageJSONMethod,
+		protectedWriteLocalAppStorageJSONMethod,
+		protectedRemoveLocalAppStorageJSONMethod,
 	} {
 		assertProtectedLocalAppMethodPolicy(t, method, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
-		if _, blocked := publicTransportDenial(method); method == protectedRequestLocalAppGrantMethod || method == protectedReadArtifactBytesMethod || method == protectedListLocalAppAgentInventoryMethod {
+		if _, blocked := publicTransportDenial(method); method == protectedRequestLocalAppGrantMethod || method == protectedReadArtifactBytesMethod || method == protectedListLocalAppAgentInventoryMethod || method == protectedReadLocalAppStorageJSONMethod || method == protectedWriteLocalAppStorageJSONMethod || method == protectedRemoveLocalAppStorageJSONMethod {
 			if !blocked {
 				t.Fatalf("host local-app method %s is reachable from public transport", method)
 			}

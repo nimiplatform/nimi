@@ -249,6 +249,39 @@ function workspaceKitSourceAliasPlugin() {
         contents: `
           export function hasElectronRuntime() { return true; }
           export function hasShellHostInvoke() { return true; }
+          export function createNimiLocalAppStandardShellSurface() {
+            return {
+              session: { async status() { return { state: 'zero-grant', reasonCode: 'no-grant', retryable: false }; } },
+              permission: {
+                async posture(input) { return { state: 'zero-grant', ...input, reasonCode: 'no-grant', actionHint: 'request', retryable: false }; },
+                async request(input) { return { state: 'pending', ...input, reasonCode: 'no-grant', actionHint: 'await', retryable: true }; },
+              },
+              artifacts: { async readRuntimeBytes() { throw new Error('unexpected artifact read'); } },
+              storage: {
+                async readJson() {
+                  if (globalThis.__zhiyuConversationAnchorStorageValue == null) {
+                    const error = new Error('not found');
+                    error.code = 'not-found';
+                    throw error;
+                  }
+                  const value = globalThis.__zhiyuConversationAnchorStorageValue;
+                  return { value, sizeBytes: new TextEncoder().encode(JSON.stringify(value)).byteLength };
+                },
+                async writeJson(_relativePath, value) {
+                  globalThis.__zhiyuConversationAnchorStorageValue = value;
+                  return { value, sizeBytes: new TextEncoder().encode(JSON.stringify(value)).byteLength };
+                },
+                async removeJson() { return { removed: true }; },
+              },
+              agent: {
+                async inventory() { return { ownerUserId: 'user-a', count: 0, localAgents: [] }; },
+                async openConversation() { throw new Error('unexpected local-app conversation open'); },
+                async sendTurn() { throw new Error('unexpected local-app turn'); },
+                async subscribeTurn() { throw new Error('unexpected local-app subscribe'); },
+                async getConversationSnapshot() { throw new Error('unexpected local-app snapshot'); },
+              },
+            };
+          }
           export async function invokeChecked(command, payload, parse) {
             if (command === 'nimi.shell.storage.readJson') {
               if (globalThis.__zhiyuConversationAnchorStorageValue === null) {

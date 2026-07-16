@@ -49,6 +49,35 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
     expect(turns).toEqual([]);
   });
+
+  it('routes standard storage commands through the protected host without generic filesystem fallback', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.thirdparty.fixture',
+      runtimeEndpoint: 'local-app-protected-carrier-only',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      standardShellHost: {
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        localAppHost: localAppHost(calls),
+      },
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+      payload: { payload: { relativePath: 'agent-chat/state.json', value: { version: 2 } } },
+    })).resolves.toEqual({ value: { version: 2 }, sizeBytes: 13 });
+    expect(calls).toContainEqual(['storageWriteJson', {
+      relativePath: 'agent-chat/state.json',
+      value: { version: 2 },
+    }]);
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
+      payload: { payload: { relativePath: '../escape.json' } },
+    })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
+  });
 });
 
 function localAppHost(turns: unknown[]) {
@@ -57,6 +86,9 @@ function localAppHost(turns: unknown[]) {
     permissionPosture: async () => ({ state: 'no-grant' }),
     permissionRequest: async () => ({ state: 'pending' }),
     artifactsReadRuntimeBytes: async () => ({ bytes: new Uint8Array(), mimeType: 'application/octet-stream', sizeBytes: 0, mimeInferred: false }),
+    storageReadJson: async (input: unknown) => { turns.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
+    storageWriteJson: async (input: unknown) => { turns.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },
+    storageRemoveJson: async (input: unknown) => { turns.push(['storageRemoveJson', input]); return { removed: true }; },
     agentInventory: async () => ({ ownerUserId: 'user-a', count: 0, localAgents: [] }),
     agentOpenConversation: async () => ({ conversationAnchorId: 'anchor-a' }),
     agentSendTurn: async (input: unknown) => { turns.push(input); return { accepted: true }; },

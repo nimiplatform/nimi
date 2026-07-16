@@ -15,10 +15,13 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.agentSendTurn',
   'local-app.agentSubscribeTurn',
   'local-app.agentGetConversationSnapshot',
+  'storage.readJson',
+  'storage.writeJson',
+  'storage.removeJson',
 ] as const;
 
 describe('local-app public capability behavior', () => {
-  it('projects the exact final nine-operation allowlist and command set', () => {
+  it('projects the exact final twelve-operation allowlist and command set', () => {
     const set = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (entry) => entry.setId === 'local-app-standard-shell-v1',
     );

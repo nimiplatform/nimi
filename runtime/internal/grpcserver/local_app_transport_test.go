@@ -13,8 +13,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 func TestProtectedLocalAppTransportRejectsOrdinaryConnection(t *testing.T) {
@@ -135,6 +137,9 @@ func TestProtectedLocalAppPoliciesExposeOnlyFinalSelectedOperations(t *testing.T
 		protectedOpenConversationAnchorMethod,
 		protectedGetPublicChatSnapshotMethod,
 		protectedSendAppMessageMethod,
+		protectedReadLocalAppStorageJSONMethod,
+		protectedWriteLocalAppStorageJSONMethod,
+		protectedRemoveLocalAppStorageJSONMethod,
 	} {
 		if !protectedLocalAppUnaryMethodAllowed(method) {
 			t.Fatalf("final unary operation is missing: %s", method)
@@ -151,6 +156,38 @@ func TestProtectedLocalAppPoliciesExposeOnlyFinalSelectedOperations(t *testing.T
 		if protectedLocalAppUnaryMethodAllowed(method) || protectedLocalAppStreamMethodAllowed(method) {
 			t.Fatalf("unadmitted method reached local-app transport: %s", method)
 		}
+	}
+}
+
+func TestSelectedProtectedLocalAppStorageOperationsCarryOnlyExactPath(t *testing.T) {
+	for _, test := range []struct {
+		method    string
+		request   any
+		operation accountservice.LocalAppOperation
+	}{
+		{protectedReadLocalAppStorageJSONMethod, &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "state/read.json"}, accountservice.LocalAppOperationStorageJSONRead},
+		{protectedWriteLocalAppStorageJSONMethod, &runtimev1.WriteLocalAppStorageJsonRequest{RelativePath: "state/write.json", JsonValue: []byte(`true`)}, accountservice.LocalAppOperationStorageJSONWrite},
+		{protectedRemoveLocalAppStorageJSONMethod, &runtimev1.RemoveLocalAppStorageJsonRequest{RelativePath: "state/remove.json"}, accountservice.LocalAppOperationStorageJSONRemove},
+	} {
+		operation, selector, selected := selectedLocalAppUnaryOperation(test.method, test.request)
+		if !selected || operation != test.operation || selector.StorageRelativePath == "" || selector.ArtifactID != "" || selector.AgentID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" {
+			t.Fatalf("selected storage operation = (%q, %+v, %v)", operation, selector, selected)
+		}
+	}
+
+	connection := newGRPCLocalAppConnection(t, 0xc1)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0xc2), SessionProof: grpcLocalAppIdentifier(0xc3)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	interceptor := newUnaryProtectedLocalAppTransportInterceptor(localAppTransportAuthorizer{err: localAppTransportReasonError{reason: runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID}})
+	handlerCalled := false
+	_, err := interceptor(ctx, &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "../secret.json"}, &grpc.UnaryServerInfo{FullMethod: protectedReadLocalAppStorageJSONMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return nil, nil
+	})
+	if handlerCalled || status.Code(err) != codes.InvalidArgument || localAppTransportReason(err) != runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID {
+		t.Fatalf("invalid storage path transport = called=%v code=%s reason=%s err=%v", handlerCalled, status.Code(err), localAppTransportReason(err), err)
 	}
 }
 

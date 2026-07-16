@@ -68,6 +68,35 @@ describe('renderer local-app standard-shell surface', () => {
     });
   });
 
+  it('carries bounded storage documents without exposing a path or root', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if (command.endsWith('removeJson')) return { removed: false };
+        return { value: { token: 'app-content' }, sizeBytes: 23 };
+      },
+      listen: () => () => {},
+    };
+    const storage = createNimiLocalAppStandardShellSurface().storage;
+    await expect(storage.writeJson('agent-chat/state.json', { token: 'app-content' })).resolves.toEqual({
+      value: { token: 'app-content' },
+      sizeBytes: 23,
+    });
+    await expect(storage.removeJson('agent-chat/state.json')).resolves.toEqual({ removed: false });
+    expect(invocations).toEqual([
+      {
+        command: 'nimi.shell.storage.writeJson',
+        payload: { payload: { relativePath: 'agent-chat/state.json', value: { token: 'app-content' } } },
+      },
+      {
+        command: 'nimi.shell.storage.removeJson',
+        payload: { payload: { relativePath: 'agent-chat/state.json' } },
+      },
+    ]);
+    expect(() => storage.readJson('../escape.json')).toThrow(/relativePath is invalid/u);
+  });
+
   it('projects subscribeTurn as one cursor-bound event pull', async () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async () => ({

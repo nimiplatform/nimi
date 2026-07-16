@@ -60,6 +60,15 @@ func TestAuthorizeLocalAppProtectedOperationAllowsOnlyExactLiveProcessAndGrant(t
 	}
 }
 
+func TestAuthorizeLocalAppStorageRejectsInvalidPathBeforeGrantLookup(t *testing.T) {
+	fixture := newLocalAppGrantFixture(t)
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	_, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationStorageJSONRead, localappop.Selector{StorageRelativePath: "../secret.json"})
+	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID {
+		t.Fatalf("invalid storage selector reason = %s err=%v", got, err)
+	}
+}
+
 func TestLocalAppGrantPreflightStaleSupervisedProcessIsProcessReplaced(t *testing.T) {
 	fixture := newLocalAppGrantFixture(t)
 	establishLocalAppOperationGrant(t, fixture, localappkernel.GrantStateGranted)
