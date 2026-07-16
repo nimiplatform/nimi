@@ -109,6 +109,7 @@ const developerMethods = Object.freeze([
   'ReactivateLocalDevelopmentProject',
   'RevokeLocalDevelopmentAuthorization',
   'EndLocalDevelopmentRun',
+  'GetLocalDevelopmentAuthoritySummary',
 ]);
 
 const selectedOperationMethods = Object.freeze([
@@ -185,15 +186,12 @@ function hasExactSelectedVoiceTransportRow(row, methodId) {
       && row?.generic_proxy === 'forbidden';
   }
   if (!methodId.endsWith('/SubscribeAgentVoiceStream')) return false;
-  const roles = row?.required_origin_roles_by_transport;
   return row?.operation_class === 'local_app_selected_voice'
-    && sameSet(row?.allowed_transport_classes, ['public_tcp', 'local_app_host'])
-    && roles?.public_tcp === 'authenticated_or_scoped_binding'
-    && roles?.local_app_host === 'local_app_session'
-    && sameSet(Object.keys(roles ?? {}), ['public_tcp', 'local_app_host'])
+    && exactArray(row?.allowed_transport_classes, ['local_app_host'])
+    && exactArray(row?.required_origin_roles, ['local_app_session'])
     && row?.request_may_select_role === false
     && row?.portable_session_allowed === false
-    && row?.public_tcp_disposition === 'existing_authenticated_or_scoped_binding_only'
+    && row?.public_tcp_disposition === 'existing_authenticated_or_scoped_binding_unchanged'
     && row?.generic_proxy === 'forbidden';
 }
 
@@ -447,7 +445,11 @@ export function validateLocalDevelopmentAuthority(bundle) {
 
     for (const name of developerMethods) {
       const row = methods.get(`/nimi.runtime.v1.RuntimeDevelopmentService/${name}`);
-      const operationClass = name === 'EndLocalDevelopmentRun' ? 'local_development_run_end' : 'local_development_control';
+      const operationClass = name === 'EndLocalDevelopmentRun'
+        ? 'local_development_run_end'
+        : name === 'GetLocalDevelopmentAuthoritySummary'
+          ? 'local_development_bounded_diagnostic_projection'
+          : 'local_development_control';
       if (!hasExactTransportRow(row, operationClass, 'desktop_control', 'local_app_control')) {
         issues.push(issue('LOCAL_DEVELOPMENT_CONTROL_TRANSPORT_INVALID', `${authorityPaths.transportMatrix}#${name}`, 'Developer Mode/project controls must be non-portable Desktop local_app_control operations.'));
       }
