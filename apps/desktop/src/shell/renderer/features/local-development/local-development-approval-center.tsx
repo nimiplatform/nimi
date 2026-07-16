@@ -97,18 +97,18 @@ export function LocalDevelopmentApprovalCenter() {
       contentClassName="min-h-0"
       title={(
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0">
-            <NimiText as="h2" role="section-title">
-              {t('LocalDevelopment.approval.title')}
-            </NimiText>
-            <NimiText role="helper" className="mt-1">
-              {t('LocalDevelopment.approval.subtitle')}
-            </NimiText>
-          </div>
-          <StatusBadge tone="warning" shape="soft" className="shrink-0">
+          <NimiText as="h2" role="section-title" className="min-w-0">
+            {t('LocalDevelopment.approval.title')}
+          </NimiText>
+          <StatusBadge aria-hidden="true" tone="warning" shape="soft" className="shrink-0">
             {t('LocalDevelopment.trustClass')}
           </StatusBadge>
         </div>
+      )}
+      description={(
+        <NimiText role="helper" className="mt-1">
+          {t('LocalDevelopment.approval.subtitle')}
+        </NimiText>
       )}
       footer={(
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

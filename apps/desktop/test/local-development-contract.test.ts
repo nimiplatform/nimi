@@ -31,6 +31,8 @@ test('Desktop approval UI exposes the complete user decision and project identit
   }
   assert.match(source, /closeOnBackdrop=\{false\}/);
   assert.match(source, /dataTestId="local-development-approval-dialog"/);
+  assert.match(source, /description=\{\([\s\S]*LocalDevelopment\.approval\.subtitle/);
+  assert.match(source, /StatusBadge aria-hidden="true"/);
 });
 
 test('renderer bridge rejects technical material and projects only management state', () => {

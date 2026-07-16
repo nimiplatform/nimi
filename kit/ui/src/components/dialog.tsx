@@ -113,6 +113,7 @@ type OverlayShellProps = {
   onClose?: () => void;
   closeOnBackdrop?: boolean;
   title?: ReactNode;
+  description?: ReactNode;
   footer?: ReactNode;
   sidebar?: ReactNode;
   sidebarClassName?: string;
@@ -131,6 +132,7 @@ export function OverlayShell({
   onClose,
   closeOnBackdrop = true,
   title,
+  description,
   footer,
   sidebar,
   sidebarClassName,
@@ -170,9 +172,18 @@ export function OverlayShell({
 
   const hasSidebar = sidebar !== undefined;
 
-  const titleNode = title ? (
+  const titleNode = title || description ? (
     <div className="nimi-overlay-title px-6 pt-6 pb-2 text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)]">
-      {title}
+      {title ? (
+        <DialogPrimitive.Title asChild>
+          <div>{title}</div>
+        </DialogPrimitive.Title>
+      ) : null}
+      {description ? (
+        <DialogPrimitive.Description asChild>
+          <div>{description}</div>
+        </DialogPrimitive.Description>
+      ) : null}
     </div>
   ) : null;
   const contentNode = (
@@ -217,6 +228,7 @@ export function OverlayShell({
         />
         <DialogPrimitive.Content
           data-testid={dataTestId}
+          {...(description ? {} : { 'aria-describedby': undefined })}
           onOpenAutoFocus={(e) => e.preventDefault()}
           onEscapeKeyDown={() => onClose?.()}
           onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}

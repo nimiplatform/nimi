@@ -557,6 +557,37 @@ test('overlay shell size width mapping exports admitted px values', () => {
   });
 });
 
+test('overlay shell connects its visible title and description to dialog semantics', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <OverlayShell
+        open
+        title={<span>Allow this development project?</span>}
+        description={<span>Review the project identity and requested capabilities.</span>}
+        dataTestId="semantic-dialog"
+      >
+        Content
+      </OverlayShell>,
+    );
+    await flush();
+  });
+
+  const panel = document.querySelector('[data-testid="semantic-dialog"]') as HTMLElement | null;
+  expect(panel).toBeTruthy();
+  const titleId = panel!.getAttribute('aria-labelledby');
+  const descriptionId = panel!.getAttribute('aria-describedby');
+  expect(titleId).toBeTruthy();
+  expect(descriptionId).toBeTruthy();
+  expect(document.getElementById(titleId!)?.textContent).toBe('Allow this development project?');
+  expect(document.getElementById(descriptionId!)?.textContent).toBe(
+    'Review the project identity and requested capabilities.',
+  );
+});
+
 test('overlay shell applies size width style and size class when size prop is set', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -564,7 +595,7 @@ test('overlay shell applies size width style and size class when size prop is se
 
   await act(async () => {
     root?.render(
-      <OverlayShell open size="M" dataTestId="size-m">
+      <OverlayShell open size="M" title="Sized overlay" dataTestId="size-m">
         Content
       </OverlayShell>,
     );
@@ -586,7 +617,7 @@ test('overlay shell without size preserves default max-w-md and no inline width'
 
   await act(async () => {
     root?.render(
-      <OverlayShell open dataTestId="size-default">
+      <OverlayShell open title="Default overlay" dataTestId="size-default">
         Content
       </OverlayShell>,
     );
@@ -645,6 +676,7 @@ test('overlay shell composes size and sidebar together', async () => {
       <OverlayShell
         open
         size="L"
+        title="Sized sidebar overlay"
         sidebar={<div>Side</div>}
         dataTestId="size-and-sidebar"
       >
