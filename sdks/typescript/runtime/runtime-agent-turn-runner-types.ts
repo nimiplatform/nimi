@@ -143,6 +143,11 @@ export type NimiRuntimeAgentTurnsModule = {
   ): Promise<NimiRuntimeAgentSessionSnapshot>;
 };
 
+export type NimiRuntimeAgentTurnRunnerModule = Pick<
+  NimiRuntimeAgentTurnsModule,
+  'subscribe' | 'request' | 'interrupt' | 'getSessionSnapshot'
+>;
+
 export type NimiRuntimeAgentTurnRunnerTrace = {
   readonly traceId?: string | null;
   readonly promptTraceId?: string | null;
@@ -303,7 +308,7 @@ export type NimiRuntimeAgentTurnRunnerPart =
   };
 
 export type NimiRuntimeAgentTurnRunnerOptions = {
-  readonly turns: NimiRuntimeAgentTurnsModule;
+  readonly turns: NimiRuntimeAgentTurnRunnerModule;
   readonly request: NimiRuntimeAgentTurnRequest;
   readonly subscribe?: NimiRuntimeAgentConsumeRequest;
   readonly signal?: AbortSignal;

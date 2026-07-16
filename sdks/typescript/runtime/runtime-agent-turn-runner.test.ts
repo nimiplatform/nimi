@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   runNimiRuntimeAgentTurn,
   type NimiRuntimeAgentConsumeEvent,
-  type NimiRuntimeAgentTurnsModule,
+  type NimiRuntimeAgentTurnRunnerModule,
 } from './index';
 
 function structuredPayload(messageId: string, text: string): Record<string, unknown> {
@@ -36,12 +36,12 @@ function textTimeline(sequence: number) {
 
 test('Runtime Agent turn runner abort uses the admitted user cancellation reason', async () => {
   const controller = new AbortController();
-  let interruptRequest: Parameters<NimiRuntimeAgentTurnsModule['interrupt']>[0] | undefined;
+  let interruptRequest: Parameters<NimiRuntimeAgentTurnRunnerModule['interrupt']>[0] | undefined;
   let resolveInterrupt!: () => void;
   const interrupted = new Promise<void>((resolve) => {
     resolveInterrupt = resolve;
   });
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
         await new Promise(() => undefined);
@@ -82,7 +82,7 @@ test('Runtime Agent turn runner abort uses the admitted user cancellation reason
 test('Runtime Agent turn runner filters backlog and seals committed message', async () => {
   const requestIds: string[] = [];
   let snapshotQueryCount = 0;
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
         yield {
@@ -184,7 +184,7 @@ test('Runtime Agent turn runner filters backlog and seals committed message', as
 
 test('Runtime Agent turn runner drains same-turn timeline without replaying committed text after seal', async () => {
   const requestIds: string[] = [];
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
         while (!requestIds[0]) {
@@ -278,7 +278,7 @@ test('Runtime Agent turn runner drains same-turn timeline without replaying comm
 });
 
 test('Runtime Agent turn runner recovers terminal snapshot after subscription closes', async () => {
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {})();
     },
@@ -328,7 +328,7 @@ test('Runtime Agent turn runner recovers terminal snapshot after subscription cl
 
 test('Runtime Agent turn runner recovers terminal snapshot after active-turn snapshot bind', async () => {
   let snapshotQueryCount = 0;
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {})();
     },
@@ -391,7 +391,7 @@ test('Runtime Agent turn runner recovers terminal snapshot after active-turn sna
 
 test('Runtime Agent turn runner projects Runtime action artifact events', async () => {
   const requestIds: string[] = [];
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
         while (!requestIds[0]) {
@@ -511,7 +511,7 @@ test('Runtime Agent turn runner projects Runtime action artifact events', async 
 
 test('Runtime Agent turn runner preserves voice terminal projection diagnostics', async () => {
   const requestIds: string[] = [];
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
         while (!requestIds[0]) {
@@ -632,7 +632,7 @@ test('Runtime Agent turn runner preserves voice terminal projection diagnostics'
 test('Runtime Agent turn runner omits caller route and model diagnostics', async () => {
   const requestIds: string[] = [];
   const logDetails: Record<string, unknown>[] = [];
-  const turns: NimiRuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnRunnerModule = {
     async subscribe() {
       return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
         while (!requestIds[0]) {

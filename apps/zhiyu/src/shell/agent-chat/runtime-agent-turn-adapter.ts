@@ -17,7 +17,7 @@ import {
   runNimiRuntimeAgentTurn,
   Runtime,
   type NimiRuntimeAgentTurnRequest,
-  type NimiRuntimeAgentTurnsModule,
+  type NimiRuntimeAgentTurnRunnerModule,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
 import type { ZhiyuEvidence } from '../app/evidence';
@@ -365,7 +365,7 @@ function createLocalAppRuntimeAgentStreamTurn(ownerUserId: string): ZhiyuRuntime
       resourceRef,
       'Read the resulting Runtime-owned conversation events',
     );
-    const turns: NimiRuntimeAgentTurnsModule = {
+    const turns: NimiRuntimeAgentTurnRunnerModule = {
       subscribe: async () => subscribeLocalAppTurn(platform, agentId, conversationAnchorId),
       request: async (turnRequest) => platform.agent.sendTurn({
         agentId,
@@ -376,7 +376,6 @@ function createLocalAppRuntimeAgentStreamTurn(ownerUserId: string): ZhiyuRuntime
       interrupt: async () => {
         throw localAppTurnError('local-app-operation-unavailable', 'wait_for_current_turn');
       },
-      renderVoice: async () => ({ status: 'text_only', reason: 'voice_projection_unavailable' }),
       getSessionSnapshot: async () => platform.agent.getConversationSnapshot({
         agentId,
         conversationAnchorId,

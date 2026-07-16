@@ -33,6 +33,7 @@ export type {
   NimiRuntimeAgentTurnRunnerMetadataInput,
   NimiRuntimeAgentTurnRunnerOptions,
   NimiRuntimeAgentTurnRunnerPart,
+  NimiRuntimeAgentTurnRunnerModule,
   NimiRuntimeAgentTurnRunnerTimingStage,
   NimiRuntimeAgentTurnRunnerTrace,
   NimiRuntimeAgentTurnsModule,
