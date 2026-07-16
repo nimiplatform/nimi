@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   assertRuntimeServiceHealthy,
   assertRuntimeServiceInstalled,
+  parseFirstJsonDocument,
   rejectBinaryOnlyRequest,
   runDevRuntimeService,
 } from './dev-runtime-service.mjs';
@@ -93,12 +94,38 @@ test('post-update status fails closed on signature or candidate mismatch', () =>
   );
 });
 
+test('elevated installer separates a localized warning from the first complete JSON receipt', () => {
+  const output = [
+    '\ufeff警告: 无法加载某个可选的 PowerShell 格式化数据。',
+    '{',
+    '  "status": "present",',
+    '  "message": "quoted \\\"value\\\" with } and ] inside the string"',
+    '}',
+    'VERBOSE: installer cleanup completed',
+  ].join('\r\n');
+
+  const receipt = parseFirstJsonDocument(output, 'dev-runtime-install-result-invalid');
+  assert.deepEqual(receipt.value, {
+    status: 'present',
+    message: 'quoted "value" with } and ] inside the string',
+  });
+  assert.equal(
+    receipt.diagnostics,
+    '警告: 无法加载某个可选的 PowerShell 格式化数据。\nVERBOSE: installer cleanup completed',
+  );
+  assert.throws(
+    () => parseFirstJsonDocument('警告: no receipt', 'dev-runtime-install-result-invalid'),
+    (error) => error.reasonCode === 'dev-runtime-install-result-invalid'
+      && error.actionHint === 'inspect_dev_runtime_command_output',
+  );
+});
+
 test('UAC launcher keeps stream redirection inside the elevated command', () => {
   const source = readFileSync(new URL('./dev-runtime-service.mjs', import.meta.url), 'utf8');
   const outerLauncher = source.slice(source.indexOf('const outerCommand'), source.indexOf('try {', source.indexOf('const outerCommand')));
   assert.doesNotMatch(outerLauncher, /RedirectStandard(?:Output|Error)/u);
   assert.match(source, /\$output = & powershell\.exe .* -DevKernelCheckpoint -Json 2> /u);
-  assert.match(source, /ConvertFrom-Json -ErrorAction Stop/u);
-  assert.match(source, /ConvertTo-Json -Depth 20 -Compress/u);
-  assert.match(source, /WriteAllText.*UTF8Encoding/u);
+  assert.doesNotMatch(source, /\$parsed = \$raw \| ConvertFrom-Json/u);
+  assert.match(source, /WriteAllText.*\$raw.*UTF8Encoding/u);
+  assert.match(source, /process\.stderr\.write\(`\$\{diagnostics\}\\n`\)/u);
 });

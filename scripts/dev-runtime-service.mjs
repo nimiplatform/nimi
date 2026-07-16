@@ -59,6 +59,71 @@ export function rejectBinaryOnlyRequest(args) {
   }
 }
 
+export function parseFirstJsonDocument(output, reasonCode) {
+  const raw = String(output ?? '').replace(/^\ufeff/u, '').trim();
+  for (let start = 0; start < raw.length; start += 1) {
+    const opening = raw[start];
+    if (opening !== '{' && opening !== '[') {
+      continue;
+    }
+
+    const stack = [];
+    let inString = false;
+    let escaped = false;
+    for (let cursor = start; cursor < raw.length; cursor += 1) {
+      const character = raw[cursor];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (character === '\\') {
+          escaped = true;
+        } else if (character === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (character === '"') {
+        inString = true;
+        continue;
+      }
+      if (character === '{' || character === '[') {
+        stack.push(character);
+        continue;
+      }
+      if (character !== '}' && character !== ']') {
+        continue;
+      }
+
+      const expectedOpening = character === '}' ? '{' : '[';
+      if (stack.pop() !== expectedOpening) {
+        break;
+      }
+      if (stack.length !== 0) {
+        continue;
+      }
+
+      const candidate = raw.slice(start, cursor + 1);
+      try {
+        return {
+          value: JSON.parse(candidate),
+          diagnostics: [raw.slice(0, start).trim(), raw.slice(cursor + 1).trim()]
+            .filter(Boolean)
+            .join('\n'),
+        };
+      } catch {
+        break;
+      }
+    }
+  }
+
+  throw workflowError(
+    'NimiRuntime service command did not return a complete valid JSON document.',
+    reasonCode,
+    'inspect_dev_runtime_command_output',
+  );
+}
+
 export async function runDevRuntimeService(input = {}) {
   const platform = input.platform ?? process.platform;
   if (platform !== 'win32') {
@@ -138,7 +203,7 @@ async function installGeneratedCandidate() {
 
 function installGeneratedCandidateElevated() {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-runtime-service-'));
-  const stdoutPath = path.join(tempRoot, 'stdout.json');
+  const stdoutPath = path.join(tempRoot, 'stdout.txt');
   const stderrPath = path.join(tempRoot, 'stderr.txt');
   const innerCommand = [
     `$ErrorActionPreference = 'Stop'`,
@@ -147,9 +212,7 @@ function installGeneratedCandidateElevated() {
     '$exitCode = $LASTEXITCODE',
     "if ($exitCode -ne 0) { exit $exitCode }",
     '$raw = ($output | Out-String).Trim()',
-    '$parsed = $raw | ConvertFrom-Json -ErrorAction Stop',
-    '$normalized = $parsed | ConvertTo-Json -Depth 20 -Compress',
-    `[IO.File]::WriteAllText('${powerShellLiteral(stdoutPath)}', $normalized, [Text.UTF8Encoding]::new($false))`,
+    `[IO.File]::WriteAllText('${powerShellLiteral(stdoutPath)}', $raw, [Text.UTF8Encoding]::new($false))`,
     'exit 0',
     '} catch {',
     `[IO.File]::AppendAllText('${powerShellLiteral(stderrPath)}', [Environment]::NewLine + $_.Exception.Message, [Text.UTF8Encoding]::new($false))`,
@@ -170,15 +233,23 @@ function installGeneratedCandidateElevated() {
       windowsHide: true,
     });
     const stdout = safeRead(stdoutPath);
-    const stderr = safeRead(stderrPath) || String(elevated.stderr || '').trim();
+    const installerStderr = safeRead(stderrPath);
+    const launcherStderr = String(elevated.stderr || '').trim();
     if (elevated.error || elevated.status !== 0) {
       throw workflowError(
-        `Elevated NimiRuntime update failed: ${elevated.error?.message || stderr || `exit ${elevated.status}`}`,
+        `Elevated NimiRuntime update failed: ${elevated.error?.message || installerStderr || launcherStderr || `exit ${elevated.status}`}`,
         'dev-runtime-elevated-install-failed',
         'approve_uac_and_inspect_installer_error',
       );
     }
-    return parseJsonOutput(stdout, 'dev-runtime-install-result-invalid');
+    const receipt = parseFirstJsonDocument(stdout, 'dev-runtime-install-result-invalid');
+    const diagnostics = [installerStderr, receipt.diagnostics, launcherStderr]
+      .filter(Boolean)
+      .join('\n');
+    if (diagnostics) {
+      process.stderr.write(`${diagnostics}\n`);
+    }
+    return receipt.value;
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
