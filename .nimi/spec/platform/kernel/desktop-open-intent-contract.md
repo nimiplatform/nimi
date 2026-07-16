@@ -81,6 +81,14 @@ override it, and the host must not collapse it into generic Electron identity.
 The value carries routing provenance only and is never principal, grant,
 session, package, or authorization truth.
 
+The local-app standard shell admits exactly `desktop-open.openIntent`; it does
+not admit a Desktop URL, generic navigation proxy, raw loopback request, or
+Desktop cold-start operation. The verified Electron local-app host reads the
+existing Desktop-owned running presence descriptor and invokes the existing
+exact-loopback bridge. This admission creates no new listener and does not
+route through Runtime public TCP. Missing or stale Desktop presence remains the
+typed `desktop-open-desktop-not-running` result.
+
 ## P-DOPEN-008 - Domain Result Codes
 
 The admitted v1 domain result codes are:

@@ -173,6 +173,7 @@ capability_sets:
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
+      - desktop-open.openIntent
     planned_operations:
       - data.pathResolve
       - config.get
@@ -180,7 +181,6 @@ capability_sets:
       - ai-config.get
       - ai-config.set
       - local-assets.resolveUrl
-      - desktop-open.openIntent
       - shell-ui.confirmDialog
       - shell-ui.startWindowDrag
       - shell-ui.focusMainWindow
