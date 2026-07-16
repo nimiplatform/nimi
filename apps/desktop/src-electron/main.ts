@@ -11,7 +11,6 @@ import {
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
   type NimiElectronShellFileProtocolHost,
-  type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   createDesktopElectronLocalDevelopmentHost,
@@ -29,9 +28,10 @@ const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL);
-const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
-  || normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT)
-  || '127.0.0.1:46371';
+// Nimi Desktop has no public Runtime TCP endpoint. Kit uses this non-endpoint
+// label only in lifecycle/error projections; every admitted unary is carried
+// by the native protected Desktop control session.
+const PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF = 'protected-desktop-control';
 
 // Standard shell local-asset protocol host. Serves only files explicitly
 // registered readable (kit host also allows configured `roots`; desktop keeps
@@ -75,7 +75,7 @@ void app.whenReady().then(async () => {
   const productControlHost = createDesktopElectronProductControlHost();
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
-    runtimeEndpoint,
+    runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
     allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
@@ -86,7 +86,9 @@ void app.whenReady().then(async () => {
     },
     standardShellHost: {
       allowAllStandardShellCommands: true,
-      standardDataRootBinding: resolveStandardDataRootBinding(),
+      // Runtime-owned app storage is outside authority package #2a. Omitting
+      // the binding keeps storage commands typed unavailable instead of
+      // reopening the retired public-TCP GetAppStorage fallback.
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
       localAssetProtocolHost,
       openFileDialog: openDesktopStandardFileDialog,
@@ -219,18 +221,6 @@ function isDesktopRendererUrl(url: string): boolean {
 function resolveStandardDataRoot(): string {
   const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT);
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
-}
-
-function resolveStandardDataRootBinding(): NimiElectronStandardDataRootBinding {
-  const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT);
-  if (fromEnv) {
-    return {
-      source: 'runtime-launch-projection',
-      durableDataRoot: path.resolve(fromEnv),
-      projectionRef: 'desktop-electron-acceptance-fixture',
-    };
-  }
-  return { source: 'runtime-get-app-storage' };
 }
 
 function resolveStandardLocalAssetRoots(dataRoot: string): string[] {

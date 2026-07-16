@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { StatusBadge } from '@nimiplatform/kit/ui';
 import { loadNimiRealmCreatorEligibility } from '@nimiplatform/sdk/realm';
 import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -115,14 +116,33 @@ export function PerformancePage() {
   }, [hasChanges, preferences, saving]);
 
   const eligibility = eligibilityQuery.data;
+  const eligibilityState = eligibilityQuery.isPending
+    ? 'loading'
+    : eligibilityQuery.isError || !eligibility
+      ? 'unavailable'
+      : eligibility.isEligible
+        ? 'eligible'
+        : 'not-eligible';
   const eligibilityText = eligibilityQuery.isPending
     ? t('Performance.loadingEligibility')
     : eligibilityQuery.isError
       ? t('Performance.eligibilityLoadError')
       : eligibility
         ? `${eligibility.tier} · ${eligibility.status}`
-        : '-';
-  const isEligible = eligibility?.isEligible ?? false;
+        : t('Performance.eligibilityLoadError');
+  const eligibilityBadgeText = eligibilityState === 'loading'
+    ? t('Performance.eligibilityLoadingStatus')
+    : eligibilityState === 'unavailable'
+      ? t('Performance.eligibilityUnavailable')
+      : eligibilityState === 'eligible'
+        ? t('Performance.eligible')
+        : t('Performance.notEligible');
+  const eligibilityBadgeTone = eligibilityState === 'eligible'
+    ? 'success'
+    : eligibilityState === 'not-eligible'
+      ? 'warning'
+      : 'neutral';
+  const isEligible = eligibilityState === 'eligible';
   const updateStatusText = desktopUpdateState
     ? ({
       idle: t('Performance.updateStatusIdle'),
@@ -293,11 +313,9 @@ export function PerformancePage() {
                 <p className="text-xs text-gray-500">{eligibilityText}</p>
               </div>
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-              isEligible ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-            }`}>
-              {isEligible ? t('Performance.eligible') : t('Performance.notEligible')}
-            </span>
+            <StatusBadge tone={eligibilityBadgeTone} role="status" aria-live="polite">
+              {eligibilityBadgeText}
+            </StatusBadge>
           </div>
           {eligibility?.message ? (
             <p className="mt-4 text-xs text-gray-500">{eligibility.message}</p>
