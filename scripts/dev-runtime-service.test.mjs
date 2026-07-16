@@ -9,6 +9,13 @@ import {
 } from './dev-runtime-service.mjs';
 import { readFileSync } from 'node:fs';
 
+const rootPackage = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+
+test('root dev:runtime is the fixed-service updater and never a foreground serve alias', () => {
+  assert.equal(rootPackage.scripts['dev:runtime'], 'node scripts/dev-runtime-service.mjs');
+  assert.doesNotMatch(rootPackage.scripts['dev:runtime'], /(?:^|\s)serve(?:\s|$)/u);
+});
+
 const healthyStatus = {
   status: 'present',
   serviceName: 'NimiRuntime',
