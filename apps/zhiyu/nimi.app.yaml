@@ -39,6 +39,10 @@ local_development:
       purpose: Request a Runtime-issued binding for conversation state projection.
     - scope: runtime.agent.turn.write
       purpose: Request a Runtime-issued binding for user-authored conversation turns.
+    - scope: runtime.agent.voice.transcribe
+      purpose: Request bounded Runtime-selected transcription for captured microphone audio.
+    - scope: runtime.agent.voice.read
+      purpose: Request exact correlated Runtime Agent voice-stream consumption for playback.
   electron:
     renderer_origin: http://127.0.0.1:1472
     execution_profile_ref: opaque:windows-native-electron-development-v1

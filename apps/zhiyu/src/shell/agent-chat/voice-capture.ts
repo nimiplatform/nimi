@@ -1,11 +1,7 @@
-import { toRuntimeDurableTargetRef } from '@nimiplatform/sdk/ai';
-import { runNimiRuntimeSpeechTranscription } from '@nimiplatform/sdk/features/generation';
-import { Runtime } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
+import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
 
 export type ZhiyuVoiceCaptureState = 'idle' | 'recording' | 'transcribing' | 'failed';
-type ZhiyuVoiceCaptureRoutePolicy = 'local' | 'cloud';
-type ZhiyuVoiceCaptureTargetRef = NonNullable<Parameters<typeof toRuntimeDurableTargetRef>[0]>;
 
 export type ZhiyuVoiceCaptureEvidence = {
   readonly transport: 'electron-media-recorder';
@@ -36,7 +32,6 @@ export type ZhiyuVoiceCaptureTranscribeInput = {
   readonly bytes: Uint8Array;
   readonly mimeType: string;
   readonly requestId: string;
-  readonly idempotencyKey: string;
 };
 
 export type ZhiyuVoiceCaptureTranscribeResult = {
@@ -98,22 +93,6 @@ export function projectZhiyuVoiceCaptureReadiness(
     runtimeBindingModelId: binding ? normalizeVoiceCaptureText(binding.modelId) || null : null,
     connectorId: binding ? normalizeVoiceCaptureText(binding.connectorId) || null : null,
   });
-}
-
-export function createZhiyuVoiceCaptureTranscriptionHead(input: {
-  readonly route: Pick<ZhiyuEvidence['route'], 'capabilities'> | { readonly capabilities?: unknown };
-  readonly subjectUserId?: unknown;
-}) {
-  const binding = requireTranscriptionBinding(input.route);
-  return {
-    appId: 'nimi.zhiyu',
-    subjectUserId: normalizeVoiceCaptureText(input.subjectUserId),
-    routePolicy: binding.route,
-    ['modelId']: binding.modelId,
-    ...(binding.connectorId ? { ['connectorId']: binding.connectorId } : {}),
-    ...(binding.targetRef ? { targetRef: toRuntimeDurableTargetRef(binding.targetRef) } : {}),
-    timeoutMs: 60_000,
-  };
 }
 
 export function createZhiyuVoiceCaptureController(options: ZhiyuVoiceCaptureControllerOptions): {
@@ -190,7 +169,6 @@ export function createZhiyuVoiceCaptureController(options: ZhiyuVoiceCaptureCont
           bytes,
           mimeType,
           requestId,
-          idempotencyKey: requestId,
         });
         const transcriptText = normalizeVoiceCaptureText(result.text);
         if (!transcriptText) {
@@ -233,34 +211,25 @@ export function createBrowserVoiceCaptureRecorder(): Promise<ZhiyuVoiceCaptureRe
 }
 
 export function createElectronVoiceCaptureTranscriber(input: {
-  readonly route: ZhiyuEvidence['route'];
-  readonly subjectUserId?: string | null;
+  readonly agentId: string;
 }): (request: ZhiyuVoiceCaptureTranscribeInput) => Promise<ZhiyuVoiceCaptureTranscribeResult> {
-  const head = createZhiyuVoiceCaptureTranscriptionHead({
-    route: input.route,
-    subjectUserId: input.subjectUserId || '',
-  });
-  return async (request) => {
-    const runtime = new Runtime({
-      appId: 'nimi.zhiyu',
-      transport: { type: 'electron-ipc' },
+  const agentId = normalizeVoiceCaptureText(input.agentId);
+  if (!agentId) {
+    throw Object.assign(new Error('Runtime Agent identity is required for voice transcription.'), {
+      reasonCode: 'runtime-voice-capture-agent-required',
+      actionHint: 'select_runtime_local_agent',
+      source: 'runtime',
     });
-    const result = await runNimiRuntimeSpeechTranscription({
-      runtime: { ai: runtime.ai },
-      head,
-      audio: { type: 'bytes', bytes: request.bytes },
+  }
+  return async (request) => {
+    const result = await zhiyuLocalAppRuntimePlatform.agent.transcribeVoice({
+      agentId,
+      clientRequestId: request.requestId,
+      audio: request.bytes,
       mimeType: request.mimeType,
-      requestId: request.requestId,
-      idempotencyKey: request.idempotencyKey,
-      labels: {
-        app: 'zhiyu',
-        capability: 'audio.transcribe',
-      },
     });
     return {
       text: result.text,
-      jobId: result.job.jobId,
-      traceId: result.traceId,
     };
   };
 }
@@ -305,62 +274,6 @@ async function createMediaRecorder(streamPromise: Promise<MediaStream>): Promise
       });
     },
   };
-}
-
-function requireTranscriptionBinding(route: Pick<ZhiyuEvidence['route'], 'capabilities'> | { readonly capabilities?: unknown }) {
-  const capabilities = route.capabilities && typeof route.capabilities === 'object'
-    ? route.capabilities as Record<string, unknown>
-    : {};
-  const capability = capabilities['audio.transcribe'];
-  const record = capability && typeof capability === 'object' ? capability as Record<string, unknown> : {};
-  const binding = record.binding && typeof record.binding === 'object'
-    ? record.binding as Record<string, unknown>
-    : null;
-  const modelId = normalizeVoiceCaptureText(binding?.modelId);
-  const routePolicy = normalizeVoiceCaptureText(binding?.route);
-  if (!binding || !modelId || (routePolicy !== 'local' && routePolicy !== 'cloud')) {
-    throw Object.assign(new Error('Runtime audio.transcribe binding is not ready.'), {
-      reasonCode: 'runtime-voice-capture-route-not-ready',
-      actionHint: 'configure_audio_transcribe_route',
-      source: 'runtime',
-    });
-  }
-  return {
-    route: routePolicy as ZhiyuVoiceCaptureRoutePolicy,
-    modelId,
-    connectorId: normalizeVoiceCaptureText(binding.connectorId),
-    targetRef: normalizeVoiceCaptureTargetRef(binding.targetRef),
-  };
-}
-
-function normalizeVoiceCaptureTargetRef(value: unknown): ZhiyuVoiceCaptureTargetRef | null {
-  const record = value && typeof value === 'object' ? value as Record<string, unknown> : null;
-  if (!record) return null;
-  const kind = normalizeVoiceCaptureText(record.kind);
-  if (kind === 'local-runtime') {
-    const version = normalizeVoiceCaptureText(record.version);
-    const profileBindingId = normalizeVoiceCaptureText(record.profileBindingId);
-    const readinessRef = normalizeVoiceCaptureText(record.readinessRef);
-    if (version === 'v2' && ((profileBindingId && !readinessRef) || (!profileBindingId && readinessRef))) {
-      return value as ZhiyuVoiceCaptureTargetRef;
-    }
-  }
-  if (kind === 'cloud-connector') {
-    const connectorId = normalizeVoiceCaptureText(record.connectorId);
-    const remoteModelCatalogId = normalizeVoiceCaptureText(record.remoteModelCatalogId);
-    const providerModelId = normalizeVoiceCaptureText(record.providerModelId);
-    if (connectorId && remoteModelCatalogId && providerModelId) {
-      return value as ZhiyuVoiceCaptureTargetRef;
-    }
-  }
-  if (kind === 'profile-slice') {
-    const sourceProfileId = normalizeVoiceCaptureText(record.sourceProfileId);
-    const sliceId = normalizeVoiceCaptureText(record.sliceId);
-    if (sourceProfileId && sliceId) {
-      return value as ZhiyuVoiceCaptureTargetRef;
-    }
-  }
-  return null;
 }
 
 function voiceCaptureEvidence(input: Partial<ZhiyuVoiceCaptureEvidence>): ZhiyuVoiceCaptureEvidence {

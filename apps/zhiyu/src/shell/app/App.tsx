@@ -71,6 +71,11 @@ import {
   createZhiyuVoiceCaptureController,
   projectZhiyuVoiceCaptureReadiness,
 } from '../agent-chat/voice-capture';
+import {
+  createZhiyuVoicePlaybackController,
+  playZhiyuVoiceAudioBytes,
+} from '../agent-chat/voice-playback';
+import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
 import { projectZhiyuRuntimeSourceProjection } from '../agent/source-projection';
 import { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
@@ -683,8 +688,7 @@ function ZhiyuBundledApp() {
       readiness,
       createRecorder: createBrowserVoiceCaptureRecorder,
       transcribe: (request) => createElectronVoiceCaptureTranscriber({
-        route: renderEvidence.route,
-        subjectUserId: renderEvidence.conversation.ownerUserId || renderEvidence.auth.accountId || '',
+        agentId: renderEvidence.conversation.localAgentRef || '',
       })(request),
       onStateChange: (voiceCapture) => {
         setEvidence((current) => ({
@@ -697,6 +701,53 @@ function ZhiyuBundledApp() {
     const started = await controller.start();
     if (started.state !== 'recording') {
       activeVoiceCaptureRef.current = null;
+    }
+  }
+
+  async function handleVoicePlayback() {
+    const controller = createZhiyuVoicePlaybackController({
+      subscribeStream: (input) => zhiyuLocalAppRuntimePlatform.agent.subscribeVoiceStream(input),
+      readArtifactBytes: (artifactId) => zhiyuLocalAppRuntimePlatform.artifacts.readRuntimeBytes(artifactId),
+      playAudioBytes: playZhiyuVoiceAudioBytes,
+    });
+    try {
+      const result = await controller.run({
+        voiceOutputMode: renderEvidence.companion.voiceOutputMode,
+        voicePlaybackState: renderEvidence.companion.voicePlaybackState,
+        voiceAudioArtifactId: renderEvidence.companion.voiceAudioArtifactId,
+        voiceAudioMimeType: renderEvidence.companion.voiceAudioMimeType,
+        voiceStreamId: renderEvidence.companion.voiceStreamId,
+        agentId: renderEvidence.conversation.localAgentRef,
+        conversationAnchorId: renderEvidence.conversation.conversationAnchorId,
+        turnId: renderEvidence.turn.runtimeTurnId,
+      });
+      if (result.violation) {
+        throw Object.assign(new Error(result.reasonCode), {
+          reasonCode: result.reasonCode,
+          actionHint: result.actionHint,
+          source: 'renderer',
+        });
+      }
+    } catch (error) {
+      const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+      const reasonCode = typeof record.reasonCode === 'string'
+        ? record.reasonCode
+        : 'runtime-voice-playback-failed';
+      const actionHint = typeof record.actionHint === 'string'
+        ? record.actionHint
+        : 'retry_runtime_voice_playback';
+      setEvidence((current) => ({
+        ...current,
+        companion: {
+          ...current.companion,
+          ready: false,
+          state: 'blocked',
+          reasonCode,
+          actionHint,
+          source: 'renderer',
+          message: error instanceof Error ? error.message : 'Runtime voice playback failed.',
+        },
+      }));
     }
   }
 
@@ -784,6 +835,7 @@ function ZhiyuBundledApp() {
       onSubmit={handleSubmit}
       onStopChat={handleStopChat}
       onVoiceCaptureToggle={handleVoiceCaptureToggle}
+      onVoicePlayback={handleVoicePlayback}
       onSelectLocalAgent={handleSelectLocalAgent}
       onRefreshLocalAgentInventory={() => {
         setSelectedLocalAgentRefreshKey((current) => current + 1);

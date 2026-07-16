@@ -73,12 +73,14 @@ export function ComposerAvatarButton({
 export function ComposerModeTools({
   evidence,
   onVoiceCaptureToggle,
+  onVoicePlayback,
   onOpenModelConfig,
   onOpenAgentPanel,
   onOpenSettings,
 }: {
   readonly evidence: ZhiyuEvidence;
   readonly onVoiceCaptureToggle: () => Promise<void> | void;
+  readonly onVoicePlayback: () => Promise<void> | void;
   readonly onOpenModelConfig: () => void;
   readonly onOpenAgentPanel: () => void;
   readonly onOpenSettings: () => void;
@@ -91,6 +93,14 @@ export function ComposerModeTools({
     voiceStreamId: evidence.companion.voiceStreamId,
   });
   const voicePlaybackTarget = evidence.companion.voicePlaybackTarget || '';
+  const voiceStreamCorrelationReady = Boolean(
+    evidence.conversation.localAgentRef
+    && evidence.conversation.conversationAnchorId
+    && evidence.turn.runtimeTurnId,
+  );
+  const voicePlaybackDisabled = voicePlayback.violation
+    || voicePlayback.playbackAction === 'none'
+    || (voicePlayback.playbackAction === 'subscribe_stream' && !voiceStreamCorrelationReady);
   const voiceCaptureDisabled = evidence.voiceCapture.state === 'transcribing'
     || (!evidence.voiceCapture.ready && evidence.voiceCapture.state !== 'recording');
   const voiceCaptureLabel = evidence.voiceCapture.state === 'recording'
@@ -144,7 +154,9 @@ export function ComposerModeTools({
         data-zhiyu-chat-voice-stream-id={voicePlayback.voiceStreamId}
         data-zhiyu-chat-voice-playback-action={voicePlayback.playbackAction}
         data-zhiyu-chat-voice-violation={String(voicePlayback.violation)}
-        disabled
+        data-zhiyu-chat-voice-correlation-ready={String(voiceStreamCorrelationReady)}
+        onClick={onVoicePlayback}
+        disabled={voicePlaybackDisabled}
       >
         <Headphones size={15} aria-hidden="true" />
       </button>

@@ -66,6 +66,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
   readonly onVoiceCaptureToggle: () => Promise<void> | void;
+  readonly onVoicePlayback: () => Promise<void> | void;
   readonly onSelectLocalAgent: (localAgentRef: string) => void;
   readonly onRefreshLocalAgentInventory: () => void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
@@ -84,6 +85,7 @@ export function ZhiyuAgentChatSurface({
   onSubmit,
   onStopChat,
   onVoiceCaptureToggle,
+  onVoicePlayback,
   onSelectLocalAgent,
   onRefreshLocalAgentInventory,
   onDesktopOpenSelectPartner,
@@ -469,6 +471,7 @@ export function ZhiyuAgentChatSurface({
                   <ComposerModeTools
                     evidence={evidence}
                     onVoiceCaptureToggle={onVoiceCaptureToggle}
+                    onVoicePlayback={onVoicePlayback}
                     onOpenModelConfig={openModelConfig}
                     onOpenAgentPanel={() => {
                       setRightPanelMode('agent');

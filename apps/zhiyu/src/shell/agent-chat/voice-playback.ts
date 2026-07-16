@@ -1,3 +1,9 @@
+import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar';
+import type {
+  NimiAppRuntimeAgentSubscribeVoiceStreamInput,
+  NimiAppRuntimeAgentVoiceStreamPage,
+} from '@nimiplatform/sdk/app';
+
 export type ZhiyuVoicePlaybackState =
   | 'idle'
   | 'active'
@@ -20,6 +26,12 @@ export type ZhiyuVoicePlaybackProjectionInput = {
   readonly voiceStreamId?: unknown;
 };
 
+export type ZhiyuVoicePlaybackRunInput = ZhiyuVoicePlaybackProjectionInput & {
+  readonly agentId?: unknown;
+  readonly conversationAnchorId?: unknown;
+  readonly turnId?: unknown;
+};
+
 export type ZhiyuVoicePlaybackProjection = {
   readonly state: ZhiyuVoicePlaybackState;
   readonly reasonCode: string;
@@ -34,14 +46,18 @@ export type ZhiyuVoicePlaybackProjection = {
 };
 
 export type ZhiyuVoicePlaybackControllerDeps = {
-  readonly subscribeStream: (input: {
-    readonly voiceStreamId: string;
-  }) => AsyncIterable<unknown> | Promise<AsyncIterable<unknown>>;
+  readonly subscribeStream: (
+    input: NimiAppRuntimeAgentSubscribeVoiceStreamInput,
+  ) => Promise<NimiAppRuntimeAgentVoiceStreamPage>;
   readonly readArtifactBytes: (artifactId: string) => Promise<{
     readonly bytes?: Uint8Array;
     readonly mimeType?: string;
   }>;
-  readonly playAudioBytes: (bytes: Uint8Array, mimeType: string) => Promise<void> | void;
+  readonly playAudioBytes: (
+    bytes: Uint8Array,
+    mimeType: string,
+    audioSourceId: string,
+  ) => Promise<void> | void;
 };
 
 export function projectZhiyuVoicePlayback(
@@ -185,7 +201,7 @@ export function projectZhiyuVoicePlayback(
 export function createZhiyuVoicePlaybackController(
   deps: ZhiyuVoicePlaybackControllerDeps,
 ): {
-  readonly run: (input: ZhiyuVoicePlaybackProjectionInput) => Promise<ZhiyuVoicePlaybackProjection>;
+  readonly run: (input: ZhiyuVoicePlaybackRunInput) => Promise<ZhiyuVoicePlaybackProjection>;
 } {
   return {
     async run(input) {
@@ -195,21 +211,99 @@ export function createZhiyuVoicePlaybackController(
       }
       if (projection.playbackAction === 'replay_artifact') {
         const artifact = await deps.readArtifactBytes(projection.audioArtifactId);
-        await deps.playAudioBytes(requireAudioBytes(artifact.bytes), requireAudioMimeType(artifact.mimeType));
+        await deps.playAudioBytes(
+          requireAudioBytes(artifact.bytes),
+          requireAudioMimeType(artifact.mimeType),
+          projection.audioArtifactId,
+        );
         return projection;
       }
-      const stream = await deps.subscribeStream({ voiceStreamId: projection.voiceStreamId });
-      for await (const event of stream) {
-        const record = event && typeof event === 'object' ? event as Record<string, unknown> : {};
-        const bytes = byteArray(record.chunk ?? record.bytes);
-        if (bytes.byteLength === 0) {
-          continue;
-        }
-        await deps.playAudioBytes(bytes, requireAudioMimeType(record.mimeType));
+      const agentId = normalizeVoiceText(input.agentId);
+      const conversationAnchorId = normalizeVoiceText(input.conversationAnchorId);
+      const turnId = normalizeVoiceText(input.turnId);
+      if (!agentId || !conversationAnchorId || !turnId) {
+        return voicePlaybackViolation({
+          reasonCode: 'runtime-voice-stream-correlation-missing',
+          actionHint: 'wait_runtime_voice_turn_identity',
+          outputMode: projection.outputMode,
+          playbackState: projection.playbackState,
+          audioArtifactId: projection.audioArtifactId,
+          audioMimeType: projection.audioMimeType,
+          voiceStreamId: projection.voiceStreamId,
+        });
       }
-      return projection;
+      let cursor: string | undefined;
+      for (let eventCount = 0; eventCount < 4096; eventCount += 1) {
+        const page = await deps.subscribeStream({
+          agentId,
+          conversationAnchorId,
+          turnId,
+          voiceStreamId: projection.voiceStreamId,
+          ...(cursor ? { cursor } : {}),
+        });
+        const event = page.events[0];
+        if (event.voiceOutputMode !== projection.outputMode) {
+          throw voicePlaybackError(
+            'runtime-voice-stream-output-mode-mismatch',
+            'inspect_runtime_voice_stream_truth',
+          );
+        }
+        if (event.chunk.byteLength > 0) {
+          await deps.playAudioBytes(
+            event.chunk,
+            requireAudioMimeType(event.mimeType),
+            `runtime-agent-voice-stream://${event.voiceStreamId}/chunks/${event.chunkSequence}`,
+          );
+        }
+        if (event.terminal) return projection;
+        cursor = page.cursor;
+      }
+      throw voicePlaybackError(
+        'runtime-voice-stream-event-bound-exceeded',
+        'inspect_runtime_voice_stream_truth',
+      );
     },
   };
+}
+
+function voicePlaybackError(reasonCode: string, actionHint: string): Error {
+  return Object.assign(new Error(reasonCode), { reasonCode, actionHint, source: 'runtime' });
+}
+
+export async function playZhiyuVoiceAudioBytes(
+  bytes: Uint8Array,
+  mimeType: string,
+  audioSourceId: string,
+): Promise<void> {
+  const audio = requireAudioBytes(bytes);
+  const mime = requireAudioMimeType(mimeType);
+  const sourceId = normalizeVoiceText(audioSourceId);
+  if (!sourceId) {
+    throw voicePlaybackError(
+      'runtime-voice-audio-source-id-missing',
+      'inspect_runtime_voice_stream_truth',
+    );
+  }
+  const pipeline = getSharedAudioPipelineController();
+  let unsubscribe = () => {};
+  const completion = new Promise<void>((resolve, reject) => {
+    unsubscribe = pipeline.subscribe((snapshot) => {
+      if (snapshot.audioArtifactId !== sourceId) return;
+      if (snapshot.state === 'completed') resolve();
+      if (snapshot.state === 'failed' || snapshot.state === 'interrupted') {
+        reject(voicePlaybackError(
+          `runtime-voice-audio-${snapshot.reason || snapshot.state}`,
+          'inspect_runtime_voice_audio_playback',
+        ));
+      }
+    });
+  });
+  try {
+    await pipeline.playBytes({ audioSourceId: sourceId, audioMimeType: mime, bytes: audio });
+    await completion;
+  } finally {
+    unsubscribe();
+  }
 }
 
 function voicePlaybackProjection(input: ZhiyuVoicePlaybackProjection): ZhiyuVoicePlaybackProjection {
