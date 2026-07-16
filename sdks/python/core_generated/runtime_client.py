@@ -616,6 +616,14 @@ RUNTIME_METHODS = [
     "response_type": "TerminateAgentResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
+    "service": "RuntimeAgentService",
+    "method": "TranscribeLocalAppAgentAudio",
+    "kind": "unary",
+    "request_type": "TranscribeLocalAppAgentAudioRequest",
+    "response_type": "TranscribeLocalAppAgentAudioResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "service": "RuntimeAgentService",
     "method": "UpdateAgentState",
@@ -1486,6 +1494,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetDeveloperModeStatusRequest",
     "response_type": "GetDeveloperModeStatusResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",
+    "service": "RuntimeDevelopmentService",
+    "method": "GetLocalDevelopmentAuthoritySummary",
+    "kind": "unary",
+    "request_type": "GetLocalDevelopmentAuthoritySummaryRequest",
+    "response_type": "GetLocalDevelopmentAuthoritySummaryResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",

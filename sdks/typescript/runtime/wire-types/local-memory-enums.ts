@@ -89,6 +89,12 @@ export enum LocalDevelopmentShellKind {
   TAURI = 2,
 }
 
+export enum LocalDevelopmentSummaryAvailability {
+  UNSPECIFIED = 0,
+  AVAILABLE = 1,
+  UNAVAILABLE = 2,
+}
+
 export enum LocalEngineRuntimeMode {
   UNSPECIFIED = 0,
   SUPERVISED = 1,

@@ -624,6 +624,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "TerminateAgentResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
+        service: "RuntimeAgentService",
+        method: "TranscribeLocalAppAgentAudio",
+        kind: "unary",
+        request_type: "TranscribeLocalAppAgentAudioRequest",
+        response_type: "TranscribeLocalAppAgentAudioResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
         service: "RuntimeAgentService",
         method: "UpdateAgentState",
@@ -1494,6 +1502,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "GetDeveloperModeStatusRequest",
         response_type: "GetDeveloperModeStatusResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",
+        service: "RuntimeDevelopmentService",
+        method: "GetLocalDevelopmentAuthoritySummary",
+        kind: "unary",
+        request_type: "GetLocalDevelopmentAuthoritySummaryRequest",
+        response_type: "GetLocalDevelopmentAuthoritySummaryResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",

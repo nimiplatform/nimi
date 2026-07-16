@@ -1056,6 +1056,14 @@ const (
 	LOCALDEVELOPMENTSHELLKINDTAURI LocalDevelopmentShellKind = "LOCAL_DEVELOPMENT_SHELL_KIND_TAURI"
 )
 
+type LocalDevelopmentSummaryAvailability string
+
+const (
+	LOCALDEVELOPMENTSUMMARYAVAILABILITYUNSPECIFIED LocalDevelopmentSummaryAvailability = "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNSPECIFIED"
+	LOCALDEVELOPMENTSUMMARYAVAILABILITYAVAILABLE LocalDevelopmentSummaryAvailability = "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_AVAILABLE"
+	LOCALDEVELOPMENTSUMMARYAVAILABILITYUNAVAILABLE LocalDevelopmentSummaryAvailability = "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNAVAILABLE"
+)
+
 type LocalEngineRuntimeMode string
 
 const (
@@ -4329,6 +4337,17 @@ type GetLocalAppGrantStatusResponse struct {
 	Projection *LocalAppGrantProjection `json:"projection,omitempty"`
 }
 
+type GetLocalDevelopmentAuthoritySummaryRequest struct {
+
+}
+
+type GetLocalDevelopmentAuthoritySummaryResponse struct {
+	DeveloperMode *LocalDevelopmentDeveloperModeSummary `json:"developer_mode,omitempty"`
+	ProjectAuthorization *LocalDevelopmentProjectAuthorizationSummary `json:"project_authorization,omitempty"`
+	GrantSummary *LocalDevelopmentGrantSummary `json:"grant_summary,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type GetPageRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
 	BankId string `json:"bank_id,omitempty"`
@@ -5500,6 +5519,32 @@ type LocalDevelopmentAuthorizationProjection struct {
 	AuthorizationGeneration uint64 `json:"authorization_generation,omitempty"`
 	ApprovedAt string `json:"approved_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalDevelopmentDeveloperModeSummary struct {
+	Availability LocalDevelopmentSummaryAvailability `json:"availability,omitempty"`
+	State DeveloperModeState `json:"state,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalDevelopmentGrantSummary struct {
+	Availability LocalDevelopmentSummaryAvailability `json:"availability,omitempty"`
+	PendingCount uint64 `json:"pending_count,omitempty"`
+	GrantedCount uint64 `json:"granted_count,omitempty"`
+	DeniedCount uint64 `json:"denied_count,omitempty"`
+	ExpiredCount uint64 `json:"expired_count,omitempty"`
+	RevokedCount uint64 `json:"revoked_count,omitempty"`
+	SupersededCount uint64 `json:"superseded_count,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalDevelopmentProjectAuthorizationSummary struct {
+	Availability LocalDevelopmentSummaryAvailability `json:"availability,omitempty"`
+	ActiveCount uint64 `json:"active_count,omitempty"`
+	DormantCount uint64 `json:"dormant_count,omitempty"`
+	DeniedCount uint64 `json:"denied_count,omitempty"`
+	RevokedCount uint64 `json:"revoked_count,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
@@ -8202,6 +8247,7 @@ type SubscribeAgentVoiceStreamRequest struct {
 	VoiceStreamId string `json:"voice_stream_id,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 	TurnId string `json:"turn_id,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
 }
 
 type SubscribeAppMessagesRequest struct {
@@ -8369,6 +8415,18 @@ type ToolSpec struct {
 	ProviderToolId string `json:"provider_tool_id,omitempty"`
 	ProviderArgs map[string]any `json:"provider_args,omitempty"`
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
+}
+
+type TranscribeLocalAppAgentAudioRequest struct {
+	AgentId string `json:"agent_id,omitempty"`
+	ClientRequestId string `json:"client_request_id,omitempty"`
+	Audio []byte `json:"audio,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+}
+
+type TranscribeLocalAppAgentAudioResponse struct {
+	ClientRequestId string `json:"client_request_id,omitempty"`
+	Transcript string `json:"transcript,omitempty"`
 }
 
 type TraverseGraphRequest struct {
@@ -9594,6 +9652,14 @@ func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request Terminat
 	return decodeRuntimeTypedResponse[TerminateAgentResponse](raw, "TerminateAgentResponse")
 }
 
+func (c RuntimeTypedClient) TranscribeLocalAppAgentAudio(ctx context.Context, request TranscribeLocalAppAgentAudioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TranscribeLocalAppAgentAudioResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio", request, metadata, timeoutMS)
+	if err != nil {
+		return TranscribeLocalAppAgentAudioResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[TranscribeLocalAppAgentAudioResponse](raw, "TranscribeLocalAppAgentAudioResponse")
+}
+
 func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request UpdateAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAgentStateResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", request, metadata, timeoutMS)
 	if err != nil {
@@ -10460,6 +10526,14 @@ func (c RuntimeTypedClient) GetDeveloperModeStatus(ctx context.Context, request 
 		return GetDeveloperModeStatusResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetDeveloperModeStatusResponse](raw, "GetDeveloperModeStatusResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalDevelopmentAuthoritySummary(ctx context.Context, request GetLocalDevelopmentAuthoritySummaryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalDevelopmentAuthoritySummaryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalDevelopmentAuthoritySummaryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalDevelopmentAuthoritySummaryResponse](raw, "GetLocalDevelopmentAuthoritySummaryResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalDevelopmentAuthorizations(ctx context.Context, request ListLocalDevelopmentAuthorizationsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalDevelopmentAuthorizationsResponse, error) {

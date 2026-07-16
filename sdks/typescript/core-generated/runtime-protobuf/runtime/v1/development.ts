@@ -40,6 +40,119 @@ export interface GetDeveloperModeStatusResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary
+ */
+export interface LocalDevelopmentDeveloperModeSummary {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1
+     */
+    availability: LocalDevelopmentSummaryAvailability;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DeveloperModeState state = 2
+     */
+    state: DeveloperModeState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary
+ */
+export interface LocalDevelopmentProjectAuthorizationSummary {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1
+     */
+    availability: LocalDevelopmentSummaryAvailability;
+    /**
+     * @generated from protobuf field: uint64 active_count = 2
+     */
+    activeCount: string;
+    /**
+     * @generated from protobuf field: uint64 dormant_count = 3
+     */
+    dormantCount: string;
+    /**
+     * @generated from protobuf field: uint64 denied_count = 4
+     */
+    deniedCount: string;
+    /**
+     * @generated from protobuf field: uint64 revoked_count = 5
+     */
+    revokedCount: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 6
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalDevelopmentGrantSummary
+ */
+export interface LocalDevelopmentGrantSummary {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1
+     */
+    availability: LocalDevelopmentSummaryAvailability;
+    /**
+     * @generated from protobuf field: uint64 pending_count = 2
+     */
+    pendingCount: string;
+    /**
+     * @generated from protobuf field: uint64 granted_count = 3
+     */
+    grantedCount: string;
+    /**
+     * @generated from protobuf field: uint64 denied_count = 4
+     */
+    deniedCount: string;
+    /**
+     * @generated from protobuf field: uint64 expired_count = 5
+     */
+    expiredCount: string;
+    /**
+     * @generated from protobuf field: uint64 revoked_count = 6
+     */
+    revokedCount: string;
+    /**
+     * @generated from protobuf field: uint64 superseded_count = 7
+     */
+    supersededCount: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 8
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest
+ */
+export interface GetLocalDevelopmentAuthoritySummaryRequest {
+}
+/**
+ * Exact bounded diagnostic projection. These sections never contain an
+ * account, project, principal, authorization, grant, request, operation,
+ * resource, path, credential, session, or boot-epoch identifier.
+ *
+ * @generated from protobuf message nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse
+ */
+export interface GetLocalDevelopmentAuthoritySummaryResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary developer_mode = 1
+     */
+    developerMode?: LocalDevelopmentDeveloperModeSummary;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary project_authorization = 2
+     */
+    projectAuthorization?: LocalDevelopmentProjectAuthorizationSummary;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentGrantSummary grant_summary = 3
+     */
+    grantSummary?: LocalDevelopmentGrantSummary;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.SetDeveloperModeRequest
  */
 export interface SetDeveloperModeRequest {
@@ -421,6 +534,23 @@ export enum DeveloperModeState {
      */
     UNAVAILABLE = 3
 }
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalDevelopmentSummaryAvailability
+ */
+export enum LocalDevelopmentSummaryAvailability {
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_AVAILABLE = 1;
+     */
+    AVAILABLE = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNAVAILABLE = 2;
+     */
+    UNAVAILABLE = 2
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class GetDeveloperModeStatusRequest$Type extends MessageType<GetDeveloperModeStatusRequest> {
     constructor() {
@@ -530,6 +660,365 @@ class GetDeveloperModeStatusResponse$Type extends MessageType<GetDeveloperModeSt
  * @generated MessageType for protobuf message nimi.runtime.v1.GetDeveloperModeStatusResponse
  */
 export const GetDeveloperModeStatusResponse = new GetDeveloperModeStatusResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalDevelopmentDeveloperModeSummary$Type extends MessageType<LocalDevelopmentDeveloperModeSummary> {
+    constructor() {
+        super("nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary", [
+            { no: 1, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.LocalDevelopmentSummaryAvailability", LocalDevelopmentSummaryAvailability, "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_"] },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.DeveloperModeState", DeveloperModeState, "DEVELOPER_MODE_STATE_"] },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalDevelopmentDeveloperModeSummary>): LocalDevelopmentDeveloperModeSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.availability = 0;
+        message.state = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalDevelopmentDeveloperModeSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDevelopmentDeveloperModeSummary): LocalDevelopmentDeveloperModeSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability */ 1:
+                    message.availability = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.DeveloperModeState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalDevelopmentDeveloperModeSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1; */
+        if (message.availability !== 0)
+            writer.tag(1, WireType.Varint).int32(message.availability);
+        /* nimi.runtime.v1.DeveloperModeState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary
+ */
+export const LocalDevelopmentDeveloperModeSummary = new LocalDevelopmentDeveloperModeSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalDevelopmentProjectAuthorizationSummary$Type extends MessageType<LocalDevelopmentProjectAuthorizationSummary> {
+    constructor() {
+        super("nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary", [
+            { no: 1, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.LocalDevelopmentSummaryAvailability", LocalDevelopmentSummaryAvailability, "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_"] },
+            { no: 2, name: "active_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "dormant_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "denied_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "revoked_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalDevelopmentProjectAuthorizationSummary>): LocalDevelopmentProjectAuthorizationSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.availability = 0;
+        message.activeCount = "0";
+        message.dormantCount = "0";
+        message.deniedCount = "0";
+        message.revokedCount = "0";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalDevelopmentProjectAuthorizationSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDevelopmentProjectAuthorizationSummary): LocalDevelopmentProjectAuthorizationSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability */ 1:
+                    message.availability = reader.int32();
+                    break;
+                case /* uint64 active_count */ 2:
+                    message.activeCount = reader.uint64().toString();
+                    break;
+                case /* uint64 dormant_count */ 3:
+                    message.dormantCount = reader.uint64().toString();
+                    break;
+                case /* uint64 denied_count */ 4:
+                    message.deniedCount = reader.uint64().toString();
+                    break;
+                case /* uint64 revoked_count */ 5:
+                    message.revokedCount = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 6:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalDevelopmentProjectAuthorizationSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1; */
+        if (message.availability !== 0)
+            writer.tag(1, WireType.Varint).int32(message.availability);
+        /* uint64 active_count = 2; */
+        if (message.activeCount !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.activeCount);
+        /* uint64 dormant_count = 3; */
+        if (message.dormantCount !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.dormantCount);
+        /* uint64 denied_count = 4; */
+        if (message.deniedCount !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.deniedCount);
+        /* uint64 revoked_count = 5; */
+        if (message.revokedCount !== "0")
+            writer.tag(5, WireType.Varint).uint64(message.revokedCount);
+        /* nimi.runtime.v1.ReasonCode reason_code = 6; */
+        if (message.reasonCode !== 0)
+            writer.tag(6, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary
+ */
+export const LocalDevelopmentProjectAuthorizationSummary = new LocalDevelopmentProjectAuthorizationSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalDevelopmentGrantSummary$Type extends MessageType<LocalDevelopmentGrantSummary> {
+    constructor() {
+        super("nimi.runtime.v1.LocalDevelopmentGrantSummary", [
+            { no: 1, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.LocalDevelopmentSummaryAvailability", LocalDevelopmentSummaryAvailability, "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_"] },
+            { no: 2, name: "pending_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "granted_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "denied_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "expired_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 6, name: "revoked_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "superseded_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 8, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalDevelopmentGrantSummary>): LocalDevelopmentGrantSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.availability = 0;
+        message.pendingCount = "0";
+        message.grantedCount = "0";
+        message.deniedCount = "0";
+        message.expiredCount = "0";
+        message.revokedCount = "0";
+        message.supersededCount = "0";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalDevelopmentGrantSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDevelopmentGrantSummary): LocalDevelopmentGrantSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability */ 1:
+                    message.availability = reader.int32();
+                    break;
+                case /* uint64 pending_count */ 2:
+                    message.pendingCount = reader.uint64().toString();
+                    break;
+                case /* uint64 granted_count */ 3:
+                    message.grantedCount = reader.uint64().toString();
+                    break;
+                case /* uint64 denied_count */ 4:
+                    message.deniedCount = reader.uint64().toString();
+                    break;
+                case /* uint64 expired_count */ 5:
+                    message.expiredCount = reader.uint64().toString();
+                    break;
+                case /* uint64 revoked_count */ 6:
+                    message.revokedCount = reader.uint64().toString();
+                    break;
+                case /* uint64 superseded_count */ 7:
+                    message.supersededCount = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 8:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalDevelopmentGrantSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1; */
+        if (message.availability !== 0)
+            writer.tag(1, WireType.Varint).int32(message.availability);
+        /* uint64 pending_count = 2; */
+        if (message.pendingCount !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.pendingCount);
+        /* uint64 granted_count = 3; */
+        if (message.grantedCount !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.grantedCount);
+        /* uint64 denied_count = 4; */
+        if (message.deniedCount !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.deniedCount);
+        /* uint64 expired_count = 5; */
+        if (message.expiredCount !== "0")
+            writer.tag(5, WireType.Varint).uint64(message.expiredCount);
+        /* uint64 revoked_count = 6; */
+        if (message.revokedCount !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.revokedCount);
+        /* uint64 superseded_count = 7; */
+        if (message.supersededCount !== "0")
+            writer.tag(7, WireType.Varint).uint64(message.supersededCount);
+        /* nimi.runtime.v1.ReasonCode reason_code = 8; */
+        if (message.reasonCode !== 0)
+            writer.tag(8, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalDevelopmentGrantSummary
+ */
+export const LocalDevelopmentGrantSummary = new LocalDevelopmentGrantSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalDevelopmentAuthoritySummaryRequest$Type extends MessageType<GetLocalDevelopmentAuthoritySummaryRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest", []);
+    }
+    create(value?: PartialMessage<GetLocalDevelopmentAuthoritySummaryRequest>): GetLocalDevelopmentAuthoritySummaryRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalDevelopmentAuthoritySummaryRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalDevelopmentAuthoritySummaryRequest): GetLocalDevelopmentAuthoritySummaryRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalDevelopmentAuthoritySummaryRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest
+ */
+export const GetLocalDevelopmentAuthoritySummaryRequest = new GetLocalDevelopmentAuthoritySummaryRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalDevelopmentAuthoritySummaryResponse$Type extends MessageType<GetLocalDevelopmentAuthoritySummaryResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse", [
+            { no: 1, name: "developer_mode", kind: "message", T: () => LocalDevelopmentDeveloperModeSummary },
+            { no: 2, name: "project_authorization", kind: "message", T: () => LocalDevelopmentProjectAuthorizationSummary },
+            { no: 3, name: "grant_summary", kind: "message", T: () => LocalDevelopmentGrantSummary },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalDevelopmentAuthoritySummaryResponse>): GetLocalDevelopmentAuthoritySummaryResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalDevelopmentAuthoritySummaryResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalDevelopmentAuthoritySummaryResponse): GetLocalDevelopmentAuthoritySummaryResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary developer_mode */ 1:
+                    message.developerMode = LocalDevelopmentDeveloperModeSummary.internalBinaryRead(reader, reader.uint32(), options, message.developerMode);
+                    break;
+                case /* nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary project_authorization */ 2:
+                    message.projectAuthorization = LocalDevelopmentProjectAuthorizationSummary.internalBinaryRead(reader, reader.uint32(), options, message.projectAuthorization);
+                    break;
+                case /* nimi.runtime.v1.LocalDevelopmentGrantSummary grant_summary */ 3:
+                    message.grantSummary = LocalDevelopmentGrantSummary.internalBinaryRead(reader, reader.uint32(), options, message.grantSummary);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalDevelopmentAuthoritySummaryResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary developer_mode = 1; */
+        if (message.developerMode)
+            LocalDevelopmentDeveloperModeSummary.internalBinaryWrite(message.developerMode, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary project_authorization = 2; */
+        if (message.projectAuthorization)
+            LocalDevelopmentProjectAuthorizationSummary.internalBinaryWrite(message.projectAuthorization, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalDevelopmentGrantSummary grant_summary = 3; */
+        if (message.grantSummary)
+            LocalDevelopmentGrantSummary.internalBinaryWrite(message.grantSummary, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        if (message.reasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse
+ */
+export const GetLocalDevelopmentAuthoritySummaryResponse = new GetLocalDevelopmentAuthoritySummaryResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SetDeveloperModeRequest$Type extends MessageType<SetDeveloperModeRequest> {
     constructor() {

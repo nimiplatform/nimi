@@ -194,6 +194,7 @@ LocalBundleState = Literal["LOCAL_BUNDLE_STATE_UNSPECIFIED", "LOCAL_BUNDLE_STATE
 LocalDevelopmentAuthorizationState = Literal["LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_UNSPECIFIED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED", "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT"]
 LocalDevelopmentDecision = Literal["LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED", "LOCAL_DEVELOPMENT_DECISION_DENY", "LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE", "LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT"]
 LocalDevelopmentShellKind = Literal["LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED", "LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON", "LOCAL_DEVELOPMENT_SHELL_KIND_TAURI"]
+LocalDevelopmentSummaryAvailability = Literal["LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNSPECIFIED", "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_AVAILABLE", "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNAVAILABLE"]
 LocalEngineRuntimeMode = Literal["LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED", "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED", "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT"]
 LocalEngineStatus = Literal["LOCAL_ENGINE_STATUS_UNSPECIFIED", "LOCAL_ENGINE_STATUS_STOPPED", "LOCAL_ENGINE_STATUS_STARTING", "LOCAL_ENGINE_STATUS_HEALTHY", "LOCAL_ENGINE_STATUS_UNHEALTHY"]
 LocalExecutionEntryKind = Literal["LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED", "LOCAL_EXECUTION_ENTRY_KIND_MODEL", "LOCAL_EXECUTION_ENTRY_KIND_SERVICE", "LOCAL_EXECUTION_ENTRY_KIND_NODE"]
@@ -2460,6 +2461,17 @@ class GetLocalAppGrantStatusResponse:
     projection: LocalAppGrantProjection | None = None
 
 @dataclass(frozen=True)
+class GetLocalDevelopmentAuthoritySummaryRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetLocalDevelopmentAuthoritySummaryResponse:
+    developer_mode: LocalDevelopmentDeveloperModeSummary | None = None
+    project_authorization: LocalDevelopmentProjectAuthorizationSummary | None = None
+    grant_summary: LocalDevelopmentGrantSummary | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class GetPageRequest:
     context: KnowledgeRequestContext | None = None
     bank_id: str | None = None
@@ -3631,6 +3643,32 @@ class LocalDevelopmentAuthorizationProjection:
     authorization_generation: int | None = None
     approved_at: str | None = None
     updated_at: str | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class LocalDevelopmentDeveloperModeSummary:
+    availability: LocalDevelopmentSummaryAvailability | None = None
+    state: DeveloperModeState | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class LocalDevelopmentGrantSummary:
+    availability: LocalDevelopmentSummaryAvailability | None = None
+    pending_count: int | None = None
+    granted_count: int | None = None
+    denied_count: int | None = None
+    expired_count: int | None = None
+    revoked_count: int | None = None
+    superseded_count: int | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class LocalDevelopmentProjectAuthorizationSummary:
+    availability: LocalDevelopmentSummaryAvailability | None = None
+    active_count: int | None = None
+    dormant_count: int | None = None
+    denied_count: int | None = None
+    revoked_count: int | None = None
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
@@ -6333,6 +6371,7 @@ class SubscribeAgentVoiceStreamRequest:
     voice_stream_id: str | None = None
     conversation_anchor_id: str | None = None
     turn_id: str | None = None
+    agent_id: str | None = None
 
 @dataclass(frozen=True)
 class SubscribeAppMessagesRequest:
@@ -6500,6 +6539,18 @@ class ToolSpec:
     provider_tool_id: str | None = None
     provider_args: Mapping[str, object] | None = None
     provider_metadata: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class TranscribeLocalAppAgentAudioRequest:
+    agent_id: str | None = None
+    client_request_id: str | None = None
+    audio: bytes | None = None
+    mime_type: str | None = None
+
+@dataclass(frozen=True)
+class TranscribeLocalAppAgentAudioResponse:
+    client_request_id: str | None = None
+    transcript: str | None = None
 
 @dataclass(frozen=True)
 class TraverseGraphRequest:
@@ -7317,6 +7368,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TerminateAgentResponse, raw)
 
+    async def transcribe_local_app_agent_audio(self, request: TranscribeLocalAppAgentAudioRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TranscribeLocalAppAgentAudioResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(TranscribeLocalAppAgentAudioResponse, raw)
+
     async def update_agent_state(self, request: UpdateAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpdateAgentStateResponse, raw)
@@ -7742,6 +7797,10 @@ class RuntimeTypedClient:
     async def get_developer_mode_status(self, request: GetDeveloperModeStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetDeveloperModeStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetDeveloperModeStatusResponse, raw)
+
+    async def get_local_development_authority_summary(self, request: GetLocalDevelopmentAuthoritySummaryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalDevelopmentAuthoritySummaryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalDevelopmentAuthoritySummaryResponse, raw)
 
     async def list_local_development_authorizations(self, request: ListLocalDevelopmentAuthorizationsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalDevelopmentAuthorizationsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

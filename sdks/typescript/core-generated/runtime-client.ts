@@ -623,6 +623,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "TerminateAgentResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
+    "service": "RuntimeAgentService",
+    "method": "TranscribeLocalAppAgentAudio",
+    "kind": "unary",
+    "requestType": "TranscribeLocalAppAgentAudioRequest",
+    "responseType": "TranscribeLocalAppAgentAudioResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "service": "RuntimeAgentService",
     "method": "UpdateAgentState",
@@ -1493,6 +1501,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "GetDeveloperModeStatusRequest",
     "responseType": "GetDeveloperModeStatusResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",
+    "service": "RuntimeDevelopmentService",
+    "method": "GetLocalDevelopmentAuthoritySummary",
+    "kind": "unary",
+    "requestType": "GetLocalDevelopmentAuthoritySummaryRequest",
+    "responseType": "GetLocalDevelopmentAuthoritySummaryResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
