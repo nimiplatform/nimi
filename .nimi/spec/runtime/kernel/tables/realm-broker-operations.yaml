@@ -71,6 +71,7 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldCoreController_createSourceMaterializationPacket/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_createSourceMaterializationPacket/response
     consumer_refs:
+      - sdks/typescript/realm/social.ts
       - sdks/typescript/runtime/runtime-agent-materialization.ts
       - apps/desktop/src/shell/renderer/features/explore/realm-persona-source-materialization.ts
 
