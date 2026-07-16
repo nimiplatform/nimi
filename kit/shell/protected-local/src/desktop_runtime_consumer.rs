@@ -8,6 +8,7 @@ pub enum DesktopRuntimeConsumerMethod {
     ListConnectors,
     GetRuntimeHealth,
     ListAiProviderHealth,
+    ListDesktopAuditEvents,
     ListUsageStats,
     PeekScheduling,
     ExecuteScenario,
@@ -26,6 +27,9 @@ impl DesktopRuntimeConsumerMethod {
             "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth" => Self::GetRuntimeHealth,
             "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth" => {
                 Self::ListAiProviderHealth
+            }
+            "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents" => {
+                Self::ListDesktopAuditEvents
             }
             "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats" => Self::ListUsageStats,
             "/nimi.runtime.v1.RuntimeAiService/PeekScheduling" => Self::PeekScheduling,
@@ -46,6 +50,9 @@ impl DesktopRuntimeConsumerMethod {
             Self::GetRuntimeHealth => "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
             Self::ListAiProviderHealth => {
                 "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth"
+            }
+            Self::ListDesktopAuditEvents => {
+                "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
             }
             Self::ListUsageStats => "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
             Self::PeekScheduling => "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
@@ -119,6 +126,7 @@ mod tests {
             DesktopRuntimeConsumerMethod::ListConnectors,
             DesktopRuntimeConsumerMethod::GetRuntimeHealth,
             DesktopRuntimeConsumerMethod::ListAiProviderHealth,
+            DesktopRuntimeConsumerMethod::ListDesktopAuditEvents,
             DesktopRuntimeConsumerMethod::ListUsageStats,
             DesktopRuntimeConsumerMethod::PeekScheduling,
             DesktopRuntimeConsumerMethod::ExecuteScenario,
@@ -132,6 +140,7 @@ mod tests {
         }
         for denied in [
             "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
+            "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
             "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
             "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
             "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",

@@ -15206,6 +15206,64 @@ pub struct ListAuditEventsResponse {
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
+/// K-AUDIT-024: exact bounded filters for the protected Desktop projection.
+/// Both timestamps are required and may span at most seven days.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListDesktopAuditEventsRequest {
+    #[prost(string, tag = "1")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub domain: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub operation: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "6")]
+    pub reason_code: i32,
+    #[prost(enumeration = "CallerKind", tag = "7")]
+    pub caller_kind: i32,
+    #[prost(message, optional, tag = "8")]
+    pub from_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
+    pub to_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(int32, tag = "10")]
+    pub page_size: i32,
+    #[prost(string, tag = "11")]
+    pub page_token: ::prost::alloc::string::String,
+}
+/// K-AUDIT-024: wire-level field whitelist. Sensitive payload, subject,
+/// caller, principal, token, consent, policy and resource fields do not exist
+/// on this message and therefore cannot cross the Desktop protected transport.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopAuditEventProjection {
+    #[prost(string, tag = "1")]
+    pub audit_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub domain: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub operation: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "6")]
+    pub reason_code: i32,
+    #[prost(string, tag = "7")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "CallerKind", tag = "9")]
+    pub caller_kind: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDesktopAuditEventsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub events: ::prost::alloc::vec::Vec<DesktopAuditEventProjection>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ExportAuditEventsRequest {
     #[prost(string, tag = "1")]
@@ -15593,6 +15651,35 @@ pub mod runtime_audit_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAuditService",
                         "ListAuditEvents",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_desktop_audit_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListDesktopAuditEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDesktopAuditEventsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuditService",
+                        "ListDesktopAuditEvents",
                     ),
                 );
             self.inner.unary(req, path, codec).await

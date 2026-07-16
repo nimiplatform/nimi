@@ -218,7 +218,7 @@ describe('Electron verified Desktop control host', () => {
     expect(isElectronDesktopProductControlMethod('/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession')).toBe(false);
   });
 
-  it('pins all 10 K-PLOCAL-006 Desktop runtime consumers and excludes streams and adjacent methods', () => {
+  it('pins all 11 exact Desktop runtime consumers and excludes raw audit, streams, and adjacent methods', () => {
     const admitted = [
       '/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets',
       '/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog',
@@ -226,15 +226,19 @@ describe('Electron verified Desktop control host', () => {
       '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors',
       '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
       '/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth',
+      '/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents',
       '/nimi.runtime.v1.RuntimeAuditService/ListUsageStats',
       '/nimi.runtime.v1.RuntimeAiService/PeekScheduling',
       '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
       '/nimi.runtime.v1.RuntimeAgentService/ListAgents',
     ];
-    expect(admitted).toHaveLength(10);
+    expect(admitted).toHaveLength(11);
     for (const method of admitted) {
       expect(isElectronDesktopRuntimeConsumerMethod(method)).toBe(true);
     }
+    expect(isElectronDesktopRuntimeConsumerMethod(
+      '/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents',
+    )).toBe(false);
     expect(isElectronDesktopRuntimeConsumerMethod(
       '/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents',
     )).toBe(false);

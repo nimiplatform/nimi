@@ -33,6 +33,7 @@ const DESKTOP_RUNTIME_CONSUMER_METHOD_IDS: ReadonlySet<string> = new Set([
   '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors',
   '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
   '/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth',
+  '/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents',
   '/nimi.runtime.v1.RuntimeAuditService/ListUsageStats',
   '/nimi.runtime.v1.RuntimeAiService/PeekScheduling',
   '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
