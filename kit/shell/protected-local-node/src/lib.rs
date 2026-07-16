@@ -43,7 +43,7 @@ pub async fn desktop_product_control_unary(
         .timeout_ms
         .map(u64::from)
         .map(std::time::Duration::from_millis);
-    if timeout.is_some_and(|value| value.is_zero() || value > std::time::Duration::from_secs(300)) {
+    if !desktop_product_control_timeout_allowed(method, timeout) {
         return NativeBytesOutcome::error("runtime-service-untrusted", false);
     }
     let control = match current_or_open_desktop_control().await {
@@ -63,6 +63,51 @@ pub async fn desktop_product_control_unary(
             clear_desktop_control_on_transport_failure(&control, &error).await;
             NativeBytesOutcome::product_control_error(error)
         }
+    }
+}
+
+fn desktop_product_control_timeout_allowed(
+    method: DesktopProductControlMethod,
+    timeout: Option<std::time::Duration>,
+) -> bool {
+    let maximum = if method == DesktopProductControlMethod::MintFirstRunExecutionEvidence {
+        // One First Run mint performs the admitted text, STT, and TTS
+        // executions serially. Their Runtime budgets total 255 seconds before
+        // cold activation and carrier overhead, so the Desktop host's bounded
+        // ten-minute deadline must remain admissible end to end.
+        std::time::Duration::from_secs(600)
+    } else {
+        std::time::Duration::from_secs(300)
+    };
+    timeout.is_none_or(|value| !value.is_zero() && value <= maximum)
+}
+
+#[cfg(test)]
+mod desktop_product_control_timeout_tests {
+    use super::*;
+
+    #[test]
+    fn first_run_execution_mint_accepts_the_host_ten_minute_deadline() {
+        assert!(desktop_product_control_timeout_allowed(
+            DesktopProductControlMethod::MintFirstRunExecutionEvidence,
+            Some(std::time::Duration::from_secs(600)),
+        ));
+    }
+
+    #[test]
+    fn ordinary_product_control_methods_keep_the_five_minute_bound() {
+        assert!(!desktop_product_control_timeout_allowed(
+            DesktopProductControlMethod::GetProductControlRecord,
+            Some(std::time::Duration::from_secs(301)),
+        ));
+        assert!(!desktop_product_control_timeout_allowed(
+            DesktopProductControlMethod::MintFirstRunExecutionEvidence,
+            Some(std::time::Duration::from_secs(601)),
+        ));
+        assert!(!desktop_product_control_timeout_allowed(
+            DesktopProductControlMethod::MintFirstRunExecutionEvidence,
+            Some(std::time::Duration::ZERO),
+        ));
     }
 }
 
