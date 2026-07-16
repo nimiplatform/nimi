@@ -97,7 +97,7 @@ test('UAC launcher keeps stream redirection inside the elevated command', () => 
   const source = readFileSync(new URL('./dev-runtime-service.mjs', import.meta.url), 'utf8');
   const outerLauncher = source.slice(source.indexOf('const outerCommand'), source.indexOf('try {', source.indexOf('const outerCommand')));
   assert.doesNotMatch(outerLauncher, /RedirectStandard(?:Output|Error)/u);
-  assert.match(source, /\$output = & .* -DevKernelCheckpoint -Json 2> /u);
+  assert.match(source, /\$output = & powershell\.exe .* -DevKernelCheckpoint -Json 2> /u);
   assert.match(source, /ConvertFrom-Json -ErrorAction Stop/u);
   assert.match(source, /ConvertTo-Json -Depth 20 -Compress/u);
   assert.match(source, /WriteAllText.*UTF8Encoding/u);

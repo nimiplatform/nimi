@@ -143,7 +143,7 @@ function installGeneratedCandidateElevated() {
   const innerCommand = [
     `$ErrorActionPreference = 'Stop'`,
     'try {',
-    `$output = & '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint -Json 2> '${powerShellLiteral(stderrPath)}'`,
+    `$output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint -Json 2> '${powerShellLiteral(stderrPath)}'`,
     '$exitCode = $LASTEXITCODE',
     "if ($exitCode -ne 0) { exit $exitCode }",
     '$raw = ($output | Out-String).Trim()',
