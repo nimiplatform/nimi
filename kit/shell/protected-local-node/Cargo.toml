@@ -16,6 +16,7 @@ default = []
 windows-e2e-fixture = ["nimi-shell-protected-local/windows-e2e-fixture"]
 
 [dependencies]
+base64 = "0.22"
 napi = { version = "3", features = ["napi8", "tokio_rt", "serde-json"] }
 napi-derive = "3"
 nimi-shell-protected-local = { path = "../protected-local" }

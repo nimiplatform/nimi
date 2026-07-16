@@ -109,6 +109,8 @@ export {
   removeNimiLocalAppStorageJson,
   sendNimiLocalAppAgentTurn,
   subscribeNimiLocalAppAgentTurn,
+  subscribeNimiLocalAppAgentVoiceStream,
+  transcribeNimiLocalAppAgentVoice,
   writeNimiLocalAppStorageJson,
 } from './local-app.js';
 export {
@@ -171,6 +173,11 @@ export type {
   NimiLocalAppAgentSubscribeTurnInput,
   NimiLocalAppAgentTurnCarrierEvent,
   NimiLocalAppAgentTurnEventPage,
+  NimiLocalAppAgentSubscribeVoiceStreamInput,
+  NimiLocalAppAgentTranscribeVoiceInput,
+  NimiLocalAppAgentVoiceCarrierEvent,
+  NimiLocalAppAgentVoiceStreamPage,
+  NimiLocalAppAgentVoiceTranscription,
   NimiLocalAppArtifactBytes,
   NimiLocalAppPermissionPostureInput,
   NimiLocalAppSessionStatus,

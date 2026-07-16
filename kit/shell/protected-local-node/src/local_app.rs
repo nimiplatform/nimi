@@ -1,4 +1,6 @@
 use super::*;
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine as _;
 
 #[napi(js_name = "localAppSessionStatus")]
 pub async fn local_app_session_status() -> NativeJsonOutcome {
@@ -198,6 +200,83 @@ pub async fn local_app_agent_get_conversation_snapshot(
             .map(|projection| projection.value)
     })
     .await
+}
+
+#[napi(js_name = "localAppAgentTranscribeVoice")]
+pub async fn local_app_agent_transcribe_voice(
+    input: NativeAgentTranscribeVoiceInput,
+) -> NativeJsonOutcome {
+    let audio = match BASE64_STANDARD.decode(input.audio_base64.as_bytes()) {
+        Ok(audio) => audio,
+        Err(_) => {
+            return NativeJsonOutcome::error(LocalAppOperationError::new(
+                LocalAppReasonCode::InvalidPayload,
+                false,
+            ))
+        }
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_transcribe_voice(LocalAppAgentTranscribeVoiceRequest {
+                agent_id: input.agent_id,
+                client_request_id: input.client_request_id,
+                audio,
+                mime_type: input.mime_type,
+            })
+            .await
+            .map(|result| {
+                json!({
+                    "clientRequestId": result.client_request_id,
+                    "text": result.text,
+                })
+            })
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentSubscribeVoiceStream")]
+pub async fn local_app_agent_subscribe_voice_stream(
+    input: NativeAgentSubscribeVoiceStreamInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_subscribe_voice_stream(LocalAppAgentSubscribeVoiceStreamRequest {
+                agent_id: input.agent_id,
+                conversation_anchor_id: input.conversation_anchor_id,
+                turn_id: input.turn_id,
+                voice_stream_id: input.voice_stream_id,
+                cursor: input.cursor,
+            })
+            .await
+            .map(project_voice_stream_page)
+    })
+    .await
+}
+
+fn project_voice_stream_page(page: LocalAppAgentVoiceStreamPage) -> JsonValue {
+    let events = page
+        .events
+        .into_iter()
+        .map(|event| {
+            json!({
+                "voiceStreamId": event.voice_stream_id,
+                "conversationAnchorId": event.conversation_anchor_id,
+                "turnId": event.turn_id,
+                "streamId": event.stream_id,
+                "messageId": event.message_id,
+                "chunkSequence": event.chunk_sequence.to_string(),
+                "chunkBase64": BASE64_STANDARD.encode(event.chunk),
+                "mimeType": event.mime_type,
+                "voiceOutputMode": event.voice_output_mode,
+                "playbackTarget": event.playback_target,
+                "terminal": event.terminal,
+                "voicePlaybackState": event.voice_playback_state,
+                "terminalReason": event.terminal_reason,
+                "replayTruncated": event.replay_truncated,
+            })
+        })
+        .collect::<Vec<_>>();
+    json!({"cursor": page.cursor, "events": events})
 }
 
 async fn invoke_agent<F, Fut>(operation: F) -> NativeJsonOutcome

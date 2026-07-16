@@ -3,6 +3,7 @@ mod artifact;
 mod permission;
 mod projection;
 mod storage;
+mod voice;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -19,7 +20,9 @@ use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
     LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
     LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
-    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppAgentSubscribeVoiceStreamRequest,
+    LocalAppAgentTranscribeVoiceRequest, LocalAppAgentVoiceStreamPage,
+    LocalAppAgentVoiceTranscription, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
     LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
     LocalAppPermissionRequest, LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
@@ -27,6 +30,7 @@ use crate::{
     NimiLocalAppSession,
 };
 use agent::TurnStreams;
+use voice::VoiceStreams;
 
 #[cfg(not(feature = "windows-e2e-fixture"))]
 const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-local-app-v1";
@@ -45,6 +49,7 @@ struct WindowsLocalAppSession {
     _runtime_peer: VerifiedRuntimePeer,
     _runtime_boot_epoch: [u8; 32],
     turn_streams: TurnStreams,
+    voice_streams: VoiceStreams,
 }
 
 impl NimiLocalAppSession for WindowsLocalAppSession {
@@ -231,6 +236,39 @@ impl NimiLocalAppSession for WindowsLocalAppSession {
             request,
         ))
     }
+
+    fn agent_transcribe_voice(
+        &self,
+        request: LocalAppAgentTranscribeVoiceRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAgentVoiceTranscription, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(voice::transcribe_local_app_agent_voice(
+            self.channel.clone(),
+            request,
+        ))
+    }
+
+    fn agent_subscribe_voice_stream(
+        &self,
+        request: LocalAppAgentSubscribeVoiceStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAgentVoiceStreamPage, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(voice::subscribe_local_app_agent_voice_stream(
+            self.channel.clone(),
+            &self.voice_streams,
+            request,
+        ))
+    }
 }
 
 impl NimiLocalAppCarrier for WindowsLocalAppCarrier {
@@ -275,6 +313,7 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         _runtime_peer: runtime_peer,
         _runtime_boot_epoch: runtime_boot_epoch,
         turn_streams: Mutex::new(std::collections::HashMap::new()),
+        voice_streams: Mutex::new(std::collections::HashMap::new()),
     }))
 }
 

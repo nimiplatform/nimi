@@ -160,6 +160,8 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'agentSendTurn', command: 'nimi.shell.localApp.agent.sendTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
       { id: 'agentSubscribeTurn', command: 'nimi.shell.localApp.agent.subscribeTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
       { id: 'agentGetConversationSnapshot', command: 'nimi.shell.localApp.agent.getConversationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found'] },
+      { id: 'agentTranscribeVoice', command: 'nimi.shell.localApp.agent.transcribeVoice', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'resource-exhausted'] },
+      { id: 'agentSubscribeVoiceStream', command: 'nimi.shell.localApp.agent.subscribeVoiceStream', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found', 'resource-exhausted'] },
     ],
   },
   {
@@ -272,6 +274,8 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'local-app.agentSendTurn',
   'local-app.agentSubscribeTurn',
   'local-app.agentGetConversationSnapshot',
+  'local-app.agentTranscribeVoice',
+  'local-app.agentSubscribeVoiceStream',
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',

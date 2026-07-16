@@ -9,6 +9,7 @@ import { NimiElectronShellHostError } from './types.js';
 
 const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_USER_TEXT_LENGTH = 256 * 1024;
+const MAX_VOICE_AUDIO_BYTES = 8 * 1024 * 1024;
 const FORBIDDEN_RENDERER_FIELDS = new Set([
   'endpoint', 'authorization', 'token', 'localAppPrincipalId', 'localAppRecordId',
   'trustClass', 'provenanceRevision', 'launchLease', 'bootstrap', 'processId',
@@ -28,6 +29,8 @@ const COMMAND_METHODS = new Map<string, keyof NimiElectronLocalAppHost>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn'], 'agentSendTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn'], 'agentSubscribeTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot'], 'agentGetConversationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice'], 'agentTranscribeVoice'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeVoiceStream'], 'agentSubscribeVoiceStream'],
 ]);
 
 export function isElectronLocalAppCommand(command: string): boolean {
@@ -107,7 +110,52 @@ function validatePayload(
       return identifiers(payload, ['agentId', 'conversationAnchorId', 'cursor'], command, new Set(['cursor']));
     case 'agentGetConversationSnapshot':
       return identifiers(payload, ['agentId', 'conversationAnchorId'], command);
+    case 'agentTranscribeVoice': {
+      assertExactKeys(payload, ['agentId', 'clientRequestId', 'audioBase64', 'mimeType'], command);
+      const record = identifiers(
+        payload,
+        ['agentId', 'clientRequestId'],
+        command,
+        new Set(),
+        ['agentId', 'clientRequestId', 'audioBase64', 'mimeType'],
+      );
+      const audioBase64 = canonicalBase64(payload.audioBase64, command, MAX_VOICE_AUDIO_BYTES);
+      const mimeType = admittedAudioMime(payload.mimeType, command);
+      return { ...record, audioBase64, mimeType };
+    }
+    case 'agentSubscribeVoiceStream':
+      return identifiers(
+        payload,
+        ['agentId', 'conversationAnchorId', 'turnId', 'voiceStreamId', 'cursor'],
+        command,
+        new Set(['cursor']),
+      );
   }
+}
+
+function canonicalBase64(value: unknown, command: string, maxBytes: number): string {
+  if (
+    typeof value !== 'string'
+    || value.length === 0
+    || value.length % 4 !== 0
+    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)
+  ) {
+    throw invalidPayload(command, 'audioBase64 is invalid');
+  }
+  const bytes = Buffer.from(value, 'base64');
+  if (bytes.byteLength === 0 || bytes.byteLength > maxBytes || bytes.toString('base64') !== value) {
+    throw invalidPayload(command, 'audioBase64 exceeds the admitted bound');
+  }
+  return value;
+}
+
+function admittedAudioMime(value: unknown, command: string): string {
+  const text = requiredText(value, 'mimeType', command, 128);
+  const base = text.split(';', 1)[0]?.trim().toLowerCase() ?? '';
+  if (!['audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/flac'].includes(base)) {
+    throw invalidPayload(command, 'mimeType is not admitted');
+  }
+  return base;
 }
 
 function identifiers(

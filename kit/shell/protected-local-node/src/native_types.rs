@@ -204,3 +204,20 @@ pub struct NativeAgentConversationSnapshotInput {
     pub agent_id: String,
     pub conversation_anchor_id: String,
 }
+
+#[napi(object)]
+pub struct NativeAgentTranscribeVoiceInput {
+    pub agent_id: String,
+    pub client_request_id: String,
+    pub audio_base64: String,
+    pub mime_type: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentSubscribeVoiceStreamInput {
+    pub agent_id: String,
+    pub conversation_anchor_id: String,
+    pub turn_id: String,
+    pub voice_stream_id: String,
+    pub cursor: String,
+}

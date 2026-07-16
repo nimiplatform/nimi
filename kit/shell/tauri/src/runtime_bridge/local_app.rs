@@ -7,7 +7,9 @@ use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
     LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
     LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
-    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppAgentSubscribeVoiceStreamRequest,
+    LocalAppAgentTranscribeVoiceRequest, LocalAppAgentVoiceStreamPage,
+    LocalAppAgentVoiceTranscription, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
     LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
     LocalAppPermissionRequest, LocalAppReasonCode, LocalAppSessionStatus, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
@@ -199,6 +201,34 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<LocalAppAgentProjection, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.agent_get_conversation_snapshot(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_transcribe_voice(
+        &self,
+        request: LocalAppAgentTranscribeVoiceRequest,
+    ) -> Result<LocalAppAgentVoiceTranscription, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_transcribe_voice(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_subscribe_voice_stream(
+        &self,
+        request: LocalAppAgentSubscribeVoiceStreamRequest,
+    ) -> Result<LocalAppAgentVoiceStreamPage, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_subscribe_voice_stream(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, error).await;

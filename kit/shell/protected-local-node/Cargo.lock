@@ -701,6 +701,7 @@ dependencies = [
 name = "nimi-shell-protected-local-node"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "napi",
  "napi-build",
  "napi-derive",

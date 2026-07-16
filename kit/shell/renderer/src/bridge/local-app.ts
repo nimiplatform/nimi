@@ -8,6 +8,9 @@ const MAX_INLINE_ARTIFACT_BYTES = 32 * 1024 * 1024;
 const MAX_USER_TEXT_LENGTH = 256 * 1024;
 const MAX_STORAGE_PATH_BYTES = 240;
 const MAX_STORAGE_DOCUMENT_BYTES = 256 * 1024;
+const MAX_VOICE_AUDIO_BYTES = 8 * 1024 * 1024;
+const MAX_VOICE_CHUNK_BYTES = 32 * 1024 * 1024;
+const MAX_VOICE_TRANSCRIPT_BYTES = 64 * 1024;
 
 const FORBIDDEN_PROJECTION_KEYS = new Set([
   'endpoint', 'authorization', 'token', 'localappprincipalid', 'localapprecordid',
@@ -73,6 +76,48 @@ export type NimiLocalAppAgentGetConversationSnapshotInput = {
   readonly conversationAnchorId: string;
 };
 
+export type NimiLocalAppAgentTranscribeVoiceInput = {
+  readonly agentId: string;
+  readonly clientRequestId: string;
+  readonly audio: Uint8Array;
+  readonly mimeType: string;
+};
+
+export type NimiLocalAppAgentVoiceTranscription = {
+  readonly clientRequestId: string;
+  readonly text: string;
+};
+
+export type NimiLocalAppAgentSubscribeVoiceStreamInput = {
+  readonly agentId: string;
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly voiceStreamId: string;
+  readonly cursor?: string;
+};
+
+export type NimiLocalAppAgentVoiceCarrierEvent = {
+  readonly voiceStreamId: string;
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly streamId: string;
+  readonly messageId: string;
+  readonly chunkSequence: string;
+  readonly chunkBase64: string;
+  readonly mimeType: string;
+  readonly voiceOutputMode: number;
+  readonly playbackTarget: string;
+  readonly terminal: boolean;
+  readonly voicePlaybackState: number;
+  readonly terminalReason: string;
+  readonly replayTruncated: false;
+};
+
+export type NimiLocalAppAgentVoiceStreamPage = {
+  readonly cursor: string;
+  readonly events: readonly [NimiLocalAppAgentVoiceCarrierEvent];
+};
+
 export type NimiLocalAppAgentTurnCarrierEvent = {
   readonly eventType: number;
   readonly sequence: string;
@@ -112,6 +157,8 @@ export type NimiLocalAppStandardShellSurface = {
     /** Pulls exactly one next correlated event from the native Runtime stream. */
     readonly subscribeTurn: (input: NimiLocalAppAgentSubscribeTurnInput) => Promise<NimiLocalAppAgentTurnEventPage>;
     readonly getConversationSnapshot: (input: NimiLocalAppAgentGetConversationSnapshotInput) => Promise<JsonObject>;
+    readonly transcribeVoice: (input: NimiLocalAppAgentTranscribeVoiceInput) => Promise<NimiLocalAppAgentVoiceTranscription>;
+    readonly subscribeVoiceStream: (input: NimiLocalAppAgentSubscribeVoiceStreamInput) => Promise<NimiLocalAppAgentVoiceStreamPage>;
   };
 };
 
@@ -134,6 +181,8 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       sendTurn: sendNimiLocalAppAgentTurn,
       subscribeTurn: subscribeNimiLocalAppAgentTurn,
       getConversationSnapshot: getNimiLocalAppAgentConversationSnapshot,
+      transcribeVoice: transcribeNimiLocalAppAgentVoice,
+      subscribeVoiceStream: subscribeNimiLocalAppAgentVoiceStream,
     },
   };
 }
@@ -254,6 +303,49 @@ export function getNimiLocalAppAgentConversationSnapshot(
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot'];
   return invokeLocalAppRecord(command, identifiers(input, ['agentId', 'conversationAnchorId'], command));
+}
+
+export function transcribeNimiLocalAppAgentVoice(
+  input: NimiLocalAppAgentTranscribeVoiceInput,
+): Promise<NimiLocalAppAgentVoiceTranscription> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice'];
+  assertExactInputKeys(input, ['agentId', 'clientRequestId', 'audio', 'mimeType'], command);
+  const agentId = requiredText(input.agentId, 'agentId', command, MAX_IDENTIFIER_LENGTH);
+  const clientRequestId = requiredText(input.clientRequestId, 'clientRequestId', command, MAX_IDENTIFIER_LENGTH);
+  if (!(input.audio instanceof Uint8Array) || input.audio.byteLength === 0 || input.audio.byteLength > MAX_VOICE_AUDIO_BYTES) {
+    throw new Error(`${command}: audio is invalid`);
+  }
+  const mimeType = admittedAudioMime(input.mimeType, command);
+  return invokeChecked(
+    command,
+    { payload: { agentId, clientRequestId, audioBase64: encodeBase64(input.audio), mimeType } },
+    (value) => parseVoiceTranscription(value, clientRequestId, command),
+  );
+}
+
+export function subscribeNimiLocalAppAgentVoiceStream(
+  input: NimiLocalAppAgentSubscribeVoiceStreamInput,
+): Promise<NimiLocalAppAgentVoiceStreamPage> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeVoiceStream'];
+  assertExactInputKeys(
+    input,
+    input.cursor === undefined
+      ? ['agentId', 'conversationAnchorId', 'turnId', 'voiceStreamId']
+      : ['agentId', 'conversationAnchorId', 'turnId', 'voiceStreamId', 'cursor'],
+    command,
+  );
+  const normalized = {
+    agentId: requiredText(input.agentId, 'agentId', command, MAX_IDENTIFIER_LENGTH),
+    conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+    turnId: requiredText(input.turnId, 'turnId', command, MAX_IDENTIFIER_LENGTH),
+    voiceStreamId: requiredText(input.voiceStreamId, 'voiceStreamId', command, MAX_IDENTIFIER_LENGTH),
+    cursor: input.cursor === undefined ? '' : optionalText(input.cursor, 'cursor', command, MAX_IDENTIFIER_LENGTH),
+  };
+  return invokeChecked(
+    command,
+    { payload: normalized },
+    (value) => parseVoiceStreamPage(value, normalized, command),
+  );
 }
 
 function invokeLocalAppRecord(command: string, payload: JsonObject): Promise<JsonObject> {
@@ -400,6 +492,141 @@ function parseTurnEventPage(
       timestamp,
     }],
   };
+}
+
+function parseVoiceTranscription(
+  value: unknown,
+  expectedRequestId: string,
+  command: string,
+): NimiLocalAppAgentVoiceTranscription {
+  const record = parseSafeProjection(value, command);
+  assertProjectionKeys(record, ['clientRequestId', 'text'], command, 'voice transcription');
+  const clientRequestId = requiredText(record.clientRequestId, 'clientRequestId', command, MAX_IDENTIFIER_LENGTH);
+  if (clientRequestId !== expectedRequestId || typeof record.text !== 'string') {
+    throw new Error(`${command}: transcription correlation is invalid`);
+  }
+  if (new TextEncoder().encode(record.text).byteLength > MAX_VOICE_TRANSCRIPT_BYTES) {
+    throw new Error(`${command}: transcription exceeds the admitted bound`);
+  }
+  return { clientRequestId, text: record.text };
+}
+
+function parseVoiceStreamPage(
+  value: unknown,
+  input: Required<NimiLocalAppAgentSubscribeVoiceStreamInput>,
+  command: string,
+): NimiLocalAppAgentVoiceStreamPage {
+  const record = parseSafeProjection(value, command);
+  assertProjectionKeys(record, ['cursor', 'events'], command, 'voice event page');
+  const cursor = decimalCursor(record.cursor, command, 'cursor');
+  if (input.cursor && BigInt(cursor) <= BigInt(decimalCursor(input.cursor, command, 'input cursor'))) {
+    throw new Error(`${command}: voice event cursor did not advance`);
+  }
+  if (!Array.isArray(record.events) || record.events.length !== 1) {
+    throw new Error(`${command}: voice event page must contain exactly one event`);
+  }
+  const event = assertRecord(record.events[0], `${command}: voice event is invalid`);
+  assertProjectionKeys(event, [
+    'voiceStreamId', 'conversationAnchorId', 'turnId', 'streamId', 'messageId',
+    'chunkSequence', 'chunkBase64', 'mimeType', 'voiceOutputMode', 'playbackTarget',
+    'terminal', 'voicePlaybackState', 'terminalReason', 'replayTruncated',
+  ], command, 'voice event');
+  const voiceStreamId = requiredText(event.voiceStreamId, 'voiceStreamId', command, MAX_IDENTIFIER_LENGTH);
+  const conversationAnchorId = requiredText(event.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH);
+  const turnId = requiredText(event.turnId, 'turnId', command, MAX_IDENTIFIER_LENGTH);
+  if (
+    voiceStreamId !== input.voiceStreamId
+    || conversationAnchorId !== input.conversationAnchorId
+    || turnId !== input.turnId
+    || event.replayTruncated !== false
+  ) {
+    throw new Error(`${command}: voice event correlation is invalid`);
+  }
+  const terminal = event.terminal;
+  if (typeof terminal !== 'boolean') throw new Error(`${command}: terminal is invalid`);
+  const chunkBase64 = typeof event.chunkBase64 === 'string' ? event.chunkBase64 : '';
+  const chunk = decodeBase64(chunkBase64, command, MAX_VOICE_CHUNK_BYTES, true);
+  const mimeType = canonicalText(event.mimeType, command, 'mimeType');
+  if ((terminal && chunk.byteLength !== 0) || (!terminal && (chunk.byteLength === 0 || !isAdmittedAudioMime(mimeType)))) {
+    throw new Error(`${command}: voice chunk is invalid`);
+  }
+  const voiceOutputMode = positiveEnum(event.voiceOutputMode, 4, command, 'voiceOutputMode');
+  const voicePlaybackState = positiveEnum(event.voicePlaybackState, 5, command, 'voicePlaybackState');
+  const projected: NimiLocalAppAgentVoiceCarrierEvent = {
+    voiceStreamId,
+    conversationAnchorId,
+    turnId,
+    streamId: requiredText(event.streamId, 'streamId', command, MAX_IDENTIFIER_LENGTH),
+    messageId: requiredText(event.messageId, 'messageId', command, MAX_IDENTIFIER_LENGTH),
+    chunkSequence: decimalCursor(event.chunkSequence, command, 'chunkSequence'),
+    chunkBase64,
+    mimeType,
+    voiceOutputMode,
+    playbackTarget: canonicalText(event.playbackTarget, command, 'playbackTarget'),
+    terminal,
+    voicePlaybackState,
+    terminalReason: canonicalText(event.terminalReason, command, 'terminalReason'),
+    replayTruncated: false,
+  };
+  return { cursor, events: [projected] };
+}
+
+function positiveEnum(value: unknown, max: number, command: string, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > max) {
+    throw new Error(`${command}: ${field} is invalid`);
+  }
+  return value;
+}
+
+function admittedAudioMime(value: unknown, command: string): string {
+  const text = requiredText(value, 'mimeType', command, 128);
+  const base = text.split(';', 1)[0]?.trim().toLowerCase() ?? '';
+  if (!isAdmittedAudioMime(base)) throw new Error(`${command}: mimeType is not admitted`);
+  return base;
+}
+
+function isAdmittedAudioMime(value: string): boolean {
+  return ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/flac'].includes(value);
+}
+
+function encodeBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.byteLength; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.byteLength)));
+  }
+  return btoa(binary);
+}
+
+function decodeBase64(
+  value: string,
+  command: string,
+  maxBytes: number,
+  allowEmpty = false,
+): Uint8Array {
+  if (
+    (!allowEmpty && value.length === 0)
+    || value.length % 4 !== 0
+    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)
+  ) {
+    throw new Error(`${command}: base64 payload is invalid`);
+  }
+  let binary: string;
+  try {
+    binary = atob(value);
+  } catch {
+    throw new Error(`${command}: base64 payload is invalid`);
+  }
+  if (binary.length > maxBytes) throw new Error(`${command}: byte payload exceeds the admitted bound`);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  if (encodeBase64(bytes) !== value) throw new Error(`${command}: base64 payload is not canonical`);
+  return bytes;
+}
+
+function assertExactInputKeys(value: object, keys: readonly string[], command: string): void {
+  if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify([...keys].sort())) {
+    throw new Error(`${command}: input fields are invalid`);
+  }
 }
 
 function assertProjectionKeys(

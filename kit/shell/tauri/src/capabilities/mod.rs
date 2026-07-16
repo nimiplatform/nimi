@@ -701,6 +701,23 @@ pub mod local_app {
         crate::standard_local_app::agent_get_conversation_snapshot_for_host(host.inner(), payload)
             .await
     }
+
+    #[tauri::command]
+    pub async fn local_app_agent_transcribe_voice(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_transcribe_voice_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_subscribe_voice_stream(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_subscribe_voice_stream_for_host(host.inner(), payload)
+            .await
+    }
 }
 
 pub mod floating_window {

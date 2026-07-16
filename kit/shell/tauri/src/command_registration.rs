@@ -70,6 +70,17 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_agent_transcribe_voice",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_transcribe_voice",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_subscribe_voice_stream",
+        rust_path:
+            "nimi_shell_tauri::capabilities::local_app::local_app_agent_subscribe_voice_stream",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "storage_read_json",
         rust_path: "nimi_shell_tauri::capabilities::storage::storage_read_json",
         boundary: ShellCommandBoundary::LocalApp,
@@ -449,6 +460,8 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_agent_send_turn,
             $crate::capabilities::local_app::local_app_agent_subscribe_turn,
             $crate::capabilities::local_app::local_app_agent_get_conversation_snapshot,
+            $crate::capabilities::local_app::local_app_agent_transcribe_voice,
+            $crate::capabilities::local_app::local_app_agent_subscribe_voice_stream,
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,

@@ -3,9 +3,10 @@ use base64::Engine as _;
 use nimi_shell_protected_local::{
     LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
     LocalAppAgentOpenConversationRequest, LocalAppAgentSendTurnRequest,
-    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactReadRequest, LocalAppOperationError,
-    LocalAppPermissionPostureRequest, LocalAppPermissionRequest, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppAgentSubscribeVoiceStreamRequest,
+    LocalAppAgentTranscribeVoiceRequest, LocalAppAgentVoiceStreamPage, LocalAppArtifactReadRequest,
+    LocalAppOperationError, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -14,6 +15,7 @@ use crate::runtime_bridge::RuntimeBridgeLocalAppHost;
 
 const MAX_IDENTIFIER_LENGTH: usize = 512;
 const MAX_USER_TEXT_LENGTH: usize = 256 * 1024;
+const MAX_VOICE_AUDIO_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -85,6 +87,26 @@ pub struct LocalAppAgentSubscribeTurnPayload {
 pub struct LocalAppAgentConversationSnapshotPayload {
     agent_id: String,
     conversation_anchor_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentTranscribeVoicePayload {
+    agent_id: String,
+    client_request_id: String,
+    audio_base64: String,
+    mime_type: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentSubscribeVoiceStreamPayload {
+    agent_id: String,
+    conversation_anchor_id: String,
+    turn_id: String,
+    voice_stream_id: String,
+    #[serde(default)]
+    cursor: String,
 }
 
 pub async fn session_status_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<Value, String> {
@@ -348,6 +370,142 @@ pub async fn agent_get_conversation_snapshot_for_host(
         .await
         .map(|projection| projection.value)
         .map_err(map_local_app_error)
+}
+
+pub async fn agent_transcribe_voice_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentTranscribeVoicePayload =
+        parse_payload(payload, "local_app_agent_transcribe_voice")?;
+    let audio = decode_canonical_base64(
+        &payload.audio_base64,
+        MAX_VOICE_AUDIO_BYTES,
+        "local_app_agent_transcribe_voice",
+    )?;
+    let request = LocalAppAgentTranscribeVoiceRequest {
+        agent_id: required_text(
+            payload.agent_id,
+            MAX_IDENTIFIER_LENGTH,
+            "local_app_agent_transcribe_voice",
+        )?,
+        client_request_id: required_text(
+            payload.client_request_id,
+            MAX_IDENTIFIER_LENGTH,
+            "local_app_agent_transcribe_voice",
+        )?,
+        audio,
+        mime_type: admitted_audio_mime(payload.mime_type, "local_app_agent_transcribe_voice")?,
+    };
+    host.agent_transcribe_voice(request)
+        .await
+        .map(|result| {
+            json!({
+                "clientRequestId": result.client_request_id,
+                "text": result.text,
+            })
+        })
+        .map_err(map_local_app_error)
+}
+
+pub async fn agent_subscribe_voice_stream_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentSubscribeVoiceStreamPayload =
+        parse_payload(payload, "local_app_agent_subscribe_voice_stream")?;
+    let request = LocalAppAgentSubscribeVoiceStreamRequest {
+        agent_id: required_text(
+            payload.agent_id,
+            MAX_IDENTIFIER_LENGTH,
+            "local_app_agent_subscribe_voice_stream",
+        )?,
+        conversation_anchor_id: required_text(
+            payload.conversation_anchor_id,
+            MAX_IDENTIFIER_LENGTH,
+            "local_app_agent_subscribe_voice_stream",
+        )?,
+        turn_id: required_text(
+            payload.turn_id,
+            MAX_IDENTIFIER_LENGTH,
+            "local_app_agent_subscribe_voice_stream",
+        )?,
+        voice_stream_id: required_text(
+            payload.voice_stream_id,
+            MAX_IDENTIFIER_LENGTH,
+            "local_app_agent_subscribe_voice_stream",
+        )?,
+        cursor: optional_text(
+            payload.cursor,
+            MAX_IDENTIFIER_LENGTH,
+            "local_app_agent_subscribe_voice_stream",
+        )?,
+    };
+    host.agent_subscribe_voice_stream(request)
+        .await
+        .map(project_voice_stream_page)
+        .map_err(map_local_app_error)
+}
+
+fn project_voice_stream_page(page: LocalAppAgentVoiceStreamPage) -> Value {
+    let events = page
+        .events
+        .into_iter()
+        .map(|event| {
+            json!({
+                "voiceStreamId": event.voice_stream_id,
+                "conversationAnchorId": event.conversation_anchor_id,
+                "turnId": event.turn_id,
+                "streamId": event.stream_id,
+                "messageId": event.message_id,
+                "chunkSequence": event.chunk_sequence.to_string(),
+                "chunkBase64": BASE64_STANDARD.encode(event.chunk),
+                "mimeType": event.mime_type,
+                "voiceOutputMode": event.voice_output_mode,
+                "playbackTarget": event.playback_target,
+                "terminal": event.terminal,
+                "voicePlaybackState": event.voice_playback_state,
+                "terminalReason": event.terminal_reason,
+                "replayTruncated": event.replay_truncated,
+            })
+        })
+        .collect::<Vec<_>>();
+    json!({"cursor": page.cursor, "events": events})
+}
+
+fn decode_canonical_base64(
+    value: &str,
+    max_bytes: usize,
+    command: &str,
+) -> Result<Vec<u8>, String> {
+    if value.is_empty() || value.len() % 4 != 0 {
+        return Err(invalid_payload(command));
+    }
+    let decoded = BASE64_STANDARD
+        .decode(value.as_bytes())
+        .map_err(|_| invalid_payload(command))?;
+    if decoded.is_empty() || decoded.len() > max_bytes || BASE64_STANDARD.encode(&decoded) != value
+    {
+        return Err(invalid_payload(command));
+    }
+    Ok(decoded)
+}
+
+fn admitted_audio_mime(value: String, command: &str) -> Result<String, String> {
+    let value = required_text(value, 128, command)?;
+    let base = value
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    if !matches!(
+        base.as_str(),
+        "audio/webm" | "audio/ogg" | "audio/wav" | "audio/mpeg" | "audio/mp4" | "audio/flac"
+    ) {
+        return Err(invalid_payload(command));
+    }
+    Ok(base)
 }
 
 fn parse_payload<T: for<'de> Deserialize<'de>>(payload: Value, command: &str) -> Result<T, String> {

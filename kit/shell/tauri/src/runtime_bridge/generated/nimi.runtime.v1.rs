@@ -22233,6 +22233,26 @@ pub struct SubscribeAgentVoiceStreamRequest {
     pub conversation_anchor_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TranscribeLocalAppAgentAudioRequest {
+    #[prost(string, tag = "1")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub client_request_id: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "3")]
+    pub audio: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "4")]
+    pub mime_type: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TranscribeLocalAppAgentAudioResponse {
+    #[prost(string, tag = "1")]
+    pub client_request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub transcript: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InterruptAgentVoicePlaybackRequest {
@@ -25595,6 +25615,35 @@ pub mod runtime_agent_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn transcribe_local_app_agent_audio(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TranscribeLocalAppAgentAudioRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::TranscribeLocalAppAgentAudioResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "TranscribeLocalAppAgentAudio",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn subscribe_agent_voice_stream(
             &mut self,

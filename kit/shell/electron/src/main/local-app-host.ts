@@ -15,6 +15,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAgentSendTurn',
   'localAppAgentSubscribeTurn',
   'localAppAgentGetConversationSnapshot',
+  'localAppAgentTranscribeVoice',
+  'localAppAgentSubscribeVoiceStream',
 ] as const;
 
 const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
@@ -93,6 +95,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAgentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentSubscribeTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentGetConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentTranscribeVoice: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentSubscribeVoiceStream: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
 };
 
 export type NimiElectronLocalAppHost = {
@@ -108,6 +112,8 @@ export type NimiElectronLocalAppHost = {
   readonly agentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentSubscribeTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentGetConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentTranscribeVoice: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentSubscribeVoiceStream: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
 };
 
 export class NimiElectronLocalAppHostError extends Error {
@@ -173,6 +179,14 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentGetConversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentGetConversationSnapshot(input));
   }
+
+  agentTranscribeVoice(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeVoiceTranscription(() => this.binding.localAppAgentTranscribeVoice(input), input);
+  }
+
+  agentSubscribeVoiceStream(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeVoiceStreamPage(() => this.binding.localAppAgentSubscribeVoiceStream(input), input);
+  }
 }
 
 class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
@@ -229,6 +243,14 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   agentGetConversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentGetConversationSnapshot(input);
+  }
+
+  agentTranscribeVoice(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentTranscribeVoice(input);
+  }
+
+  agentSubscribeVoiceStream(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentSubscribeVoiceStream(input);
   }
 }
 
@@ -311,6 +333,78 @@ async function invokeStorageRemove(call: () => Promise<NativeLocalAppOutcome>): 
   return Object.freeze({ removed: value.removed });
 }
 
+async function invokeVoiceTranscription(
+  call: () => Promise<NativeLocalAppOutcome>,
+  input: NimiElectronLocalAppRecord,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['clientRequestId', 'text'])) {
+    throw untrustedRuntimeError();
+  }
+  const clientRequestId = typeof value.clientRequestId === 'string' ? value.clientRequestId : '';
+  if (
+    clientRequestId !== input.clientRequestId
+    || typeof value.text !== 'string'
+    || Buffer.byteLength(value.text, 'utf8') > 64 * 1024
+  ) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({ clientRequestId, text: value.text });
+}
+
+async function invokeVoiceStreamPage(
+  call: () => Promise<NativeLocalAppOutcome>,
+  input: NimiElectronLocalAppRecord,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['cursor', 'events'])) throw untrustedRuntimeError();
+  const cursor = decimalText(value.cursor);
+  const previousCursor = input.cursor === '' ? undefined : decimalText(input.cursor);
+  if (!cursor || (previousCursor !== undefined && BigInt(cursor) <= BigInt(previousCursor))) {
+    throw untrustedRuntimeError();
+  }
+  if (!Array.isArray(value.events) || value.events.length !== 1) throw untrustedRuntimeError();
+  const event = value.events[0];
+  const eventKeys = [
+    'voiceStreamId', 'conversationAnchorId', 'turnId', 'streamId', 'messageId',
+    'chunkSequence', 'chunkBase64', 'mimeType', 'voiceOutputMode', 'playbackTarget',
+    'terminal', 'voicePlaybackState', 'terminalReason', 'replayTruncated',
+  ];
+  if (!isPlainRecord(event) || !hasExactKeys(event, eventKeys)) throw untrustedRuntimeError();
+  if (
+    event.voiceStreamId !== input.voiceStreamId
+    || event.conversationAnchorId !== input.conversationAnchorId
+    || event.turnId !== input.turnId
+    || !canonicalText(event.streamId)
+    || !canonicalText(event.messageId)
+    || !decimalText(event.chunkSequence)
+    || typeof event.chunkBase64 !== 'string'
+    || typeof event.mimeType !== 'string'
+    || typeof event.voiceOutputMode !== 'number'
+    || !Number.isInteger(event.voiceOutputMode)
+    || Number(event.voiceOutputMode) < 1
+    || Number(event.voiceOutputMode) > 4
+    || typeof event.playbackTarget !== 'string'
+    || event.playbackTarget.trim() !== event.playbackTarget
+    || typeof event.terminal !== 'boolean'
+    || typeof event.voicePlaybackState !== 'number'
+    || !Number.isInteger(event.voicePlaybackState)
+    || Number(event.voicePlaybackState) < 1
+    || Number(event.voicePlaybackState) > 5
+    || typeof event.terminalReason !== 'string'
+    || event.terminalReason.trim() !== event.terminalReason
+    || event.replayTruncated !== false
+  ) {
+    throw untrustedRuntimeError();
+  }
+  const chunk = decodeCanonicalBase64(event.chunkBase64, 32 * 1024 * 1024);
+  if ((event.terminal && chunk.byteLength !== 0) || (!event.terminal && chunk.byteLength === 0)) {
+    throw untrustedRuntimeError();
+  }
+  if (!event.terminal && !isAdmittedAudioMime(event.mimeType)) throw untrustedRuntimeError();
+  return Object.freeze({ cursor, events: [Object.freeze({ ...event })] }) as NimiElectronLocalAppRecord;
+}
+
 function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {
   budget.nodes += 1;
   if (depth > 32 || budget.nodes > 100_000) throw untrustedRuntimeError();
@@ -328,6 +422,31 @@ function validateProjection(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value)) throw untrustedRuntimeError();
   validateProjectionValue(value);
   return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
+}
+
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+}
+
+function canonicalText(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 && value.trim() === value ? value : undefined;
+}
+
+function decimalText(value: unknown): string | undefined {
+  return typeof value === 'string' && /^(?:0|[1-9]\d*)$/u.test(value) ? value : undefined;
+}
+
+function decodeCanonicalBase64(value: string, maxBytes: number): Buffer {
+  if (value.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)) {
+    throw untrustedRuntimeError();
+  }
+  const bytes = Buffer.from(value, 'base64');
+  if (bytes.byteLength > maxBytes || bytes.toString('base64') !== value) throw untrustedRuntimeError();
+  return bytes;
+}
+
+function isAdmittedAudioMime(value: string): boolean {
+  return ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/flac'].includes(value);
 }
 
 function validateProjectionValue(value: unknown): void {

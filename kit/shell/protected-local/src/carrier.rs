@@ -236,6 +236,53 @@ pub struct LocalAppAgentConversationSnapshotRequest {
     pub conversation_anchor_id: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentTranscribeVoiceRequest {
+    pub agent_id: String,
+    pub client_request_id: String,
+    pub audio: Vec<u8>,
+    pub mime_type: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentVoiceTranscription {
+    pub client_request_id: String,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentSubscribeVoiceStreamRequest {
+    pub agent_id: String,
+    pub conversation_anchor_id: String,
+    pub turn_id: String,
+    pub voice_stream_id: String,
+    pub cursor: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentVoiceStreamEvent {
+    pub voice_stream_id: String,
+    pub conversation_anchor_id: String,
+    pub turn_id: String,
+    pub stream_id: String,
+    pub message_id: String,
+    pub chunk_sequence: u64,
+    pub chunk: Vec<u8>,
+    pub mime_type: String,
+    pub voice_output_mode: i32,
+    pub playback_target: String,
+    pub terminal: bool,
+    pub voice_playback_state: i32,
+    pub terminal_reason: String,
+    pub replay_truncated: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentVoiceStreamPage {
+    pub cursor: String,
+    pub events: Vec<LocalAppAgentVoiceStreamEvent>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAgentProjection {
     pub value: JsonValue,
@@ -570,6 +617,28 @@ pub trait NimiLocalAppSession: Send + Sync {
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn agent_transcribe_voice(
+        &self,
+        request: LocalAppAgentTranscribeVoiceRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAgentVoiceTranscription, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn agent_subscribe_voice_stream(
+        &self,
+        request: LocalAppAgentSubscribeVoiceStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAgentVoiceStreamPage, LocalAppOperationError>>
                 + Send
                 + '_,
         >,

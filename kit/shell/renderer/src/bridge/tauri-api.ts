@@ -75,6 +75,8 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn']]: 'local_app_agent_send_turn',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn']]: 'local_app_agent_subscribe_turn',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot']]: 'local_app_agent_get_conversation_snapshot',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice']]: 'local_app_agent_transcribe_voice',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeVoiceStream']]: 'local_app_agent_subscribe_voice_stream',
   [NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']]: 'local_agent_identity',
   [NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']]: 'local_agent_runtime_trusted_caller',
   [NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']]: 'avatar_asset_resolve',

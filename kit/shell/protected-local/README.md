@@ -13,7 +13,9 @@ Runtime signer, performs the request-empty `OpenLocalAppSession`, and retains
 the verified process, executable, channel, and Runtime boot epoch privately.
 Its complete admitted operation surface is session status, permission posture,
 Runtime artifact bytes, three protected principal-partitioned JSON storage
-operations, and the selected RuntimeAgent conversation operations.
+operations, the selected RuntimeAgent conversation operations, bounded
+Runtime-selected agent voice transcription, and exact correlated agent voice
+stream subscription.
 
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,

@@ -47,8 +47,10 @@ pub use adapters::{
 pub use carrier::{
     LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
     LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
-    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
-    LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
+    LocalAppAgentSubscribeTurnRequest, LocalAppAgentSubscribeVoiceStreamRequest,
+    LocalAppAgentTranscribeVoiceRequest, LocalAppAgentVoiceStreamEvent,
+    LocalAppAgentVoiceStreamPage, LocalAppAgentVoiceTranscription, LocalAppArtifactBytes,
+    LocalAppArtifactReadRequest, LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
     LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
     LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
     LocalAppPermissionState, LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
