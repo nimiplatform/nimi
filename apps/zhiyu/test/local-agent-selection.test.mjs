@@ -72,8 +72,9 @@ test('does not promote bare Runtime inventory without bounded materialization st
   assert.equal(selected.ownerUserId, 'user-1');
   assert.equal(selected.runtimeSourceRef, 'opaque-source-ref-1');
   assert.equal(selected.localAgentRef, null);
-  assert.equal(selected.actionHint, 'refresh_runtime_local_agent_inventory');
+  assert.equal(selected.actionHint, 'desktop_open_select_partner');
   assert.match(selected.message, /source snapshot is not ready/);
+  assert.match(selected.message, /Desktop Explore/);
 });
 
 test('auto-selects the only inventory item only when bounded source status is ready', async () => {

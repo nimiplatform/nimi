@@ -55,7 +55,28 @@ test('Zhiyu desktop_open_select_partner reports running-only not-running honestl
   assert.equal(result.state, 'rejected');
   assert.equal(result.reasonCode, 'desktop-open-desktop-not-running');
   assert.equal(result.actionHint, 'open_desktop_first');
-  assert.match(result.message, /不会尝试冷启动 Desktop/);
+  assert.match(result.message, /不会代替你启动桌面端/);
+});
+
+test('Zhiyu desktop_open_select_partner keeps host exception details in diagnostics only', async () => {
+  const module = await importDesktopOpenActionModule();
+  const failure = Object.assign(
+    new Error('Electron standard shell does not admit command: nimi.shell.desktopOpen.openIntent'),
+    {
+      reasonCode: 'renderer-standard-shell-host-unavailable',
+      actionHint: 'open_desktop_manually',
+    },
+  );
+
+  const result = await module.requestZhiyuDesktopOpenSelectPartner(async () => {
+    throw failure;
+  });
+
+  assert.equal(result.state, 'failed');
+  assert.equal(result.reasonCode, 'renderer-standard-shell-host-unavailable');
+  assert.equal(result.actionHint, 'open_desktop_manually');
+  assert.match(result.message, /手动打开桌面端「探索」页/);
+  assert.doesNotMatch(result.message, /Electron|standard shell|command|nimi\.shell/u);
 });
 
 test('Zhiyu desktop-open mapping covers partner, connector, and model gaps', async () => {

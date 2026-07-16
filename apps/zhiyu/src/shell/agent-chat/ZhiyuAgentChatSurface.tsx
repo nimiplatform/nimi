@@ -1,4 +1,7 @@
 import {
+  Button,
+  EmptyState,
+  InlineAlert,
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
@@ -10,7 +13,9 @@ import {
   ChatStreamStatus,
 } from '@nimiplatform/kit/features/chat/ui';
 import {
+  AlertTriangle,
   ChevronRight,
+  RefreshCw,
   ShieldCheck,
   X,
 } from 'lucide-react';
@@ -62,6 +67,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onStopChat: () => void;
   readonly onVoiceCaptureToggle: () => Promise<void> | void;
   readonly onSelectLocalAgent: (localAgentRef: string) => void;
+  readonly onRefreshLocalAgentInventory: () => void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
@@ -79,6 +85,7 @@ export function ZhiyuAgentChatSurface({
   onStopChat,
   onVoiceCaptureToggle,
   onSelectLocalAgent,
+  onRefreshLocalAgentInventory,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
@@ -86,6 +93,8 @@ export function ZhiyuAgentChatSurface({
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
+  const localAgentSourceNotReady = !hasCurrentPartner
+    && evidence.localAgent.reasonCode === 'zhiyu-runtime-local-agent-source-not-ready';
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
@@ -93,14 +102,84 @@ export function ZhiyuAgentChatSurface({
   const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const emptyTitle = hasCurrentPartner
     ? '开始一段对话'
+    : localAgentSourceNotReady
+      ? '伙伴资料尚未就绪'
     : hasLocalPartners
       ? '选择一位本地伙伴，开始对话'
       : '还没有本地伙伴';
   const emptyDescription = hasCurrentPartner
     ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。'
+    : localAgentSourceNotReady
+      ? '这个伙伴的来源资料还没有准备完成，暂时不能开始对话。请到 Nimi 桌面端继续选择伙伴来源，完成后回到这里重新检查。'
     : hasLocalPartners
       ? '如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色。'
       : '从世界中选择一位角色加入本地后，就可以和他开始对话。';
+  const sourceNotReadyEmptyState = localAgentSourceNotReady ? (
+    <EmptyState
+      className="zhiyu-source-not-ready-empty"
+      data-zhiyu-source-not-ready-empty="true"
+      data-zhiyu-source-not-ready-reason={evidence.localAgent.reasonCode}
+      data-zhiyu-source-not-ready-action-hint={evidence.localAgent.actionHint}
+      icon={<AlertTriangle size={20} aria-hidden="true" />}
+      title="伙伴资料尚未就绪"
+      description={(
+        <div className="zhiyu-source-not-ready-empty__description">
+          <p>这个伙伴的来源资料还没有准备完成，暂时不能开始对话。请到 Nimi 桌面端继续选择伙伴来源，完成后回到这里重新检查。</p>
+          {desktopOpenResult ? (
+            <InlineAlert
+              tone={desktopOpenResult.state === 'accepted' ? 'info' : 'warning'}
+              className="zhiyu-source-not-ready-empty__handoff"
+              data-zhiyu-source-not-ready-handoff-state={desktopOpenResult.state}
+            >
+              {desktopOpenResult.message}
+            </InlineAlert>
+          ) : null}
+          <details className="zhiyu-source-not-ready-empty__diagnostics">
+            <summary>查看诊断信息</summary>
+            <dl>
+              <div>
+                <dt>原因</dt>
+                <dd><code data-zhiyu-source-not-ready-diagnostic="reason-code">{evidence.localAgent.reasonCode}</code></dd>
+              </div>
+              <div>
+                <dt>下一步</dt>
+                <dd><code data-zhiyu-source-not-ready-diagnostic="action-hint">{evidence.localAgent.actionHint}</code></dd>
+              </div>
+            </dl>
+          </details>
+        </div>
+      )}
+      action={(
+        <div className="zhiyu-source-not-ready-empty__actions">
+          <Button
+            tone="primary"
+            size="sm"
+            loading={desktopOpenPending}
+            trailingIcon={<ChevronRight size={16} aria-hidden="true" />}
+            data-zhiyu-source-not-ready-action="desktop-open-select-partner"
+            data-zhiyu-desktop-open-action="desktop_open_select_partner"
+            onClick={() => {
+              void handleDesktopOpenSelectPartner();
+            }}
+          >
+            去桌面端继续准备
+          </Button>
+          <Button
+            tone="secondary"
+            size="sm"
+            leadingIcon={<RefreshCw size={16} aria-hidden="true" />}
+            data-zhiyu-source-not-ready-action="refresh-runtime-inventory"
+            onClick={() => {
+              setDesktopOpenResult(null);
+              onRefreshLocalAgentInventory();
+            }}
+          >
+            重新检查
+          </Button>
+        </div>
+      )}
+    />
+  ) : null;
   const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners ? (
     <section
       className="zhiyu-no-local-partner-empty"
@@ -304,6 +383,7 @@ export function ZhiyuAgentChatSurface({
             itemKey: agent.localAgentRef,
             localAgentRef: agent.localAgentRef,
             displayName: agent.displayName,
+            sourceReady: agent.sourceReady,
           }))}
           currentLocalAgentRef={evidence.localAgent.localAgentRef}
           currentPartnerName={currentPartnerName}
@@ -346,7 +426,7 @@ export function ZhiyuAgentChatSurface({
                 emptyEyebrow="ZHIYU"
                 emptyTitle={emptyTitle}
                 emptyDescription={emptyDescription}
-                content={noLocalPartnerEmptyState}
+                content={sourceNotReadyEmptyState ?? noLocalPartnerEmptyState}
                 footerContent={chatFooter}
                 widthClassName="w-full max-w-none"
                 widthPositionClassName="mx-0"
@@ -372,7 +452,7 @@ export function ZhiyuAgentChatSurface({
                 text={draft}
                 onTextChange={onDraftChange}
                 disabled={chatDisabled}
-                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
+                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : localAgentSourceNotReady ? '伙伴资料准备完成后开始聊天...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
                 runtimeHint={chatRuntimeHint}
                 modelLabel={<span>{modelConfigLabel}</span>}
                 sendHint={evidence.chat.state === 'streaming' ? '回复中' : undefined}

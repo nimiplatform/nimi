@@ -12,6 +12,7 @@ type DesktopPresenceRailProps = {
     readonly itemKey: string;
     readonly localAgentRef: string | null;
     readonly displayName?: string | null;
+    readonly sourceReady: boolean;
   }[];
   readonly currentLocalAgentRef: string | null;
   readonly currentPartnerName: string;
@@ -54,12 +55,14 @@ export function DesktopPresenceRail({
         {agents.map((agent) => {
           const displayName = normalizedDisplayName(agent.displayName) ?? currentPartnerName;
           const isCurrent = hasCurrentPartner && agent.localAgentRef === currentLocalAgentRef;
-          const canSelect = Boolean(agent.localAgentRef) && !isCurrent;
+          const sourceReady = agent.sourceReady === true;
+          const canSelect = Boolean(agent.localAgentRef) && sourceReady && !isCurrent;
           return (
             <div
               key={agent.localAgentRef ?? agent.itemKey}
-              className="zhiyu-agent-rail__agent-row"
+              className={`zhiyu-agent-rail__agent-row${sourceReady ? '' : ' is-unavailable'}`}
               data-zhiyu-local-agent-row="true"
+              data-zhiyu-local-agent-source-ready={String(sourceReady)}
             >
               <span
                 className={`zhiyu-agent-rail__agent-indicator${isCurrent ? ' is-active' : ''}`}
@@ -67,12 +70,14 @@ export function DesktopPresenceRail({
               />
               <button
                 type="button"
-                className={`zhiyu-agent-rail__agent${isCurrent ? ' is-active' : ''}`}
-                aria-label={isCurrent ? `当前伙伴：${displayName}` : `选择伙伴：${displayName}`}
-                title={displayName}
+                className={`zhiyu-agent-rail__agent${isCurrent ? ' is-active' : ''}${sourceReady ? '' : ' is-unavailable'}`}
+                aria-label={isCurrent ? `当前伙伴：${displayName}` : sourceReady ? `选择伙伴：${displayName}` : `伙伴资料尚未就绪：${displayName}`}
+                title={sourceReady ? displayName : `${displayName} · 资料尚未就绪`}
                 data-zhiyu-local-agent-candidate="true"
                 data-zhiyu-local-agent-candidate-active={String(isCurrent)}
+                data-zhiyu-local-agent-candidate-ready={String(sourceReady)}
                 data-zhiyu-local-agent-ref={agent.localAgentRef ?? ''}
+                disabled={!agent.localAgentRef || !sourceReady}
                 onClick={() => {
                   if (canSelect && agent.localAgentRef) {
                     onSelectLocalAgent(agent.localAgentRef);

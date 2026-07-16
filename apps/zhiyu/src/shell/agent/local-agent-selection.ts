@@ -38,9 +38,9 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
     if (selected) {
       return localAgentUnavailable({
         reasonCode: 'zhiyu-runtime-local-agent-source-not-ready',
-        actionHint: 'refresh_runtime_local_agent_inventory',
+        actionHint: 'desktop_open_select_partner',
         source: 'runtime',
-        message: 'The selected Runtime LocalAgent source snapshot is not ready.',
+        message: 'The selected Runtime LocalAgent source snapshot is not ready. Continue source selection in Desktop Explore, then refresh the Runtime inventory.',
         ownerUserId: selected.ownerUserId,
         runtimeSourceRef: selected.runtimeSourceRef,
       });
@@ -78,9 +78,9 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   }
   return localAgentUnavailable({
     reasonCode: 'zhiyu-runtime-local-agent-source-not-ready',
-    actionHint: 'refresh_runtime_local_agent_inventory',
+    actionHint: 'desktop_open_select_partner',
     source: 'runtime',
-    message: 'The Runtime LocalAgent source snapshot is not ready.',
+    message: 'The Runtime LocalAgent source snapshot is not ready. Continue source selection in Desktop Explore, then refresh the Runtime inventory.',
     ownerUserId: only?.ownerUserId ?? input.inventory.ownerUserId,
     runtimeSourceRef: only?.runtimeSourceRef ?? null,
   });

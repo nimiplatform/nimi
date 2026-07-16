@@ -123,7 +123,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     width: isLocalDevelopmentBuild ? 1060 : 1280,
     height: isLocalDevelopmentBuild ? 780 : 860,
-    minWidth: isLocalDevelopmentBuild ? 360 : 980,
+    minWidth: 360,
     minHeight: isLocalDevelopmentBuild ? 640 : 720,
     icon: windowIconPath,
     title: isLocalDevelopmentBuild ? '知语 · 开发内核联调' : '织羽 Zhiyu',

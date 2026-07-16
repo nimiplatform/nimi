@@ -629,6 +629,17 @@ test('Electron window uses the Zhiyu logo asset for its taskbar icon', async () 
   assert.match(bundleScript, /copyFile\([\s\S]*?'app-icon\.png'[\s\S]*?electronDistRoot, 'app-icon\.png'/);
 });
 
+test('bundled Electron window admits the real narrow responsive layout', async () => {
+  const electronMainSource = await readFile(path.join(appRoot, 'src-electron', 'main.ts'), 'utf8');
+
+  assert.match(electronMainSource, /minWidth:\s*360,/);
+  assert.doesNotMatch(
+    electronMainSource,
+    /minWidth:\s*isLocalDevelopmentBuild\s*\?\s*360\s*:\s*980/,
+    'the zero-parameter product shell must not make its <= 640px responsive layout unreachable',
+  );
+});
+
 test('Desktop contacts rail keeps compact density inside the left presence rail', async () => {
   const railSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentPanel.tsx'), 'utf8');
   const css = await readFile(path.join(appRoot, 'src', 'shell', 'app', 'home-surface.css'), 'utf8');
@@ -637,7 +648,7 @@ test('Desktop contacts rail keeps compact density inside the left presence rail'
   assert.match(railSource, /data-zhiyu-relationship-rail-density="desktop"/);
   assert.match(railSource, /data-zhiyu-relationship-rail-source="desktop-chat-relationship-rail"/);
   assert.match(railSource, /data-zhiyu-settings-entry="presence-rail"/);
-  assert.match(railSource, /className="zhiyu-agent-rail__agent-row"/);
+  assert.match(railSource, /className=\{`zhiyu-agent-rail__agent-row/);
   assert.doesNotMatch(railSource, /data-zhiyu-model-config-entry="rail"/);
   assert.doesNotMatch(railSource, /data-zhiyu-diagnostics-entry="rail"/);
   assert.doesNotMatch(railSource, /data-zhiyu-avatar-launch-entry=\{avatarLaunchAction\.state\}/);

@@ -89,7 +89,7 @@ export async function requestZhiyuDesktopOpenSelectPartner(
         actionId: ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION,
         reasonCode: 'desktop-open-accepted',
         actionHint: 'wait_for_desktop_explore',
-        message: 'Desktop Explore 已接收请求，请在 Desktop 中选择伙伴。',
+        message: 'Nimi 桌面端已接收请求，请在「探索」中选择伙伴。',
       };
     }
     return projectRejectedDesktopOpenResult(result);
@@ -114,34 +114,31 @@ function projectDesktopOpenFailure(error: unknown): ZhiyuDesktopOpenActionResult
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   const reasonCode = normalizeText(record.reasonCode) || 'desktop-open-host-unavailable';
   const actionHint = normalizeText(record.actionHint) || 'check_desktop_runtime_bridge';
-  const detail = error instanceof Error && error.message.trim()
-    ? error.message.trim()
-    : 'Desktop Open standard shell operation failed.';
   return {
     state: 'failed',
     actionId: ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION,
     reasonCode,
     actionHint,
-    message: `${desktopOpenReasonCopy(reasonCode)} ${detail}`,
+    message: desktopOpenReasonCopy(reasonCode),
   };
 }
 
 function desktopOpenReasonCopy(reasonCode: string): string {
   switch (reasonCode) {
     case 'desktop-open-desktop-not-running':
-      return '请先打开 Nimi Desktop；织羽不会尝试冷启动 Desktop。';
+      return '请先打开 Nimi 桌面端；织羽不会代替你启动桌面端。';
     case 'desktop-open-desktop-not-ready':
-      return 'Nimi Desktop 正在加载，请稍后重试。';
+      return 'Nimi 桌面端正在加载，请稍后重试。';
     case 'desktop-open-host-unavailable':
     case 'renderer-standard-shell-host-unavailable':
-      return '当前应用宿主不能从这个环境联系 Nimi Desktop。';
+      return '当前环境无法自动打开 Nimi 桌面端。请手动打开桌面端「探索」页，继续选择伙伴来源。';
     case 'desktop-open-bridge-auth-failed':
-      return 'Desktop Open 本地桥接认证失败，请重启 Desktop 后重试。';
+      return 'Nimi 桌面端连接校验失败，请重启桌面端后重试。';
     case 'desktop-open-intent-invalid':
     case 'desktop-open-target-unsupported':
-      return 'Desktop Open 请求不符合当前标准。';
+      return '当前环境不支持自动打开目标页面。请手动前往 Nimi 桌面端「探索」页。';
     default:
-      return 'Desktop Open 请求未完成。';
+      return '暂时无法自动打开 Nimi 桌面端。请手动前往桌面端「探索」页。';
   }
 }
 

@@ -128,7 +128,7 @@ test('left relationship rail uses desktop chat avatar rail structure', () => {
   );
   assert.match(
     presenceRail,
-    /className="zhiyu-agent-rail__agent-row"/,
+    /className=\{`zhiyu-agent-rail__agent-row/,
     'each local partner avatar must sit inside a full-width row so the active indicator can align like Desktop chat',
   );
   assert.match(
@@ -232,6 +232,32 @@ test('unselected-partner transcript empty state guides existing selection and ad
   assert.doesNotMatch(surface, /不伪造身份/);
 });
 
+test('source-not-ready partner stays disabled and exposes an actionable recovery state', () => {
+  const surface = readSource('src/shell/agent-chat/ZhiyuAgentChatSurface.tsx');
+  const panel = readSource('src/shell/agent-chat/ZhiyuAgentPanel.tsx');
+  const app = readSource('src/shell/app/App.tsx');
+  const css = readSource('src/shell/app/home-surface.css');
+
+  assert.match(surface, /evidence\.localAgent\.reasonCode === 'zhiyu-runtime-local-agent-source-not-ready'/);
+  assert.match(surface, /data-zhiyu-source-not-ready-empty="true"/);
+  assert.match(surface, /伙伴资料尚未就绪/);
+  assert.match(surface, /data-zhiyu-source-not-ready-reason=\{evidence\.localAgent\.reasonCode\}/);
+  assert.match(surface, /data-zhiyu-source-not-ready-action-hint=\{evidence\.localAgent\.actionHint\}/);
+  assert.match(surface, /data-zhiyu-source-not-ready-diagnostic="reason-code"/);
+  assert.match(surface, /data-zhiyu-source-not-ready-diagnostic="action-hint"/);
+  assert.match(surface, /data-zhiyu-source-not-ready-action="desktop-open-select-partner"/);
+  assert.match(surface, /data-zhiyu-source-not-ready-action="refresh-runtime-inventory"/);
+  assert.match(surface, /content=\{sourceNotReadyEmptyState \?\? noLocalPartnerEmptyState\}/);
+  assert.match(panel, /readonly sourceReady: boolean;/);
+  assert.match(panel, /data-zhiyu-local-agent-candidate-ready=\{String\(sourceReady\)\}/);
+  assert.match(panel, /disabled=\{!agent\.localAgentRef \|\| !sourceReady\}/);
+  assert.match(app, /onRefreshLocalAgentInventory=\{\(\) => \{[\s\S]*?setSelectedLocalAgentRefreshKey/);
+  assert.match(css, /\.zhiyu-agent-rail__agent\.is-unavailable\s*\{/);
+  assert.match(css, /\.zhiyu-source-not-ready-empty__actions\s*\{[\s\S]*?flex-wrap:\s*wrap;/);
+  assert.match(css, /\.zhiyu-source-not-ready-empty__diagnostics code\s*\{[\s\S]*?display:\s*block;[\s\S]*?white-space:\s*normal;[\s\S]*?overflow-wrap:\s*anywhere;/);
+  assert.match(css, /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-source-not-ready-empty__actions > button\s*\{[\s\S]*?width:\s*100%;/);
+});
+
 test('no-partner transcript empty state keeps the relationship rail empty and shows honest explore guidance', () => {
   const surface = readSource('src/shell/agent-chat/ZhiyuAgentChatSurface.tsx');
   const panel = readSource('src/shell/agent-chat/ZhiyuAgentPanel.tsx');
@@ -249,7 +275,7 @@ test('no-partner transcript empty state keeps the relationship rail empty and sh
   );
   assert.match(
     surface,
-    /const emptyTitle = hasCurrentPartner\s*\? '开始一段对话'\s*:\s*hasLocalPartners\s*\? '选择一位本地伙伴，开始对话'\s*:\s*'还没有本地伙伴';/,
+    /const emptyTitle = hasCurrentPartner[\s\S]*?localAgentSourceNotReady[\s\S]*?hasLocalPartners[\s\S]*?'选择一位本地伙伴，开始对话'[\s\S]*?'还没有本地伙伴';/,
     'no-partner state must not keep the select-existing-partner title',
   );
   assert.match(surface, /const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners/);

@@ -785,6 +785,9 @@ function ZhiyuBundledApp() {
       onStopChat={handleStopChat}
       onVoiceCaptureToggle={handleVoiceCaptureToggle}
       onSelectLocalAgent={handleSelectLocalAgent}
+      onRefreshLocalAgentInventory={() => {
+        setSelectedLocalAgentRefreshKey((current) => current + 1);
+      }}
       onDesktopOpenSelectPartner={requestZhiyuDesktopOpenSelectPartner}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();
