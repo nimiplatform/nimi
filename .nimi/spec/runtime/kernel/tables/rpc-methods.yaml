@@ -531,6 +531,11 @@ services:
       - name: GetDeveloperModeStatus
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
+      - name: GetLocalDevelopmentAuthoritySummary
+        type: unary
+        authority_status: admitted_exact_bounded_diagnostic_projection
+        transport_disposition: protected_desktop_control_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary
       - name: SetDeveloperMode
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode

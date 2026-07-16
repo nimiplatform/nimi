@@ -21,7 +21,7 @@ services:
   - RuntimeAccountService
   - RuntimeAppService
   - RuntimeDevelopmentService
-method_count: 57
+method_count: 58
 method_mappings:
   - design_service: RuntimeServiceControlService
     design_method: RequestRuntimeRestart
@@ -272,6 +272,11 @@ method_mappings:
     design_method: GetDeveloperModeStatus
     proto_service: RuntimeDevelopmentService
     proto_method: GetDeveloperModeStatus
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: GetLocalDevelopmentAuthoritySummary
+    proto_service: RuntimeDevelopmentService
+    proto_method: GetLocalDevelopmentAuthoritySummary
     mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: SetDeveloperMode

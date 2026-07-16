@@ -44,6 +44,7 @@ surfaces:
   - methods_29
   - methods_30
   - methods_31
+  - methods_32
 description: Account, auth, protected local-app grants, app binding, and local-development posture entries.
 services:
   - RuntimeAccountService
@@ -59,6 +60,12 @@ methods:
     required_origin_role: local_app_control
     rationale: one Runtime-owned production Developer Mode and Dev Trust Set projection; enabled grants nothing
     kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: local_app_control
+    rationale: exact side-effect-free doctor projection exposes only Developer Mode state and current-account authorization/grant counts with per-section availability; identifiers, paths, operation/resource selectors, credentials, sessions, and lifecycle mutation remain forbidden
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009, K-GRANT-014]
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode
     posture: protected_origin_required
     protected_transport_class: desktop_control

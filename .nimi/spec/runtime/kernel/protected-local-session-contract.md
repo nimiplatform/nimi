@@ -172,6 +172,20 @@ business operations. Runtime revalidates authorization, capability
 fingerprint, process liveness, supervisor liveness, account generation, boot
 epoch, shell, controlled outputs, and operation policy on every call.
 
+The verified Desktop `local_app_control` origin may read one exact bounded
+`GetLocalDevelopmentAuthoritySummary` projection for local development
+diagnostics. Runtime derives its three sections from the existing Developer
+Mode record, current-account development authorizations, and K-GRANT-014
+local-app grant store. The projection contains only closed state values,
+per-state counts, and reason codes. It never contains account, project,
+principal, record, authorization, grant, request, presence, operation,
+resource, path, token, secret, session, or boot-epoch identifiers. The read is
+side-effect free: it does not expire, revoke, reactivate, approve, deny, rotate,
+or otherwise advance any authorization, grant, presence, or session lifecycle.
+An unavailable source remains an explicit unavailable section and must not be
+reconstructed from Desktop-local state. Ordinary TCP and local-app-host
+transports deny the method before handler dispatch.
+
 Renderer HMR/reload may retain the host process, but a controlled Electron
 main/preload rebuild, Tauri Rust rebuild, host process replacement,
 technical-session rotation, or Runtime restart must obtain a new launch lease,
