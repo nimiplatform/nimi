@@ -631,10 +631,13 @@ dormant_command_families:
         - local_app_permission_posture
         - local_app_permission_request
         - local_app_artifacts_read_runtime_bytes
+        - local_app_agent_inventory
         - local_app_agent_open_conversation
         - local_app_agent_send_turn
         - local_app_agent_subscribe_turn
         - local_app_agent_get_conversation_snapshot
+        - local_app_agent_transcribe_voice
+        - local_app_agent_subscribe_voice_stream
     origin_crate: kit/shell/tauri
     owner_domain: local-app-standard-shell
     dormant_class: dormant_admitted
