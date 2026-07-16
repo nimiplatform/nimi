@@ -48,6 +48,8 @@ const authorizationBindings = Object.freeze([
 const runtimeScopedBindingRequestScopes = Object.freeze([
   'runtime.agent.turn.read',
   'runtime.agent.turn.write',
+  'runtime.agent.voice.read',
+  'runtime.agent.voice.transcribe',
 ]);
 
 const sessionBindings = Object.freeze([
@@ -115,6 +117,8 @@ const selectedOperationMethods = Object.freeze([
   '/nimi.runtime.v1.RuntimeAppService/SendAppMessage',
   '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages',
   '/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot',
+  '/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio',
+  '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream',
 ]);
 
 const requiredRuleClauses = Object.freeze([
@@ -175,6 +179,24 @@ function hasExactTransportRow(row, operationClass, transport, role) {
     && row?.public_tcp_disposition === 'deny';
 }
 
+function hasExactSelectedVoiceTransportRow(row, methodId) {
+  if (methodId.endsWith('/TranscribeLocalAppAgentAudio')) {
+    return hasExactTransportRow(row, 'local_app_selected_voice', 'local_app_host', 'local_app_session')
+      && row?.generic_proxy === 'forbidden';
+  }
+  if (!methodId.endsWith('/SubscribeAgentVoiceStream')) return false;
+  const roles = row?.required_origin_roles_by_transport;
+  return row?.operation_class === 'local_app_selected_voice'
+    && sameSet(row?.allowed_transport_classes, ['public_tcp', 'local_app_host'])
+    && roles?.public_tcp === 'authenticated_or_scoped_binding'
+    && roles?.local_app_host === 'local_app_session'
+    && sameSet(Object.keys(roles ?? {}), ['public_tcp', 'local_app_host'])
+    && row?.request_may_select_role === false
+    && row?.portable_session_allowed === false
+    && row?.public_tcp_disposition === 'existing_authenticated_or_scoped_binding_only'
+    && row?.generic_proxy === 'forbidden';
+}
+
 export function loadAuthorityBundle(root = repoRoot) {
   return Object.fromEntries(Object.entries(authorityPaths).map(([key, relative]) => {
     const absolute = path.join(root, relative);
@@ -216,12 +238,12 @@ export function validateLocalDevelopmentAuthority(bundle) {
   const policy = parsed.policy;
   if (policy) {
     if (
-      policy.version !== 2
+      policy.version !== 3
       || policy.table_family !== 'owner_matrix'
       || policy.owner !== 'platform'
       || policy.matrix_id !== 'nimi_app_local_development_admission'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v2 local-development owner matrix.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v3 local-development owner matrix.'));
     }
 
     if (
@@ -328,11 +350,11 @@ export function validateLocalDevelopmentAuthority(bundle) {
     const operation = policy.operation_posture;
     if (
       operation?.same_grant_and_owner_policy_as_other_trust_classes !== true
-      || !exactArray(operation?.selected_checkpoint_families, ['runtime_artifact_read', 'runtime_agent_conversation'])
+      || !exactArray(operation?.selected_checkpoint_families, ['runtime_artifact_read', 'runtime_agent_conversation', 'runtime_agent_selected_voice'])
       || operation?.missing_families !== 'typed_owner_unavailable'
       || operation?.generic_protected_proxy !== 'forbidden'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID', authorityPaths.policy, 'The checkpoint admits only artifact read and selected RuntimeAgent conversation through common grants/owner policy; missing families stay typed unavailable.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID', authorityPaths.policy, 'The checkpoint admits only artifact read, selected RuntimeAgent conversation, and selected RuntimeAgent voice through common grants/owner policy; missing families stay typed unavailable.'));
     }
 
     if (
@@ -432,7 +454,11 @@ export function validateLocalDevelopmentAuthority(bundle) {
     }
 
     for (const methodId of selectedOperationMethods) {
-      if (!hasExactTransportRow(methods.get(methodId), methodId.includes('ReadArtifactBytes') ? 'local_app_artifact_read' : 'local_app_agent_conversation', 'local_app_host', 'local_app_session')) {
+      const row = methods.get(methodId);
+      const valid = methodId.endsWith('/TranscribeLocalAppAgentAudio') || methodId.endsWith('/SubscribeAgentVoiceStream')
+        ? hasExactSelectedVoiceTransportRow(row, methodId)
+        : hasExactTransportRow(row, methodId.includes('ReadArtifactBytes') ? 'local_app_artifact_read' : 'local_app_agent_conversation', 'local_app_host', 'local_app_session');
+      if (!valid) {
         issues.push(issue('LOCAL_DEVELOPMENT_SELECTED_OPERATION_INVALID', `${authorityPaths.transportMatrix}#${methodId}`, 'Selected checkpoint operations must require the exact local-app host/session carrier.'));
       }
     }

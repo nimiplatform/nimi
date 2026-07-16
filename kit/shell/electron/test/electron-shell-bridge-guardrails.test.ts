@@ -122,7 +122,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
       NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
       NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'],
-      NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
       NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
       NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
     ]) {

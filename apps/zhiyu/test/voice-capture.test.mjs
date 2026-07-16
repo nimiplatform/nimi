@@ -24,24 +24,40 @@ test('Zhiyu voice capture derives readiness from Runtime audio.transcribe AI Con
   assert.equal(readiness.ready, true);
   assert.equal(readiness.state, 'idle');
   assert.equal(readiness.reasonCode, 'runtime-voice-capture-ready');
-  assert.deepEqual(module.createZhiyuVoiceCaptureTranscriptionHead({
-    route,
-    subjectUserId: 'user-1',
-  }), {
-    appId: 'nimi.zhiyu',
-    subjectUserId: 'user-1',
-    routePolicy: 'cloud',
-    modelId: 'runtime-stt-model',
-    connectorId: 'connector-stt',
-    targetRef: {
-      kind: 'cloud-connector',
-      connectorId: 'connector-stt',
-      remoteModelCatalogId: 'remote-model:stt',
-      providerModelId: 'runtime-stt-model',
-      provider: 'openai',
-    },
-    timeoutMs: 60_000,
-  });
+  assert.equal(readiness.runtimeBindingModelId, 'runtime-stt-model');
+  assert.equal(readiness.connectorId, 'connector-stt');
+});
+
+test('Zhiyu voice capture sends only the exact protected transcription selector', async () => {
+  const module = await importVoiceCapture();
+  const calls = [];
+  globalThis.__nimiZhiyuVoiceTranscribeCalls = calls;
+  globalThis.__nimiZhiyuVoiceTranscribeResult = {
+    clientRequestId: 'voice-capture-test-request',
+    text: '你好，知予',
+  };
+  try {
+    const transcribe = module.createElectronVoiceCaptureTranscriber({ agentId: 'agent-a' });
+    const audio = Uint8Array.from([1, 2, 3]);
+    assert.deepEqual(await transcribe({
+      bytes: audio,
+      mimeType: 'audio/webm',
+      requestId: 'voice-capture-test-request',
+    }), { text: '你好，知予' });
+    assert.deepEqual(calls, [{
+      agentId: 'agent-a',
+      clientRequestId: 'voice-capture-test-request',
+      audio,
+      mimeType: 'audio/webm',
+    }]);
+    assert.throws(
+      () => module.createElectronVoiceCaptureTranscriber({ agentId: '  ' }),
+      (error) => error?.reasonCode === 'runtime-voice-capture-agent-required',
+    );
+  } finally {
+    delete globalThis.__nimiZhiyuVoiceTranscribeCalls;
+    delete globalThis.__nimiZhiyuVoiceTranscribeResult;
+  }
 });
 
 test('Zhiyu voice capture records bytes, calls Runtime STT, and returns transcript text', async () => {
@@ -188,44 +204,23 @@ async function buildVoiceCapture() {
 
 function sdkAliasPlugin() {
   return {
-    name: 'sdk-alias',
+    name: 'local-app-runtime-platform-alias',
     setup(buildApi) {
-      buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/ai$/ }, () => ({
-        path: 'sdk-ai-stub',
-        namespace: 'sdk-ai-stub',
+      buildApi.onResolve({ filter: /local-app-runtime-platform$/ }, () => ({
+        path: 'local-app-runtime-platform-stub',
+        namespace: 'local-app-runtime-platform-stub',
       }));
-      buildApi.onLoad({ filter: /.*/, namespace: 'sdk-ai-stub' }, () => ({
+      buildApi.onLoad({ filter: /.*/, namespace: 'local-app-runtime-platform-stub' }, () => ({
         loader: 'js',
         contents: `
-          export function toRuntimeDurableTargetRef(input) {
-            return input;
-          }
-        `,
-      }));
-      buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/features\/generation$/ }, () => ({
-        path: 'sdk-generation-stub',
-        namespace: 'sdk-generation-stub',
-      }));
-      buildApi.onLoad({ filter: /.*/, namespace: 'sdk-generation-stub' }, () => ({
-        loader: 'js',
-        contents: `
-          export async function runNimiRuntimeSpeechTranscription() {
-            throw new Error('generation stub should be injected through transcribe dependency in unit tests');
-          }
-        `,
-      }));
-      buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/runtime$/ }, () => ({
-        path: 'sdk-runtime-stub',
-        namespace: 'sdk-runtime-stub',
-      }));
-      buildApi.onLoad({ filter: /.*/, namespace: 'sdk-runtime-stub' }, () => ({
-        loader: 'js',
-        contents: `
-          export class Runtime {
-            constructor() {
-              this.ai = {};
-            }
-          }
+          export const zhiyuLocalAppRuntimePlatform = {
+            agent: {
+              async transcribeVoice(input) {
+                globalThis.__nimiZhiyuVoiceTranscribeCalls.push(input);
+                return globalThis.__nimiZhiyuVoiceTranscribeResult;
+              },
+            },
+          };
         `,
       }));
     },

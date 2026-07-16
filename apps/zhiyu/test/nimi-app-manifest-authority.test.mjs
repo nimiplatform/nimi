@@ -33,7 +33,7 @@ test('Zhiyu local-development manifest mirrors the active registry transparency 
   assert.ok(scopes.every(({ purpose }) => purpose.trim().length >= 24));
 });
 
-test('Zhiyu manifest declarations do not claim Runtime turn binding authority', () => {
+test('Zhiyu manifest declarations keep Runtime Agent operation authority in scoped binding requests', () => {
   const permissionScopes = declaredScopes().map(({ scope }) => scope);
   assert.ok(!permissionScopes.includes('runtime.agent.turn.read'));
   assert.ok(!permissionScopes.includes('runtime.agent.turn.write'));
@@ -45,6 +45,8 @@ test('Zhiyu manifest declarations do not claim Runtime turn binding authority', 
   assert.deepEqual(requests.map(({ scope }) => scope), [
     'runtime.agent.turn.read',
     'runtime.agent.turn.write',
+    'runtime.agent.voice.transcribe',
+    'runtime.agent.voice.read',
   ]);
   assert.ok(requests.every(({ purpose }) => purpose.trim().length >= 24));
 });

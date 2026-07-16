@@ -13,11 +13,13 @@ func TestNormalizeLocalDevelopmentCapabilitiesAcceptsClosedScopesAndCanonicalQua
 	}, []localAppManifestCapability{
 		{Scope: "runtime.agent.turn.read", Purpose: "Request a Runtime-issued conversation read binding."},
 		{Scope: "runtime.agent.turn.write", Purpose: "Request a Runtime-issued conversation write binding."},
+		{Scope: "runtime.agent.voice.read", Purpose: "Request protected Runtime voice playback."},
+		{Scope: "runtime.agent.voice.transcribe", Purpose: "Request protected Runtime voice transcription."},
 	})
 	if err != nil {
 		t.Fatalf("normalize canonical declarations: %v", err)
 	}
-	want := []string{"ai.spend.meter", "data.scope.read#realm.core.worlds", "data.scope.read#runtime.artifacts", "runtime.agent.turn.read", "runtime.agent.turn.write"}
+	want := []string{"ai.spend.meter", "data.scope.read#realm.core.worlds", "data.scope.read#runtime.artifacts", "runtime.agent.turn.read", "runtime.agent.turn.write", "runtime.agent.voice.read", "runtime.agent.voice.transcribe"}
 	if !reflect.DeepEqual(capabilities, want) {
 		t.Fatalf("unexpected normalized capabilities: got %v want %v", capabilities, want)
 	}

@@ -6,7 +6,7 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
-  it('forwards only the twelve typed operations', async () => {
+  it('forwards only the fourteen typed operations', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
 
@@ -33,6 +33,12 @@ describe('Electron protected local-app host', () => {
       .resolves.toMatchObject({ cursor: 'cursor-a' });
     await expect(host.agentGetConversationSnapshot({ agentId: 'agent-a', conversationAnchorId: 'anchor-a' }))
       .resolves.toMatchObject({ conversationAnchorId: 'anchor-a' });
+    await expect(host.agentTranscribeVoice({
+      agentId: 'agent-a', clientRequestId: 'request-a', audioBase64: 'UklGRg==', mimeType: 'audio/wav',
+    })).resolves.toEqual({ clientRequestId: 'request-a', text: '你好' });
+    await expect(host.agentSubscribeVoiceStream({
+      agentId: 'agent-a', conversationAnchorId: 'anchor-a', turnId: 'turn-a', voiceStreamId: 'voice-a', cursor: '',
+    })).resolves.toMatchObject({ cursor: '1', events: [{ voiceStreamId: 'voice-a' }] });
 
     expect(calls.map(({ method }) => method)).toEqual([
       'localAppSessionStatus',
@@ -47,6 +53,8 @@ describe('Electron protected local-app host', () => {
       'localAppAgentSendTurn',
       'localAppAgentSubscribeTurn',
       'localAppAgentGetConversationSnapshot',
+      'localAppAgentTranscribeVoice',
+      'localAppAgentSubscribeVoiceStream',
     ]);
   });
 
@@ -147,5 +155,25 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAgentSendTurn: record('localAppAgentSendTurn', { accepted: true }),
     localAppAgentSubscribeTurn: record('localAppAgentSubscribeTurn', { cursor: 'cursor-a', events: [] }),
     localAppAgentGetConversationSnapshot: record('localAppAgentGetConversationSnapshot', { conversationAnchorId: 'anchor-a', messages: [] }),
+    localAppAgentTranscribeVoice: record('localAppAgentTranscribeVoice', { clientRequestId: 'request-a', text: '你好' }),
+    localAppAgentSubscribeVoiceStream: record('localAppAgentSubscribeVoiceStream', {
+      cursor: '1',
+      events: [{
+        voiceStreamId: 'voice-a',
+        conversationAnchorId: 'anchor-a',
+        turnId: 'turn-a',
+        streamId: 'stream-a',
+        messageId: 'message-a',
+        chunkSequence: '1',
+        chunkBase64: 'UklGRg==',
+        mimeType: 'audio/wav',
+        voiceOutputMode: 1,
+        playbackTarget: 'zhiyu-chat',
+        terminal: false,
+        voicePlaybackState: 1,
+        terminalReason: '',
+        replayTruncated: false,
+      }],
+    }),
   };
 }

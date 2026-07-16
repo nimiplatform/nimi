@@ -101,6 +101,11 @@ describe('Electron standard shell capability catalog', () => {
       'local-app.agentSendTurn',
       'local-app.agentSubscribeTurn',
       'local-app.agentGetConversationSnapshot',
+      'local-app.agentTranscribeVoice',
+      'local-app.agentSubscribeVoiceStream',
+      'storage.readJson',
+      'storage.writeJson',
+      'storage.removeJson',
     ]);
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
@@ -112,9 +117,13 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.localApp.agent.sendTurn',
       'nimi.shell.localApp.agent.subscribeTurn',
       'nimi.shell.localApp.agent.getConversationSnapshot',
+      'nimi.shell.localApp.agent.transcribeVoice',
+      'nimi.shell.localApp.agent.subscribeVoiceStream',
+      'nimi.shell.storage.readJson',
+      'nimi.shell.storage.writeJson',
+      'nimi.shell.storage.removeJson',
     ]);
     expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
-      'storage.readJson',
       'ai-config.get',
       'desktop-open.openIntent',
     ]));

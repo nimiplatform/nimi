@@ -157,4 +157,44 @@ describe('renderer local-app standard-shell surface', () => {
       reasonCode: 'renderer-standard-shell-result-invalid',
     });
   });
+
+  it('carries selected voice operations with exact selectors and bounded bytes', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if (command.endsWith('transcribeVoice')) {
+          return { clientRequestId: 'request-a', text: '你好' };
+        }
+        return {
+          cursor: '1',
+          events: [{
+            voiceStreamId: 'voice-a', conversationAnchorId: 'anchor-a', turnId: 'turn-a',
+            streamId: 'stream-a', messageId: 'message-a', chunkSequence: '1',
+            chunkBase64: 'UklGRg==', mimeType: 'audio/wav', voiceOutputMode: 1,
+            playbackTarget: 'zhiyu-chat', terminal: false, voicePlaybackState: 1,
+            terminalReason: '', replayTruncated: false,
+          }],
+        };
+      },
+      listen: () => () => {},
+    };
+    const agent = createNimiLocalAppStandardShellSurface().agent;
+    await expect(agent.transcribeVoice({
+      agentId: 'agent-a', clientRequestId: 'request-a', audio: Uint8Array.from([82, 73, 70, 70]), mimeType: 'audio/wav',
+    })).resolves.toEqual({ clientRequestId: 'request-a', text: '你好' });
+    await expect(agent.subscribeVoiceStream({
+      agentId: 'agent-a', conversationAnchorId: 'anchor-a', turnId: 'turn-a', voiceStreamId: 'voice-a',
+    })).resolves.toMatchObject({ cursor: '1', events: [{ chunkBase64: 'UklGRg==' }] });
+    expect(invocations).toEqual([
+      {
+        command: 'nimi.shell.localApp.agent.transcribeVoice',
+        payload: { payload: { agentId: 'agent-a', clientRequestId: 'request-a', audioBase64: 'UklGRg==', mimeType: 'audio/wav' } },
+      },
+      {
+        command: 'nimi.shell.localApp.agent.subscribeVoiceStream',
+        payload: { payload: { agentId: 'agent-a', conversationAnchorId: 'anchor-a', turnId: 'turn-a', voiceStreamId: 'voice-a', cursor: '' } },
+      },
+    ]);
+  });
 });

@@ -82,16 +82,19 @@ test('Zhiyu voice playback controller uses Runtime bytes and never plays violati
   const module = await importVoicePlayback();
   const calls = [];
   const controller = module.createZhiyuVoicePlaybackController({
-    subscribeStream: async function* (input) {
-      calls.push(['subscribe', input.voiceStreamId]);
-      yield { chunk: new Uint8Array([1, 2]), mimeType: 'audio/wav' };
+    subscribeStream: async (input) => {
+      calls.push(['subscribe', input]);
+      return voiceStreamPage(input, {
+        chunk: new Uint8Array([1, 2]),
+        terminal: true,
+      });
     },
     readArtifactBytes: async (artifactId) => {
       calls.push(['artifact', artifactId]);
       return { bytes: new Uint8Array([3, 4]), mimeType: 'audio/wav' };
     },
-    playAudioBytes: async (bytes, mimeType) => {
-      calls.push(['play', [...bytes], mimeType]);
+    playAudioBytes: async (bytes, mimeType, audioSourceId) => {
+      calls.push(['play', [...bytes], mimeType, audioSourceId]);
     },
   });
 
@@ -99,6 +102,9 @@ test('Zhiyu voice playback controller uses Runtime bytes and never plays violati
     voiceOutputMode: 'native_stream',
     voicePlaybackState: 'active',
     voiceStreamId: 'voice-stream-1',
+    agentId: 'agent-a',
+    conversationAnchorId: 'anchor-a',
+    turnId: 'turn-a',
   });
   await controller.run({
     voiceOutputMode: 'batch_final_artifact',
@@ -113,12 +119,67 @@ test('Zhiyu voice playback controller uses Runtime bytes and never plays violati
   });
 
   assert.deepEqual(calls, [
-    ['subscribe', 'voice-stream-1'],
-    ['play', [1, 2], 'audio/wav'],
+    ['subscribe', {
+      agentId: 'agent-a',
+      conversationAnchorId: 'anchor-a',
+      turnId: 'turn-a',
+      voiceStreamId: 'voice-stream-1',
+    }],
+    ['play', [1, 2], 'audio/wav', 'runtime-agent-voice-stream://voice-stream-1/chunks/1'],
     ['artifact', 'artifact-audio-1'],
-    ['play', [3, 4], 'audio/wav'],
+    ['play', [3, 4], 'audio/wav', 'artifact-audio-1'],
   ]);
 });
+
+test('Zhiyu voice playback requires exact Runtime stream correlation before subscribing', async () => {
+  const module = await importVoicePlayback();
+  let subscribed = false;
+  const controller = module.createZhiyuVoicePlaybackController({
+    subscribeStream: async () => {
+      subscribed = true;
+      throw new Error('must not subscribe');
+    },
+    readArtifactBytes: async () => {
+      throw new Error('must not read artifact');
+    },
+    playAudioBytes: async () => {
+      throw new Error('must not play');
+    },
+  });
+  const result = await controller.run({
+    voiceOutputMode: 'native_stream',
+    voicePlaybackState: 'active',
+    voiceStreamId: 'voice-stream-1',
+    agentId: 'agent-a',
+    conversationAnchorId: 'anchor-a',
+  });
+  assert.equal(result.violation, true);
+  assert.equal(result.reasonCode, 'runtime-voice-stream-correlation-missing');
+  assert.equal(subscribed, false);
+});
+
+function voiceStreamPage(input, overrides = {}) {
+  return {
+    cursor: '1',
+    events: [{
+      voiceStreamId: input.voiceStreamId,
+      conversationAnchorId: input.conversationAnchorId,
+      turnId: input.turnId,
+      streamId: 'stream-a',
+      messageId: 'message-a',
+      chunkSequence: '1',
+      chunk: new Uint8Array(),
+      mimeType: 'audio/wav',
+      voiceOutputMode: 'native_stream',
+      playbackTarget: 'zhiyu-chat',
+      terminal: false,
+      voicePlaybackState: 'active',
+      terminalReason: '',
+      replayTruncated: false,
+      ...overrides,
+    }],
+  };
+}
 
 async function importVoicePlayback() {
   const outputPath = path.join(await buildVoicePlayback(), 'voice-playback.mjs');

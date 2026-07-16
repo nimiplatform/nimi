@@ -51,7 +51,10 @@ function readCatalogCapabilities(content: string): string[] {
 }
 
 function readCatalogCommands(content: string): string[] {
-  return [...content.matchAll(/^\s+command: ([a-zA-Z0-9.]+)$/gm)].map((match) => match[1]);
+  const capabilityStart = content.indexOf('\ncapabilities:\n');
+  expect(capabilityStart).toBeGreaterThanOrEqual(0);
+  return [...content.slice(capabilityStart).matchAll(/^\s+command: ([a-zA-Z0-9.]+)$/gm)]
+    .map((match) => match[1]);
 }
 
 function readCapabilitySetList(field: string, content: string): string[] {
@@ -165,7 +168,7 @@ describe('standard shell capabilities', () => {
     ]));
   });
 
-  it('keeps standard storage removal unavailable on the local-app surface', () => {
+  it('keeps standard storage removal admitted only through the local-app surface', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
     const command = getNimiStandardShellCommand('storage', 'removeJson');
     const packageOperation = NIMI_STANDARD_SHELL_CAPABILITIES
@@ -181,7 +184,8 @@ describe('standard shell capabilities', () => {
     );
     expect(localAppSet?.allowedOperations).toContain('local-app.artifactsReadRuntimeBytes');
     expect(localAppSet?.allowedCommands).toContain('nimi.shell.localApp.artifacts.readRuntimeBytes');
-    expect(readCapabilitySetList('planned_operations', catalog)).toContain('storage.removeJson');
+    expect(localAppSet?.allowedOperations).toContain('storage.removeJson');
+    expect(readCapabilitySetList('planned_operations', catalog)).not.toContain('storage.removeJson');
   });
 
   it('projects the exact final local-app carrier admission', () => {
@@ -202,6 +206,11 @@ describe('standard shell capabilities', () => {
       'local-app.agentSendTurn',
       'local-app.agentSubscribeTurn',
       'local-app.agentGetConversationSnapshot',
+      'local-app.agentTranscribeVoice',
+      'local-app.agentSubscribeVoiceStream',
+      'storage.readJson',
+      'storage.writeJson',
+      'storage.removeJson',
     ]);
     expect(localAppSet?.authorityStatus).toBe('0k_final_surface_windows_development_positive');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');

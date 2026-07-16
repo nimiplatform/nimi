@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestProtectedLocalAppTransportRejectsOrdinaryConnection(t *testing.T) {
@@ -140,13 +141,16 @@ func TestProtectedLocalAppPoliciesExposeOnlyFinalSelectedOperations(t *testing.T
 		protectedReadLocalAppStorageJSONMethod,
 		protectedWriteLocalAppStorageJSONMethod,
 		protectedRemoveLocalAppStorageJSONMethod,
+		protectedTranscribeLocalAppAgentAudioMethod,
 	} {
 		if !protectedLocalAppUnaryMethodAllowed(method) {
 			t.Fatalf("final unary operation is missing: %s", method)
 		}
 	}
-	if !protectedLocalAppStreamMethodAllowed(protectedSubscribeAppMessagesMethod) {
-		t.Fatal("final SubscribeAppMessages stream is missing")
+	for _, method := range []string{protectedSubscribeAppMessagesMethod, protectedSubscribeAgentVoiceStreamMethod} {
+		if !protectedLocalAppStreamMethodAllowed(method) {
+			t.Fatalf("final selected stream is missing: %s", method)
+		}
 	}
 	for _, method := range []string{
 		"/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
@@ -156,6 +160,38 @@ func TestProtectedLocalAppPoliciesExposeOnlyFinalSelectedOperations(t *testing.T
 		if protectedLocalAppUnaryMethodAllowed(method) || protectedLocalAppStreamMethodAllowed(method) {
 			t.Fatalf("unadmitted method reached local-app transport: %s", method)
 		}
+	}
+}
+
+func TestSelectedProtectedLocalAppVoiceOperationsCarryOnlyExactSelectors(t *testing.T) {
+	operation, selector, selected := selectedLocalAppUnaryOperation(protectedTranscribeLocalAppAgentAudioMethod, &runtimev1.TranscribeLocalAppAgentAudioRequest{
+		AgentId: "local-agent:voice", ClientRequestId: "request-1", Audio: []byte("private-audio"), MimeType: "audio/wav",
+	})
+	if !selected || operation != accountservice.LocalAppOperationVoiceTranscribe || selector != (localappop.Selector{AgentID: "local-agent:voice"}) {
+		t.Fatalf("selected transcription operation = (%q, %+v, %v)", operation, selector, selected)
+	}
+
+	recorder := &localAppTransportRecordingAuthorizer{}
+	requestStream := &localAppTransportVoiceRequestStream{
+		localAppTransportTestStream: localAppTransportTestStream{ctx: context.Background()},
+		request: runtimev1.SubscribeAgentVoiceStreamRequest{
+			AgentId: "local-agent:voice", ConversationAnchorId: "anchor-1", TurnId: "turn-1", VoiceStreamId: "voice-1",
+		},
+	}
+	wrapped := &protectedLocalAppServerStream{
+		ServerStream: requestStream, ctx: context.Background(), method: protectedSubscribeAgentVoiceStreamMethod, operationAuthorizer: recorder,
+	}
+	var received runtimev1.SubscribeAgentVoiceStreamRequest
+	if err := wrapped.RecvMsg(&received); err != nil {
+		t.Fatalf("authorize voice stream request: %v", err)
+	}
+	want := localappop.Selector{AgentID: "local-agent:voice", ConversationAnchorID: "anchor-1", TurnID: "turn-1", VoiceStreamID: "voice-1"}
+	if recorder.operation != accountservice.LocalAppOperationVoiceStreamSubscribe || recorder.selector != want {
+		t.Fatalf("selected voice stream operation = (%q, %+v)", recorder.operation, recorder.selector)
+	}
+	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(wrapped.Context())
+	if !ok || decision.Operation != accountservice.LocalAppOperationVoiceStreamSubscribe {
+		t.Fatalf("voice stream decision handoff = (%+v, %v)", decision, ok)
 	}
 }
 
@@ -340,6 +376,19 @@ func (authorizer localAppTransportAuthorizer) AuthorizeLocalAppCaller(context.Co
 	return accountservice.LocalAppCallerDecision{LocalAppPrincipalID: "principal-a", LocalAppRecordID: "record-a"}, nil
 }
 
+type localAppTransportRecordingAuthorizer struct {
+	operation accountservice.LocalAppOperation
+	selector  localappop.Selector
+}
+
+func (authorizer *localAppTransportRecordingAuthorizer) AuthorizeLocalAppProtectedOperation(_ context.Context, operation accountservice.LocalAppOperation, selector localappop.Selector) (accountservice.LocalAppCallerDecision, error) {
+	authorizer.operation = operation
+	authorizer.selector = selector
+	return accountservice.LocalAppCallerDecision{
+		LocalAppPrincipalID: "principal-voice", LocalAppRecordID: "record-voice", Operation: operation,
+	}, nil
+}
+
 func (authorizer localAppTransportAuthorizer) AuthorizeLocalAppProtectedOperation(context.Context, accountservice.LocalAppOperation, localappop.Selector) (accountservice.LocalAppCallerDecision, error) {
 	if authorizer.err != nil {
 		return accountservice.LocalAppCallerDecision{}, authorizer.err
@@ -357,6 +406,20 @@ func (stream *localAppTransportTestStream) Context() context.Context {
 }
 func (*localAppTransportTestStream) SendMsg(any) error { return nil }
 func (*localAppTransportTestStream) RecvMsg(any) error { return nil }
+
+type localAppTransportVoiceRequestStream struct {
+	localAppTransportTestStream
+	request runtimev1.SubscribeAgentVoiceStreamRequest
+}
+
+func (stream *localAppTransportVoiceRequestStream) RecvMsg(message any) error {
+	target, ok := message.(*runtimev1.SubscribeAgentVoiceStreamRequest)
+	if !ok {
+		return errors.New("unexpected voice request target")
+	}
+	proto.Merge(target, &stream.request)
+	return nil
+}
 
 type grpcLocalAppVerifier struct {
 	peer protectedlocal.VerifiedLocalAppLaunchPeer

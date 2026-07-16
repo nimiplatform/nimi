@@ -20,6 +20,8 @@ func TestCoordinatorAllowsOnlySelectedOperationFamily(t *testing.T) {
 		OperationStorageJSONRead,
 		OperationStorageJSONWrite,
 		OperationStorageJSONRemove,
+		OperationVoiceTranscribe,
+		OperationVoiceStreamSubscribe,
 	}
 	for _, operation := range operations {
 		operation := operation
@@ -347,7 +349,7 @@ func TestRequestAndAuthorizationHaveNoPortableAuthorityFields(t *testing.T) {
 	t.Parallel()
 
 	assertFields(t, reflect.TypeOf(Request{}), []string{"NativeConnectionRef", "Operation", "Selector"})
-	assertFields(t, reflect.TypeOf(Selector{}), []string{"ArtifactID", "AgentID", "ConversationAnchorID", "TurnID", "StorageRelativePath"})
+	assertFields(t, reflect.TypeOf(Selector{}), []string{"ArtifactID", "AgentID", "ConversationAnchorID", "TurnID", "VoiceStreamID", "StorageRelativePath"})
 
 	for _, typ := range []reflect.Type{reflect.TypeOf(Request{}), reflect.TypeOf(AuthorizationContext{})} {
 		for index := 0; index < typ.NumField(); index++ {
@@ -456,6 +458,10 @@ func selectorFor(operation Operation) Selector {
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
 	case OperationStorageJSONRead, OperationStorageJSONWrite, OperationStorageJSONRemove:
 		return Selector{StorageRelativePath: "state/value.json"}
+	case OperationVoiceTranscribe:
+		return Selector{AgentID: "agent:1"}
+	case OperationVoiceStreamSubscribe:
+		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1", TurnID: "turn:1", VoiceStreamID: "voice:1"}
 	default:
 		return Selector{}
 	}

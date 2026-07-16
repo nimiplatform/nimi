@@ -58,6 +58,8 @@ function standardShell(
       async sendTurn() { return {}; },
       async subscribeTurn() { return {}; },
       async getConversationSnapshot() { return {}; },
+      async transcribeVoice(input) { return { clientRequestId: input.clientRequestId, text: '你好' }; },
+      async subscribeVoiceStream() { return {}; },
     },
   };
   return { ...base, ...overrides };
@@ -89,7 +91,8 @@ test('local-app Runtime platform client exposes only the selected typed operatio
   const client = createNimiAppRuntimePlatformClient({ standardShell: standardShell() });
   assert.deepEqual(Object.keys(client).sort(), ['agent', 'artifacts', 'auth', 'permissions', 'storage']);
   assert.deepEqual(Object.keys(client.agent).sort(), [
-    'getConversationSnapshot', 'listInventory', 'openConversation', 'sendTurn', 'subscribeTurn',
+    'getConversationSnapshot', 'listInventory', 'openConversation', 'sendTurn',
+    'subscribeTurn', 'subscribeVoiceStream', 'transcribeVoice',
   ]);
   assert.deepEqual(await client.artifacts.readRuntimeBytes('artifact:one'), {
     bytes: new Uint8Array([1, 2]), mimeType: 'text/plain', sizeBytes: 2, mimeInferred: false,
@@ -179,6 +182,8 @@ test('local-app agent inventory accepts only the bounded current-owner projectio
         async sendTurn() { return {}; },
         async subscribeTurn() { return {}; },
         async getConversationSnapshot() { return {}; },
+        async transcribeVoice(input) { return { clientRequestId: input.clientRequestId, text: '' }; },
+        async subscribeVoiceStream() { return {}; },
       },
     }),
   });
@@ -204,6 +209,8 @@ test('local-app agent inventory accepts only the bounded current-owner projectio
         async sendTurn() { return {}; },
         async subscribeTurn() { return {}; },
         async getConversationSnapshot() { return {}; },
+        async transcribeVoice(input) { return { clientRequestId: input.clientRequestId, text: '' }; },
+        async subscribeVoiceStream() { return {}; },
       },
     }),
   });
@@ -242,6 +249,8 @@ test('local-app subscribeTurn is an honest cursor pull, not a cast Promise strea
           };
         },
         async getConversationSnapshot() { return {}; },
+        async transcribeVoice(input) { return { clientRequestId: input.clientRequestId, text: '' }; },
+        async subscribeVoiceStream() { return {}; },
       },
     }),
   });
@@ -250,6 +259,102 @@ test('local-app subscribeTurn is an honest cursor pull, not a cast Promise strea
   assert.equal(page.events.length, 1);
   assert.equal(page.events[0].eventName, 'runtime.agent.turn.text_delta');
   assert.equal(page.events[0].conversationAnchorId, 'anchor-a');
+});
+
+test('local-app selected voice operations enforce bounded input and exact stream correlation', async () => {
+  const calls: unknown[] = [];
+  const client = createNimiAppRuntimePlatformClient({
+    standardShell: standardShell({
+      agent: {
+        async inventory() { return { ownerUserId: 'account-a', count: 0, localAgents: [] }; },
+        async openConversation() { return {}; },
+        async sendTurn() { return {}; },
+        async subscribeTurn() { return {}; },
+        async getConversationSnapshot() { return {}; },
+        async transcribeVoice(input) {
+          calls.push(input);
+          return { clientRequestId: input.clientRequestId, text: '今天天气很好' };
+        },
+        async subscribeVoiceStream(input) {
+          calls.push(input);
+          return {
+            cursor: input.cursor ? String(Number(input.cursor) + 1) : '1',
+            events: [{
+              voiceStreamId: input.voiceStreamId,
+              conversationAnchorId: input.conversationAnchorId,
+              turnId: input.turnId,
+              streamId: 'stream-a',
+              messageId: 'message-a',
+              chunkSequence: '1',
+              chunkBase64: 'UklGRg==',
+              mimeType: 'audio/wav',
+              voiceOutputMode: 1,
+              playbackTarget: 'zhiyu-chat',
+              terminal: false,
+              voicePlaybackState: 1,
+              terminalReason: '',
+              replayTruncated: false,
+            }],
+          };
+        },
+      },
+    }),
+  });
+  const audio = Uint8Array.from([1, 2, 3]);
+  assert.deepEqual(await client.agent.transcribeVoice({
+    agentId: 'agent-a',
+    clientRequestId: 'request-a',
+    audio,
+    mimeType: 'audio/webm;codecs=opus',
+  }), { clientRequestId: 'request-a', text: '今天天气很好' });
+  const page = await client.agent.subscribeVoiceStream({
+    agentId: 'agent-a',
+    conversationAnchorId: 'anchor-a',
+    turnId: 'turn-a',
+    voiceStreamId: 'voice-a',
+  });
+  assert.equal(page.cursor, '1');
+  assert.deepEqual(page.events[0], {
+    voiceStreamId: 'voice-a',
+    conversationAnchorId: 'anchor-a',
+    turnId: 'turn-a',
+    streamId: 'stream-a',
+    messageId: 'message-a',
+    chunkSequence: '1',
+    chunk: Uint8Array.from([82, 73, 70, 70]),
+    mimeType: 'audio/wav',
+    voiceOutputMode: 'native_stream',
+    playbackTarget: 'zhiyu-chat',
+    terminal: false,
+    voicePlaybackState: 'active',
+    terminalReason: '',
+    replayTruncated: false,
+  });
+  assert.deepEqual(calls[0], {
+    agentId: 'agent-a',
+    clientRequestId: 'request-a',
+    audio,
+    mimeType: 'audio/webm',
+  });
+
+  await assert.rejects(
+    () => client.agent.transcribeVoice({
+      agentId: 'agent-a',
+      clientRequestId: 'request-b',
+      audio: new Uint8Array(0),
+      mimeType: 'audio/webm',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_VOICE_AUDIO_INVALID',
+  );
+  await assert.rejects(
+    () => client.agent.transcribeVoice({
+      agentId: 'agent-a',
+      clientRequestId: 'request-b',
+      audio: Uint8Array.from([1]),
+      mimeType: 'audio/aac',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_VOICE_MIME_INVALID',
+  );
 });
 
 test('local-app Runtime platform client rejects portable authority material and expanded shell surfaces', async () => {

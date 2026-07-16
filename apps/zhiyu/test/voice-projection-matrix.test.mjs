@@ -102,16 +102,16 @@ test('E-09 simulated_stream fails closed and is never played', async () => {
 
 function controllerWithCalls(module, calls) {
   return module.createZhiyuVoicePlaybackController({
-    subscribeStream: async function* (input) {
+    subscribeStream: async (input) => {
       calls.push(['subscribe', input.voiceStreamId]);
-      yield { chunk: new Uint8Array([1, 2]), mimeType: 'audio/wav' };
+      throw new Error('unexpected subscription');
     },
     readArtifactBytes: async (artifactId) => {
       calls.push(['artifact', artifactId]);
       return { bytes: new Uint8Array([3, 4]), mimeType: 'audio/wav' };
     },
-    playAudioBytes: async (bytes, mimeType) => {
-      calls.push(['play', [...bytes], mimeType]);
+    playAudioBytes: async (bytes, mimeType, audioSourceId) => {
+      calls.push(['play', [...bytes], mimeType, audioSourceId]);
     },
   });
 }

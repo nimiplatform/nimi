@@ -50,6 +50,36 @@ describe('Electron local-app standard-shell operations', () => {
     expect(turns).toEqual([]);
   });
 
+  it('dispatches only bounded selected voice payloads', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.thirdparty.fixture',
+      runtimeEndpoint: 'local-app-protected-carrier-only',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      standardShellHost: {
+        capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        localAppHost: localAppHost(calls),
+      },
+    });
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice'],
+      payload: { payload: {
+        agentId: 'agent-a', clientRequestId: 'request-a', audioBase64: 'UklGRg==', mimeType: 'audio/wav',
+      } },
+    })).resolves.toEqual({ clientRequestId: 'request-a', text: '你好' });
+    expect(calls).toContainEqual(['agentTranscribeVoice', {
+      agentId: 'agent-a', clientRequestId: 'request-a', audioBase64: 'UklGRg==', mimeType: 'audio/wav',
+    }]);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice'],
+      payload: { payload: {
+        agentId: 'agent-a', clientRequestId: 'request-a', audioBase64: 'UklGRg==', mimeType: 'audio/wav', modelId: 'forbidden',
+      } },
+    })).rejects.toMatchObject({ code: 'invalid-payload', reasonCode: 'invalid-payload' });
+  });
+
   it('routes standard storage commands through the protected host without generic filesystem fallback', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
@@ -94,5 +124,13 @@ function localAppHost(turns: unknown[]) {
     agentSendTurn: async (input: unknown) => { turns.push(input); return { accepted: true }; },
     agentSubscribeTurn: async () => ({ events: [], cursor: '' }),
     agentGetConversationSnapshot: async () => ({ conversationAnchorId: 'anchor-a', messages: [] }),
+    agentTranscribeVoice: async (input: unknown) => {
+      turns.push(['agentTranscribeVoice', input]);
+      return { clientRequestId: 'request-a', text: '你好' };
+    },
+    agentSubscribeVoiceStream: async (input: unknown) => {
+      turns.push(['agentSubscribeVoiceStream', input]);
+      return { cursor: '1', events: [] };
+    },
   };
 }

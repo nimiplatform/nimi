@@ -279,6 +279,8 @@ function workspaceKitSourceAliasPlugin() {
                 async sendTurn() { throw new Error('unexpected local-app turn'); },
                 async subscribeTurn() { throw new Error('unexpected local-app subscribe'); },
                 async getConversationSnapshot() { throw new Error('unexpected local-app snapshot'); },
+                async transcribeVoice() { throw new Error('unexpected local-app voice transcription'); },
+                async subscribeVoiceStream() { throw new Error('unexpected local-app voice stream subscription'); },
               },
             };
           }

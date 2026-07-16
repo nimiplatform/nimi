@@ -387,4 +387,12 @@ func TestLocalAppGrantOperationMapIsClosedAndDeterministic(t *testing.T) {
 	if _, err := localAppGrantOperation("app_storage.json.read", "storage:../secret.json"); err == nil {
 		t.Fatal("invalid storage resource was admitted")
 	}
+	voiceTranscribe, err := localAppGrantOperation("runtime_agent.voice.transcribe", "agent:1/voice-transcription")
+	if err != nil || voiceTranscribe.capability != "runtime.agent.voice.transcribe" {
+		t.Fatalf("voice transcription mapping = %+v err=%v", voiceTranscribe, err)
+	}
+	voiceRead, err := localAppGrantOperation("runtime_agent.voice.stream_subscribe", "agent:1/conversation:anchor-1/turn:turn-1/voice-stream:voice-1")
+	if err != nil || voiceRead.capability != "runtime.agent.voice.read" || voiceRead.fingerprint == voiceTranscribe.fingerprint {
+		t.Fatalf("voice stream mapping = %+v err=%v", voiceRead, err)
+	}
 }
