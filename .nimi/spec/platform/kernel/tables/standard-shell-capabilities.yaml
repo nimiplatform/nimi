@@ -440,6 +440,9 @@ capabilities:
       - id: artifactsReadRuntimeBytes
         command: nimi.shell.localApp.artifacts.readRuntimeBytes
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, not-found, resource-exhausted]
+      - id: agentInventory
+        command: nimi.shell.localApp.agent.inventory
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-unauthenticated, account-changed, runtime-restarted, revoked, resource-exhausted]
       - id: agentOpenConversation
         command: nimi.shell.localApp.agent.openConversation
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload]
