@@ -334,6 +334,14 @@ apps:
         scopeFamily: audit
         scopeName: audit.read.scoped
         qualifier: zhiyu-own-audit-projections
+      - appId: nimi.zhiyu
+        scopeFamily: file_device
+        scopeName: file.read.scoped
+        qualifier: app-local-drafts
+      - appId: nimi.zhiyu
+        scopeFamily: file_device
+        scopeName: file.write.scoped
+        qualifier: app-local-drafts
     health_repair_projection:
       - unavailable
       - setup-required
