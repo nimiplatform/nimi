@@ -120,6 +120,7 @@ export function RuntimeSelect({
   onChange,
   options,
   placeholder,
+  ariaLabel,
   disabled,
   size = 'md',
   className = '',
@@ -132,6 +133,7 @@ export function RuntimeSelect({
   onChange: (value: string) => void;
   options: RuntimeSelectOption[];
   placeholder?: string;
+  ariaLabel?: string;
   disabled?: boolean;
   size?: 'sm' | 'md';
   className?: string;
@@ -151,6 +153,7 @@ export function RuntimeSelect({
         onChange={onChange}
         options={options}
         placeholder={placeholder}
+        ariaLabel={ariaLabel}
         disabled={disabled}
         className={className}
         triggerClass={triggerClass}
@@ -167,6 +170,7 @@ export function RuntimeSelect({
       onValueChange={onChange}
       options={options}
       placeholder={placeholder}
+      aria-label={ariaLabel}
       disabled={disabled}
       className={className}
       selectClassName={triggerClass}
@@ -205,6 +209,7 @@ function SearchableRuntimeSelect({
   onChange,
   options,
   placeholder,
+  ariaLabel,
   disabled,
   className,
   triggerClass,
@@ -216,6 +221,7 @@ function SearchableRuntimeSelect({
   onChange: (value: string) => void;
   options: RuntimeSelectOption[];
   placeholder?: string;
+  ariaLabel?: string;
   disabled?: boolean;
   className: string;
   triggerClass: string;
@@ -269,6 +275,7 @@ function SearchableRuntimeSelect({
         <motion.button
           type="button"
           disabled={disabled}
+          aria-label={ariaLabel}
           aria-haspopup="listbox"
           aria-expanded={open}
           whileHover={disabled ? undefined : interactiveMotion.whileHover}
@@ -310,6 +317,7 @@ function SearchableRuntimeSelect({
               onChange={(event) => setSearchQuery(event.currentTarget.value)}
               onKeyDown={onSearchKeyDown}
               placeholder={searchPlaceholder || i18n.t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
+              aria-label={searchPlaceholder || i18n.t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
               className="h-9 w-full rounded-md border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] pl-9 pr-3 text-sm text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
             />
           </div>

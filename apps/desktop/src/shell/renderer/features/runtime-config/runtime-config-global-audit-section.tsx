@@ -542,7 +542,16 @@ export function GlobalAuditSection({
         </div>
       </div>
 
-      {error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
+      {error ? (
+        <div role="alert" className="mt-2 text-xs text-[var(--nimi-status-danger)]">
+          <p>
+            {t('runtimeConfig.runtime.auditReadFailed', {
+              defaultValue: 'Audit activity is unavailable. Check or update the local Runtime, then try again.',
+            })}
+          </p>
+          <p className="mt-1 break-all font-mono text-[10px] text-[var(--nimi-text-muted)]">{error}</p>
+        </div>
+      ) : null}
 
       {/* Filters */}
       <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2">
@@ -556,6 +565,7 @@ export function GlobalAuditSection({
         <RuntimeSelect
           value={String(filters.callerKind)}
           onChange={(next) => onUpdateFilters({ callerKind: Number(next) })}
+          ariaLabel={t('runtimeConfig.runtime.filterCallerKind', { defaultValue: 'Filter caller kind' })}
           size="sm"
           className="w-44"
           options={[

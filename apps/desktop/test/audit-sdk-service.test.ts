@@ -156,4 +156,10 @@ describe('Desktop audit projection source boundary', () => {
       assert.doesNotMatch(sectionSource, new RegExp(`event\\.${field}\\b`, 'u'));
     }
   });
+
+  test('labels the caller filter and presents typed failures with localized guidance', () => {
+    assert.match(sectionSource, /ariaLabel=\{t\('runtimeConfig\.runtime\.filterCallerKind'/u);
+    assert.match(sectionSource, /role="alert"/u);
+    assert.match(sectionSource, /runtimeConfig\.runtime\.auditReadFailed/u);
+  });
 });
