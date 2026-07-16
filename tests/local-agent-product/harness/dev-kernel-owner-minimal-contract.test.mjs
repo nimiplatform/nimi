@@ -12,6 +12,7 @@ function ownerDriverSource() {
   return [
     'dev-kernel-first-run-driver.mjs',
     'dev-kernel-cross-app-driver.mjs',
+    'dev-kernel-core-reactivation-driver.mjs',
     'dev-kernel-local-development-driver.mjs',
   ].map((file) => fs.readFileSync(path.join(import.meta.dirname, file), 'utf8')).join('\n');
 }
@@ -55,7 +56,10 @@ test('owner-minimal contract rejects reordered, failed, private, or screenshot-f
 test('owner-minimal runner reuses the core driver and prepares carriers only between processes', () => {
   const runner = fs.readFileSync(path.join(import.meta.dirname, 'run-owner-minimal.mjs'), 'utf8');
   const freshPreparation = fs.readFileSync(path.join(import.meta.dirname, 'run-fresh-prepared-electron-journey.mjs'), 'utf8');
-  const processOwnership = fs.readFileSync(path.join(import.meta.dirname, 'fresh-prepared-electron-runner.mjs'), 'utf8');
+  const processOwnership = [
+    path.join(import.meta.dirname, 'fresh-prepared-electron-runner.mjs'),
+    path.join(import.meta.dirname, '../../../scripts/lib/electron-carrier-processes.mjs'),
+  ].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
   const driver = ownerDriverSource();
   assert.match(runner, /runDevKernelOwnerMinimalTrial/);
   assert.match(driver, /runDevKernelTrial\(\{ \.\.\.input, executionMode: 'owner-minimal' \}\)/);

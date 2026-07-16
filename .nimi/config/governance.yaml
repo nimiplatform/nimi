@@ -308,6 +308,7 @@ ai_governance:
       - "**/*.frag"
       - "**/*.vert"
       - "**/*.min.js"
+      - "**/*.node"
       - "**/*.wav"
       - "**/*.mp3"
       - "**/*.m4a"
