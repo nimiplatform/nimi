@@ -11,9 +11,9 @@ test('Zhiyu voice hardcut leaves no deferred voice product variants or app-local
     'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx',
     'src/shell/agent-chat/voice-playback.ts',
     'src/shell/agent-chat/voice-capture.ts',
+    'src/shell/app/voice-playback-action.ts',
   ];
   const source = (await Promise.all(files.map((file) => readFile(path.join(root, file), 'utf8')))).join('\n');
-  const appSource = await readFile(path.join(root, 'src/shell/app/App.tsx'), 'utf8');
   const retiredDeferred = ['defer', 'red'].join('');
 
   assert.doesNotMatch(source, new RegExp(`voice[_-]?(?:capture|playback|state|surface)[\\s\\S]{0,120}${retiredDeferred}`, 'iu'));
@@ -24,7 +24,7 @@ test('Zhiyu voice hardcut leaves no deferred voice product variants or app-local
   assert.doesNotMatch(source, /\/v1\/audio\/(?:speech|transcriptions)/u);
   assert.match(source, /audio\.transcribe/u);
   assert.match(source, /agent\.transcribeVoice/u);
-  assert.match(appSource, /agent\.subscribeVoiceStream/u);
+  assert.match(source, /agent\.subscribeVoiceStream/u);
   assert.doesNotMatch(source, /runNimiRuntimeSpeechTranscription/u);
   assert.doesNotMatch(source, /new Runtime\s*\(/u);
 });
