@@ -314,6 +314,7 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   }
   assert.deepEqual([...received[0]?.chunk ?? []], [1, 2, 3]);
   assert.equal(streamRequests[0]?.voiceStreamId, 'voice-stream-1');
+  assert.equal(streamRequests[0]?.agentId, LOCAL_AGENT_REF);
   assert.equal(streamRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
   assert.deepEqual(streamRequests[0]?.context?.scopedBinding, scopedBinding);
   assert.deepEqual(scopes[0], ['runtime.agent.turn.read']);

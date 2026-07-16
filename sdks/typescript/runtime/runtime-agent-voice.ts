@@ -141,6 +141,7 @@ export function createNimiRuntimeAgentVoiceModule(
             voiceStreamId,
             conversationAnchorId,
             turnId,
+            agentId: identity.localAgentRef,
           }, mergedOptions);
         },
       );
