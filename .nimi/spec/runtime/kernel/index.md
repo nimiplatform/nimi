@@ -96,7 +96,7 @@
 | `app-messaging-contract.md` | `K-APP-*` | RuntimeAppService messaging、event stream、reserved runtime.agent target、companion multi-app interaction、and Avatar runtime boundary |
 | `app-lifecycle-contract.md` | `K-APP-*` | Opaque immutable package seams with typed unavailable positive posture, local record lifecycle, protected local-app launch and Developer Mode |
 | `local-app-principal-record-contract.md` | `K-APP-028..031` | SID-derived local OS-user anchor, random non-reused principal, opaque lineage/provenance slots, separate lifecycle record/store, tombstone/no inheritance and resolver boundary |
-| `app-projection-contract.md` | `K-APP-*` | Principal-keyed app storage/audience, opaque package readiness, account/local-record inventory, and no workspace-adoption authority |
+| `app-projection-contract.md` | `K-APP-*` | Principal-keyed app storage/audience, exact protected JSON operations, opaque package readiness, account/local-record inventory, and no workspace-adoption authority |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | service-principal-owned closed configuration, signed boot authority, typed protected mutation, secret custody, hardcut/no-import, and selected `nimi_data` dataRootRef projection |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |

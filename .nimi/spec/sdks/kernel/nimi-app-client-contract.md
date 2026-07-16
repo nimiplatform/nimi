@@ -133,9 +133,10 @@ file scanning as package truth.
 ## S-APP-011 — Principal-Keyed Storage Boundary
 
 `MUST`：Runtime private storage is partitioned by the inherited
-`local_app_principal_id`, never app id. The 0K local-app SDK carrier exposes no
-absolute root or storage operation; only typed unavailable posture may be
-projected until exact relative-path operations are independently admitted.
+`local_app_principal_id`, never app id. The local-app SDK carrier exposes no
+absolute root or root accessor. Its only admitted storage surface is the exact
+JSON operation set defined by S-APP-017; all other storage and file operations
+remain typed unavailable.
 
 `MUST NOT`：SDK must not construct or return `<nimi_data>/apps/<app-id>` paths,
 accept a principal selector, inspect Runtime config, or infer storage from
@@ -232,7 +233,9 @@ NOT be exposed as active SDK APIs:
 
 `P-PERM-011` admits the `app-local-drafts` qualifier as permission-review
 and scope-expression semantics. `K-APP-018` explicitly does not admit a
-Runtime-mediated file API. Therefore the SDK MUST NOT map
+generic Runtime-mediated file API. The three exact S-APP-017 JSON storage
+operations are not a file client: they accept no bytes, directory, move, raw
+delete, mode, range, root, or absolute-path input. Therefore the SDK MUST NOT map
 `file.read.scoped` / `file.write.scoped` grants to hidden Runtime methods,
 Desktop bridge helpers, Realm REST calls, generic HTTP proxy calls, or
 direct filesystem paths. Missing file client support is a fail-closed
@@ -403,10 +406,20 @@ an independently admitted host/owner caller backed by Runtime `GetAppStorage`
 native host re-key private storage by the inherited principal/session context;
 the app observes no principal id and cannot request any root.
 
-The 0K checkpoint admits storage partitioning and live trace evidence, not a
-local-app storage operation. `data.pathResolve` and `storage.*` remain typed
-unavailable on the local-app carrier until their exact operation, grant,
-relative-path, quota, and owner-policy contracts are separately admitted.
+The 0K checkpoint admits exactly `storage.readJson`, `storage.writeJson`, and
+`storage.removeJson` on the protected local-app carrier. SDK exposes them as
+`storage.readJson(relativePath)`, `storage.writeJson(relativePath, value)`, and
+`storage.removeJson(relativePath)`. Each call is bound to the matching
+`app_storage.json.read|write|remove` operation, the exact
+`storage:<canonical-relative-json-path>` resource, and the current process-bound
+session/grant. Runtime enforces a 240-byte canonical relative `.json` path, a
+256 KiB document bound, a 16 MiB principal-partition quota, symlink/non-regular
+file rejection, and idempotent remove. The SDK projects only JSON value,
+`sizeBytes`, or `removed`; it rejects any root/path/authority field.
+
+`data.pathResolve`, generic file operations, directory operations, binary
+storage, caller-selected quota/root, and every other `storage.*` operation
+remain typed unavailable.
 
 `MUST NOT`：SDK must not read `<runtime_owner_state_root>/nimi.json`, parse Runtime config, or
 concatenate `<nimi_data>/apps/<app-id>` as a local fallback. It must not accept

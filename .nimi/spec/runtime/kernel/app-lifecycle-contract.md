@@ -96,6 +96,10 @@ storage exists as an owner seam, but apps cannot convert it into raw filesystem
 or path authority. Any future typed file operation must resolve the current
 principal and grant and must not expose another principal's root.
 
+The K-APP-032 exact JSON storage operations are not a generic file API. They do
+not admit raw bytes, roots, absolute paths, directory listing, range reads,
+move, mode, or arbitrary delete, and therefore do not weaken this prohibition.
+
 ## K-APP-026 Protected Local-app Control Protocol
 
 Lifecycle and development mutations consume the live protected Desktop

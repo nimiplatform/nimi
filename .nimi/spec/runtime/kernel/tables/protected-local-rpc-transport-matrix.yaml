@@ -1,4 +1,4 @@
-version: 7
+version: 8
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
@@ -31,6 +31,7 @@ authority_refs:
   - K-AGCORE-052
   - K-AGCORE-053
   - K-AUDIT-024
+  - K-APP-032
 transport_classes: [public_tcp, desktop_control, local_app_bootstrap, local_app_host]
 platform_admission:
   windows: admitted_fixed_service_and_process_verification
@@ -77,6 +78,7 @@ operation_classes:
   - desktop_product_control
   - desktop_runtime_audit_projection
   - local_app_artifact_read
+  - local_app_json_storage
   - local_app_agent_conversation
   - blocked_pending_separate_authority
 matrix_schema:
@@ -241,6 +243,9 @@ methods:
   - { method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState, operation_class: desktop_product_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-RPC-004 }
 
   - { method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes, operation_class: local_app_artifact_read, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-053 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson, operation_class: local_app_json_storage, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-APP-032 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson, operation_class: local_app_json_storage, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-APP-032 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson, operation_class: local_app_json_storage, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-APP-032 }
   - { method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory, operation_class: local_app_agent_inventory_zero_grant, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-006e }
   - { method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }
   - { method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage, operation_class: local_app_agent_conversation, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-AGCORE-032 }

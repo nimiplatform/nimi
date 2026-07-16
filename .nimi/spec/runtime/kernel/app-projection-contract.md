@@ -304,6 +304,44 @@ alternate storage authority. Missing `dataRootRef`, invalid principal/path shape
 symlink/non-directory corruption, or unsupported storage policy must fail
 closed with typed storage state/reason.
 
+## K-APP-032 Protected Local-app JSON Storage Operations
+
+RuntimeAppService owns exactly three local-app storage methods:
+`ReadLocalAppStorageJson`, `WriteLocalAppStorageJson`, and
+`RemoveLocalAppStorageJson`. They are admitted only on `local_app_host` after
+the current process-bound session and exact operation/resource grant are
+revalidated. The request carries only `relative_path` and, for write, one JSON
+value. It carries no app id, principal id, account id, root, absolute path,
+quota, grant id, credential, endpoint, or method selector.
+
+The closed operation mapping is:
+
+- `ReadLocalAppStorageJson` -> `app_storage.json.read` ->
+  `file.read.scoped#app-local-drafts`;
+- `WriteLocalAppStorageJson` -> `app_storage.json.write` ->
+  `file.write.scoped#app-local-drafts`;
+- `RemoveLocalAppStorageJson` -> `app_storage.json.remove` ->
+  `file.write.scoped#app-local-drafts`.
+
+Each grant resource is exactly
+`storage:<canonical-relative-json-path>`. Read, write, and remove use distinct
+operation fingerprints even when the resource is identical. Runtime resolves
+`<nimi_data>/apps/<current-local-app-principal-id>/data` from K-APP-022,
+requires an ASCII slash-separated relative `.json` path of at most 240 UTF-8
+bytes, rejects empty/dot/parent/absolute/backslash/colon segments, and rejects
+symlink or non-regular components. A JSON document is at most 256 KiB and the
+durable principal partition is at most 16 MiB. Writes are serialized and
+atomically replaced; remove is idempotent for an absent entry.
+
+Read/write responses contain only the JSON value, `size_bytes`, and canonical
+reason code. Remove contains only `removed` and reason code. No response,
+error detail, audit projection, log, Kit/SDK projection, or renderer payload may
+contain a root or absolute path. Runtime emits
+`APP_STORAGE_PATH_INVALID`, `APP_STORAGE_ENTRY_NOT_FOUND`,
+`APP_STORAGE_QUOTA_EXCEEDED`, or `APP_STORAGE_UNAVAILABLE` as applicable and
+never falls back to `GetAppStorage`, public TCP, Node filesystem access, app-id
+partitioning, or a generic file API.
+
 ## K-APP-023 App Package Readiness Projection
 
 0K admits `GetAppPackageReadiness` only as an opaque typed-unavailable seam.

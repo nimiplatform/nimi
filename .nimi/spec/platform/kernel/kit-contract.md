@@ -115,11 +115,17 @@
   roots; they may carry only `{ relativePath }` or `{ relativePath, value }`.
   Once separately admitted for a caller, hosts obtain the root from a
   Runtime-internal principal/session-derived storage projection, never an app-id
-  lookup or renderer input. These operations are unavailable on the 0K
-  local-app carrier.
+  lookup or renderer input. `data.pathResolve` remains unavailable on the 0K
+  local-app carrier. The exact `storage.readJson`, `storage.writeJson`, and
+  `storage.removeJson` operations are admitted for that carrier by P-KIT-044:
+  Runtime derives the current principal partition, revalidates a distinct
+  operation/resource grant on every call, enforces the canonical relative JSON
+  path plus 256 KiB document and 16 MiB partition quotas, and returns no path or
+  root field. No generic file operation is implied.
 - `storage.removeJson` is an idempotent app-storage lifecycle primitive. If
   the file exists the host removes it; if it is already absent the operation
-  still succeeds. The result shape is `{ path, removed }`.
+  still succeeds. Full standard hosts retain `{ path, removed }`; the protected
+  local-app projection is exactly `{ removed }`.
 - Standard host failures must use the envelope fields `code`, `reasonCode`, `actionHint`, `source`, and optional `details`. Browser/no-host fallbacks, raw `file://` conversion escape hatches, and silent no-op behavior are not standard shell behavior.
 - Standard `agent-center.*` operations own host-local Agent Center asset byte custody only: avatar/background import, validation, preview material resolution, Live2D adapter sidecar association, and scoped resource removal. They must not expose `configGet` or `configSet`, persist selection truth, decide Avatar readiness, return raw filesystem paths, or materialize runtime launch payload truth.
 - `renderer_entry_probe` is a diagnostics capability. Generic `runtime_account_caller`/trusted caller metadata belongs to the local-agent standard capability; Desktop-specific caller policy remains product-owned and must not be promoted into the standard catalog.
@@ -253,6 +259,12 @@ selected checkpoint surface is exact typed permission posture, explicit
 single-operation permission request, artifact read, K-AGCORE-006e bounded
 RuntimeAgent inventory, and RuntimeAgent conversation operations; no
 method-id/bytes proxy or generic protected Runtime forwarding is admitted.
+The same exact client additionally carries only the three P-KIT-044 local-app
+JSON storage operations. Their renderer input contains a canonical relative
+path and, for write, one JSON value. The native host invokes the corresponding
+closed RuntimeAppService methods; it does not call `GetAppStorage`, expose a
+data root, accept an app/principal selector, or fall back to Node filesystem
+access. Read/write return `{ value, sizeBytes }`; remove returns `{ removed }`.
 `agent.listInventory()` accepts no input and returns only the K-AGCORE-006e
 field whitelist. `permission.posture` is read-only. `permission.request` maps only to
 `RequestLocalAppGrant`, accepts exact operation/resource/purpose, returns a

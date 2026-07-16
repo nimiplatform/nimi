@@ -472,6 +472,21 @@ services:
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/UninstallApp
       - name: GetAppStorage
         type: unary
+      - name: ReadLocalAppStorageJson
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson
+      - name: WriteLocalAppStorageJson
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
+      - name: RemoveLocalAppStorageJson
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
       - name: GetAccountAppInventory
         type: unary
       - name: GetAppPackageReadiness

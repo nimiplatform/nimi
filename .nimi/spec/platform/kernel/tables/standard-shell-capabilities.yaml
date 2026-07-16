@@ -53,6 +53,7 @@ storage_payload_policy:
   host_resolution:
     - runtime_get_app_storage
     - runtime_attested_launch_projection
+    - runtime_local_app_principal_session_projection
   renderer_payloads:
     data.pathResolve:
       allowed_fields:
@@ -92,6 +93,32 @@ storage_payload_policy:
     - dataRoot
     - cacheRoot
     - tempRoot
+  local_app_json_operations:
+    admitted_operations:
+      - storage.readJson
+      - storage.writeJson
+      - storage.removeJson
+    principal_partition: runtime_derived_local_app_principal_id
+    permission_scopes:
+      storage.readJson: file.read.scoped#app-local-drafts
+      storage.writeJson: file.write.scoped#app-local-drafts
+      storage.removeJson: file.write.scoped#app-local-drafts
+    operation_ids:
+      storage.readJson: app_storage.json.read
+      storage.writeJson: app_storage.json.write
+      storage.removeJson: app_storage.json.remove
+    resource_ref: "storage:<canonical-relative-json-path>"
+    relative_path_max_bytes: 240
+    document_max_bytes: 262144
+    principal_partition_quota_bytes: 16777216
+    required_suffix: .json
+    result_fields:
+      storage.readJson: [value, sizeBytes]
+      storage.writeJson: [value, sizeBytes]
+      storage.removeJson: [removed]
+    absolute_path_projection: forbidden
+    exact_grant_per_operation_and_resource: required
+    missing_remove_disposition: idempotent_success
 
 protected_service_control_policy:
   operations: [runtime-lifecycle.status, runtime-lifecycle.start, runtime-lifecycle.restart]
@@ -141,11 +168,11 @@ capability_sets:
       - local-app.agentSendTurn
       - local-app.agentSubscribeTurn
       - local-app.agentGetConversationSnapshot
-    planned_operations:
-      - data.pathResolve
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
+    planned_operations:
+      - data.pathResolve
       - config.get
       - config.set
       - ai-config.get
@@ -215,6 +242,11 @@ capability_sets:
       - local-app-denies-floating-window
       - local-app-process-mismatch_denied
       - local-app-revoked_grant_denied_on_next_operation
+      - local-app-storage-zero-grant-denied
+      - local-app-storage-path-escape-denied
+      - local-app-storage-cross-principal-denied
+      - local-app-storage-quota-exceeded
+      - local-app-storage-root-never-projected
     source_rule: P-KIT-044
 
 local_app_operation_contract:
@@ -239,6 +271,24 @@ local_app_operation_contract:
   fixed_service_required: true
   generic_method_id_or_bytes_proxy: forbidden
   operation_families:
+    storageReadJson:
+      command: storage.readJson
+      operation_id: app_storage.json.read
+      request_fields: [relativePath]
+      response_fields: [value, sizeBytes]
+      owner: runtime_app_service
+    storageWriteJson:
+      command: storage.writeJson
+      operation_id: app_storage.json.write
+      request_fields: [relativePath, value]
+      response_fields: [value, sizeBytes]
+      owner: runtime_app_service
+    storageRemoveJson:
+      command: storage.removeJson
+      operation_id: app_storage.json.remove
+      request_fields: [relativePath]
+      response_fields: [removed]
+      owner: runtime_app_service
     artifactsReadRuntimeBytes:
       request_fields: [artifactId]
       response_fields: [dataBase64, mimeType, sizeBytes, mimeInferred]

@@ -209,6 +209,21 @@ method_mappings:
     proto_method: GetAppStorage
     mapping_posture: aligned
   - design_service: RuntimeAppService
+    design_method: ReadLocalAppStorageJson
+    proto_service: RuntimeAppService
+    proto_method: ReadLocalAppStorageJson
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: WriteLocalAppStorageJson
+    proto_service: RuntimeAppService
+    proto_method: WriteLocalAppStorageJson
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: RemoveLocalAppStorageJson
+    proto_service: RuntimeAppService
+    proto_method: RemoveLocalAppStorageJson
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
     design_method: GetAccountAppInventory
     proto_service: RuntimeAppService
     proto_method: GetAccountAppInventory

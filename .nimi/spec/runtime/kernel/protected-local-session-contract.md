@@ -414,6 +414,13 @@ fall back to public TCP. This addition changes no account custody, grant,
 presence, Realm broker, storage, memory, media, local-app, development
 authorization, lifecycle, dormancy, epoch, or public-listener semantics.
 
+The third-party `local_app_host` matrix separately admits the three exact
+K-APP-032 RuntimeAppService JSON storage methods. They are not part of the
+Desktop consumer set, accept no method id or root selector, and require the
+current local-app session plus exact per-operation/resource grant before
+handler dispatch. Public TCP, `GetAppStorage`, generic file IPC, and Node
+filesystem fallback remain denied.
+
 ## K-PLOCAL-007 Lifecycle Transactions, Boot Epoch, and Recovery
 
 Every admitted local-app control mutation requires the same live protected

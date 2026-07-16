@@ -91,7 +91,7 @@ rules:
   - rule_id: S-APP-011
     evidence_refs:
       - sdk_kernel_consistency
-    note: Storage is Runtime principal-keyed; SDK/local-app carrier exposes no absolute root or storage operation and cannot derive app-id paths.
+    note: Storage is Runtime principal-keyed; SDK/local-app carrier exposes no absolute root or root accessor, cannot derive app-id paths, and carries only the exact S-APP-017 JSON operations.
     evidence_requirement: required
   - rule_id: S-APP-012
     evidence_refs:
@@ -106,7 +106,7 @@ rules:
   - rule_id: S-APP-014
     evidence_refs:
       - sdk_kernel_consistency
-    note: File-scope client is not admitted while Runtime K-APP-018 has no file-API method surface; SDK must not expose hidden bridge, REST, or filesystem fallback.
+    note: Generic file-scope client remains non-admitted by K-APP-018; the exact S-APP-017 JSON storage operations add no raw path/root, bytes, directory, move, range, mode, or filesystem fallback.
     evidence_requirement: required
   - rule_id: S-APP-015
     evidence_refs:
@@ -123,7 +123,7 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK preserves Runtime principal-partitioned storage truth, but the 0K LOCAL_APP carrier exposes no GetAppStorage operation or absolute root; storage operations remain typed unavailable pending separate admission.
+    note: SDK preserves Runtime principal-partitioned storage truth and exposes exactly readJson/writeJson/removeJson through the protected carrier with per-operation/resource grant, relative-path, document/quota, and projection checks; GetAppStorage, roots, paths, and generic file APIs remain absent.
     evidence_requirement: required
   - rule_id: S-APP-018
     evidence_refs:

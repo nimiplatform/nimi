@@ -286,6 +286,24 @@ methods:
       - K-AUTHN-006
       - K-AUTH-001
       - K-APP-022
+  - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson
+    posture: protected_origin_required
+    protected_transport_class: local_app_host
+    required_origin_role: local_app_session
+    rationale: exact current-principal JSON read requires a fresh app_storage.json.read resource grant; request and response expose no root or absolute path
+    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-APP-022, K-APP-032]
+  - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
+    posture: protected_origin_required
+    protected_transport_class: local_app_host
+    required_origin_role: local_app_session
+    rationale: exact current-principal JSON write requires a fresh app_storage.json.write resource grant plus Runtime document and partition quotas
+    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-APP-022, K-APP-032]
+  - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
+    posture: protected_origin_required
+    protected_transport_class: local_app_host
+    required_origin_role: local_app_session
+    rationale: idempotent current-principal JSON remove requires a fresh app_storage.json.remove resource grant and returns no path
+    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-APP-022, K-APP-032]
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory
     posture: authenticated_required
     rationale: authenticated account app-inventory truth read; Runtime resolves the account binding before projecting verified/entitled rows and local materialization state

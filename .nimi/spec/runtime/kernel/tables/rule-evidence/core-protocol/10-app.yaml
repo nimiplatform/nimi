@@ -56,6 +56,7 @@ entries:
   - K-APP-029
   - K-APP-030
   - K-APP-031
+  - K-APP-032
 
 rules:
   - rule_id: K-APP-001
@@ -233,4 +234,9 @@ rules:
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
     note: Principal/record, grant and launch/session stores remain separate and the resolver creates no parallel cache or app-id fallback.
+    test_files: [scripts/check-protected-local-authority.mjs]
+  - rule_id: K-APP-032
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Protected local-app JSON storage resolves only the current principal partition and requires an exact operation/resource grant, canonical relative path, document/quota enforcement, redacted responses, and no public or filesystem fallback.
     test_files: [scripts/check-protected-local-authority.mjs]
