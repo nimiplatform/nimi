@@ -258,7 +258,6 @@ const LOCAL_APP_PLANNED_OPERATIONS = [
   'ai-config.get',
   'ai-config.set',
   'local-assets.resolveUrl',
-  'desktop-open.openIntent',
   'shell-ui.confirmDialog',
   'shell-ui.startWindowDrag',
   'shell-ui.focusMainWindow',
@@ -279,6 +278,7 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',
+  'desktop-open.openIntent',
 ];
 
 const LOCAL_APP_FORBIDDEN_OPERATIONS = [
