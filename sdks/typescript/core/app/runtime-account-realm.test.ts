@@ -7,18 +7,22 @@ import {
   ReasonCode as RuntimeWireReasonCode,
 } from '../../core-generated/runtime-typed-client';
 import { ReasonCode } from '../../types';
-import { createRuntimeAccountMediatedRealmTransport } from './runtime-account-realm';
+import {
+  createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport,
+  createRuntimeAccountMediatedRealmTransport,
+  NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS,
+} from './runtime-account-realm';
 
-test('Runtime-mediated Realm transport delegates unary calls without renderer token custody', async () => {
+test('Desktop source-readiness Realm transport delegates admitted unary calls without renderer token custody', async () => {
   const caller = {
-    appId: 'nimi.zhiyu',
-    appInstanceId: 'nimi.zhiyu.local-first-party',
-    deviceId: 'nimi-zhiyu-local-first-party-device',
-    mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+    appId: 'nimi.desktop',
+    appInstanceId: 'nimi.desktop.local-first-party',
+    deviceId: 'desktop-shell',
+    mode: AccountCallerMode.DESKTOP_SHELL,
     scopes: [],
   };
   const calls: Array<{ readonly request: unknown; readonly options: unknown }> = [];
-  const transport = createRuntimeAccountMediatedRealmTransport({
+  const transport = createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
     accountCaller: caller,
     runtime: {
       account: {
@@ -69,13 +73,13 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
   );
 });
 
-test('Runtime-mediated Realm transport maps upstream failure to typed Realm offline truth', async () => {
-  const transport = createRuntimeAccountMediatedRealmTransport({
+test('Desktop source-readiness Realm transport maps upstream failure to typed Realm offline truth', async () => {
+  const transport = createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
     accountCaller: {
-      appId: 'nimi.zhiyu',
-      appInstanceId: 'nimi.zhiyu.local-first-party',
-      deviceId: 'desktop-device',
-      mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+      appId: 'nimi.desktop',
+      appInstanceId: 'nimi.desktop.local-first-party',
+      deviceId: 'desktop-shell',
+      mode: AccountCallerMode.DESKTOP_SHELL,
       scopes: [],
     },
     runtime: {
@@ -94,7 +98,7 @@ test('Runtime-mediated Realm transport maps upstream failure to typed Realm offl
   });
 
   await assert.rejects(
-    () => transport.unary({ methodId: 'WorldCoreController_listWorldCores', body: {} }),
+    () => transport.unary({ methodId: 'WorldPublicController_listWorlds', body: {} }),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.REALM_UNAVAILABLE);
       assert.equal((error as { source?: string }).source, 'realm');
@@ -102,6 +106,47 @@ test('Runtime-mediated Realm transport maps upstream failure to typed Realm offl
       return true;
     },
   );
+});
+
+test('Desktop source-readiness Realm transport exposes the exact generated operation vocabulary', async () => {
+  assert.deepEqual(NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS, [
+    'WorldCoreController_createSourceMaterializationPacket',
+    'WorldCoreController_getRealmPersona',
+    'WorldCoreController_getWorldCharacter',
+    'WorldCoreController_getWorldEntity',
+    'WorldCoreController_listRealmPersonas',
+    'WorldCoreController_listWorldRelationships',
+    'WorldPublicController_getWorld',
+    'WorldPublicController_getWorldDetailWithCharacters',
+    'WorldPublicController_listWorlds',
+  ]);
+  let runtimeCalls = 0;
+  const transport = createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
+    accountCaller: {
+      appId: 'nimi.desktop',
+      appInstanceId: 'nimi.desktop.local-first-party',
+      deviceId: 'desktop-shell',
+      mode: AccountCallerMode.DESKTOP_SHELL,
+      scopes: [],
+    },
+    runtime: {
+      account: {
+        invokeRealmUnary: async () => {
+          runtimeCalls += 1;
+          return { accepted: true, responseJson: '{}' };
+        },
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => transport.unary({ methodId: 'getExploreFeed', body: {} }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED');
+      return true;
+    },
+  );
+  assert.equal(runtimeCalls, 0, 'unlisted operation must not reach the Runtime carrier');
 });
 
 test('Runtime-mediated Realm transport rejects local-app callers before operation admission', () => {
@@ -120,5 +165,24 @@ test('Runtime-mediated Realm transport rejects local-app callers before operatio
     },
   }), {
     reasonCode: 'SDK_RUNTIME_REALM_MEDIATION_CALLER_MODE_FORBIDDEN',
+  });
+});
+
+test('Desktop source-readiness Realm transport rejects bundled caller modes', () => {
+  assert.throws(() => createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
+    accountCaller: {
+      appId: 'nimi.zhiyu',
+      appInstanceId: 'nimi.zhiyu.local-first-party',
+      deviceId: 'nimi-zhiyu-local-first-party-device',
+      mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+      scopes: [],
+    },
+    runtime: {
+      account: {
+        invokeRealmUnary: async () => ({ accepted: true, responseJson: '{}' }),
+      },
+    },
+  }), {
+    reasonCode: 'SDK_RUNTIME_REALM_DESKTOP_CALLER_REQUIRED',
   });
 });

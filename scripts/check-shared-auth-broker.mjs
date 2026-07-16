@@ -58,6 +58,14 @@ function assertCallerDecision(caller, expected) {
   }
 }
 
+function realmSDKMethodName(operationID) {
+  const separator = operationID.indexOf('_');
+  if (separator <= 0 || separator === operationID.length - 1) fail(`Realm operation id has no controller/action boundary: ${operationID}`);
+  const controller = operationID.slice(0, separator);
+  const action = operationID.slice(separator + 1);
+  return `${controller[0].toLowerCase()}${controller.slice(1)}${action[0].toUpperCase()}${action.slice(1)}`;
+}
+
 function checkRuntimePermissionMatrix() {
   const document = parse(read('.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml'));
   const desktop = matrixCaller(document, 'desktop_account_and_local_app_control');
@@ -70,6 +78,8 @@ function checkRuntimePermissionMatrix() {
     assertDecision(firstParty, method, 'deny');
     assertDecision(localApp, method, 'deny');
   }
+  assertDecision(desktop, 'InvokeRealmUnary', 'allow_when');
+  assertDecision(firstParty, 'InvokeRealmUnary', 'deny');
   assertDecision(localApp, 'InvokeRealmUnary', 'deny');
   assertDecision(localApp, 'GetLocalAppGrantStatus', 'allow_when');
   assertDecision(localApp, 'RequestLocalAppGrant', 'allow_when');
@@ -111,20 +121,54 @@ function checkRuntimeCallerEnvelope() {
 function checkRuntimeBrokerPolicy() {
   const policy = parse(read('.nimi/spec/runtime/kernel/tables/realm-broker-operations.yaml'), { merge: true });
   const operations = policy.operations ?? [];
+  const expectedOperationIDs = [
+    'WorldCoreController_createSourceMaterializationPacket',
+    'WorldCoreController_getRealmPersona',
+    'WorldCoreController_getWorldCharacter',
+    'WorldCoreController_getWorldEntity',
+    'WorldCoreController_listRealmPersonas',
+    'WorldCoreController_listWorldRelationships',
+    'WorldPublicController_getWorld',
+    'WorldPublicController_getWorldDetailWithCharacters',
+    'WorldPublicController_listWorlds',
+  ];
   if (policy.owner !== 'runtime' || policy.source_rule !== 'K-ACCSVC-023') fail('broker policy owner/source rule drift');
-  if (operations.length < 1) fail('broker operation policy is empty');
+  if (policy.authority_status !== 'admitted_exact_desktop_source_readiness_operations') fail('broker authority status is not exact Desktop source readiness');
+  if (policy.production_consumption !== 'admitted_exact_rows_only') fail('broker production consumption is not exact-row-only');
+  if (policy.generic_proxy !== 'forbidden') fail('generic Realm proxy posture is not forbidden');
+  if (policy.unlisted_operation_disposition !== 'deny_broker_operation_not_admitted') fail('unlisted Realm operations do not fail closed');
+  if (operations.length !== expectedOperationIDs.length) fail(`broker operation count ${operations.length} does not match exact source-readiness count ${expectedOperationIDs.length}`);
   const seen = new Set();
   for (const operation of operations) {
     if (seen.has(operation.operation_id)) fail(`duplicate broker operation ${operation.operation_id}`);
     seen.add(operation.operation_id);
+    if (operation.authorization_profile !== 'protected_desktop_source_readiness') fail(`${operation.operation_id} has an unadmitted authorization profile`);
+    if (operation.allowed_runtime_caller_modes?.length !== 1 || operation.allowed_runtime_caller_modes[0] !== 'ACCOUNT_CALLER_MODE_DESKTOP_SHELL') fail(`${operation.operation_id} is not Desktop-shell-only`);
+    if (operation.protected_transport_ref !== '/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary') fail(`${operation.operation_id} does not use the protected broker transport`);
     if (operation.credential_response_policy !== 'forbidden') fail(`${operation.operation_id} permits credential responses`);
     if (operation.realm_base_policy !== 'runtime-configured-canonical-exact') fail(`${operation.operation_id} permits non-canonical Realm base`);
+    if (!Array.isArray(operation.consumer_refs) || operation.consumer_refs.length === 0) fail(`${operation.operation_id} has no consumer evidence`);
+    let consumerSource = '';
+    for (const consumerRef of operation.consumer_refs ?? []) {
+      if (!existsSync(path.join(root, consumerRef))) fail(`${operation.operation_id} consumer ref is missing: ${consumerRef}`);
+      consumerSource += `\n${read(consumerRef)}`;
+    }
+    const sdkMethod = realmSDKMethodName(operation.operation_id);
+    if (!consumerSource.includes(sdkMethod)) {
+      fail(`${operation.operation_id} consumer refs do not call ${sdkMethod}`);
+    }
+  }
+  if (expectedOperationIDs.some((operationID) => !seen.has(operationID)) || [...seen].some((operationID) => !expectedOperationIDs.includes(operationID))) {
+    fail('broker operation set drifted from the exact Desktop source-readiness vocabulary');
+  }
+  if (policy.surfaces?.length !== expectedOperationIDs.length || expectedOperationIDs.some((operationID) => !policy.surfaces.includes(operationID))) {
+    fail('broker surfaces drifted from the exact Desktop source-readiness vocabulary');
   }
   for (const forbidden of policy.explicitly_not_admitted ?? []) {
     if (seen.has(forbidden.operation_id)) fail(`${forbidden.operation_id} is both admitted and forbidden`);
   }
   run(process.execPath, ['scripts/generate-runtime-realm-broker-policy.mjs', '--check']);
-  runGoTest('^(TestInvokeRealmUnaryAdmitsStudioOperationIDs|TestInvokeRealmUnaryRejectsCrossStudioLaneRequests|TestInvokeRealmUnaryRejectsSignedUploadCredentialOperations)$');
+  runGoTest('^(TestRealmBrokerOperationSetIsExactDesktopSourceReadinessVocabulary|TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs|TestInvokeRealmUnaryRejectsEveryUnlistedOperation|TestInvokeRealmUnaryRejectsNonDesktopCaller|TestInvokeRealmUnaryRejectsSignedUploadCredentialOperations)$');
 }
 
 function checkRuntimeBrokerTokenLeak() {
@@ -137,7 +181,7 @@ function checkRuntimeBrokerTokenLeak() {
   requireMatch(responseScanner, /realmBrokerJWTValuePattern/u, 'JWT-shaped response scan is missing');
   requireMatch(requestScanner, /scanRealmBrokerJSONValue/u, 'broker request credential scan is missing');
   requireMatch(realmUnary, /scanRealmBrokerResponseForCredentials/u, 'Realm response is not passed through the credential scanner');
-  runGoTest('^(TestInvokeRealmUnaryFailsClosedOnCredentialLikeResponse|TestInvokeRealmUnaryTypedNegativeMatrix|TestInvokeRealmUnaryMediatesRealmRequestWithoutReturningToken)$');
+  runGoTest('^(TestInvokeRealmUnaryFailsClosedOnCredentialLikeResponse|TestInvokeRealmUnaryTypedNegativeMatrix|TestInvokeRealmUnaryMediatesDesktopSourceReadinessWithoutReturningToken)$');
 }
 
 function checkSdkLocalAppProtectedCarrier() {

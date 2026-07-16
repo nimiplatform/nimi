@@ -12,7 +12,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -51,10 +50,10 @@ func TestInvokeRealmUnaryTypedNegativeMatrix(t *testing.T) {
 		body        string
 		want        runtimev1.AccountReasonCode
 	}{
-		{name: "request_shape", methodID: "WorldCoreController_listWorldCores", requestJSON: `{"query":{"notAdmitted":"value"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
-		{name: "credential_request", methodID: "WorldCoreController_createWorldCore", requestJSON: `{"body":{"accessToken":"caller-secret"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
-		{name: "upstream_non_2xx", methodID: "WorldCoreController_listWorldCores", requestJSON: `{}`, status: http.StatusServiceUnavailable, body: `{"error":"down"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED},
-		{name: "response_too_large", methodID: "WorldCoreController_listWorldCores", requestJSON: `{}`, status: http.StatusOK, body: `{"value":"` + strings.Repeat("x", (1<<20)+1) + `"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE},
+		{name: "request_shape", methodID: "WorldPublicController_listWorlds", requestJSON: `{"query":{"notAdmitted":"value"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
+		{name: "credential_request", methodID: "WorldCoreController_createSourceMaterializationPacket", requestJSON: `{"body":{"accessToken":"caller-secret"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
+		{name: "upstream_non_2xx", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, status: http.StatusServiceUnavailable, body: `{"error":"down"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED},
+		{name: "response_too_large", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, status: http.StatusOK, body: `{"value":"` + strings.Repeat("x", (1<<20)+1) + `"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var hits atomic.Int32
@@ -69,7 +68,7 @@ func TestInvokeRealmUnaryTypedNegativeMatrix(t *testing.T) {
 			svc := newRealmUnaryHarnessService(t, server.URL)
 			completeLogin(t, svc)
 			response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-				Caller:       realmWorldStudioCaller(),
+				Caller:       realmDesktopShellCaller(),
 				MethodId:     tc.methodID,
 				RealmBaseUrl: server.URL,
 				RequestJson:  tc.requestJSON,
@@ -111,8 +110,8 @@ func TestInvokeRealmUnaryFailsClosedOnCredentialLikeResponse(t *testing.T) {
 			svc := newRealmUnaryHarnessService(t, server.URL)
 			completeLoginAs(t, svc, realmDesktopShellCaller())
 			response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-				Caller:       realmWorldStudioCaller(),
-				MethodId:     "WorldCoreController_listWorldCores",
+				Caller:       realmDesktopShellCaller(),
+				MethodId:     "WorldPublicController_listWorlds",
 				RealmBaseUrl: server.URL,
 				RequestJson:  `{}`,
 			})
@@ -236,35 +235,19 @@ func completeLoginAs(t *testing.T, svc *Service, caller *runtimev1.AccountCaller
 	completeLoginAttemptAs(t, svc, caller, beginLoginAs(t, svc, caller))
 }
 
-func registerTestCallerWithCapabilities(t *testing.T, registry *appregistry.Registry, caller *runtimev1.AccountCaller, capabilities []string) {
-	t.Helper()
-	if err := registry.UpsertInstance(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, capabilities); err != nil {
-		t.Fatalf("register caller: %v", err)
-	}
-}
-
-func TestRealmBrokerCapabilitiesRemainBoundToCallerInstance(t *testing.T) {
+func TestRealmBrokerAuthorizationProfileRejectsSameAppNonDesktopInstance(t *testing.T) {
 	caller := realmDesktopShellCaller()
-	registry := appregistry.New()
-	registerTestCallerWithCapabilities(t, registry, caller, []string{"account.session.read", "realm_source.snapshot.bind"})
 	background := &runtimev1.AccountCaller{
 		AppId:         caller.GetAppId(),
 		AppInstanceId: "nimi.desktop.runtime-agent",
 		DeviceId:      "runtime-agent",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
 	}
-	registerTestCallerWithCapabilities(t, registry, background, []string{"runtime.agent.read"})
-	svc := &Service{registry: registry}
 	operation := realmBrokerOperations["WorldCoreController_createSourceMaterializationPacket"]
-	if !svc.admitRealmBrokerCapabilities(caller, operation) {
-		t.Fatal("Desktop broker capabilities must survive a second same-app registration from another instance")
+	if !operation.admitsProtectedDesktopSourceReadinessCaller(caller) {
+		t.Fatal("protected Desktop caller must satisfy the exact source-readiness profile")
 	}
-	if svc.admitRealmBrokerCapabilities(background, operation) {
-		t.Fatal("background instance must not inherit Desktop account broker capabilities")
+	if operation.admitsProtectedDesktopSourceReadinessCaller(background) {
+		t.Fatal("same-app background instance must not inherit Desktop broker admission")
 	}
 }
