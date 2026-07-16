@@ -11,7 +11,7 @@
     "prepare:workspace-surfaces": "corepack pnpm --filter @nimiplatform/sdk build && corepack pnpm --filter @nimiplatform/kit build",
     "typecheck": "pnpm run prepare:workspace-surfaces && tsc --noEmit",
     "build": "pnpm run prepare:workspace-surfaces && tsc --noEmit && vite build",
-    "build:electron": "pnpm run prepare:workspace-surfaces && tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs",
+    "build:electron": "node scripts/run-electron-build.mjs",
     "pack:release-evidence": "corepack pnpm run build && corepack pnpm run build:electron && node scripts/pack-release-evidence.mjs",
     "test:e2e:electron": "corepack pnpm run build && corepack pnpm run build:electron && node --test test/e2e/electron-acceptance.test.mjs",
     "test:e2e:web:agent-center": "corepack pnpm run build && node --test test/e2e/web-agent-center-acceptance.test.mjs",

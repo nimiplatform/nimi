@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -102,6 +102,32 @@ export function spawnSyncCommand(command, args = [], options = {}) {
 
   const comspec = env.ComSpec || env.COMSPEC || env.comspec || process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
   return spawnSync(comspec, ['/d', '/c', windowsBatchCommandLine(resolvedCommand, args)], {
+    ...spawnOptionsWithoutShell(options),
+    env,
+    shell: false,
+    windowsVerbatimArguments: true,
+  });
+}
+
+export function spawnCommand(command, args = [], options = {}) {
+  if (process.platform !== 'win32') {
+    return spawn(command, args, {
+      ...spawnOptionsWithoutShell(options),
+      shell: false,
+    });
+  }
+
+  const env = options.env || process.env;
+  const resolvedCommand = resolveWindowsCommand(command, env);
+  if (!isWindowsBatchCommand(resolvedCommand)) {
+    return spawn(resolvedCommand, args, {
+      ...spawnOptionsWithoutShell(options),
+      shell: false,
+    });
+  }
+
+  const comspec = env.ComSpec || env.COMSPEC || env.comspec || process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
+  return spawn(comspec, ['/d', '/c', windowsBatchCommandLine(resolvedCommand, args)], {
     ...spawnOptionsWithoutShell(options),
     env,
     shell: false,

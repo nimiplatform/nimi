@@ -31,9 +31,11 @@
 | Zhiyu `src-electron` main/preload | Desktop supervisor 450ms 防抖后运行 `build:electron` 并替换 host |
 | Desktop main/preload | `build:electron` 后重启签名 carrier；应用 JS 从 repo `dist-electron` 加载，不重签 carrier |
 | Runtime Go | `pnpm dev:runtime`；该命令轮换 boot epoch |
-| SDK/Kit | 使用当前 canonical build；增量 watch 入口待 canonical dist pipeline 决策，不要直接用非等价 tsc 输出覆盖 dist |
+| SDK/Kit | 单独运行 `pnpm dev:prepare:watch`；350 ms 防抖后串行调用 SDK、Kit canonical build，SDK 变化会继续重建 Kit |
 
 Runtime 重启后，旧 session、launch lease 与 scoped binding 失效；同一 supervisor run 由既有链重新建立。账号 custody 与 durable grant 不因重启消失，也不重复项目 consent。`run_once` 在 supervisor 结束后失效；`remember_project` 转 dormant，重新激活需要 fresh presence。
+
+`dev:prepare:watch` 不使用直接 `tsc --watch` 或 `vite build --watch` 生成半成品 dist；Zhiyu supervisor 的 `build:electron` 也不会暗中重建 SDK/Kit，失败时只报告 freshness 并提示启动 watcher。Kit CSS 的 Tailwind `@source` 会读取 dist，且 Vite dep optimizer 可能缓存旧 dist；canonical round 成功后若 renderer 仍显示旧依赖，重启对应 renderer，必要时再清理该 app 的生成态 `.vite` cache。
 
 ## 项目准入与 operation grant
 
