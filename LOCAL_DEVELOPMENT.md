@@ -16,6 +16,12 @@
 
 建议顺序：Realm → Web → fixed Runtime status → Desktop → Zhiyu。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
 
+## 签名 Desktop dev profile 的一次性 First Run
+
+签名 Desktop 使用持久 dev profile；新 profile 首次出现 First Run 是预期行为，完成记录按 data root 保存。Storage 页可以用 `Choose folder…` 选择既有 Nimi data root，但这**不等于**现有模型一定会被复用。
+
+2026-07-16 的真实签名 carrier 验证中，选择已有 `D:\DataNimi` 后，Storage 与 Device 步骤正常识别该目录；进入 Local AI 并选择 Minimal 后，Setup 仍启动了新的 8.4 GB 模型下载（40 秒时 225 MB / 3%），未跳过或大幅缩短物化。为避免第二份模型物化，在模型复用检测修复并复验前，已有 data root 的 dev profile 不要越过 Local AI 确认；若 Setup 显示非零下载总量，立即停止 carrier，不把它视为可安全复用。
+
 ## 修改后的动作
 
 | 修改对象 | 动作 |

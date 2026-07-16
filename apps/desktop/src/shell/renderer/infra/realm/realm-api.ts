@@ -10,6 +10,7 @@ import {
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { resolveRealmDataErrorLogLevel } from './realm-api-log-level';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmDataErrorEmitter = (
@@ -47,7 +48,12 @@ export function emitRealmDataError(
     getOfflineCoordinator().markRealmRestReachable(false);
   }
   emitRuntimeLog({
-    level: realmOffline || runtimeOffline ? 'warn' : 'error',
+    level: resolveRealmDataErrorLogLevel({
+      action,
+      reasonCode: errorFields.reasonCode,
+      realmOffline,
+      runtimeOffline,
+    }),
     area: 'realm-data',
     message: `action:${action}:failed`,
     traceId: errorFields.traceId,

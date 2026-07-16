@@ -1,0 +1,17 @@
+import { ReasonCode } from '@nimiplatform/sdk/types';
+
+export function resolveRealmDataErrorLogLevel(input: {
+  readonly action: string;
+  readonly reasonCode?: string;
+  readonly realmOffline: boolean;
+  readonly runtimeOffline: boolean;
+}): 'warn' | 'error' {
+  if (input.realmOffline || input.runtimeOffline) {
+    return 'warn';
+  }
+  if (input.action === 'load-current-user'
+    && input.reasonCode === ReasonCode.APP_AUTHORIZATION_DENIED) {
+    return 'warn';
+  }
+  return 'error';
+}

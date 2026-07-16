@@ -8,6 +8,8 @@ import {
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
+  type NimiElectronFileDialogOpenPayload,
+  type NimiElectronFileDialogOpenResult,
   type NimiElectronShellFileProtocolHost,
   type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
@@ -87,6 +89,7 @@ void app.whenReady().then(async () => {
       standardDataRootBinding: resolveStandardDataRootBinding(),
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
       localAssetProtocolHost,
+      openFileDialog: openDesktopStandardFileDialog,
       openExternalUrl: openDesktopExternalUrl,
       confirmDialog: confirmDesktopDialog,
       focusMainWindow: focusDesktopMainWindow,
@@ -144,6 +147,30 @@ async function createMainWindow(): Promise<BrowserWindow> {
   secureDesktopWindow(window);
   await window.loadURL(rendererUrl || rendererDistUrl);
   return window;
+}
+
+async function openDesktopStandardFileDialog(
+  payload: NimiElectronFileDialogOpenPayload,
+): Promise<NimiElectronFileDialogOpenResult> {
+  const properties: Electron.OpenDialogOptions['properties'] = [
+    payload.kind === 'directory' ? 'openDirectory' : 'openFile',
+  ];
+  if (payload.multiple) properties.push('multiSelections');
+  const options: Electron.OpenDialogOptions = {
+    title: payload.title,
+    properties,
+    filters: payload.filters?.map((filter) => ({
+      name: filter.name,
+      extensions: [...filter.extensions],
+    })),
+  };
+  const result = mainWindow
+    ? await dialog.showOpenDialog(mainWindow, options)
+    : await dialog.showOpenDialog(options);
+  return {
+    canceled: result.canceled,
+    paths: result.filePaths,
+  };
 }
 
 function secureDesktopWindow(window: BrowserWindow): void {

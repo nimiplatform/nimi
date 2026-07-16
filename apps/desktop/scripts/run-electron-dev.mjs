@@ -9,6 +9,7 @@ import {
   requireWindowsDevSigningIdentity,
 } from '../../../scripts/lib/windows-dev-signing.mjs';
 import {
+  resolveDesktopDevObservationArguments,
   resolvePersistentDesktopDevProfile,
   resolveSignedDesktopDevCarrier,
 } from './lib/electron-dev-carrier.mjs';
@@ -69,6 +70,7 @@ try {
   spawnRenderer();
   await waitForUrl(rendererUrl, 45_000);
   const electron = spawnTracked(electronBin, [
+    ...resolveDesktopDevObservationArguments(),
     `--user-data-dir=${profileRoot}`,
     'dist-electron/main.js',
   ], {

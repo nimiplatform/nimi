@@ -34,6 +34,23 @@ export function resolvePersistentDesktopDevProfile(workspaceRoot) {
   return path.join(path.resolve(requiredText(workspaceRoot, 'workspaceRoot')), '.nimi', 'local', 'dev-profiles', 'desktop');
 }
 
+export function resolveDesktopDevObservationArguments(env = process.env) {
+  const rawPort = String(env.NIMI_DESKTOP_DEV_CDP_PORT || '').trim();
+  if (!rawPort) return [];
+  const port = Number(rawPort);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    throw carrierError(
+      'Desktop development CDP observation port is invalid.',
+      'desktop-dev-observation-port-invalid',
+      'provide_valid_loopback_cdp_port',
+    );
+  }
+  return [
+    '--remote-debugging-address=127.0.0.1',
+    `--remote-debugging-port=${port}`,
+  ];
+}
+
 function requiredText(value, field) {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (!normalized) throw new Error(`${field} is required`);
