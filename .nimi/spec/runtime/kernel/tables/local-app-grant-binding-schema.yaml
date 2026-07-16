@@ -3,6 +3,7 @@ table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_local_app_grant_binding_schema
 source_rule: K-GRANT-014
+surfaces: [grant, forbidden_outputs, store_separation, zero_grant_selected_operations]
 grant:
   owner: runtime_k_grant
   store_identity: local_app_grants
@@ -47,3 +48,11 @@ store_separation:
   launch_session_store_dependency: none
   shared_serialized_record: forbidden
   app_id_positive_key: forbidden
+zero_grant_selected_operations:
+  - operation_id: local-app.agentInventory
+    rpc_method: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory
+    request_shape: empty
+    implicit_resource: current_verified_os_user_and_authenticated_account_agent_set
+    grant_binding: forbidden
+    capability_resource_fingerprint: forbidden
+    source_rule: K-AGCORE-006e

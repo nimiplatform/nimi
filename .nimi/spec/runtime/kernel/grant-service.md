@@ -63,8 +63,11 @@ catalog presence, session existence, or operation request cannot substitute for
 an active exact grant. Account switch never transfers it; uninstall/project
 revoke tombstones the principal and leaves no grant inheritance.
 
-A valid zero-grant local-app session may read redacted permission posture and
-request Desktop-owned grant UX. Grant create/expand consumes the exact Runtime-
+A valid zero-grant local-app session may read redacted permission posture,
+read the K-AGCORE-006e bounded Agent inventory needed to select an exact grant
+resource, and request Desktop-owned grant UX. The inventory operation has no
+grant row, capability/resource fingerprint, or permission-request form and
+cannot authorize a conversation operation. Grant create/expand consumes the exact Runtime-
 issued presence challenge. Revoke/expire/supersede changes the grant revision
 without rotating the identity session; the next protected operation reads the
 current revision and denies or allows through the provenance-agnostic

@@ -112,6 +112,7 @@ surfaces:
   - methods_99
   - methods_100
   - methods_101
+  - methods_102
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -184,6 +185,19 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory
+    posture: protected_local_app_zero_grant_inventory
+    local_app_transport_class: local_app_host
+    local_app_required_origin_role: local_app_session
+    request_shape: empty
+    caller_selected_resource: forbidden
+    grant_binding: forbidden
+    rationale: current verified local-development session may enumerate only the bounded current-account projection needed to select an exact Agent grant resource
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-ACCSVC-022
+      - K-AGCORE-006e
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
     posture: protected_or_scoped_binding_or_local_app_operation
     local_app_transport_class: local_app_host

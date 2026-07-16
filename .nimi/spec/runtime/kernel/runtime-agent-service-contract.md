@@ -151,6 +151,7 @@ Apps may not:
 - `TerminateAgent`
 - `GetAgent`
 - `ListAgents`
+- `ListLocalAppAgentInventory`
 - `OpenConversationAnchor`
 - `GetConversationAnchorSnapshot`
 - `ListAgentConversationSummaries`
@@ -176,14 +177,17 @@ Apps may not:
 - `SetAgentPresentationProfile`
 - `SubscribeAgentEvents`
 
-The local-app protected carrier exposes only the selected conversation subset:
-open an explicit conversation anchor, submit a user turn, subscribe to that
-turn, and recover the explicit conversation snapshot. Each call must pass the
-`K-ACCSVC-026` decision for the same principal/session/grant and exact agent and
-conversation relation. All other RuntimeAgent operations are typed unavailable
-to `LOCAL_APP` until an owner rule admits them; local-app session validity alone
-does not broaden this list. Bundled first-party callers retain their separately
-admitted posture and are not converted into third-party principals.
+The local-app protected carrier exposes only the zero-grant bounded inventory
+operation admitted by K-AGCORE-006e and the selected conversation subset: open
+an explicit conversation anchor, submit a user turn, subscribe to that turn,
+and recover the explicit conversation snapshot. Conversation calls must pass
+the `K-ACCSVC-026` decision for the same principal/session/grant and exact agent
+and conversation relation. Inventory uses the narrower zero-grant caller
+decision defined by K-ACCSVC-022 and does not create, imply, or cache a grant.
+All other RuntimeAgent operations are typed unavailable to `LOCAL_APP` until an
+owner rule admits them; local-app session validity alone does not broaden this
+list. Bundled first-party callers retain their separately admitted posture and
+are not converted into third-party principals.
 
 The source-materialization operations above register the K-AGCORE-151..153
 semantic surface only. Their concrete Proto messages and fields are not defined
@@ -244,6 +248,46 @@ Canonical LocalAgent public-surface relations:
 
 Typed family registry is defined by
 `tables/runtime-agent-service-typed-family.yaml`.
+
+## K-AGCORE-006e Bounded Local-App Agent Inventory
+
+`ListLocalAppAgentInventory` is the sole LOCAL_APP inventory operation. Its
+request is empty. It is available to an admitted `local_development` principal
+with a live, verified, process-bound local-app session even when that session
+has zero grant. This exception exists only to break the bootstrap cycle between
+discovering an Agent ref and requesting the exact
+`runtime_agent.conversation.open` grant for `agent:<local_agent_ref>`.
+
+Runtime must revalidate the current OS-user-bound session, principal, record,
+project generation, account id/generation, process, and boot epoch on every
+call. It then filters canonical RuntimeAgentService truth to active LocalAgents
+whose `owner_user_id` equals the current authenticated account. The caller may
+provide no account, OS user, owner, filter, page, capability, resource, grant,
+or authority field. A different OS user can never reuse the verified session;
+a different account sees no rows. Session/account/revoke/epoch failure denies
+the call before projection. Every admitted inventory read is audit logged with
+the Runtime-derived principal, account, session and result count; absence of
+the audit owner fails closed.
+
+The response is bounded to at most 200 entries and contains exactly
+`owner_user_id`, `count`, and `local_agents`. Each `local_agents` entry contains
+exactly `local_agent_ref`, `display_name`, `owner_user_id`,
+`runtime_source_ref`, and `source_ready`. Runtime fails closed rather than
+returning a partial result when the bound would be exceeded or when an entry
+cannot satisfy canonical ref/owner/source correlation. Memory, AI config,
+provider/model detail, conversation data, source hashes/content, private
+runtime state, timestamps, grant state, and portable authority material are
+forbidden.
+
+The selected Standard Shell operation name is `local-app.agentInventory`; the
+SDK surface is `agent.listInventory()`. The operation has no caller-selected
+resource and no grant-binding row: its implicit resource is the ephemeral
+intersection of the current verified OS-user session and current authenticated
+account. Its result is not authorization or durable app truth. Consumers must
+refetch after session rebuild; logout, account switch, process replacement,
+project revoke, and Runtime restart retain their existing invalidation
+semantics. Generic `ListAgents`, `runtime.unary`, and app-side inventory caches
+are not fallbacks.
 
 ## K-AGCORE-006a Public Chat Conversation Cutover Prerequisites
 

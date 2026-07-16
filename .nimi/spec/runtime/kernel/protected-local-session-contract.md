@@ -114,9 +114,11 @@ Success atomically consumes the bootstrap, promotes that same connection to
 `local_app_host`, and creates a session bound to
 OS-user anchor, principal/record, provenance revision, release-or-project
 generation, execution profile/digests, process tuple, account generation, and
-current account id, and Runtime boot epoch. A valid identity may open with zero grant for permission
-posture only. Every protected operation separately resolves the current
-account-and-principal grant and owner policy.
+current account id, and Runtime boot epoch. A valid identity may open with zero
+grant for redacted permission posture and the K-AGCORE-006e bounded Agent
+inventory bootstrap only. Inventory revalidates the same session facts but has
+no grant/resource binding; every other protected business operation separately
+resolves the current account-and-principal grant and owner policy.
 
 The lease TTL is 30 seconds and process-bind deadline is 10 seconds. Duplicate,
 expired, revoked, wrong process/principal/record/generation/account/epoch and

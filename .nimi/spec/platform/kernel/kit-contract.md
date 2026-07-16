@@ -250,15 +250,18 @@ The Electron and Tauri host adapters consume the same local-app client and
 typed failure model. Fixed production AppHost and native development remain
 different execution profiles, but provenance has no permission effect. The
 selected checkpoint surface is exact typed permission posture, explicit
-single-operation permission request, artifact read and RuntimeAgent conversation
-operations; no method-id/bytes proxy or generic protected Runtime forwarding is
-admitted. `permission.posture` is read-only. `permission.request` maps only to
+single-operation permission request, artifact read, K-AGCORE-006e bounded
+RuntimeAgent inventory, and RuntimeAgent conversation operations; no
+method-id/bytes proxy or generic protected Runtime forwarding is admitted.
+`agent.listInventory()` accepts no input and returns only the K-AGCORE-006e
+field whitelist. `permission.posture` is read-only. `permission.request` maps only to
 `RequestLocalAppGrant`, accepts exact operation/resource/purpose, returns a
 redacted pending posture, and cannot approve its own request. Missing operation
 families return typed owner-unavailable without app-id fallback.
 
-A zero-grant session may project permission posture, but it authorizes no
-protected operation. Every operation is evaluated against the current
+A zero-grant session may project permission posture and bounded Agent inventory,
+but the inventory result authorizes no protected operation. Every other
+operation is evaluated against the current
 account-and-principal grant and its domain owner policy; grant revoke affects
 the next operation without requiring session rotation. Session, lease, proof,
 account, grant, principal, record, provenance, process, and boot-epoch material

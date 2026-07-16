@@ -511,7 +511,10 @@ launch lease on the verified child channel. The `LOCAL_APP` caller class and
 class, account, principal, record, grant, release or capabilities.
 Account-control and credential-bearing methods remain denied. A zero-grant
 session is valid origin proof and must still be denied for protected Nimi API
-operations until an exact grant and owner policy allow the operation.
+operations until an exact grant and owner policy allow the operation, except
+for the K-AGCORE-006e empty-request bounded inventory bootstrap. That bootstrap
+uses `AuthorizeLocalAppCaller` only, exposes no grant/resource input, and cannot
+be reused as an authorization decision for any Agent operation.
 
 `RuntimeAccountService` owns the private provenance-agnostic per-operation
 coordinator. On every selected local-app operation it combines the current
@@ -574,3 +577,9 @@ revisions, account id/generation, process
 identity, operation and deny reason in the Runtime audit context without
 logging credentials. No downstream service may reinterpret or weaken this
 decision.
+
+K-AGCORE-006e is not a grant-coordinator operation. Its protected transport
+must obtain a fresh current-caller decision from this owner, bind that decision
+to the handler context, and audit the bounded read. Adding it must not alter
+grant revisions, presence, session rotation, boot epoch, dormant/reactivate, or
+the closed resource policy of conversation operations.
