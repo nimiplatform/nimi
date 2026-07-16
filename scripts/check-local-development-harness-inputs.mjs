@@ -6,11 +6,15 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const INPUT_PATTERN = /NIMI_LOCAL_AGENT_PRODUCT_[A-Z0-9_]+|--nimi-dev-agent-id/gu;
+const TRIAL_ROOT_INPUT = 'NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ROOT';
+const CHECKPOINT_GATE_PATTERN = /NIMI_DEV_KERNEL_CHECKPOINT|dev-kernel-checkpoint/u;
 const EXACT_PRODUCT_ALLOWLIST = new Set([
+  'apps/desktop/src-electron/dev-kernel-external-url-capture.ts',
   'apps/desktop/src-electron/local-development-host.ts',
   'apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs',
   'apps/zhiyu/src-electron/main.ts',
   'apps/zhiyu/src-electron/preload.cts',
+  'kit/shell/protected-local/src/windows_checkpoint_browser_capture.rs',
 ]);
 const SOURCE_EXTENSIONS = new Set(['.cjs', '.cts', '.go', '.js', '.jsx', '.mjs', '.rs', '.ts', '.tsx']);
 const SKIP_DIRECTORIES = new Set(['.cache', '.git', 'dist', 'generated', 'node_modules', 'target']);
@@ -20,7 +24,14 @@ export function collectHarnessInputViolations(entries) {
   for (const entry of entries) {
     const matches = [...entry.source.matchAll(INPUT_PATTERN)];
     if (matches.length === 0) continue;
-    if (EXACT_PRODUCT_ALLOWLIST.has(entry.relativePath)) continue;
+    if (EXACT_PRODUCT_ALLOWLIST.has(entry.relativePath)) {
+      const trialRoot = matches.find((match) => match[0] === TRIAL_ROOT_INPUT);
+      if (trialRoot && !CHECKPOINT_GATE_PATTERN.test(entry.source)) {
+        const line = entry.source.slice(0, trialRoot.index).split('\n').length;
+        violations.push(`${entry.relativePath}:${line}: trial-root harness input requires a same-file checkpoint gate`);
+      }
+      continue;
+    }
     for (const match of matches) {
       const line = entry.source.slice(0, match.index).split('\n').length;
       violations.push(`${entry.relativePath}:${line}: harness input ${match[0]} is outside the product allowlist`);

@@ -20,6 +20,25 @@ test('G1 rejects a harness selector read added to product source', () => {
   assert.match(violations[0], /outside the product allowlist/u);
 });
 
+test('G1 requires an allowlisted trial-root read to retain its same-file checkpoint gate', () => {
+  const relativePath = 'apps/desktop/src-electron/dev-kernel-external-url-capture.ts';
+  const unguarded = collectHarnessInputViolations([{
+    relativePath,
+    source: 'const trialRoot = process.env.NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ROOT;',
+  }]);
+  assert.equal(unguarded.length, 1);
+  assert.match(unguarded[0], /same-file checkpoint gate/u);
+
+  const guarded = collectHarnessInputViolations([{
+    relativePath,
+    source: [
+      "const checkpoint = process.env.NIMI_DEV_KERNEL_CHECKPOINT === '1';",
+      'const trialRoot = process.env.NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ROOT;',
+    ].join('\n'),
+  }]);
+  assert.deepEqual(guarded, []);
+});
+
 async function zhiyuSources() {
   const files = {
     contract: '../apps/zhiyu/src-electron/local-development-contract.ts',
