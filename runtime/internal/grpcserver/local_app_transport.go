@@ -20,18 +20,20 @@ import (
 )
 
 const (
-	protectedOpenLocalAppSessionMethod        = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
-	protectedGetLocalAppGrantStatusMethod     = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus"
-	protectedRequestLocalAppGrantMethod       = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant"
-	protectedReadArtifactBytesMethod          = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
-	protectedListLocalAppAgentInventoryMethod = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory"
-	protectedOpenConversationAnchorMethod     = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
-	protectedGetPublicChatSnapshotMethod      = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
-	protectedSendAppMessageMethod             = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
-	protectedReadLocalAppStorageJSONMethod    = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
-	protectedWriteLocalAppStorageJSONMethod   = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
-	protectedRemoveLocalAppStorageJSONMethod  = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
-	protectedSubscribeAppMessagesMethod       = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	protectedOpenLocalAppSessionMethod          = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
+	protectedGetLocalAppGrantStatusMethod       = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus"
+	protectedRequestLocalAppGrantMethod         = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant"
+	protectedReadArtifactBytesMethod            = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
+	protectedListLocalAppAgentInventoryMethod   = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory"
+	protectedOpenConversationAnchorMethod       = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
+	protectedGetPublicChatSnapshotMethod        = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	protectedSendAppMessageMethod               = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	protectedReadLocalAppStorageJSONMethod      = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
+	protectedWriteLocalAppStorageJSONMethod     = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
+	protectedRemoveLocalAppStorageJSONMethod    = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	protectedTranscribeLocalAppAgentAudioMethod = "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio"
+	protectedSubscribeAppMessagesMethod         = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	protectedSubscribeAgentVoiceStreamMethod    = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
 )
 
 type protectedLocalAppMethodPolicy struct {
@@ -54,20 +56,22 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 		role:              protectedlocal.RoleLocalAppProcess,
 		missingRoleReason: runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH,
 	},
-	protectedGetLocalAppGrantStatusMethod:     localAppSessionMethodPolicy(),
-	protectedRequestLocalAppGrantMethod:       localAppSessionMethodPolicy(),
-	protectedReadArtifactBytesMethod:          localAppSessionMethodPolicy(),
-	protectedListLocalAppAgentInventoryMethod: localAppSessionMethodPolicy(),
-	protectedOpenConversationAnchorMethod:     localAppSessionMethodPolicy(),
-	protectedGetPublicChatSnapshotMethod:      localAppSessionMethodPolicy(),
-	protectedSendAppMessageMethod:             localAppSessionMethodPolicy(),
-	protectedReadLocalAppStorageJSONMethod:    localAppSessionMethodPolicy(),
-	protectedWriteLocalAppStorageJSONMethod:   localAppSessionMethodPolicy(),
-	protectedRemoveLocalAppStorageJSONMethod:  localAppSessionMethodPolicy(),
+	protectedGetLocalAppGrantStatusMethod:       localAppSessionMethodPolicy(),
+	protectedRequestLocalAppGrantMethod:         localAppSessionMethodPolicy(),
+	protectedReadArtifactBytesMethod:            localAppSessionMethodPolicy(),
+	protectedListLocalAppAgentInventoryMethod:   localAppSessionMethodPolicy(),
+	protectedOpenConversationAnchorMethod:       localAppSessionMethodPolicy(),
+	protectedGetPublicChatSnapshotMethod:        localAppSessionMethodPolicy(),
+	protectedSendAppMessageMethod:               localAppSessionMethodPolicy(),
+	protectedReadLocalAppStorageJSONMethod:      localAppSessionMethodPolicy(),
+	protectedWriteLocalAppStorageJSONMethod:     localAppSessionMethodPolicy(),
+	protectedRemoveLocalAppStorageJSONMethod:    localAppSessionMethodPolicy(),
+	protectedTranscribeLocalAppAgentAudioMethod: localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
-	protectedSubscribeAppMessagesMethod: localAppSessionMethodPolicy(),
+	protectedSubscribeAppMessagesMethod:      localAppSessionMethodPolicy(),
+	protectedSubscribeAgentVoiceStreamMethod: localAppSessionMethodPolicy(),
 }
 
 func localAppSessionMethodPolicy() protectedLocalAppMethodPolicy {
@@ -256,17 +260,33 @@ func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
 			stream.authorizeErr = grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 			return
 		}
-		if stream.method != protectedSubscribeAppMessagesMethod {
+		var operation accountservice.LocalAppOperation
+		var selector localappop.Selector
+		switch stream.method {
+		case protectedSubscribeAppMessagesMethod:
+			request, ok := message.(*runtimev1.SubscribeAppMessagesRequest)
+			if !ok {
+				stream.authorizeErr = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+				return
+			}
+			operation = accountservice.LocalAppOperationSubscribeConversation
+			selector = localappop.Selector{AgentID: strings.TrimSpace(request.GetLocalAgentRef()), ConversationAnchorID: strings.TrimSpace(request.GetConversationAnchorId())}
+		case protectedSubscribeAgentVoiceStreamMethod:
+			request, ok := message.(*runtimev1.SubscribeAgentVoiceStreamRequest)
+			if !ok {
+				stream.authorizeErr = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+				return
+			}
+			operation = accountservice.LocalAppOperationVoiceStreamSubscribe
+			selector = localappop.Selector{
+				AgentID: strings.TrimSpace(request.GetAgentId()), ConversationAnchorID: strings.TrimSpace(request.GetConversationAnchorId()),
+				TurnID: strings.TrimSpace(request.GetTurnId()), VoiceStreamID: strings.TrimSpace(request.GetVoiceStreamId()),
+			}
+		default:
 			stream.authorizeErr = grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 			return
 		}
-		request, ok := message.(*runtimev1.SubscribeAppMessagesRequest)
-		if !ok {
-			stream.authorizeErr = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-			return
-		}
-		selector := localappop.Selector{AgentID: strings.TrimSpace(request.GetLocalAgentRef()), ConversationAnchorID: strings.TrimSpace(request.GetConversationAnchorId())}
-		decision, err := stream.operationAuthorizer.AuthorizeLocalAppProtectedOperation(stream.ctx, accountservice.LocalAppOperationSubscribeConversation, selector)
+		decision, err := stream.operationAuthorizer.AuthorizeLocalAppProtectedOperation(stream.ctx, operation, selector)
 		if err != nil {
 			reason := accountservice.LocalAppOperationAuthorizationReason(err)
 			stream.authorizeErr = grpcerr.WithReasonCode(codes.PermissionDenied, reason)
@@ -353,6 +373,12 @@ func selectedLocalAppUnaryOperation(method string, request any) (accountservice.
 			return "", localappop.Selector{}, true
 		}
 		return accountservice.LocalAppOperationStorageJSONRemove, localappop.Selector{StorageRelativePath: req.GetRelativePath()}, true
+	case protectedTranscribeLocalAppAgentAudioMethod:
+		req, ok := request.(*runtimev1.TranscribeLocalAppAgentAudioRequest)
+		if !ok {
+			return "", localappop.Selector{}, true
+		}
+		return accountservice.LocalAppOperationVoiceTranscribe, localappop.Selector{AgentID: strings.TrimSpace(req.GetAgentId())}, true
 	default:
 		return "", localappop.Selector{}, false
 	}

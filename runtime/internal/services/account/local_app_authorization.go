@@ -29,6 +29,8 @@ const (
 	LocalAppOperationStorageJSONRead       LocalAppOperation = "app_storage.json.read"
 	LocalAppOperationStorageJSONWrite      LocalAppOperation = "app_storage.json.write"
 	LocalAppOperationStorageJSONRemove     LocalAppOperation = "app_storage.json.remove"
+	LocalAppOperationVoiceTranscribe       LocalAppOperation = "runtime_agent.voice.transcribe"
+	LocalAppOperationVoiceStreamSubscribe  LocalAppOperation = "runtime_agent.voice.stream_subscribe"
 )
 
 type LocalAppTrustClass string
@@ -245,6 +247,10 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 		return "file.read.scoped#app-local-drafts", true
 	case LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
 		return "file.write.scoped#app-local-drafts", true
+	case LocalAppOperationVoiceTranscribe:
+		return "runtime.agent.voice.transcribe", true
+	case LocalAppOperationVoiceStreamSubscribe:
+		return "runtime.agent.voice.read", true
 	default:
 		return "", false
 	}

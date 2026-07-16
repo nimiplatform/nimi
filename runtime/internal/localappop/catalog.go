@@ -9,6 +9,7 @@ const (
 	selectorAgent
 	selectorAgentAnchor
 	selectorAgentAnchorTurn
+	selectorAgentAnchorTurnVoice
 	selectorStorage
 )
 
@@ -21,6 +22,8 @@ var operationSpecs = map[Operation]selectorShape{
 	OperationStorageJSONRead:       selectorStorage,
 	OperationStorageJSONWrite:      selectorStorage,
 	OperationStorageJSONRemove:     selectorStorage,
+	OperationVoiceTranscribe:       selectorAgent,
+	OperationVoiceStreamSubscribe:  selectorAgentAnchorTurnVoice,
 }
 
 func validateRequest(req Request) Reason {
@@ -40,6 +43,7 @@ func validateRequest(req Request) Reason {
 func selectorMatches(shape selectorShape, selector Selector) bool {
 	if !validOptionalOpaque(selector.ArtifactID) || !validOptionalOpaque(selector.AgentID) ||
 		!validOptionalOpaque(selector.ConversationAnchorID) || !validOptionalOpaque(selector.TurnID) ||
+		!validOptionalOpaque(selector.VoiceStreamID) ||
 		!validOptionalOpaque(selector.StorageRelativePath) {
 		return false
 	}
@@ -47,19 +51,22 @@ func selectorMatches(shape selectorShape, selector Selector) bool {
 	agent := selector.AgentID != ""
 	anchor := selector.ConversationAnchorID != ""
 	turn := selector.TurnID != ""
+	voiceStream := selector.VoiceStreamID != ""
 	storage := selector.StorageRelativePath != ""
 
 	switch shape {
 	case selectorArtifact:
-		return artifact && !agent && !anchor && !turn && !storage
+		return artifact && !agent && !anchor && !turn && !voiceStream && !storage
 	case selectorAgent:
-		return !artifact && agent && !anchor && !turn && !storage
+		return !artifact && agent && !anchor && !turn && !voiceStream && !storage
 	case selectorAgentAnchor:
-		return !artifact && agent && anchor && !turn && !storage
+		return !artifact && agent && anchor && !turn && !voiceStream && !storage
 	case selectorAgentAnchorTurn:
-		return !artifact && agent && anchor && turn && !storage
+		return !artifact && agent && anchor && turn && !voiceStream && !storage
+	case selectorAgentAnchorTurnVoice:
+		return !artifact && agent && anchor && turn && voiceStream && !storage
 	case selectorStorage:
-		return !artifact && !agent && !anchor && !turn && storage
+		return !artifact && !agent && !anchor && !turn && !voiceStream && storage
 	default:
 		return false
 	}

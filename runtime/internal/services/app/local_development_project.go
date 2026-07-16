@@ -20,6 +20,7 @@ var localDevelopmentCanonicalScopes = map[string]struct{}{
 
 var localDevelopmentRuntimeScopedBindingRequests = map[string]struct{}{
 	"runtime.agent.turn.read": {}, "runtime.agent.turn.write": {},
+	"runtime.agent.voice.read": {}, "runtime.agent.voice.transcribe": {},
 }
 
 var localDevelopmentQualifierScopeRules = map[string]map[string]struct{}{

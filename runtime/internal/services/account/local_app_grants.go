@@ -395,6 +395,10 @@ func localAppGrantOperation(operationID, resourceRef string) (localAppGrantOpera
 		capability = "runtime.agent.turn.write"
 	case "runtime_agent.conversation.turn_subscribe", "runtime_agent.conversation.snapshot":
 		capability = "runtime.agent.turn.read"
+	case "runtime_agent.voice.transcribe":
+		capability = "runtime.agent.voice.transcribe"
+	case "runtime_agent.voice.stream_subscribe":
+		capability = "runtime.agent.voice.read"
 	case appstorage.LocalAppJSONReadOperationID:
 		if _, err := appstorage.ParseLocalAppJSONResourceRef(resourceRef); err != nil {
 			return localAppGrantOperationBinding{}, localappkernel.ErrInvalidArgument
@@ -409,7 +413,8 @@ func localAppGrantOperation(operationID, resourceRef string) (localAppGrantOpera
 		return localAppGrantOperationBinding{}, ErrLocalAppOperationNotAdmitted
 	}
 	fingerprintInput := capability + "\x00" + resourceRef
-	if operationID == appstorage.LocalAppJSONReadOperationID || operationID == appstorage.LocalAppJSONWriteOperationID || operationID == appstorage.LocalAppJSONRemoveOperationID {
+	if operationID == appstorage.LocalAppJSONReadOperationID || operationID == appstorage.LocalAppJSONWriteOperationID || operationID == appstorage.LocalAppJSONRemoveOperationID ||
+		operationID == "runtime_agent.voice.transcribe" || operationID == "runtime_agent.voice.stream_subscribe" {
 		fingerprintInput = operationID + "\x00" + fingerprintInput
 	}
 	digest := sha256.Sum256([]byte("nimi.local-app-capability-resource.v1\x00" + fingerprintInput))

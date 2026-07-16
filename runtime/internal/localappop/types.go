@@ -23,6 +23,8 @@ const (
 	OperationStorageJSONRead       Operation = "app_storage.json.read"
 	OperationStorageJSONWrite      Operation = "app_storage.json.write"
 	OperationStorageJSONRemove     Operation = "app_storage.json.remove"
+	OperationVoiceTranscribe       Operation = "runtime_agent.voice.transcribe"
+	OperationVoiceStreamSubscribe  Operation = "runtime_agent.voice.stream_subscribe"
 )
 
 // Selector carries only domain-owned resource selectors. It contains no
@@ -32,6 +34,7 @@ type Selector struct {
 	AgentID              string
 	ConversationAnchorID string
 	TurnID               string
+	VoiceStreamID        string
 	StorageRelativePath  string
 }
 

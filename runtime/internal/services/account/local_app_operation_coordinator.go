@@ -201,30 +201,40 @@ func localAppOperationResourceRef(operation LocalAppOperation, selector localapp
 	require := func(value string) bool { return value != "" && value == strings.TrimSpace(value) }
 	switch operation {
 	case LocalAppOperationReadArtifactBytes:
-		if !require(selector.ArtifactID) || selector.AgentID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" {
+		if !require(selector.ArtifactID) || selector.AgentID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "artifact:" + selector.ArtifactID, nil
 	case LocalAppOperationOpenConversation:
-		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" {
+		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "agent:" + selector.AgentID, nil
 	case LocalAppOperationSendConversationTurn:
-		if !require(selector.AgentID) || !require(selector.ConversationAnchorID) || !require(selector.TurnID) || selector.ArtifactID != "" {
+		if !require(selector.AgentID) || !require(selector.ConversationAnchorID) || !require(selector.TurnID) || selector.ArtifactID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "agent:" + selector.AgentID + "/conversation:" + selector.ConversationAnchorID, nil
 	case LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
-		if !require(selector.AgentID) || !require(selector.ConversationAnchorID) || selector.ArtifactID != "" || selector.TurnID != "" {
+		if !require(selector.AgentID) || !require(selector.ConversationAnchorID) || selector.ArtifactID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return "agent:" + selector.AgentID + "/conversation:" + selector.ConversationAnchorID, nil
 	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
-		if selector.ArtifactID != "" || selector.AgentID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" {
+		if selector.ArtifactID != "" || selector.AgentID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" {
 			return "", ErrLocalAppOperationNotAdmitted
 		}
 		return appstorage.LocalAppJSONResourceRef(selector.StorageRelativePath)
+	case LocalAppOperationVoiceTranscribe:
+		if !require(selector.AgentID) || selector.ArtifactID != "" || selector.ConversationAnchorID != "" || selector.TurnID != "" || selector.VoiceStreamID != "" || selector.StorageRelativePath != "" {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "agent:" + selector.AgentID + "/voice-transcription", nil
+	case LocalAppOperationVoiceStreamSubscribe:
+		if !require(selector.AgentID) || !require(selector.ConversationAnchorID) || !require(selector.TurnID) || !require(selector.VoiceStreamID) || selector.ArtifactID != "" || selector.StorageRelativePath != "" {
+			return "", ErrLocalAppOperationNotAdmitted
+		}
+		return "agent:" + selector.AgentID + "/conversation:" + selector.ConversationAnchorID + "/turn:" + selector.TurnID + "/voice-stream:" + selector.VoiceStreamID, nil
 	default:
 		return "", ErrLocalAppOperationNotAdmitted
 	}
