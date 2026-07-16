@@ -18,7 +18,11 @@ import {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PRESENCE_MAX_AGE_MS = 12_000;
-const TIER_2_PLACEHOLDER = 'bounded projection 未准入';
+const AUTHORITY_SUMMARY_MAX_AGE_MS = 12_000;
+const AUTHORITY_SUMMARY_UNAVAILABLE_REASONS = new Set([
+  'principal-unauthorized',
+  'local-app-operation-unavailable',
+]);
 
 export function validateLocalDevelopmentPresence(value, nowUnixMs = Date.now()) {
   const expectedKeys = [
@@ -53,6 +57,138 @@ export function validateLocalDevelopmentPresence(value, nowUnixMs = Date.now()) 
     endpoint,
     ageMs: Math.max(0, ageMs),
   };
+}
+
+export function validateLocalDevelopmentAuthoritySummary(
+  value,
+  activeDesktopPid,
+  nowUnixMs = Date.now(),
+) {
+  const topLevelKeys = [
+    'capturedAt',
+    'desktopAppId',
+    'desktopPid',
+    'developerMode',
+    'grantSummary',
+    'projectAuthorization',
+    'schemaVersion',
+  ];
+  if (!hasExactKeys(value, topLevelKeys)
+    || value.schemaVersion !== 1
+    || value.desktopAppId !== 'nimi.desktop'
+    || !Number.isSafeInteger(value.desktopPid)
+    || value.desktopPid <= 0
+    || !Number.isSafeInteger(activeDesktopPid)
+    || activeDesktopPid <= 0) {
+    return { state: 'error', reason: 'desktop-authority-summary-shape-invalid' };
+  }
+  if (value.desktopPid !== activeDesktopPid) {
+    return { state: 'error', reason: 'desktop-authority-summary-pid-mismatch' };
+  }
+  if (typeof value.capturedAt !== 'string'
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value.capturedAt)) {
+    return { state: 'error', reason: 'desktop-authority-summary-shape-invalid' };
+  }
+  const capturedAtUnixMs = Date.parse(value.capturedAt);
+  if (!Number.isFinite(capturedAtUnixMs) || capturedAtUnixMs > nowUnixMs + 2_000) {
+    return { state: 'error', reason: 'desktop-authority-summary-shape-invalid' };
+  }
+  const ageMs = nowUnixMs - capturedAtUnixMs;
+  if (ageMs > AUTHORITY_SUMMARY_MAX_AGE_MS) {
+    return { state: 'error', reason: 'desktop-authority-summary-stale', ageMs };
+  }
+
+  const developerMode = validateDeveloperModeSummary(value.developerMode);
+  const projectAuthorization = validateCountSummary(
+    value.projectAuthorization,
+    ['activeCount', 'dormantCount', 'deniedCount', 'revokedCount'],
+  );
+  const grantSummary = validateCountSummary(
+    value.grantSummary,
+    [
+      'pendingCount',
+      'grantedCount',
+      'deniedCount',
+      'expiredCount',
+      'revokedCount',
+      'supersededCount',
+    ],
+  );
+  if (!developerMode || !projectAuthorization || !grantSummary) {
+    return { state: 'error', reason: 'desktop-authority-summary-shape-invalid' };
+  }
+
+  return {
+    state: 'ok',
+    reason: 'desktop-authority-summary-fresh',
+    desktopPid: value.desktopPid,
+    ageMs: Math.max(0, ageMs),
+    tier2: [
+      {
+        id: 'developer-mode',
+        state: developerMode.availability === 'available' ? 'ok' : 'unavailable',
+        reason: developerMode.availability === 'available'
+          ? `developer-mode-${developerMode.state}`
+          : developerMode.reasonCode,
+        developerMode: developerMode.state,
+      },
+      {
+        id: 'project-authorization',
+        state: projectAuthorization.availability === 'available' ? 'ok' : 'unavailable',
+        reason: projectAuthorization.availability === 'available'
+          ? 'bounded-project-authorization-summary-available'
+          : projectAuthorization.reasonCode,
+        ...projectAuthorization.counts,
+      },
+      {
+        id: 'grant-summary',
+        state: grantSummary.availability === 'available' ? 'ok' : 'unavailable',
+        reason: grantSummary.availability === 'available'
+          ? 'bounded-grant-summary-available'
+          : grantSummary.reasonCode,
+        ...grantSummary.counts,
+      },
+    ],
+  };
+}
+
+function hasExactKeys(value, expectedKeys) {
+  return Boolean(value)
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && Object.keys(value).sort().join('|') === [...expectedKeys].sort().join('|');
+}
+
+function validateDeveloperModeSummary(value) {
+  if (!hasExactKeys(value, ['availability', 'reasonCode', 'state'])) return null;
+  if (value.availability === 'available'
+    && value.reasonCode === 'action-executed'
+    && (value.state === 'enabled' || value.state === 'disabled')) {
+    return value;
+  }
+  if (value.availability === 'unavailable'
+    && value.state === 'unavailable'
+    && AUTHORITY_SUMMARY_UNAVAILABLE_REASONS.has(value.reasonCode)) {
+    return value;
+  }
+  return null;
+}
+
+function validateCountSummary(value, countKeys) {
+  if (!hasExactKeys(value, ['availability', 'reasonCode', ...countKeys])) return null;
+  const counts = Object.fromEntries(countKeys.map((key) => [key, value[key]]));
+  if (!Object.values(counts).every((count) => Number.isSafeInteger(count) && count >= 0)) {
+    return null;
+  }
+  if (value.availability === 'available' && value.reasonCode === 'action-executed') {
+    return { availability: value.availability, reasonCode: value.reasonCode, counts };
+  }
+  if (value.availability === 'unavailable'
+    && AUTHORITY_SUMMARY_UNAVAILABLE_REASONS.has(value.reasonCode)
+    && Object.values(counts).every((count) => count === 0)) {
+    return { availability: value.availability, reasonCode: value.reasonCode, counts };
+  }
+  return null;
 }
 
 export function validateFixedRuntimeService(status) {
@@ -98,14 +234,16 @@ export async function runDevDoctor(input = {}) {
   const queryService = input.queryService ?? queryFixedRuntimeService;
   const queryProcesses = input.queryProcesses ?? queryProcessRows;
   const readPresence = input.readPresence ?? readPresenceDescriptor;
+  const readAuthoritySummary = input.readAuthoritySummary ?? readAuthoritySummaryDescriptor;
   const serviceResultPromise = queryService();
   const processRowsPromise = queryProcesses();
-  const [serviceResult, processRows, realm, web, presenceResult] = await Promise.all([
+  const [serviceResult, processRows, realm, web, presenceResult, authoritySummaryRead] = await Promise.all([
     serviceResultPromise,
     processRowsPromise,
     probeHttp('http://127.0.0.1:3002'),
     probeHttp('http://127.0.0.1:3000'),
     readPresence(nowUnixMs),
+    readAuthoritySummary(),
   ]);
   const service = validateFixedRuntimeService(serviceResult);
   const activeDesktopPid = presenceResult.state === 'ok' ? presenceResult.desktopPid : 0;
@@ -135,11 +273,21 @@ export async function runDevDoctor(input = {}) {
     },
     { id: 'sdk-kit-dist', ...workspaceSurfaces },
   ];
-  const tier2 = ['developer-mode', 'project-authorization', 'grant-summary'].map((id) => ({
-    id,
-    state: 'unavailable',
-    reason: TIER_2_PLACEHOLDER,
-  }));
+  const authoritySummary = presenceResult.state === 'ok' && authoritySummaryRead.state === 'ok'
+    ? validateLocalDevelopmentAuthoritySummary(
+      authoritySummaryRead.value,
+      presenceResult.desktopPid,
+      nowUnixMs,
+    )
+    : {
+      state: 'error',
+      reason: presenceResult.state === 'ok'
+        ? authoritySummaryRead.reason
+        : 'desktop-presence-required-for-authority-summary',
+    };
+  const tier2 = authoritySummary.state === 'ok'
+    ? authoritySummary.tier2
+    : unavailableTier2(authoritySummary.reason);
   return {
     schemaVersion: 'nimi.dev-doctor/v1',
     checkedAt: new Date(nowUnixMs).toISOString(),
@@ -147,6 +295,14 @@ export async function runDevDoctor(input = {}) {
     tier1,
     tier2,
   };
+}
+
+function unavailableTier2(reason) {
+  return ['developer-mode', 'project-authorization', 'grant-summary'].map((id) => ({
+    id,
+    state: 'unavailable',
+    reason,
+  }));
 }
 
 function safeLoopbackEndpoint(value) {
@@ -194,6 +350,32 @@ async function readPresenceDescriptor(nowUnixMs) {
     return validateLocalDevelopmentPresence(JSON.parse(await readFile(presencePath, 'utf8')), nowUnixMs);
   } catch {
     return { state: 'error', reason: 'desktop-presence-missing' };
+  }
+}
+
+async function readAuthoritySummaryDescriptor() {
+  const summaryPath = path.join(
+    os.homedir(), '.nimi', 'run', 'desktop', 'local-development', 'authority-summary.v1.json',
+  );
+  try {
+    const fileStat = await lstat(summaryPath);
+    if (!fileStat.isFile() || fileStat.isSymbolicLink()) {
+      return { state: 'error', reason: 'desktop-authority-summary-file-invalid' };
+    }
+    let value;
+    try {
+      value = JSON.parse(await readFile(summaryPath, 'utf8'));
+    } catch {
+      return { state: 'error', reason: 'desktop-authority-summary-shape-invalid' };
+    }
+    return { state: 'ok', value };
+  } catch (error) {
+    return {
+      state: 'error',
+      reason: error?.code === 'ENOENT'
+        ? 'desktop-authority-summary-missing'
+        : 'desktop-authority-summary-unreadable',
+    };
   }
 }
 
@@ -274,7 +456,7 @@ function printHumanReport(report) {
     process.stdout.write(`[${row.state === 'ok' ? 'ok' : 'error'}] ${row.id}: ${row.reason}\n`);
   }
   for (const row of report.tier2) {
-    process.stdout.write(`[unavailable] ${row.id}: ${row.reason}\n`);
+    process.stdout.write(`[${row.state}] ${row.id}: ${row.reason}\n`);
   }
   process.stdout.write(`Tier-1: ${report.ok ? 'ready' : 'not-ready'}\n`);
 }
