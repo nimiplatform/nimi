@@ -446,7 +446,7 @@ class ElectronLocalDevelopmentHost {
       shell: 'electron',
       hostExecutablePath: run.plan.electronExecutable,
       rendererOrigin: run.plan.rendererOrigin,
-      hostArguments: [...observationArguments(), mainEntry, `--nimi-dev-renderer-url=${run.plan.rendererOrigin}`],
+      hostArguments: [...resolveLocalDevelopmentObservationArguments(), mainEntry, `--nimi-dev-renderer-url=${run.plan.rendererOrigin}`],
       workingDirectory: run.plan.projectRoot,
     });
     run.status.hostGeneration += 1;
@@ -644,11 +644,13 @@ function sanitizeLog(raw: string): string {
     : trimmed;
 }
 
-function observationArguments(): string[] {
-  const port = Number(process.env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT || 0);
-  const root = String(process.env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || '').trim();
-  const agent = String(process.env.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID || '').trim();
-  if (!port && !root && !agent) return [];
+export function resolveLocalDevelopmentObservationArguments(
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
+  if (String(env.NIMI_DEV_KERNEL_CHECKPOINT || '').trim() !== '1') return [];
+  const port = Number(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT || 0);
+  const root = String(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || '').trim();
+  const agent = String(env.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID || '').trim();
   if (!Number.isInteger(port) || port < 1024 || port > 65535 || !path.isAbsolute(root)
     || !/^local-agent:runtime-[0-9a-f]{32}$/u.test(agent)) {
     throw new Error('local-development-observation-config-invalid');

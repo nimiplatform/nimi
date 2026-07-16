@@ -11,6 +11,7 @@ import type {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   createDesktopElectronLocalDevelopmentHost,
+  resolveLocalDevelopmentObservationArguments,
   resolveLocalDevelopmentPackageScriptInvocation,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host';
@@ -141,6 +142,32 @@ test('Electron local-development package scripts use a fixed Windows shell allow
   assert.throws(
     () => resolveLocalDevelopmentPackageScriptInvocation('arbitrary' as never, 'win32'),
     /local-development-supervisor-required/u,
+  );
+});
+
+test('Electron local-development observation arguments require the explicit checkpoint switch', () => {
+  const observation = {
+    NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT: '19472',
+    NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT: path.join(repoRoot, '.nimi', 'local', 'zhiyu-observation'),
+    NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID: `local-agent:runtime-${'1f'.repeat(16)}`,
+  };
+  assert.deepEqual(resolveLocalDevelopmentObservationArguments(observation), []);
+  assert.deepEqual(resolveLocalDevelopmentObservationArguments({
+    ...observation,
+    NIMI_DEV_KERNEL_CHECKPOINT: '1',
+  }), [
+    '--remote-debugging-address=127.0.0.1',
+    '--remote-debugging-port=19472',
+    `--user-data-dir=${path.resolve(observation.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT)}`,
+    `--nimi-dev-agent-id=${observation.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID}`,
+  ]);
+  assert.throws(
+    () => resolveLocalDevelopmentObservationArguments({
+      ...observation,
+      NIMI_DEV_KERNEL_CHECKPOINT: '1',
+      NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID: 'local-agent:runtime-invalid',
+    }),
+    /local-development-observation-config-invalid/u,
   );
 });
 
