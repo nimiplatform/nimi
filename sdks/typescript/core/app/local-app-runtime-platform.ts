@@ -17,6 +17,12 @@ import type {
 const MAX_INLINE_ARTIFACT_BYTES = 32 * 1024 * 1024;
 const MAX_LOCAL_APP_STORAGE_PATH_BYTES = 240;
 const MAX_LOCAL_APP_STORAGE_DOCUMENT_BYTES = 256 * 1024;
+const MAX_LOCAL_APP_VOICE_AUDIO_BYTES = 8 * 1024 * 1024;
+const MAX_LOCAL_APP_VOICE_CHUNK_BYTES = 32 * 1024 * 1024;
+const MAX_LOCAL_APP_VOICE_TRANSCRIPT_BYTES = 64 * 1024;
+const LOCAL_APP_AUDIO_MIME_TYPES = new Set([
+  'audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/flac',
+]);
 const FORBIDDEN_AUTHORITY_FIELDS = new Set([
   'accountid',
   'authorization',
@@ -125,6 +131,61 @@ export type NimiAppRuntimeAgentConversationSnapshotInput = {
   readonly conversationAnchorId: string;
 };
 
+export type NimiAppRuntimeAgentTranscribeVoiceInput = {
+  readonly agentId: string;
+  readonly clientRequestId: string;
+  readonly audio: Uint8Array;
+  readonly mimeType: string;
+};
+
+export type NimiAppRuntimeAgentVoiceTranscription = {
+  readonly clientRequestId: string;
+  readonly text: string;
+};
+
+export type NimiAppRuntimeAgentSubscribeVoiceStreamInput = {
+  readonly agentId: string;
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly voiceStreamId: string;
+  readonly cursor?: string;
+};
+
+export type NimiAppRuntimeAgentVoiceOutputMode =
+  | 'native_stream'
+  | 'simulated_stream'
+  | 'batch_final_artifact'
+  | 'text_only';
+
+export type NimiAppRuntimeAgentVoicePlaybackState =
+  | 'active'
+  | 'completed'
+  | 'failed'
+  | 'interrupted'
+  | 'canceled';
+
+export type NimiAppRuntimeAgentVoiceStreamEvent = {
+  readonly voiceStreamId: string;
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly streamId: string;
+  readonly messageId: string;
+  readonly chunkSequence: string;
+  readonly chunk: Uint8Array;
+  readonly mimeType: string;
+  readonly voiceOutputMode: NimiAppRuntimeAgentVoiceOutputMode;
+  readonly playbackTarget: string;
+  readonly terminal: boolean;
+  readonly voicePlaybackState: NimiAppRuntimeAgentVoicePlaybackState;
+  readonly terminalReason: string;
+  readonly replayTruncated: false;
+};
+
+export type NimiAppRuntimeAgentVoiceStreamPage = {
+  readonly cursor: string;
+  readonly events: readonly [NimiAppRuntimeAgentVoiceStreamEvent];
+};
+
 export type NimiAppRuntimeAgentTurnEventPage = {
   /** Opaque decimal cursor returned by the protected carrier for the next pull. */
   readonly cursor: string;
@@ -174,6 +235,8 @@ export type NimiAppRuntimePlatformStandardShell = {
     readonly sendTurn: (input: NimiAppRuntimeAgentSendTurnInput) => Promise<unknown>;
     readonly subscribeTurn: (input: NimiAppRuntimeAgentSubscribeTurnInput) => Promise<unknown>;
     readonly getConversationSnapshot: (input: NimiAppRuntimeAgentConversationSnapshotInput) => Promise<unknown>;
+    readonly transcribeVoice: (input: NimiAppRuntimeAgentTranscribeVoiceInput) => Promise<unknown>;
+    readonly subscribeVoiceStream: (input: NimiAppRuntimeAgentSubscribeVoiceStreamInput) => Promise<unknown>;
   };
 };
 
@@ -212,6 +275,12 @@ export type NimiAppRuntimePlatformClient = {
     readonly getConversationSnapshot: (
       input: NimiAppRuntimeAgentConversationSnapshotInput,
     ) => Promise<NimiRuntimeAgentSessionSnapshot>;
+    readonly transcribeVoice: (
+      input: NimiAppRuntimeAgentTranscribeVoiceInput,
+    ) => Promise<NimiAppRuntimeAgentVoiceTranscription>;
+    readonly subscribeVoiceStream: (
+      input: NimiAppRuntimeAgentSubscribeVoiceStreamInput,
+    ) => Promise<NimiAppRuntimeAgentVoiceStreamPage>;
   };
 };
 
@@ -231,7 +300,10 @@ export function createNimiAppRuntimePlatformClient(
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
   assertExactMethodNamespace(
     standardShell.agent,
-    ['inventory', 'openConversation', 'sendTurn', 'subscribeTurn', 'getConversationSnapshot'],
+    [
+      'inventory', 'openConversation', 'sendTurn', 'subscribeTurn',
+      'getConversationSnapshot', 'transcribeVoice', 'subscribeVoiceStream',
+    ],
     'agent',
   );
 
@@ -366,8 +438,200 @@ export function createNimiAppRuntimePlatformClient(
           normalized.conversationAnchorId,
         );
       },
+      transcribeVoice: async (voiceInput: NimiAppRuntimeAgentTranscribeVoiceInput) => {
+        assertNoAuthorityMaterial(voiceInput);
+        assertExactKeys(
+          voiceInput,
+          ['agentId', 'clientRequestId', 'audio', 'mimeType'],
+          'local-app voice transcription input',
+        );
+        if (
+          !(voiceInput.audio instanceof Uint8Array)
+          || voiceInput.audio.byteLength === 0
+          || voiceInput.audio.byteLength > MAX_LOCAL_APP_VOICE_AUDIO_BYTES
+        ) {
+          return localAppError(
+            'Local-app voice transcription audio is invalid.',
+            'SDK_LOCAL_APP_VOICE_AUDIO_INVALID',
+            'provide_bounded_voice_audio',
+          );
+        }
+        const normalized = {
+          agentId: requireText(voiceInput.agentId, 'agentId'),
+          clientRequestId: requireText(voiceInput.clientRequestId, 'clientRequestId'),
+          audio: Uint8Array.from(voiceInput.audio),
+          mimeType: requireAudioMime(voiceInput.mimeType),
+        };
+        return projectVoiceTranscription(
+          await standardShell.agent.transcribeVoice(normalized),
+          normalized.clientRequestId,
+        );
+      },
+      subscribeVoiceStream: async (voiceInput: NimiAppRuntimeAgentSubscribeVoiceStreamInput) => {
+        assertNoAuthorityMaterial(voiceInput);
+        assertExactKeys(
+          voiceInput,
+          ['agentId', 'conversationAnchorId', 'turnId', 'voiceStreamId', 'cursor'],
+          'local-app voice stream input',
+        );
+        const cursor = optionalCursor(voiceInput.cursor);
+        const normalized = {
+          agentId: requireText(voiceInput.agentId, 'agentId'),
+          conversationAnchorId: requireText(voiceInput.conversationAnchorId, 'conversationAnchorId'),
+          turnId: requireText(voiceInput.turnId, 'turnId'),
+          voiceStreamId: requireText(voiceInput.voiceStreamId, 'voiceStreamId'),
+          ...(cursor ? { cursor } : {}),
+        };
+        return projectVoiceStreamPage(
+          await standardShell.agent.subscribeVoiceStream(normalized),
+          normalized,
+          cursor,
+        );
+      },
     }),
   });
+}
+
+function projectVoiceTranscription(
+  value: unknown,
+  expectedRequestId: string,
+): NimiAppRuntimeAgentVoiceTranscription {
+  const record = asRecord(value);
+  assertSafeProjection(record);
+  assertExactProjectionKeys(record, ['clientRequestId', 'text'], 'voice transcription');
+  const clientRequestId = projectionText(record.clientRequestId, 'clientRequestId');
+  if (
+    clientRequestId !== expectedRequestId
+    || typeof record.text !== 'string'
+    || new TextEncoder().encode(record.text).byteLength > MAX_LOCAL_APP_VOICE_TRANSCRIPT_BYTES
+  ) {
+    localAppProjectionError('voice transcription correlation');
+  }
+  return { clientRequestId, text: record.text };
+}
+
+function projectVoiceStreamPage(
+  value: unknown,
+  expected: Omit<NimiAppRuntimeAgentSubscribeVoiceStreamInput, 'cursor'>,
+  previousCursor: string | undefined,
+): NimiAppRuntimeAgentVoiceStreamPage {
+  const record = asRecord(value);
+  assertSafeProjection(record);
+  assertExactProjectionKeys(record, ['cursor', 'events'], 'voice stream page');
+  const cursor = decimalCursor(record.cursor, 'voice stream cursor');
+  if (previousCursor !== undefined && BigInt(cursor) <= BigInt(previousCursor)) {
+    localAppProjectionError('voice stream cursor progression');
+  }
+  if (!Array.isArray(record.events) || record.events.length !== 1) {
+    localAppProjectionError('voice stream page event count');
+  }
+  const raw = asRecord(record.events[0]);
+  assertExactProjectionKeys(raw, [
+    'voiceStreamId', 'conversationAnchorId', 'turnId', 'streamId', 'messageId',
+    'chunkSequence', 'chunkBase64', 'mimeType', 'voiceOutputMode', 'playbackTarget',
+    'terminal', 'voicePlaybackState', 'terminalReason', 'replayTruncated',
+  ], 'voice stream event');
+  const voiceStreamId = projectionText(raw.voiceStreamId, 'voiceStreamId');
+  const conversationAnchorId = projectionText(raw.conversationAnchorId, 'conversationAnchorId');
+  const turnId = projectionText(raw.turnId, 'turnId');
+  if (
+    voiceStreamId !== expected.voiceStreamId
+    || conversationAnchorId !== expected.conversationAnchorId
+    || turnId !== expected.turnId
+    || raw.replayTruncated !== false
+    || typeof raw.terminal !== 'boolean'
+  ) {
+    localAppProjectionError('voice stream event correlation');
+  }
+  const chunk = decodeCanonicalBase64(raw.chunkBase64, MAX_LOCAL_APP_VOICE_CHUNK_BYTES, true);
+  const mimeType = canonicalString(raw.mimeType, 'mimeType');
+  if (
+    (raw.terminal && chunk.byteLength !== 0)
+    || (!raw.terminal && (chunk.byteLength === 0 || !LOCAL_APP_AUDIO_MIME_TYPES.has(mimeType)))
+  ) {
+    localAppProjectionError('voice stream chunk');
+  }
+  const event: NimiAppRuntimeAgentVoiceStreamEvent = {
+    voiceStreamId,
+    conversationAnchorId,
+    turnId,
+    streamId: projectionText(raw.streamId, 'streamId'),
+    messageId: projectionText(raw.messageId, 'messageId'),
+    chunkSequence: decimalCursor(raw.chunkSequence, 'chunkSequence'),
+    chunk,
+    mimeType,
+    voiceOutputMode: projectVoiceOutputMode(raw.voiceOutputMode),
+    playbackTarget: canonicalString(raw.playbackTarget, 'playbackTarget'),
+    terminal: raw.terminal,
+    voicePlaybackState: projectVoicePlaybackState(raw.voicePlaybackState),
+    terminalReason: canonicalString(raw.terminalReason, 'terminalReason'),
+    replayTruncated: false,
+  };
+  return { cursor, events: [event] };
+}
+
+function projectVoiceOutputMode(value: unknown): NimiAppRuntimeAgentVoiceOutputMode {
+  switch (value) {
+    case 1: return 'native_stream';
+    case 2: return 'simulated_stream';
+    case 3: return 'batch_final_artifact';
+    case 4: return 'text_only';
+    default: return localAppProjectionError('voiceOutputMode');
+  }
+}
+
+function projectVoicePlaybackState(value: unknown): NimiAppRuntimeAgentVoicePlaybackState {
+  switch (value) {
+    case 1: return 'active';
+    case 2: return 'completed';
+    case 3: return 'failed';
+    case 4: return 'interrupted';
+    case 5: return 'canceled';
+    default: return localAppProjectionError('voicePlaybackState');
+  }
+}
+
+function requireAudioMime(value: unknown): string {
+  const text = requireText(value, 'mimeType');
+  const base = text.split(';', 1)[0]?.trim().toLowerCase() ?? '';
+  if (!LOCAL_APP_AUDIO_MIME_TYPES.has(base)) {
+    return localAppError(
+      'Local-app voice transcription MIME is not admitted.',
+      'SDK_LOCAL_APP_VOICE_MIME_INVALID',
+      'use_admitted_voice_audio_mime',
+    );
+  }
+  return base;
+}
+
+function decodeCanonicalBase64(value: unknown, maxBytes: number, allowEmpty = false): Uint8Array {
+  const encoded = typeof value === 'string' ? value : '';
+  if (
+    (!allowEmpty && encoded.length === 0)
+    || encoded.length % 4 !== 0
+    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(encoded)
+  ) {
+    return localAppProjectionError('voice chunk base64');
+  }
+  let binary: string;
+  try {
+    binary = globalThis.atob(encoded);
+  } catch {
+    return localAppProjectionError('voice chunk base64');
+  }
+  if (binary.length > maxBytes) return localAppProjectionError('voice chunk size');
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  if (encodeBase64(bytes) !== encoded) return localAppProjectionError('voice chunk base64');
+  return bytes;
+}
+
+function encodeBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.byteLength; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(bytes.byteLength, offset + chunkSize)));
+  }
+  return globalThis.btoa(binary);
 }
 
 function projectAgentInventory(value: unknown): NimiAppRuntimeAgentInventory {
@@ -847,6 +1111,7 @@ function assertSafeProjection(value: unknown, seen = new Set<object>()): void {
 
 function assertNoAuthorityMaterial(value: unknown, seen = new Set<object>()): void {
   if (!value || typeof value !== 'object') return;
+  if (value instanceof Uint8Array) return;
   if (seen.has(value)) return;
   seen.add(value);
   for (const key of Reflect.ownKeys(value)) {
