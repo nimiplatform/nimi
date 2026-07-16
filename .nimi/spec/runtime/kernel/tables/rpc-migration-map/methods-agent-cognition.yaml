@@ -13,7 +13,7 @@ surfaces:
 services:
   - RuntimeCognitionService
   - RuntimeAgentService
-method_count: 93
+method_count: 94
 method_mappings:
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank
@@ -204,6 +204,11 @@ method_mappings:
     design_method: ListAgents
     proto_service: RuntimeAgentService
     proto_method: ListAgents
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListLocalAppAgentInventory
+    proto_service: RuntimeAgentService
+    proto_method: ListLocalAppAgentInventory
     mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: OpenConversationAnchor

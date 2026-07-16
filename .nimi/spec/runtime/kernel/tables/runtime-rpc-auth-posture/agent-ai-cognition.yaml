@@ -186,7 +186,8 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory
-    posture: protected_local_app_zero_grant_inventory
+    posture: protected_origin_required
+    selected_operation_posture: protected_local_app_zero_grant_inventory
     local_app_transport_class: local_app_host
     local_app_required_origin_role: local_app_session
     request_shape: empty
