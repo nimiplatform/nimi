@@ -83,7 +83,7 @@ posture_decision_doctrine: |
 method_shards:
   - path: ./runtime-rpc-auth-posture/identity-access.yaml
     id: nimicoding.runtime-rpc-auth-posture.identity-access.v1
-    method_count: 54
+    method_count: 57
     services:
       - RuntimeAccountService
       - RuntimeAuthService

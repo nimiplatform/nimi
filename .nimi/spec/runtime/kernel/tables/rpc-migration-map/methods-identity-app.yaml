@@ -21,7 +21,7 @@ services:
   - RuntimeAccountService
   - RuntimeAppService
   - RuntimeDevelopmentService
-method_count: 54
+method_count: 57
 method_mappings:
   - design_service: RuntimeServiceControlService
     design_method: RequestRuntimeRestart
