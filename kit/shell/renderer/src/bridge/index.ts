@@ -104,9 +104,12 @@ export {
   getNimiLocalAppPermissionPosture,
   getNimiLocalAppSessionStatus,
   openNimiLocalAppAgentConversation,
+  readNimiLocalAppStorageJson,
   readNimiLocalAppRuntimeArtifactBytes,
+  removeNimiLocalAppStorageJson,
   sendNimiLocalAppAgentTurn,
   subscribeNimiLocalAppAgentTurn,
+  writeNimiLocalAppStorageJson,
 } from './local-app.js';
 export {
   openDesktopIntent,
@@ -171,6 +174,8 @@ export type {
   NimiLocalAppArtifactBytes,
   NimiLocalAppPermissionPostureInput,
   NimiLocalAppSessionStatus,
+  NimiLocalAppStorageDocument,
+  NimiLocalAppStorageRemoveResult,
   NimiLocalAppStandardShellSurface,
 } from './local-app.js';
 export type {

@@ -69,6 +69,21 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
             "nimi_shell_tauri::capabilities::local_app::local_app_agent_get_conversation_snapshot",
         boundary: ShellCommandBoundary::LocalApp,
     },
+    ShellCommandDescriptor {
+        command_name: "storage_read_json",
+        rust_path: "nimi_shell_tauri::capabilities::storage::storage_read_json",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "storage_write_json",
+        rust_path: "nimi_shell_tauri::capabilities::storage::storage_write_json",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "storage_remove_json",
+        rust_path: "nimi_shell_tauri::capabilities::storage::storage_remove_json",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -434,6 +449,9 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_agent_send_turn,
             $crate::capabilities::local_app::local_app_agent_subscribe_turn,
             $crate::capabilities::local_app::local_app_agent_get_conversation_snapshot,
+            $crate::capabilities::storage::storage_read_json,
+            $crate::capabilities::storage::storage_write_json,
+            $crate::capabilities::storage::storage_remove_json,
             $($app_command),*
         ]
     };

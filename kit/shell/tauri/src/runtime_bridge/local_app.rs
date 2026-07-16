@@ -9,8 +9,9 @@ use nimi_shell_protected_local::{
     LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
     LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
     LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
-    LocalAppPermissionRequest, LocalAppReasonCode, LocalAppSessionStatus, NimiLocalAppCarrier,
-    NimiLocalAppSession,
+    LocalAppPermissionRequest, LocalAppReasonCode, LocalAppSessionStatus, LocalAppStorageDocument,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
+    LocalAppStorageWriteRequest, NimiLocalAppCarrier, NimiLocalAppSession,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -86,6 +87,48 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<LocalAppArtifactBytes, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.artifacts_read_runtime_bytes(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn storage_read_json(
+        &self,
+        request: LocalAppStorageReadRequest,
+    ) -> Result<LocalAppStorageDocument, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.storage_read_json(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn storage_write_json(
+        &self,
+        request: LocalAppStorageWriteRequest,
+    ) -> Result<LocalAppStorageDocument, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.storage_write_json(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn storage_remove_json(
+        &self,
+        request: LocalAppStorageRemoveRequest,
+    ) -> Result<LocalAppStorageRemoveResult, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.storage_remove_json(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, error).await;

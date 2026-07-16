@@ -10,7 +10,7 @@ Renderer application code must not import this module. Renderer code consumes
 host-neutral bridge APIs from `@nimiplatform/kit/shell/renderer/*` and SDK
 Runtime access through the explicit `electron-ipc` transport.
 
-Desktop-supervised local apps register the fixed nine-operation host from
+Desktop-supervised local apps register the fixed twelve-operation host from
 their Electron main process:
 
 ```ts

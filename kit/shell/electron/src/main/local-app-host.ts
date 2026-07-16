@@ -7,6 +7,10 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppPermissionPosture',
   'localAppPermissionRequest',
   'localAppArtifactsReadRuntimeBytes',
+  'localAppStorageReadJson',
+  'localAppStorageWriteJson',
+  'localAppStorageRemoveJson',
+  'localAppAgentInventory',
   'localAppAgentOpenConversation',
   'localAppAgentSendTurn',
   'localAppAgentSubscribeTurn',
@@ -32,6 +36,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'invalid-payload',
   'not-found',
   'resource-exhausted',
+  'invalid-path',
 ] as const);
 
 const FORBIDDEN_PROJECTION_KEYS: ReadonlySet<string> = new Set([
@@ -80,6 +85,9 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppPermissionPosture: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppArtifactsReadRuntimeBytes: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppStorageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentInventory: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentOpenConversation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -92,6 +100,9 @@ export type NimiElectronLocalAppHost = {
   readonly permissionPosture: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly artifactsReadRuntimeBytes: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppArtifactBytes>;
+  readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentInventory: () => Promise<NimiElectronLocalAppRecord>;
   readonly agentOpenConversation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -129,6 +140,18 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   async artifactsReadRuntimeBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppArtifactBytes> {
     const value = await invoke(() => this.binding.localAppArtifactsReadRuntimeBytes(input));
     return validateArtifactBytes(value);
+  }
+
+  storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeStorageDocument(() => this.binding.localAppStorageReadJson(input));
+  }
+
+  storageWriteJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeStorageDocument(() => this.binding.localAppStorageWriteJson(input));
+  }
+
+  storageRemoveJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeStorageRemove(() => this.binding.localAppStorageRemoveJson(input));
   }
 
   agentInventory(): Promise<NimiElectronLocalAppRecord> {
@@ -174,6 +197,18 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   artifactsReadRuntimeBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppArtifactBytes> {
     return this.resolve().artifactsReadRuntimeBytes(input);
+  }
+
+  storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().storageReadJson(input);
+  }
+
+  storageWriteJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().storageWriteJson(input);
+  }
+
+  storageRemoveJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().storageRemoveJson(input);
   }
 
   agentInventory(): Promise<NimiElectronLocalAppRecord> {
@@ -253,6 +288,40 @@ async function invoke(call: () => Promise<NativeLocalAppOutcome>): Promise<unkno
 
 async function invokeRecord(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
   return validateProjection(await invoke(call));
+}
+
+async function invokeStorageDocument(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(['sizeBytes', 'value'])) {
+    throw untrustedRuntimeError();
+  }
+  const sizeBytes = Number(value.sizeBytes);
+  if (!Number.isSafeInteger(sizeBytes) || sizeBytes < 0 || sizeBytes > 256 * 1024) {
+    throw untrustedRuntimeError();
+  }
+  validateJsonValue(value.value);
+  return Object.freeze({ value: value.value as NimiElectronLocalAppJson, sizeBytes });
+}
+
+async function invokeStorageRemove(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || JSON.stringify(Object.keys(value)) !== JSON.stringify(['removed']) || typeof value.removed !== 'boolean') {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({ removed: value.removed });
+}
+
+function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {
+  budget.nodes += 1;
+  if (depth > 32 || budget.nodes > 100_000) throw untrustedRuntimeError();
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number' && Number.isFinite(value)) return;
+  if (Array.isArray(value)) {
+    for (const entry of value) validateJsonValue(entry, depth + 1, budget);
+    return;
+  }
+  if (!isPlainRecord(value)) throw untrustedRuntimeError();
+  for (const entry of Object.values(value)) validateJsonValue(entry, depth + 1, budget);
 }
 
 function validateProjection(value: unknown): NimiElectronLocalAppRecord {

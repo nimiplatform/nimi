@@ -20,6 +20,9 @@ const COMMAND_METHODS = new Map<string, keyof NimiElectronLocalAppHost>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionPosture'], 'permissionPosture'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes'], 'artifactsReadRuntimeBytes'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
+  [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentInventory'], 'agentInventory'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation'], 'agentOpenConversation'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn'], 'agentSendTurn'],
@@ -47,6 +50,9 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'artifactsReadRuntimeBytes') {
       return projectArtifact(await input.host.artifactsReadRuntimeBytes(payload));
     }
+    if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
+    if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
+    if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
     return await input.host[method](payload);
   } catch (error) {
     if (error instanceof NimiElectronLocalAppHostError) throw mapHostError(error, input.command);
@@ -76,6 +82,13 @@ function validatePayload(
       return identifiers(payload, ['operationId', 'resourceRef', 'purpose'], command);
     case 'artifactsReadRuntimeBytes':
       return identifiers(payload, ['artifactId'], command);
+    case 'storageReadJson':
+    case 'storageRemoveJson':
+      return storagePathPayload(payload, command);
+    case 'storageWriteJson':
+      assertExactKeys(payload, ['relativePath', 'value'], command);
+      validateStorageJsonValue(payload.value, command);
+      return { ...storagePathPayload({ relativePath: payload.relativePath }, command), value: payload.value as NimiElectronLocalAppRecord[string] };
     case 'agentOpenConversation':
       return identifiers(payload, ['agentId', 'requestedAnchorDisposition'], command);
     case 'agentSendTurn': {
@@ -115,6 +128,55 @@ function identifiers(
     record[key] = requiredText(payload[key], key, command, MAX_IDENTIFIER_LENGTH);
   }
   return record;
+}
+
+function storagePathPayload(
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+): NimiElectronLocalAppRecord {
+  assertExactKeys(payload, ['relativePath'], command);
+  const relativePath = typeof payload.relativePath === 'string' ? payload.relativePath : '';
+  if (!isCanonicalStoragePath(relativePath)) throw invalidPayload(command, 'relativePath is invalid');
+  return { relativePath };
+}
+
+function isCanonicalStoragePath(value: string): boolean {
+  if (!value || value.trim() !== value || Buffer.byteLength(value, 'utf8') > 240 || !value.endsWith('.json') || value.startsWith('/') || /[\\:\0]/u.test(value)) return false;
+  return value.split('/').every((segment) => {
+    if (!segment || segment === '.' || segment === '..' || segment.length > 128 || segment.endsWith('.')) return false;
+    const base = segment.split('.', 1)[0]?.toUpperCase() ?? '';
+    if (/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/u.test(base)) return false;
+    return /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(segment);
+  });
+}
+
+function validateStorageJsonValue(value: unknown, command: string): void {
+  const state = { nodes: 0, ancestors: new Set<object>() };
+  const visit = (entry: unknown, depth = 0): void => {
+    state.nodes += 1;
+    if (depth > 32 || state.nodes > 100_000) {
+      throw invalidPayload(command, 'value exceeds structural bounds');
+    }
+    if (entry === null || typeof entry === 'string' || typeof entry === 'boolean') return;
+    if (typeof entry === 'number' && Number.isFinite(entry)) return;
+    if (!entry || typeof entry !== 'object' || state.ancestors.has(entry)) {
+      throw invalidPayload(command, 'value is not JSON-compatible');
+    }
+    state.ancestors.add(entry);
+    if (Array.isArray(entry)) {
+      for (const item of entry) visit(item, depth + 1);
+    } else if (Object.getPrototypeOf(entry) === Object.prototype) {
+      for (const item of Object.values(entry as Record<string, unknown>)) visit(item, depth + 1);
+    } else {
+      throw invalidPayload(command, 'value is not JSON-compatible');
+    }
+    state.ancestors.delete(entry);
+  };
+  visit(value);
+  const encoded = JSON.stringify(value);
+  if (typeof encoded !== 'string' || Buffer.byteLength(encoded, 'utf8') > 256 * 1024) {
+    throw invalidPayload(command, 'value exceeds the JSON document bound');
+  }
 }
 
 function assertNoForbiddenAuthority(payload: Readonly<Record<string, unknown>>, command: string): void {
@@ -167,6 +229,7 @@ function standardCode(reasonCode: string) {
     case 'runtime-service-repair-required': return 'runtime-service-repair-required' as const;
     case 'runtime-unauthenticated': return 'runtime-unauthenticated' as const;
     case 'invalid-payload': return 'invalid-payload' as const;
+    case 'invalid-path': return 'invalid-path' as const;
     case 'not-found': return 'not-found' as const;
     case 'resource-exhausted': return 'resource-exhausted' as const;
     default: return 'runtime-permission-denied' as const;

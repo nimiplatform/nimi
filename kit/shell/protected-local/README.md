@@ -11,9 +11,9 @@ The Local App carrier connects only to `\\.\pipe\nimi-runtime-local-app-v1`,
 verifies the pipe server against two stable SCM observations and the admitted
 Runtime signer, performs the request-empty `OpenLocalAppSession`, and retains
 the verified process, executable, channel, and Runtime boot epoch privately.
-Its complete 0K operation surface is session status, permission posture,
-Runtime artifact bytes, and the four selected RuntimeAgent conversation
-operations.
+Its complete admitted operation surface is session status, permission posture,
+Runtime artifact bytes, three protected principal-partitioned JSON storage
+operations, and the selected RuntimeAgent conversation operations.
 
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,

@@ -257,6 +257,12 @@ pub enum ReasonCode {
     AiLocalSpeechHostInitFailed = 563,
     AiLocalSpeechCapabilityDownloadFailed = 564,
     AiLocalSpeechBundleDegraded = 565,
+    /// APP_STORAGE family (566+). Exact protected local-app JSON operations
+    /// never expose Runtime-owned roots or absolute paths.
+    AppStoragePathInvalid = 566,
+    AppStorageEntryNotFound = 567,
+    AppStorageQuotaExceeded = 568,
+    AppStorageUnavailable = 569,
     /// WORKSPACE_BINDING family (570+)
     WorkspaceBindingMissing = 570,
     WorkspaceBindingMalformed = 571,
@@ -517,6 +523,10 @@ impl ReasonCode {
                 "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED"
             }
             Self::AiLocalSpeechBundleDegraded => "AI_LOCAL_SPEECH_BUNDLE_DEGRADED",
+            Self::AppStoragePathInvalid => "APP_STORAGE_PATH_INVALID",
+            Self::AppStorageEntryNotFound => "APP_STORAGE_ENTRY_NOT_FOUND",
+            Self::AppStorageQuotaExceeded => "APP_STORAGE_QUOTA_EXCEEDED",
+            Self::AppStorageUnavailable => "APP_STORAGE_UNAVAILABLE",
             Self::WorkspaceBindingMissing => "WORKSPACE_BINDING_MISSING",
             Self::WorkspaceBindingMalformed => "WORKSPACE_BINDING_MALFORMED",
             Self::WorkspaceBindingNotFound => "WORKSPACE_BINDING_NOT_FOUND",
@@ -823,6 +833,10 @@ impl ReasonCode {
                 Some(Self::AiLocalSpeechCapabilityDownloadFailed)
             }
             "AI_LOCAL_SPEECH_BUNDLE_DEGRADED" => Some(Self::AiLocalSpeechBundleDegraded),
+            "APP_STORAGE_PATH_INVALID" => Some(Self::AppStoragePathInvalid),
+            "APP_STORAGE_ENTRY_NOT_FOUND" => Some(Self::AppStorageEntryNotFound),
+            "APP_STORAGE_QUOTA_EXCEEDED" => Some(Self::AppStorageQuotaExceeded),
+            "APP_STORAGE_UNAVAILABLE" => Some(Self::AppStorageUnavailable),
             "WORKSPACE_BINDING_MISSING" => Some(Self::WorkspaceBindingMissing),
             "WORKSPACE_BINDING_MALFORMED" => Some(Self::WorkspaceBindingMalformed),
             "WORKSPACE_BINDING_NOT_FOUND" => Some(Self::WorkspaceBindingNotFound),
@@ -13868,6 +13882,51 @@ pub struct GetAppStorageResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<AppStorageProjection>,
 }
+/// Protected local-app JSON storage requests carry only a canonical relative
+/// path. Runtime derives the current principal partition from the verified
+/// process-bound session and exact operation grant.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppStorageJsonRequest {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppStorageJsonResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub json_value: ::prost::alloc::vec::Vec<u8>,
+    #[prost(int64, tag = "2")]
+    pub size_bytes: i64,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WriteLocalAppStorageJsonRequest {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "2")]
+    pub json_value: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WriteLocalAppStorageJsonResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub json_value: ::prost::alloc::vec::Vec<u8>,
+    #[prost(int64, tag = "2")]
+    pub size_bytes: i64,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalAppStorageJsonRequest {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalAppStorageJsonResponse {
+    #[prost(bool, tag = "1")]
+    pub removed: bool,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
 /// AccountAppInventoryRow is one Runtime-owned account app inventory row.
 /// Consumers read it through GetAccountAppInventory; no renderer/app-supplied
 /// account_id is accepted.
@@ -14859,6 +14918,93 @@ pub mod runtime_app_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "GetAppStorage"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn read_local_app_storage_json(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReadLocalAppStorageJsonRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ReadLocalAppStorageJsonResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "ReadLocalAppStorageJson",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn write_local_app_storage_json(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WriteLocalAppStorageJsonRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::WriteLocalAppStorageJsonResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "WriteLocalAppStorageJson",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn remove_local_app_storage_json(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveLocalAppStorageJsonRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveLocalAppStorageJsonResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "RemoveLocalAppStorageJson",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }

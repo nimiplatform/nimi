@@ -84,6 +84,46 @@ pub async fn local_app_artifacts_read_runtime_bytes(
     }
 }
 
+#[napi(js_name = "localAppStorageReadJson")]
+pub async fn local_app_storage_read_json(input: NativeStorageReadInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .storage_read_json(LocalAppStorageReadRequest {
+                relative_path: input.relative_path,
+            })
+            .await
+            .map(|document| json!({"value": document.value, "sizeBytes": document.size_bytes}))
+    })
+    .await
+}
+
+#[napi(js_name = "localAppStorageWriteJson")]
+pub async fn local_app_storage_write_json(input: NativeStorageWriteInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .storage_write_json(LocalAppStorageWriteRequest {
+                relative_path: input.relative_path,
+                value: input.value,
+            })
+            .await
+            .map(|document| json!({"value": document.value, "sizeBytes": document.size_bytes}))
+    })
+    .await
+}
+
+#[napi(js_name = "localAppStorageRemoveJson")]
+pub async fn local_app_storage_remove_json(input: NativeStorageRemoveInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .storage_remove_json(LocalAppStorageRemoveRequest {
+                relative_path: input.relative_path,
+            })
+            .await
+            .map(|result| json!({"removed": result.removed}))
+    })
+    .await
+}
+
 #[napi(js_name = "localAppAgentInventory")]
 pub async fn local_app_agent_inventory() -> NativeJsonOutcome {
     invoke_agent(|session| async move {

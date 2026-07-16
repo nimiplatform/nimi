@@ -35,6 +35,7 @@ pub enum LocalAppReasonCode {
     PresenceExpired,
     RuntimePermissionDenied,
     InvalidPayload,
+    InvalidPath,
     NotFound,
     ResourceExhausted,
 }
@@ -59,6 +60,7 @@ impl LocalAppReasonCode {
             Self::PresenceExpired => "presence-expired",
             Self::RuntimePermissionDenied => "runtime-permission-denied",
             Self::InvalidPayload => "invalid-payload",
+            Self::InvalidPath => "invalid-path",
             Self::NotFound => "not-found",
             Self::ResourceExhausted => "resource-exhausted",
         }
@@ -175,6 +177,33 @@ pub struct LocalAppArtifactBytes {
     pub mime_type: String,
     pub size_bytes: i64,
     pub mime_inferred: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppStorageReadRequest {
+    pub relative_path: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppStorageWriteRequest {
+    pub relative_path: String,
+    pub value: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppStorageRemoveRequest {
+    pub relative_path: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppStorageDocument {
+    pub value: JsonValue,
+    pub size_bytes: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppStorageRemoveResult {
+    pub removed: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -456,6 +485,39 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppArtifactReadRequest,
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppArtifactBytes, LocalAppOperationError>> + Send + '_>,
+    >;
+
+    fn storage_read_json(
+        &self,
+        request: LocalAppStorageReadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppStorageDocument, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn storage_write_json(
+        &self,
+        request: LocalAppStorageWriteRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppStorageDocument, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn storage_remove_json(
+        &self,
+        request: LocalAppStorageRemoveRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppStorageRemoveResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
     >;
 
     fn agent_open_conversation(

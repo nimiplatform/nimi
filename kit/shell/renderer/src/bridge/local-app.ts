@@ -6,6 +6,8 @@ import type { JsonObject, JsonValue } from './types.js';
 const MAX_IDENTIFIER_LENGTH = 512;
 const MAX_INLINE_ARTIFACT_BYTES = 32 * 1024 * 1024;
 const MAX_USER_TEXT_LENGTH = 256 * 1024;
+const MAX_STORAGE_PATH_BYTES = 240;
+const MAX_STORAGE_DOCUMENT_BYTES = 256 * 1024;
 
 const FORBIDDEN_PROJECTION_KEYS = new Set([
   'endpoint', 'authorization', 'token', 'localappprincipalid', 'localapprecordid',
@@ -37,6 +39,15 @@ export type NimiLocalAppArtifactBytes = {
   readonly mimeType: string;
   readonly sizeBytes: number;
   readonly mimeInferred: boolean;
+};
+
+export type NimiLocalAppStorageDocument = {
+  readonly value: JsonValue;
+  readonly sizeBytes: number;
+};
+
+export type NimiLocalAppStorageRemoveResult = {
+  readonly removed: boolean;
 };
 
 export type NimiLocalAppAgentOpenConversationInput = {
@@ -89,6 +100,11 @@ export type NimiLocalAppStandardShellSurface = {
   readonly artifacts: {
     readonly readRuntimeBytes: (artifactId: string) => Promise<NimiLocalAppArtifactBytes>;
   };
+  readonly storage: {
+    readonly readJson: (relativePath: string) => Promise<NimiLocalAppStorageDocument>;
+    readonly writeJson: (relativePath: string, value: JsonValue) => Promise<NimiLocalAppStorageDocument>;
+    readonly removeJson: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
+  };
   readonly agent: {
     readonly inventory: () => Promise<JsonObject>;
     readonly openConversation: (input: NimiLocalAppAgentOpenConversationInput) => Promise<JsonObject>;
@@ -107,6 +123,11 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       request: requestNimiLocalAppPermission,
     },
     artifacts: { readRuntimeBytes: readNimiLocalAppRuntimeArtifactBytes },
+    storage: {
+      readJson: readNimiLocalAppStorageJson,
+      writeJson: writeNimiLocalAppStorageJson,
+      removeJson: removeNimiLocalAppStorageJson,
+    },
     agent: {
       inventory: getNimiLocalAppAgentInventory,
       openConversation: openNimiLocalAppAgentConversation,
@@ -143,6 +164,45 @@ export function readNimiLocalAppRuntimeArtifactBytes(artifactId: string): Promis
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes'];
   const payload = { artifactId: requiredText(artifactId, 'artifactId', command, MAX_IDENTIFIER_LENGTH) };
   return invokeChecked(command, { payload }, (value) => parseArtifactBytes(value, command));
+}
+
+export function readNimiLocalAppStorageJson(relativePath: string): Promise<NimiLocalAppStorageDocument> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'];
+  const normalizedPath = canonicalStoragePath(relativePath, command);
+  return invokeChecked(
+    command,
+    { payload: { relativePath: normalizedPath } },
+    (value) => parseStorageDocument(value, command),
+  );
+}
+
+export function writeNimiLocalAppStorageJson(
+  relativePath: string,
+  value: JsonValue,
+): Promise<NimiLocalAppStorageDocument> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'];
+  const normalizedPath = canonicalStoragePath(relativePath, command);
+  validateStorageJsonValue(value, command);
+  const encoded = JSON.stringify(value);
+  if (new TextEncoder().encode(encoded).byteLength > MAX_STORAGE_DOCUMENT_BYTES) {
+    throw new Error(`${command}: value exceeds the JSON document bound`);
+  }
+  return invokeChecked(
+    command,
+    { payload: { relativePath: normalizedPath, value } },
+    (result) => parseStorageDocument(result, command),
+  );
+}
+
+export function removeNimiLocalAppStorageJson(relativePath: string): Promise<NimiLocalAppStorageRemoveResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'];
+  const normalizedPath = canonicalStoragePath(relativePath, command);
+  return invokeChecked(command, { payload: { relativePath: normalizedPath } }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid payload`);
+    assertProjectionKeys(record, ['removed'], command, 'storage remove result');
+    if (typeof record.removed !== 'boolean') throw new Error(`${command}: removed is invalid`);
+    return { removed: record.removed };
+  });
 }
 
 export function openNimiLocalAppAgentConversation(
@@ -211,6 +271,60 @@ function parseSessionStatus(value: unknown, command: string): NimiLocalAppSessio
     throw new Error(`${command}: session status projection is invalid`);
   }
   return { state: state as NimiLocalAppSessionStatus['state'], reasonCode, retryable: record.retryable };
+}
+
+function parseStorageDocument(value: unknown, command: string): NimiLocalAppStorageDocument {
+  const record = assertRecord(value, `${command} returned invalid payload`);
+  assertProjectionKeys(record, ['value', 'sizeBytes'], command, 'storage document');
+  const sizeBytes = nonNegativeInteger(record.sizeBytes, command, 'sizeBytes');
+  if (sizeBytes > MAX_STORAGE_DOCUMENT_BYTES) throw new Error(`${command}: sizeBytes exceeds the document bound`);
+  validateStorageJsonValue(record.value, command);
+  return { value: record.value as JsonValue, sizeBytes };
+}
+
+function canonicalStoragePath(value: string, command: string): string {
+  if (
+    !value
+    || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > MAX_STORAGE_PATH_BYTES
+    || !value.endsWith('.json')
+    || value.startsWith('/')
+    || /[\\:\0]/u.test(value)
+  ) {
+    throw new Error(`${command}: relativePath is invalid`);
+  }
+  for (const segment of value.split('/')) {
+    const base = segment.split('.', 1)[0]?.toUpperCase() ?? '';
+    if (
+      !segment
+      || segment === '.'
+      || segment === '..'
+      || segment.length > 128
+      || segment.endsWith('.')
+      || /^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/u.test(base)
+      || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(segment)
+    ) {
+      throw new Error(`${command}: relativePath is invalid`);
+    }
+  }
+  return value;
+}
+
+function validateStorageJsonValue(value: unknown, command: string, depth = 0, nodes = { value: 0 }): void {
+  nodes.value += 1;
+  if (depth > 32 || nodes.value > 100_000) throw new Error(`${command}: value exceeds structural bounds`);
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number' && Number.isFinite(value)) return;
+  if (Array.isArray(value)) {
+    for (const entry of value) validateStorageJsonValue(entry, command, depth + 1, nodes);
+    return;
+  }
+  if (!value || typeof value !== 'object' || Object.getPrototypeOf(value) !== Object.prototype) {
+    throw new Error(`${command}: value is not JSON-compatible`);
+  }
+  for (const entry of Object.values(value as Record<string, unknown>)) {
+    validateStorageJsonValue(entry, command, depth + 1, nodes);
+  }
 }
 
 function parseSafeProjection(value: unknown, command: string): JsonObject {

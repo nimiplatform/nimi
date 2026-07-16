@@ -114,6 +114,10 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         653 => LocalAppReasonCode::GrantSuperseded,
         654 => LocalAppReasonCode::AccountChanged,
         657 => LocalAppReasonCode::PresenceExpired,
+        566 => LocalAppReasonCode::InvalidPath,
+        567 => LocalAppReasonCode::NotFound,
+        568 => LocalAppReasonCode::ResourceExhausted,
+        569 => LocalAppReasonCode::RuntimeServiceUnavailable,
         _ => return None,
     })
 }
@@ -134,6 +138,10 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "LOCAL_APP_GRANT_SUPERSEDED" => LocalAppReasonCode::GrantSuperseded,
         "LOCAL_APP_PRESENCE_EXPIRED" => LocalAppReasonCode::PresenceExpired,
         "PROTOCOL_ENVELOPE_INVALID" => LocalAppReasonCode::InvalidPayload,
+        "APP_STORAGE_PATH_INVALID" => LocalAppReasonCode::InvalidPath,
+        "APP_STORAGE_ENTRY_NOT_FOUND" => LocalAppReasonCode::NotFound,
+        "APP_STORAGE_QUOTA_EXCEEDED" => LocalAppReasonCode::ResourceExhausted,
+        "APP_STORAGE_UNAVAILABLE" => LocalAppReasonCode::RuntimeServiceUnavailable,
         "ARTIFACT_NOT_FOUND" => LocalAppReasonCode::NotFound,
         "RESOURCE_EXHAUSTED" | "ARTIFACT_TOO_LARGE" => LocalAppReasonCode::ResourceExhausted,
         "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED" | "PROTECTED_LOCAL_LEDGER_UNAVAILABLE" => {

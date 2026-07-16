@@ -4,7 +4,8 @@ use nimi_shell_protected_local::{
     LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
     LocalAppAgentOpenConversationRequest, LocalAppAgentSendTurnRequest,
     LocalAppAgentSubscribeTurnRequest, LocalAppArtifactReadRequest, LocalAppOperationError,
-    LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
+    LocalAppPermissionPostureRequest, LocalAppPermissionRequest, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -33,6 +34,25 @@ pub struct LocalAppPermissionRequestPayload {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppArtifactReadPayload {
     artifact_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppStorageReadPayload {
+    relative_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppStorageWritePayload {
+    relative_path: String,
+    value: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppStorageRemovePayload {
+    relative_path: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -167,6 +187,49 @@ pub async fn artifacts_read_runtime_bytes_for_host(
         "sizeBytes": artifact.size_bytes,
         "mimeInferred": artifact.mime_inferred,
     }))
+}
+
+pub async fn storage_read_json_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppStorageReadPayload = parse_payload(payload, "storage_read_json")?;
+    let document = host
+        .storage_read_json(LocalAppStorageReadRequest {
+            relative_path: payload.relative_path,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({"value": document.value, "sizeBytes": document.size_bytes}))
+}
+
+pub async fn storage_write_json_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppStorageWritePayload = parse_payload(payload, "storage_write_json")?;
+    let document = host
+        .storage_write_json(LocalAppStorageWriteRequest {
+            relative_path: payload.relative_path,
+            value: payload.value,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({"value": document.value, "sizeBytes": document.size_bytes}))
+}
+
+pub async fn storage_remove_json_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppStorageRemovePayload = parse_payload(payload, "storage_remove_json")?;
+    let result = host
+        .storage_remove_json(LocalAppStorageRemoveRequest {
+            relative_path: payload.relative_path,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    Ok(json!({"removed": result.removed}))
 }
 
 pub async fn agent_open_conversation_for_host(

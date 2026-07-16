@@ -267,6 +267,13 @@ export function registerNimiElectronRuntimeBridge(
       throw createElectronExternalDaemonRequiredError(command);
     }
     const standardPayload = standardNestedPayload(payload, command);
+    if (input.standardShellHost?.localAppHost && isElectronLocalAppCommand(command)) {
+      return dispatchElectronLocalAppCommand({
+        host: input.standardShellHost.localAppHost,
+        payload: standardPayload,
+        command,
+      });
+    }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return readElectronStandardStorageJson(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return writeElectronStandardStorageJson(input.standardShellHost, standardPayload, command);

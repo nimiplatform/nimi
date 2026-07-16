@@ -251,9 +251,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
 
 const LOCAL_APP_PLANNED_OPERATIONS = [
   'data.pathResolve',
-  'storage.readJson',
-  'storage.writeJson',
-  'storage.removeJson',
   'config.get',
   'config.set',
   'ai-config.get',
@@ -275,6 +272,9 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'local-app.agentSendTurn',
   'local-app.agentSubscribeTurn',
   'local-app.agentGetConversationSnapshot',
+  'storage.readJson',
+  'storage.writeJson',
+  'storage.removeJson',
 ];
 
 const LOCAL_APP_FORBIDDEN_OPERATIONS = [

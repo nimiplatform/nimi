@@ -163,6 +163,22 @@ pub struct NativeArtifactReadInput {
 }
 
 #[napi(object)]
+pub struct NativeStorageReadInput {
+    pub relative_path: String,
+}
+
+#[napi(object)]
+pub struct NativeStorageWriteInput {
+    pub relative_path: String,
+    pub value: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeStorageRemoveInput {
+    pub relative_path: String,
+}
+
+#[napi(object)]
 pub struct NativeAgentOpenConversationInput {
     pub agent_id: String,
     pub requested_anchor_disposition: String,

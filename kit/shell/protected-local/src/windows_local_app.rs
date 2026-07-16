@@ -2,6 +2,7 @@ mod agent;
 mod artifact;
 mod permission;
 mod projection;
+mod storage;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -21,7 +22,9 @@ use crate::{
     LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
     LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
     LocalAppPermissionRequest, LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
-    NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiLocalAppCarrier,
+    NimiLocalAppSession,
 };
 use agent::TurnStreams;
 
@@ -98,6 +101,54 @@ impl NimiLocalAppSession for WindowsLocalAppSession {
         Box<dyn Future<Output = Result<LocalAppArtifactBytes, LocalAppOperationError>> + Send + '_>,
     > {
         Box::pin(artifact::read_local_app_artifact(
+            self.channel.clone(),
+            request,
+        ))
+    }
+
+    fn storage_read_json(
+        &self,
+        request: LocalAppStorageReadRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppStorageDocument, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(storage::read_local_app_storage_json(
+            self.channel.clone(),
+            request,
+        ))
+    }
+
+    fn storage_write_json(
+        &self,
+        request: LocalAppStorageWriteRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppStorageDocument, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(storage::write_local_app_storage_json(
+            self.channel.clone(),
+            request,
+        ))
+    }
+
+    fn storage_remove_json(
+        &self,
+        request: LocalAppStorageRemoveRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppStorageRemoveResult, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(storage::remove_local_app_storage_json(
             self.channel.clone(),
             request,
         ))

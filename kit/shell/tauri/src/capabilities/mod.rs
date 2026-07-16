@@ -280,6 +280,8 @@ pub mod data {
 }
 
 pub mod storage {
+    use tauri::Manager;
+
     pub use crate::runtime_app_storage::{
         canonical_storage_root, parse_standard_storage_payload,
         require_bound_standard_storage_roots, scoped_storage_child, storage_read_json_for_roots,
@@ -289,42 +291,86 @@ pub mod storage {
     };
 
     #[tauri::command]
-    pub fn storage_read_json(
-        slot: tauri::State<'_, StandardAppStorageRootSlot>,
+    pub async fn storage_read_json(
+        app: tauri::AppHandle,
         payload: serde_json::Value,
-    ) -> Result<StandardStorageJsonResult, String> {
+    ) -> Result<serde_json::Value, String> {
+        if let Some(host) = app.try_state::<crate::runtime_bridge::RuntimeBridgeLocalAppHost>() {
+            return crate::standard_local_app::storage_read_json_for_host(host.inner(), payload)
+                .await;
+        }
+        let slot = require_standard_storage_slot(&app)?;
         let roots = require_bound_standard_storage_roots(slot.inner(), "storage_read_json")?;
         let payload = parse_standard_storage_payload::<StandardStoragePathPayload>(
             payload,
             "storage_read_json",
         )?;
-        storage_read_json_for_roots(&roots, payload)
+        project_standard_storage_result(storage_read_json_for_roots(&roots, payload)?)
     }
 
     #[tauri::command]
-    pub fn storage_write_json(
-        slot: tauri::State<'_, StandardAppStorageRootSlot>,
+    pub async fn storage_write_json(
+        app: tauri::AppHandle,
         payload: serde_json::Value,
-    ) -> Result<StandardStorageJsonResult, String> {
+    ) -> Result<serde_json::Value, String> {
+        if let Some(host) = app.try_state::<crate::runtime_bridge::RuntimeBridgeLocalAppHost>() {
+            return crate::standard_local_app::storage_write_json_for_host(host.inner(), payload)
+                .await;
+        }
+        let slot = require_standard_storage_slot(&app)?;
         let roots = require_bound_standard_storage_roots(slot.inner(), "storage_write_json")?;
         let payload = parse_standard_storage_payload::<StandardStorageWriteJsonPayload>(
             payload,
             "storage_write_json",
         )?;
-        storage_write_json_for_roots(&roots, payload)
+        project_standard_storage_result(storage_write_json_for_roots(&roots, payload)?)
     }
 
     #[tauri::command]
-    pub fn storage_remove_json(
-        slot: tauri::State<'_, StandardAppStorageRootSlot>,
+    pub async fn storage_remove_json(
+        app: tauri::AppHandle,
         payload: serde_json::Value,
-    ) -> Result<StandardStorageRemoveJsonResult, String> {
+    ) -> Result<serde_json::Value, String> {
+        if let Some(host) = app.try_state::<crate::runtime_bridge::RuntimeBridgeLocalAppHost>() {
+            return crate::standard_local_app::storage_remove_json_for_host(host.inner(), payload)
+                .await;
+        }
+        let slot = require_standard_storage_slot(&app)?;
         let roots = require_bound_standard_storage_roots(slot.inner(), "storage_remove_json")?;
         let payload = parse_standard_storage_payload::<StandardStoragePathPayload>(
             payload,
             "storage_remove_json",
         )?;
-        storage_remove_json_for_roots(&roots, payload)
+        project_standard_storage_result(storage_remove_json_for_roots(&roots, payload)?)
+    }
+
+    fn require_standard_storage_slot(
+        app: &tauri::AppHandle,
+    ) -> Result<tauri::State<'_, StandardAppStorageRootSlot>, String> {
+        app.try_state::<StandardAppStorageRootSlot>()
+            .ok_or_else(|| {
+                crate::capabilities::standard_shell_error(
+                    "capability-unavailable",
+                    "tauri-standard-storage-binding-missing",
+                    "manage_standard_app_storage_root_from_runtime_binding",
+                    "tauri",
+                    None,
+                )
+            })
+    }
+
+    fn project_standard_storage_result(
+        value: impl serde::Serialize,
+    ) -> Result<serde_json::Value, String> {
+        serde_json::to_value(value).map_err(|_| {
+            crate::capabilities::standard_shell_error(
+                "host-internal-error",
+                "tauri-standard-storage-projection-failed",
+                "repair_standard_storage_host",
+                "tauri",
+                None,
+            )
+        })
     }
 }
 

@@ -52,7 +52,9 @@ pub use carrier::{
     LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
     LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
     LocalAppPermissionState, LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
-    NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
+    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
