@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { spawnSyncCommand } from './lib/command-runner.mjs';
+import { spawnCommand } from './lib/command-runner.mjs';
 import {
   assessWorkspaceSurfaceFreshness,
   captureWorkspaceSurfaceSnapshot,
@@ -98,12 +98,14 @@ export async function runDevDoctor(input = {}) {
   const queryService = input.queryService ?? queryFixedRuntimeService;
   const queryProcesses = input.queryProcesses ?? queryProcessRows;
   const readPresence = input.readPresence ?? readPresenceDescriptor;
-  const [realm, web, serviceResult, presenceResult, processRows] = await Promise.all([
+  const serviceResultPromise = queryService();
+  const processRowsPromise = queryProcesses();
+  const [serviceResult, processRows, realm, web, presenceResult] = await Promise.all([
+    serviceResultPromise,
+    processRowsPromise,
     probeHttp('http://127.0.0.1:3002'),
     probeHttp('http://127.0.0.1:3000'),
-    queryService(),
     readPresence(nowUnixMs),
-    queryProcesses(),
   ]);
   const service = validateFixedRuntimeService(serviceResult);
   const activeDesktopPid = presenceResult.state === 'ok' ? presenceResult.desktopPid : 0;
@@ -195,36 +197,64 @@ async function readPresenceDescriptor(nowUnixMs) {
   }
 }
 
-function queryFixedRuntimeService() {
-  if (process.platform !== 'win32') return Promise.resolve({ status: 'unsupported' });
+async function queryFixedRuntimeService() {
+  if (process.platform !== 'win32') return { status: 'unsupported' };
   const pnpmBin = 'pnpm.cmd';
-  const result = spawnSyncCommand(pnpmBin, ['--silent', 'status:dev-kernel-service-candidate'], {
+  const result = await collectCommandResult(pnpmBin, ['--silent', 'status:dev-kernel-service-candidate'], {
     cwd: repoRoot,
     env: process.env,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
-  if (result.error || result.status !== 0) return Promise.resolve({ status: 'error' });
-  return Promise.resolve(parseEmbeddedJson(result.stdout));
+  if (result.error || result.status !== 0) return { status: 'error' };
+  return parseEmbeddedJson(result.stdout);
 }
 
-function queryProcessRows() {
-  if (process.platform !== 'win32') return Promise.resolve([]);
+async function queryProcessRows() {
+  if (process.platform !== 'win32') return [];
   const command = 'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine | ConvertTo-Json -Compress';
-  const result = spawnSyncCommand('powershell.exe', ['-NoProfile', '-Command', command], {
+  const result = await collectCommandResult('powershell.exe', ['-NoProfile', '-Command', command], {
     cwd: repoRoot,
     env: process.env,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
-  if (result.error || result.status !== 0) return Promise.resolve([]);
+  if (result.error || result.status !== 0) return [];
   try {
-    return Promise.resolve(JSON.parse(String(result.stdout || '[]')));
+    return JSON.parse(String(result.stdout || '[]'));
   } catch {
-    return Promise.resolve([]);
+    return [];
   }
+}
+
+function collectCommandResult(command, args, options) {
+  const { encoding = 'utf8', ...spawnOptions } = options;
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawnCommand(command, args, spawnOptions);
+    } catch (error) {
+      resolve({ error, status: null, signal: null, stdout: '', stderr: '' });
+      return;
+    }
+
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    child.stdout?.setEncoding(encoding);
+    child.stderr?.setEncoding(encoding);
+    child.stdout?.on('data', (chunk) => { stdout += chunk; });
+    child.stderr?.on('data', (chunk) => { stderr += chunk; });
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve({ ...result, stdout, stderr });
+    };
+    child.once('error', (error) => finish({ error, status: null, signal: null }));
+    child.once('close', (status, signal) => finish({ status, signal }));
+  });
 }
 
 function parseEmbeddedJson(output) {

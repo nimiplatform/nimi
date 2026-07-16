@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -65,4 +66,55 @@ test('doctor keeps unadmitted Tier-2 projections explicit', async () => {
   assert.deepEqual(report.tier2.map((row) => row.reason), [
     'bounded projection 未准入', 'bounded projection 未准入', 'bounded projection 未准入',
   ]);
+});
+
+test('doctor http probes survive a blocking service query', async (context) => {
+  const server = createServer((_request, response) => {
+    response.statusCode = 404;
+    response.end();
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  context.after(() => new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  }));
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const probeUrl = `http://127.0.0.1:${address.port}`;
+
+  const report = await runDevDoctor({
+    nowUnixMs,
+    probeHttp: async () => {
+      try {
+        const response = await fetch(probeUrl, {
+          method: 'GET',
+          redirect: 'manual',
+          signal: AbortSignal.timeout(2_500),
+        });
+        return response.status < 500
+          ? { state: 'ok', reason: 'http-reachable', statusCode: response.status }
+          : { state: 'error', reason: 'http-unhealthy', statusCode: response.status };
+      } catch {
+        return { state: 'error', reason: 'http-unreachable' };
+      }
+    },
+    queryService: () => {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 3_100);
+      return { status: 'absent' };
+    },
+    readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
+    queryProcesses: async () => [],
+  });
+
+  assert.deepEqual(
+    report.tier1
+      .filter((row) => row.id === 'realm' || row.id === 'web')
+      .map((row) => ({ state: row.state, reason: row.reason, statusCode: row.statusCode })),
+    [
+      { state: 'ok', reason: 'http-reachable', statusCode: 404 },
+      { state: 'ok', reason: 'http-reachable', statusCode: 404 },
+    ],
+  );
 });
