@@ -100,7 +100,9 @@ export function useFirstRunMaterializationObserver(
             job.environmentKey,
             job.dependencyFamily,
             job.dependencyId,
-            job.failureDetail || job.state,
+            job.consumerScope,
+            job.reasonCode || job.state,
+            job.recoveryDisposition || '',
           ].join('|');
           if (autoRetryAttemptedKeysRef.current.has(key)) return false;
           autoRetryAttemptedKeysRef.current.add(key);

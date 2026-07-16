@@ -13,6 +13,7 @@ import {
 } from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/local_runtime';
 import type { DesktopProductControlEvidence } from '../src-electron/product-control-evidence';
 import {
+  FIRST_RUN_LOCAL_AI_MINT_TIMEOUT_MS,
   createDesktopElectronProductControlHost,
   formatRuntimeReadinessFailure,
 } from '../src-electron/product-control-host';
@@ -242,6 +243,7 @@ test('Electron first-run host rejects renderer-supplied evidence fields', async 
 });
 
 test('Electron first-run host preserves bounded Runtime readiness detail', () => {
+  assert.equal(FIRST_RUN_LOCAL_AI_MINT_TIMEOUT_MS, 600_000);
   assert.equal(
     formatRuntimeReadinessFailure('first-run-execution-not-ready', {
       reasonCode: 'FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED',

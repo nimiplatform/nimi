@@ -7,7 +7,7 @@
     "dev": "nimi-app dev --shell electron",
     "dev:shell": "nimi-app dev",
     "dev:renderer": "vite --host 127.0.0.1 --port 1472 --strictPort",
-    "dev:electron": "corepack pnpm run build:electron && node scripts/run-electron-dev.mjs",
+    "dev:electron": "nimi-app dev --shell electron",
     "prepare:workspace-surfaces": "corepack pnpm --filter @nimiplatform/sdk build && corepack pnpm --filter @nimiplatform/kit build",
     "typecheck": "pnpm run prepare:workspace-surfaces && tsc --noEmit",
     "build": "pnpm run prepare:workspace-surfaces && tsc --noEmit && vite build",

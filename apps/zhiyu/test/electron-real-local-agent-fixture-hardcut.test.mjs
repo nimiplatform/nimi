@@ -8,6 +8,14 @@ import { withFixtureRuntimeLocalAgent } from './e2e/electron-real-local-agent-fi
 
 const fixturePath = new URL('./e2e/electron-real-local-agent-fixture.mjs', import.meta.url);
 const electronMainPath = new URL('../src-electron/main.ts', import.meta.url);
+const packagePath = new URL('../package.json', import.meta.url);
+
+test('Zhiyu Electron development enters the Desktop-owned supervisor', async () => {
+  const packageDocument = JSON.parse(await readFile(packagePath, 'utf8'));
+  assert.equal(packageDocument.scripts.dev, 'nimi-app dev --shell electron');
+  assert.equal(packageDocument.scripts['dev:shell'], 'nimi-app dev');
+  assert.equal(packageDocument.scripts['dev:electron'], 'nimi-app dev --shell electron');
+});
 
 test('real local-app fixture consumes only the shared Desktop handoff truth', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'nimi-zhiyu-local-app-handoff-'));

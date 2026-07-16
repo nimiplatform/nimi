@@ -36,6 +36,7 @@ import {
   waitUntil,
 } from './dev-kernel-cross-app-driver.mjs';
 import { validateFirstRunConnectivityObservation } from './dev-kernel-first-run-contract.mjs';
+import { persistDevKernelFailureBundle } from './dev-kernel-failure-bundle.mjs';
 import { startProcess, terminateProcessTree } from './cross-app-driver.mjs';
 import {
   browserAuthSafeChildEnvironment,
@@ -94,10 +95,15 @@ let desktopHandle;
 let desktopConnection;
 let runtimeDataRoot;
 let completed = false;
+let phase = 'preflight';
+let serviceBefore;
+let observer;
+const observedPages = [];
 const sourceState = captureSourceState(repoRoot);
 const electronBuildMode = String(process.env.NIMI_DEV_KERNEL_ELECTRON_BUILD_MODE || 'fresh').trim().toLowerCase();
 
 try {
+  setPhase('realm-policy-preflight');
   const browserCaptureFile = path.join(trial.paths.control, 'browser-auth.capture');
   const realmAuthPolicy = await probeDevKernelRealmPolicy(ACCOUNT_REALM_ORIGIN);
   const browserAuthDriver = createDevKernelBrowserAuthDriver({
@@ -107,7 +113,7 @@ try {
     requiredCredentialRoles: ['primary'],
     realmPolicy: realmAuthPolicy,
   });
-  const serviceBefore = readFixedServiceStatus();
+  serviceBefore = readFixedServiceStatus();
   const electronHost = verifyElectronHost();
   const manifest = createRealmFixtureManifest(FIXTURE_ORIGIN);
   manifest.scenarioId = 'dev-kernel-checkpoint.first-run-connectivity';
@@ -132,8 +138,10 @@ try {
   );
 
   const cdpPort = await reservePort();
-  const observedPages = [];
-  const observer = createEarlyCdpObserver(observedPages);
+  observer = createEarlyCdpObserver(observedPages, {
+    initialPhase: phase,
+    classifyConsoleError: classifyFirstRunConsoleError,
+  });
   const toolchainHomes = resolveHostRustToolchainHomes({ env: process.env, hostHome: os.homedir() });
   const env = {
     ...browserAuthSafeChildEnvironment(process.env),
@@ -159,6 +167,7 @@ try {
     RUSTUP_HOME: toolchainHomes.rustupHome,
     CARGO_HOME: toolchainHomes.cargoHome,
   };
+  setPhase('desktop-launch');
   const launch = beginObservedProcess({
     connect: () => connectCdp(cdpPort, 'First Run Desktop', 180_000, observer),
     start: () => startProcess(process.execPath, [
@@ -185,6 +194,7 @@ try {
   // first protected Desktop session. Treat that handshake interval as
   // transient, exactly as the fixed-service smoke does, while preserving the
   // native host's fail-closed runtime-service-untrusted result per attempt.
+  setPhase('product-control-projection');
   const initialProjection = await waitUntil(async () => {
     const projection = await readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD);
     return [
@@ -202,6 +212,7 @@ try {
   const resumedDeviceDiagnostic = initialProjection.state === 'data_root_selected';
   runtimeDataRoot = requireCheckpointDataRootProposal(initialProjection, serviceBefore.runtimeCandidateId);
 
+  setPhase('desktop-login');
   const baseline = await prepareDesktopFixedServiceBaseline(page);
   await page.evaluate(() => window.localStorage.setItem('nimi.shell.locale', 'zh'));
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -271,6 +282,7 @@ try {
       : 'resumed First Run reached ready_for_use; a fresh installer-owned round is still required for final acceptance');
   }
 
+  setPhase('first-run-workflow');
   const runtimeInterruption = {};
   const firstRunTrial = {
     ...trial,
@@ -284,6 +296,7 @@ try {
         page: firstRunPage,
         continueStorage,
         screenshotsRoot,
+        observer,
       }));
       return runtimeInterruption.storageContinueHandled === true;
     },
@@ -293,6 +306,7 @@ try {
     intervalMs: 100,
     label: 'ready Desktop shell after First Run',
   });
+  setPhase('ready-audit');
   const accountLabel = String(await page.getByTestId('desktop-account-menu-trigger').textContent() || '').trim();
   const widePath = path.join(screenshotsRoot, 'desktop-first-run-ready-wide.png');
   await setWindowBounds(desktopConnection, 1440, 940);
@@ -320,6 +334,7 @@ try {
   };
   await observer.flush();
   const privacy = summarizePrivacy(observedPages, bodyText);
+  const console = summarizeConsoleObservation(observedPages);
   const observation = {
     schemaVersion: 'nimi.dev-kernel-first-run-connectivity/v1',
     observedAt: new Date().toISOString(),
@@ -345,6 +360,7 @@ try {
     longText,
     accessibility,
     privacy,
+    console,
     observedPages,
   };
   const issues = validateFirstRunConnectivityObservation(observation);
@@ -354,10 +370,36 @@ try {
   fs.mkdirSync(outputRoot, { recursive: true });
   const outputPath = path.join(outputRoot, 'observation.json');
   fs.cpSync(screenshotsRoot, path.join(outputRoot, 'screenshots'), { recursive: true });
+  setPhase('persist');
   fs.writeFileSync(outputPath, `${JSON.stringify({ ...observation, issues }, null, 2)}\n`, { mode: 0o600 });
   if (issues.length > 0) throw new Error(`First Run connectivity failed: ${issues.join('; ')}`);
   completed = true;
   process.stdout.write(`dev-kernel First Run connectivity: PASS (${outputPath})\n`);
+} catch (error) {
+  try {
+    await persistDevKernelFailureBundle({
+      artifactsRoot: artifactRoot,
+      executionMode: 'first-run',
+      phase,
+      error,
+      sourceState,
+      desktop: desktopConnection,
+      runtimeService: (() => {
+        try { return readFixedServiceStatus(); } catch { return serviceBefore; }
+      })(),
+      observations: { runtimeDataRoot, electronBuildMode },
+      observedPages,
+    });
+  } catch {
+    fs.writeFileSync(path.join(artifactRoot, 'sanitized-failure-bundle-fallback.json'), `${JSON.stringify({
+      schemaVersion: 'nimi.dev-kernel-sanitized-failure/v1',
+      acceptanceEligible: false,
+      executionMode: 'first-run',
+      phase,
+      errorCode: 'failure-bundle-projection-failed',
+    }, null, 2)}\n`, { mode: 0o600 });
+  }
+  throw error;
 } finally {
   if (desktopConnection) await desktopConnection.browser.close().catch(() => undefined);
   if (desktopHandle) await terminateProcessTree(desktopHandle);
@@ -377,7 +419,9 @@ function comparablePath(value) {
   return path.resolve(candidate).toLowerCase();
 }
 
-async function exerciseRuntimeInterruption({ page, continueStorage, screenshotsRoot }) {
+async function exerciseRuntimeInterruption({ page, continueStorage, screenshotsRoot, observer }) {
+  observer.setPhase('runtime-interruption');
+  try {
   const serviceBefore = readFixedServiceStatus();
   let restartSettled = false;
   const restartPromise = invokeDesktop(page, RESTART_COMMAND).finally(() => { restartSettled = true; });
@@ -454,6 +498,9 @@ async function exerciseRuntimeInterruption({ page, continueStorage, screenshotsR
     storageRecoveryState,
     storageContinueHandled: uiOutcome === 'advanced' || recoveryRetryIssued,
   };
+  } finally {
+    observer.setPhase('first-run-workflow');
+  }
 }
 
 function verifyElectronHost() {
@@ -475,4 +522,31 @@ function summarizePrivacy(observedPages, bodyText) {
       || observedPages.some((entry) => entry.secretTextObserved === true),
     storageAuthorityMaterialObserved: observedPages.some((entry) => entry.storageAuthorityMaterialObserved === true),
   };
+}
+
+function classifyFirstRunConsoleError({ phase, text }) {
+  const typedRuntimeUnavailable = /(?:runtime-service-unavailable|\b14\s+UNAVAILABLE\b|transport (?:is )?closing|connection (?:closed|refused|reset)|named pipe.*(?:closed|unavailable))/iu.test(text);
+  if (phase === 'runtime-interruption' && typedRuntimeUnavailable) {
+    return { expected: true, code: 'expected-runtime-unavailable' };
+  }
+  return { expected: false, code: 'unclassified-console-error' };
+}
+
+function summarizeConsoleObservation(observedPages) {
+  const errors = observedPages.flatMap((page) => (page.consoleErrors || []).map((entry) => ({
+    page: page.label,
+    ...entry,
+  })));
+  return {
+    errors,
+    expectedErrorCount: errors.filter((entry) => entry.expected === true).length,
+    unexpectedErrorCount: errors.filter((entry) => entry.expected !== true).length,
+    pageErrorCount: observedPages.reduce((total, page) => total + (page.pageErrors?.length || 0), 0),
+    observerErrorCount: observedPages.reduce((total, page) => total + (page.observerErrors?.length || 0), 0),
+  };
+}
+
+function setPhase(next) {
+  phase = next;
+  observer?.setPhase(next);
 }

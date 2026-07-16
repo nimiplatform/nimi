@@ -109,6 +109,7 @@ export {
   completeDesktopFirstRun,
   loginDesktop,
   prepareDesktopFixedServiceBaseline,
+  selectLatestBlockingFirstRunDependencyJob,
 } from './dev-kernel-first-run-driver.mjs';
 export { pageAudit } from './dev-kernel-local-development-driver.mjs';
 

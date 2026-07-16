@@ -55,6 +55,7 @@ test('owner-minimal contract rejects reordered, failed, private, or screenshot-f
 test('owner-minimal runner reuses the core driver and prepares carriers only between processes', () => {
   const runner = fs.readFileSync(path.join(import.meta.dirname, 'run-owner-minimal.mjs'), 'utf8');
   const freshPreparation = fs.readFileSync(path.join(import.meta.dirname, 'run-fresh-prepared-electron-journey.mjs'), 'utf8');
+  const processOwnership = fs.readFileSync(path.join(import.meta.dirname, 'fresh-prepared-electron-runner.mjs'), 'utf8');
   const driver = ownerDriverSource();
   assert.match(runner, /runDevKernelOwnerMinimalTrial/);
   assert.match(driver, /runDevKernelTrial\(\{ \.\.\.input, executionMode: 'owner-minimal' \}\)/);
@@ -64,9 +65,10 @@ test('owner-minimal runner reuses the core driver and prepares carriers only bet
   assert.match(freshPreparation, /before fresh carrier preparation/);
   assert.match(freshPreparation, /after fresh-prepared journey cleanup/);
   assert.match(freshPreparation, /deadline = Date\.now\(\) \+ 10_000/);
-  assert.match(freshPreparation, /electron-desktop-runtime/iu);
-  assert.match(freshPreparation, /\\\\apps\\\\zhiyu/iu);
-  assert.match(freshPreparation, /--port\(\?:=\|\\s\+\)1472/);
+  assert.match(freshPreparation, /findBlockingElectronCarriers/);
+  assert.match(processOwnership, /electron-desktop-runtime/iu);
+  assert.match(processOwnership, /apps\\\\zhiyu/iu);
+  assert.match(processOwnership, /--port\(\?:=\|\\s\+\)1472/);
 });
 
 test('owner-minimal orchestrator imports its Runtime host dependencies explicitly', () => {

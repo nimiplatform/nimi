@@ -270,6 +270,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
   let finalizationRuntimeUnavailableCarrierRecovered = false;
   let finalizationRuntimeUnavailableRetryIssued = false;
   const finalizationRuntimeUnavailableGraceMs = 360_000;
+  let nextDependencyFailureProbeAt = 0;
   const ready = await waitUntil(async () => {
     const authShellVisible = await page.getByTestId('login-screen').isVisible().catch(() => false)
       || await page.getByTestId('main-shell').isVisible().catch(() => false);
@@ -367,6 +368,26 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
         }
         return null;
       }
+    }
+    let blockingDependencyJob = null;
+    if (Date.now() >= nextDependencyFailureProbeAt) {
+      nextDependencyFailureProbeAt = Date.now() + 1_000;
+      blockingDependencyJob = selectLatestBlockingFirstRunDependencyJob(
+        await readLocalEnvironmentDependencyJobDiagnostics(page).catch(() => []),
+      );
+    }
+    if (blockingDependencyJob) {
+      return {
+        kind: 'failure',
+        testId: 'runtime-local-environment-dependency-job',
+        text: [
+          blockingDependencyJob.dependencyFamily,
+          blockingDependencyJob.dependencyId,
+          blockingDependencyJob.state,
+          blockingDependencyJob.reasonCode,
+          blockingDependencyJob.recoveryDisposition,
+        ].filter(Boolean).join('/').slice(0, 500),
+      };
     }
     const setupRetry = page.getByTestId('first-run-setup-retry');
     const setupRetryVisible = await setupRetry.isVisible().catch(() => false);
@@ -472,6 +493,31 @@ export async function captureReusedReadyFirstRun(page, productControlRecord, can
   };
 }
 
+export function selectLatestBlockingFirstRunDependencyJob(jobs) {
+  const latestByDependency = new Map();
+  for (const job of Array.isArray(jobs) ? jobs : []) {
+    const key = [
+      job?.environmentKey,
+      job?.dependencyFamily,
+      job?.dependencyId,
+      job?.consumerScope,
+    ].map((value) => String(value || '').trim()).join('|');
+    if (!key.replaceAll('|', '')) continue;
+    const previous = latestByDependency.get(key);
+    const updatedAt = Date.parse(String(job?.updatedAt || job?.createdAt || ''));
+    const previousUpdatedAt = Date.parse(String(previous?.updatedAt || previous?.createdAt || ''));
+    if (!previous || !Number.isFinite(previousUpdatedAt) || (Number.isFinite(updatedAt) && updatedAt >= previousUpdatedAt)) {
+      latestByDependency.set(key, job);
+    }
+  }
+  const blockingStates = new Set(['failed', 'cancelled', 'repair_required', 'unsupported']);
+  return [...latestByDependency.values()]
+    .filter((job) => blockingStates.has(String(job?.state || '').trim())
+      && String(job?.recoveryDisposition || '').trim() !== 'auto_retry_transient')
+    .sort((left, right) => Date.parse(String(right?.updatedAt || right?.createdAt || ''))
+      - Date.parse(String(left?.updatedAt || left?.createdAt || '')))[0] || null;
+}
+
 async function readLocalEnvironmentDependencyJobDiagnostics(page) {
   const response = await invokeDesktopRuntimeUnary(page, LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD);
   return (response?.jobs || []).map((job) => ({
@@ -488,6 +534,8 @@ async function readLocalEnvironmentDependencyJobDiagnostics(page) {
     reasonCode: String(job.reasonCode || ''),
     recoveryDisposition: String(job.recoveryDisposition || ''),
     consumerScope: String(job.consumerScope || ''),
+    createdAt: String(job.createdAt || ''),
+    updatedAt: String(job.updatedAt || ''),
   }));
 }
 

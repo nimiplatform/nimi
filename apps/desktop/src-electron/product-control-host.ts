@@ -37,6 +37,12 @@ const EVIDENCE_COMMANDS = [
 
 const COMMANDS = [...DIRECT_COMMANDS, ...EVIDENCE_COMMANDS] as const;
 
+// One First Run mint performs three bounded, real local executions after any
+// required cold engine activation. The Runtime budgets those executions at
+// 120s (text), 90s (STT), and 45s (TTS); the carrier deadline must bound the
+// complete operation instead of expiring during the first cold start.
+export const FIRST_RUN_LOCAL_AI_MINT_TIMEOUT_MS = 10 * 60_000;
+
 const METHOD = {
   collectDeviceProfile: '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile',
   getRecord: '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
@@ -353,7 +359,7 @@ class ElectronProductControlHost {
       hostProfile: input.hostProfile,
       recommendedCapabilities: input.recommendedCapabilities,
       submitSchedulingEvaluated: false,
-    }, 120_000));
+    }, FIRST_RUN_LOCAL_AI_MINT_TIMEOUT_MS));
     if (response.state !== 'local_ai_ready') {
       throw new Error(formatRuntimeReadinessFailure('first-run-execution-not-ready', response));
     }

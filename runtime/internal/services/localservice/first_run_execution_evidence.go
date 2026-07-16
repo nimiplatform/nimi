@@ -168,7 +168,7 @@ type firstRunExecutionMintRequest struct {
 // durable executionEvidenceRef only when every execution resolved to a local
 // route target (K-AIEXEC-007). It fails closed on the first non-local route,
 // failed execution, stale runtimeBaselineRef, or unsupported capability.
-func (s *Service) mintFirstRunExecutionEvidence(req firstRunExecutionMintRequest) (firstRunExecutionEvidenceRecord, string, string, string) {
+func (s *Service) mintFirstRunExecutionEvidence(ctx context.Context, req firstRunExecutionMintRequest) (firstRunExecutionEvidenceRecord, string, string, string) {
 	executor := s.firstRunLocalExecution()
 	if executor == nil {
 		return firstRunExecutionEvidenceRecord{}, firstRunExecutionStateBlocked, firstRunExecutionReasonExecutorMissing,
@@ -214,7 +214,7 @@ func (s *Service) mintFirstRunExecutionEvidence(req firstRunExecutionMintRequest
 		return firstRunExecutionEvidenceRecord{}, firstRunExecutionStateBlocked, firstRunExecutionReasonDataRootInvalid,
 			"dataRootRef does not match the verified runtimeBaselineRef"
 	}
-	if err := s.ensureFirstRunSpeechEngineReady(context.Background(), baseline); err != nil {
+	if err := s.ensureFirstRunSpeechEngineReady(ctx, baseline); err != nil {
 		return firstRunExecutionEvidenceRecord{}, firstRunExecutionStateBlocked, firstRunExecutionReasonExecutionFailed,
 			"first-run speech engine activation failed: " + err.Error()
 	}
@@ -251,7 +251,7 @@ func (s *Service) mintFirstRunExecutionEvidence(req firstRunExecutionMintRequest
 		// submit-specific Peek was evaluated; never substitute a scope
 		// aggregate judgement. Evaluated once for the first capability target.
 		if req.SubmitSchedulingEvaluated && schedulingJudgement == nil {
-			judgement, peekErr := executor.PeekFirstRunLocalBaseline(context.Background(), capability)
+			judgement, peekErr := executor.PeekFirstRunLocalBaseline(ctx, capability)
 			if peekErr != nil {
 				return firstRunExecutionEvidenceRecord{}, firstRunExecutionStateBlocked, firstRunExecutionReasonSchedulingFailed,
 					"submit-specific scheduling peek failed: " + peekErr.Error()
@@ -267,7 +267,7 @@ func (s *Service) mintFirstRunExecutionEvidence(req firstRunExecutionMintRequest
 
 		// (b) Execute through the admitted local path against the
 		// runtimeBaselineRef-bound model asset.
-		target, execErr := executor.ExecuteFirstRunLocalBaseline(context.Background(), binding.ScenarioType, assetID)
+		target, execErr := executor.ExecuteFirstRunLocalBaseline(ctx, binding.ScenarioType, assetID)
 		if execErr != nil {
 			return firstRunExecutionEvidenceRecord{}, firstRunExecutionStateBlocked, firstRunExecutionReasonExecutionFailed,
 				fmt.Sprintf("local baseline execution failed for capability %q: %s", capability, execErr.Error())

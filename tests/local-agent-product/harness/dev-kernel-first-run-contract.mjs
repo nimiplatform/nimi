@@ -99,6 +99,15 @@ export function validateFirstRunConnectivityObservation(observation) {
     || observation?.privacy?.storageAuthorityMaterialObserved !== false) {
     issues.push('renderer/network/storage authority material was observed');
   }
+  const consoleErrors = Array.isArray(observation?.console?.errors) ? observation.console.errors : [];
+  if (observation?.console?.unexpectedErrorCount !== 0
+    || observation?.console?.pageErrorCount !== 0
+    || observation?.console?.observerErrorCount !== 0
+    || consoleErrors.some((entry) => entry?.expected !== true
+      || entry?.phase !== 'runtime-interruption'
+      || entry?.classification !== 'expected-runtime-unavailable')) {
+    issues.push('First Run has an unclassified console, page, or observer error');
+  }
   const buildPostureValid = (['fresh', 'fresh-prepared'].includes(observation?.diagnosticBuildMode)
       && observation?.finalAcceptanceEvidence === true)
     || (observation?.diagnosticBuildMode === 'reuse' && observation?.finalAcceptanceEvidence === false);

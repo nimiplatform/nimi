@@ -25,13 +25,18 @@ type fakeFirstRunLocalExecutor struct {
 	peekErr error
 	// peekState is the scheduling state the Peek returns.
 	peekState string
+	// executeHook observes the exact RPC-derived context used for execution.
+	executeHook func(context.Context, runtimev1.ScenarioType, string) (FirstRunLocalExecutionTarget, error)
 }
 
 func (f *fakeFirstRunLocalExecutor) ExecuteFirstRunLocalBaseline(
-	_ context.Context,
+	ctx context.Context,
 	scenarioType runtimev1.ScenarioType,
 	modelID string,
 ) (FirstRunLocalExecutionTarget, error) {
+	if f.executeHook != nil {
+		return f.executeHook(ctx, scenarioType, modelID)
+	}
 	if err := f.errByScenario[scenarioType]; err != nil {
 		return FirstRunLocalExecutionTarget{}, err
 	}
@@ -52,6 +57,31 @@ func (f *fakeFirstRunLocalExecutor) ExecuteFirstRunLocalBaseline(
 		ModelResolved:    strings.TrimPrefix(modelID, "local/"),
 		TraceID:          "trace_" + scenarioType.String(),
 	}, nil
+}
+
+func TestFirstRunExecutionEvidencePropagatesCallerCancellation(t *testing.T) {
+	svc, runtimeDataRoot := newRuntimeBaselineTestService(t)
+	defer func() { svc.Close() }()
+	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
+	contextObserved := false
+	svc.SetFirstRunLocalExecutor(&fakeFirstRunLocalExecutor{
+		executeHook: func(ctx context.Context, _ runtimev1.ScenarioType, _ string) (FirstRunLocalExecutionTarget, error) {
+			contextObserved = true
+			return FirstRunLocalExecutionTarget{}, ctx.Err()
+		},
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(
+		ctx,
+		firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot),
+	)
+	if !contextObserved {
+		t.Fatal("first-run executor did not receive the caller context")
+	}
+	if state == firstRunExecutionStateReady || reason != firstRunExecutionReasonExecutionFailed {
+		t.Fatalf("cancelled execution did not fail closed: state=%q reason=%q", state, reason)
+	}
 }
 
 func (f *fakeFirstRunLocalExecutor) PeekFirstRunLocalBaseline(
@@ -111,7 +141,7 @@ func TestFirstRunExecutionEvidenceMintsMinimal(t *testing.T) {
 	svc.SetFirstRunLocalExecutor(&fakeFirstRunLocalExecutor{})
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
 
-	record, state, reason, detail := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	record, state, reason, detail := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state != firstRunExecutionStateReady {
 		t.Fatalf("mint state = %q reason=%q detail=%q, want local_ai_ready", state, reason, detail)
 	}
@@ -201,7 +231,7 @@ func TestFirstRunExecutionEvidenceMintsRecommended(t *testing.T) {
 	// binding so the mint succeeds.
 	req := firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot)
 	req.InstallLevel = runtimeBaselineInstallLevelRecommended
-	record, state, reason, detail := svc.mintFirstRunExecutionEvidence(req)
+	record, state, reason, detail := svc.mintFirstRunExecutionEvidence(context.Background(), req)
 	if state != firstRunExecutionStateReady {
 		t.Fatalf("recommended mint state = %q reason=%q detail=%q, want local_ai_ready", state, reason, detail)
 	}
@@ -223,7 +253,7 @@ func TestFirstRunExecutionEvidenceRecordsSubmitSpecificSchedulingJudgement(t *te
 
 	req := firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot)
 	req.SubmitSchedulingEvaluated = true
-	record, state, _, detail := svc.mintFirstRunExecutionEvidence(req)
+	record, state, _, detail := svc.mintFirstRunExecutionEvidence(context.Background(), req)
 	if state != firstRunExecutionStateReady {
 		t.Fatalf("mint state = %q detail=%q, want ready", state, detail)
 	}
@@ -250,7 +280,7 @@ func TestFirstRunExecutionEvidenceRejectsCloudRouteTarget(t *testing.T) {
 	})
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
 
-	record, state, reason, _ := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	record, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state == firstRunExecutionStateReady || record.ExecutionEvidenceRef != "" {
 		t.Fatal("minter accepted a cloud route target for a baseline capability")
 	}
@@ -273,7 +303,7 @@ func TestFirstRunExecutionEvidenceRejectsHybridRoute(t *testing.T) {
 	})
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
 
-	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state == firstRunExecutionStateReady {
 		t.Fatal("minter accepted a non-local (hybrid/cloud-first) route policy")
 	}
@@ -302,7 +332,7 @@ func TestFirstRunExecutionEvidenceRejectsForbiddenScenario(t *testing.T) {
 		req := firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot)
 		req.InstallLevel = runtimeBaselineInstallLevelRecommended
 		req.RecommendedCapabilities = []string{forbidden}
-		_, state, reason, _ := svc.mintFirstRunExecutionEvidence(req)
+		_, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), req)
 		if state == firstRunExecutionStateReady {
 			t.Fatalf("minter accepted forbidden capability %q", forbidden)
 		}
@@ -324,7 +354,7 @@ func TestFirstRunExecutionEvidenceRejectsConnectorAndAppPackProof(t *testing.T) 
 		req := firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot)
 		req.InstallLevel = runtimeBaselineInstallLevelRecommended
 		req.RecommendedCapabilities = []string{forbidden}
-		_, state, reason, _ := svc.mintFirstRunExecutionEvidence(req)
+		_, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), req)
 		if state == firstRunExecutionStateReady {
 			t.Fatalf("minter accepted connector/app-pack proof %q", forbidden)
 		}
@@ -344,23 +374,23 @@ func TestFirstRunExecutionEvidenceRejectsBadBaselineRef(t *testing.T) {
 
 	// missing runtimeBaselineRef
 	req := firstRunExecutionMintRequestFor("", runtimeDataRoot)
-	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonBaselineNotReady {
+	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonBaselineNotReady {
 		t.Fatalf("missing runtimeBaselineRef accepted: state=%q reason=%q", state, reason)
 	}
 	// string-only runtimeBaselineRef with no backing record
 	req = firstRunExecutionMintRequestFor("runtime_baseline_renderersupplied", runtimeDataRoot)
-	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonBaselineNotReady {
+	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonBaselineNotReady {
 		t.Fatalf("string-only runtimeBaselineRef accepted: state=%q reason=%q", state, reason)
 	}
 	// binding mismatch: divergent factory profile ref
 	req = firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot)
 	req.SelectedLocalFactoryAIProfileRef = "aiprofile/some-other-profile@9"
-	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonFactoryProfileInvalid {
+	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonFactoryProfileInvalid {
 		t.Fatalf("divergent factory profile accepted: state=%q reason=%q", state, reason)
 	}
 	// binding mismatch: divergent dataRootRef
 	req = firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot+"-divergent")
-	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonDataRootInvalid {
+	if _, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), req); state == firstRunExecutionStateReady || reason != firstRunExecutionReasonDataRootInvalid {
 		t.Fatalf("divergent dataRootRef accepted: state=%q reason=%q", state, reason)
 	}
 }
@@ -381,7 +411,7 @@ func TestFirstRunExecutionEvidenceRejectsFailedExecution(t *testing.T) {
 	})
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
 
-	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state == firstRunExecutionStateReady {
 		t.Fatal("minter recorded a ref for a non-executed capability")
 	}
@@ -402,7 +432,7 @@ func TestFirstRunExecutionEvidenceRejectsEmptyRouteTargetEvidence(t *testing.T) 
 	})
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
 
-	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state == firstRunExecutionStateReady {
 		t.Fatal("minter accepted a capability with no local route target evidence")
 	}
@@ -418,7 +448,7 @@ func TestFirstRunExecutionEvidenceRejectsMissingExecutor(t *testing.T) {
 	defer func() { svc.Close() }()
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
 
-	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state == firstRunExecutionStateReady || reason != firstRunExecutionReasonExecutorMissing {
 		t.Fatalf("mint without executor accepted: state=%q reason=%q", state, reason)
 	}
@@ -434,7 +464,7 @@ func TestFirstRunExecutionEvidenceSchedulingPeekFailureFailsClosed(t *testing.T)
 
 	req := firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot)
 	req.SubmitSchedulingEvaluated = true
-	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(req)
+	_, state, reason, _ := svc.mintFirstRunExecutionEvidence(context.Background(), req)
 	if state == firstRunExecutionStateReady || reason != firstRunExecutionReasonSchedulingFailed {
 		t.Fatalf("scheduling peek failure not failed closed: state=%q reason=%q", state, reason)
 	}
@@ -467,7 +497,7 @@ func TestFirstRunExecutionEvidenceResolveRejectsBindingMismatch(t *testing.T) {
 	defer func() { svc.Close() }()
 	svc.SetFirstRunLocalExecutor(&fakeFirstRunLocalExecutor{})
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
-	record, state, _, _ := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	record, state, _, _ := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state != firstRunExecutionStateReady {
 		t.Fatal("setup mint failed")
 	}
@@ -498,7 +528,7 @@ func TestFirstRunExecutionEvidenceResolveRejectsIncompleteAndCloudRecorded(t *te
 	defer func() { svc.Close() }()
 	svc.SetFirstRunLocalExecutor(&fakeFirstRunLocalExecutor{})
 	baselineRef := mintReadyBaselineRef(t, svc, runtimeDataRoot)
-	record, state, _, _ := svc.mintFirstRunExecutionEvidence(firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
+	record, state, _, _ := svc.mintFirstRunExecutionEvidence(context.Background(), firstRunExecutionMintRequestFor(baselineRef, runtimeDataRoot))
 	if state != firstRunExecutionStateReady {
 		t.Fatal("setup mint failed")
 	}

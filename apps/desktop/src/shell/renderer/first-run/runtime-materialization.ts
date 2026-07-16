@@ -64,6 +64,7 @@ export function retryableInterruptedNimiFirstRunMaterializationJobsForProductSta
     .filter((job): job is NimiRuntimeLocalEnvironmentDependencyJob =>
       job !== null
       && job.retryable
+      && job.recoveryDisposition === 'auto_retry_transient'
       && (
         isNimiRuntimeLocalEnvironmentDependencyJobFailedState(job.state)
         || isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(job.state)

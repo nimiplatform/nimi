@@ -200,11 +200,15 @@ export async function connectCdp(port, label, timeoutMs = 240_000, observer = nu
   }, { timeoutMs: 30_000, intervalMs: 25, label: `${label} page` });
 }
 
-export function createEarlyCdpObserver(aggregate) {
+export function createEarlyCdpObserver(aggregate, {
+  initialPhase = 'unclassified',
+  classifyConsoleError = undefined,
+} = {}) {
   const contextRecords = new WeakMap();
   const pageRecords = new WeakMap();
   const pending = new Set();
   const operationTimeoutMs = 10_000;
+  let currentPhase = initialPhase;
 
   const track = (promise, record, operation) => {
     let timer;
@@ -266,12 +270,29 @@ export function createEarlyCdpObserver(aggregate) {
     page.on('console', (message) => {
       if (message.type() !== 'error') return;
       const text = message.text();
-      record.consoleErrors.push({ sha256: sha256(text), bytes: Buffer.byteLength(text) });
+      const classification = typeof classifyConsoleError === 'function'
+        ? classifyConsoleError({ phase: currentPhase, text, kind: 'console' })
+        : null;
+      record.consoleErrors.push({
+        sha256: sha256(text),
+        bytes: Buffer.byteLength(text),
+        phase: currentPhase,
+        expected: classification?.expected === true,
+        classification: boundedDiagnosticCode(classification?.code) || 'unclassified-console-error',
+        diagnostic: sanitizeDiagnosticText(text),
+      });
       if (SECRET_TEXT.test(text)) record.secretTextObserved = true;
     });
     page.on('pageerror', (error) => {
       const text = error instanceof Error ? error.message : String(error);
-      record.pageErrors.push({ sha256: sha256(text), bytes: Buffer.byteLength(text) });
+      record.pageErrors.push({
+        sha256: sha256(text),
+        bytes: Buffer.byteLength(text),
+        phase: currentPhase,
+        expected: false,
+        classification: 'unhandled-page-error',
+        diagnostic: sanitizeDiagnosticText(text),
+      });
       if (SECRET_TEXT.test(text)) record.secretTextObserved = true;
     });
     page.on('websocket', (socket) => {
@@ -370,10 +391,30 @@ export function createEarlyCdpObserver(aggregate) {
   return {
     attachContext,
     attachPage,
+    setPhase(phase) {
+      const next = String(phase || '').trim();
+      if (!/^[a-z][a-z0-9-]{0,79}$/u.test(next)) throw new Error(`invalid CDP observer phase ${next || '<empty>'}`);
+      currentPhase = next;
+    },
     async flush() {
       while (pending.size > 0) await Promise.allSettled([...pending]);
     },
   };
+}
+
+function boundedDiagnosticCode(value) {
+  const code = String(value || '').trim();
+  return /^[a-z][a-z0-9-]{0,79}$/u.test(code) ? code : '';
+}
+
+function sanitizeDiagnosticText(value) {
+  return String(value || '')
+    .replace(/(?:bearer\s+[a-z0-9._~+/=-]+|(?:access|refresh|id)[_-]?token\s*[:=]|eyj[a-z0-9_-]{10,}\.[a-z0-9_-]{10,}\.)/giu, '[REDACTED]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, '[REDACTED]')
+    .replace(/[A-Z]:\\Users\\[^\\\s]+/giu, '[LOCAL_USER_PATH]')
+    .replace(/(https?:\/\/[^\s?#]+)[?#][^\s]*/giu, '$1?[REDACTED]')
+    .replace(/\b(?:password|secret|credential)\s*[:=]\s*[^\s]+/giu, '[REDACTED]')
+    .slice(0, 1_000);
 }
 
 export async function waitForTestId(page, testId, timeout = 60_000) {

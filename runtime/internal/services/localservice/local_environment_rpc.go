@@ -192,8 +192,8 @@ func runtimeBaselineReadinessRecordToProto(record runtimeBaselineReadinessRecord
 // capability through the admitted Runtime local execution path and mints a
 // durable executionEvidenceRef only when every execution resolved to a local
 // route target (K-AIEXEC-007).
-func (s *Service) MintFirstRunExecutionEvidence(_ context.Context, req *runtimev1.MintFirstRunExecutionEvidenceRequest) (*runtimev1.MintFirstRunExecutionEvidenceResponse, error) {
-	record, state, reasonCode, detail := s.mintFirstRunExecutionEvidence(firstRunExecutionMintRequest{
+func (s *Service) MintFirstRunExecutionEvidence(ctx context.Context, req *runtimev1.MintFirstRunExecutionEvidenceRequest) (*runtimev1.MintFirstRunExecutionEvidenceResponse, error) {
+	record, state, reasonCode, detail := s.mintFirstRunExecutionEvidence(ctx, firstRunExecutionMintRequest{
 		RuntimeBaselineRef:               req.GetRuntimeBaselineRef(),
 		SelectedLocalFactoryAIProfileRef: req.GetSelectedLocalFactoryAiProfileRef(),
 		InstallLevel:                     req.GetInstallLevel(),

@@ -471,7 +471,7 @@ func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 	upsertVerifiedSpeechPackageSetForTest(t, service, "speech.qwen3-asr.python", "local-speech-qwen3-asr.package-set", asrRoot, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", engine.SpeechQwen3ASRDriverPath)
 	executionRequest := firstRunExecutionMintRequestFor(baselineRecord.RuntimeBaselineRef, dataRoot)
 	executionRequest.HostProfile = deviceProfile
-	executionRecord, executionState, executionReason, executionDetail := service.mintFirstRunExecutionEvidence(executionRequest)
+	executionRecord, executionState, executionReason, executionDetail := service.mintFirstRunExecutionEvidence(context.Background(), executionRequest)
 	if executionState != firstRunExecutionStateReady {
 		t.Fatalf("execution state=%q reason=%q detail=%q", executionState, executionReason, executionDetail)
 	}

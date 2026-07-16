@@ -7,6 +7,7 @@ import { validateFirstRunConnectivityObservation } from './dev-kernel-first-run-
 import {
   classifyFirstRunStorageRecoverySnapshot,
   classifyFirstRunTerminalSnapshot,
+  selectLatestBlockingFirstRunDependencyJob,
 } from './dev-kernel-cross-app-driver.mjs';
 
 function firstRunDriverSource() {
@@ -96,6 +97,7 @@ function validObservation() {
     },
     accessibility: { ok: true },
     privacy: { authorizationHeaderObserved: false, secretTextObserved: false, storageAuthorityMaterialObserved: false },
+    console: { errors: [], expectedErrorCount: 0, unexpectedErrorCount: 0, pageErrorCount: 0, observerErrorCount: 0 },
     diagnosticBuildMode: 'reuse', finalAcceptanceEvidence: false,
   };
 }
@@ -111,6 +113,23 @@ test('First Run connectivity contract admits fresh acceptance and diagnostic-onl
   assert.ok(validateFirstRunConnectivityObservation({
     ...validObservation(), diagnosticBuildMode: 'reuse', finalAcceptanceEvidence: true,
   }).some((issue) => issue.includes('diagnostic-only reuse')));
+});
+
+test('First Run connectivity contract accepts only phase-bound typed Runtime interruption console errors', () => {
+  const expected = validObservation();
+  expected.console = {
+    errors: [{ expected: true, phase: 'runtime-interruption', classification: 'expected-runtime-unavailable' }],
+    expectedErrorCount: 1,
+    unexpectedErrorCount: 0,
+    pageErrorCount: 0,
+    observerErrorCount: 0,
+  };
+  assert.deepEqual(validateFirstRunConnectivityObservation(expected), []);
+  const unexpected = structuredClone(expected);
+  unexpected.console.errors[0].phase = 'ready-audit';
+  unexpected.console.errors[0].expected = false;
+  unexpected.console.unexpectedErrorCount = 1;
+  assert.match(validateFirstRunConnectivityObservation(unexpected).join('; '), /unclassified console/iu);
 });
 
 test('First Run driver imports its host dependencies explicitly', () => {
@@ -234,6 +253,34 @@ test('First Run terminal classifier admits auth shell and keeps pending setup no
     explicitFailures: [],
     setupRetryVisible: false,
   }), false);
+});
+
+test('First Run exits on the latest manual owner failure but permits a newer transient recovery', () => {
+  const base = {
+    environmentKey: 'python.package-set|speech',
+    dependencyFamily: 'python.package-set',
+    dependencyId: 'speech.package-set',
+    consumerScope: 'speech',
+  };
+  const failed = {
+    ...base,
+    jobId: 'failed',
+    state: 'failed',
+    reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED',
+    recoveryDisposition: 'manual_retry',
+    updatedAt: '2026-07-16T05:00:00.000Z',
+  };
+  assert.equal(selectLatestBlockingFirstRunDependencyJob([failed])?.jobId, 'failed');
+  assert.equal(selectLatestBlockingFirstRunDependencyJob([
+    failed,
+    {
+      ...base,
+      jobId: 'recovering',
+      state: 'installing',
+      recoveryDisposition: 'auto_retry_transient',
+      updatedAt: '2026-07-16T05:00:01.000Z',
+    },
+  ]), null);
 });
 
 test('First Run restart recovery advances only after a fresh Storage retry is accepted', () => {
