@@ -70,6 +70,7 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionPosture']]: 'local_app_permission_posture',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest']]: 'local_app_permission_request',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes']]: 'local_app_artifacts_read_runtime_bytes',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentInventory']]: 'local_app_agent_inventory',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation']]: 'local_app_agent_open_conversation',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn']]: 'local_app_agent_send_turn',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn']]: 'local_app_agent_subscribe_turn',

@@ -5,11 +5,12 @@ use nimi_shell_protected_local::MacOsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentOpenConversationRequest,
-    LocalAppAgentProjection, LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest,
-    LocalAppArtifactBytes, LocalAppArtifactReadRequest, LocalAppOperationError,
-    LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
-    LocalAppReasonCode, LocalAppSessionStatus, NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
+    LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
+    LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
+    LocalAppPermissionRequest, LocalAppReasonCode, LocalAppSessionStatus, NimiLocalAppCarrier,
+    NimiLocalAppSession,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -99,6 +100,20 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<LocalAppAgentProjection, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.agent_open_conversation(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_inventory(
+        &self,
+        request: LocalAppAgentInventoryRequest,
+    ) -> Result<LocalAppAgentProjection, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_inventory(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, error).await;

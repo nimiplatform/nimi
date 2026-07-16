@@ -197,6 +197,7 @@ describe('standard shell capabilities', () => {
       'local-app.permissionPosture',
       'local-app.permissionRequest',
       'local-app.artifactsReadRuntimeBytes',
+      'local-app.agentInventory',
       'local-app.agentOpenConversation',
       'local-app.agentSendTurn',
       'local-app.agentSubscribeTurn',

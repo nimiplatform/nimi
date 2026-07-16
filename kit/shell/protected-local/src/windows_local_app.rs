@@ -16,12 +16,12 @@ use crate::grpc_status::local_app_error_from_status;
 use crate::windows_peer_trust::VerifiedRuntimePeer;
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentOpenConversationRequest,
-    LocalAppAgentProjection, LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest,
-    LocalAppArtifactBytes, LocalAppArtifactReadRequest, LocalAppOperationError,
-    LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
-    LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus, NimiLocalAppCarrier,
-    NimiLocalAppSession,
+    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
+    LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
+    LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
+    LocalAppPermissionRequest, LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
+    NimiLocalAppCarrier, NimiLocalAppSession,
 };
 use agent::TurnStreams;
 
@@ -114,6 +114,22 @@ impl NimiLocalAppSession for WindowsLocalAppSession {
         >,
     > {
         Box::pin(agent::open_local_app_conversation(
+            self.channel.clone(),
+            request,
+        ))
+    }
+
+    fn agent_inventory(
+        &self,
+        request: LocalAppAgentInventoryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(agent::list_local_app_agent_inventory(
             self.channel.clone(),
             request,
         ))

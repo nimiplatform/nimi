@@ -1,9 +1,10 @@
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine as _;
 use nimi_shell_protected_local::{
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentOpenConversationRequest,
-    LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest, LocalAppArtifactReadRequest,
-    LocalAppOperationError, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
+    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
+    LocalAppAgentOpenConversationRequest, LocalAppAgentSendTurnRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactReadRequest, LocalAppOperationError,
+    LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -187,6 +188,13 @@ pub async fn agent_open_conversation_for_host(
         )?,
     };
     host.agent_open_conversation(request)
+        .await
+        .map(|projection| projection.value)
+        .map_err(map_local_app_error)
+}
+
+pub async fn agent_inventory_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<Value, String> {
+    host.agent_inventory(LocalAppAgentInventoryRequest)
         .await
         .map(|projection| projection.value)
         .map_err(map_local_app_error)

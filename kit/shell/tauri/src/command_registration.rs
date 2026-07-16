@@ -44,6 +44,11 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_agent_inventory",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_inventory",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "local_app_agent_open_conversation",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_open_conversation",
         boundary: ShellCommandBoundary::LocalApp,
@@ -424,6 +429,7 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_permission_posture,
             $crate::capabilities::local_app::local_app_permission_request,
             $crate::capabilities::local_app::local_app_artifacts_read_runtime_bytes,
+            $crate::capabilities::local_app::local_app_agent_inventory,
             $crate::capabilities::local_app::local_app_agent_open_conversation,
             $crate::capabilities::local_app::local_app_agent_send_turn,
             $crate::capabilities::local_app::local_app_agent_subscribe_turn,

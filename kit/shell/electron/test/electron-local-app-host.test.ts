@@ -6,7 +6,7 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
-  it('forwards only the eight typed operation families', async () => {
+  it('forwards only the nine typed operation families', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
 
@@ -17,6 +17,8 @@ describe('Electron protected local-app host', () => {
       .resolves.toMatchObject({ state: 'pending' });
     await expect(host.artifactsReadRuntimeBytes({ artifactId: 'artifact-a' }))
       .resolves.toMatchObject({ sizeBytes: 8, mimeType: 'text/plain' });
+    await expect(host.agentInventory())
+      .resolves.toMatchObject({ ownerUserId: 'user-a', count: 1 });
     await expect(host.agentOpenConversation({ agentId: 'agent-a', requestedAnchorDisposition: 'create-or-resume' }))
       .resolves.toMatchObject({ conversationAnchorId: 'anchor-a' });
     await expect(host.agentSendTurn({ agentId: 'agent-a', conversationAnchorId: 'anchor-a', clientTurnId: 'turn-a', userText: '你好' }))
@@ -31,6 +33,7 @@ describe('Electron protected local-app host', () => {
       'localAppPermissionPosture',
       'localAppPermissionRequest',
       'localAppArtifactsReadRuntimeBytes',
+      'localAppAgentInventory',
       'localAppAgentOpenConversation',
       'localAppAgentSendTurn',
       'localAppAgentSubscribeTurn',
@@ -110,6 +113,17 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       mimeType: 'text/plain',
       sizeBytes: 8,
       mimeInferred: false,
+    }),
+    localAppAgentInventory: record('localAppAgentInventory', {
+      ownerUserId: 'user-a',
+      count: 1,
+      localAgents: [{
+        localAgentRef: 'agent-a',
+        displayName: 'Agent A',
+        ownerUserId: 'user-a',
+        runtimeSourceRef: 'source-a',
+        sourceReady: true,
+      }],
     }),
     localAppAgentOpenConversation: record('localAppAgentOpenConversation', { conversationAnchorId: 'anchor-a' }),
     localAppAgentSendTurn: record('localAppAgentSendTurn', { accepted: true }),

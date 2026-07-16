@@ -57,6 +57,7 @@ function localAppHost(turns: unknown[]) {
     permissionPosture: async () => ({ state: 'no-grant' }),
     permissionRequest: async () => ({ state: 'pending' }),
     artifactsReadRuntimeBytes: async () => ({ bytes: new Uint8Array(), mimeType: 'application/octet-stream', sizeBytes: 0, mimeInferred: false }),
+    agentInventory: async () => ({ ownerUserId: 'user-a', count: 0, localAgents: [] }),
     agentOpenConversation: async () => ({ conversationAnchorId: 'anchor-a' }),
     agentSendTurn: async (input: unknown) => { turns.push(input); return { accepted: true }; },
     agentSubscribeTurn: async () => ({ events: [], cursor: '' }),

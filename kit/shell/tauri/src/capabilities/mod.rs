@@ -617,6 +617,13 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_agent_inventory(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_inventory_for_host(host.inner()).await
+    }
+
+    #[tauri::command]
     pub async fn local_app_agent_open_conversation(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,

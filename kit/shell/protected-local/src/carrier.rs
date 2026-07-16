@@ -177,6 +177,9 @@ pub struct LocalAppArtifactBytes {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentInventoryRequest;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentOpenConversationRequest {
     pub agent_id: String,
     pub requested_anchor_disposition: String,
@@ -446,6 +449,17 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn agent_open_conversation(
         &self,
         request: LocalAppAgentOpenConversationRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn agent_inventory(
+        &self,
+        request: LocalAppAgentInventoryRequest,
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>

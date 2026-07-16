@@ -20,6 +20,7 @@ const COMMAND_METHODS = new Map<string, keyof NimiElectronLocalAppHost>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionPosture'], 'permissionPosture'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes'], 'artifactsReadRuntimeBytes'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentInventory'], 'agentInventory'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation'], 'agentOpenConversation'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn'], 'agentSendTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn'], 'agentSubscribeTurn'],
@@ -42,6 +43,7 @@ export async function dispatchElectronLocalAppCommand(input: {
   if (!input.host) throw carrierRequired(input.command);
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
+    if (method === 'agentInventory') return await input.host.agentInventory();
     if (method === 'artifactsReadRuntimeBytes') {
       return projectArtifact(await input.host.artifactsReadRuntimeBytes(payload));
     }
@@ -65,6 +67,7 @@ function validatePayload(
 ): NimiElectronLocalAppRecord {
   switch (method) {
     case 'sessionStatus':
+    case 'agentInventory':
       assertExactKeys(payload, [], command);
       return {};
     case 'permissionPosture':

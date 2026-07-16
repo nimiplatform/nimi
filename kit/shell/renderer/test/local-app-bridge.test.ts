@@ -37,6 +37,7 @@ describe('renderer local-app standard-shell surface', () => {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
         if (command.endsWith('sessionStatus')) return { state: 'zero-grant', reasonCode: 'LOCAL_APP_GRANT_REQUIRED', retryable: false };
+        if (command.endsWith('inventory')) return { ownerUserId: 'user-a', count: 0, localAgents: [] };
         return { accepted: true };
       },
       listen: () => () => {},
@@ -45,11 +46,13 @@ describe('renderer local-app standard-shell surface', () => {
     await surface.session.status();
     await surface.permission.posture({ operationId: 'runtime-agent.send-turn', resourceRef: 'agent-a' });
     await surface.permission.request({ operationId: 'runtime-agent.send-turn', resourceRef: 'agent-a', purpose: 'Continue the conversation' });
+    await surface.agent.inventory();
     await surface.agent.sendTurn({ agentId: 'agent-a', conversationAnchorId: 'anchor-a', clientTurnId: 'turn-a', userText: '你好' });
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.sessionStatus', payload: {} },
       { command: 'nimi.shell.localApp.permissionPosture', payload: { payload: { operationId: 'runtime-agent.send-turn', resourceRef: 'agent-a' } } },
       { command: 'nimi.shell.localApp.permissionRequest', payload: { payload: { operationId: 'runtime-agent.send-turn', resourceRef: 'agent-a', purpose: 'Continue the conversation' } } },
+      { command: 'nimi.shell.localApp.agent.inventory', payload: { payload: {} } },
       { command: 'nimi.shell.localApp.agent.sendTurn', payload: { payload: { agentId: 'agent-a', conversationAnchorId: 'anchor-a', clientTurnId: 'turn-a', userText: '你好' } } },
     ]);
   });

@@ -43,14 +43,14 @@ pub use adapters::{
     WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
 pub use carrier::{
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentOpenConversationRequest,
-    LocalAppAgentProjection, LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest,
-    LocalAppArtifactBytes, LocalAppArtifactReadRequest, LocalAppGrantControlDecisionRequest,
-    LocalAppGrantControlPending, LocalAppGrantControlProjection, LocalAppGrantControlState,
-    LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
-    LocalAppPermissionRequest, LocalAppPermissionState, LocalAppReasonCode, LocalAppSessionState,
-    LocalAppSessionStatus, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
-    NimiProtectedLocalHostCarrier,
+    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
+    LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
+    LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
+    LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
+    LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
+    LocalAppPermissionState, LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
+    NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

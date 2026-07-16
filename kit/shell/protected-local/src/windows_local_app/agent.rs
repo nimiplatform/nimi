@@ -9,14 +9,15 @@ use tonic::Streaming;
 use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::{
-    AppMessageEvent, GetPublicChatSessionSnapshotRequest, OpenConversationAnchorRequest,
-    SendAppMessageRequest, SubscribeAppMessagesRequest,
+    AppMessageEvent, GetPublicChatSessionSnapshotRequest, ListLocalAppAgentInventoryRequest,
+    ListLocalAppAgentInventoryResponse, OpenConversationAnchorRequest, SendAppMessageRequest,
+    SubscribeAppMessagesRequest,
 };
 use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
 use crate::{
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentOpenConversationRequest,
-    LocalAppAgentProjection, LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest,
-    LocalAppOperationError, LocalAppReasonCode,
+    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
+    LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppOperationError, LocalAppReasonCode,
 };
 
 use super::projection::{
@@ -27,6 +28,55 @@ use super::{invalid_payload, require_text, untrusted};
 
 const RUNTIME_AGENT_TARGET: &str = "runtime.agent";
 const RUNTIME_AGENT_TURN_REQUEST: &str = "runtime.agent.turn.request";
+
+pub(super) async fn list_local_app_agent_inventory(
+    channel: Channel,
+    _request: LocalAppAgentInventoryRequest,
+) -> Result<LocalAppAgentProjection, LocalAppOperationError> {
+    let response = RuntimeAgentServiceClient::new(channel)
+        .list_local_app_agent_inventory(ListLocalAppAgentInventoryRequest {})
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_local_app_agent_inventory(response)
+}
+
+fn project_local_app_agent_inventory(
+    response: ListLocalAppAgentInventoryResponse,
+) -> Result<LocalAppAgentProjection, LocalAppOperationError> {
+    require_text(&response.owner_user_id)?;
+    if response.count as usize != response.local_agents.len() || response.local_agents.len() > 200 {
+        return Err(untrusted());
+    }
+    let mut agents = Vec::with_capacity(response.local_agents.len());
+    for item in response.local_agents {
+        for value in [
+            item.local_agent_ref.as_str(),
+            item.display_name.as_str(),
+            item.owner_user_id.as_str(),
+            item.runtime_source_ref.as_str(),
+        ] {
+            require_text(value)?;
+        }
+        if item.owner_user_id != response.owner_user_id {
+            return Err(untrusted());
+        }
+        agents.push(json!({
+            "localAgentRef": item.local_agent_ref,
+            "displayName": item.display_name,
+            "ownerUserId": item.owner_user_id,
+            "runtimeSourceRef": item.runtime_source_ref,
+            "sourceReady": item.source_ready,
+        }));
+    }
+    let value = json!({
+        "ownerUserId": response.owner_user_id,
+        "count": response.count,
+        "localAgents": agents,
+    });
+    validate_safe_projection(&value)?;
+    Ok(LocalAppAgentProjection { value })
+}
 
 pub(super) struct TurnStreamState {
     stream: Streaming<AppMessageEvent>,

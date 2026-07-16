@@ -21693,6 +21693,30 @@ pub struct ListAgentsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentInventoryItem {
+    #[prost(string, tag = "1")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub runtime_source_ref: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub source_ready: bool,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppAgentInventoryRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppAgentInventoryResponse {
+    #[prost(string, tag = "1")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub count: u32,
+    #[prost(message, repeated, tag = "3")]
+    pub local_agents: ::prost::alloc::vec::Vec<LocalAppAgentInventoryItem>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAgentStateRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
@@ -23860,6 +23884,35 @@ pub mod runtime_agent_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAgentService", "ListAgents"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_agent_inventory(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAppAgentInventoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppAgentInventoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListLocalAppAgentInventory",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }

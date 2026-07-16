@@ -90,6 +90,7 @@ export type NimiLocalAppStandardShellSurface = {
     readonly readRuntimeBytes: (artifactId: string) => Promise<NimiLocalAppArtifactBytes>;
   };
   readonly agent: {
+    readonly inventory: () => Promise<JsonObject>;
     readonly openConversation: (input: NimiLocalAppAgentOpenConversationInput) => Promise<JsonObject>;
     readonly sendTurn: (input: NimiLocalAppAgentSendTurnInput) => Promise<JsonObject>;
     /** Pulls exactly one next correlated event from the native Runtime stream. */
@@ -107,6 +108,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     },
     artifacts: { readRuntimeBytes: readNimiLocalAppRuntimeArtifactBytes },
     agent: {
+      inventory: getNimiLocalAppAgentInventory,
       openConversation: openNimiLocalAppAgentConversation,
       sendTurn: sendNimiLocalAppAgentTurn,
       subscribeTurn: subscribeNimiLocalAppAgentTurn,
@@ -148,6 +150,11 @@ export function openNimiLocalAppAgentConversation(
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation'];
   return invokeLocalAppRecord(command, identifiers(input, ['agentId', 'requestedAnchorDisposition'], command));
+}
+
+export function getNimiLocalAppAgentInventory(): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentInventory'];
+  return invokeLocalAppRecord(command, {});
 }
 
 export function sendNimiLocalAppAgentTurn(input: NimiLocalAppAgentSendTurnInput): Promise<JsonObject> {

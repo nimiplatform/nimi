@@ -10,6 +10,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.permissionPosture',
   'local-app.permissionRequest',
   'local-app.artifactsReadRuntimeBytes',
+  'local-app.agentInventory',
   'local-app.agentOpenConversation',
   'local-app.agentSendTurn',
   'local-app.agentSubscribeTurn',
@@ -17,7 +18,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
 ] as const;
 
 describe('local-app public capability behavior', () => {
-  it('projects the exact final eight-operation allowlist and command set', () => {
+  it('projects the exact final nine-operation allowlist and command set', () => {
     const set = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (entry) => entry.setId === 'local-app-standard-shell-v1',
     );

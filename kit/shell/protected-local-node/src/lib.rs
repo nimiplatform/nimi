@@ -7,9 +7,10 @@ use nimi_shell_protected_local::{
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlMethod,
     DesktopProductControlRequest, FixedRuntimeServiceControl,
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentOpenConversationRequest,
-    LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes,
-    LocalAppArtifactReadRequest, LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
+    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
+    LocalAppAgentOpenConversationRequest, LocalAppAgentSendTurnRequest,
+    LocalAppAgentSubscribeTurnRequest, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
+    LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
     LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
     LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
     LocalAppReasonCode, LocalAppSessionStatus, LocalDevelopmentAuthorization,
@@ -646,6 +647,17 @@ pub async fn local_app_agent_open_conversation(
                 agent_id: input.agent_id,
                 requested_anchor_disposition: input.requested_anchor_disposition,
             })
+            .await
+            .map(|projection| projection.value)
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentInventory")]
+pub async fn local_app_agent_inventory() -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_inventory(LocalAppAgentInventoryRequest)
             .await
             .map(|projection| projection.value)
     })

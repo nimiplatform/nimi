@@ -364,12 +364,13 @@ function assertStandardShellCapabilityCatalog() {
       'local-app.permissionPosture',
       'local-app.permissionRequest',
       'local-app.artifactsReadRuntimeBytes',
+      'local-app.agentInventory',
       'local-app.agentOpenConversation',
       'local-app.agentSendTurn',
       'local-app.agentSubscribeTurn',
       'local-app.agentGetConversationSnapshot',
     ]),
-    'standard-shell-capabilities.yaml: local-app capability set must expose the exact final eight-operation allowlist',
+    'standard-shell-capabilities.yaml: local-app capability set must expose the exact final nine-operation allowlist',
   );
   expect(localAppSet?.planned_operations_disposition === 'deny_until_separate_operation_admission', 'standard-shell-capabilities.yaml: every other planned local-app operation must remain deny-only');
   for (const field of ['planned_operations', 'forbidden_operations', 'negative_tests']) {

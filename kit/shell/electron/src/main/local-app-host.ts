@@ -80,6 +80,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppPermissionPosture: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppArtifactsReadRuntimeBytes: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentInventory: () => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentOpenConversation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentSubscribeTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -91,6 +92,7 @@ export type NimiElectronLocalAppHost = {
   readonly permissionPosture: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly artifactsReadRuntimeBytes: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppArtifactBytes>;
+  readonly agentInventory: () => Promise<NimiElectronLocalAppRecord>;
   readonly agentOpenConversation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentSubscribeTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -127,6 +129,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   async artifactsReadRuntimeBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppArtifactBytes> {
     const value = await invoke(() => this.binding.localAppArtifactsReadRuntimeBytes(input));
     return validateArtifactBytes(value);
+  }
+
+  agentInventory(): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentInventory());
   }
 
   agentOpenConversation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -168,6 +174,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   artifactsReadRuntimeBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppArtifactBytes> {
     return this.resolve().artifactsReadRuntimeBytes(input);
+  }
+
+  agentInventory(): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentInventory();
   }
 
   agentOpenConversation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
