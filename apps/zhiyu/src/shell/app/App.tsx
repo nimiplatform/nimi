@@ -83,16 +83,11 @@ import { requestZhiyuDesktopOpenSelectPartner } from '../desktop-open/desktop-op
 import { probeZhiyuRuntimeStatus } from '../runtime/runtime-status';
 import { loadZhiyuSourceContextProjection } from './source-context-loader';
 import { ZhiyuLocalDevelopmentJourney } from '../local-development/ZhiyuLocalDevelopmentJourney';
-import type { ZhiyuSelectedLocalDevelopmentTarget } from './evidence-window';
 
 export function App() {
   const localDevelopment = window.__nimiZhiyuLocalDevelopment;
   if (localDevelopment?.agentId) {
-    const selectedTarget: ZhiyuSelectedLocalDevelopmentTarget = {
-      ...localDevelopment,
-      agentId: localDevelopment.agentId,
-    };
-    return <ZhiyuLocalDevelopmentJourney target={selectedTarget} />;
+    return <ZhiyuLocalDevelopmentJourney target={{ ...localDevelopment, agentId: localDevelopment.agentId }} />;
   }
   return <ZhiyuBundledApp />;
 }
