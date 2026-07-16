@@ -1,9 +1,11 @@
+mod authority_summary;
 mod domain;
 mod http;
 mod plan;
 mod run_context;
 mod supervisor;
 
+use self::authority_summary::write_authority_summary;
 use self::domain::{
     append_log_locked, developer_mode_projection, evaluation_matches_plan,
     initial_authority_retryable, initial_status, path_text, project_authorization,
@@ -40,6 +42,12 @@ use tokio::{
 pub(crate) const APPROVAL_EVENT: &str = "local-development://approval-requested";
 const PRESENCE_RELATIVE_PATH: &[&str] =
     &["run", "desktop", "local-development", "presence.v1.json"];
+const AUTHORITY_SUMMARY_RELATIVE_PATH: &[&str] = &[
+    "run",
+    "desktop",
+    "local-development",
+    "authority-summary.v1.json",
+];
 const PRESENCE_HEARTBEAT_INTERVAL_MS: u64 = 3_000;
 const INITIAL_AUTHORITY_RETRY_INTERVAL: Duration = Duration::from_millis(750);
 const MAX_RECENT_FAILURES: usize = 20;
@@ -64,6 +72,7 @@ pub(crate) struct DesktopLocalDevelopmentRuntime {
 struct RuntimeInner {
     app: AppHandle,
     descriptor_path: PathBuf,
+    authority_summary_path: PathBuf,
     runs: RwLock<HashMap<String, Arc<RunContext>>>,
     recent_failures: RwLock<Vec<LocalDevelopmentRunStatus>>,
     pending: RwLock<HashMap<String, PendingApproval>>,
@@ -86,6 +95,9 @@ impl DesktopLocalDevelopmentRuntime {
         let nimi_dir = crate::desktop_paths::resolve_nimi_dir()?;
         let descriptor_path = PRESENCE_RELATIVE_PATH
             .iter()
+            .fold(nimi_dir.clone(), |path, segment| path.join(segment));
+        let authority_summary_path = AUTHORITY_SUMMARY_RELATIVE_PATH
+            .iter()
             .fold(nimi_dir, |path, segment| path.join(segment));
         let listener = tauri::async_runtime::block_on(TcpListener::bind("127.0.0.1:0"))
             .map_err(|error| format!("local development bridge bind failed: {error}"))?;
@@ -100,6 +112,7 @@ impl DesktopLocalDevelopmentRuntime {
             inner: Arc::new(RuntimeInner {
                 app,
                 descriptor_path: descriptor_path.clone(),
+                authority_summary_path: authority_summary_path.clone(),
                 runs: RwLock::new(HashMap::new()),
                 recent_failures: RwLock::new(Vec::new()),
                 pending: RwLock::new(HashMap::new()),
@@ -131,6 +144,7 @@ impl DesktopLocalDevelopmentRuntime {
             }
         });
         let heartbeat_path = descriptor_path.clone();
+        let heartbeat_authority_summary_path = authority_summary_path.clone();
         let heartbeat_endpoint = endpoint.clone();
         tauri::async_runtime::spawn(async move {
             let mut interval =
@@ -140,6 +154,21 @@ impl DesktopLocalDevelopmentRuntime {
                     _ = interval.tick() => {
                         if let Err(error) = write_presence(&heartbeat_path, &heartbeat_endpoint, &started_at) {
                             eprintln!("[local-development] presence heartbeat failed: {error}");
+                        }
+                        match runtime_bridge::get_local_development_authority_summary().await {
+                            Ok(summary) => {
+                                if let Err(error) = write_authority_summary(&heartbeat_authority_summary_path, summary) {
+                                    let _ = fs::remove_file(&heartbeat_authority_summary_path);
+                                    eprintln!("[local-development] authority summary write failed: {error}");
+                                }
+                            }
+                            Err(error) => {
+                                let _ = fs::remove_file(&heartbeat_authority_summary_path);
+                                eprintln!(
+                                    "[local-development] authority summary unavailable: {}",
+                                    error.reason_code().as_str()
+                                );
+                            }
                         }
                     }
                     _ = &mut heartbeat_rx => break,
@@ -696,6 +725,7 @@ impl DesktopLocalDevelopmentRuntime {
             run.cancel_tx.send_replace(true);
         }
         let _ = fs::remove_file(&self.inner.descriptor_path);
+        let _ = fs::remove_file(&self.inner.authority_summary_path);
     }
 
     fn spawn_supervisor(&self, run: Arc<RunContext>) {
