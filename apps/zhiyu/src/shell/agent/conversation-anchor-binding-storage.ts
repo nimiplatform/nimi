@@ -1,7 +1,6 @@
-import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
-import { hasShellHostInvoke, invokeChecked } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
+import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
 
 export type ZhiyuAgentConversationAnchorBinding = {
   ownerUserId: string;
@@ -51,19 +50,11 @@ export async function hydrateZhiyuAgentConversationAnchorBindingsFromStorage(): 
     return storageHydration;
   }
   storageHydration = (async () => {
-    if (!hasShellHostInvoke()) {
-      storageHydrated = true;
-      return;
-    }
     let stored: unknown;
     try {
-      stored = await invokeChecked(
-        NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
-        { relativePath: STORAGE_PATH },
-        (value) => parseStorageReadResult(value, NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']),
-      );
+      stored = (await zhiyuLocalAppRuntimePlatform.storage.readJson(STORAGE_PATH)).value;
     } catch (error) {
-      if (isShellStorageNotFound(error) || isShellCapabilityUnavailable(error)) {
+      if (isShellStorageNotFound(error)) {
         storageHydrated = true;
         return;
       }
@@ -84,17 +75,7 @@ export async function hydrateZhiyuAgentConversationAnchorBindingsFromStorage(): 
 }
 
 export async function persistZhiyuAgentConversationAnchorBindingsToStorage(): Promise<void> {
-  if (!hasShellHostInvoke()) {
-    return;
-  }
-  await invokeChecked(
-    NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
-    {
-      relativePath: STORAGE_PATH,
-      value: encodeStoredBindings(),
-    },
-    (value) => parseStorageWriteResult(value, NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']),
-  );
+  await zhiyuLocalAppRuntimePlatform.storage.writeJson(STORAGE_PATH, encodeStoredBindings());
 }
 
 export function clearZhiyuAgentConversationAnchorBinding(
@@ -187,32 +168,9 @@ function parseStoredBindings(value: unknown): ZhiyuAgentConversationAnchorBindin
   });
 }
 
-function parseStorageReadResult(value: unknown, command: string): unknown {
-  const record = asRecord(value, `${command} returned invalid storage payload`);
-  return record.value;
-}
-
-function parseStorageWriteResult(value: unknown, command: string): unknown {
-  const record = asRecord(value, `${command} returned invalid storage payload`);
-  return record.value;
-}
-
-function asRecord(value: unknown, message: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(message);
-  }
-  return value as Record<string, unknown>;
-}
-
 function isShellStorageNotFound(error: unknown): boolean {
   return shellErrorField(error, 'code') === 'not-found'
     || shellErrorField(error, 'reasonCode').includes('not-found');
-}
-
-function isShellCapabilityUnavailable(error: unknown): boolean {
-  return shellErrorField(error, 'code') === 'capability-unavailable'
-    || shellErrorField(error, 'reasonCode') === 'electron-standard-capability-unavailable'
-    || shellErrorField(error, 'reasonCode') === 'renderer-standard-shell-host-unavailable';
 }
 
 function shellErrorField(error: unknown, field: 'code' | 'reasonCode'): string {
