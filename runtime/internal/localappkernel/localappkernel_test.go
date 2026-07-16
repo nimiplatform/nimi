@@ -249,6 +249,56 @@ func TestGrantKeyIncludesAccountPrincipalAndFingerprint(t *testing.T) {
 	}
 }
 
+func TestGrantSummaryCountsExactCurrentAccountStatesWithoutSelectors(t *testing.T) {
+	ctx := context.Background()
+	kernel := openTestKernel(t, Options{})
+	defer kernel.Close()
+	createState := func(label string, target GrantState) {
+		t.Helper()
+		principal := createDevelopmentPrincipal(t, kernel, "dev-auth:"+label, "file-id:"+label, "com.example."+label)
+		grant := createPendingGrant(t, kernel, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, 1, 1, "")
+		switch target {
+		case GrantStatePending:
+			return
+		case GrantStateGranted, GrantStateDenied, GrantStateExpired:
+			if _, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, grant.GrantRevision, target, "presence:"+label); err != nil {
+				t.Fatalf("transition %s grant: %v", target, err)
+			}
+		case GrantStateRevoked, GrantStateSuperseded:
+			granted, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, grant.GrantRevision, GrantStateGranted, "presence:"+label)
+			if err != nil {
+				t.Fatalf("grant %s: %v", target, err)
+			}
+			if _, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, granted.GrantRevision, target, ""); err != nil {
+				t.Fatalf("transition %s grant: %v", target, err)
+			}
+		default:
+			t.Fatalf("unsupported test state %s", target)
+		}
+	}
+	for _, state := range []GrantState{
+		GrantStatePending, GrantStateGranted, GrantStateDenied,
+		GrantStateExpired, GrantStateRevoked, GrantStateSuperseded,
+	} {
+		createState(string(state), state)
+	}
+	otherAccount := createDevelopmentPrincipal(t, kernel, "dev-auth:other", "file-id:other", "com.example.other")
+	createPendingGrant(t, kernel, "account-b", otherAccount.LocalAppPrincipalID, "capfp:other", 1, 1, "")
+	tombstoned := createDevelopmentPrincipal(t, kernel, "dev-auth:tombstoned", "file-id:tombstoned", "com.example.tombstoned")
+	createPendingGrant(t, kernel, "account-a", tombstoned.LocalAppPrincipalID, "capfp:tombstoned", 1, 1, "")
+	if _, err := kernel.Principals().Tombstone(ctx, tombstoned.LocalAppPrincipalID); err != nil {
+		t.Fatal(err)
+	}
+
+	summary, err := kernel.Grants().SummaryForAccount(ctx, "account-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary != (GrantSummary{Pending: 1, Granted: 1, Denied: 1, Expired: 1, Revoked: 1, Superseded: 1}) {
+		t.Fatalf("grant summary = %#v", summary)
+	}
+}
+
 func TestProvenanceAdvanceAtomicallyRecordsInvalidationWithoutGrantMutation(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, Options{Now: func() time.Time { return testNow }})

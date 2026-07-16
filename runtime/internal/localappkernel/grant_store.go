@@ -14,6 +14,18 @@ type GrantStore struct {
 	kernel *Kernel
 }
 
+// GrantSummary is the identifier-free, current-state count projection used by
+// protected Desktop diagnostics. It is not grant authority and carries no
+// capability, resource, principal, record, or grant selector.
+type GrantSummary struct {
+	Pending    uint64
+	Granted    uint64
+	Denied     uint64
+	Expired    uint64
+	Revoked    uint64
+	Superseded uint64
+}
+
 func (store *GrantStore) CreatePending(ctx context.Context, input CreatePendingGrantInput) (Grant, error) {
 	if store == nil || store.kernel == nil {
 		return Grant{}, fmt.Errorf("%w: grant store", ErrInvalidArgument)
@@ -218,6 +230,57 @@ func (store *GrantStore) GetCurrentByID(ctx context.Context, accountID string, g
 		ON p.local_os_user_anchor = g.local_os_user_anchor AND p.local_app_principal_id = g.local_app_principal_id
 		WHERE g.local_os_user_anchor = ? AND g.account_id = ? AND g.grant_id = ? AND p.state = 'active'`,
 		store.kernel.anchor, accountID, grantID))
+}
+
+// SummaryForAccount reads only aggregate current grant states for the exact
+// account and active principals in this OS-user partition. It deliberately
+// performs no expiry transition or other lifecycle mutation.
+func (store *GrantStore) SummaryForAccount(ctx context.Context, accountID string) (GrantSummary, error) {
+	if store == nil || store.kernel == nil {
+		return GrantSummary{}, fmt.Errorf("%w: grant store", ErrInvalidArgument)
+	}
+	if err := requireExactText("account_id", accountID); err != nil {
+		return GrantSummary{}, err
+	}
+	rows, err := store.kernel.db.QueryContext(ctx, `SELECT g.state, COUNT(*)
+		FROM local_app_grants g
+		JOIN local_app_principals p
+		ON p.local_os_user_anchor = g.local_os_user_anchor
+		AND p.local_app_principal_id = g.local_app_principal_id
+		WHERE g.local_os_user_anchor = ? AND g.account_id = ? AND p.state = 'active'
+		GROUP BY g.state`, store.kernel.anchor, accountID)
+	if err != nil {
+		return GrantSummary{}, fmt.Errorf("summarize local-app grants: %w", err)
+	}
+	defer rows.Close()
+	var summary GrantSummary
+	for rows.Next() {
+		var state GrantState
+		var count uint64
+		if err := rows.Scan(&state, &count); err != nil {
+			return GrantSummary{}, fmt.Errorf("scan local-app grant summary: %w", err)
+		}
+		switch state {
+		case GrantStatePending:
+			summary.Pending = count
+		case GrantStateGranted:
+			summary.Granted = count
+		case GrantStateDenied:
+			summary.Denied = count
+		case GrantStateExpired:
+			summary.Expired = count
+		case GrantStateRevoked:
+			summary.Revoked = count
+		case GrantStateSuperseded:
+			summary.Superseded = count
+		default:
+			return GrantSummary{}, fmt.Errorf("%w: grant state", ErrInvalidArgument)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return GrantSummary{}, fmt.Errorf("iterate local-app grant summary: %w", err)
+	}
+	return summary, nil
 }
 
 const grantSelect = `SELECT g.local_os_user_anchor, g.account_id, g.local_app_principal_id,

@@ -52,6 +52,7 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",

@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	RuntimeDevelopmentService_GetDeveloperModeStatus_FullMethodName              = "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus"
+	RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_FullMethodName = "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary"
 	RuntimeDevelopmentService_SetDeveloperMode_FullMethodName                    = "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode"
 	RuntimeDevelopmentService_EvaluateLocalDevelopmentProject_FullMethodName     = "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject"
 	RuntimeDevelopmentService_DecideLocalDevelopmentProject_FullMethodName       = "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject"
@@ -38,6 +39,7 @@ const (
 // every method in this service before handler dispatch.
 type RuntimeDevelopmentServiceClient interface {
 	GetDeveloperModeStatus(ctx context.Context, in *GetDeveloperModeStatusRequest, opts ...grpc.CallOption) (*GetDeveloperModeStatusResponse, error)
+	GetLocalDevelopmentAuthoritySummary(ctx context.Context, in *GetLocalDevelopmentAuthoritySummaryRequest, opts ...grpc.CallOption) (*GetLocalDevelopmentAuthoritySummaryResponse, error)
 	SetDeveloperMode(ctx context.Context, in *SetDeveloperModeRequest, opts ...grpc.CallOption) (*SetDeveloperModeResponse, error)
 	EvaluateLocalDevelopmentProject(ctx context.Context, in *EvaluateLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*EvaluateLocalDevelopmentProjectResponse, error)
 	DecideLocalDevelopmentProject(ctx context.Context, in *DecideLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*DecideLocalDevelopmentProjectResponse, error)
@@ -59,6 +61,16 @@ func (c *runtimeDevelopmentServiceClient) GetDeveloperModeStatus(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetDeveloperModeStatusResponse)
 	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_GetDeveloperModeStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeDevelopmentServiceClient) GetLocalDevelopmentAuthoritySummary(ctx context.Context, in *GetLocalDevelopmentAuthoritySummaryRequest, opts ...grpc.CallOption) (*GetLocalDevelopmentAuthoritySummaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLocalDevelopmentAuthoritySummaryResponse)
+	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +156,7 @@ func (c *runtimeDevelopmentServiceClient) EndLocalDevelopmentRun(ctx context.Con
 // every method in this service before handler dispatch.
 type RuntimeDevelopmentServiceServer interface {
 	GetDeveloperModeStatus(context.Context, *GetDeveloperModeStatusRequest) (*GetDeveloperModeStatusResponse, error)
+	GetLocalDevelopmentAuthoritySummary(context.Context, *GetLocalDevelopmentAuthoritySummaryRequest) (*GetLocalDevelopmentAuthoritySummaryResponse, error)
 	SetDeveloperMode(context.Context, *SetDeveloperModeRequest) (*SetDeveloperModeResponse, error)
 	EvaluateLocalDevelopmentProject(context.Context, *EvaluateLocalDevelopmentProjectRequest) (*EvaluateLocalDevelopmentProjectResponse, error)
 	DecideLocalDevelopmentProject(context.Context, *DecideLocalDevelopmentProjectRequest) (*DecideLocalDevelopmentProjectResponse, error)
@@ -162,6 +175,9 @@ type UnimplementedRuntimeDevelopmentServiceServer struct{}
 
 func (UnimplementedRuntimeDevelopmentServiceServer) GetDeveloperModeStatus(context.Context, *GetDeveloperModeStatusRequest) (*GetDeveloperModeStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDeveloperModeStatus not implemented")
+}
+func (UnimplementedRuntimeDevelopmentServiceServer) GetLocalDevelopmentAuthoritySummary(context.Context, *GetLocalDevelopmentAuthoritySummaryRequest) (*GetLocalDevelopmentAuthoritySummaryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalDevelopmentAuthoritySummary not implemented")
 }
 func (UnimplementedRuntimeDevelopmentServiceServer) SetDeveloperMode(context.Context, *SetDeveloperModeRequest) (*SetDeveloperModeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetDeveloperMode not implemented")
@@ -218,6 +234,24 @@ func _RuntimeDevelopmentService_GetDeveloperModeStatus_Handler(srv interface{}, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeDevelopmentServiceServer).GetDeveloperModeStatus(ctx, req.(*GetDeveloperModeStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalDevelopmentAuthoritySummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeDevelopmentServiceServer).GetLocalDevelopmentAuthoritySummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeDevelopmentServiceServer).GetLocalDevelopmentAuthoritySummary(ctx, req.(*GetLocalDevelopmentAuthoritySummaryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -358,6 +392,10 @@ var RuntimeDevelopmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDeveloperModeStatus",
 			Handler:    _RuntimeDevelopmentService_GetDeveloperModeStatus_Handler,
+		},
+		{
+			MethodName: "GetLocalDevelopmentAuthoritySummary",
+			Handler:    _RuntimeDevelopmentService_GetLocalDevelopmentAuthoritySummary_Handler,
 		},
 		{
 			MethodName: "SetDeveloperMode",

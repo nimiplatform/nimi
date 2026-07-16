@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -15,7 +16,101 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
+
+func TestLocalDevelopmentAuthoritySummaryIsProtectedBoundedAndSideEffectFree(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, time.July, 17, 3, 0, 0, 0, time.UTC)
+	store := openLocalDevelopmentStoreForTest(t, now)
+	project := localDevelopmentTestProject(t)
+	if _, err := store.SetDeveloperMode(ctx, true, project.AccountID, project.AccountGeneration); err != nil {
+		t.Fatal(err)
+	}
+	evaluation, err := store.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x51))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT, project.AccountID, project.AccountGeneration); err != nil {
+		t.Fatal(err)
+	}
+	verifiedSID, err := localappkernel.ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "local-app-kernel.db"), verifiedSID, localappkernel.Options{Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = kernel.Close() })
+	principal, err := kernel.Principals().Create(ctx, localappkernel.CreatePrincipalInput{
+		Kind:                       localappkernel.PrincipalKindDevelopment,
+		AppID:                      project.AppID,
+		DevelopmentAuthorizationID: "lda_v1_summary-test",
+		CanonicalProjectFileID:     "project-file-summary-test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, err := kernel.Grants().CreatePending(ctx, localappkernel.CreatePendingGrantInput{
+		AccountID: project.AccountID, LocalAppPrincipalID: principal.LocalAppPrincipalID,
+		CapabilityScope: []string{"runtime_agent.invoke"}, ResourceScope: []string{"agent:summary-test"},
+		CapabilityResourceFingerprint: "capfp:summary-test", GrantGeneration: 1, GrantRevision: 1,
+		PresenceEvidenceRef: "presence:summary-test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := kernel.Grants().Transition(ctx, project.AccountID, principal.LocalAppPrincipalID, "capfp:summary-test", grant.GrantRevision, localappkernel.GrantStateGranted, "presence:summary-test"); err != nil {
+		t.Fatal(err)
+	}
+	account := &localDevelopmentHandlerAccount{accountID: project.AccountID, generation: project.AccountGeneration}
+	service := New(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		WithRuntimeAccountProjectionProvider(account),
+		WithLocalDevelopmentAuthority(store, nil, nil, nil),
+		WithLocalAppKernel(kernel),
+	)
+	if _, err := service.GetLocalDevelopmentAuthoritySummary(ctx, &runtimev1.GetLocalDevelopmentAuthoritySummaryRequest{}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("unprotected summary read error = %v", err)
+	}
+	boot := localDevelopmentTestIdentifier(0x52)
+	desktopConnection := newLocalDevelopmentHandlerDesktopConnection(t, boot)
+	t.Cleanup(desktopConnection.Revoke)
+	response, err := service.GetLocalDevelopmentAuthoritySummary(
+		protectedlocal.ContextWithDesktopConnection(ctx, desktopConnection),
+		&runtimev1.GetLocalDevelopmentAuthoritySummaryRequest{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	available := runtimev1.LocalDevelopmentSummaryAvailability_LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_AVAILABLE
+	if response.GetDeveloperMode().GetAvailability() != available || response.GetDeveloperMode().GetState() != runtimev1.DeveloperModeState_DEVELOPER_MODE_STATE_ENABLED {
+		t.Fatalf("developer mode summary = %#v", response.GetDeveloperMode())
+	}
+	if response.GetProjectAuthorization().GetAvailability() != available || response.GetProjectAuthorization().GetActiveCount() != 1 {
+		t.Fatalf("project authorization summary = %#v", response.GetProjectAuthorization())
+	}
+	if response.GetGrantSummary().GetAvailability() != available || response.GetGrantSummary().GetGrantedCount() != 1 {
+		t.Fatalf("grant summary = %#v", response.GetGrantSummary())
+	}
+	encoded, err := protojson.Marshal(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{
+		"accountId", "projectRoot", "principalId", "authorizationId", "grantId",
+		"requestId", "operationId", "resourceRef", "token", "sessionId", "bootEpoch",
+	} {
+		if strings.Contains(string(encoded), forbidden) {
+			t.Fatalf("bounded summary leaked %s: %s", forbidden, encoded)
+		}
+	}
+	unchanged, err := kernel.Grants().GetCurrent(ctx, project.AccountID, principal.LocalAppPrincipalID, "capfp:summary-test")
+	if err != nil || unchanged.State != localappkernel.GrantStateGranted || unchanged.GrantRevision != 2 {
+		t.Fatalf("summary read mutated grant = (%#v, %v)", unchanged, err)
+	}
+}
 
 func TestLocalDevelopmentHandlerRejectsAllowAfterAccountSwitchAndConsumesEvaluation(t *testing.T) {
 	ctx := context.Background()
