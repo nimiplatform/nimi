@@ -386,6 +386,7 @@ ai_governance:
       - archive/**
       - docs/**
       - .local/**
+      - scripts/testdata/dev-kernel-checkpoint-acceptance/runner/**
       - "**/generated/**"
       - "**/gen/**"
       - "**/core_generated/**"

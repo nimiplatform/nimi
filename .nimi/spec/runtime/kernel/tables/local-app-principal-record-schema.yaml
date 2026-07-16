@@ -8,7 +8,7 @@ local_os_user_anchor:
   windows_source: verified_interactive_user_sid
   request_supplied: forbidden
   active_anchors_per_data_root: 1
-principal:
+principal: &runtime_local_app_principal_surface
   owner: runtime_k_app
   store_identity: local_app_principals
   fields:
@@ -31,7 +31,7 @@ principal:
     - development_principal_has_only_development_authorization_id_and_canonical_project_file_id
     - app_id_is_not_a_security_or_storage_key
     - tombstoned_principal_cannot_be_reactivated
-record:
+record: &runtime_local_app_record_surface
   owner: runtime_k_app
   store_identity: local_app_records
   fields:
@@ -86,3 +86,6 @@ principal_lineage_binding:
   immutable: [immutable_lineage_id]
   development: [development_authorization_id, canonical_project_file_id, app_id]
   exactly_one_branch_required: true
+surfaces:
+  principal: *runtime_local_app_principal_surface
+  record: *runtime_local_app_record_surface

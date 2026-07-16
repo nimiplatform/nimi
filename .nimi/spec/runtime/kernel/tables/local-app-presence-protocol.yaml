@@ -4,7 +4,7 @@ owner: runtime
 protocol_id: runtime_local_app_presence_protocol
 source_rule: K-ACCSVC-026
 outcome_enum: [none, grant_presence, operation_presence, bounded_lease]
-challenge:
+challenge: &runtime_local_app_presence_challenge_surface
   owner: runtime_account_service
   required_bindings:
     - protected_control_session
@@ -32,7 +32,7 @@ challenge:
     - principal_or_record_change
     - provenance_or_generation_change
     - policy_revision_change
-assignments:
+assignments: &runtime_local_app_presence_assignment_surfaces
   initial_exact_local_app_operation_grant: grant_presence
   developer_project_trust: grant_presence
   remembered_project_reactivation: grant_presence
@@ -44,3 +44,6 @@ constraints:
   - presence_does_not_create_a_grant_unless_atomically_consumed_by_k_grant
   - account_login_state_alone_is_not_presence
   - trust_class_alone_never_requires_repeated_operation_presence
+surfaces:
+  challenge: *runtime_local_app_presence_challenge_surface
+  assignments: *runtime_local_app_presence_assignment_surfaces

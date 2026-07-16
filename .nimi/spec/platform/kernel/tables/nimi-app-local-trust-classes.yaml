@@ -11,7 +11,7 @@ scope:
     - local_first_party_app
     - desktop_launched_avatar
     - shipped_bundled_zhiyu
-closed_trust_classes:
+closed_trust_classes: &nimi_app_local_trust_class_rows
   - trust_class: verified
     mutability: immutable
     provenance_owner: platform_verified_release_attestation
@@ -72,3 +72,4 @@ hard_constraints:
   - immutable_positive_install_update_promotion_is_unavailable_before_0p
   - package_or_attestation_authority_cannot_reshape_0k_principal_record_or_session_fields
   - no_fourth_third_party_trust_class
+rows: *nimi_app_local_trust_class_rows

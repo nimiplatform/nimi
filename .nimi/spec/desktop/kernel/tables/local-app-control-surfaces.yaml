@@ -22,7 +22,7 @@ logical_role:
     - local_app_session
     - account_or_token_custody
     - operation_policy
-actions:
+actions: &desktop_local_app_control_surface_rows
   - action: get_developer_mode_status
     renderer_payload: []
     security_effect_owner: runtime
@@ -69,3 +69,4 @@ constraints:
   - mode_off_revoke_account_switch_and_runtime_restart_invalidate_live_carrier
   - native_windows_execution_risk_disclosure_is_required
   - no_persistent_local_development_autostart
+rows: *desktop_local_app_control_surface_rows

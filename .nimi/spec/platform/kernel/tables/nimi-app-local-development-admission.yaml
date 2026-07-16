@@ -116,7 +116,7 @@ operation_posture:
     - runtime_agent_conversation
   missing_families: typed_owner_unavailable
   generic_protected_proxy: forbidden
-owners:
+owners: &nimi_app_local_development_admission_rows
   app_tools: project_validation_build_coordination_and_user_safe_status_only
   desktop: confirmation_ui_and_verified_supervisor
   runtime_k_app: authorization_principal_and_record
@@ -130,3 +130,4 @@ platform_posture:
   macos: fail_closed_pending_independent_admission
   linux: fail_closed_pending_independent_admission
   localhost_grpc_or_same_user_daemon_fallback: forbidden
+rows: *nimi_app_local_development_admission_rows
