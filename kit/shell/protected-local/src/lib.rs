@@ -28,6 +28,8 @@ mod windows_local_app_grant_control;
 #[allow(unsafe_code)]
 mod windows_local_development;
 #[cfg(target_os = "windows")]
+mod windows_local_development_authority_summary;
+#[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_peer_trust;
 #[cfg(target_os = "windows")]

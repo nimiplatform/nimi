@@ -226,9 +226,11 @@ impl NimiDesktopControl for WindowsDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_local_development::get_authority_summary(
-            self.channel(),
-        ))
+        Box::pin(
+            crate::windows_local_development_authority_summary::get_authority_summary(
+                self.channel(),
+            ),
+        )
     }
 
     fn set_developer_mode(
