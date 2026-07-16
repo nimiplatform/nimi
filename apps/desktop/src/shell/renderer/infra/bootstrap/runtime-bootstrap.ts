@@ -367,7 +367,6 @@ export function bootstrapRuntime(): Promise<void> {
     } else {
       await configureDesktopRuntimeRealmSession({
         appId: 'nimi.desktop',
-        realmBaseUrl: defaults.realm.realmBaseUrl,
         runtimeTransport: resolveDesktopRuntimeTransport(),
       });
       bindDesktopConversationCapabilityRouteRuntime();

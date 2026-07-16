@@ -1,5 +1,5 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
-import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
+import { createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport } from '@nimiplatform/sdk/app';
 import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimePlatformClient, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime, type Runtime } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { Realm } from '@nimiplatform/sdk/realm';
@@ -61,7 +61,6 @@ export type DesktopRuntimeTransport =
 
 export interface ConfigureDesktopRuntimeRealmSessionInput {
   readonly appId: string;
-  readonly realmBaseUrl: string;
   readonly runtimeTransport: DesktopRuntimeTransport;
 }
 
@@ -80,8 +79,7 @@ export async function configureDesktopRuntimeRealmSession(
   const { runtime, accountRuntime: publicAccountRuntime } = platformClient;
   const accountRuntime = createDesktopProtectedAccountRuntime(publicAccountRuntime.auth);
   const realm = new Realm({
-    transport: createRuntimeAccountMediatedRealmTransport({
-      realmBaseUrl: input.realmBaseUrl,
+    transport: createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
       runtime: accountRuntime,
       accountCaller,
     }),

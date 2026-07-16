@@ -20,22 +20,6 @@ export const DESKTOP_RUNTIME_PROTECTED_SCOPES = [
   'runtime.agent.turn.write',
   'runtime.agent.write',
 ] as const;
-export const DESKTOP_RUNTIME_ACCOUNT_BROKER_CAPABILITIES = [
-  'account.session.read',
-  'data.scope.read#realm.worlds.read-probe',
-  'data.scope.read#realm.core.world-characters',
-  'data.scope.read#realm.core.personas',
-  'data.scope.read#realm.core.world-entities',
-  'data.scope.read#realm.core.world-relationships',
-  'data.scope.read#realm.account.private',
-  'data.scope.read#realm.social.private',
-  'data.scope.read#realm.group-chats.private',
-  'realm_source.snapshot.bind',
-] as const;
-export const DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES = [
-  ...DESKTOP_RUNTIME_PROTECTED_SCOPES,
-  ...DESKTOP_RUNTIME_ACCOUNT_BROKER_CAPABILITIES,
-] as const;
 
 export const DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION = 'sdk-v2';
 export const DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS = 3600;
