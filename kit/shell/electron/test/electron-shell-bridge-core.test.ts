@@ -520,17 +520,17 @@ describe('registerNimiElectronRuntimeBridge', () => {
     };
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
-      appId: 'nimi.desktop',
+      appId: 'nimi.tester',
       runtimeEndpoint: '127.0.0.1:46371',
       allowedOrigins: ['http://localhost:1430'],
       ipcMain,
       createGrpcClient: async () => fakeClient,
       trustedRuntimeMetadataProvider: async () => ({
         metadata: {
-          participantId: 'nimi.desktop',
-          callerKind: 'desktop-core',
-          callerId: 'desktop.product-control',
-          surfaceId: 'desktop.product-control',
+          participantId: 'nimi.tester',
+          callerKind: 'test-host',
+          callerId: 'nimi.tester.shell',
+          surfaceId: 'tester.runtime',
         },
       }),
     });
@@ -547,10 +547,10 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
 
     expect(capturedMetadata).toMatchObject({
-      'x-nimi-participant-id': 'nimi.desktop',
-      'x-nimi-caller-kind': 'desktop-core',
-      'x-nimi-caller-id': 'desktop.product-control',
-      'x-nimi-surface-id': 'desktop.product-control',
+      'x-nimi-participant-id': 'nimi.tester',
+      'x-nimi-caller-kind': 'test-host',
+      'x-nimi-caller-id': 'nimi.tester.shell',
+      'x-nimi-surface-id': 'tester.runtime',
     });
   });
 

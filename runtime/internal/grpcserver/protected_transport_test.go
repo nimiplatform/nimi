@@ -69,6 +69,51 @@ func TestProtectedDesktopProductControlAdmitsExactDependencyJobControls(t *testi
 	}
 }
 
+func TestProtectedDesktopRuntimeConsumerAdmitsExactUnarySet(t *testing.T) {
+	admitted := []string{
+		"/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
+		"/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
+		"/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
+		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
+		"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
+		"/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
+		"/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
+		"/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
+		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+		"/nimi.runtime.v1.RuntimeAgentService/ListAgents",
+	}
+	for _, method := range admitted {
+		if !protectedDesktopRuntimeConsumerMethod(method) {
+			t.Fatalf("Desktop Runtime consumer method %q is missing from the exact classifier", method)
+		}
+		role, allowed := protectedDesktopMethodRole(method)
+		if !allowed || role != protectedlocal.RoleVerifiedDesktopProcess {
+			t.Fatalf("Desktop Runtime consumer method %q role = %q allowed=%v", method, role, allowed)
+		}
+		if !protectedDesktopUnaryMethodAllowed(method) {
+			t.Fatalf("Desktop Runtime consumer unary %q was not admitted", method)
+		}
+	}
+
+	excluded := []string{
+		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
+		"/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
+		"/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
+		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
+	}
+	for _, method := range excluded {
+		if protectedDesktopRuntimeConsumerMethod(method) {
+			t.Fatalf("unadmitted method %q escaped the exact Desktop Runtime consumer classifier", method)
+		}
+	}
+	for _, method := range excluded[1:4] {
+		if protectedDesktopStreamMethodAllowed(method) {
+			t.Fatalf("unadmitted stream %q escaped the protected Desktop stream allowlist", method)
+		}
+	}
+}
+
 func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServices(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	authService := authservice.NewWithDependencies(
@@ -95,6 +140,17 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		&runtimev1.UnimplementedRuntimeDevelopmentServiceServer{},
 		manager,
 	)
+	for _, serviceName := range []string{
+		"nimi.runtime.v1.RuntimeAuditService",
+		"nimi.runtime.v1.RuntimeLocalService",
+		"nimi.runtime.v1.RuntimeAiService",
+		"nimi.runtime.v1.RuntimeAgentService",
+		"nimi.runtime.v1.RuntimeConnectorService",
+	} {
+		if _, registered := server.GetServiceInfo()[serviceName]; !registered {
+			t.Fatalf("protected Desktop server did not register %s", serviceName)
+		}
+	}
 	baseListener := bufconn.Listen(1024 * 1024)
 	listener := &protectedDesktopTestListener{Listener: baseListener, connection: connection}
 	serveDone := make(chan error, 1)
