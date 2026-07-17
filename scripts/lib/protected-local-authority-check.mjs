@@ -153,6 +153,8 @@ function validateStores(bundle, issues) {
 
   if (
     schema?.local_os_user_anchor?.owner !== 'runtime_protected_local'
+    || schema?.local_os_user_anchor?.platform_profile_ref !== 'protected-local-os-profiles.yaml#same-os'
+    || schema?.local_os_user_anchor?.profile_field !== 'local_os_user_anchor_derivation'
     || schema?.local_os_user_anchor?.windows_source !== 'verified_interactive_user_sid'
     || schema?.local_os_user_anchor?.request_supplied !== 'forbidden'
     || schema?.local_os_user_anchor?.active_anchors_per_data_root !== 1
@@ -160,7 +162,7 @@ function validateStores(bundle, issues) {
     issues.push(issue(
       'SID_PARTITION_REQUIRED',
       AUTHORITY_PATHS.principalRecord,
-      'The local OS user anchor must be Runtime-derived from the verified interactive Windows SID and never request supplied.',
+      'The local OS user anchor must be Runtime-derived from the same-OS verified-transport profile and never request supplied.',
     ));
   }
 

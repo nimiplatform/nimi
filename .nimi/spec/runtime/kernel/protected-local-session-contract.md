@@ -235,64 +235,21 @@ service-owned state. Environment, argv, renderer URL, app manifest, and
 user-writable config cannot select a Runtime binary, Realm endpoint, trust set,
 custody location, or protected listener.
 
-On Windows, the restricted Runtime service must not pre-open or retain an
-interactive user's token. It resolves the active console session through
-`WTSGetActiveConsoleSessionId`, consumes `WTSSessionInfo` for the account name
-and logon-time marker, resolves the account SID through the OS, and creates the
-named pipe with `FILE_FLAG_FIRST_PIPE_INSTANCE`, a service-owned connect-only
-DACL for that active account SID, and `PIPE_REJECT_REMOTE_CLIENTS`. The account
-partition binds user SID, terminal-session id, and WTS logon time so an OS
-logout/login cannot reuse prior account truth merely by receiving the same
-terminal-session id.
+Verified-transport semantics are platform-neutral. The same-OS row in
+`tables/protected-local-os-profiles.yaml` alone selects the service bootstrap,
+endpoint kind and ownership, kernel/OS peer credential, account-anchor
+derivation, canonical process marker, liveness primitive, and post-bind exec
+control. That row must reference the same-OS service-principal and executable-
+trust profiles; a transport profile cannot redefine either owner.
 
-Runtime then obtains the connected client PID with
-`GetNamedPipeClientProcessId`, opens that exact process and token, and derives
-the user SID, terminal-session id, token logon SID and
-`TokenStatistics.AuthenticationId`. Before `NetConn` or gRPC exposure,
-Runtime performs one exact `LsaGetLogonSessionData(AuthenticationId)` lookup
-and requires the LSA record to match that token LUID, account SID and terminal
-session, use an admitted interactive logon type, carry a positive logon time
-not later than the WTS session logon time, and still name the active console
-session. Enumerating logon sessions or choosing the first matching account is
-forbidden. The retained connection liveness re-queries the active WTS session;
-an account, terminal-session or WTS logon-time change revokes the connection
-and reopens a fresh pipe instance.
-
-The client obtains the Runtime PID with `GetNamedPipeServerProcessId` and,
-before sending protocol bytes, binds it to the fixed SCM service, exact service
-token, closed process DACL and the same opened Runtime executable object. The
-process DACL grants interactive callers only `SYNCHRONIZE`,
-`PROCESS_QUERY_LIMITED_INFORMATION` and `READ_CONTROL` for this verification;
-it explicitly denies sensitive VM, handle-duplication and thread-creation
-rights. The process object's mandatory label remains System integrity and
-uses only `SYSTEM_MANDATORY_LABEL_NO_WRITE_UP`; `NO_READ_UP` is forbidden
-because it would override the exact DACL and prevent an ordinary interactive
-Desktop from obtaining `READ_CONTROL` for mutual verification. Both peers
-The Runtime primary-token object follows the same boundary: the exact service
-SID retains full authority, while interactive callers receive only
-`TOKEN_QUERY | READ_CONTROL`; token duplication, impersonation, primary-token
-assignment and every adjustment right remain denied. Its mandatory label is
-System integrity with `NO_WRITE_UP` only so the caller can verify the token
-user, restricted service SID, session zero and logon LUID without receiving a
-usable or mutable token. Both peers bind SID, OS logon session, PID, creation marker, and
-executable trust to the handshake. An account-SID pipe connection alone never
-authorizes a protected operation.
-
-On Linux, the endpoint is a filesystem UDS in a Runtime-service-owned
-directory/socket with an explicit connect ACL for the active interactive UID.
-Abstract namespace sockets, symlinks, unexpected owners, and unexpected inodes
-are forbidden. Both peers use `SO_PEERCRED` and verify the peer principal,
-process, and executable. The Desktop side is a signed static control carrier
-reached only through a private inherited Desktop handle; before connecting it
-sets `no_new_privs`, installs the admitted seccomp filter that denies
-`execve`/`execveat`, and marks every channel descriptor close-on-exec.
-
-On macOS, the only production control endpoint is the privileged XPC Mach
-service installed with the hardened LaunchDaemon. Both directions consume the
-XPC audit token and validate the running peer's dynamic `SecCode`, designated
-requirement, Team ID and cdhash. A filesystem UDS, ad-hoc
-Mach service, user LaunchAgent or app-created listener is non-product and
-cannot fall back when privileged XPC verification is unavailable.
+The Windows row carries the admitted named-pipe/WTS/LSA/SCM/process-handle
+behavior. The Linux filesystem-UDS/SO_PEERCRED/pidfd/static-carrier row remains
+requirements-only. The macOS row requires a launchd-system-daemon-owned
+filesystem UDS, kernel-derived peer euid/pid/audit-session facts, running-code
+identity verification, audit-token `pidversion`, and exit/exec liveness; it is
+requirements-only. Neither unadmitted row can open a product protected
+listener or fall back to localhost, same-user daemon, app-created listener,
+portable proof, or another platform's transport primitives.
 
 The authenticated transcript binds `protocol_version`, `transport_class`,
 both canonical process tuples, `runtime_boot_epoch`, `endpoint_instance_id`,
@@ -306,13 +263,11 @@ canonical_executable_identity, code_signing_identity}`. A release digest is
 bound separately by installed launch/session admission; PID alone never
 authorizes.
 
-Windows retains a process handle with `SYNCHRONIZE |
-PROCESS_QUERY_LIMITED_INFORMATION`. Linux requires a usable `pidfd`, the
-signed no-exec control carrier, its exact inherited-channel bootstrap, and the
-kernel-enforced seccomp filter that denies `execve`/`execveat` plus the
-close-on-exec channel posture; pidfd alone is insufficient and
-PID polling is forbidden. macOS binds audit-token `pidversion` and an
-`EVFILT_PROC` watch carrying both `NOTE_EXIT` and `NOTE_EXEC`.
+The same-OS verified-transport profile selects the process marker, retained
+liveness primitive, and post-bind exec control. A platform implementation may
+not substitute PID polling, pathname re-open, caller heartbeat, or another
+profile's primitive. The Windows row remains the admitted process-handle
+behavior; Linux and macOS liveness rows remain requirements-only.
 
 Process exit, post-bind exec, creation-marker change, or executable file
 identity change immediately revokes every origin and session derived from the
@@ -358,9 +313,9 @@ dynamic `SecCode`, designated requirement, Team ID and cdhash. A pathname-only
 ## K-PLOCAL-006 Desktop Control Session
 
 `OpenDesktopSession` is admitted only on a mutually authenticated
-`desktop_control` connection whose Desktop process or Linux static control
-carrier has already passed K-PLOCAL-003..005 and whose Runtime peer is the
-isolated service principal from the OS profile.
+`desktop_control` connection whose client carrier has already passed
+K-PLOCAL-003..005 under the same-OS verified-transport profile and whose
+Runtime peer is the isolated service principal referenced by that profile.
 Its request contains no app id, caller class, source host, or portable proof
 override. Runtime derives the Desktop roles; a returned session id is
 correlation-only and is not portable authority.

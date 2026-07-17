@@ -91,14 +91,14 @@ profiles:
     admission: requirements_only_fail_closed_pending_native_admission
     service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
     primary_custody: >-
-      hardened LaunchDaemon Runtime principal; code-identity-ACL system Keychain
+      hardened launchd system-daemon Runtime principal; code-identity-ACL system Keychain
       item bound to the Runtime designated requirement
     protector_or_key_source: code_identity_acl_system_keychain_item_for_runtime_designated_requirement
     cryptographic_scope: runtime_designated_requirement_and_launchd_system_daemon_principal
     forbidden_protectors: [login_keychain, app_or_desktop_owned_keychain_item]
     protected_state_binding: launchd_runtime_principal_and_runtime_designated_requirement_only
-    transaction_store_and_durable_anchor: launchdaemon_transaction_db_plus_code_identity_keychain_anchor_only_for_admitted_nonrollbackable_generation
+    transaction_store_and_durable_anchor: launchd_system_daemon_transaction_db_plus_code_identity_keychain_anchor_only_for_admitted_nonrollbackable_generation
     unavailable_disposition: >-
-      code identity, Keychain ACL, or LaunchDaemon principal mismatch marks
+      code identity, Keychain ACL, or launchd system-daemon principal mismatch marks
       custody unavailable
     source_rule: K-ACCSVC-007

@@ -1,34 +1,32 @@
-version: 1
+version: 2
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_os_profiles
 surfaces: [windows, linux, macos]
 entries: [windows, linux, macos]
-description: Closed OS primitive profiles for mutually authenticated protected-local process origins.
-authority_refs: [K-PLOCAL-003, K-PLOCAL-004, K-PLOCAL-005]
+description: Platform-neutral verified-transport semantics plus closed OS endpoint, peer-credential, process-marker, and liveness profiles.
+authority_refs: [K-PLOCAL-003, K-PLOCAL-004, K-PLOCAL-005, K-APP-028]
+neutral_contract:
+  mutual_peer_authentication: required_before_protocol_or_credential_bytes
+  endpoint_owner: isolated_runtime_service_principal
+  peer_credential_source: kernel_or_os_service_manager_only
+  canonical_process_tuple: [os, pid, creation_marker, os_login_session, canonical_executable_identity, code_signing_identity]
+  request_or_metadata_authority: forbidden
+  liveness_loss_disposition: revoke_connection_origin_and_sessions_before_next_request
+  endpoint_fallback: forbidden
 platform_admission:
   closeout_unit: os_platform
   independent_admission_allowed: true
+  windows: admitted_named_pipe_and_process_verification
+  linux: requirements_only_fail_closed_pending_native_admission
+  macos: requirements_only_fail_closed_pending_native_admission
   unadmitted_platform_disposition: fail_closed
   forbidden_fallbacks: [localhost_grpc, same_user_daemon, compile_only_carrier_success]
-windows_restricted_service_bootstrap:
-  active_identity_source: WTSGetActiveConsoleSessionId_and_WTSSessionInfo
-  user_token_preopen: forbidden
-  endpoint_acl_subject: active_account_sid_connect_only
-  account_partition: user_sid_terminal_session_id_wts_logon_time
-  active_session_revalidation: connection_liveness_revoked_on_wts_account_session_or_logon_time_change
-  post_connect_identity: GetNamedPipeClientProcessId_then_process_token_logon_sid_AuthenticationId_LsaGetLogonSessionData_before_NetConn
-  post_connect_executable: same_open_hfile_native_trust
-  mismatch_disposition: reject_close_and_reopen
-  exact_logon_correlation:
-    fields: [account_sid, terminal_session_id, wts_logon_time, token_logon_sid, token_authentication_id, lsa_logon_time, interactive_logon_type, active_console]
-    allowed_logon_types: [interactive, remote_interactive, cached_interactive, cached_remote_interactive]
-    lsa_lookup_key: token_statistics_authentication_id_exact
-    time_rule: lsa_logon_time_positive_and_not_after_wts_session_logon_time
-    enumeration_or_first_candidate_selection: forbidden
 profile_schema:
   fields:
     - os
+    - admission
+    - service_bootstrap
     - endpoint_kind
     - endpoint_ownership
     - client_peer_verification
@@ -38,10 +36,28 @@ profile_schema:
     - post_bind_exec_control
     - client_executable_verification
     - server_executable_verification
-    - runtime_principal_profile_ref
+    - executable_trust_profile_ref
+    - service_principal_profile_ref
+    - local_os_user_anchor_derivation
     - source_rule
 profiles:
   - os: windows
+    admission: admitted_named_pipe_and_process_verification
+    service_bootstrap:
+      active_identity_source: WTSGetActiveConsoleSessionId_and_WTSSessionInfo
+      user_token_preopen: forbidden
+      endpoint_acl_subject: active_account_sid_connect_only
+      account_partition: user_sid_terminal_session_id_wts_logon_time
+      active_session_revalidation: connection_liveness_revoked_on_wts_account_session_or_logon_time_change
+      post_connect_identity: GetNamedPipeClientProcessId_then_process_token_logon_sid_AuthenticationId_LsaGetLogonSessionData_before_NetConn
+      post_connect_executable: same_open_hfile_native_trust
+      mismatch_disposition: reject_close_and_reopen
+      exact_logon_correlation:
+        fields: [account_sid, terminal_session_id, wts_logon_time, token_logon_sid, token_authentication_id, lsa_logon_time, interactive_logon_type, active_console]
+        allowed_logon_types: [interactive, remote_interactive, cached_interactive, cached_remote_interactive]
+        lsa_lookup_key: token_statistics_authentication_id_exact
+        time_rule: lsa_logon_time_positive_and_not_after_wts_session_logon_time
+        enumeration_or_first_candidate_selection: forbidden
     endpoint_kind: named_pipe
     endpoint_ownership: first_pipe_instance_service_owned_dacl_connect_only_active_account_sid_remote_clients_rejected
     client_peer_verification: GetNamedPipeClientProcessId_token_logon_sid_AuthenticationId_exact_LSA_record_active_WTS_session_and_same_file_executable_trust_before_NetConn
@@ -51,9 +67,17 @@ profiles:
     post_bind_exec_control: windows_has_no_in_place_exec_and_all_inherited_handles_are_explicitly_noninheritable
     client_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy
     server_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy_and_service_sid
-    runtime_principal_profile_ref: windows
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    local_os_user_anchor_derivation: verified_active_interactive_user_sid
     source_rule: K-PLOCAL-003
   - os: linux
+    admission: requirements_only_fail_closed_pending_native_admission
+    service_bootstrap:
+      active_identity_source: kernel_peercred_uid_and_login_session
+      user_token_preopen: forbidden
+      endpoint_acl_subject: active_interactive_uid_connect_only
+      mismatch_disposition: reject_close_and_reopen
     endpoint_kind: filesystem_unix_domain_socket
     endpoint_ownership: runtime_service_owned_directory_socket_acl_no_abstract_namespace_or_symlink
     client_peer_verification: SO_PEERCRED_uid_pid_and_login_session
@@ -63,19 +87,29 @@ profiles:
     post_bind_exec_control: signed_static_control_carrier_seccomp_denies_execve_execveat_and_channel_is_cloexec
     client_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
     server_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
-    runtime_principal_profile_ref: linux
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    local_os_user_anchor_derivation: verified_so_peercred_uid_and_login_session
     source_rule: K-PLOCAL-003
   - os: macos
-    endpoint_kind: privileged_xpc_service
-    endpoint_ownership: launchdaemon_privileged_xpc_mach_service
-    client_peer_verification: xpc_audit_token_euid_audit_session_and_client_dynamic_code_identity
-    server_peer_verification: xpc_audit_token_launchdaemon_principal_and_runtime_dynamic_code_identity
+    admission: requirements_only_fail_closed_pending_native_admission
+    service_bootstrap:
+      active_identity_source: kernel_peer_credential_euid_and_audit_session
+      user_token_preopen: forbidden
+      endpoint_acl_subject: active_interactive_euid_connect_only
+      mismatch_disposition: reject_close_and_reopen
+    endpoint_kind: filesystem_unix_domain_socket
+    endpoint_ownership: launchd_system_daemon_owned_directory_socket_acl_no_symlink_or_app_created_listener
+    client_peer_verification: kernel_peer_credentials_euid_pid_audit_session_and_client_dynamic_code_identity
+    server_peer_verification: kernel_peer_credentials_pid_launchd_system_daemon_principal_and_runtime_dynamic_code_identity
     process_marker: audit_token_pidversion
     liveness_monitor: EVFILT_PROC_NOTE_EXIT_NOTE_EXEC
     post_bind_exec_control: EVFILT_PROC_NOTE_EXEC_immediate_revocation
     client_executable_verification: running_process_dynamic_SecCode_designated_requirement_team_id_cdhash
     server_executable_verification: running_runtime_dynamic_SecCode_designated_requirement_team_id_cdhash
-    runtime_principal_profile_ref: macos
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    local_os_user_anchor_derivation: verified_kernel_peer_euid_and_audit_session
     source_rule: K-PLOCAL-003
 handshake_binding:
   fields:

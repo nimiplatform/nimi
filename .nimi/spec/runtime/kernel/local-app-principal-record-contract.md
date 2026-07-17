@@ -13,15 +13,20 @@ remain with their existing owners.
 ## K-APP-028 Local OS-user Partition
 
 Every principal and record is partitioned by a Runtime-derived
-`local_os_user_anchor`. On Windows the anchor is derived from the verified
-interactive-user SID established by `K-PLOCAL-003`; it is never accepted from
-a request, environment variable, project, package, Desktop, SDK, or app.
+`local_os_user_anchor`. Its sole source is the same-OS
+`local_os_user_anchor_derivation` in
+`tables/protected-local-os-profiles.yaml`; it is never accepted from a request,
+environment variable, project, package, Desktop, SDK, or app. The admitted
+Windows row remains the verified interactive-user SID established by
+`K-PLOCAL-003`; unadmitted platform rows are requirements only.
 
 The first Runtime data root admits exactly one active anchor. A different SID
-or Fast User Switching context fails closed before principal, record, private
+under the Windows row, or a different same-OS principal/login-session anchor
+under any future admitted row, fails closed before principal, record, private
 storage, grant, autostart, launch, session, or audit state can be read or
-mutated. This is a single-PC partition and does not create device enrollment,
-cross-PC recovery, or cloud truth.
+mutated. Fast User Switching cannot reuse the prior anchor. This is a single-PC
+partition and does not create device enrollment, cross-PC recovery, or cloud
+truth.
 
 ## K-APP-029 Stable Local Security Principal
 

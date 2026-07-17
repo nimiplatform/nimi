@@ -5,6 +5,8 @@ protocol_id: runtime_local_app_principal_record_schema
 source_rules: [K-APP-028, K-APP-029, K-APP-030, K-APP-031]
 local_os_user_anchor:
   owner: runtime_protected_local
+  platform_profile_ref: protected-local-os-profiles.yaml#same-os
+  profile_field: local_os_user_anchor_derivation
   windows_source: verified_interactive_user_sid
   request_supplied: forbidden
   active_anchors_per_data_root: 1
