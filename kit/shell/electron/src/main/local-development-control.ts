@@ -1,6 +1,10 @@
 import { createRequire } from 'node:module';
 
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
+import {
+  parseNimiElectronLocalDevelopmentAuthoritySummary,
+  type NimiElectronLocalDevelopmentAuthoritySummary,
+} from './local-development-authority-summary.js';
 import { NimiElectronShellHostError } from './types.js';
 
 type NativeJsonOutcome =
@@ -44,6 +48,7 @@ export type NimiElectronLocalDevelopmentEvaluation = {
 };
 
 export type NimiElectronLocalDevelopmentBinding = {
+  readonly desktopGetLocalDevelopmentAuthoritySummary: () => Promise<NativeJsonOutcome>;
   readonly desktopEvaluateLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopDecideLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopReactivateLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
@@ -56,6 +61,7 @@ export type NimiElectronLocalDevelopmentBinding = {
 };
 
 export type NimiElectronLocalDevelopmentControl = {
+  readonly getAuthoritySummary: () => Promise<NimiElectronLocalDevelopmentAuthoritySummary>;
   readonly evaluate: (input: {
     readonly expectedAppId: string;
     readonly projectRoot: string;
@@ -89,6 +95,22 @@ export type NimiElectronLocalDevelopmentControl = {
 
 class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentControl {
   constructor(private readonly binding: NimiElectronLocalDevelopmentBinding) {}
+
+  async getAuthoritySummary() {
+    const value = await invokeNative(
+      () => this.binding.desktopGetLocalDevelopmentAuthoritySummary(),
+      'get_local_development_authority_summary',
+    );
+    try {
+      return parseNimiElectronLocalDevelopmentAuthoritySummary(value);
+    } catch {
+      throw controlError(
+        'runtime-service-untrusted',
+        false,
+        'get_local_development_authority_summary',
+      );
+    }
+  }
 
   async evaluate(input: Parameters<NimiElectronLocalDevelopmentControl['evaluate']>[0]) {
     return parseEvaluation(await invokeNative(
@@ -194,6 +216,7 @@ class LazyElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmen
     return this.control;
   }
 
+  getAuthoritySummary: NimiElectronLocalDevelopmentControl['getAuthoritySummary'] = () => this.resolve().getAuthoritySummary();
   evaluate: NimiElectronLocalDevelopmentControl['evaluate'] = (input) => this.resolve().evaluate(input);
   decide: NimiElectronLocalDevelopmentControl['decide'] = (input) => this.resolve().decide(input);
   reactivate: NimiElectronLocalDevelopmentControl['reactivate'] = (input) => this.resolve().reactivate(input);
@@ -328,6 +351,7 @@ function authorizationState(value: unknown): NimiElectronLocalDevelopmentAuthori
 
 function validateBinding(value: unknown): NimiElectronLocalDevelopmentBinding {
   const methods = [
+    'desktopGetLocalDevelopmentAuthoritySummary',
     'desktopEvaluateLocalDevelopmentProject',
     'desktopDecideLocalDevelopmentProject',
     'desktopReactivateLocalDevelopmentProject',

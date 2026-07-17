@@ -127,6 +127,49 @@ pub(super) fn project_local_app_grant(projection: LocalAppGrantControlProjection
     })
 }
 
+pub(super) fn project_local_development_authority_summary(
+    summary: LocalDevelopmentAuthoritySummary,
+) -> JsonValue {
+    json!({
+        "developerMode": {
+            "availability": project_summary_availability(summary.developer_mode.availability),
+            "state": summary.developer_mode.state.as_str(),
+            "unavailableReason": project_summary_unavailable_reason(summary.developer_mode.unavailable_reason),
+        },
+        "projectAuthorization": {
+            "availability": project_summary_availability(summary.project_authorization.availability),
+            "activeCount": summary.project_authorization.active_count,
+            "dormantCount": summary.project_authorization.dormant_count,
+            "deniedCount": summary.project_authorization.denied_count,
+            "revokedCount": summary.project_authorization.revoked_count,
+            "unavailableReason": project_summary_unavailable_reason(summary.project_authorization.unavailable_reason),
+        },
+        "grantSummary": {
+            "availability": project_summary_availability(summary.grant_summary.availability),
+            "pendingCount": summary.grant_summary.pending_count,
+            "grantedCount": summary.grant_summary.granted_count,
+            "deniedCount": summary.grant_summary.denied_count,
+            "expiredCount": summary.grant_summary.expired_count,
+            "revokedCount": summary.grant_summary.revoked_count,
+            "supersededCount": summary.grant_summary.superseded_count,
+            "unavailableReason": project_summary_unavailable_reason(summary.grant_summary.unavailable_reason),
+        },
+    })
+}
+
+fn project_summary_availability(value: LocalDevelopmentSummaryAvailability) -> &'static str {
+    match value {
+        LocalDevelopmentSummaryAvailability::Available => "available",
+        LocalDevelopmentSummaryAvailability::Unavailable => "unavailable",
+    }
+}
+
+fn project_summary_unavailable_reason(value: Option<NimiHostErrorReasonCode>) -> JsonValue {
+    value
+        .map(|reason| JsonValue::String(reason.as_str().to_string()))
+        .unwrap_or(JsonValue::Null)
+}
+
 pub(super) fn project_local_development_evaluation(
     evaluation: LocalDevelopmentEvaluation,
 ) -> JsonValue {
@@ -437,5 +480,56 @@ mod tests {
         assert_eq!(value["pendingGrantId"].as_str().map(str::len), Some(64));
         assert!(value.get("token").is_none());
         assert!(value.get("sessionId").is_none());
+    }
+
+    #[test]
+    fn authority_summary_projection_is_bounded_and_identifier_free() {
+        use nimi_shell_protected_local::{
+            DeveloperModeState, LocalDevelopmentDeveloperModeSummary, LocalDevelopmentGrantSummary,
+            LocalDevelopmentProjectAuthorizationSummary,
+        };
+
+        let value = project_local_development_authority_summary(LocalDevelopmentAuthoritySummary {
+            developer_mode: LocalDevelopmentDeveloperModeSummary {
+                availability: LocalDevelopmentSummaryAvailability::Available,
+                state: DeveloperModeState::Enabled,
+                unavailable_reason: None,
+            },
+            project_authorization: LocalDevelopmentProjectAuthorizationSummary {
+                availability: LocalDevelopmentSummaryAvailability::Available,
+                active_count: 2,
+                dormant_count: 3,
+                denied_count: 5,
+                revoked_count: 7,
+                unavailable_reason: None,
+            },
+            grant_summary: LocalDevelopmentGrantSummary {
+                availability: LocalDevelopmentSummaryAvailability::Unavailable,
+                pending_count: 0,
+                granted_count: 0,
+                denied_count: 0,
+                expired_count: 0,
+                revoked_count: 0,
+                superseded_count: 0,
+                unavailable_reason: Some(NimiHostErrorReasonCode::LocalAppOperationUnavailable),
+            },
+        });
+        assert_eq!(value["developerMode"]["state"], "enabled");
+        assert_eq!(value["projectAuthorization"]["activeCount"], 2);
+        assert_eq!(
+            value["grantSummary"]["unavailableReason"],
+            "local-app-operation-unavailable"
+        );
+        let encoded = value.to_string();
+        for forbidden in [
+            "accountId",
+            "authorizationId",
+            "grantId",
+            "token",
+            "credential",
+            "canonicalProjectRoot",
+        ] {
+            assert!(!encoded.contains(forbidden));
+        }
     }
 }

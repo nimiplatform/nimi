@@ -32,6 +32,14 @@ export {
   type NimiElectronLocalDevelopmentProject,
   type NimiElectronLocalDevelopmentShell,
 } from './local-development-control.js';
+export type {
+  NimiElectronLocalDevelopmentAuthoritySummary,
+  NimiElectronLocalDevelopmentDeveloperModeSummary,
+  NimiElectronLocalDevelopmentGrantSummary,
+  NimiElectronLocalDevelopmentProjectAuthorizationSummary,
+  NimiElectronLocalDevelopmentSummaryAvailability,
+  NimiElectronLocalDevelopmentSummaryUnavailableReason,
+} from './local-development-authority-summary.js';
 export {
   createNimiElectronDesktopControlHost,
   type NimiElectronDesktopControlHost,

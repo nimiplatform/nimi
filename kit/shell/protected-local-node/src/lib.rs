@@ -16,13 +16,14 @@ use nimi_shell_protected_local::{
     LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
     LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
     LocalAppReasonCode, LocalAppSessionStatus, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind, NimiDesktopControl,
-    NimiHostError, NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
-    ProtectedCarrierError, RuntimeServiceActionOutcome, WindowsLocalAppCarrier,
-    WindowsNamedPipeCarrier,
+    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentAuthorization, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind,
+    LocalDevelopmentSummaryAvailability, NimiDesktopControl, NimiHostError,
+    NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
+    NimiProtectedLocalHostCarrier, ProtectedCarrierError, RuntimeServiceActionOutcome,
+    WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
 use serde_json::{json, Value as JsonValue};
 use std::{path::PathBuf, sync::Arc};
@@ -385,6 +386,17 @@ pub async fn desktop_revoke_local_app_grant(
             .revoke_local_app_grant(grant_id)
             .await
             .map(project_local_app_grant)
+    })
+    .await
+}
+
+#[napi(js_name = "desktopGetLocalDevelopmentAuthoritySummary")]
+pub async fn desktop_get_local_development_authority_summary() -> NativeJsonOutcome {
+    invoke_desktop_json(|control| async move {
+        control
+            .get_local_development_authority_summary()
+            .await
+            .map(project_local_development_authority_summary)
     })
     .await
 }

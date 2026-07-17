@@ -311,10 +311,36 @@ describe('Electron local-development protected control', () => {
     approvedAtUnixMs: 1_800_000_000_000,
     updatedAtUnixMs: 1_800_000_000_100,
   };
+  const authoritySummary = {
+    developerMode: {
+      availability: 'available',
+      state: 'enabled',
+      unavailableReason: null,
+    },
+    projectAuthorization: {
+      availability: 'available',
+      activeCount: 1,
+      dormantCount: 2,
+      deniedCount: 3,
+      revokedCount: 4,
+      unavailableReason: null,
+    },
+    grantSummary: {
+      availability: 'unavailable',
+      pendingCount: 0,
+      grantedCount: 0,
+      deniedCount: 0,
+      expiredCount: 0,
+      revokedCount: 0,
+      supersededCount: 0,
+      unavailableReason: 'local-app-operation-unavailable',
+    },
+  };
 
   function binding(overrides: Partial<NimiElectronLocalDevelopmentBinding> = {}): NimiElectronLocalDevelopmentBinding {
     const ok = async (value: unknown) => ({ status: 'ok' as const, value });
     return {
+      desktopGetLocalDevelopmentAuthoritySummary: async () => ok(authoritySummary),
       desktopEvaluateLocalDevelopmentProject: async () => ok({
         evaluationId,
         project,
@@ -367,6 +393,7 @@ describe('Electron local-development protected control', () => {
       workingDirectory: project.canonicalProjectRoot,
     })).resolves.toMatchObject({ processId: 4242 });
     expect(launch).toHaveBeenCalledWith(expect.objectContaining({ authorizationId, supervisorRunId }));
+    await expect(control.getAuthoritySummary()).resolves.toEqual(authoritySummary);
   });
 
   it('rejects malformed native projections before Desktop can create a selector', async () => {
@@ -377,5 +404,24 @@ describe('Electron local-development protected control', () => {
       }),
     }));
     await expect(control.listAuthorizations()).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
+
+  it('rejects malformed or authority-bearing summary projections', async () => {
+    const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
+      desktopGetLocalDevelopmentAuthoritySummary: async () => ({
+        status: 'ok' as const,
+        value: {
+          ...authoritySummary,
+          grantSummary: {
+            ...authoritySummary.grantSummary,
+            grantedCount: 1,
+            grantId: 'forbidden',
+          },
+        },
+      }),
+    }));
+    await expect(control.getAuthoritySummary()).rejects.toMatchObject({
+      reasonCode: 'runtime-service-untrusted',
+    });
   });
 });
