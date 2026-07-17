@@ -22,6 +22,7 @@ import {
   decodeDesktopRuntimeUnaryResponse,
   probeRealRealmBrowserLoginAuthority,
 } from './dev-kernel-cross-app-driver.mjs';
+import { classifyRememberedInitialGrantPosture } from './dev-kernel-local-development-driver.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { readLocalAgentTestArchitecture } from './registry.mjs';
 import { validateArchitecture, validateJourneyRepeatIsolation, validateJourneyResult } from './validation.mjs';
@@ -338,6 +339,23 @@ test('process-mismatch checkpoint distinguishes stale supervised and raw uncarri
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'protected-carrier-required' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'no-grant' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch(null), false);
+});
+
+test('remembered initial grant posture preserves exact revoked history without admitting other terminal states', () => {
+  assert.equal(classifyRememberedInitialGrantPosture({ state: 'session-bound-zero-grant' }), 'session-zero-grant');
+  assert.equal(classifyRememberedInitialGrantPosture({
+    state: 'access-lost',
+    lastError: { reasonCode: 'grant-revoked' },
+  }), 'revoked-grant-history');
+  for (const evidence of [
+    { state: 'error', lastError: { reasonCode: 'grant-revoked' } },
+    { state: 'access-lost', lastError: { reasonCode: 'revoked' } },
+    { state: 'access-lost', lastError: { reasonCode: 'grant-superseded' } },
+    { state: 'access-lost', lastError: { reasonCode: 'account-changed' } },
+    { state: 'runtime-unavailable', lastError: { reasonCode: 'runtime-service-unavailable' } },
+  ]) {
+    assert.equal(classifyRememberedInitialGrantPosture(evidence), null);
+  }
 });
 
 test('project revoke checkpoint requires an attempted selected operation and typed denial', () => {

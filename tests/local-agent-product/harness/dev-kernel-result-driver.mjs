@@ -205,6 +205,11 @@ export async function persistCoreResult(context) {
       processMismatchReason: observations.processMismatch.lastError?.reasonCode,
       grantRevokedReason: observations.grantRevoked.lastError?.reasonCode,
       rememberedApproval: observations.rememberedApproval,
+      rememberedInitialGrantPosture: {
+        posture: observations.rememberedInitialGrantPosture.posture,
+        state: observations.rememberedInitialGrantPosture.evidence.state,
+        reasonCode: observations.rememberedInitialGrantPosture.evidence.lastError?.reasonCode || null,
+      },
       rememberedAuthorization: observations.rememberedAuthorization,
       conversation: {
         anchorId,
@@ -320,8 +325,11 @@ export async function persistCoreResult(context) {
     pass('process-mismatch-denied', processMismatchDenied, { reasonCode: observations.processMismatch.lastError?.reasonCode || null });
     pass('grant-revoked-next-operation-denied', ['grant-revoked', 'revoked'].includes(observations.grantRevoked.lastError?.reasonCode));
     pass('remembered-project-admitted', observations.rememberedApproval.decision === 'allow-remember-project'
+      && ['session-zero-grant', 'revoked-grant-history'].includes(observations.rememberedInitialGrantPosture.posture)
       && observations.rememberedAuthorization.state === 'active'
-      && observations.rememberedAuthorization.persistence === 'remember_project');
+      && observations.rememberedAuthorization.persistence === 'remember_project', {
+      initialGrantPosture: observations.rememberedInitialGrantPosture.posture,
+    });
     pass('runtime-agent-conversation', firstTurn.evidence.eventNames.includes('runtime.agent.turn.completed') && firstTurn.evidence.transcript.length >= 2, { conversationAnchorId: anchorId });
     pass('edit-build-process-replaced', observations.editBuildRestart.preEditRuns[0]?.hostGeneration < observations.editBuildRestart.postEditRuns[0]?.hostGeneration, { buildMarker });
     pass('conversation-resumed-after-process-replacement', observations.editBuildRestart.anchorAfter === anchorId && observations.editBuildRestart.transcriptAfter > observations.editBuildRestart.transcriptBefore, { conversationAnchorId: anchorId });

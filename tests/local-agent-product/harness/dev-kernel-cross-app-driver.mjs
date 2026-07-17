@@ -60,6 +60,7 @@ import {
   startZhiyuDev,
   summarizeProviderRequests,
   waitForRebuiltZhiyu,
+  waitRememberedInitialGrantPosture,
   waitZhiyuEvidence,
 } from './dev-kernel-local-development-driver.mjs';
 import { persistOwnerMinimalResult } from './dev-kernel-result-driver.mjs';
@@ -565,7 +566,10 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     });
     activeZhiyuConnection = zhiyu;
     await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
-    await waitZhiyuEvidence(zhiyu.page, { state: 'session-bound-zero-grant' }, 'remembered zero-grant session');
+    observations.rememberedInitialGrantPosture = await waitRememberedInitialGrantPosture(
+      zhiyu.page,
+      'remembered initial grant posture',
+    );
     observations.rememberedAuthorization = await waitUntil(
       () => readRememberedAuthorization(desktop.page, {
         accountId: fixtureConfig.primaryAccountId,

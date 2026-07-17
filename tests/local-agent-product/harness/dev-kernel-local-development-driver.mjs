@@ -225,6 +225,34 @@ export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_0
   throw new Error(`${label} timed out with evidence: ${JSON.stringify(latest)}`);
 }
 
+export function classifyRememberedInitialGrantPosture(evidence) {
+  if (evidence?.state === 'session-bound-zero-grant') return 'session-zero-grant';
+  if (evidence?.state === 'access-lost' && evidence?.lastError?.reasonCode === 'grant-revoked') {
+    return 'revoked-grant-history';
+  }
+  return null;
+}
+
+export async function waitRememberedInitialGrantPosture(page, label, timeoutMs = 90_000) {
+  const deadline = Date.now() + timeoutMs;
+  let latest = null;
+  while (Date.now() < deadline) {
+    const evidence = await page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
+    latest = evidence ? {
+      state: evidence.state,
+      openPermission: evidence.openPermission,
+      lastError: evidence.lastError,
+    } : null;
+    const posture = classifyRememberedInitialGrantPosture(evidence);
+    if (posture) return { posture, evidence };
+    if (latest?.lastError && ['error', 'access-lost', 'runtime-unavailable'].includes(latest.state)) {
+      throw new Error(`${label} failed with evidence: ${JSON.stringify(latest)}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`${label} timed out with evidence: ${JSON.stringify(latest)}`);
+}
+
 export function projectRuntimeUiEvidence(evidence) {
   return {
     state: evidence?.state || '',
