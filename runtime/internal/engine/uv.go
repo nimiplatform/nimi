@@ -57,6 +57,9 @@ func runCommand(ctx context.Context, dir string, env map[string]string, bin stri
 func runCommandOutput(ctx context.Context, dir string, env map[string]string, bin string, args ...string) (string, error) {
 	commandCtx, cancel := contextWithManagedCommandTimeout(ctx, managedCommandTimeout(args))
 	defer cancel()
+	if err := prepareManagedCommandEnvironment(env); err != nil {
+		return "", err
+	}
 	commandExecutable := managedCommandExecutablePath(bin)
 	commandArguments := managedCommandArguments(args)
 	cmd := exec.CommandContext(commandCtx, commandExecutable, commandArguments...)
@@ -131,9 +134,18 @@ func managedPythonInstallationDir(root string) string {
 	return filepath.Join(parent, "_python-installations")
 }
 
+func managedPythonTempDir(root string) string {
+	parent := filepath.Dir(filepath.Clean(root))
+	return filepath.Join(parent, "_tmp")
+}
+
 func managedPythonRuntimeEnv(root string) map[string]string {
 	parent := filepath.Dir(filepath.Clean(root))
+	tempDir := managedPythonTempDir(root)
 	return map[string]string{
+		"TMP":                    tempDir,
+		"TEMP":                   tempDir,
+		"TMPDIR":                 tempDir,
 		"UV_NO_MODIFY_PATH":      "1",
 		"UV_PYTHON_INSTALL_DIR":  managedPythonInstallationDir(root),
 		"UV_CACHE_DIR":           filepath.Join(parent, "_uv-cache"),
@@ -141,6 +153,31 @@ func managedPythonRuntimeEnv(root string) map[string]string {
 		"UV_LINK_MODE":           "copy",
 		"UV_PROJECT_ENVIRONMENT": "",
 	}
+}
+
+func prepareManagedCommandEnvironment(env map[string]string) error {
+	tempRoots := make([]string, 0, 3)
+	for _, key := range []string{"TMP", "TEMP", "TMPDIR"} {
+		if value := strings.TrimSpace(env[key]); value != "" {
+			tempRoots = append(tempRoots, filepath.Clean(value))
+		}
+	}
+	if len(tempRoots) == 0 {
+		return nil
+	}
+	canonicalRoot := tempRoots[0]
+	if !filepath.IsAbs(canonicalRoot) {
+		return fmt.Errorf("managed command temp root must be absolute: %s", canonicalRoot)
+	}
+	for _, candidate := range tempRoots[1:] {
+		if candidate != canonicalRoot {
+			return fmt.Errorf("managed command temp roots must resolve to one directory")
+		}
+	}
+	if err := os.MkdirAll(canonicalRoot, 0o700); err != nil {
+		return fmt.Errorf("create managed command temp root: %w", err)
+	}
+	return nil
 }
 
 func ensureManagedPythonRuntime(ctx context.Context, uvPath string, root string, version string) (string, string, error) {
