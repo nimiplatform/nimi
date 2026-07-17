@@ -293,22 +293,21 @@ digest, but cannot select or reinterpret either value. Missing platform code
 signing, a service/process mismatch, a replaceable executable object, or a
 signer-policy mismatch fails protected control closed.
 
-On Windows, volume serial, file ID and `WinVerifyTrust` are evaluated against
-the same opened `hFile`; the leaf signing identity must match the installer-owned
-Nimi signer policy. Service-manager identity, service principal selection,
-process/token ACLs, interactive-user relation, and acceptance isolation are not
-code-signing facts; their sole machine-readable authority is the same-OS row in
-`tables/protected-local-runtime-principal-profiles.yaml`. Credential protection
-and key binding remain solely in `tables/protected-local-custody-profiles.yaml`.
-An unadmitted principal profile, same-user daemon, caller-selected service
-definition, or test principal cannot substitute for the selected product row.
+Executable-trust semantics are platform-neutral. The same-OS row in
+`.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml`
+alone selects native running-process targeting, opened-executable identity,
+code-signing verification, signer constraint, executable role, and
+service/launch authority. The verified-transport profile only references that
+row and cannot reinterpret signer or release truth.
 
-On Linux, Runtime opens `/proc/<pid>/exe`, binds device/inode,
-and verifies the package/repository signature identity selected by the signed
-system service definition. On macOS,
-`SecCodeCopyGuestWithAttributes` targets the running process and validates its
-dynamic `SecCode`, designated requirement, Team ID and cdhash. A pathname-only
-`SecStaticCode` claim is insufficient.
+The Windows row is the admitted same-open-`hFile`/volume/file-ID/
+`WinVerifyTrust` behavior. The Linux opened-`/proc/<pid>/exe` package identity
+and macOS running dynamic-`SecCode`/designated-requirement/Team-ID/cdhash
+profiles are requirements-only and remain fail-closed. Pathname-only static
+code, app self-description, an unadmitted profile, or another environment's
+test signer cannot substitute for the selected product row. Service-manager
+identity and process ACLs remain solely in the service-principal profile;
+credential protection and key binding remain solely in the custody profile.
 
 ## K-PLOCAL-006 Desktop Control Session
 

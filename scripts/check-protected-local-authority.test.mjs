@@ -163,6 +163,12 @@ test('portable material and production/test trust conversion remain forbidden', 
   assert.equal(trust.test_runtime_accepts_production_account_custody, false);
   assert.equal(trust.production_runtime_trusts_user_selected_executable, false);
   assert.equal(trust.trust_sets.some((row) => row.trust_set_id === 'nimi-runtime-e2e-fixture-v1'), false);
+  const windowsTrust = trust.platform_verification_profiles.find((row) => row.os === 'windows');
+  const macosTrust = trust.platform_verification_profiles.find((row) => row.os === 'macos');
+  assert.equal(windowsTrust.admission, 'admitted_same_open_object_authenticode');
+  assert.match(windowsTrust.native_release_verification, /WinVerifyTrust/u);
+  assert.equal(macosTrust.admission, 'requirements_only_fail_closed_pending_native_admission');
+  assert.match(macosTrust.native_release_verification, /dynamic_SecCode/u);
 });
 
 test('negative fixtures are independent and cover every stable issue code', () => {

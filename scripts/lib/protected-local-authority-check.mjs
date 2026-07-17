@@ -534,6 +534,10 @@ function validatePortableBoundary(bundle, issues) {
 function validateTrustIsolation(bundle, issues) {
   const trust = parseYaml(bundle, AUTHORITY_PATHS.trust, issues);
   const rows = rowsBy(trust?.trust_sets, 'trust_set_id');
+  const platformProfiles = rowsBy(trust?.platform_verification_profiles, 'os');
+  const windowsProfile = platformProfiles.get('windows');
+  const macosProfile = platformProfiles.get('macos');
+  const neutral = trust?.neutral_contract;
   const required = [
     ['nimi-desktop-production-v1', 'production', 'production_only', true],
     ['nimi-desktop-e2e-fixture-v1', 'non_product_test', 'test_only', false],
@@ -567,14 +571,19 @@ function validateTrustIsolation(bundle, issues) {
       'app_manifest',
       'user_writable_config',
     ])
-    || trust?.platform_native_release_verification?.same_open_object_required !== true
-    || trust?.platform_native_release_verification?.caller_selected_path_release_or_policy !== 'forbidden'
-    || trust?.platform_native_release_verification?.peer_owned_release_generation !== 'forbidden'
+    || neutral?.same_open_object_required !== true
+    || neutral?.caller_selected_path_release_or_policy !== 'forbidden'
+    || neutral?.peer_owned_release_generation !== 'forbidden'
+    || windowsProfile?.admission !== 'admitted_same_open_object_authenticode'
+    || windowsProfile?.client_executable_verification !== 'same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy'
+    || windowsProfile?.server_executable_verification !== 'same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy_and_service_sid'
+    || macosProfile?.admission !== 'requirements_only_fail_closed_pending_native_admission'
+    || !String(macosProfile?.native_release_verification ?? '').includes('dynamic_SecCode_designated_requirement_team_id_cdhash')
   ) {
     issues.push(issue(
       'TRUST_SET_ISOLATION_REQUIRED',
       AUTHORITY_PATHS.trust,
-      'Production/test trust rows, Runtime custody/endpoints, native same-object verification, and configuration selection must remain structurally isolated.',
+      'Production/test trust rows, Runtime custody/endpoints, same-OS native same-object verification, and configuration selection must remain structurally isolated.',
     ));
   }
 }

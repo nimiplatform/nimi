@@ -1,4 +1,4 @@
-version: 1
+version: 2
 table_family: product_catalog
 owner: platform
 catalog_id: platform_protected_local_executable_trust_sets
@@ -10,11 +10,14 @@ entries:
   - nimi-desktop-control-carrier-e2e-fixture-v1
   - nimi-production-release-signing-policy
   - external-non-product-e2e-signing-policy
-description: Platform-owned bidirectional executable trust rows consumed by Runtime and protected Desktop carriers.
+description: Platform-neutral bidirectional executable-trust semantics plus closed OS code-signing profiles and trust rows.
 authority_refs: [P-NAPP-034, K-PLOCAL-003, K-PLOCAL-005]
 platform_admission:
   closeout_unit: os_platform
   independent_admission_allowed: true
+  windows: admitted_same_open_object_authenticode
+  linux: requirements_only_fail_closed_pending_native_admission
+  macos: requirements_only_fail_closed_pending_native_admission
   unadmitted_platform_disposition: fail_closed
   cross_platform_parity_required_before_first_platform_positive_chain: false
 trust_set_schema:
@@ -36,38 +39,82 @@ signer_policy_schema:
     - signer_policy_id
     - environment
     - identity_authority
-    - platform_native_constraints
+    - platform_verification_profile_ref
     - key_material_boundary
     - runtime_build_allowance
     - source_rule
-platform_native_release_verification:
-  windows: connected_process_same_open_hfile_plus_WinVerifyTrust_and_installer_owned_Nimi_signer_policy
-  macos: connected_process_audit_token_plus_dynamic_SecCode_designated_requirement_team_id_cdhash_and_notarized_installer
-  linux: connected_process_proc_exe_fd_device_inode_plus_signed_package_repository_identity_and_system_service_definition
+neutral_contract:
+  verification_direction: bidirectional_runtime_and_client_carrier
+  process_and_executable_binding: same_running_process_and_same_open_executable_object
+  executable_role_binding: required
+  service_or_launch_authority_binding: required
+  trust_set_and_signer_policy_binding: required
   caller_selected_path_release_or_policy: forbidden
   peer_owned_release_generation: forbidden
   custom_peer_release_record: absent
   update_and_rollback_authority: signed_installer_package_manager_or_service_updater
   immutable_app_release_digest_authority: opaque_0K_slot_unavailable_for_positive_launch_until_0P
   same_open_object_required: true
+  unavailable_disposition: fail_closed_before_protocol_or_credential_bytes
+platform_verification_profile_schema:
+  fields:
+    - os
+    - admission
+    - native_release_verification
+    - client_executable_verification
+    - server_executable_verification
+    - production_signer_constraint
+    - non_product_test_signer_constraint
+    - service_or_launch_authority
+    - pathname_only_verification
+    - verified_transport_profile_ref
+    - source_rule
+platform_verification_profiles:
+  - os: windows
+    admission: admitted_same_open_object_authenticode
+    native_release_verification: connected_process_same_open_hfile_plus_WinVerifyTrust_and_installer_owned_Nimi_signer_policy
+    client_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy
+    server_executable_verification: same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy_and_service_sid
+    production_signer_constraint: exact_authenticode_publisher_leaf_certificate_and_executable_role
+    non_product_test_signer_constraint: exact_non_product_fixture_certificate_and_executable_role
+    service_or_launch_authority: signed_installer_fixed_service_definition_or_signed_desktop_launch_registration
+    pathname_only_verification: forbidden
+    verified_transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#same-os
+    source_rule: K-PLOCAL-005
+  - os: linux
+    admission: requirements_only_fail_closed_pending_native_admission
+    native_release_verification: connected_process_proc_exe_fd_device_inode_plus_signed_package_repository_identity_and_system_service_definition
+    client_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
+    server_executable_verification: opened_proc_pid_exe_fd_device_inode_platform_package_signing_identity
+    production_signer_constraint: exact_signed_package_repository_identity_and_executable_role
+    non_product_test_signer_constraint: exact_non_product_fixture_release_digest_and_executable_role
+    service_or_launch_authority: signed_system_package_service_definition_or_signed_desktop_carrier_launch
+    pathname_only_verification: forbidden
+    verified_transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#same-os
+    source_rule: K-PLOCAL-005
+  - os: macos
+    admission: requirements_only_fail_closed_pending_native_admission
+    native_release_verification: connected_process_audit_token_plus_dynamic_SecCode_designated_requirement_team_id_cdhash_and_notarized_installer
+    client_executable_verification: running_process_dynamic_SecCode_designated_requirement_team_id_cdhash
+    server_executable_verification: running_runtime_dynamic_SecCode_designated_requirement_team_id_cdhash
+    production_signer_constraint: exact_designated_requirement_team_id_cdhash_notarization_and_executable_role
+    non_product_test_signer_constraint: exact_non_product_designated_requirement_team_id_cdhash_and_executable_role
+    service_or_launch_authority: signed_installer_launchd_system_daemon_or_signed_desktop_application_registration
+    pathname_only_verification: forbidden
+    verified_transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#same-os
+    source_rule: K-PLOCAL-005
 signer_policies:
   - signer_policy_id: nimi-production-release-signing-policy
     environment: production
     identity_authority: nimi_production_release_signing_identity
-    platform_native_constraints:
-      windows: exact_authenticode_publisher_leaf_certificate_and_executable_role
-      linux: exact_signed_package_repository_identity_and_executable_role
-      macos: exact_designated_requirement_team_id_cdhash_notarization_and_executable_role
+    platform_verification_profile_ref: platform_verification_profiles#same-os
     key_material_boundary: production_release_signing_service_only
     runtime_build_allowance: production_only
     source_rule: P-NAPP-034
   - signer_policy_id: external-non-product-e2e-signing-policy
     environment: non_product_test
     identity_authority: external_ephemeral_e2e_fixture_identity
-    platform_native_constraints:
-      windows: exact_non_product_fixture_certificate_and_executable_role
-      linux: exact_non_product_fixture_release_digest_and_executable_role
-      macos: exact_non_product_designated_requirement_team_id_cdhash_and_executable_role
+    platform_verification_profile_ref: platform_verification_profiles#same-os
     key_material_boundary: external_test_secret_store_only
     runtime_build_allowance: test_only
     source_rule: P-NAPP-034

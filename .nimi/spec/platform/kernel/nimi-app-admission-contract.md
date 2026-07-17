@@ -712,12 +712,15 @@ Immutable positive package behavior remains unavailable until 0P.
 
 ## P-NAPP-034 — Protected Local-app Launch Boundary
 
-Windows positive third-party sessions require the fixed Runtime service,
-Runtime-derived `local_app_control`, `PrepareLocalAppLaunch`, native
-peer/process/executable proof, exact principal/record/provenance/generation,
-account context, and the current boot epoch. The launch lease is necessary but
-not durable identity and never enters renderer/app state. A shortcut invokes
-the verified Nimi/Desktop launcher; it never points at raw app code.
+Positive third-party sessions on an admitted platform profile require the
+same-OS fixed Runtime service, Runtime-derived `local_app_control`,
+`PrepareLocalAppLaunch`, native peer/process/executable proof, exact
+principal/record/provenance/generation, account context, and the current boot
+epoch. The launch lease is necessary but not durable identity and never enters
+renderer/app state. A shortcut invokes the verified Nimi launcher selected by
+the admitted launch profile; it never points at raw app code. Windows is the
+current admitted positive row. macOS and Linux remain requirements-only and
+fail closed until their complete native chains are independently admitted.
 
 Desktop is the current protected launcher implementation, not the principal or
 semantic owner. Public names are host-neutral. Ordinary gRPC, endpoint/env
@@ -740,7 +743,8 @@ control remains unchanged and Desktop-specific.
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
+  - `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
+  - `.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml`
 - `.nimi/spec/platform/kernel/kit-contract.md` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — `D-SHELL-038`
 - `.nimi/spec/desktop/kernel/tables/local-app-launch-hosts.yaml`
