@@ -76,7 +76,7 @@ func verifyPythonImportProbe(ctx context.Context, venvRoot string, interpreterPa
 		ctx,
 		trimmedVenvRoot,
 		managedPythonRuntimeEnv(trimmedVenvRoot),
-		interpreterPath,
+		managedCommandPreferredPath(interpreterPath),
 		"-c", "import "+module,
 	)
 	if err != nil {

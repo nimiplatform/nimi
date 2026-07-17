@@ -325,8 +325,23 @@ func TestEnsureSpeechRefreshesRuntimeOwnedSpeechScripts(t *testing.T) {
 		t.Fatalf("stage stale speech asr driver: %v", err)
 	}
 
-	if _, err := ensureSpeech(context.Background(), t.TempDir(), cfg); err != nil {
+	ready, err := ensureSpeech(context.Background(), t.TempDir(), cfg)
+	if err != nil {
 		t.Fatalf("ensureSpeech rejected refreshable runtime-owned scripts: %v", err)
+	}
+	if ready.BinaryPath != pythonPath {
+		t.Fatalf("speech canonical binary path = %q, want %q", ready.BinaryPath, pythonPath)
+	}
+	if got := supervisorCommandExecutablePath(ready); got != managedPythonLaunchPath(root) {
+		t.Fatalf("speech launch path = %q, want %q", got, managedPythonLaunchPath(root))
+	}
+	for key, want := range map[string]string{
+		"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD": speechDriverCommand(root, SpeechQwen3TTSDriverPath),
+		"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD": speechDriverCommand(asrRoot, SpeechQwen3ASRDriverPath),
+	} {
+		if got := ready.CommandEnv[key]; got != want {
+			t.Fatalf("%s = %q, want %q", key, got, want)
+		}
 	}
 	for _, tc := range []struct {
 		path string

@@ -45,6 +45,10 @@ func managedPythonPath(root string) string {
 	return filepath.Join(managedBinDir(root), executableName("python"))
 }
 
+func managedPythonLaunchPath(root string) string {
+	return managedCommandPreferredPath(managedPythonPath(root))
+}
+
 func managedUVPath(root string) string {
 	return filepath.Join(root, executableName("uv"))
 }

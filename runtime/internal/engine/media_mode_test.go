@@ -38,6 +38,36 @@ func TestEnsureMediaDoesNotMaterializeHiddenDependencies(t *testing.T) {
 	}
 }
 
+func TestEnsureMediaKeepsCanonicalPathAndUsesManagedPythonLaunchPath(t *testing.T) {
+	baseDir := t.TempDir()
+	cfg := DefaultMediaConfig()
+	cfg.MediaMode = MediaModePipelineSupervised
+	root := engineVersionDir(baseDir, EngineMedia, cfg.Version)
+	pythonPath := managedPythonPath(root)
+	if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(pythonPath, []byte("python"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "media_server.py"), []byte("print('ready')\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ready, err := ensureMedia(context.Background(), baseDir, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ready.BinaryPath != pythonPath {
+		t.Fatalf("media canonical binary path = %q, want %q", ready.BinaryPath, pythonPath)
+	}
+	if got := supervisorCommandExecutablePath(ready); got != managedPythonLaunchPath(root) {
+		t.Fatalf("media launch path = %q, want %q", got, managedPythonLaunchPath(root))
+	}
+	if ready.WorkingDir != root {
+		t.Fatalf("media canonical working root = %q, want %q", ready.WorkingDir, root)
+	}
+}
+
 func TestResolveConfiguredMediaModeRejectsSelectionMismatch(t *testing.T) {
 	selection := ImageSupervisedMatrixSelection{
 		Matched:        true,

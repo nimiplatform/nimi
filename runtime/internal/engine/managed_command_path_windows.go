@@ -10,6 +10,10 @@ import (
 const windowsLegacyMaxPath = 260
 
 func managedCommandEnvironmentValue(value string) string {
+	return managedCommandPreferredPath(value)
+}
+
+func managedCommandPreferredPath(value string) string {
 	cleaned := filepath.Clean(strings.TrimSpace(value))
 	if cleaned == "." || !filepath.IsAbs(cleaned) || strings.HasPrefix(cleaned, `\\?\`) {
 		return value
