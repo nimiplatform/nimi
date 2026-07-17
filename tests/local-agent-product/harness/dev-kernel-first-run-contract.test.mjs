@@ -39,7 +39,7 @@ function narrow() {
 
 function validObservation() {
   const candidateId = `dev-kernel-runtime-${'a'.repeat(32)}`;
-  const proposalPath = `C:\\Users\\tester\\AppData\\Local\\Nimi\\dev-kernel-checkpoint\\acceptance-runs\\dev-kernel-checkpoint\\${candidateId}\\Nimi`;
+  const proposalPath = `C:\\Users\\tester\\AppData\\Local\\Nimi\\dev-kernel-checkpoint\\${candidateId}\\Nimi`;
   return {
     serviceBefore: status(100),
     electronHost: { basename: 'Nimi Desktop Runtime.exe', signatureStatus: 'Valid' },
