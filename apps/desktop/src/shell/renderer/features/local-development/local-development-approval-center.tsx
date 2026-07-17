@@ -18,6 +18,7 @@ import {
   type LocalDevelopmentApproval,
   type LocalDevelopmentDecision,
 } from './local-development-bridge.js';
+import { isRiskAcknowledgedForApproval } from './local-development-approval-state.js';
 
 export function LocalDevelopmentApprovalCenter() {
   const { t } = useTranslation();
@@ -25,9 +26,13 @@ export function LocalDevelopmentApprovalCenter() {
   const [approvals, setApprovals] = useState<LocalDevelopmentApproval[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [riskAcknowledged, setRiskAcknowledged] = useState(false);
+  const [riskAcknowledgedRequestId, setRiskAcknowledgedRequestId] = useState('');
   const approval = approvals[0] ?? null;
   const reactivation = approval?.approvalState === 'dormant';
+  const riskAcknowledged = isRiskAcknowledgedForApproval(
+    riskAcknowledgedRequestId,
+    approval?.requestId,
+  );
 
   const refresh = useCallback(async () => {
     if (!localDevelopmentBridgeAvailable()) return;
@@ -156,7 +161,9 @@ export function LocalDevelopmentApprovalCenter() {
             disabled={busy}
             data-testid="local-development-native-risk-ack"
             className="mt-1 h-4 w-4 shrink-0 accent-[var(--nimi-action-primary-bg)]"
-            onChange={(event) => setRiskAcknowledged(event.currentTarget.checked)}
+            onChange={(event) => setRiskAcknowledgedRequestId(
+              event.currentTarget.checked ? approval.requestId : '',
+            )}
           />
           <span>{t('LocalDevelopment.approval.nativeRiskAcknowledgement')}</span>
         </label>
