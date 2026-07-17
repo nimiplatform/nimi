@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -7,6 +8,11 @@ import {
   validateFixedServiceSmokeObservation,
   validateFixedServiceStatus,
 } from './dev-kernel-fixed-service-contract.mjs';
+
+const fixedServiceSmokeSource = readFileSync(
+  new URL('./run-fixed-service-smoke.mjs', import.meta.url),
+  'utf8',
+);
 
 function validStatus(pid) {
   return {
@@ -45,6 +51,14 @@ function validObservedPages() {
 
 test('fixed-service status contract admits the signed source-bound checkpoint shape', () => {
   assert.deepEqual(validateFixedServiceStatus(validStatus(100)), []);
+});
+
+test('fixed-service smoke binds the diagnostic carrier to the current source state', () => {
+  assert.match(fixedServiceSmokeSource, /const sourceState = captureSourceState\(repoRoot\)/u);
+  assert.match(
+    fixedServiceSmokeSource,
+    /NIMI_LOCAL_AGENT_PRODUCT_SOURCE_DIGEST:\s*sourceState\.sourceDigest/u,
+  );
 });
 
 test('fixed-service status contract rejects service identity and candidate drift', () => {
