@@ -7,6 +7,7 @@ import { checkMode, repoRoot, relPath } from './context.mjs';
 const targetRelativeDir = 'sdks/typescript/core-generated/runtime-protobuf';
 const targetDir = path.join(repoRoot, targetRelativeDir);
 const localNodeBinDir = path.join(repoRoot, 'node_modules', '.bin');
+const requiredBufVersion = '1.70.0';
 
 function pathEnvKey() {
   if (process.platform !== 'win32') {
@@ -22,6 +23,29 @@ function envWithLocalNodeBin() {
     ...process.env,
     [key]: current ? `${localNodeBinDir}${path.delimiter}${current}` : localNodeBinDir,
   };
+}
+
+function assertDeterministicBufVersion() {
+  const result = spawnSync('buf', ['--version'], {
+    cwd: path.join(repoRoot, 'proto'),
+    env: envWithLocalNodeBin(),
+    encoding: 'utf8',
+    stdio: 'pipe',
+    shell: process.platform === 'win32',
+  });
+  if ((result.status ?? 1) !== 0) {
+    throw new Error([
+      `Buf ${requiredBufVersion} is required for deterministic Runtime protobuf generation`,
+      result.stdout,
+      result.stderr,
+    ].filter(Boolean).join('\n'));
+  }
+  const actual = String(result.stdout || '').trim();
+  if (actual !== requiredBufVersion) {
+    throw new Error(
+      `Buf version mismatch for deterministic Runtime protobuf generation: expected ${requiredBufVersion}, got ${actual || '<empty>'}`,
+    );
+  }
 }
 
 function listGeneratedTsFiles(rootDir) {
@@ -122,6 +146,10 @@ function compareSnapshots(expected, actual) {
 }
 
 export function writeTypescriptRuntimeProtobuf() {
+  // Buf embeds its protobuf well-known-type sources in the generated output.
+  // Validate the exact toolchain before creating a check directory or deleting
+  // the tracked target so a mismatched Buf cannot partially rewrite artifacts.
+  assertDeterministicBufVersion();
   if (checkMode) {
     const expectedDir = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdks-runtime-protobuf-check-'));
     try {

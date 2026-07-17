@@ -449,8 +449,17 @@ jobs:
           cache: pnpm
           cache-dependency-path: package.json
 
+      - name: Setup Go for deterministic Buf
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: '1.26.4'
+          cache: false
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+
+      - name: Install deterministic Buf CLI
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
 
       - name: Build SDK
         run: pnpm build:sdk
@@ -506,7 +515,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Install Buf CLI
-        run: go install github.com/bufbuild/buf/cmd/buf@v1.66.1
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
 
       - name: Runtime compliance
         working-directory: runtime

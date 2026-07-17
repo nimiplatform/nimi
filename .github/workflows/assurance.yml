@@ -159,7 +159,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Install Buf CLI
-        run: go install github.com/bufbuild/buf/cmd/buf@v1.66.1
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
 
       # >>> nimi-release-gate-projection: release-target-proto-checks >>>
       - name: gate.proto.baseline-exists

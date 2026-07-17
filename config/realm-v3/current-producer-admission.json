@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "nimi.realm-current-producer-admission/v1",
+  "repository": "https://github.com/nimiplatform/nimi-realm.git",
+  "admittedCommit": "7b9b4c027ee2093e0914490d6de4f62fed0dfc82",
+  "admittedTree": "1be77fc3387bfced8c66568498fa0ec70623acf6",
+  "headPolicy": "descendant_with_identical_admitted_inputs",
+  "semanticFiles": [
+    {
+      "path": ".nimi/spec/realm/kernel/core-contract.md",
+      "sha256": "97f61e0a168d9ae8573d593285e1c42daa54d97de0a0ee7a89507c6b4d4b53d6"
+    },
+    {
+      "path": ".nimi/spec/realm/kernel/tables/core-contract.yaml",
+      "sha256": "8dc13855d5e4371a1cdb02bdd23145d72ba68e28fdce5b5a1b003099ff057e57"
+    },
+    {
+      "path": "config/nimi-runtime-materialization-requirements.json",
+      "sha256": "f261c4ba22ca2fd8950d8ff18ba5dc21eae1ac5e6c0a44f61c4ee77cbc2a0acd"
+    }
+  ],
+  "openapi": {
+    "path": "nimi-backend/api-nimi.yaml",
+    "sha256": "09f7b84bf7a1cd7a46a4dee6942f3c1bdbd46296616fecd85fa80c02e070596d",
+    "fragmentSchemaVersion": "nimi.realm-openapi-source-materialization-fragment/v1",
+    "fragmentSha256": "94e6dc43101a87ee717f5c00e5978091562db33b4878136161c976ab31ecb1af",
+    "componentSchemaCount": 41,
+    "componentSchemaNames": [
+      "CharacterProfileCoreDto",
+      "CharacterSourceRefV3Dto",
+      "CreateSourceMaterializationPacketV3Dto",
+      "MaterializationClosureSetManifestV3Dto",
+      "MaterializationClosureSetSegmentRefV3Dto",
+      "MaterializationComponentDigestV3Dto",
+      "MaterializationContextV3Dto",
+      "MaterializationCoverageComponentV3Dto",
+      "MaterializationCoverageManifestV3Dto",
+      "MaterializationCrossReferenceCheckV3Dto",
+      "MaterializationDependencyRefV3Dto",
+      "MaterializationOptionalRefV3Dto",
+      "MaterializationRequiredRefV3Dto",
+      "MaterializationRequiredSectionV3Dto",
+      "MaterializationSegmentChunkDescriptorV3Dto",
+      "MaterializationSegmentLimitsV3Dto",
+      "MaterializationSegmentManifestComponentV3Dto",
+      "MaterializationSegmentManifestV3Dto",
+      "PersonaCharacterCoreDto",
+      "PersonaCharacterDependencyClosureV3Dto",
+      "PersonaCharacterMaterializationPayloadV3Dto",
+      "PersonaCharacterSourceRefV3Dto",
+      "ProfileCoverageManifestV1Dto",
+      "ReadinessBlockerDto",
+      "ReadinessResultDto",
+      "RealmCoreOriginDto",
+      "SourceMaterializationComponentV3Dto",
+      "SourceMaterializationPacketProofV3Dto",
+      "SourceMaterializationPacketV3Dto",
+      "SourceMaterializationPublishedLimitsDto",
+      "SourceMaterializationSegmentV3Dto",
+      "ValidityIssueDto",
+      "ValidityResultDto",
+      "WorldCharacterCoreDto",
+      "WorldCharacterDependencyClosureV3Dto",
+      "WorldCharacterMaterializationPayloadV3Dto",
+      "WorldCharacterSourceRefV3Dto",
+      "WorldCoreDto",
+      "WorldEntityCoreDto",
+      "WorldEntityRefDto",
+      "WorldRelationshipCoreDto"
+    ],
+    "operationId": "WorldCoreController_createSourceMaterializationPacket",
+    "pathTemplate": "/api/realm/core/source-materialization-packets",
+    "method": "post",
+    "operationCount": 208,
+    "operationInventoryCanonicalization": "operation_id_utf16_sorted_canonical_json_v1",
+    "operationInventorySha256": "ae99bfcb9e0b96827c93516431819b691382d7720b0bae614b4d7eb12b2021df"
+  },
+  "schemaVersions": {
+    "packet": "realm.source-materialization-packet/v3",
+    "materializationContext": "realm.materialization-context/v3",
+    "coverageManifest": "realm.materialization-coverage/v3",
+    "segmentManifest": "realm.materialization-segment-manifest/v3",
+    "closureSetManifest": "realm.materialization-closure-set-manifest/v3",
+    "payloadAssembly": "realm.materialization-assembly/v3"
+  },
+  "sourceRef": {
+    "schema": "CharacterSourceRefV3Dto",
+    "discriminator": "kind",
+    "kinds": [
+      "worldCharacter",
+      "personaCharacter"
+    ],
+    "branches": {
+      "worldCharacter": "WorldCharacterSourceRefV3Dto",
+      "personaCharacter": "PersonaCharacterSourceRefV3Dto"
+    },
+    "requiredFields": {
+      "worldCharacter": [
+        "kind",
+        "id",
+        "worldId",
+        "worldEntityRef",
+        "sourceHash"
+      ],
+      "personaCharacter": [
+        "kind",
+        "id",
+        "worldId",
+        "ownerAccountId",
+        "sourceHash"
+      ]
+    }
+  },
+  "publishedLimits": {
+    "maxSegmentBytes": 8388608,
+    "maxSegmentComponentCount": 256,
+    "maxSegmentChunks": 4096,
+    "maxChunkBytes": 262144,
+    "maxSetSegments": 64,
+    "maxSetBytes": 134217728,
+    "maxSetComponentCount": 16384,
+    "maxSetChunks": 65536
+  },
+  "compactVectors": [
+    {
+      "path": "scripts/realm-materialization/vectors/reference-packet-v3/world-character.json",
+      "sha256": "314a16538aeea5ec88257ed6ff48647bd6cebc781cd4063b20c58c7f97e44030"
+    },
+    {
+      "path": "scripts/realm-materialization/vectors/reference-packet-v3/persona-character.json",
+      "sha256": "bba2d1c192d3f530cb4ac5711a0434766190501dfed6b8f1857a04c10cc44d9f"
+    },
+    {
+      "path": "scripts/realm-materialization/vectors/reference-packet-v3/negative-mutations.json",
+      "sha256": "aad920d9269fdd05efa12f50a535c92b9289dca22f4804ff5bd47184914ef4ba"
+    }
+  ],
+  "closureManifest": {
+    "path": ".nimi/local/audit/0716-realm-fullchain-materialization/FC8/20260717T015300Z-1c66ac4c-final/realm-fullchain-closure-manifest.json",
+    "schemaVersion": "realm.fullchain-closure-manifest/v1",
+    "sha256": "8fe4e4c1c802c96ab5a8dcfbac26c91b4f27cf393b9ccbdfe03e671daed3a725",
+    "contentHash": "b418232759e849b60f516aa94e21d903ffdf754e6295f30925c2fe4124ad04c2"
+  },
+  "handoff": {
+    "path": ".nimi/local/audit/0716-realm-fullchain-materialization/FC8/20260717T015300Z-1c66ac4c-final/nimi-runtime-v3-adaptation-handoff.json",
+    "schemaVersion": "realm.nimi-runtime-v3-adaptation-handoff/v1",
+    "sha256": "f705dee7143f9270dcc886646dd25f917296e6c08b695bc861f24c73b9e92a60",
+    "contentHash": "9148b0094c6573b51ce0d24e9c71174c141016041ea1d25c0a94a176406e4b7e",
+    "consumerSideActions": 28,
+    "realmSideActions": 0,
+    "unmappedMandatoryInputs": 0
+  }
+}
