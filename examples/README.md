@@ -61,7 +61,7 @@ What each file demonstrates:
 
 Advanced examples live under `examples/sdk/advanced/`:
 
-- `app-auth.ts`: app authorization lifecycle
+- `app-auth.ts`: renderer-local zero-grant → exact operation request → Desktop approval → Runtime owner enforcement
 - `knowledge.ts`: private knowledge bank/page CRUD + keyword search
 - `custom-runtime.ts`: explicit transport + provider wiring
 

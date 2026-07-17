@@ -72,6 +72,8 @@ Runtime 重启后，旧 session、launch lease 与 scoped binding 失效；同�
 
 First Run、owner-minimal、fresh-prepared journey 与 `check:zhiyu-bootstrap` 不是调试启动器。它们要求干净 tracked 树与无 carrier 进程，旧 candidate 的证据不能关闭新 candidate。
 
+运行 owner-minimal、fresh First Run 或完整 core journey 前，需求方维护的 Realm 必须以测试专用策略从 `D:\nimi-realm` 重启；四项环境必须同时成立：`NIMI_REALM_TEST_POLICY=dev_kernel_checkpoint`、`NODE_ENV=development`、`HOST=127.0.0.1`、`CORS_ORIGINS=http://localhost:3000`。该策略只允许回环访问；`GET http://localhost:3002/api/auth/dev-kernel-policy` 必须返回 HTTP 200，缺失或非 200 时 harness fail-closed，不得在 Nimi 侧补固定策略或 fallback。
+
 ## 第三方 App 接入 local development 清单
 
 ### Manifest
