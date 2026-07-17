@@ -186,7 +186,8 @@ export type { CatalogModelDetail, CatalogOverlayWarning, CatalogPricing, Catalog
 
 // --- Realm type family ------------------------------------------------------
 export type { RealmHumanChatModule, NimiRealmAuthTokens, NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
-export type { RealmModel, RealmTypedClient } from '@nimiplatform/sdk/realm/generated';
+export type { RealmPublicGeneratedClient } from '@nimiplatform/sdk/realm';
+export type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 export {
   NIMI_REALM_OAUTH_LOGIN_STATE,
   NIMI_REALM_OAUTH_PROVIDER,

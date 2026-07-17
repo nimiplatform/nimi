@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { CoreClient, type CoreTransport } from '../core-client';
+import type { CoreTransport } from '../core-client';
 import type {
   GetRuntimeHealthResponse,
   StreamScenarioEvent,
@@ -203,12 +203,24 @@ test('Runtime fails closed on incompatible Runtime major version metadata', asyn
   assert.equal(runtime.versionCompatibility().reason, 'major_mismatch');
 });
 
-test('Runtime facade keeps low-level generated core explicit and high-level deferred promises absent', async () => {
+test('Runtime facade exposes only bounded generated operations and no raw core bypass', async () => {
   const transport = new FakeRuntimeTransport();
-  const core = new CoreClient({ transport });
-  const runtime = new Runtime(core);
+  const runtime = new Runtime({ transport });
+  const generated = runtime.generated as unknown as Record<string, unknown>;
 
-  assert.equal(runtime.unsafeRawTransport(), transport);
+  assert.equal('core' in runtime, false);
+  assert.equal('unsafeRawTransport' in runtime, false);
+  assert.equal(Object.getPrototypeOf(runtime.generated), null);
+  assert.equal(Object.isFrozen(runtime.generated), true);
+  for (const privateMethod of [
+    'createSourceMaterializationChallenge',
+    'beginSourceMaterializationUpload',
+    'putSourceMaterializationChunk',
+    'commitSourceMaterialization',
+    'abortSourceMaterializationUpload',
+  ]) {
+    assert.equal(privateMethod in generated, false);
+  }
   assert.equal('generate' in runtime, false);
   assert.equal('stream' in runtime, false);
   assert.equal('workflow' in runtime, false);

@@ -42662,41 +42662,9 @@ pub struct BundleListDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct BundleManifestChunkDescriptorV1Dto {
-    pub chunk_sha256: String,
-    pub component_offset: f64,
-    pub global_ordinal: f64,
-    pub length: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BundleManifestComponentV1Dto {
-    pub canonical_byte_length: f64,
-    pub canonical_bytes_hash: String,
-    pub component_id: String,
-    pub content_hash: String,
-    pub kind: String,
-    pub revision: f64,
-    pub schema_version: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BundleMemberDto {
     pub asset_id: String,
     pub sort_order: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BundleTransportManifestV1Dto {
-    pub challenge_digest: String,
-    pub chunk_count: f64,
-    pub chunks: Vec<BundleManifestChunkDescriptorV1Dto>,
-    pub component_count: f64,
-    pub components: Vec<BundleManifestComponentV1Dto>,
-    pub manifest_schema_version: String,
-    pub packet_id: String,
-    pub payload_assembly_version: String,
-    pub total_canonical_bytes: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -42713,6 +42681,196 @@ pub struct ChangeEmailDto {
     pub email_otp_code: String,
     pub new_email: String,
     pub password: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDto {
+    pub assets: Box<CharacterProfileCoreDtoAssets>,
+    pub authoring: Box<CharacterProfileCoreDtoAuthoring>,
+    pub capabilities: Box<CharacterProfileCoreDtoCapabilities>,
+    pub identity: Box<CharacterProfileCoreDtoIdentity>,
+    pub interaction_profile: Box<CharacterProfileCoreDtoInteractionProfile>,
+    pub knowledge: Box<CharacterProfileCoreDtoKnowledge>,
+    pub narrative: Box<CharacterProfileCoreDtoNarrative>,
+    pub presentation: Box<CharacterProfileCoreDtoPresentation>,
+    pub profile_coverage: Box<ProfileCoverageManifestV1Dto>,
+    pub profile_hash: String,
+    pub profile_schema_version: String,
+    pub psychology: Box<CharacterProfileCoreDtoPsychology>,
+    pub relationships: Vec<CharacterProfileCoreDtoRelationshipsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoAssets {
+    pub external_refs: Vec<CharacterProfileCoreDtoAssetsExternalRefsItem>,
+    pub intents: Vec<CharacterProfileCoreDtoAssetsIntentsItem>,
+    pub resource_refs: Vec<CharacterProfileCoreDtoAssetsResourceRefsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoAssetsExternalRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+    pub uri: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoAssetsIntentsItem {
+    pub intent_id: String,
+    pub kind: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoAssetsResourceRefsItem {
+    pub kind: String,
+    pub label: String,
+    pub purpose: String,
+    pub ref_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoAuthoring {
+    pub extensions: BTreeMap<String, String>,
+    pub notes: Vec<String>,
+    pub source: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty {
+    pub extension_schema_version: String,
+    pub fields: BTreeMap<String, String>,
+    pub namespace: String,
+    pub product_semantic: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoCapabilities {
+    pub tools: Vec<CharacterProfileCoreDtoCapabilitiesToolsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoCapabilitiesToolsItem {
+    pub name: String,
+    pub summary: String,
+    pub tool_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoIdentity {
+    pub aliases: Vec<String>,
+    pub handle: String,
+    pub name: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoInteractionProfile {
+    pub cadence: String,
+    pub dialogue_exemplars: Vec<CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem>,
+    pub greeting: String,
+    pub greeting_variants: Vec<String>,
+    pub interaction_modes: Vec<String>,
+    pub scenario: String,
+    pub tone: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem {
+    pub character: String,
+    pub exemplar_id: String,
+    pub user: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoKnowledge {
+    pub constraints: Vec<String>,
+    pub topics: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoNarrative {
+    pub archetype: String,
+    pub milestones: Vec<CharacterProfileCoreDtoNarrativeMilestonesItem>,
+    pub summary: String,
+    pub traits: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoNarrativeMilestonesItem {
+    pub milestone_id: String,
+    pub sequence: f64,
+    pub summary: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoPresentation {
+    pub avatar_resource_ref: String,
+    pub display_name: String,
+    pub profile_cover_resource_ref: String,
+    pub profile_line: String,
+    pub short_bio: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoPsychology {
+    pub boundaries: Vec<String>,
+    pub drives: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoRelationshipsItem {
+    pub relation_type: String,
+    pub relationship_id: String,
+    pub summary: String,
+    pub target_ref: Box<CharacterProfileCoreDtoRelationshipsItemTargetRef>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoRelationshipsItemTargetRef {
+    pub entity_id: String,
+    pub kind: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreInputDto {
+    pub assets: BTreeMap<String, String>,
+    pub authoring: BTreeMap<String, String>,
+    pub capabilities: BTreeMap<String, String>,
+    pub identity: BTreeMap<String, String>,
+    pub interaction_profile: BTreeMap<String, String>,
+    pub knowledge: BTreeMap<String, String>,
+    pub narrative: BTreeMap<String, String>,
+    pub presentation: BTreeMap<String, String>,
+    pub profile_schema_version: String,
+    pub psychology: BTreeMap<String, String>,
+    pub relationships: Vec<BTreeMap<String, String>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CharacterSourceRefV3Dto {
+    WorldCharacterSourceRefV3(Box<WorldCharacterSourceRefV3Dto>),
+    PersonaCharacterSourceRefV3(Box<PersonaCharacterSourceRefV3Dto>),
+}
+
+impl Default for CharacterSourceRefV3Dto {
+    fn default() -> Self {
+        Self::WorldCharacterSourceRefV3(Box::new(WorldCharacterSourceRefV3Dto::default()))
+    }
+}
+
+impl CharacterSourceRefV3Dto {
+    pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
+        match value {
+            "worldCharacter" => Ok(Self::WorldCharacterSourceRefV3(Box::new(WorldCharacterSourceRefV3Dto::default()))),
+            "personaCharacter" => Ok(Self::PersonaCharacterSourceRefV3(Box::new(PersonaCharacterSourceRefV3Dto::default()))),
+            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown CharacterSourceRefV3Dto discriminator {}", value)),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -42848,59 +43006,6 @@ pub struct ConnectOnboardingResponseDto {
 pub type ContentRatingString = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct CoverageComponentV1Dto {
-    pub component_id: String,
-    pub content_hash: String,
-    pub kind: String,
-    pub revision: f64,
-    pub schema_version: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CoverageCrossReferenceCheckV1Dto {
-    pub check_id: String,
-    pub source_ref: String,
-    pub state: String,
-    pub target_ref: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CoverageManifestV1Dto {
-    pub aggregate_status: String,
-    pub closure_policy_version: String,
-    pub components: Vec<CoverageComponentV1Dto>,
-    pub coverage_manifest_hash: String,
-    pub cross_reference_checks: Vec<CoverageCrossReferenceCheckV1Dto>,
-    pub manifest_schema_version: String,
-    pub optional_refs: Vec<CoverageOptionalRefV1Dto>,
-    pub required_refs: Vec<CoverageRequiredRefV1Dto>,
-    pub required_sections: Vec<CoverageRequiredSectionV1Dto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CoverageOptionalRefV1Dto {
-    pub omission_reason: String,
-    pub path: String,
-    pub ref_id: String,
-    pub ref_kind: String,
-    pub state: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CoverageRequiredRefV1Dto {
-    pub path: String,
-    pub ref_id: String,
-    pub ref_kind: String,
-    pub state: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CoverageRequiredSectionV1Dto {
-    pub path: String,
-    pub state: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateAssetDto {
     pub author_id: String,
     pub clone_policy: String,
@@ -42970,6 +43075,15 @@ pub struct CreateGroupInputDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatePersonaCharacterCoreDto {
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub profile: Box<CharacterProfileCoreInputDto>,
+    pub visibility: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatePortalSessionDto {
     pub return_url: String,
 }
@@ -42986,15 +43100,6 @@ pub struct CreatePostDto {
     pub caption: String,
     pub source_ref: Box<PostSourceRefDto>,
     pub tags: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateRealmPersonaDto {
-    pub core: BTreeMap<String, String>,
-    pub home_world_id: String,
-    pub id: String,
-    pub origin: Box<RealmCoreOriginDto>,
-    pub visibility: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43022,14 +43127,15 @@ pub struct CreateReviewDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateSourceMaterializationPacketDto {
+pub struct CreateSourceMaterializationPacketV3Dto {
+    pub access_grant_id: String,
     pub challenge_digest: String,
     pub challenge_expires_at: String,
     pub challenge_id: String,
-    pub challenge_limits: Box<SourceMaterializationChallengeLimitsDto>,
     pub intended_runtime_audience: String,
     pub materializer_account_id: String,
-    pub source_ref: Box<TypedSourceRefDto>,
+    pub published_limits: Box<SourceMaterializationPublishedLimitsDto>,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43076,7 +43182,7 @@ pub struct CreateTextResourceDto {
 pub struct CreateTransitDto {
     pub context: Box<TransitContextDto>,
     pub from_world_id: String,
-    pub source_ref: Box<TypedSourceRefDto>,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
     pub to_world_id: String,
     pub transit_type: String,
 }
@@ -43088,10 +43194,11 @@ pub struct CreateWithdrawalDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateWorldCharacterCoreDto {
-    pub core: BTreeMap<String, String>,
-    pub entity_id: String,
     pub id: String,
     pub origin: Box<RealmCoreOriginDto>,
+    pub profile: Box<CharacterProfileCoreInputDto>,
+    pub visibility: String,
+    pub world_entity_ref: Box<WorldEntityRefDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43122,7 +43229,7 @@ pub struct CreateWorldRelationshipCoreDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatorEligibilityResponseDto {
-    pub can_create_realm_persona: bool,
+    pub can_create_persona_character: bool,
     pub can_create_world: bool,
     pub is_eligible: bool,
     pub message: String,
@@ -43339,7 +43446,7 @@ pub struct GroupMessageAuthorDto {
     pub display_name: String,
     pub runtime_participant_slot: String,
     pub runtime_source_ref: String,
-    pub source_owner_id: String,
+    pub source_authority_account_id: String,
     pub source_ref: Box<GroupSourceRefDto>,
     pub r#type: String,
 }
@@ -43371,17 +43478,14 @@ pub struct GroupParticipantDto {
     pub role: String,
     pub runtime_participant_slot: String,
     pub runtime_source_ref: String,
-    pub source_owner_id: String,
+    pub source_authority_account_id: String,
     pub source_ref: Box<GroupSourceRefDto>,
     pub r#type: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GroupSourceRefDto {
-    pub kind: String,
-    pub source_content_hash: String,
-    pub source_id: String,
-    pub world_id: String,
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43483,38 +43587,178 @@ pub struct MarkNotificationsReadInputDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct MaterializationContextV1Dto {
+pub struct MaterializationClosureSetManifestV3Dto {
+    pub challenge_digest: String,
+    pub chunk_count: f64,
+    pub component_count: f64,
+    pub manifest_schema_version: String,
+    pub ordered_component_set_hash: String,
+    pub packet_id: String,
+    pub payload_assembly_version: String,
+    pub published_limits: Box<SourceMaterializationPublishedLimitsDto>,
+    pub segment_count: f64,
+    pub segments: Vec<MaterializationClosureSetSegmentRefV3Dto>,
+    pub total_canonical_bytes: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationClosureSetSegmentRefV3Dto {
+    pub chunk_count: f64,
+    pub component_count: f64,
+    pub first_component_ordinal: f64,
+    pub last_component_ordinal: f64,
+    pub segment_manifest_hash: String,
+    pub segment_ordinal: f64,
+    pub total_canonical_bytes: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationComponentDigestV3Dto {
+    pub component_id: String,
+    pub content_hash: String,
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationContextV3Dto {
     pub closure_policy_version: String,
     pub context_schema_version: String,
-    pub coverage_manifest_hash: String,
-    pub dependency_closure: Box<MaterializationContextV1DtoDependencyClosure>,
+    pub dependency_closure: Box<MaterializationContextV3DtoDependencyClosure>,
     pub materialization_context_hash: String,
+    pub materialization_coverage_hash: String,
     pub owning_world: Box<WorldCoreDto>,
-    pub source_component_digests: Vec<SourceMaterializationComponentDigestV1Dto>,
-    pub source_ref: Box<TypedSourceRefDto>,
-    pub world_and_closure_component_digests: Vec<SourceMaterializationComponentDigestV1Dto>,
+    pub source_component_digests: Vec<MaterializationComponentDigestV3Dto>,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
+    pub world_and_closure_component_digests: Vec<MaterializationComponentDigestV3Dto>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum MaterializationContextV1DtoDependencyClosure {
-    WorldCharacterDependencyClosureV1(Box<WorldCharacterDependencyClosureV1Dto>),
-    RealmPersonaDependencyClosureV1(Box<RealmPersonaDependencyClosureV1Dto>),
+pub enum MaterializationContextV3DtoDependencyClosure {
+    WorldCharacterDependencyClosureV3(Box<WorldCharacterDependencyClosureV3Dto>),
+    PersonaCharacterDependencyClosureV3(Box<PersonaCharacterDependencyClosureV3Dto>),
 }
 
-impl Default for MaterializationContextV1DtoDependencyClosure {
+impl Default for MaterializationContextV3DtoDependencyClosure {
     fn default() -> Self {
-        Self::WorldCharacterDependencyClosureV1(Box::new(WorldCharacterDependencyClosureV1Dto::default()))
+        Self::WorldCharacterDependencyClosureV3(Box::new(WorldCharacterDependencyClosureV3Dto::default()))
     }
 }
 
-impl MaterializationContextV1DtoDependencyClosure {
+impl MaterializationContextV3DtoDependencyClosure {
     pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
         match value {
-            "worldCharacter" => Ok(Self::WorldCharacterDependencyClosureV1(Box::new(WorldCharacterDependencyClosureV1Dto::default()))),
-            "realmPersona" => Ok(Self::RealmPersonaDependencyClosureV1(Box::new(RealmPersonaDependencyClosureV1Dto::default()))),
-            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown MaterializationContextV1DtoDependencyClosure discriminator {}", value)),
+            "worldCharacter" => Ok(Self::WorldCharacterDependencyClosureV3(Box::new(WorldCharacterDependencyClosureV3Dto::default()))),
+            "personaCharacter" => Ok(Self::PersonaCharacterDependencyClosureV3(Box::new(PersonaCharacterDependencyClosureV3Dto::default()))),
+            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown MaterializationContextV3DtoDependencyClosure discriminator {}", value)),
         }
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationCoverageComponentV3Dto {
+    pub component_id: String,
+    pub content_hash: String,
+    pub kind: String,
+    pub revision: f64,
+    pub schema_version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationCoverageManifestV3Dto {
+    pub aggregate_status: String,
+    pub closure_policy_version: String,
+    pub components: Vec<MaterializationCoverageComponentV3Dto>,
+    pub cross_reference_checks: Vec<MaterializationCrossReferenceCheckV3Dto>,
+    pub manifest_schema_version: String,
+    pub materialization_coverage_hash: String,
+    pub optional_refs: Vec<MaterializationOptionalRefV3Dto>,
+    pub required_refs: Vec<MaterializationRequiredRefV3Dto>,
+    pub required_sections: Vec<MaterializationRequiredSectionV3Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationCrossReferenceCheckV3Dto {
+    pub check_id: String,
+    pub source_ref: String,
+    pub state: String,
+    pub target_ref: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationDependencyRefV3Dto {
+    pub content_hash: String,
+    pub id: String,
+    pub kind: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationOptionalRefV3Dto {
+    pub omission_reason: String,
+    pub path: String,
+    pub ref_id: String,
+    pub ref_kind: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationRequiredRefV3Dto {
+    pub path: String,
+    pub ref_id: String,
+    pub ref_kind: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationRequiredSectionV3Dto {
+    pub path: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationSegmentChunkDescriptorV3Dto {
+    pub chunk_sha256: String,
+    pub component_offset: f64,
+    pub global_chunk_ordinal: f64,
+    pub global_component_ordinal: f64,
+    pub length: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationSegmentLimitsV3Dto {
+    pub max_chunk_bytes: f64,
+    pub max_segment_bytes: f64,
+    pub max_segment_chunks: f64,
+    pub max_segment_component_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationSegmentManifestComponentV3Dto {
+    pub canonical_byte_length: f64,
+    pub canonical_bytes_hash: String,
+    pub component_id: String,
+    pub content_hash: String,
+    pub global_component_ordinal: f64,
+    pub kind: String,
+    pub revision: f64,
+    pub schema_version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MaterializationSegmentManifestV3Dto {
+    pub challenge_digest: String,
+    pub chunk_count: f64,
+    pub chunks: Vec<MaterializationSegmentChunkDescriptorV3Dto>,
+    pub component_count: f64,
+    pub components: Vec<MaterializationSegmentManifestComponentV3Dto>,
+    pub first_component_ordinal: f64,
+    pub last_component_ordinal: f64,
+    pub manifest_schema_version: String,
+    pub packet_id: String,
+    pub payload_assembly_version: String,
+    pub published_segment_limits: Box<MaterializationSegmentLimitsV3Dto>,
+    pub segment_ordinal: f64,
+    pub total_canonical_bytes: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43694,6 +43938,53 @@ pub struct PasswordRegisterDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PersonaCharacterCoreDto {
+    pub content_hash: String,
+    pub content_revision: f64,
+    pub created_at: String,
+    pub id: String,
+    pub materialization_readiness: Box<ReadinessResultDto>,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub owner_account_id: String,
+    pub profile: Box<CharacterProfileCoreDto>,
+    pub schema_version: String,
+    pub source_hash: String,
+    pub updated_at: String,
+    pub validity: Box<ValidityResultDto>,
+    pub visibility: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PersonaCharacterDependencyClosureV3Dto {
+    pub explicit_dependencies: Vec<MaterializationDependencyRefV3Dto>,
+    pub explicit_entities: Vec<WorldEntityCoreDto>,
+    pub explicit_relationships: Vec<WorldRelationshipCoreDto>,
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PersonaCharacterMaterializationPayloadV3Dto {
+    pub canonical_source: Box<PersonaCharacterCoreDto>,
+    pub materialization_context: Box<MaterializationContextV3Dto>,
+    pub materialization_context_hash: String,
+    pub materialization_coverage: Box<MaterializationCoverageManifestV3Dto>,
+    pub materialization_coverage_hash: String,
+    pub payload_assembly_version: String,
+    pub payload_schema_version: String,
+    pub source_ref: Box<PersonaCharacterSourceRefV3Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PersonaCharacterSourceRefV3Dto {
+    pub id: String,
+    pub kind: String,
+    pub owner_account_id: String,
+    pub source_hash: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PortalSessionDto {
     pub url: String,
 }
@@ -43741,18 +44032,15 @@ pub struct PostSourceAuthorDto {
     pub handle: String,
     pub id: String,
     pub kind: String,
-    pub owner_user_id: String,
     pub runtime_source_ref: String,
+    pub source_authority_account_id: String,
     pub source_ref: Box<PostSourceRefDto>,
     pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PostSourceRefDto {
-    pub kind: String,
-    pub source_content_hash: String,
-    pub source_id: String,
-    pub world_id: String,
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43776,6 +44064,53 @@ pub struct PPSlotItemDto {
 
 pub type PresenceStatus = String;
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProfileCoverageManifestV1Dto {
+    pub aggregate_status: String,
+    pub diagnostics: Vec<ProfileCoverageManifestV1DtoDiagnosticsItem>,
+    pub manifest_schema_version: String,
+    pub optional_refs: Vec<ProfileCoverageManifestV1DtoOptionalRefsItem>,
+    pub optional_sections: Vec<ProfileCoverageManifestV1DtoOptionalSectionsItem>,
+    pub profile_coverage_hash: String,
+    pub required_refs: Vec<ProfileCoverageManifestV1DtoRequiredRefsItem>,
+    pub required_sections: Vec<ProfileCoverageManifestV1DtoRequiredSectionsItem>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProfileCoverageManifestV1DtoDiagnosticsItem {
+    pub code: String,
+    pub message: String,
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProfileCoverageManifestV1DtoOptionalRefsItem {
+    pub path: String,
+    pub ref_id: String,
+    pub ref_kind: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProfileCoverageManifestV1DtoOptionalSectionsItem {
+    pub path: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProfileCoverageManifestV1DtoRequiredRefsItem {
+    pub path: String,
+    pub ref_id: String,
+    pub ref_kind: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProfileCoverageManifestV1DtoRequiredSectionsItem {
+    pub path: String,
+    pub state: String,
+}
+
 pub type PublicAccountRole = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43788,6 +44123,19 @@ pub struct PublicFilterDto {
     pub viewer_city: String,
     pub viewer_country_code: String,
     pub viewer_genders: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadinessBlockerDto {
+    pub code: String,
+    pub message: String,
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadinessResultDto {
+    pub blockers: Vec<ReadinessBlockerDto>,
+    pub status: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43808,166 +44156,8 @@ pub struct RealmGroupMessageCandidateCommitResultDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaDependencyClosureV1Dto {
-    pub explicit_dependencies: Vec<SourceMaterializationDependencyRefV1Dto>,
-    pub kind: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaDto {
-    pub content_hash: String,
-    pub content_revision: f64,
-    pub core: BTreeMap<String, String>,
-    pub created_at: String,
-    pub home_world_id: String,
-    pub id: String,
-    pub origin: Box<RealmCoreOriginDto>,
-    pub owner_id: String,
-    pub schema_version: String,
-    pub updated_at: String,
-    pub visibility: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationPayloadV2Dto {
-    pub coverage_manifest: Box<CoverageManifestV1Dto>,
-    pub coverage_manifest_hash: String,
-    pub materialization_context: Box<MaterializationContextV1Dto>,
-    pub materialization_context_hash: String,
-    pub payload_assembly_version: String,
-    pub payload_schema_version: String,
-    pub source: Box<RealmPersonaMaterializationSourceV2Dto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2Dto {
-    pub content_hash: String,
-    pub content_revision: f64,
-    pub core: Box<RealmPersonaMaterializationSourceV2DtoCore>,
-    pub created_at: String,
-    pub home_world_id: String,
-    pub id: String,
-    pub kind: String,
-    pub origin: Box<RealmCoreOriginDto>,
-    pub owner_id: String,
-    pub schema_version: String,
-    pub updated_at: String,
-    pub visibility: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCore {
-    pub assets: Box<RealmPersonaMaterializationSourceV2DtoCoreAssets>,
-    pub authoring: Box<RealmPersonaMaterializationSourceV2DtoCoreAuthoring>,
-    pub content_profile: Box<RealmPersonaMaterializationSourceV2DtoCoreContentProfile>,
-    pub identity: Box<RealmPersonaMaterializationSourceV2DtoCoreIdentity>,
-    pub interaction_profile: Box<RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile>,
-    pub persona_style: Box<RealmPersonaMaterializationSourceV2DtoCorePersonaStyle>,
-    pub presentation: Box<RealmPersonaMaterializationSourceV2DtoCorePresentation>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreAssets {
-    pub external_refs: Vec<RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem>,
-    pub intents: Vec<RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem>,
-    pub resource_refs: Vec<RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem {
-    pub kind: String,
-    pub label: String,
-    pub purpose: String,
-    pub ref_id: String,
-    pub uri: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem {
-    pub intent_id: String,
-    pub kind: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem {
-    pub kind: String,
-    pub label: String,
-    pub purpose: String,
-    pub ref_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreAuthoring {
-    pub extensions: BTreeMap<String, String>,
-    pub maintainers: Vec<String>,
-    pub notes: Vec<String>,
-    pub review: Box<RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview>,
-    pub source: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview {
-    pub reviewed_at: String,
-    pub reviewed_by: String,
-    pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreContentProfile {
-    pub boundaries: Vec<String>,
-    pub guidelines: Vec<RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem>,
-    pub topics: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem {
-    pub guideline_id: String,
-    pub source: String,
-    pub statement: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreIdentity {
-    pub aliases: Vec<String>,
-    pub concept: String,
-    pub handle: String,
-    pub name: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile {
-    pub dialogue_exemplars: Vec<String>,
-    pub greeting: String,
-    pub greeting_variants: Vec<String>,
-    pub home_world_id: String,
-    pub interaction_modes: Vec<String>,
-    pub scenario: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCorePersonaStyle {
-    pub archetype: String,
-    pub communication_style: String,
-    pub dialogue_exemplars: Vec<String>,
-    pub pacing: String,
-    pub traits: Vec<String>,
-    pub voice: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmPersonaMaterializationSourceV2DtoCorePresentation {
-    pub avatar_resource_ref: String,
-    pub display_name: String,
-    pub profile_cover_resource_ref: String,
-    pub profile_line: String,
-    pub short_bio: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmSourceCapabilitiesDto {
-    pub can_create_realm_persona: bool,
+    pub can_create_persona_character: bool,
     pub can_create_source_materialization_packet: bool,
     pub can_use_world_character_sources: bool,
 }
@@ -44000,22 +44190,23 @@ pub struct RelationshipResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ReplaceRealmPersonaDto {
+pub struct ReplacePersonaCharacterCoreDto {
     pub base_content_hash: String,
-    pub core: BTreeMap<String, String>,
-    pub home_world_id: String,
     pub id: String,
     pub origin: Box<RealmCoreOriginDto>,
+    pub profile: Box<CharacterProfileCoreInputDto>,
     pub visibility: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReplaceWorldCharacterCoreDto {
     pub base_content_hash: String,
-    pub core: BTreeMap<String, String>,
-    pub entity_id: String,
     pub id: String,
     pub origin: Box<RealmCoreOriginDto>,
+    pub profile: Box<CharacterProfileCoreInputDto>,
+    pub visibility: String,
+    pub world_entity_ref: Box<WorldEntityRefDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44138,9 +44329,20 @@ pub struct RevenueDistributionPreviewDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevenueDistributionPreviewRequestDto {
+    pub amount: String,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevenueShareConfigDto {
     pub min_share_threshold: String,
     pub world_creator_share_percent: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevenueSourceOriginRequestDto {
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44204,33 +44406,9 @@ pub struct SocialProfileDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SourceMaterializationChallengeLimitsDto {
-    pub max_bundle_bytes: f64,
-    pub max_chunk_bytes: f64,
-    pub max_chunks: f64,
-    pub max_component_count: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SourceMaterializationComponentChunkV1Dto {
-    pub bytes_base64: String,
-    pub chunk_sha256: String,
-    pub component_offset: f64,
-    pub global_ordinal: f64,
-    pub length: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SourceMaterializationComponentDigestV1Dto {
-    pub component_id: String,
-    pub content_hash: String,
-    pub kind: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SourceMaterializationComponentV1Dto {
+pub struct SourceMaterializationComponentV3Dto {
     pub canonical_byte_length: f64,
-    pub canonical_bytes: Vec<SourceMaterializationComponentChunkV1Dto>,
+    pub canonical_bytes: Vec<String>,
     pub canonical_bytes_hash: String,
     pub component_id: String,
     pub content_hash: String,
@@ -44240,70 +44418,90 @@ pub struct SourceMaterializationComponentV1Dto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SourceMaterializationDependencyRefV1Dto {
-    pub content_hash: String,
-    pub id: String,
-    pub kind: String,
-    pub world_id: String,
+pub struct SourceMaterializationPacketProofV3Dto {
+    pub compact_jws: String,
+    pub signed_payload: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SourceMaterializationPacketV2Dto {
+pub struct SourceMaterializationPacketV3Dto {
+    pub access_policy_version_digest: String,
     pub algorithm: String,
-    pub bundle_manifest_hash: String,
-    pub bundle_transport_manifest: Box<BundleTransportManifestV1Dto>,
+    pub authorization_decision_digest: String,
     pub challenge_digest: String,
     pub challenge_id: String,
-    pub challenge_limits: Box<SourceMaterializationChallengeLimitsDto>,
+    pub closure_set_manifest: Box<MaterializationClosureSetManifestV3Dto>,
+    pub closure_set_manifest_hash: String,
     pub expires_at: String,
     pub intended_runtime_audience: String,
     pub issued_at: String,
     pub issuer: String,
     pub key_id: String,
     pub key_use: String,
+    pub materialization_context_hash: String,
     pub materializer_account_id: String,
     pub nonce: String,
-    pub ordered_component_chunks: Vec<SourceMaterializationComponentV1Dto>,
+    pub ordered_segments: Vec<SourceMaterializationSegmentV3Dto>,
     pub packet_hash: String,
     pub packet_id: String,
-    pub packet_proof: String,
+    pub packet_proof: Box<SourceMaterializationPacketProofV3Dto>,
     pub packet_schema_version: String,
     pub payload_hash: String,
-    pub semantic_payload: Box<SourceMaterializationPacketV2DtoSemanticPayload>,
-    pub source_ref: Box<TypedSourceRefDto>,
+    pub published_limits: Box<SourceMaterializationPublishedLimitsDto>,
+    pub semantic_payload: Box<SourceMaterializationPacketV3DtoSemanticPayload>,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum SourceMaterializationPacketV2DtoSemanticPayload {
-    WorldCharacterMaterializationPayloadV2(Box<WorldCharacterMaterializationPayloadV2Dto>),
-    RealmPersonaMaterializationPayloadV2(Box<RealmPersonaMaterializationPayloadV2Dto>),
+pub enum SourceMaterializationPacketV3DtoSemanticPayload {
+    WorldCharacterMaterializationPayloadV3(Box<WorldCharacterMaterializationPayloadV3Dto>),
+    PersonaCharacterMaterializationPayloadV3(Box<PersonaCharacterMaterializationPayloadV3Dto>),
 }
 
-impl Default for SourceMaterializationPacketV2DtoSemanticPayload {
+impl Default for SourceMaterializationPacketV3DtoSemanticPayload {
     fn default() -> Self {
-        Self::WorldCharacterMaterializationPayloadV2(Box::new(WorldCharacterMaterializationPayloadV2Dto::default()))
+        Self::WorldCharacterMaterializationPayloadV3(Box::new(WorldCharacterMaterializationPayloadV3Dto::default()))
     }
 }
 
-impl SourceMaterializationPacketV2DtoSemanticPayload {
+impl SourceMaterializationPacketV3DtoSemanticPayload {
     pub fn try_from_discriminator(value: &str) -> Result<Self, String> {
         match value {
-            "worldCharacter" => Ok(Self::WorldCharacterMaterializationPayloadV2(Box::new(WorldCharacterMaterializationPayloadV2Dto::default()))),
-            "realmPersona" => Ok(Self::RealmPersonaMaterializationPayloadV2(Box::new(RealmPersonaMaterializationPayloadV2Dto::default()))),
-            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown SourceMaterializationPacketV2DtoSemanticPayload discriminator {}", value)),
+            "worldCharacter" => Ok(Self::WorldCharacterMaterializationPayloadV3(Box::new(WorldCharacterMaterializationPayloadV3Dto::default()))),
+            "personaCharacter" => Ok(Self::PersonaCharacterMaterializationPayloadV3(Box::new(PersonaCharacterMaterializationPayloadV3Dto::default()))),
+            _ => Err(format!("SDK_REALM_RESPONSE_DECODE_FAILED: unknown SourceMaterializationPacketV3DtoSemanticPayload discriminator {}", value)),
         }
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationPublishedLimitsDto {
+    pub max_chunk_bytes: f64,
+    pub max_segment_bytes: f64,
+    pub max_segment_chunks: f64,
+    pub max_segment_component_count: f64,
+    pub max_set_bytes: f64,
+    pub max_set_chunks: f64,
+    pub max_set_component_count: f64,
+    pub max_set_segments: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SourceMaterializationSegmentV3Dto {
+    pub ordered_components: Vec<SourceMaterializationComponentV3Dto>,
+    pub segment_manifest: Box<MaterializationSegmentManifestV3Dto>,
+    pub segment_manifest_hash: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SourceOriginDto {
     pub is_world_owned: bool,
-    pub owner_id: String,
-    pub source_content_hash: String,
+    pub source_hash: String,
     pub source_id: String,
     pub source_kind: String,
-    pub source_ref: BTreeMap<String, String>,
-    pub world_creator_id: String,
+    pub source_owner_account_id: String,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
+    pub world_creator_account_id: String,
     pub world_id: String,
 }
 
@@ -44407,7 +44605,7 @@ pub struct TransitDetailDto {
     pub from_world_id: String,
     pub id: String,
     pub runtime_source_ref: String,
-    pub source_ref: Box<TypedSourceRefDto>,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
     pub status: String,
     pub to_world_id: String,
     pub transit_type: String,
@@ -44426,14 +44624,6 @@ pub struct TranslateResponseDto {
     pub detected_source_lang: String,
     pub original: String,
     pub translated: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TypedSourceRefDto {
-    pub kind: String,
-    pub source_content_hash: String,
-    pub source_id: String,
-    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44739,6 +44929,19 @@ pub struct UserWalletListResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ValidityIssueDto {
+    pub code: String,
+    pub message: String,
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ValidityResultDto {
+    pub issues: Vec<ValidityIssueDto>,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct VerifyInvitationCodeDto {
     pub invitation_code: String,
 }
@@ -44831,199 +45034,49 @@ pub struct WithdrawalSummaryDto {
 pub struct WorldCharacterCoreDto {
     pub content_hash: String,
     pub content_revision: f64,
-    pub core: BTreeMap<String, String>,
     pub created_at: String,
     pub creator_id: String,
-    pub entity_id: String,
     pub id: String,
+    pub materialization_readiness: Box<ReadinessResultDto>,
     pub origin: Box<RealmCoreOriginDto>,
+    pub profile: Box<CharacterProfileCoreDto>,
     pub schema_version: String,
+    pub source_hash: String,
     pub updated_at: String,
+    pub validity: Box<ValidityResultDto>,
     pub visibility: String,
+    pub world_entity_ref: Box<WorldEntityRefDto>,
     pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterDependencyClosureV1Dto {
+pub struct WorldCharacterDependencyClosureV3Dto {
     pub bound_entity: Box<WorldEntityCoreDto>,
     pub endpoint_entities: Vec<WorldEntityCoreDto>,
-    pub explicit_dependencies: Vec<SourceMaterializationDependencyRefV1Dto>,
+    pub explicit_dependencies: Vec<MaterializationDependencyRefV3Dto>,
+    pub explicit_entities: Vec<WorldEntityCoreDto>,
     pub incident_relationships: Vec<WorldRelationshipCoreDto>,
     pub kind: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationPayloadV2Dto {
-    pub coverage_manifest: Box<CoverageManifestV1Dto>,
-    pub coverage_manifest_hash: String,
-    pub materialization_context: Box<MaterializationContextV1Dto>,
+pub struct WorldCharacterMaterializationPayloadV3Dto {
+    pub canonical_source: Box<WorldCharacterCoreDto>,
+    pub materialization_context: Box<MaterializationContextV3Dto>,
     pub materialization_context_hash: String,
+    pub materialization_coverage: Box<MaterializationCoverageManifestV3Dto>,
+    pub materialization_coverage_hash: String,
     pub payload_assembly_version: String,
     pub payload_schema_version: String,
-    pub source: Box<WorldCharacterMaterializationSourceV2Dto>,
+    pub source_ref: Box<WorldCharacterSourceRefV3Dto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2Dto {
-    pub content_hash: String,
-    pub content_revision: f64,
-    pub core: Box<WorldCharacterMaterializationSourceV2DtoCore>,
-    pub created_at: String,
-    pub creator_id: String,
-    pub entity_id: String,
+pub struct WorldCharacterSourceRefV3Dto {
     pub id: String,
     pub kind: String,
-    pub origin: Box<RealmCoreOriginDto>,
-    pub schema_version: String,
-    pub updated_at: String,
-    pub visibility: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCore {
-    pub assets: Box<WorldCharacterMaterializationSourceV2DtoCoreAssets>,
-    pub authoring: Box<WorldCharacterMaterializationSourceV2DtoCoreAuthoring>,
-    pub biography: Box<WorldCharacterMaterializationSourceV2DtoCoreBiography>,
-    pub capabilities: Box<WorldCharacterMaterializationSourceV2DtoCoreCapabilities>,
-    pub identity: Box<WorldCharacterMaterializationSourceV2DtoCoreIdentity>,
-    pub interaction_profile: Box<WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile>,
-    pub knowledge: Box<WorldCharacterMaterializationSourceV2DtoCoreKnowledge>,
-    pub placement: Box<WorldCharacterMaterializationSourceV2DtoCorePlacement>,
-    pub presentation: Box<WorldCharacterMaterializationSourceV2DtoCorePresentation>,
-    pub psychology: Box<WorldCharacterMaterializationSourceV2DtoCorePsychology>,
-    pub relationships: Vec<WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreAssets {
-    pub external_refs: Vec<WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem>,
-    pub intents: Vec<WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem>,
-    pub resource_refs: Vec<WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem {
-    pub kind: String,
-    pub label: String,
-    pub purpose: String,
-    pub ref_id: String,
-    pub uri: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem {
-    pub intent_id: String,
-    pub kind: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem {
-    pub kind: String,
-    pub label: String,
-    pub purpose: String,
-    pub ref_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreAuthoring {
-    pub extensions: BTreeMap<String, String>,
-    pub maintainers: Vec<String>,
-    pub notes: Vec<String>,
-    pub review: Box<WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview>,
-    pub source: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview {
-    pub reviewed_at: String,
-    pub reviewed_by: String,
-    pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreBiography {
-    pub milestones: Vec<WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem>,
-    pub source_notes: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem {
-    pub milestone_id: String,
-    pub sequence: f64,
-    pub summary: String,
-    pub title: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreCapabilities {
-    pub interaction_modes: Vec<String>,
-    pub tools: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreIdentity {
-    pub aliases: Vec<String>,
-    pub name: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile {
-    pub cadence: String,
-    pub dialogue_exemplars: Vec<String>,
-    pub greeting: String,
-    pub greeting_variants: Vec<String>,
-    pub scenario: String,
-    pub tone: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreKnowledge {
-    pub constraints: Vec<String>,
-    pub topics: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCorePlacement {
-    pub entity_id: String,
-    pub faction: String,
-    pub rank: String,
-    pub role: String,
-    pub scene_refs: Vec<String>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCorePresentation {
-    pub avatar_resource_ref: String,
-    pub display_name: String,
-    pub profile_cover_resource_ref: String,
-    pub short_bio: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCorePsychology {
-    pub boundaries: Vec<String>,
-    pub drives: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem {
-    pub note: String,
-    pub relation_label: String,
-    pub relation_type: String,
-    pub relationship_id: String,
-    pub summary: String,
-    pub target_label: String,
-    pub target_ref: Box<WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef {
-    pub entity_id: String,
-    pub kind: String,
+    pub source_hash: String,
+    pub world_entity_ref: Box<WorldEntityRefDto>,
     pub world_id: String,
 }
 
@@ -45318,6 +45371,13 @@ pub struct WorldEntityCoreDtoCoreIdentity {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEntityRefDto {
+    pub entity_id: String,
+    pub kind: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicAssetDto {
     pub duration_sec: f64,
     pub height: f64,
@@ -45469,7 +45529,7 @@ pub struct WorldPublicSourceCardDto {
     pub relation: Box<WorldPublicViewerRelationDto>,
     pub role: String,
     pub source_kind: String,
-    pub source_ref: Box<WorldPublicSourceRefDto>,
+    pub source_ref: Box<CharacterSourceRefV3Dto>,
     pub summary: String,
     pub tags: Vec<String>,
     pub updated_at: String,
@@ -45497,24 +45557,16 @@ pub struct WorldPublicSourceMediaDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldPublicSourceRefDto {
-    pub kind: String,
-    pub source_content_hash: String,
-    pub source_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceSectionsDto {
     pub characters: Vec<WorldPublicSourceCardDto>,
-    pub personas: Vec<WorldPublicSourceCardDto>,
+    pub persona_characters: Vec<WorldPublicSourceCardDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicStatsDto {
     pub character_count: f64,
     pub entity_count: f64,
-    pub persona_count: f64,
+    pub persona_character_count: f64,
     pub relationship_count: f64,
     pub scene_count: f64,
     pub system_count: f64,
@@ -46567,7 +46619,7 @@ pub struct RealmEconomyControllerGetSentGiftsOperationRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmEconomyControllerGetSourceOriginOperationPath {
-    pub source_ref: String,
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -46585,7 +46637,7 @@ pub struct RealmEconomyControllerGetSourceOriginOperationRequest {
     pub path: RealmEconomyControllerGetSourceOriginOperationPath,
     pub query: RealmEconomyControllerGetSourceOriginOperationQuery,
     pub headers: RealmEconomyControllerGetSourceOriginOperationHeaders,
-    pub body: (),
+    pub body: RevenueSourceOriginRequestDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -46758,8 +46810,7 @@ pub struct RealmEconomyControllerPreviewRevenueDistributionOperationPath {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmEconomyControllerPreviewRevenueDistributionOperationQuery {
-    pub amount: Option<String>,
-    pub source_ref: Option<String>,
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -46772,7 +46823,7 @@ pub struct RealmEconomyControllerPreviewRevenueDistributionOperationRequest {
     pub path: RealmEconomyControllerPreviewRevenueDistributionOperationPath,
     pub query: RealmEconomyControllerPreviewRevenueDistributionOperationQuery,
     pub headers: RealmEconomyControllerPreviewRevenueDistributionOperationHeaders,
-    pub body: (),
+    pub body: RevenueDistributionPreviewRequestDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -49806,26 +49857,26 @@ pub struct RealmWorldCoreControllerBootstrapOasisWorldOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateRealmPersonaOperationPath {
+pub struct RealmWorldCoreControllerCreatePersonaCharacterOperationPath {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateRealmPersonaOperationQuery {
+pub struct RealmWorldCoreControllerCreatePersonaCharacterOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateRealmPersonaOperationHeaders {
+pub struct RealmWorldCoreControllerCreatePersonaCharacterOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateRealmPersonaOperationRequest {
-    pub path: RealmWorldCoreControllerCreateRealmPersonaOperationPath,
-    pub query: RealmWorldCoreControllerCreateRealmPersonaOperationQuery,
-    pub headers: RealmWorldCoreControllerCreateRealmPersonaOperationHeaders,
-    pub body: CreateRealmPersonaDto,
+pub struct RealmWorldCoreControllerCreatePersonaCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerCreatePersonaCharacterOperationPath,
+    pub query: RealmWorldCoreControllerCreatePersonaCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerCreatePersonaCharacterOperationHeaders,
+    pub body: CreatePersonaCharacterCoreDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -49848,7 +49899,7 @@ pub struct RealmWorldCoreControllerCreateSourceMaterializationPacketOperationReq
     pub path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath,
     pub query: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery,
     pub headers: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders,
-    pub body: CreateSourceMaterializationPacketDto,
+    pub body: CreateSourceMaterializationPacketV3Dto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -49944,6 +49995,102 @@ pub struct RealmWorldCoreControllerCreateWorldRelationshipOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeletePersonaCharacterOperationPath {
+    pub persona_character_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeletePersonaCharacterOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeletePersonaCharacterOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeletePersonaCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerDeletePersonaCharacterOperationPath,
+    pub query: RealmWorldCoreControllerDeletePersonaCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerDeletePersonaCharacterOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeleteWorldCharacterOperationPath {
+    pub character_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeleteWorldCharacterOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeleteWorldCharacterOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDeleteWorldCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerDeleteWorldCharacterOperationPath,
+    pub query: RealmWorldCoreControllerDeleteWorldCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerDeleteWorldCharacterOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverPersonaCharactersOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverPersonaCharactersOperationQuery {
+    pub take: Option<f64>,
+    pub after_id: Option<String>,
+    pub world_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverPersonaCharactersOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest {
+    pub path: RealmWorldCoreControllerDiscoverPersonaCharactersOperationPath,
+    pub query: RealmWorldCoreControllerDiscoverPersonaCharactersOperationQuery,
+    pub headers: RealmWorldCoreControllerDiscoverPersonaCharactersOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverWorldCharactersOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverWorldCharactersOperationQuery {
+    pub take: Option<f64>,
+    pub after_id: Option<String>,
+    pub world_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverWorldCharactersOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest {
+    pub path: RealmWorldCoreControllerDiscoverWorldCharactersOperationPath,
+    pub query: RealmWorldCoreControllerDiscoverWorldCharactersOperationQuery,
+    pub headers: RealmWorldCoreControllerDiscoverWorldCharactersOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerGetOasisWorldOperationPath {
 
 }
@@ -49967,25 +50114,25 @@ pub struct RealmWorldCoreControllerGetOasisWorldOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerGetRealmPersonaOperationPath {
-    pub persona_id: String,
+pub struct RealmWorldCoreControllerGetPersonaCharacterOperationPath {
+    pub persona_character_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerGetRealmPersonaOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerGetRealmPersonaOperationHeaders {
+pub struct RealmWorldCoreControllerGetPersonaCharacterOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerGetRealmPersonaOperationRequest {
-    pub path: RealmWorldCoreControllerGetRealmPersonaOperationPath,
-    pub query: RealmWorldCoreControllerGetRealmPersonaOperationQuery,
-    pub headers: RealmWorldCoreControllerGetRealmPersonaOperationHeaders,
+pub struct RealmWorldCoreControllerGetPersonaCharacterOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetPersonaCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerGetPersonaCharacterOperationPath,
+    pub query: RealmWorldCoreControllerGetPersonaCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerGetPersonaCharacterOperationHeaders,
     pub body: (),
 }
 
@@ -50082,26 +50229,29 @@ pub struct RealmWorldCoreControllerGetWorldRelationshipOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerListRealmPersonasOperationPath {
+pub struct RealmWorldCoreControllerListPersonaCharactersOperationPath {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerListRealmPersonasOperationQuery {
+pub struct RealmWorldCoreControllerListPersonaCharactersOperationQuery {
     pub take: Option<f64>,
+    pub after_id: Option<String>,
     pub visibility: Option<String>,
+    pub world_id: Option<String>,
+    pub scope: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerListRealmPersonasOperationHeaders {
+pub struct RealmWorldCoreControllerListPersonaCharactersOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerListRealmPersonasOperationRequest {
-    pub path: RealmWorldCoreControllerListRealmPersonasOperationPath,
-    pub query: RealmWorldCoreControllerListRealmPersonasOperationQuery,
-    pub headers: RealmWorldCoreControllerListRealmPersonasOperationHeaders,
+pub struct RealmWorldCoreControllerListPersonaCharactersOperationRequest {
+    pub path: RealmWorldCoreControllerListPersonaCharactersOperationPath,
+    pub query: RealmWorldCoreControllerListPersonaCharactersOperationQuery,
+    pub headers: RealmWorldCoreControllerListPersonaCharactersOperationHeaders,
     pub body: (),
 }
 
@@ -50114,6 +50264,7 @@ pub struct RealmWorldCoreControllerListWorldCharactersOperationPath {
 pub struct RealmWorldCoreControllerListWorldCharactersOperationQuery {
     pub take: Option<f64>,
     pub after_id: Option<String>,
+    pub visibility: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -50207,26 +50358,26 @@ pub struct RealmWorldCoreControllerListWorldRelationshipsOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationPath {
-    pub persona_id: String,
+pub struct RealmWorldCoreControllerReplacePersonaCharacterOperationPath {
+    pub persona_character_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders {
+pub struct RealmWorldCoreControllerReplacePersonaCharacterOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationRequest {
-    pub path: RealmWorldCoreControllerReplaceRealmPersonaOperationPath,
-    pub query: RealmWorldCoreControllerReplaceRealmPersonaOperationQuery,
-    pub headers: RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders,
-    pub body: ReplaceRealmPersonaDto,
+pub struct RealmWorldCoreControllerReplacePersonaCharacterOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplacePersonaCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerReplacePersonaCharacterOperationPath,
+    pub query: RealmWorldCoreControllerReplacePersonaCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerReplacePersonaCharacterOperationHeaders,
+    pub body: ReplacePersonaCharacterCoreDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -51142,11 +51293,11 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_bootstrapOasisWorld");
     }
 
-    pub fn world_core_controller_create_realm_persona(&self, _request: RealmWorldCoreControllerCreateRealmPersonaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmPersonaDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createRealmPersona");
+    pub fn world_core_controller_create_persona_character(&self, _request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PersonaCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createPersonaCharacter");
     }
 
-    pub fn world_core_controller_create_source_materialization_packet(&self, _request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SourceMaterializationPacketV2Dto, T::Error> {
+    pub fn world_core_controller_create_source_materialization_packet(&self, _request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SourceMaterializationPacketV3Dto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createSourceMaterializationPacket");
     }
 
@@ -51166,12 +51317,28 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createWorldRelationship");
     }
 
+    pub fn world_core_controller_delete_persona_character(&self, _request: RealmWorldCoreControllerDeletePersonaCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PersonaCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_deletePersonaCharacter");
+    }
+
+    pub fn world_core_controller_delete_world_character(&self, _request: RealmWorldCoreControllerDeleteWorldCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_deleteWorldCharacter");
+    }
+
+    pub fn world_core_controller_discover_persona_characters(&self, _request: RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<PersonaCharacterCoreDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_discoverPersonaCharacters");
+    }
+
+    pub fn world_core_controller_discover_world_characters(&self, _request: RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldCharacterCoreDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_discoverWorldCharacters");
+    }
+
     pub fn world_core_controller_get_oasis_world(&self, _request: RealmWorldCoreControllerGetOasisWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getOasisWorld");
     }
 
-    pub fn world_core_controller_get_realm_persona(&self, _request: RealmWorldCoreControllerGetRealmPersonaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmPersonaDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getRealmPersona");
+    pub fn world_core_controller_get_persona_character(&self, _request: RealmWorldCoreControllerGetPersonaCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PersonaCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getPersonaCharacter");
     }
 
     pub fn world_core_controller_get_world_character(&self, _request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCharacterCoreDto, T::Error> {
@@ -51190,8 +51357,8 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getWorldRelationship");
     }
 
-    pub fn world_core_controller_list_realm_personas(&self, _request: RealmWorldCoreControllerListRealmPersonasOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<RealmPersonaDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listRealmPersonas");
+    pub fn world_core_controller_list_persona_characters(&self, _request: RealmWorldCoreControllerListPersonaCharactersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<PersonaCharacterCoreDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listPersonaCharacters");
     }
 
     pub fn world_core_controller_list_world_characters(&self, _request: RealmWorldCoreControllerListWorldCharactersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldCharacterCoreDto>, T::Error> {
@@ -51210,8 +51377,8 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listWorldRelationships");
     }
 
-    pub fn world_core_controller_replace_realm_persona(&self, _request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmPersonaDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceRealmPersona");
+    pub fn world_core_controller_replace_persona_character(&self, _request: RealmWorldCoreControllerReplacePersonaCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PersonaCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replacePersonaCharacter");
     }
 
     pub fn world_core_controller_replace_world_character(&self, _request: RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCharacterCoreDto, T::Error> {

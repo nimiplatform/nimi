@@ -1,17 +1,25 @@
 {
-  "schemaVersion": "nimi.realm-current-producer-admission/v1",
+  "schemaVersion": "nimi.realm-current-producer-admission/v2",
   "repository": "https://github.com/nimiplatform/nimi-realm.git",
-  "admittedCommit": "7b9b4c027ee2093e0914490d6de4f62fed0dfc82",
-  "admittedTree": "1be77fc3387bfced8c66568498fa0ec70623acf6",
-  "headPolicy": "descendant_with_identical_admitted_inputs",
+  "admittedCommit": "a30b2f488806e967ccba9ab8b81fe93935bdf474",
+  "admittedTree": "3516b4727cbb17602d276e02755aeb36811ed2f2",
+  "headPolicy": "identical_admitted_inputs",
   "semanticFiles": [
     {
       "path": ".nimi/spec/realm/kernel/core-contract.md",
-      "sha256": "97f61e0a168d9ae8573d593285e1c42daa54d97de0a0ee7a89507c6b4d4b53d6"
+      "sha256": "42f5cc146092786af358dc4c6f30839c20b7e56d78209f6847901391e143197a"
     },
     {
       "path": ".nimi/spec/realm/kernel/tables/core-contract.yaml",
-      "sha256": "8dc13855d5e4371a1cdb02bdd23145d72ba68e28fdce5b5a1b003099ff057e57"
+      "sha256": "6a6a4ab6622c23b0e58c922b78e3f3515598ab4d4678c9eb9b77851e0cc997b8"
+    },
+    {
+      "path": ".nimi/spec/realm/kernel/permission-grant-contract.md",
+      "sha256": "84bc5e97878c3cd3e33f1a44c46aeb891174a827fdbd1bc96c2319c4d23b1a2c"
+    },
+    {
+      "path": ".nimi/spec/realm/kernel/tables/permission-grant-contract.yaml",
+      "sha256": "381125b0aa51fb850952e0c485ff1560770904d5ef0b52eff8265d69d9b181cc"
     },
     {
       "path": "config/nimi-runtime-materialization-requirements.json",
@@ -20,7 +28,7 @@
   ],
   "openapi": {
     "path": "nimi-backend/api-nimi.yaml",
-    "sha256": "09f7b84bf7a1cd7a46a4dee6942f3c1bdbd46296616fecd85fa80c02e070596d",
+    "sha256": "7035217009feaf2e835f5607c5a6c028a1d3f99a78182d4f485970b167befd22",
     "fragmentSchemaVersion": "nimi.realm-openapi-source-materialization-fragment/v1",
     "fragmentSha256": "94e6dc43101a87ee717f5c00e5978091562db33b4878136161c976ab31ecb1af",
     "componentSchemaCount": 41,
@@ -120,14 +128,50 @@
     "maxSetComponentCount": 16384,
     "maxSetChunks": 65536
   },
+  "accessPolicy": {
+    "version": "realm.source-materialization-access-policy/v4",
+    "digest": "34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f",
+    "selector": {
+      "appId": "nimi.avatar",
+      "scopeFamily": "realm_source",
+      "scopeName": "realm_source.snapshot.consume",
+      "qualifier": null,
+      "qualifierKey": "",
+      "state": "GRANTED"
+    },
+    "lifecycle": {
+      "request": {
+        "operationId": "requestMyAppPermissionGrant",
+        "method": "post",
+        "path": "/api/human/me/permission-grants",
+        "resultState": "PENDING"
+      },
+      "grant": {
+        "operationId": "grantMyAppPermissionGrant",
+        "method": "post",
+        "path": "/api/human/me/permission-grants/by-id/{grantId}/grant",
+        "requiresExpectedVersion": true
+      },
+      "packet": {
+        "operationId": "WorldCoreController_createSourceMaterializationPacket",
+        "method": "post",
+        "path": "/api/realm/core/source-materialization-packets",
+        "grantIdField": "accessGrantId"
+      }
+    },
+    "nonAuthorizingScopeNames": [
+      "realm_source.snapshot.bind",
+      "agent.identity.project"
+    ]
+  },
   "compactVectors": [
     {
       "path": "scripts/realm-materialization/vectors/reference-packet-v3/world-character.json",
-      "sha256": "314a16538aeea5ec88257ed6ff48647bd6cebc781cd4063b20c58c7f97e44030"
+      "sha256": "65bd146941c2ec341776f19dbb9d1a218924d749e67bde362253d783f56b838f"
     },
     {
       "path": "scripts/realm-materialization/vectors/reference-packet-v3/persona-character.json",
-      "sha256": "bba2d1c192d3f530cb4ac5711a0434766190501dfed6b8f1857a04c10cc44d9f"
+      "sha256": "da57f60c1b5e15b25c7a733e75a5afb672a90bd187918df130c65d6f78c7a351"
     },
     {
       "path": "scripts/realm-materialization/vectors/reference-packet-v3/negative-mutations.json",
@@ -148,5 +192,15 @@
     "consumerSideActions": 28,
     "realmSideActions": 0,
     "unmappedMandatoryInputs": 0
+  },
+  "focusedA1": {
+    "path": ".nimi/local/audit/0718-realm-permission-scope-hardcut/A1/20260717T182331Z/verdict.yaml",
+    "schemaVersion": "realm.permission-scope-hardcut-a1-reaudit-verdict/v1",
+    "sha256": "d7c4f9dc1b73f3e9c57e16c111b35194ecb003a2b451aeee7cd38125bc716da0",
+    "verdict": "PASS",
+    "acceptancePass": 20,
+    "productBlockers": 0,
+    "findingId": "A1-PERM-001",
+    "findingStatus": "CLOSED"
   }
 }

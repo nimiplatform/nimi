@@ -1,16 +1,22 @@
 #!/usr/bin/env node
 
 import crypto from 'node:crypto';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 import {
+  ACCESS_POLICY_DIGEST,
+  ACCESS_POLICY_SELECTOR,
+  ACCESS_POLICY_VERSION,
+  ADMISSION_SCHEMA_VERSION,
   canonicalJson,
   compareUtf16CodeUnits,
   REALM_REPOSITORY,
+  assertAccessPolicyAdmission,
+  assertAccessPolicyOpenApi,
   extractSourceMaterializationFragment,
   sha256Hex,
 } from './generate-realm-contract-lock.mjs';
@@ -180,6 +186,7 @@ function assertOpenApi(realmRoot, admission) {
     fail('materialization fragment exact schema-name set drift');
   }
   const document = YAML.parse(text);
+  assertAccessPolicyOpenApi(text, admission);
   const operation = document?.paths?.[admission.openapi.pathTemplate]?.[admission.openapi.method];
   if (operation?.operationId !== admission.openapi.operationId) {
     fail('materialization operation id/path/method drift');
@@ -219,6 +226,41 @@ function assertOpenApi(realmRoot, admission) {
   };
 }
 
+function assertFocusedA1Evidence(realmRoot, admission) {
+  const expected = admission.focusedA1;
+  const absolute = path.join(realmRoot, expected.path);
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
+    fail(`missing Realm focused A1 ${expected.path}`);
+  }
+  const bytes = fs.readFileSync(absolute);
+  const actualSha = sha256(bytes);
+  if (actualSha !== expected.sha256) {
+    fail(`${expected.path} SHA-256 drift: expected=${expected.sha256} actual=${actualSha}`);
+  }
+  const value = YAML.parse(bytes.toString('utf8'));
+  if (value?.schema_version !== expected.schemaVersion
+    || value?.candidate?.commit !== admission.admittedCommit
+    || value?.candidate?.tree !== admission.admittedTree
+    || value?.candidate?.identity_match !== true
+    || value?.verdict !== expected.verdict
+    || value?.acceptance?.pass !== expected.acceptancePass
+    || value?.acceptance?.fail !== 0
+    || value?.acceptance?.unverifiable !== 0
+    || value?.product_blockers !== expected.productBlockers
+    || value?.finding_closure?.id !== expected.findingId
+    || value?.finding_closure?.status !== expected.findingStatus) {
+    fail(`${expected.path} focused A1 identity/verdict drift`);
+  }
+  return {
+    path: expected.path,
+    sha256: actualSha,
+    verdict: value.verdict,
+    acceptancePass: value.acceptance.pass,
+    productBlockers: value.product_blockers,
+    findingStatus: value.finding_closure.status,
+  };
+}
+
 function assertJsonEvidence(realmRoot, expected, extraChecks) {
   const absolute = path.join(realmRoot, expected.path);
   if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
@@ -254,6 +296,23 @@ function assertCurrentLock(admission) {
     vectorHashes: Object.fromEntries(admission.compactVectors.map((item) => [path.basename(item.path), item.sha256])),
     closureContentHash: admission.closureManifest.contentHash,
     handoffContentHash: admission.handoff.contentHash,
+    accessPolicy: {
+      version: ACCESS_POLICY_VERSION,
+      digest: ACCESS_POLICY_DIGEST,
+      selector: ACCESS_POLICY_SELECTOR,
+      lifecycle: admission.accessPolicy.lifecycle,
+      nonAuthorizingScopeNames: admission.accessPolicy.nonAuthorizingScopeNames,
+    },
+    focusedA1: {
+      path: admission.focusedA1.path,
+      schemaVersion: admission.focusedA1.schemaVersion,
+      sha256: admission.focusedA1.sha256,
+      verdict: admission.focusedA1.verdict,
+      acceptancePass: admission.focusedA1.acceptancePass,
+      productBlockers: admission.focusedA1.productBlockers,
+      findingId: admission.focusedA1.findingId,
+      findingStatus: admission.focusedA1.findingStatus,
+    },
   };
   const actual = {
     repository: lock?.realm?.repository,
@@ -266,6 +325,23 @@ function assertCurrentLock(admission) {
     vectorHashes: lock?.compact_vectors,
     closureContentHash: lock?.producer_evidence?.closure_content_hash,
     handoffContentHash: lock?.producer_evidence?.handoff_content_hash,
+    accessPolicy: {
+      version: lock?.access_policy?.version,
+      digest: lock?.access_policy?.digest,
+      selector: lock?.access_policy?.selector,
+      lifecycle: lock?.access_policy?.lifecycle,
+      nonAuthorizingScopeNames: lock?.access_policy?.non_authorizing_scope_names,
+    },
+    focusedA1: {
+      path: lock?.producer_evidence?.focused_a1?.path,
+      schemaVersion: lock?.producer_evidence?.focused_a1?.schema_version,
+      sha256: lock?.producer_evidence?.focused_a1?.sha256,
+      verdict: lock?.producer_evidence?.focused_a1?.verdict,
+      acceptancePass: lock?.producer_evidence?.focused_a1?.acceptance_pass,
+      productBlockers: lock?.producer_evidence?.focused_a1?.product_blockers,
+      findingId: lock?.producer_evidence?.focused_a1?.finding_id,
+      findingStatus: lock?.producer_evidence?.focused_a1?.finding_status,
+    },
   };
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     fail('config/realm-contract-lock.yaml does not bind the admitted current Realm producer');
@@ -274,9 +350,13 @@ function assertCurrentLock(admission) {
 
 function check({ realmRoot, admissionOnly }) {
   const admission = JSON.parse(fs.readFileSync(admissionPath, 'utf8'));
-  if (admission.schemaVersion !== 'nimi.realm-current-producer-admission/v1') {
+  if (admission.schemaVersion !== ADMISSION_SCHEMA_VERSION) {
     fail('unsupported current producer admission schema');
   }
+  if (admission.headPolicy !== 'identical_admitted_inputs') {
+    fail('unsupported current producer HEAD policy');
+  }
+  assertAccessPolicyAdmission(admission);
   const repository = normalizeRepository(git(realmRoot, 'remote', 'get-url', 'origin'));
   if (repository !== REALM_REPOSITORY || repository !== admission.repository) {
     fail(`repository mismatch: expected=${admission.repository} actual=${repository}`);
@@ -286,9 +366,6 @@ function check({ realmRoot, admissionOnly }) {
   if (admittedCommit !== admission.admittedCommit || admittedTree !== admission.admittedTree) {
     fail(`admitted commit/tree mismatch: commit=${admittedCommit} tree=${admittedTree}`);
   }
-  const ancestor = spawnSync('git', ['merge-base', '--is-ancestor', admittedCommit, 'HEAD'], { cwd: realmRoot });
-  if (ancestor.status !== 0) fail('current Realm HEAD is not a descendant of the admitted semantic producer commit');
-
   const semanticFiles = admission.semanticFiles.map((file) =>
     assertFileDigest(realmRoot, admittedCommit, file));
   const openapi = assertOpenApi(realmRoot, admission);
@@ -307,10 +384,11 @@ function check({ realmRoot, admissionOnly }) {
       fail('Realm handoff counts/status drift');
     }
   });
+  const focusedA1 = assertFocusedA1Evidence(realmRoot, admission);
   if (!admissionOnly) assertCurrentLock(admission);
 
   return {
-    schemaVersion: 'nimi.realm-current-producer-admission-result/v1',
+    schemaVersion: 'nimi.realm-current-producer-admission-result/v2',
     verdict: 'PASS',
     mode: admissionOnly ? 'admission_only' : 'current_lock',
     realm: {
@@ -324,6 +402,8 @@ function check({ realmRoot, admissionOnly }) {
     compactVectors,
     closureManifest,
     handoff,
+    focusedA1,
+    accessPolicy: admission.accessPolicy,
   };
 }
 

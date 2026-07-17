@@ -6,6 +6,7 @@ import { readYamlWithFragments } from '../../../scripts/lib/read-yaml-with-fragm
 export const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, '../../..');
 export const checkMode = process.argv.includes('--check');
+export const realmOnly = process.argv.includes('--realm-only');
 export const generatedBy = 'sdks/generators/generate.mjs';
 export const languages = ['typescript', 'python', 'go', 'rust'];
 

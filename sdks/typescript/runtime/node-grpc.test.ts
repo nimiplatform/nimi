@@ -238,8 +238,9 @@ test('node-grpc Runtime transport cancels pending server stream returns without 
 test('Runtime constructs default node-grpc transport in Node.js', () => {
   const runtime = new Runtime();
 
-  assert.equal(typeof runtime.unsafeRawTransport().unary, 'function');
-  assert.equal(typeof runtime.unsafeRawTransport().serverStream, 'function');
+  assert.equal(typeof runtime.audit.getRuntimeHealth, 'function');
+  assert.equal('core' in runtime, false);
+  assert.equal('unsafeRawTransport' in runtime, false);
 });
 
 test('node-grpc Runtime transport observes unary status metadata trailers', () => {

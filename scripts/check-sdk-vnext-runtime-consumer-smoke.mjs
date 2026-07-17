@@ -53,7 +53,6 @@ import {
   NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   NIMI_FIRST_RUN_PHASES,
   Runtime,
-  RuntimeCore,
   RUNTIME_AI_METHODS,
   buildRuntimeAgentRequestContext,
   createRuntime,
@@ -141,13 +140,20 @@ assert.equal(lastUnaryRequest.metadata.appId, 'consumer.app');
 assert.equal(lastUnaryRequest.metadata.traceId, 'trace-consumer');
 assert.equal(runtime.runtimeVersion(), '0.6.0');
 assert.equal(runtime.versionCompatibility().state, 'compatible');
-
-const core = new RuntimeCore(runtime.core);
-const coreHealth = await core.unary({
-  methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
-  body: {},
-});
-assert.equal(coreHealth.status, 3);
+assert.equal('RuntimeCore' in runtimeModule, false);
+assert.equal('core' in runtime, false);
+assert.equal('unsafeRawTransport' in runtime, false);
+assert.equal(Object.getPrototypeOf(runtime.generated), null);
+assert.equal(Object.isFrozen(runtime.generated), true);
+for (const privateMethod of [
+  'createSourceMaterializationChallenge',
+  'beginSourceMaterializationUpload',
+  'putSourceMaterializationChunk',
+  'commitSourceMaterialization',
+  'abortSourceMaterializationUpload',
+]) {
+  assert.equal(privateMethod in runtime.generated, false);
+}
 
 const localError = createNimiError({
   message: 'provider timeout',
@@ -197,7 +203,6 @@ import {
   NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   NIMI_FIRST_RUN_PHASES,
   Runtime,
-  RuntimeCore,
   buildRuntimeAgentRequestContext,
   createRuntime,
   type CoreTransport,
@@ -230,7 +235,6 @@ const runtime: Runtime = createRuntime({
   appId: 'consumer.app',
   transport,
 });
-const core: RuntimeCore = new RuntimeCore(runtime.core);
 const compatibility: RuntimeVersionCompatibilityStatus = runtime.versionCompatibility();
 const health: Promise<GetRuntimeHealthResponse> = runtime.ready();
 const localIdentity: RuntimeLocalAgentIdentityProjection = buildRuntimeAgentRequestContext({
@@ -253,8 +257,13 @@ const error: NimiError = createNimiError({
   actionHint: 'retry',
 });
 const scenarioRequest: Partial<ExecuteScenarioRequest> = { scenarioType: ScenarioType.TEXT_GENERATE };
+// @ts-expect-error Runtime does not expose its raw CoreClient.
+runtime.core;
+// @ts-expect-error Runtime does not expose a raw transport escape hatch.
+runtime.unsafeRawTransport();
+// @ts-expect-error Source materialization acquisition is Runtime-private.
+runtime.generated.createSourceMaterializationChallenge({});
 
-void core;
 void compatibility;
 void health;
 void localIdentity;

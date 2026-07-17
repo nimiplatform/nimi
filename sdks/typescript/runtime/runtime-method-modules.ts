@@ -22,11 +22,6 @@ export const RUNTIME_ACCOUNT_METHODS = [
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_AGENT_METHODS = [
-  'createSourceMaterializationChallenge',
-  'beginSourceMaterializationUpload',
-  'putSourceMaterializationChunk',
-  'commitSourceMaterialization',
-  'abortSourceMaterializationUpload',
   'initializeAgent',
   'terminateAgent',
   'getAgent',

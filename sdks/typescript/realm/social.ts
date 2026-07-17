@@ -3,7 +3,6 @@ import type {
   BlockUserBodyDto,
   CreatePostDto,
   CreateReportDto,
-  CreateSourceMaterializationPacketDto,
   FeedPageMetaDto,
   FeedResponseDto,
   FriendProfileDto,
@@ -25,11 +24,9 @@ import type {
   NimiRealmSocialDataErrorEmitter,
   NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialProfileView,
-  NimiRealmSourceMaterializationPacket,
 } from './social-types';
 import {
   normalizeText,
-  requireSourceMaterializationRequest,
   requireText,
   socialError,
   toNullableString,
@@ -45,12 +42,9 @@ export type {
   NimiRealmSocialContactRecord,
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
-  NimiRealmCoreSourceRef,
   NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialMutationKind,
   NimiRealmSocialProfileView,
-  NimiRealmSourceMaterializationRequest,
-  NimiRealmSourceMaterializationPacket,
 } from './social-types';
 
 type PendingRequestMapValue = {
@@ -300,33 +294,6 @@ export async function loadNimiRealmUserProfileById(
     return await realm.generated.getUser({ path: { id: normalizedId } }, options) as unknown as NimiRealmSocialProfileView;
   } catch (error) {
     emitRealmDataError('load-user-profile', error, { id: normalizedId });
-    throw error;
-  }
-}
-
-export async function createNimiRealmSourceMaterializationPacket(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  requestInput: unknown,
-  options?: RealmTypedCallOptions,
-): Promise<NimiRealmSourceMaterializationPacket> {
-  const body: CreateSourceMaterializationPacketDto = requireSourceMaterializationRequest(requestInput);
-  const { sourceRef } = body;
-  const sourceRefDetails: JsonObject = {
-    kind: sourceRef.kind,
-    worldId: sourceRef.worldId,
-    sourceId: sourceRef.sourceId,
-    sourceContentHash: sourceRef.sourceContentHash,
-  };
-  try {
-    return await realm.generated.worldCoreControllerCreateSourceMaterializationPacket({ path: {}, body }, options);
-  } catch (error) {
-    emitRealmDataError('create-source-materialization-packet', error, {
-      sourceRef: sourceRefDetails,
-      challengeId: body.challengeId,
-      challengeDigest: body.challengeDigest,
-      intendedRuntimeAudience: body.intendedRuntimeAudience,
-    });
     throw error;
   }
 }

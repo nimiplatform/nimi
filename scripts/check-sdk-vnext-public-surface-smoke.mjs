@@ -62,7 +62,6 @@ const checks = [
   ['@nimiplatform/sdk', 'createNimiClient'],
   ['@nimiplatform/sdk/runtime', 'createRuntime'],
   ['@nimiplatform/sdk/realm', 'createRealm'],
-  ['@nimiplatform/sdk/realm/generated', 'RealmTypedClient'],
   ['@nimiplatform/sdk/app', 'createNimiAppClient'],
   ['@nimiplatform/sdk/types', 'createNimiError'],
   ['@nimiplatform/sdk/contracts', 'textPart'],
@@ -82,6 +81,10 @@ for (const [specifier, exportName] of checks) {
   const module = await import(specifier);
   assert.equal(typeof module[exportName], 'function', specifier + ' must export ' + exportName);
 }
+
+const realmGeneratedModule = await import('@nimiplatform/sdk/realm/generated');
+assert.equal('RealmTypedClient' in realmGeneratedModule, false);
+assert.equal('SourceMaterializationPacketV3Dto' in realmGeneratedModule, false);
 
 const runtimeWireTypesModule = await import('@nimiplatform/sdk/runtime/wire-types');
 assert.equal(runtimeWireTypesModule.ScenarioType.TEXT_GENERATE, 1);
@@ -107,7 +110,7 @@ import { createRuntime, type CoreTransport } from '@nimiplatform/sdk/runtime';
 import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { ScenarioType, type ExecuteScenarioRequest } from '@nimiplatform/sdk/runtime/wire-types';
 import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
-import { RealmTypedClient, type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
+import { type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
 import {
   createNimiAppClient,
   createNimiAppRuntimePlatformClient,
@@ -136,7 +139,6 @@ const config: NimiClientConfig = { appId: 'dev.nimi.surface', runtime: { transpo
 const client = createNimiClient(config);
 const runtime = createRuntime({ transport });
 const realm: Realm = createRealm({ transport });
-const generatedRealm = new RealmTypedClient(realm.core as never);
 const appRow: NimiAppRow = {
   appId: 'dev.nimi.surface',
   appKind: 'nimi-app',
@@ -162,11 +164,11 @@ const appEntry: NimiAppInventoryEntry = {
   sources: {
     catalog: { status: 'present', value: appRow },
     account: { status: 'absent' },
-    local: { status: 'absent' },
+    localRecord: { status: 'absent' },
     packageReadiness: { status: 'absent' },
   },
-  installState: 'not-installed',
-  openReadiness: 'install-required',
+  installState: 'not-present',
+  openReadiness: 'package-unavailable',
   activeJobs: [],
   nextActions: [],
 };
@@ -182,11 +184,19 @@ const localAppStandardShell: NimiAppRuntimePlatformStandardShell = {
     async request() { return {}; },
   },
   artifacts: { async readRuntimeBytes() { return {}; } },
+  storage: {
+    async readJson() { return {}; },
+    async writeJson() { return {}; },
+    async removeJson() { return {}; },
+  },
   agent: {
+    async inventory() { return {}; },
     async openConversation() { return {}; },
     async sendTurn() { return {}; },
     async subscribeTurn() { return {}; },
     async getConversationSnapshot() { return {}; },
+    async transcribeVoice() { return {}; },
+    async subscribeVoiceStream() { return {}; },
   },
 };
 const localApp = createNimiAppRuntimePlatformClient({ standardShell: localAppStandardShell });
@@ -194,8 +204,14 @@ const error: NimiError = createNimiError({ message: 'x', reasonCode: 'SDK_SURFAC
 const json: JsonObject = { reasonCode: ReasonCode.REALM_UNAVAILABLE };
 const generatedReason = RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED;
 const scenarioRequest: Partial<ExecuteScenarioRequest> = { scenarioType: ScenarioType.TEXT_GENERATE };
-const realmModelName: RealmModelName = 'AccountGrantViewRowDto';
-const grantRow: Partial<RealmModel<'AccountGrantViewRowDto'>> = { grantId: 'grant' };
+const realmModelName: RealmModelName = 'PostDto';
+const post: Partial<RealmModel<'PostDto'>> = {};
+// @ts-expect-error Packet transport models are Runtime-internal authority.
+const packetModelName: RealmModelName = 'SourceMaterializationPacketV3Dto';
+// @ts-expect-error Realm grant transport models are Runtime-internal authority.
+const grantModelName: RealmModelName = 'AppPermissionGrantDto';
+// @ts-expect-error Raw Realm source refs are not exposed through the Realm facade model barrel.
+const sourceRefModelName: RealmModelName = 'CharacterSourceRefV3Dto';
 const message: NimiMessage = { role: 'user', content: [textPart('hello')] };
 const manifest: NimiCapabilityManifest = {
   adapterId: 'surface',
@@ -209,7 +225,7 @@ const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
 const plan = createWorldWorkflowPlan({ planId: 'plan', steps: [{ kind: 'world-core-list' }] });
 const registry = createNimiToolRegistry([]);
 
-void client; void runtime; void realm; void generatedRealm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void grantRow; void message;
+void client; void runtime; void realm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void post; void packetModelName; void grantModelName; void sourceRefModelName; void message;
 void manifest; void model; void runner; void plan; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiKnowledgeContextBundle;

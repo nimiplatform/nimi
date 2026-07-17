@@ -45,33 +45,12 @@ function writeConsumerFiles() {
 import assert from 'node:assert/strict';
 import {
   Realm,
-  RealmCore,
   createRealm,
-  createNimiRealmPermissionTransport,
   REALM_AUTH_METHODS,
   REALM_WORLD_CORE_METHODS,
 } from '@nimiplatform/sdk/realm';
-import {
-  createAppScopeRef,
-  createPermissionClient,
-} from '@nimiplatform/sdk/app';
 
 let lastRequest;
-function grant(input = {}) {
-  return {
-    grantId: 'grant-1',
-    subjectAccountId: 'account-1',
-    appId: 'tester.app',
-    scopeFamily: 'account',
-    scopeName: 'account.read',
-    state: 'GRANTED',
-    reason: 'realm consumer smoke',
-    version: 3,
-    requestedAt: '2026-06-10T00:00:00.000Z',
-    requestedByAccountId: 'account-1',
-    ...input,
-  };
-}
 const transport = {
   async unary(request) {
     lastRequest = request;
@@ -91,13 +70,6 @@ const transport = {
         createdAt: '2026-06-10T00:00:00.000Z',
         updatedAt: '2026-06-10T00:00:00.000Z',
       };
-    }
-    if (request.methodId === 'listMyAppPermissionGrants') return { items: [grant()] };
-    if (request.methodId === 'getMyAppPermissionGrantStatus') {
-      return { generatedAt: '2026-06-10T00:00:01.000Z', grants: [grant()] };
-    }
-    if (request.methodId === 'requestMyAppPermissionGrant') {
-      return grant({ grantId: 'grant-requested', state: 'PENDING' });
     }
     return { ok: true, methodId: request.methodId };
   },
@@ -120,43 +92,26 @@ assert.equal(lastRequest.metadata.authorization, 'Bearer token');
 await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
 assert.equal(lastRequest.methodId, 'WorldCoreController_getOasisWorld');
 
-const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
-const permissionScope = {
-  appId: 'tester.app',
-  scopeFamily: 'account',
-  scopeName: 'account.read',
-};
-const permission = createPermissionClient(createNimiRealmPermissionTransport(realm));
-assert.equal((await permission.list(scopeRef))[0]?.state, 'granted');
-assert.equal(lastRequest.methodId, 'listMyAppPermissionGrants');
-assert.equal((await permission.status(scopeRef)).grants[0]?.grant.grantId, 'grant-1');
-assert.equal(lastRequest.methodId, 'getMyAppPermissionGrantStatus');
-assert.equal((await permission.request(scopeRef, { permissionScope, reason: 'realm consumer smoke' })).state, 'pending');
-assert.equal(lastRequest.methodId, 'requestMyAppPermissionGrant');
-await assert.rejects(
-  permission.request(scopeRef, { permissionScope, subjectUserId: 'other-account', reason: 'subject override' }),
-  (error) => error?.reasonCode === 'SDK_REALM_PERMISSION_SUBJECT_NOT_ADMITTED',
-);
-
-const core = new RealmCore(realm.core);
-await core.operation({ operationId: 'getMe', body: { path: {} } });
-assert.equal(lastRequest.methodId, 'getMe');
+for (const privateMethod of [
+  'requestMyAppPermissionGrant',
+  'grantMyAppPermissionGrant',
+  'getSourceMaterializationJwks',
+  'issueRuntimeRealmGrant',
+  'worldCoreControllerCreateSourceMaterializationPacket',
+]) {
+  assert.equal(privateMethod in realm.generated, false);
+}
+assert.equal('core' in realm, false);
+assert.equal(Object.getPrototypeOf(realm.generated), null);
+assert.equal(Object.isFrozen(realm.generated), true);
 `);
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
 import {
   Realm,
-  RealmCore,
   createRealm,
-  createNimiRealmPermissionTransport,
   type CoreTransport,
 } from '@nimiplatform/sdk/realm';
-import {
-  createAppScopeRef,
-  createPermissionClient,
-  type GrantStatus,
-  type PermissionClient,
-} from '@nimiplatform/sdk/app';
 import {
   type RealmGetMeOperationResponse,
   type RealmWorldCoreControllerGetOasisWorldOperationResponse,
@@ -172,19 +127,26 @@ const transport: CoreTransport = {
 };
 
 const realm: Realm = createRealm({ transport });
-const core: RealmCore = new RealmCore(realm.core);
-const permission: PermissionClient = createPermissionClient(createNimiRealmPermissionTransport(realm));
 const me: Promise<RealmGetMeOperationResponse> = realm.me();
 const world: Promise<RealmWorldCoreControllerGetOasisWorldOperationResponse> =
   realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
-const grants: Promise<readonly GrantStatus[]> = permission.list(
-  createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }),
-);
+// @ts-expect-error Realm grant acquisition is Runtime-internal authority.
+realm.generated.requestMyAppPermissionGrant({
+  path: {},
+  body: {
+    appId: 'nimi.avatar',
+    scopeFamily: 'realm_source',
+    scopeName: 'realm_source.snapshot.consume',
+    reason: 'realm source consumption',
+  },
+});
+// @ts-expect-error Packet acquisition is Runtime-internal authority.
+realm.generated.worldCoreControllerCreateSourceMaterializationPacket({ path: {}, body: {} });
+// @ts-expect-error Realm does not expose its raw CoreClient transport.
+realm.core;
 
-void core;
 void me;
 void world;
-void grants;
 `);
 
   writeFileSync(path.join(tempRoot, 'tsconfig.json'), JSON.stringify({

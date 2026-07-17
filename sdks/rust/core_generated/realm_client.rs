@@ -262,8 +262,8 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
     RealmOperationDescriptor {
         operation_id: "EconomyController_getSourceOrigin",
         service: "Economy (Currency & Gifts)",
-        method: "GET",
-        path: Some("/api/economy/revenue-share/source-origin/{sourceRef}"),
+        method: "POST",
+        path: Some("/api/economy/revenue-share/source-origin"),
     },
     RealmOperationDescriptor {
         operation_id: "EconomyController_getSparkHistory",
@@ -310,7 +310,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
     RealmOperationDescriptor {
         operation_id: "EconomyController_previewRevenueDistribution",
         service: "Economy (Currency & Gifts)",
-        method: "GET",
+        method: "POST",
         path: Some("/api/economy/revenue-share/preview"),
     },
     RealmOperationDescriptor {
@@ -1082,10 +1082,10 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/oasis/bootstrap"),
     },
     RealmOperationDescriptor {
-        operation_id: "WorldCoreController_createRealmPersona",
+        operation_id: "WorldCoreController_createPersonaCharacter",
         service: "Realm Core",
         method: "POST",
-        path: Some("/api/realm/core/personas"),
+        path: Some("/api/realm/core/persona-characters"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_createSourceMaterializationPacket",
@@ -1118,22 +1118,46 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/worlds/{worldId}/relationships"),
     },
     RealmOperationDescriptor {
+        operation_id: "WorldCoreController_deletePersonaCharacter",
+        service: "Realm Core",
+        method: "DELETE",
+        path: Some("/api/realm/core/persona-characters/by-id/{personaCharacterId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldCoreController_deleteWorldCharacter",
+        service: "Realm Core",
+        method: "DELETE",
+        path: Some("/api/realm/core/world-characters/by-id/{characterId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldCoreController_discoverPersonaCharacters",
+        service: "Realm Core",
+        method: "GET",
+        path: Some("/api/realm/core/persona-characters/discovery"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldCoreController_discoverWorldCharacters",
+        service: "Realm Core",
+        method: "GET",
+        path: Some("/api/realm/core/world-characters/discovery"),
+    },
+    RealmOperationDescriptor {
         operation_id: "WorldCoreController_getOasisWorld",
         service: "Realm Core",
         method: "GET",
         path: Some("/api/realm/core/oasis"),
     },
     RealmOperationDescriptor {
-        operation_id: "WorldCoreController_getRealmPersona",
+        operation_id: "WorldCoreController_getPersonaCharacter",
         service: "Realm Core",
         method: "GET",
-        path: Some("/api/realm/core/personas/{personaId}"),
+        path: Some("/api/realm/core/persona-characters/by-id/{personaCharacterId}"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_getWorldCharacter",
         service: "Realm Core",
         method: "GET",
-        path: Some("/api/realm/core/world-characters/{characterId}"),
+        path: Some("/api/realm/core/world-characters/by-id/{characterId}"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_getWorldCore",
@@ -1154,10 +1178,10 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/world-relationships/{relationshipId}"),
     },
     RealmOperationDescriptor {
-        operation_id: "WorldCoreController_listRealmPersonas",
+        operation_id: "WorldCoreController_listPersonaCharacters",
         service: "Realm Core",
         method: "GET",
-        path: Some("/api/realm/core/personas"),
+        path: Some("/api/realm/core/persona-characters"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_listWorldCharacters",
@@ -1184,16 +1208,16 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/worlds/{worldId}/relationships"),
     },
     RealmOperationDescriptor {
-        operation_id: "WorldCoreController_replaceRealmPersona",
+        operation_id: "WorldCoreController_replacePersonaCharacter",
         service: "Realm Core",
         method: "PUT",
-        path: Some("/api/realm/core/personas/{personaId}"),
+        path: Some("/api/realm/core/persona-characters/by-id/{personaCharacterId}"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_replaceWorldCharacter",
         service: "Realm Core",
         method: "PUT",
-        path: Some("/api/realm/core/world-characters/{characterId}"),
+        path: Some("/api/realm/core/world-characters/by-id/{characterId}"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_replaceWorldCore",

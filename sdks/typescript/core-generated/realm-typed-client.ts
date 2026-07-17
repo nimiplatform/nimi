@@ -92,8 +92,8 @@ export interface AppPermissionGrantSupersedeDto {
   readonly reason?: string;
   readonly supersededByGrantId?: string;
 }
-export type AppPermissionScopeFamily = "account" | "data" | "realm_source" | "ai_spend" | "memory" | "knowledge" | "notification" | "file_device" | "audit" | "ai_profile";
-export type AppPermissionScopeName = "account.read" | "account.session.read" | "data.scope.read" | "data.scope.write" | "realm_source.snapshot.consume" | "realm_source.snapshot.bind" | "ai.spend.meter" | "ai.spend.delegate" | "memory.read.bounded" | "memory.write.admitted" | "knowledge.read.bounded" | "knowledge.write.admitted" | "notification.send" | "notification.subscribe" | "file.read.scoped" | "file.write.scoped" | "device.use.scoped" | "audit.read.scoped" | "ai_profile.selection.consume";
+export type AppPermissionScopeFamily = "realm_source";
+export type AppPermissionScopeName = "realm_source.snapshot.consume";
 export interface AssetDetailDto {
   readonly authorId: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -224,35 +224,9 @@ export interface BundleDetailDto {
 export interface BundleListDto {
   readonly items: readonly (BundleDetailDto)[];
 }
-export interface BundleManifestChunkDescriptorV1Dto {
-  readonly chunkSha256: string;
-  readonly componentOffset: number;
-  readonly globalOrdinal: number;
-  readonly length: number;
-}
-export interface BundleManifestComponentV1Dto {
-  readonly canonicalByteLength: number;
-  readonly canonicalBytesHash: string;
-  readonly componentId: string;
-  readonly contentHash: string;
-  readonly kind: "worldCharacter" | "realmPersona" | "worldCore" | "worldEntity" | "worldRelationship" | "coverageManifest";
-  readonly revision: number;
-  readonly schemaVersion: string;
-}
 export interface BundleMemberDto {
   readonly assetId: string;
   readonly sortOrder: number;
-}
-export interface BundleTransportManifestV1Dto {
-  readonly challengeDigest: string;
-  readonly chunkCount: number;
-  readonly chunks: readonly (BundleManifestChunkDescriptorV1Dto)[];
-  readonly componentCount: number;
-  readonly components: readonly (BundleManifestComponentV1Dto)[];
-  readonly manifestSchemaVersion: "realm.materialization-bundle-manifest/v1";
-  readonly packetId: string;
-  readonly payloadAssemblyVersion: "realm.materialization-assembly/v1";
-  readonly totalCanonicalBytes: number;
 }
 export interface CanWithdrawDto {
   readonly balance: string;
@@ -266,6 +240,135 @@ export interface ChangeEmailDto {
   readonly newEmail: string;
   readonly password: string;
 }
+export interface CharacterProfileCoreDto {
+  readonly assets: CharacterProfileCoreDtoAssets;
+  readonly authoring: CharacterProfileCoreDtoAuthoring;
+  readonly capabilities?: CharacterProfileCoreDtoCapabilities;
+  readonly identity: CharacterProfileCoreDtoIdentity;
+  readonly interactionProfile: CharacterProfileCoreDtoInteractionProfile;
+  readonly knowledge?: CharacterProfileCoreDtoKnowledge;
+  readonly narrative: CharacterProfileCoreDtoNarrative;
+  readonly presentation: CharacterProfileCoreDtoPresentation;
+  readonly profileCoverage: ProfileCoverageManifestV1Dto;
+  readonly profileHash: string;
+  readonly profileSchemaVersion: "realm.character-profile-core/v1";
+  readonly psychology?: CharacterProfileCoreDtoPsychology;
+  readonly relationships?: readonly (CharacterProfileCoreDtoRelationshipsItem)[];
+}
+export interface CharacterProfileCoreDtoAssets {
+  readonly externalRefs?: readonly (CharacterProfileCoreDtoAssetsExternalRefsItem)[];
+  readonly intents: readonly (CharacterProfileCoreDtoAssetsIntentsItem)[];
+  readonly resourceRefs: readonly (CharacterProfileCoreDtoAssetsResourceRefsItem)[];
+}
+export interface CharacterProfileCoreDtoAssetsExternalRefsItem {
+  readonly kind: string;
+  readonly label?: string;
+  readonly purpose?: string;
+  readonly refId: string;
+  readonly uri: string;
+}
+export interface CharacterProfileCoreDtoAssetsIntentsItem {
+  readonly intentId: string;
+  readonly kind: string;
+  readonly summary?: string;
+}
+export interface CharacterProfileCoreDtoAssetsResourceRefsItem {
+  readonly kind: string;
+  readonly label?: string;
+  readonly purpose?: string;
+  readonly refId: string;
+}
+export interface CharacterProfileCoreDtoAuthoring {
+  readonly extensions?: Record<string, unknown>;
+  readonly notes?: readonly (string)[];
+  readonly source: string;
+}
+export interface CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty {
+  readonly extensionSchemaVersion: string;
+  readonly fields: Record<string, unknown>;
+  readonly namespace: string;
+  readonly productSemantic: boolean;
+}
+export interface CharacterProfileCoreDtoCapabilities {
+  readonly tools?: readonly (CharacterProfileCoreDtoCapabilitiesToolsItem)[];
+}
+export interface CharacterProfileCoreDtoCapabilitiesToolsItem {
+  readonly name?: string;
+  readonly summary?: string;
+  readonly toolId: string;
+}
+export interface CharacterProfileCoreDtoIdentity {
+  readonly aliases?: readonly (string)[];
+  readonly handle?: string;
+  readonly name: string;
+  readonly summary: string;
+}
+export interface CharacterProfileCoreDtoInteractionProfile {
+  readonly cadence?: string;
+  readonly dialogueExemplars?: readonly (CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem)[];
+  readonly greeting?: string;
+  readonly greetingVariants?: readonly (string)[];
+  readonly interactionModes: readonly (string)[];
+  readonly scenario?: string;
+  readonly tone?: string;
+}
+export interface CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem {
+  readonly character: string;
+  readonly exemplarId: string;
+  readonly user?: string;
+}
+export interface CharacterProfileCoreDtoKnowledge {
+  readonly constraints?: readonly (string)[];
+  readonly topics?: readonly (string)[];
+}
+export interface CharacterProfileCoreDtoNarrative {
+  readonly archetype?: string;
+  readonly milestones?: readonly (CharacterProfileCoreDtoNarrativeMilestonesItem)[];
+  readonly summary: string;
+  readonly traits?: readonly (string)[];
+}
+export interface CharacterProfileCoreDtoNarrativeMilestonesItem {
+  readonly milestoneId: string;
+  readonly sequence?: number;
+  readonly summary?: string;
+  readonly title?: string;
+}
+export interface CharacterProfileCoreDtoPresentation {
+  readonly avatarResourceRef?: string;
+  readonly displayName: string;
+  readonly profileCoverResourceRef?: string;
+  readonly profileLine?: string;
+  readonly shortBio?: string;
+}
+export interface CharacterProfileCoreDtoPsychology {
+  readonly boundaries?: readonly (string)[];
+  readonly drives?: readonly (string)[];
+}
+export interface CharacterProfileCoreDtoRelationshipsItem {
+  readonly relationType: string;
+  readonly relationshipId: string;
+  readonly summary?: string;
+  readonly targetRef: CharacterProfileCoreDtoRelationshipsItemTargetRef;
+}
+export interface CharacterProfileCoreDtoRelationshipsItemTargetRef {
+  readonly entityId: string;
+  readonly kind: "worldEntity";
+  readonly worldId: string;
+}
+export interface CharacterProfileCoreInputDto {
+  readonly assets: Record<string, unknown>;
+  readonly authoring: Record<string, unknown>;
+  readonly capabilities?: Record<string, unknown>;
+  readonly identity: Record<string, unknown>;
+  readonly interactionProfile: Record<string, unknown>;
+  readonly knowledge?: Record<string, unknown>;
+  readonly narrative: Record<string, unknown>;
+  readonly presentation: Record<string, unknown>;
+  readonly profileSchemaVersion: "realm.character-profile-core/v1";
+  readonly psychology?: Record<string, unknown>;
+  readonly relationships?: readonly (Record<string, unknown>)[];
+}
+export type CharacterSourceRefV3Dto = WorldCharacterSourceRefV3Dto | PersonaCharacterSourceRefV3Dto;
 export interface ChatEventEnvelopeDto {
   readonly actorId: string;
   readonly chatId: string;
@@ -365,47 +468,6 @@ export interface ConnectOnboardingResponseDto {
   readonly onboardingUrl: string;
 }
 export type ContentRatingString = "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
-export interface CoverageComponentV1Dto {
-  readonly componentId: string;
-  readonly contentHash: string;
-  readonly kind: "worldCharacter" | "realmPersona" | "worldCore" | "worldEntity" | "worldRelationship" | "coverageManifest";
-  readonly revision: number;
-  readonly schemaVersion: string;
-}
-export interface CoverageCrossReferenceCheckV1Dto {
-  readonly checkId: string;
-  readonly sourceRef: string;
-  readonly state: "valid" | "invalid";
-  readonly targetRef: string;
-}
-export interface CoverageManifestV1Dto {
-  readonly aggregateStatus: "complete" | "incomplete" | "invalid";
-  readonly closurePolicyVersion: "realm.materialization-closure/v1";
-  readonly components: readonly (CoverageComponentV1Dto)[];
-  readonly coverageManifestHash: string;
-  readonly crossReferenceChecks: readonly (CoverageCrossReferenceCheckV1Dto)[];
-  readonly manifestSchemaVersion: "realm.materialization-coverage/v1";
-  readonly optionalRefs: readonly (CoverageOptionalRefV1Dto)[];
-  readonly requiredRefs: readonly (CoverageRequiredRefV1Dto)[];
-  readonly requiredSections: readonly (CoverageRequiredSectionV1Dto)[];
-}
-export interface CoverageOptionalRefV1Dto {
-  readonly omissionReason?: "not-declared" | "intentionally-absent" | "inaccessible-optional-resource";
-  readonly path: string;
-  readonly refId: string;
-  readonly refKind: string;
-  readonly state: "resolved" | "omitted" | "invalid";
-}
-export interface CoverageRequiredRefV1Dto {
-  readonly path: string;
-  readonly refId: string;
-  readonly refKind: string;
-  readonly state: "resolved" | "missing" | "invalid";
-}
-export interface CoverageRequiredSectionV1Dto {
-  readonly path: string;
-  readonly state: "present" | "missing" | "invalid";
-}
 export interface CreateAssetDto {
   readonly authorId?: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -465,6 +527,13 @@ export interface CreateGroupInputDto {
   readonly text?: string;
   readonly title: string;
 }
+export interface CreatePersonaCharacterCoreDto {
+  readonly id?: string;
+  readonly origin: RealmCoreOriginDto;
+  readonly profile: CharacterProfileCoreInputDto;
+  readonly visibility?: "private" | "unlisted" | "public" | "system";
+  readonly worldId: string;
+}
 export interface CreatePortalSessionDto {
   readonly returnUrl: string;
 }
@@ -477,13 +546,6 @@ export interface CreatePostDto {
   readonly caption?: string;
   readonly sourceRef?: PostSourceRefDto;
   readonly tags?: readonly (string)[];
-}
-export interface CreateRealmPersonaDto {
-  readonly core: Record<string, unknown>;
-  readonly homeWorldId?: string;
-  readonly id?: string;
-  readonly origin: RealmCoreOriginDto;
-  readonly visibility?: "private" | "unlisted" | "public" | "system";
 }
 export interface CreateRelationshipDto {
   readonly context?: string;
@@ -503,14 +565,15 @@ export interface CreateReviewDto {
   readonly rating: ReviewRating;
   readonly tags?: string;
 }
-export interface CreateSourceMaterializationPacketDto {
+export interface CreateSourceMaterializationPacketV3Dto {
+  readonly accessGrantId: string;
   readonly challengeDigest: string;
   readonly challengeExpiresAt: string;
   readonly challengeId: string;
-  readonly challengeLimits: SourceMaterializationChallengeLimitsDto;
   readonly intendedRuntimeAudience: string;
   readonly materializerAccountId: string;
-  readonly sourceRef: TypedSourceRefDto;
+  readonly publishedLimits: SourceMaterializationPublishedLimitsDto;
+  readonly sourceRef: CharacterSourceRefV3Dto;
 }
 export interface CreateSparkCheckoutDto {
   readonly cancelUrl: string;
@@ -549,7 +612,7 @@ export interface CreateTextResourceDto {
 export interface CreateTransitDto {
   readonly context?: TransitContextDto;
   readonly fromWorldId?: string;
-  readonly sourceRef: TypedSourceRefDto;
+  readonly sourceRef: CharacterSourceRefV3Dto;
   readonly toWorldId: string;
   readonly transitType: "INBOUND" | "OUTBOUND";
 }
@@ -557,10 +620,11 @@ export interface CreateWithdrawalDto {
   readonly gemAmount: string;
 }
 export interface CreateWorldCharacterCoreDto {
-  readonly core: Record<string, unknown>;
-  readonly entityId: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
+  readonly profile: CharacterProfileCoreInputDto;
+  readonly visibility?: "private" | "unlisted" | "public" | "system";
+  readonly worldEntityRef: WorldEntityRefDto;
 }
 export interface CreateWorldCoreDto {
   readonly core: Record<string, unknown>;
@@ -583,7 +647,7 @@ export interface CreateWorldRelationshipCoreDto {
   readonly type: string;
 }
 export interface CreatorEligibilityResponseDto {
-  readonly canCreateRealmPersona: boolean;
+  readonly canCreatePersonaCharacter: boolean;
   readonly canCreateWorld: boolean;
   readonly isEligible: boolean;
   readonly message: string;
@@ -760,7 +824,7 @@ export interface GroupMessageAuthorDto {
   readonly displayName: string;
   readonly runtimeParticipantSlot: string | null;
   readonly runtimeSourceRef: string | null;
-  readonly sourceOwnerId: string | null;
+  readonly sourceAuthorityAccountId: string | null;
   readonly sourceRef: GroupSourceRefDto | null;
   readonly type: "human" | "source";
 }
@@ -788,15 +852,12 @@ export interface GroupParticipantDto {
   readonly role: "admin" | "member";
   readonly runtimeParticipantSlot: string | null;
   readonly runtimeSourceRef: string | null;
-  readonly sourceOwnerId: string | null;
+  readonly sourceAuthorityAccountId: string | null;
   readonly sourceRef: GroupSourceRefDto | null;
   readonly type: "human" | "source";
 }
 export interface GroupSourceRefDto {
-  readonly kind: "worldCharacter" | "realmPersona";
-  readonly sourceContentHash: string;
-  readonly sourceId: string;
-  readonly worldId: string;
+
 }
 export interface GroupSourceTriggerEvidenceDto {
   readonly actorId: string;
@@ -870,18 +931,130 @@ export interface MarkNotificationsReadInputDto {
   readonly ids?: readonly (string)[];
   readonly markAllBefore?: string;
 }
-export interface MaterializationContextV1Dto {
-  readonly closurePolicyVersion: "realm.materialization-closure/v1";
-  readonly contextSchemaVersion: "realm.materialization-context/v1";
-  readonly coverageManifestHash: string;
-  readonly dependencyClosure: MaterializationContextV1DtoDependencyClosure;
-  readonly materializationContextHash: string;
-  readonly owningWorld: WorldCoreDto;
-  readonly sourceComponentDigests: readonly (SourceMaterializationComponentDigestV1Dto)[];
-  readonly sourceRef: TypedSourceRefDto;
-  readonly worldAndClosureComponentDigests: readonly (SourceMaterializationComponentDigestV1Dto)[];
+export interface MaterializationClosureSetManifestV3Dto {
+  readonly challengeDigest: string;
+  readonly chunkCount: number;
+  readonly componentCount: number;
+  readonly manifestSchemaVersion: "realm.materialization-closure-set-manifest/v3";
+  readonly orderedComponentSetHash: string;
+  readonly packetId: string;
+  readonly payloadAssemblyVersion: "realm.materialization-assembly/v3";
+  readonly publishedLimits: SourceMaterializationPublishedLimitsDto;
+  readonly segmentCount: number;
+  readonly segments: readonly (MaterializationClosureSetSegmentRefV3Dto)[];
+  readonly totalCanonicalBytes: number;
 }
-export type MaterializationContextV1DtoDependencyClosure = WorldCharacterDependencyClosureV1Dto | RealmPersonaDependencyClosureV1Dto;
+export interface MaterializationClosureSetSegmentRefV3Dto {
+  readonly chunkCount: number;
+  readonly componentCount: number;
+  readonly firstComponentOrdinal: number;
+  readonly lastComponentOrdinal: number;
+  readonly segmentManifestHash: string;
+  readonly segmentOrdinal: number;
+  readonly totalCanonicalBytes: number;
+}
+export interface MaterializationComponentDigestV3Dto {
+  readonly componentId: string;
+  readonly contentHash: string;
+  readonly kind: "worldCharacter" | "personaCharacter" | "worldCore" | "worldEntity" | "worldRelationship" | "materializationCoverage";
+}
+export interface MaterializationContextV3Dto {
+  readonly closurePolicyVersion: "realm.materialization-closure/v3";
+  readonly contextSchemaVersion: "realm.materialization-context/v3";
+  readonly dependencyClosure: MaterializationContextV3DtoDependencyClosure;
+  readonly materializationContextHash: string;
+  readonly materializationCoverageHash: string;
+  readonly owningWorld: WorldCoreDto;
+  readonly sourceComponentDigests: readonly (MaterializationComponentDigestV3Dto)[];
+  readonly sourceRef: CharacterSourceRefV3Dto;
+  readonly worldAndClosureComponentDigests: readonly (MaterializationComponentDigestV3Dto)[];
+}
+export type MaterializationContextV3DtoDependencyClosure = WorldCharacterDependencyClosureV3Dto | PersonaCharacterDependencyClosureV3Dto;
+export interface MaterializationCoverageComponentV3Dto {
+  readonly componentId: string;
+  readonly contentHash: string;
+  readonly kind: "worldCharacter" | "personaCharacter" | "worldCore" | "worldEntity" | "worldRelationship" | "materializationCoverage";
+  readonly revision: number;
+  readonly schemaVersion: string;
+}
+export interface MaterializationCoverageManifestV3Dto {
+  readonly aggregateStatus: "complete" | "incomplete" | "invalid";
+  readonly closurePolicyVersion: "realm.materialization-closure/v3";
+  readonly components: readonly (MaterializationCoverageComponentV3Dto)[];
+  readonly crossReferenceChecks: readonly (MaterializationCrossReferenceCheckV3Dto)[];
+  readonly manifestSchemaVersion: "realm.materialization-coverage/v3";
+  readonly materializationCoverageHash: string;
+  readonly optionalRefs: readonly (MaterializationOptionalRefV3Dto)[];
+  readonly requiredRefs: readonly (MaterializationRequiredRefV3Dto)[];
+  readonly requiredSections: readonly (MaterializationRequiredSectionV3Dto)[];
+}
+export interface MaterializationCrossReferenceCheckV3Dto {
+  readonly checkId: string;
+  readonly sourceRef: string;
+  readonly state: "valid" | "invalid";
+  readonly targetRef: string;
+}
+export interface MaterializationDependencyRefV3Dto {
+  readonly contentHash: string;
+  readonly id: string;
+  readonly kind: "worldEntity" | "worldRelationship";
+  readonly worldId: string;
+}
+export interface MaterializationOptionalRefV3Dto {
+  readonly omissionReason?: "not-declared" | "intentionally-absent" | "inaccessible-optional-resource";
+  readonly path: string;
+  readonly refId: string;
+  readonly refKind: string;
+  readonly state: "resolved" | "omitted" | "invalid";
+}
+export interface MaterializationRequiredRefV3Dto {
+  readonly path: string;
+  readonly refId: string;
+  readonly refKind: string;
+  readonly state: "resolved" | "missing" | "invalid";
+}
+export interface MaterializationRequiredSectionV3Dto {
+  readonly path: string;
+  readonly state: "present" | "missing" | "invalid";
+}
+export interface MaterializationSegmentChunkDescriptorV3Dto {
+  readonly chunkSha256: string;
+  readonly componentOffset: number;
+  readonly globalChunkOrdinal: number;
+  readonly globalComponentOrdinal: number;
+  readonly length: number;
+}
+export interface MaterializationSegmentLimitsV3Dto {
+  readonly maxChunkBytes: number;
+  readonly maxSegmentBytes: number;
+  readonly maxSegmentChunks: number;
+  readonly maxSegmentComponentCount: number;
+}
+export interface MaterializationSegmentManifestComponentV3Dto {
+  readonly canonicalByteLength: number;
+  readonly canonicalBytesHash: string;
+  readonly componentId: string;
+  readonly contentHash: string;
+  readonly globalComponentOrdinal: number;
+  readonly kind: "worldCharacter" | "personaCharacter" | "worldCore" | "worldEntity" | "worldRelationship" | "materializationCoverage";
+  readonly revision: number;
+  readonly schemaVersion: string;
+}
+export interface MaterializationSegmentManifestV3Dto {
+  readonly challengeDigest: string;
+  readonly chunkCount: number;
+  readonly chunks: readonly (MaterializationSegmentChunkDescriptorV3Dto)[];
+  readonly componentCount: number;
+  readonly components: readonly (MaterializationSegmentManifestComponentV3Dto)[];
+  readonly firstComponentOrdinal: number;
+  readonly lastComponentOrdinal: number;
+  readonly manifestSchemaVersion: "realm.materialization-segment-manifest/v3";
+  readonly packetId: string;
+  readonly payloadAssemblyVersion: "realm.materialization-assembly/v3";
+  readonly publishedSegmentLimits: MaterializationSegmentLimitsV3Dto;
+  readonly segmentOrdinal: number;
+  readonly totalCanonicalBytes: number;
+}
 export interface Me2faOperationResultDto {
   readonly success: boolean;
 }
@@ -1015,6 +1188,45 @@ export interface PasswordRegisterDto {
   readonly email: string;
   readonly password: string;
 }
+export interface PersonaCharacterCoreDto {
+  readonly contentHash: string;
+  readonly contentRevision: number;
+  readonly createdAt: string;
+  readonly id: string;
+  readonly materializationReadiness: ReadinessResultDto;
+  readonly origin: RealmCoreOriginDto;
+  readonly ownerAccountId: string;
+  readonly profile: CharacterProfileCoreDto;
+  readonly schemaVersion: "realm.persona-character-core/v1";
+  readonly sourceHash: string;
+  readonly updatedAt: string;
+  readonly validity: ValidityResultDto;
+  readonly visibility: "private" | "unlisted" | "public" | "system";
+  readonly worldId: string;
+}
+export interface PersonaCharacterDependencyClosureV3Dto {
+  readonly explicitDependencies: readonly (MaterializationDependencyRefV3Dto)[];
+  readonly explicitEntities: readonly (WorldEntityCoreDto)[];
+  readonly explicitRelationships: readonly (WorldRelationshipCoreDto)[];
+  readonly kind: "personaCharacter";
+}
+export interface PersonaCharacterMaterializationPayloadV3Dto {
+  readonly canonicalSource: PersonaCharacterCoreDto;
+  readonly materializationContext: MaterializationContextV3Dto;
+  readonly materializationContextHash: string;
+  readonly materializationCoverage: MaterializationCoverageManifestV3Dto;
+  readonly materializationCoverageHash: string;
+  readonly payloadAssemblyVersion: "realm.materialization-assembly/v3";
+  readonly payloadSchemaVersion: "realm.source-materialization-payload/v3";
+  readonly sourceRef: PersonaCharacterSourceRefV3Dto;
+}
+export interface PersonaCharacterSourceRefV3Dto {
+  readonly id: string;
+  readonly kind: "personaCharacter";
+  readonly ownerAccountId: string;
+  readonly sourceHash: string;
+  readonly worldId: string;
+}
 export interface PortalSessionDto {
   readonly url: string;
 }
@@ -1035,7 +1247,7 @@ export interface PostDto {
   readonly attachments: readonly (PostAttachmentDto)[];
   readonly author: UserLiteDto;
   readonly authorId: string;
-  readonly authorKind: "human" | "worldCharacter" | "realmPersona";
+  readonly authorKind: "human" | "worldCharacter" | "personaCharacter";
   readonly caption?: string | null;
   readonly contentRating?: ContentRatingString;
   readonly createdAt: string;
@@ -1055,17 +1267,14 @@ export interface PostSourceAuthorDto {
   readonly displayName: string;
   readonly handle: string;
   readonly id: string;
-  readonly kind: "worldCharacter" | "realmPersona";
-  readonly ownerUserId: string;
+  readonly kind: "worldCharacter" | "personaCharacter";
   readonly runtimeSourceRef: string;
+  readonly sourceAuthorityAccountId: string;
   readonly sourceRef: PostSourceRefDto;
   readonly worldId: string;
 }
 export interface PostSourceRefDto {
-  readonly kind: "worldCharacter" | "realmPersona";
-  readonly sourceContentHash: string;
-  readonly sourceId: string;
-  readonly worldId: string;
+
 }
 export interface PPSlotConfigDto {
   readonly slot1?: PPSlotItemDto;
@@ -1081,6 +1290,41 @@ export interface PPSlotItemDto {
   readonly type: string;
 }
 export type PresenceStatus = "online" | "invisible";
+export interface ProfileCoverageManifestV1Dto {
+  readonly aggregateStatus: "complete" | "incomplete" | "invalid";
+  readonly diagnostics: readonly (ProfileCoverageManifestV1DtoDiagnosticsItem)[];
+  readonly manifestSchemaVersion: "realm.character-profile-coverage/v1";
+  readonly optionalRefs: readonly (ProfileCoverageManifestV1DtoOptionalRefsItem)[];
+  readonly optionalSections: readonly (ProfileCoverageManifestV1DtoOptionalSectionsItem)[];
+  readonly profileCoverageHash: string;
+  readonly requiredRefs: readonly (ProfileCoverageManifestV1DtoRequiredRefsItem)[];
+  readonly requiredSections: readonly (ProfileCoverageManifestV1DtoRequiredSectionsItem)[];
+}
+export interface ProfileCoverageManifestV1DtoDiagnosticsItem {
+  readonly code: string;
+  readonly message: string;
+  readonly path: string;
+}
+export interface ProfileCoverageManifestV1DtoOptionalRefsItem {
+  readonly path: string;
+  readonly refId: string;
+  readonly refKind: string;
+  readonly state: "resolved" | "missing" | "empty" | "invalid";
+}
+export interface ProfileCoverageManifestV1DtoOptionalSectionsItem {
+  readonly path: string;
+  readonly state: "present" | "missing" | "empty" | "invalid";
+}
+export interface ProfileCoverageManifestV1DtoRequiredRefsItem {
+  readonly path: string;
+  readonly refId: string;
+  readonly refKind: string;
+  readonly state: "resolved" | "missing" | "empty" | "invalid";
+}
+export interface ProfileCoverageManifestV1DtoRequiredSectionsItem {
+  readonly path: string;
+  readonly state: "present" | "missing" | "empty" | "invalid";
+}
 export type PublicAccountRole = "USER" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
 export interface PublicFilterDto {
   readonly minViewerAssetTier?: number;
@@ -1091,6 +1335,15 @@ export interface PublicFilterDto {
   readonly viewerCity?: string;
   readonly viewerCountryCode?: string;
   readonly viewerGenders?: readonly (string)[];
+}
+export interface ReadinessBlockerDto {
+  readonly code: string;
+  readonly message: string;
+  readonly path: string;
+}
+export interface ReadinessResultDto {
+  readonly blockers: readonly (ReadinessBlockerDto)[];
+  readonly status: "ready" | "blocked" | "invalid";
 }
 export interface RealmCoreOriginDto {
   readonly kind: "manual" | "forge" | "worldCharacterDerivation" | "import" | "system";
@@ -1105,132 +1358,8 @@ export interface RealmGroupMessageCandidateCommitResultDto {
   readonly message: GroupMessageViewDto;
   readonly status: "committed" | "duplicate";
 }
-export interface RealmPersonaDependencyClosureV1Dto {
-  readonly explicitDependencies: readonly (SourceMaterializationDependencyRefV1Dto)[];
-  readonly kind: "realmPersona";
-}
-export interface RealmPersonaDto {
-  readonly contentHash: string;
-  readonly contentRevision: number;
-  readonly core: Record<string, unknown>;
-  readonly createdAt: string;
-  readonly homeWorldId: string;
-  readonly id: string;
-  readonly origin: RealmCoreOriginDto;
-  readonly ownerId: string;
-  readonly schemaVersion: string;
-  readonly updatedAt: string;
-  readonly visibility: "private" | "unlisted" | "public" | "system";
-}
-export interface RealmPersonaMaterializationPayloadV2Dto {
-  readonly coverageManifest: CoverageManifestV1Dto;
-  readonly coverageManifestHash: string;
-  readonly materializationContext: MaterializationContextV1Dto;
-  readonly materializationContextHash: string;
-  readonly payloadAssemblyVersion: "realm.materialization-assembly/v1";
-  readonly payloadSchemaVersion: "realm.source-materialization-payload/v2";
-  readonly source: RealmPersonaMaterializationSourceV2Dto;
-}
-export interface RealmPersonaMaterializationSourceV2Dto {
-  readonly contentHash: string;
-  readonly contentRevision: number;
-  readonly core: RealmPersonaMaterializationSourceV2DtoCore;
-  readonly createdAt: string;
-  readonly homeWorldId: string;
-  readonly id: string;
-  readonly kind: "realmPersona";
-  readonly origin: RealmCoreOriginDto;
-  readonly ownerId: string;
-  readonly schemaVersion: "realm.persona/v1";
-  readonly updatedAt: string;
-  readonly visibility: "private" | "unlisted" | "public" | "system";
-}
-export interface RealmPersonaMaterializationSourceV2DtoCore {
-  readonly assets: RealmPersonaMaterializationSourceV2DtoCoreAssets;
-  readonly authoring: RealmPersonaMaterializationSourceV2DtoCoreAuthoring;
-  readonly contentProfile: RealmPersonaMaterializationSourceV2DtoCoreContentProfile;
-  readonly identity: RealmPersonaMaterializationSourceV2DtoCoreIdentity;
-  readonly interactionProfile: RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile;
-  readonly personaStyle: RealmPersonaMaterializationSourceV2DtoCorePersonaStyle;
-  readonly presentation: RealmPersonaMaterializationSourceV2DtoCorePresentation;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreAssets {
-  readonly externalRefs?: readonly (RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem)[];
-  readonly intents: readonly (RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem)[];
-  readonly resourceRefs: readonly (RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem)[];
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem {
-  readonly kind: string;
-  readonly label?: string;
-  readonly purpose?: string;
-  readonly refId: string;
-  readonly uri: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem {
-  readonly intentId: string;
-  readonly kind: string;
-  readonly summary?: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem {
-  readonly kind: string;
-  readonly label?: string;
-  readonly purpose?: string;
-  readonly refId: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreAuthoring {
-  readonly extensions?: Record<string, unknown>;
-  readonly maintainers?: readonly (string)[];
-  readonly notes?: readonly (string)[];
-  readonly review?: RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview;
-  readonly source: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview {
-  readonly reviewedAt?: string;
-  readonly reviewedBy?: string;
-  readonly status: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreContentProfile {
-  readonly boundaries: readonly (string)[];
-  readonly guidelines: readonly (RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem)[];
-  readonly topics: readonly (string)[];
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem {
-  readonly guidelineId: string;
-  readonly source?: string;
-  readonly statement: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreIdentity {
-  readonly aliases?: readonly (string)[];
-  readonly concept?: string;
-  readonly handle: string;
-  readonly name: string;
-  readonly summary: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile {
-  readonly dialogueExemplars?: readonly (string)[];
-  readonly greeting?: string;
-  readonly greetingVariants?: readonly (string)[];
-  readonly homeWorldId: string;
-  readonly interactionModes: readonly (string)[];
-  readonly scenario?: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCorePersonaStyle {
-  readonly archetype: string;
-  readonly communicationStyle?: string;
-  readonly dialogueExemplars?: readonly (string)[];
-  readonly pacing: string;
-  readonly traits: readonly (string)[];
-  readonly voice: string;
-}
-export interface RealmPersonaMaterializationSourceV2DtoCorePresentation {
-  readonly avatarResourceRef?: string;
-  readonly displayName: string;
-  readonly profileCoverResourceRef?: string;
-  readonly profileLine: string;
-  readonly shortBio?: string;
-}
 export interface RealmSourceCapabilitiesDto {
-  readonly canCreateRealmPersona: boolean;
+  readonly canCreatePersonaCharacter: boolean;
   readonly canCreateSourceMaterializationPacket: boolean;
   readonly canUseWorldCharacterSources: boolean;
 }
@@ -1253,20 +1382,21 @@ export interface RelationshipResponseDto {
   readonly targetId: string;
   readonly type: AccountRelationType;
 }
-export interface ReplaceRealmPersonaDto {
+export interface ReplacePersonaCharacterCoreDto {
   readonly baseContentHash: string;
-  readonly core: Record<string, unknown>;
-  readonly homeWorldId?: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
+  readonly profile: CharacterProfileCoreInputDto;
   readonly visibility?: "private" | "unlisted" | "public" | "system";
+  readonly worldId: string;
 }
 export interface ReplaceWorldCharacterCoreDto {
   readonly baseContentHash: string;
-  readonly core: Record<string, unknown>;
-  readonly entityId: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
+  readonly profile: CharacterProfileCoreInputDto;
+  readonly visibility?: "private" | "unlisted" | "public" | "system";
+  readonly worldEntityRef: WorldEntityRefDto;
 }
 export interface ReplaceWorldCoreDto {
   readonly baseContentHash: string;
@@ -1366,9 +1496,16 @@ export interface RevenueDistributionPreviewDto {
   readonly totalAmount: string;
   readonly worldCreatorAmount: string;
 }
+export interface RevenueDistributionPreviewRequestDto {
+  readonly amount: string;
+  readonly sourceRef: CharacterSourceRefV3Dto;
+}
 export interface RevenueShareConfigDto {
   readonly minShareThreshold: string;
   readonly worldCreatorSharePercent: number;
+}
+export interface RevenueSourceOriginRequestDto {
+  readonly sourceRef: CharacterSourceRefV3Dto;
 }
 export interface ReviewDto {
   readonly comment?: string | null;
@@ -1415,73 +1552,71 @@ export interface SocialProfileDto {
   readonly url?: string | null;
   readonly verifiedAt?: string | null;
 }
-export interface SourceMaterializationChallengeLimitsDto {
-  readonly maxBundleBytes: number;
-  readonly maxChunkBytes: number;
-  readonly maxChunks: number;
-  readonly maxComponentCount: number;
-}
-export interface SourceMaterializationComponentChunkV1Dto {
-  readonly bytesBase64: string;
-  readonly chunkSha256: string;
-  readonly componentOffset: number;
-  readonly globalOrdinal: number;
-  readonly length: number;
-}
-export interface SourceMaterializationComponentDigestV1Dto {
-  readonly componentId: string;
-  readonly contentHash: string;
-  readonly kind: "worldCharacter" | "realmPersona" | "worldCore" | "worldEntity" | "worldRelationship" | "coverageManifest";
-}
-export interface SourceMaterializationComponentV1Dto {
+export interface SourceMaterializationComponentV3Dto {
   readonly canonicalByteLength: number;
-  readonly canonicalBytes: readonly (SourceMaterializationComponentChunkV1Dto)[];
+  readonly canonicalBytes: readonly (string)[];
   readonly canonicalBytesHash: string;
   readonly componentId: string;
   readonly contentHash: string;
-  readonly kind: "worldCharacter" | "realmPersona" | "worldCore" | "worldEntity" | "worldRelationship" | "coverageManifest";
+  readonly kind: "worldCharacter" | "personaCharacter" | "worldCore" | "worldEntity" | "worldRelationship" | "materializationCoverage";
   readonly revision: number;
   readonly schemaVersion: string;
 }
-export interface SourceMaterializationDependencyRefV1Dto {
-  readonly contentHash: string;
-  readonly id: string;
-  readonly kind: "worldEntity" | "worldRelationship";
-  readonly worldId: string;
+export interface SourceMaterializationPacketProofV3Dto {
+  readonly compactJws: string;
+  readonly signedPayload: string;
 }
-export interface SourceMaterializationPacketV2Dto {
+export interface SourceMaterializationPacketV3Dto {
+  readonly accessPolicyVersionDigest: string;
   readonly algorithm: "RS256";
-  readonly bundleManifestHash: string;
-  readonly bundleTransportManifest: BundleTransportManifestV1Dto;
+  readonly authorizationDecisionDigest: string;
   readonly challengeDigest: string;
   readonly challengeId: string;
-  readonly challengeLimits: SourceMaterializationChallengeLimitsDto;
+  readonly closureSetManifest: MaterializationClosureSetManifestV3Dto;
+  readonly closureSetManifestHash: string;
   readonly expiresAt: string;
   readonly intendedRuntimeAudience: string;
   readonly issuedAt: string;
   readonly issuer: string;
   readonly keyId: string;
   readonly keyUse: "sig";
+  readonly materializationContextHash: string;
   readonly materializerAccountId: string;
   readonly nonce: string;
-  readonly orderedComponentChunks: readonly (SourceMaterializationComponentV1Dto)[];
+  readonly orderedSegments: readonly (SourceMaterializationSegmentV3Dto)[];
   readonly packetHash: string;
   readonly packetId: string;
-  readonly packetProof: string;
-  readonly packetSchemaVersion: "realm.source-materialization-packet/v2";
+  readonly packetProof: SourceMaterializationPacketProofV3Dto;
+  readonly packetSchemaVersion: "realm.source-materialization-packet/v3";
   readonly payloadHash: string;
-  readonly semanticPayload: SourceMaterializationPacketV2DtoSemanticPayload;
-  readonly sourceRef: TypedSourceRefDto;
+  readonly publishedLimits: SourceMaterializationPublishedLimitsDto;
+  readonly semanticPayload: SourceMaterializationPacketV3DtoSemanticPayload;
+  readonly sourceRef: CharacterSourceRefV3Dto;
 }
-export type SourceMaterializationPacketV2DtoSemanticPayload = WorldCharacterMaterializationPayloadV2Dto | RealmPersonaMaterializationPayloadV2Dto;
+export type SourceMaterializationPacketV3DtoSemanticPayload = WorldCharacterMaterializationPayloadV3Dto | PersonaCharacterMaterializationPayloadV3Dto;
+export interface SourceMaterializationPublishedLimitsDto {
+  readonly maxChunkBytes: number;
+  readonly maxSegmentBytes: number;
+  readonly maxSegmentChunks: number;
+  readonly maxSegmentComponentCount: number;
+  readonly maxSetBytes: number;
+  readonly maxSetChunks: number;
+  readonly maxSetComponentCount: number;
+  readonly maxSetSegments: number;
+}
+export interface SourceMaterializationSegmentV3Dto {
+  readonly orderedComponents: readonly (SourceMaterializationComponentV3Dto)[];
+  readonly segmentManifest: MaterializationSegmentManifestV3Dto;
+  readonly segmentManifestHash: string;
+}
 export interface SourceOriginDto {
   readonly isWorldOwned: boolean;
-  readonly ownerId: string;
-  readonly sourceContentHash: string;
+  readonly sourceHash: string;
   readonly sourceId: string;
-  readonly sourceKind: "worldCharacter" | "realmPersona";
-  readonly sourceRef: Record<string, unknown>;
-  readonly worldCreatorId: string | null;
+  readonly sourceKind: "worldCharacter" | "personaCharacter";
+  readonly sourceOwnerAccountId: string;
+  readonly sourceRef: CharacterSourceRefV3Dto;
+  readonly worldCreatorAccountId: string | null;
   readonly worldId: string;
 }
 export interface SparkCheckoutSessionDto {
@@ -1561,7 +1696,7 @@ export interface TransitDetailDto {
   readonly fromWorldId?: string | null;
   readonly id: string;
   readonly runtimeSourceRef: string;
-  readonly sourceRef: TypedSourceRefDto;
+  readonly sourceRef: CharacterSourceRefV3Dto;
   readonly status: "ACTIVE" | "COMPLETED" | "ABANDONED";
   readonly toWorldId: string;
   readonly transitType: "INBOUND" | "OUTBOUND";
@@ -1576,12 +1711,6 @@ export interface TranslateResponseDto {
   readonly detectedSourceLang: string;
   readonly original: string;
   readonly translated: string;
-}
-export interface TypedSourceRefDto {
-  readonly kind: "worldCharacter" | "realmPersona";
-  readonly sourceContentHash: string;
-  readonly sourceId: string;
-  readonly worldId: string;
 }
 export interface UnreadNotificationCountDto {
   readonly byType: Record<string, unknown>;
@@ -1691,8 +1820,8 @@ export interface UpdateUserSettingsDto {
   readonly walletVisibility?: Visibility;
 }
 export interface UsePolicyDto {
-  readonly allowedBindingPoints?: readonly ("WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "WORLD_CHARACTER_AVATAR" | "WORLD_CHARACTER_PORTRAIT" | "WORLD_CHARACTER_EXPRESSION" | "WORLD_CHARACTER_OUTFIT" | "WORLD_CHARACTER_CANDIDATE" | "WORLD_CHARACTER_VOICE_SAMPLE" | "REALM_PERSONA_AVATAR" | "REALM_PERSONA_PORTRAIT" | "REALM_PERSONA_EXPRESSION" | "REALM_PERSONA_OUTFIT" | "REALM_PERSONA_CANDIDATE" | "REALM_PERSONA_VOICE_SAMPLE")[];
-  readonly allowedHostTypes: readonly ("WORLD" | "WORLD_CHARACTER" | "REALM_PERSONA" | "SCENE")[];
+  readonly allowedBindingPoints?: readonly ("WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "WORLD_CHARACTER_AVATAR" | "WORLD_CHARACTER_PORTRAIT" | "WORLD_CHARACTER_EXPRESSION" | "WORLD_CHARACTER_OUTFIT" | "WORLD_CHARACTER_CANDIDATE" | "WORLD_CHARACTER_VOICE_SAMPLE" | "PERSONA_CHARACTER_AVATAR" | "PERSONA_CHARACTER_PORTRAIT" | "PERSONA_CHARACTER_EXPRESSION" | "PERSONA_CHARACTER_OUTFIT" | "PERSONA_CHARACTER_CANDIDATE" | "PERSONA_CHARACTER_VOICE_SAMPLE")[];
+  readonly allowedHostTypes: readonly ("WORLD" | "WORLD_CHARACTER" | "PERSONA_CHARACTER" | "SCENE")[];
 }
 export interface UserCapabilitiesDto {
   readonly features: UserFeatureCapabilitiesDto;
@@ -1831,6 +1960,15 @@ export interface UserWalletDto {
 export interface UserWalletListResponseDto {
   readonly items: readonly (UserWalletDto)[];
 }
+export interface ValidityIssueDto {
+  readonly code: string;
+  readonly message: string;
+  readonly path: string;
+}
+export interface ValidityResultDto {
+  readonly issues: readonly (ValidityIssueDto)[];
+  readonly status: "valid" | "invalid";
+}
 export interface VerifyInvitationCodeDto {
   readonly invitationCode: string;
 }
@@ -1899,157 +2037,43 @@ export interface WithdrawalSummaryDto {
 export interface WorldCharacterCoreDto {
   readonly contentHash: string;
   readonly contentRevision: number;
-  readonly core: Record<string, unknown>;
   readonly createdAt: string;
   readonly creatorId: string;
-  readonly entityId: string;
   readonly id: string;
+  readonly materializationReadiness: ReadinessResultDto;
   readonly origin: RealmCoreOriginDto;
-  readonly schemaVersion: string;
+  readonly profile: CharacterProfileCoreDto;
+  readonly schemaVersion: "realm.world-character-core/v1";
+  readonly sourceHash: string;
   readonly updatedAt: string;
+  readonly validity: ValidityResultDto;
   readonly visibility: "private" | "unlisted" | "public" | "system";
+  readonly worldEntityRef: WorldEntityRefDto;
   readonly worldId: string;
 }
-export interface WorldCharacterDependencyClosureV1Dto {
+export interface WorldCharacterDependencyClosureV3Dto {
   readonly boundEntity: WorldEntityCoreDto;
   readonly endpointEntities: readonly (WorldEntityCoreDto)[];
-  readonly explicitDependencies: readonly (SourceMaterializationDependencyRefV1Dto)[];
+  readonly explicitDependencies: readonly (MaterializationDependencyRefV3Dto)[];
+  readonly explicitEntities: readonly (WorldEntityCoreDto)[];
   readonly incidentRelationships: readonly (WorldRelationshipCoreDto)[];
   readonly kind: "worldCharacter";
 }
-export interface WorldCharacterMaterializationPayloadV2Dto {
-  readonly coverageManifest: CoverageManifestV1Dto;
-  readonly coverageManifestHash: string;
-  readonly materializationContext: MaterializationContextV1Dto;
+export interface WorldCharacterMaterializationPayloadV3Dto {
+  readonly canonicalSource: WorldCharacterCoreDto;
+  readonly materializationContext: MaterializationContextV3Dto;
   readonly materializationContextHash: string;
-  readonly payloadAssemblyVersion: "realm.materialization-assembly/v1";
-  readonly payloadSchemaVersion: "realm.source-materialization-payload/v2";
-  readonly source: WorldCharacterMaterializationSourceV2Dto;
+  readonly materializationCoverage: MaterializationCoverageManifestV3Dto;
+  readonly materializationCoverageHash: string;
+  readonly payloadAssemblyVersion: "realm.materialization-assembly/v3";
+  readonly payloadSchemaVersion: "realm.source-materialization-payload/v3";
+  readonly sourceRef: WorldCharacterSourceRefV3Dto;
 }
-export interface WorldCharacterMaterializationSourceV2Dto {
-  readonly contentHash: string;
-  readonly contentRevision: number;
-  readonly core: WorldCharacterMaterializationSourceV2DtoCore;
-  readonly createdAt: string;
-  readonly creatorId: string;
-  readonly entityId: string;
+export interface WorldCharacterSourceRefV3Dto {
   readonly id: string;
   readonly kind: "worldCharacter";
-  readonly origin: RealmCoreOriginDto;
-  readonly schemaVersion: "realm.world-character-core/v1";
-  readonly updatedAt: string;
-  readonly visibility: "private" | "unlisted" | "public" | "system";
-  readonly worldId: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCore {
-  readonly assets: WorldCharacterMaterializationSourceV2DtoCoreAssets;
-  readonly authoring: WorldCharacterMaterializationSourceV2DtoCoreAuthoring;
-  readonly biography: WorldCharacterMaterializationSourceV2DtoCoreBiography;
-  readonly capabilities: WorldCharacterMaterializationSourceV2DtoCoreCapabilities;
-  readonly identity: WorldCharacterMaterializationSourceV2DtoCoreIdentity;
-  readonly interactionProfile: WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile;
-  readonly knowledge: WorldCharacterMaterializationSourceV2DtoCoreKnowledge;
-  readonly placement: WorldCharacterMaterializationSourceV2DtoCorePlacement;
-  readonly presentation: WorldCharacterMaterializationSourceV2DtoCorePresentation;
-  readonly psychology: WorldCharacterMaterializationSourceV2DtoCorePsychology;
-  readonly relationships: readonly (WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem)[];
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreAssets {
-  readonly externalRefs?: readonly (WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem)[];
-  readonly intents: readonly (WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem)[];
-  readonly resourceRefs: readonly (WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem)[];
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem {
-  readonly kind: string;
-  readonly label?: string;
-  readonly purpose?: string;
-  readonly refId: string;
-  readonly uri: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem {
-  readonly intentId: string;
-  readonly kind: string;
-  readonly summary?: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem {
-  readonly kind: string;
-  readonly label?: string;
-  readonly purpose?: string;
-  readonly refId: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreAuthoring {
-  readonly extensions?: Record<string, unknown>;
-  readonly maintainers?: readonly (string)[];
-  readonly notes?: readonly (string)[];
-  readonly review?: WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview;
-  readonly source: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview {
-  readonly reviewedAt?: string;
-  readonly reviewedBy?: string;
-  readonly status: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreBiography {
-  readonly milestones: readonly (WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem)[];
-  readonly sourceNotes: readonly (string)[];
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem {
-  readonly milestoneId: string;
-  readonly sequence?: number;
-  readonly summary: string;
-  readonly title: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreCapabilities {
-  readonly interactionModes: readonly (string)[];
-  readonly tools: readonly (string)[];
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreIdentity {
-  readonly aliases?: readonly (string)[];
-  readonly name: string;
-  readonly summary: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile {
-  readonly cadence: string;
-  readonly dialogueExemplars?: readonly (string)[];
-  readonly greeting?: string;
-  readonly greetingVariants?: readonly (string)[];
-  readonly scenario?: string;
-  readonly tone: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreKnowledge {
-  readonly constraints: readonly (string)[];
-  readonly topics: readonly (string)[];
-}
-export interface WorldCharacterMaterializationSourceV2DtoCorePlacement {
-  readonly entityId: string;
-  readonly faction?: string;
-  readonly rank?: string;
-  readonly role?: string;
-  readonly sceneRefs: readonly (string)[];
-  readonly worldId: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCorePresentation {
-  readonly avatarResourceRef?: string;
-  readonly displayName: string;
-  readonly profileCoverResourceRef?: string;
-  readonly shortBio: string;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCorePsychology {
-  readonly boundaries: readonly (string)[];
-  readonly drives: readonly (string)[];
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem {
-  readonly note?: string;
-  readonly relationLabel?: string;
-  readonly relationType: string;
-  readonly relationshipId: string;
-  readonly summary?: string;
-  readonly targetLabel?: string;
-  readonly targetRef: WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef;
-}
-export interface WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef {
-  readonly entityId: string;
-  readonly kind: "worldEntity";
+  readonly sourceHash: string;
+  readonly worldEntityRef: WorldEntityRefDto;
   readonly worldId: string;
 }
 export interface WorldCoreDto {
@@ -2278,6 +2302,11 @@ export interface WorldEntityCoreDtoCoreIdentity {
   readonly name: string;
   readonly summary: string;
 }
+export interface WorldEntityRefDto {
+  readonly entityId: string;
+  readonly kind: "worldEntity";
+  readonly worldId: string;
+}
 export interface WorldPublicAssetDto {
   readonly durationSec?: number | null;
   readonly height?: number | null;
@@ -2402,8 +2431,8 @@ export interface WorldPublicSourceCardDto {
   readonly ownership: "worldOwned" | "userOwned";
   readonly relation: WorldPublicViewerRelationDto;
   readonly role?: string | null;
-  readonly sourceKind: "worldCharacter" | "realmPersona";
-  readonly sourceRef: WorldPublicSourceRefDto;
+  readonly sourceKind: "worldCharacter" | "personaCharacter";
+  readonly sourceRef: CharacterSourceRefV3Dto;
   readonly summary: string;
   readonly tags: readonly (string)[];
   readonly updatedAt: string;
@@ -2425,20 +2454,14 @@ export interface WorldPublicSourceMediaDto {
   readonly referenceImageUrl?: string | null;
   readonly voiceSampleUrl?: string | null;
 }
-export interface WorldPublicSourceRefDto {
-  readonly kind: "worldCharacter" | "realmPersona";
-  readonly sourceContentHash: string;
-  readonly sourceId: string;
-  readonly worldId: string;
-}
 export interface WorldPublicSourceSectionsDto {
   readonly characters: readonly (WorldPublicSourceCardDto)[];
-  readonly personas: readonly (WorldPublicSourceCardDto)[];
+  readonly personaCharacters: readonly (WorldPublicSourceCardDto)[];
 }
 export interface WorldPublicStatsDto {
   readonly characterCount: number;
   readonly entityCount: number;
-  readonly personaCount: number;
+  readonly personaCharacterCount: number;
   readonly relationshipCount: number;
   readonly sceneCount: number;
   readonly systemCount: number;
@@ -2588,73 +2611,19 @@ export const AppPermissionGrantStateValue = {
 } as const satisfies Record<string, AppPermissionGrantState>;
 
 export const AppPermissionScopeFamilyValues = [
-  "account",
-  "data",
   "realm_source",
-  "ai_spend",
-  "memory",
-  "knowledge",
-  "notification",
-  "file_device",
-  "audit",
-  "ai_profile",
 ] as const satisfies readonly AppPermissionScopeFamily[];
 
 export const AppPermissionScopeFamilyValue = {
-  ACCOUNT: "account",
-  DATA: "data",
   REALM_SOURCE: "realm_source",
-  AI_SPEND: "ai_spend",
-  MEMORY: "memory",
-  KNOWLEDGE: "knowledge",
-  NOTIFICATION: "notification",
-  FILE_DEVICE: "file_device",
-  AUDIT: "audit",
-  AI_PROFILE: "ai_profile",
 } as const satisfies Record<string, AppPermissionScopeFamily>;
 
 export const AppPermissionScopeNameValues = [
-  "account.read",
-  "account.session.read",
-  "data.scope.read",
-  "data.scope.write",
   "realm_source.snapshot.consume",
-  "realm_source.snapshot.bind",
-  "ai.spend.meter",
-  "ai.spend.delegate",
-  "memory.read.bounded",
-  "memory.write.admitted",
-  "knowledge.read.bounded",
-  "knowledge.write.admitted",
-  "notification.send",
-  "notification.subscribe",
-  "file.read.scoped",
-  "file.write.scoped",
-  "device.use.scoped",
-  "audit.read.scoped",
-  "ai_profile.selection.consume",
 ] as const satisfies readonly AppPermissionScopeName[];
 
 export const AppPermissionScopeNameValue = {
-  ACCOUNT_READ: "account.read",
-  ACCOUNT_SESSION_READ: "account.session.read",
-  DATA_SCOPE_READ: "data.scope.read",
-  DATA_SCOPE_WRITE: "data.scope.write",
   REALM_SOURCE_SNAPSHOT_CONSUME: "realm_source.snapshot.consume",
-  REALM_SOURCE_SNAPSHOT_BIND: "realm_source.snapshot.bind",
-  AI_SPEND_METER: "ai.spend.meter",
-  AI_SPEND_DELEGATE: "ai.spend.delegate",
-  MEMORY_READ_BOUNDED: "memory.read.bounded",
-  MEMORY_WRITE_ADMITTED: "memory.write.admitted",
-  KNOWLEDGE_READ_BOUNDED: "knowledge.read.bounded",
-  KNOWLEDGE_WRITE_ADMITTED: "knowledge.write.admitted",
-  NOTIFICATION_SEND: "notification.send",
-  NOTIFICATION_SUBSCRIBE: "notification.subscribe",
-  FILE_READ_SCOPED: "file.read.scoped",
-  FILE_WRITE_SCOPED: "file.write.scoped",
-  DEVICE_USE_SCOPED: "device.use.scoped",
-  AUDIT_READ_SCOPED: "audit.read.scoped",
-  AI_PROFILE_SELECTION_CONSUME: "ai_profile.selection.consume",
 } as const satisfies Record<string, AppPermissionScopeName>;
 
 export const AttachmentDisplayKindValues = [
@@ -2925,12 +2894,30 @@ export interface RealmTypedModelMap {
   readonly "BootstrapOasisWorldDto": BootstrapOasisWorldDto;
   readonly "BundleDetailDto": BundleDetailDto;
   readonly "BundleListDto": BundleListDto;
-  readonly "BundleManifestChunkDescriptorV1Dto": BundleManifestChunkDescriptorV1Dto;
-  readonly "BundleManifestComponentV1Dto": BundleManifestComponentV1Dto;
   readonly "BundleMemberDto": BundleMemberDto;
-  readonly "BundleTransportManifestV1Dto": BundleTransportManifestV1Dto;
   readonly "CanWithdrawDto": CanWithdrawDto;
   readonly "ChangeEmailDto": ChangeEmailDto;
+  readonly "CharacterProfileCoreDto": CharacterProfileCoreDto;
+  readonly "CharacterProfileCoreDtoAssets": CharacterProfileCoreDtoAssets;
+  readonly "CharacterProfileCoreDtoAssetsExternalRefsItem": CharacterProfileCoreDtoAssetsExternalRefsItem;
+  readonly "CharacterProfileCoreDtoAssetsIntentsItem": CharacterProfileCoreDtoAssetsIntentsItem;
+  readonly "CharacterProfileCoreDtoAssetsResourceRefsItem": CharacterProfileCoreDtoAssetsResourceRefsItem;
+  readonly "CharacterProfileCoreDtoAuthoring": CharacterProfileCoreDtoAuthoring;
+  readonly "CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty": CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty;
+  readonly "CharacterProfileCoreDtoCapabilities": CharacterProfileCoreDtoCapabilities;
+  readonly "CharacterProfileCoreDtoCapabilitiesToolsItem": CharacterProfileCoreDtoCapabilitiesToolsItem;
+  readonly "CharacterProfileCoreDtoIdentity": CharacterProfileCoreDtoIdentity;
+  readonly "CharacterProfileCoreDtoInteractionProfile": CharacterProfileCoreDtoInteractionProfile;
+  readonly "CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem": CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem;
+  readonly "CharacterProfileCoreDtoKnowledge": CharacterProfileCoreDtoKnowledge;
+  readonly "CharacterProfileCoreDtoNarrative": CharacterProfileCoreDtoNarrative;
+  readonly "CharacterProfileCoreDtoNarrativeMilestonesItem": CharacterProfileCoreDtoNarrativeMilestonesItem;
+  readonly "CharacterProfileCoreDtoPresentation": CharacterProfileCoreDtoPresentation;
+  readonly "CharacterProfileCoreDtoPsychology": CharacterProfileCoreDtoPsychology;
+  readonly "CharacterProfileCoreDtoRelationshipsItem": CharacterProfileCoreDtoRelationshipsItem;
+  readonly "CharacterProfileCoreDtoRelationshipsItemTargetRef": CharacterProfileCoreDtoRelationshipsItemTargetRef;
+  readonly "CharacterProfileCoreInputDto": CharacterProfileCoreInputDto;
+  readonly "CharacterSourceRefV3Dto": CharacterSourceRefV3Dto;
   readonly "ChatEventEnvelopeDto": ChatEventEnvelopeDto;
   readonly "ChatFriendRequestPayloadDto": ChatFriendRequestPayloadDto;
   readonly "ChatGiftPayloadDto": ChatGiftPayloadDto;
@@ -2948,25 +2935,19 @@ export interface RealmTypedModelMap {
   readonly "ConnectDashboardLinkDto": ConnectDashboardLinkDto;
   readonly "ConnectOnboardingResponseDto": ConnectOnboardingResponseDto;
   readonly "ContentRatingString": ContentRatingString;
-  readonly "CoverageComponentV1Dto": CoverageComponentV1Dto;
-  readonly "CoverageCrossReferenceCheckV1Dto": CoverageCrossReferenceCheckV1Dto;
-  readonly "CoverageManifestV1Dto": CoverageManifestV1Dto;
-  readonly "CoverageOptionalRefV1Dto": CoverageOptionalRefV1Dto;
-  readonly "CoverageRequiredRefV1Dto": CoverageRequiredRefV1Dto;
-  readonly "CoverageRequiredSectionV1Dto": CoverageRequiredSectionV1Dto;
   readonly "CreateAssetDto": CreateAssetDto;
   readonly "CreateAudioDirectUploadDto": CreateAudioDirectUploadDto;
   readonly "CreateBundleDto": CreateBundleDto;
   readonly "CreateConnectOnboardingDto": CreateConnectOnboardingDto;
   readonly "CreateGroupInputDto": CreateGroupInputDto;
+  readonly "CreatePersonaCharacterCoreDto": CreatePersonaCharacterCoreDto;
   readonly "CreatePortalSessionDto": CreatePortalSessionDto;
   readonly "CreatePostAttachmentDto": CreatePostAttachmentDto;
   readonly "CreatePostDto": CreatePostDto;
-  readonly "CreateRealmPersonaDto": CreateRealmPersonaDto;
   readonly "CreateRelationshipDto": CreateRelationshipDto;
   readonly "CreateReportDto": CreateReportDto;
   readonly "CreateReviewDto": CreateReviewDto;
-  readonly "CreateSourceMaterializationPacketDto": CreateSourceMaterializationPacketDto;
+  readonly "CreateSourceMaterializationPacketV3Dto": CreateSourceMaterializationPacketV3Dto;
   readonly "CreateSparkCheckoutDto": CreateSparkCheckoutDto;
   readonly "CreateSubscriptionCheckoutDto": CreateSubscriptionCheckoutDto;
   readonly "CreateTextResourceDto": CreateTextResourceDto;
@@ -3014,8 +2995,22 @@ export interface RealmTypedModelMap {
   readonly "ListGroupMessagesResultDto": ListGroupMessagesResultDto;
   readonly "ListMessagesResultDto": ListMessagesResultDto;
   readonly "MarkNotificationsReadInputDto": MarkNotificationsReadInputDto;
-  readonly "MaterializationContextV1Dto": MaterializationContextV1Dto;
-  readonly "MaterializationContextV1DtoDependencyClosure": MaterializationContextV1DtoDependencyClosure;
+  readonly "MaterializationClosureSetManifestV3Dto": MaterializationClosureSetManifestV3Dto;
+  readonly "MaterializationClosureSetSegmentRefV3Dto": MaterializationClosureSetSegmentRefV3Dto;
+  readonly "MaterializationComponentDigestV3Dto": MaterializationComponentDigestV3Dto;
+  readonly "MaterializationContextV3Dto": MaterializationContextV3Dto;
+  readonly "MaterializationContextV3DtoDependencyClosure": MaterializationContextV3DtoDependencyClosure;
+  readonly "MaterializationCoverageComponentV3Dto": MaterializationCoverageComponentV3Dto;
+  readonly "MaterializationCoverageManifestV3Dto": MaterializationCoverageManifestV3Dto;
+  readonly "MaterializationCrossReferenceCheckV3Dto": MaterializationCrossReferenceCheckV3Dto;
+  readonly "MaterializationDependencyRefV3Dto": MaterializationDependencyRefV3Dto;
+  readonly "MaterializationOptionalRefV3Dto": MaterializationOptionalRefV3Dto;
+  readonly "MaterializationRequiredRefV3Dto": MaterializationRequiredRefV3Dto;
+  readonly "MaterializationRequiredSectionV3Dto": MaterializationRequiredSectionV3Dto;
+  readonly "MaterializationSegmentChunkDescriptorV3Dto": MaterializationSegmentChunkDescriptorV3Dto;
+  readonly "MaterializationSegmentLimitsV3Dto": MaterializationSegmentLimitsV3Dto;
+  readonly "MaterializationSegmentManifestComponentV3Dto": MaterializationSegmentManifestComponentV3Dto;
+  readonly "MaterializationSegmentManifestV3Dto": MaterializationSegmentManifestV3Dto;
   readonly "Me2faOperationResultDto": Me2faOperationResultDto;
   readonly "Me2faPrepareResponseDto": Me2faPrepareResponseDto;
   readonly "Me2faVerifyDto": Me2faVerifyDto;
@@ -3039,6 +3034,10 @@ export interface RealmTypedModelMap {
   readonly "OAuthTokenResponseDto": OAuthTokenResponseDto;
   readonly "PasswordLoginDto": PasswordLoginDto;
   readonly "PasswordRegisterDto": PasswordRegisterDto;
+  readonly "PersonaCharacterCoreDto": PersonaCharacterCoreDto;
+  readonly "PersonaCharacterDependencyClosureV3Dto": PersonaCharacterDependencyClosureV3Dto;
+  readonly "PersonaCharacterMaterializationPayloadV3Dto": PersonaCharacterMaterializationPayloadV3Dto;
+  readonly "PersonaCharacterSourceRefV3Dto": PersonaCharacterSourceRefV3Dto;
   readonly "PortalSessionDto": PortalSessionDto;
   readonly "PostAttachmentDto": PostAttachmentDto;
   readonly "PostDto": PostDto;
@@ -3048,33 +3047,24 @@ export interface RealmTypedModelMap {
   readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
   readonly "PPSlotItemDto": PPSlotItemDto;
   readonly "PresenceStatus": PresenceStatus;
+  readonly "ProfileCoverageManifestV1Dto": ProfileCoverageManifestV1Dto;
+  readonly "ProfileCoverageManifestV1DtoDiagnosticsItem": ProfileCoverageManifestV1DtoDiagnosticsItem;
+  readonly "ProfileCoverageManifestV1DtoOptionalRefsItem": ProfileCoverageManifestV1DtoOptionalRefsItem;
+  readonly "ProfileCoverageManifestV1DtoOptionalSectionsItem": ProfileCoverageManifestV1DtoOptionalSectionsItem;
+  readonly "ProfileCoverageManifestV1DtoRequiredRefsItem": ProfileCoverageManifestV1DtoRequiredRefsItem;
+  readonly "ProfileCoverageManifestV1DtoRequiredSectionsItem": ProfileCoverageManifestV1DtoRequiredSectionsItem;
   readonly "PublicAccountRole": PublicAccountRole;
   readonly "PublicFilterDto": PublicFilterDto;
+  readonly "ReadinessBlockerDto": ReadinessBlockerDto;
+  readonly "ReadinessResultDto": ReadinessResultDto;
   readonly "RealmCoreOriginDto": RealmCoreOriginDto;
   readonly "RealmGroupMessageCandidateCommitResultDto": RealmGroupMessageCandidateCommitResultDto;
-  readonly "RealmPersonaDependencyClosureV1Dto": RealmPersonaDependencyClosureV1Dto;
-  readonly "RealmPersonaDto": RealmPersonaDto;
-  readonly "RealmPersonaMaterializationPayloadV2Dto": RealmPersonaMaterializationPayloadV2Dto;
-  readonly "RealmPersonaMaterializationSourceV2Dto": RealmPersonaMaterializationSourceV2Dto;
-  readonly "RealmPersonaMaterializationSourceV2DtoCore": RealmPersonaMaterializationSourceV2DtoCore;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreAssets": RealmPersonaMaterializationSourceV2DtoCoreAssets;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem": RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem": RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem": RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreAuthoring": RealmPersonaMaterializationSourceV2DtoCoreAuthoring;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview": RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreContentProfile": RealmPersonaMaterializationSourceV2DtoCoreContentProfile;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem": RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreIdentity": RealmPersonaMaterializationSourceV2DtoCoreIdentity;
-  readonly "RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile": RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile;
-  readonly "RealmPersonaMaterializationSourceV2DtoCorePersonaStyle": RealmPersonaMaterializationSourceV2DtoCorePersonaStyle;
-  readonly "RealmPersonaMaterializationSourceV2DtoCorePresentation": RealmPersonaMaterializationSourceV2DtoCorePresentation;
   readonly "RealmSourceCapabilitiesDto": RealmSourceCapabilitiesDto;
   readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
   readonly "RefreshTokenDto": RefreshTokenDto;
   readonly "RejectGiftDto": RejectGiftDto;
   readonly "RelationshipResponseDto": RelationshipResponseDto;
-  readonly "ReplaceRealmPersonaDto": ReplaceRealmPersonaDto;
+  readonly "ReplacePersonaCharacterCoreDto": ReplacePersonaCharacterCoreDto;
   readonly "ReplaceWorldCharacterCoreDto": ReplaceWorldCharacterCoreDto;
   readonly "ReplaceWorldCoreDto": ReplaceWorldCoreDto;
   readonly "ReplaceWorldEntityCoreDto": ReplaceWorldEntityCoreDto;
@@ -3087,7 +3077,9 @@ export interface RealmTypedModelMap {
   readonly "ResourceDirectUploadSessionDto": ResourceDirectUploadSessionDto;
   readonly "ResourceListDto": ResourceListDto;
   readonly "RevenueDistributionPreviewDto": RevenueDistributionPreviewDto;
+  readonly "RevenueDistributionPreviewRequestDto": RevenueDistributionPreviewRequestDto;
   readonly "RevenueShareConfigDto": RevenueShareConfigDto;
+  readonly "RevenueSourceOriginRequestDto": RevenueSourceOriginRequestDto;
   readonly "ReviewDto": ReviewDto;
   readonly "ReviewRating": ReviewRating;
   readonly "ReviewStatsDto": ReviewStatsDto;
@@ -3096,13 +3088,12 @@ export interface RealmTypedModelMap {
   readonly "SendGiftDto": SendGiftDto;
   readonly "SendMessageInputDto": SendMessageInputDto;
   readonly "SocialProfileDto": SocialProfileDto;
-  readonly "SourceMaterializationChallengeLimitsDto": SourceMaterializationChallengeLimitsDto;
-  readonly "SourceMaterializationComponentChunkV1Dto": SourceMaterializationComponentChunkV1Dto;
-  readonly "SourceMaterializationComponentDigestV1Dto": SourceMaterializationComponentDigestV1Dto;
-  readonly "SourceMaterializationComponentV1Dto": SourceMaterializationComponentV1Dto;
-  readonly "SourceMaterializationDependencyRefV1Dto": SourceMaterializationDependencyRefV1Dto;
-  readonly "SourceMaterializationPacketV2Dto": SourceMaterializationPacketV2Dto;
-  readonly "SourceMaterializationPacketV2DtoSemanticPayload": SourceMaterializationPacketV2DtoSemanticPayload;
+  readonly "SourceMaterializationComponentV3Dto": SourceMaterializationComponentV3Dto;
+  readonly "SourceMaterializationPacketProofV3Dto": SourceMaterializationPacketProofV3Dto;
+  readonly "SourceMaterializationPacketV3Dto": SourceMaterializationPacketV3Dto;
+  readonly "SourceMaterializationPacketV3DtoSemanticPayload": SourceMaterializationPacketV3DtoSemanticPayload;
+  readonly "SourceMaterializationPublishedLimitsDto": SourceMaterializationPublishedLimitsDto;
+  readonly "SourceMaterializationSegmentV3Dto": SourceMaterializationSegmentV3Dto;
   readonly "SourceOriginDto": SourceOriginDto;
   readonly "SparkCheckoutSessionDto": SparkCheckoutSessionDto;
   readonly "SparkPackageDto": SparkPackageDto;
@@ -3119,7 +3110,6 @@ export interface RealmTypedModelMap {
   readonly "TransitDetailDto": TransitDetailDto;
   readonly "TranslateRequestDto": TranslateRequestDto;
   readonly "TranslateResponseDto": TranslateResponseDto;
-  readonly "TypedSourceRefDto": TypedSourceRefDto;
   readonly "UnreadNotificationCountDto": UnreadNotificationCountDto;
   readonly "UpdateAssetDto": UpdateAssetDto;
   readonly "UpdateBundleDto": UpdateBundleDto;
@@ -3147,6 +3137,8 @@ export interface RealmTypedModelMap {
   readonly "UserTierSummaryDto": UserTierSummaryDto;
   readonly "UserWalletDto": UserWalletDto;
   readonly "UserWalletListResponseDto": UserWalletListResponseDto;
+  readonly "ValidityIssueDto": ValidityIssueDto;
+  readonly "ValidityResultDto": ValidityResultDto;
   readonly "VerifyInvitationCodeDto": VerifyInvitationCodeDto;
   readonly "Visibility": Visibility;
   readonly "WalletBindDto": WalletBindDto;
@@ -3161,27 +3153,9 @@ export interface RealmTypedModelMap {
   readonly "WithdrawalStatus": WithdrawalStatus;
   readonly "WithdrawalSummaryDto": WithdrawalSummaryDto;
   readonly "WorldCharacterCoreDto": WorldCharacterCoreDto;
-  readonly "WorldCharacterDependencyClosureV1Dto": WorldCharacterDependencyClosureV1Dto;
-  readonly "WorldCharacterMaterializationPayloadV2Dto": WorldCharacterMaterializationPayloadV2Dto;
-  readonly "WorldCharacterMaterializationSourceV2Dto": WorldCharacterMaterializationSourceV2Dto;
-  readonly "WorldCharacterMaterializationSourceV2DtoCore": WorldCharacterMaterializationSourceV2DtoCore;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreAssets": WorldCharacterMaterializationSourceV2DtoCoreAssets;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem": WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem": WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem": WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreAuthoring": WorldCharacterMaterializationSourceV2DtoCoreAuthoring;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview": WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreBiography": WorldCharacterMaterializationSourceV2DtoCoreBiography;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem": WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreCapabilities": WorldCharacterMaterializationSourceV2DtoCoreCapabilities;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreIdentity": WorldCharacterMaterializationSourceV2DtoCoreIdentity;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile": WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreKnowledge": WorldCharacterMaterializationSourceV2DtoCoreKnowledge;
-  readonly "WorldCharacterMaterializationSourceV2DtoCorePlacement": WorldCharacterMaterializationSourceV2DtoCorePlacement;
-  readonly "WorldCharacterMaterializationSourceV2DtoCorePresentation": WorldCharacterMaterializationSourceV2DtoCorePresentation;
-  readonly "WorldCharacterMaterializationSourceV2DtoCorePsychology": WorldCharacterMaterializationSourceV2DtoCorePsychology;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem": WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem;
-  readonly "WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef": WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef;
+  readonly "WorldCharacterDependencyClosureV3Dto": WorldCharacterDependencyClosureV3Dto;
+  readonly "WorldCharacterMaterializationPayloadV3Dto": WorldCharacterMaterializationPayloadV3Dto;
+  readonly "WorldCharacterSourceRefV3Dto": WorldCharacterSourceRefV3Dto;
   readonly "WorldCoreDto": WorldCoreDto;
   readonly "WorldCoreDtoCore": WorldCoreDtoCore;
   readonly "WorldCoreDtoCoreAssets": WorldCoreDtoCoreAssets;
@@ -3214,6 +3188,7 @@ export interface RealmTypedModelMap {
   readonly "WorldEntityCoreDtoCoreEvidence": WorldEntityCoreDtoCoreEvidence;
   readonly "WorldEntityCoreDtoCoreFactsItem": WorldEntityCoreDtoCoreFactsItem;
   readonly "WorldEntityCoreDtoCoreIdentity": WorldEntityCoreDtoCoreIdentity;
+  readonly "WorldEntityRefDto": WorldEntityRefDto;
   readonly "WorldPublicAssetDto": WorldPublicAssetDto;
   readonly "WorldPublicAssetProvenanceDto": WorldPublicAssetProvenanceDto;
   readonly "WorldPublicCharacterBiographyDto": WorldPublicCharacterBiographyDto;
@@ -3230,7 +3205,6 @@ export interface RealmTypedModelMap {
   readonly "WorldPublicSourceCardDto": WorldPublicSourceCardDto;
   readonly "WorldPublicSourceMediaAssetsDto": WorldPublicSourceMediaAssetsDto;
   readonly "WorldPublicSourceMediaDto": WorldPublicSourceMediaDto;
-  readonly "WorldPublicSourceRefDto": WorldPublicSourceRefDto;
   readonly "WorldPublicSourceSectionsDto": WorldPublicSourceSectionsDto;
   readonly "WorldPublicStatsDto": WorldPublicStatsDto;
   readonly "WorldPublicTimelineEventDto": WorldPublicTimelineEventDto;
@@ -3786,7 +3760,7 @@ export interface RealmEconomyControllerGetSentGiftsOperationRequest {
 export type RealmEconomyControllerGetSentGiftsOperationResponse = ReceivedGiftsResponseDto;
 export interface RealmEconomyControllerGetSourceOriginOperationRequest {
   readonly path: {
-    readonly sourceRef: string;
+
   };
   readonly query?: {
 
@@ -3794,7 +3768,7 @@ export interface RealmEconomyControllerGetSourceOriginOperationRequest {
   readonly headers?: {
 
   };
-  readonly body?: Record<string, never>;
+  readonly body: RevenueSourceOriginRequestDto;
 }
 export type RealmEconomyControllerGetSourceOriginOperationResponse = SourceOriginDto;
 export interface RealmEconomyControllerGetSparkHistoryOperationRequest {
@@ -3895,13 +3869,12 @@ export interface RealmEconomyControllerPreviewRevenueDistributionOperationReques
 
   };
   readonly query?: {
-    readonly amount: string;
-    readonly sourceRef: string;
+
   };
   readonly headers?: {
 
   };
-  readonly body?: Record<string, never>;
+  readonly body: RevenueDistributionPreviewRequestDto;
 }
 export type RealmEconomyControllerPreviewRevenueDistributionOperationResponse = RevenueDistributionPreviewDto;
 export interface RealmEconomyControllerRejectGiftOperationRequest {
@@ -5654,7 +5627,7 @@ export interface RealmWorldCoreControllerBootstrapOasisWorldOperationRequest {
   readonly body: BootstrapOasisWorldDto;
 }
 export type RealmWorldCoreControllerBootstrapOasisWorldOperationResponse = WorldCoreDto;
-export interface RealmWorldCoreControllerCreateRealmPersonaOperationRequest {
+export interface RealmWorldCoreControllerCreatePersonaCharacterOperationRequest {
   readonly path: {
 
   };
@@ -5664,9 +5637,9 @@ export interface RealmWorldCoreControllerCreateRealmPersonaOperationRequest {
   readonly headers?: {
 
   };
-  readonly body: CreateRealmPersonaDto;
+  readonly body: CreatePersonaCharacterCoreDto;
 }
-export type RealmWorldCoreControllerCreateRealmPersonaOperationResponse = RealmPersonaDto;
+export type RealmWorldCoreControllerCreatePersonaCharacterOperationResponse = PersonaCharacterCoreDto;
 export interface RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
   readonly path: {
 
@@ -5677,9 +5650,9 @@ export interface RealmWorldCoreControllerCreateSourceMaterializationPacketOperat
   readonly headers?: {
 
   };
-  readonly body: CreateSourceMaterializationPacketDto;
+  readonly body: CreateSourceMaterializationPacketV3Dto;
 }
-export type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse = SourceMaterializationPacketV2Dto;
+export type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse = SourceMaterializationPacketV3Dto;
 export interface RealmWorldCoreControllerCreateWorldCharacterOperationRequest {
   readonly path: {
     readonly worldId: string;
@@ -5732,6 +5705,62 @@ export interface RealmWorldCoreControllerCreateWorldRelationshipOperationRequest
   readonly body: CreateWorldRelationshipCoreDto;
 }
 export type RealmWorldCoreControllerCreateWorldRelationshipOperationResponse = WorldRelationshipCoreDto;
+export interface RealmWorldCoreControllerDeletePersonaCharacterOperationRequest {
+  readonly path: {
+    readonly personaCharacterId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerDeletePersonaCharacterOperationResponse = PersonaCharacterCoreDto;
+export interface RealmWorldCoreControllerDeleteWorldCharacterOperationRequest {
+  readonly path: {
+    readonly characterId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerDeleteWorldCharacterOperationResponse = WorldCharacterCoreDto;
+export interface RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly take?: number;
+    readonly afterId?: string;
+    readonly worldId?: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse = readonly (PersonaCharacterCoreDto)[];
+export interface RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly take?: number;
+    readonly afterId?: string;
+    readonly worldId?: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse = readonly (WorldCharacterCoreDto)[];
 export interface RealmWorldCoreControllerGetOasisWorldOperationRequest {
   readonly path: {
 
@@ -5745,9 +5774,9 @@ export interface RealmWorldCoreControllerGetOasisWorldOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmWorldCoreControllerGetOasisWorldOperationResponse = WorldCoreDto;
-export interface RealmWorldCoreControllerGetRealmPersonaOperationRequest {
+export interface RealmWorldCoreControllerGetPersonaCharacterOperationRequest {
   readonly path: {
-    readonly personaId: string;
+    readonly personaCharacterId: string;
   };
   readonly query?: {
 
@@ -5757,7 +5786,7 @@ export interface RealmWorldCoreControllerGetRealmPersonaOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmWorldCoreControllerGetRealmPersonaOperationResponse = RealmPersonaDto;
+export type RealmWorldCoreControllerGetPersonaCharacterOperationResponse = PersonaCharacterCoreDto;
 export interface RealmWorldCoreControllerGetWorldCharacterOperationRequest {
   readonly path: {
     readonly characterId: string;
@@ -5810,20 +5839,23 @@ export interface RealmWorldCoreControllerGetWorldRelationshipOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmWorldCoreControllerGetWorldRelationshipOperationResponse = WorldRelationshipCoreDto;
-export interface RealmWorldCoreControllerListRealmPersonasOperationRequest {
+export interface RealmWorldCoreControllerListPersonaCharactersOperationRequest {
   readonly path: {
 
   };
   readonly query?: {
     readonly take?: number;
+    readonly afterId?: string;
     readonly visibility?: "private" | "unlisted" | "public" | "system";
+    readonly worldId?: string;
+    readonly scope?: "owned" | "public";
   };
   readonly headers?: {
 
   };
   readonly body?: Record<string, never>;
 }
-export type RealmWorldCoreControllerListRealmPersonasOperationResponse = readonly (RealmPersonaDto)[];
+export type RealmWorldCoreControllerListPersonaCharactersOperationResponse = readonly (PersonaCharacterCoreDto)[];
 export interface RealmWorldCoreControllerListWorldCharactersOperationRequest {
   readonly path: {
     readonly worldId: string;
@@ -5831,6 +5863,7 @@ export interface RealmWorldCoreControllerListWorldCharactersOperationRequest {
   readonly query?: {
     readonly take?: number;
     readonly afterId?: string;
+    readonly visibility?: "private" | "unlisted" | "public" | "system";
   };
   readonly headers?: {
 
@@ -5885,9 +5918,9 @@ export interface RealmWorldCoreControllerListWorldRelationshipsOperationRequest 
   readonly body?: Record<string, never>;
 }
 export type RealmWorldCoreControllerListWorldRelationshipsOperationResponse = readonly (WorldRelationshipCoreDto)[];
-export interface RealmWorldCoreControllerReplaceRealmPersonaOperationRequest {
+export interface RealmWorldCoreControllerReplacePersonaCharacterOperationRequest {
   readonly path: {
-    readonly personaId: string;
+    readonly personaCharacterId: string;
   };
   readonly query?: {
 
@@ -5895,9 +5928,9 @@ export interface RealmWorldCoreControllerReplaceRealmPersonaOperationRequest {
   readonly headers?: {
 
   };
-  readonly body: ReplaceRealmPersonaDto;
+  readonly body: ReplacePersonaCharacterCoreDto;
 }
-export type RealmWorldCoreControllerReplaceRealmPersonaOperationResponse = RealmPersonaDto;
+export type RealmWorldCoreControllerReplacePersonaCharacterOperationResponse = PersonaCharacterCoreDto;
 export interface RealmWorldCoreControllerReplaceWorldCharacterOperationRequest {
   readonly path: {
     readonly characterId: string;
@@ -7964,9 +7997,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldCoreControllerCreateRealmPersona(request: RealmWorldCoreControllerCreateRealmPersonaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateRealmPersonaOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreateRealmPersonaOperationResponse, RealmWorldCoreControllerCreateRealmPersonaOperationRequest>({
-      methodId: "WorldCoreController_createRealmPersona",
+  async worldCoreControllerCreatePersonaCharacter(request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreatePersonaCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerCreatePersonaCharacterOperationResponse, RealmWorldCoreControllerCreatePersonaCharacterOperationRequest>({
+      methodId: "WorldCoreController_createPersonaCharacter",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -8030,6 +8063,50 @@ export class RealmTypedClient {
     });
   }
 
+  async worldCoreControllerDeletePersonaCharacter(request: RealmWorldCoreControllerDeletePersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDeletePersonaCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerDeletePersonaCharacterOperationResponse, RealmWorldCoreControllerDeletePersonaCharacterOperationRequest>({
+      methodId: "WorldCoreController_deletePersonaCharacter",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async worldCoreControllerDeleteWorldCharacter(request: RealmWorldCoreControllerDeleteWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDeleteWorldCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerDeleteWorldCharacterOperationResponse, RealmWorldCoreControllerDeleteWorldCharacterOperationRequest>({
+      methodId: "WorldCoreController_deleteWorldCharacter",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async worldCoreControllerDiscoverPersonaCharacters(request: RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse, RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest>({
+      methodId: "WorldCoreController_discoverPersonaCharacters",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async worldCoreControllerDiscoverWorldCharacters(request: RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse, RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest>({
+      methodId: "WorldCoreController_discoverWorldCharacters",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async worldCoreControllerGetOasisWorld(request: RealmWorldCoreControllerGetOasisWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetOasisWorldOperationResponse> {
     return this.core.unary<RealmWorldCoreControllerGetOasisWorldOperationResponse, RealmWorldCoreControllerGetOasisWorldOperationRequest>({
       methodId: "WorldCoreController_getOasisWorld",
@@ -8041,9 +8118,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldCoreControllerGetRealmPersona(request: RealmWorldCoreControllerGetRealmPersonaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetRealmPersonaOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerGetRealmPersonaOperationResponse, RealmWorldCoreControllerGetRealmPersonaOperationRequest>({
-      methodId: "WorldCoreController_getRealmPersona",
+  async worldCoreControllerGetPersonaCharacter(request: RealmWorldCoreControllerGetPersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetPersonaCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerGetPersonaCharacterOperationResponse, RealmWorldCoreControllerGetPersonaCharacterOperationRequest>({
+      methodId: "WorldCoreController_getPersonaCharacter",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -8096,9 +8173,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldCoreControllerListRealmPersonas(request: RealmWorldCoreControllerListRealmPersonasOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListRealmPersonasOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerListRealmPersonasOperationResponse, RealmWorldCoreControllerListRealmPersonasOperationRequest>({
-      methodId: "WorldCoreController_listRealmPersonas",
+  async worldCoreControllerListPersonaCharacters(request: RealmWorldCoreControllerListPersonaCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListPersonaCharactersOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerListPersonaCharactersOperationResponse, RealmWorldCoreControllerListPersonaCharactersOperationRequest>({
+      methodId: "WorldCoreController_listPersonaCharacters",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -8151,9 +8228,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldCoreControllerReplaceRealmPersona(request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceRealmPersonaOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerReplaceRealmPersonaOperationResponse, RealmWorldCoreControllerReplaceRealmPersonaOperationRequest>({
-      methodId: "WorldCoreController_replaceRealmPersona",
+  async worldCoreControllerReplacePersonaCharacter(request: RealmWorldCoreControllerReplacePersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplacePersonaCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerReplacePersonaCharacterOperationResponse, RealmWorldCoreControllerReplacePersonaCharacterOperationRequest>({
+      methodId: "WorldCoreController_replacePersonaCharacter",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

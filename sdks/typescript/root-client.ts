@@ -6,7 +6,7 @@ import {
   type NimiRuntimeAgentClientOptions,
   type RuntimeOptions,
 } from './runtime';
-import { Realm, createRealm, createNimiRealmPermissionTransport, type RealmOptions } from './realm';
+import { Realm, createRealm, type RealmOptions } from './realm';
 import {
   NimiAppClient,
   PermissionClient,
@@ -171,7 +171,7 @@ export class NimiClient {
     this.runtime = config.runtime instanceof Runtime ? config.runtime : createRuntime(config.runtime ?? {});
     this.realm = createOptionalRealm(config.realm);
     this.app = createOptionalAppClient(config.app);
-    this.permissions = createOptionalPermissionClient(config.permissions, this.realm);
+    this.permissions = createOptionalPermissionClient(config.permissions);
     this.scopes = createOptionalScopeCatalog(config.scopeCatalog, this.appId);
     this.ai = createAiSurface(this);
     this.localAgent = createLocalAgentSurface(this);
@@ -342,12 +342,8 @@ function createOptionalAppClient(config: NimiClientConfig['app']): NimiAppClient
 
 function createOptionalPermissionClient(
   config: NimiClientConfig['permissions'],
-  realm: Realm | undefined,
 ): PermissionClient | undefined {
-  if (config === false) return undefined;
-  if (!config) {
-    return realm ? createPermissionClient(createNimiRealmPermissionTransport(realm)) : undefined;
-  }
+  if (!config) return undefined;
   return config instanceof PermissionClient ? config : createPermissionClient(config);
 }
 

@@ -1,21 +1,157 @@
-schema_version: nimi.realm-contract-lock/v1
+schema_version: nimi.realm-contract-lock/v2
 generated_by: scripts/generate-realm-contract-lock.mjs
 realm:
   repository: https://github.com/nimiplatform/nimi-realm.git
-  commit: 7827351bbda481f1eb7bbec18e084d0f88f1a16f
+  commit: a30b2f488806e967ccba9ab8b81fe93935bdf474
+  tree: 3516b4727cbb17602d276e02755aeb36811ed2f2
 openapi:
   source_path: nimi-backend/api-nimi.yaml
   synced_path: config/realm-openapi/api-nimi.yaml
-  document_sha256: dbd296d0c26c34a6d6569e05b672784591703d50576d1f01644bcb4d9715782d
+  document_sha256: 7035217009feaf2e835f5607c5a6c028a1d3f99a78182d4f485970b167befd22
   fragment_schema_version: nimi.realm-openapi-source-materialization-fragment/v1
   fragment_selector:
     operation_id: WorldCoreController_createSourceMaterializationPacket
     path: /api/realm/core/source-materialization-packets
     method: post
-  fragment_sha256: d4dc6512196b77d745ffe7c422693e931ca85cd993c91070b4ddfdf90af422b7
-  component_schema_count: 28
+  fragment_sha256: 94e6dc43101a87ee717f5c00e5978091562db33b4878136161c976ab31ecb1af
+  component_schema_count: 41
+  component_schema_names:
+    - CharacterProfileCoreDto
+    - CharacterSourceRefV3Dto
+    - CreateSourceMaterializationPacketV3Dto
+    - MaterializationClosureSetManifestV3Dto
+    - MaterializationClosureSetSegmentRefV3Dto
+    - MaterializationComponentDigestV3Dto
+    - MaterializationContextV3Dto
+    - MaterializationCoverageComponentV3Dto
+    - MaterializationCoverageManifestV3Dto
+    - MaterializationCrossReferenceCheckV3Dto
+    - MaterializationDependencyRefV3Dto
+    - MaterializationOptionalRefV3Dto
+    - MaterializationRequiredRefV3Dto
+    - MaterializationRequiredSectionV3Dto
+    - MaterializationSegmentChunkDescriptorV3Dto
+    - MaterializationSegmentLimitsV3Dto
+    - MaterializationSegmentManifestComponentV3Dto
+    - MaterializationSegmentManifestV3Dto
+    - PersonaCharacterCoreDto
+    - PersonaCharacterDependencyClosureV3Dto
+    - PersonaCharacterMaterializationPayloadV3Dto
+    - PersonaCharacterSourceRefV3Dto
+    - ProfileCoverageManifestV1Dto
+    - ReadinessBlockerDto
+    - ReadinessResultDto
+    - RealmCoreOriginDto
+    - SourceMaterializationComponentV3Dto
+    - SourceMaterializationPacketProofV3Dto
+    - SourceMaterializationPacketV3Dto
+    - SourceMaterializationPublishedLimitsDto
+    - SourceMaterializationSegmentV3Dto
+    - ValidityIssueDto
+    - ValidityResultDto
+    - WorldCharacterCoreDto
+    - WorldCharacterDependencyClosureV3Dto
+    - WorldCharacterMaterializationPayloadV3Dto
+    - WorldCharacterSourceRefV3Dto
+    - WorldCoreDto
+    - WorldEntityCoreDto
+    - WorldEntityRefDto
+    - WorldRelationshipCoreDto
+  operation_count: 208
+  operation_inventory_sha256: ae99bfcb9e0b96827c93516431819b691382d7720b0bae614b4d7eb12b2021df
 schema_versions:
-  packet: realm.source-materialization-packet/v2
-  materialization_context: realm.materialization-context/v1
-  coverage_manifest: realm.materialization-coverage/v1
-  bundle_transport_manifest: realm.materialization-bundle-manifest/v1
+  packet: realm.source-materialization-packet/v3
+  materializationContext: realm.materialization-context/v3
+  coverageManifest: realm.materialization-coverage/v3
+  segmentManifest: realm.materialization-segment-manifest/v3
+  closureSetManifest: realm.materialization-closure-set-manifest/v3
+  payloadAssembly: realm.materialization-assembly/v3
+source_ref:
+  schema: CharacterSourceRefV3Dto
+  discriminator: kind
+  kinds:
+    - worldCharacter
+    - personaCharacter
+  branches:
+    worldCharacter: WorldCharacterSourceRefV3Dto
+    personaCharacter: PersonaCharacterSourceRefV3Dto
+  requiredFields:
+    worldCharacter:
+      - kind
+      - id
+      - worldId
+      - worldEntityRef
+      - sourceHash
+    personaCharacter:
+      - kind
+      - id
+      - worldId
+      - ownerAccountId
+      - sourceHash
+published_limits:
+  maxSegmentBytes: 8388608
+  maxSegmentComponentCount: 256
+  maxSegmentChunks: 4096
+  maxChunkBytes: 262144
+  maxSetSegments: 64
+  maxSetBytes: 134217728
+  maxSetComponentCount: 16384
+  maxSetChunks: 65536
+access_policy:
+  version: realm.source-materialization-access-policy/v4
+  digest: 34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f
+  selector:
+    appId: nimi.avatar
+    scopeFamily: realm_source
+    scopeName: realm_source.snapshot.consume
+    qualifier: null
+    qualifierKey: ""
+    state: GRANTED
+  lifecycle:
+    request:
+      operationId: requestMyAppPermissionGrant
+      method: post
+      path: /api/human/me/permission-grants
+      resultState: PENDING
+    grant:
+      operationId: grantMyAppPermissionGrant
+      method: post
+      path: /api/human/me/permission-grants/by-id/{grantId}/grant
+      requiresExpectedVersion: true
+    packet:
+      operationId: WorldCoreController_createSourceMaterializationPacket
+      method: post
+      path: /api/realm/core/source-materialization-packets
+      grantIdField: accessGrantId
+  non_authorizing_scope_names:
+    - realm_source.snapshot.bind
+    - agent.identity.project
+compact_vectors:
+  world-character.json: 65bd146941c2ec341776f19dbb9d1a218924d749e67bde362253d783f56b838f
+  persona-character.json: da57f60c1b5e15b25c7a733e75a5afb672a90bd187918df130c65d6f78c7a351
+  negative-mutations.json: aad920d9269fdd05efa12f50a535c92b9289dca22f4804ff5bd47184914ef4ba
+producer_evidence:
+  closure_manifest:
+    path: .nimi/local/audit/0716-realm-fullchain-materialization/FC8/20260717T015300Z-1c66ac4c-final/realm-fullchain-closure-manifest.json
+    schema_version: realm.fullchain-closure-manifest/v1
+    sha256: 8fe4e4c1c802c96ab5a8dcfbac26c91b4f27cf393b9ccbdfe03e671daed3a725
+    content_hash: b418232759e849b60f516aa94e21d903ffdf754e6295f30925c2fe4124ad04c2
+  handoff:
+    path: .nimi/local/audit/0716-realm-fullchain-materialization/FC8/20260717T015300Z-1c66ac4c-final/nimi-runtime-v3-adaptation-handoff.json
+    schema_version: realm.nimi-runtime-v3-adaptation-handoff/v1
+    sha256: f705dee7143f9270dcc886646dd25f917296e6c08b695bc861f24c73b9e92a60
+    content_hash: 9148b0094c6573b51ce0d24e9c71174c141016041ea1d25c0a94a176406e4b7e
+    consumer_side_actions: 28
+    realm_side_actions: 0
+    unmapped_mandatory_inputs: 0
+  focused_a1:
+    path: .nimi/local/audit/0718-realm-permission-scope-hardcut/A1/20260717T182331Z/verdict.yaml
+    schema_version: realm.permission-scope-hardcut-a1-reaudit-verdict/v1
+    sha256: d7c4f9dc1b73f3e9c57e16c111b35194ecb003a2b451aeee7cd38125bc716da0
+    verdict: PASS
+    acceptance_pass: 20
+    product_blockers: 0
+    finding_id: A1-PERM-001
+    finding_status: CLOSED
+  closure_content_hash: b418232759e849b60f516aa94e21d903ffdf754e6295f30925c2fe4124ad04c2
+  handoff_content_hash: 9148b0094c6573b51ce0d24e9c71174c141016041ea1d25c0a94a176406e4b7e

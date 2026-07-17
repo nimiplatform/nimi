@@ -1,6 +1,6 @@
 import { CoreClient, type CoreClientOptions, type CoreTransport } from '../core-client';
 import { RealmTypedClient } from '../core-generated/realm-typed-client';
-import { createNimiError, type CoreMetadata, type CoreResponseMetadataObserver } from '../types';
+import { createNimiError } from '../types';
 
 export type { CoreClientOptions, CoreTransport };
 export * from './generated';
@@ -10,7 +10,6 @@ export * from './oauth';
 export * from './auth';
 export * from './account-settings';
 export * from './account-data';
-export * from './permission-grants';
 export * from './resource-upload';
 export * from './group-chat';
 export * from './feed';
@@ -61,7 +60,7 @@ export const REALM_ACCOUNT_METHODS = [
   'updateMySettings',
 ] as const satisfies readonly RealmTypedMethodName[];
 
-export const REALM_PERMISSION_GRANT_METHODS = [
+const REALM_PERMISSION_GRANT_METHODS = [
   'getMyAppPermissionGrant',
   'getMyAppPermissionGrantStatus',
   'getMyAppPermissionGrantView',
@@ -74,7 +73,16 @@ export const REALM_PERMISSION_GRANT_METHODS = [
   'supersedeMyAppPermissionGrant',
 ] as const satisfies readonly RealmTypedMethodName[];
 
-const REALM_PERMISSION_GRANT_METHOD_SET = new Set<string>(REALM_PERMISSION_GRANT_METHODS);
+const REALM_PRIVATE_GENERATED_METHODS = [
+  ...REALM_PERMISSION_GRANT_METHODS,
+  'getSourceMaterializationJwks',
+  'issueRuntimeRealmGrant',
+  'worldCoreControllerCreateSourceMaterializationPacket',
+] as const satisfies readonly RealmTypedMethodName[];
+
+type RealmPublicGeneratedBlockedMethod = (typeof REALM_PRIVATE_GENERATED_METHODS)[number];
+
+export type RealmPublicGeneratedClient = Omit<RealmTypedClient, RealmPublicGeneratedBlockedMethod>;
 
 export const REALM_SOCIAL_METHODS = [
   'addFriend',
@@ -157,24 +165,27 @@ export const REALM_NOTIFICATION_METHODS = [
 
 export const REALM_WORLD_CORE_METHODS = [
   'worldCoreControllerBootstrapOasisWorld',
-  'worldCoreControllerCreateRealmPersona',
-  'worldCoreControllerCreateSourceMaterializationPacket',
+  'worldCoreControllerCreatePersonaCharacter',
   'worldCoreControllerCreateWorldCharacter',
   'worldCoreControllerCreateWorldCore',
   'worldCoreControllerCreateWorldEntity',
   'worldCoreControllerCreateWorldRelationship',
+  'worldCoreControllerDeletePersonaCharacter',
+  'worldCoreControllerDeleteWorldCharacter',
+  'worldCoreControllerDiscoverPersonaCharacters',
+  'worldCoreControllerDiscoverWorldCharacters',
   'worldCoreControllerGetOasisWorld',
-  'worldCoreControllerGetRealmPersona',
+  'worldCoreControllerGetPersonaCharacter',
   'worldCoreControllerGetWorldCharacter',
   'worldCoreControllerGetWorldCore',
   'worldCoreControllerGetWorldEntity',
   'worldCoreControllerGetWorldRelationship',
-  'worldCoreControllerListRealmPersonas',
+  'worldCoreControllerListPersonaCharacters',
   'worldCoreControllerListWorldCharacters',
   'worldCoreControllerListWorldCores',
   'worldCoreControllerListWorldEntities',
   'worldCoreControllerListWorldRelationships',
-  'worldCoreControllerReplaceRealmPersona',
+  'worldCoreControllerReplacePersonaCharacter',
   'worldCoreControllerReplaceWorldCharacter',
   'worldCoreControllerReplaceWorldCore',
   'worldCoreControllerReplaceWorldEntity',
@@ -198,7 +209,6 @@ export const REALM_TRANSIT_METHODS = [
 
 export type RealmAuthModule = RealmMethodModule<typeof REALM_AUTH_METHODS>;
 export type RealmAccountModule = RealmMethodModule<typeof REALM_ACCOUNT_METHODS>;
-export type RealmPermissionGrantModule = RealmMethodModule<typeof REALM_PERMISSION_GRANT_METHODS>;
 export type RealmSocialModule = RealmMethodModule<typeof REALM_SOCIAL_METHODS>;
 export type RealmGroupChatModule = RealmMethodModule<typeof REALM_GROUP_CHAT_METHODS>;
 export type RealmHumanChatModule = RealmMethodModule<typeof REALM_HUMAN_CHAT_METHODS>;
@@ -210,36 +220,11 @@ export type RealmTransitModule = RealmMethodModule<typeof REALM_TRANSIT_METHODS>
 
 export interface RealmOptions extends CoreClientOptions {}
 
-export interface RealmCoreOperationInput<Body = unknown> {
-  readonly operationId: string;
-  readonly body: Body;
-  readonly metadata?: CoreMetadata;
-  readonly timeoutMs?: number;
-  readonly signal?: AbortSignal;
-  readonly responseMetadataObserver?: CoreResponseMetadataObserver;
-}
-
-export class RealmCore {
-  constructor(readonly core: CoreClient) {}
-
-  operation<Response = unknown, Body = unknown>(input: RealmCoreOperationInput<Body>): Promise<Response> {
-    return this.core.unary<Response, Body>({
-      methodId: input.operationId,
-      body: input.body,
-      metadata: input.metadata,
-      timeoutMs: input.timeoutMs,
-      signal: input.signal,
-      responseMetadataObserver: input.responseMetadataObserver,
-    });
-  }
-}
-
 export class Realm {
-  readonly core: CoreClient;
-  readonly generated: RealmTypedClient;
+  readonly #core: CoreClient;
+  readonly generated: RealmPublicGeneratedClient;
   readonly auth: RealmAuthModule;
   readonly account: RealmAccountModule;
-  private readonly permissionGrantModule: RealmPermissionGrantModule;
   readonly social: RealmSocialModule;
   readonly groupChat: RealmGroupChatModule;
   readonly humanChats: RealmHumanChatModule;
@@ -249,15 +234,12 @@ export class Realm {
   readonly worldPublic: RealmWorldPublicModule;
   readonly transit: RealmTransitModule;
 
-  constructor(options: RealmOptions | CoreClient | RealmTypedClient) {
-    this.core = toCoreClient(options);
-    const generated = options instanceof RealmTypedClient
-      ? options
-      : new RealmTypedClient(this.core);
+  constructor(options: RealmOptions) {
+    this.#core = new CoreClient(options);
+    const generated = new RealmTypedClient(this.#core);
     this.generated = createPublicRealmGeneratedClient(generated);
     this.auth = bindRealmModule(generated, REALM_AUTH_METHODS);
     this.account = bindRealmModule(generated, REALM_ACCOUNT_METHODS);
-    this.permissionGrantModule = bindRealmModule(generated, REALM_PERMISSION_GRANT_METHODS);
     this.social = bindRealmModule(generated, REALM_SOCIAL_METHODS);
     this.groupChat = bindRealmModule(generated, REALM_GROUP_CHAT_METHODS);
     this.humanChats = bindRealmModule(generated, REALM_HUMAN_CHAT_METHODS);
@@ -273,18 +255,8 @@ export class Realm {
   }
 }
 
-export function createRealm(options: RealmOptions | CoreClient | RealmTypedClient): Realm {
+export function createRealm(options: RealmOptions): Realm {
   return new Realm(options);
-}
-
-function toCoreClient(options: RealmOptions | CoreClient | RealmTypedClient): CoreClient {
-  if (options instanceof CoreClient) {
-    return options;
-  }
-  if (options instanceof RealmTypedClient) {
-    return (options as unknown as { readonly core: CoreClient }).core;
-  }
-  return new CoreClient(options);
 }
 
 function bindRealmModule<Keys extends readonly RealmTypedMethodName[]>(
@@ -309,22 +281,17 @@ function bindRealmModule<Keys extends readonly RealmTypedMethodName[]>(
   return module as RealmMethodModule<Keys>;
 }
 
-function createPublicRealmGeneratedClient(generated: RealmTypedClient): RealmTypedClient {
-  return new Proxy(generated, {
-    get(target, property, receiver) {
-      if (
-        typeof property === 'string'
-        && REALM_PERMISSION_GRANT_METHOD_SET.has(property)
-        && property !== 'getMyAppPermissionGrant'
-        && property !== 'getMyAppPermissionGrantStatus'
-        && property !== 'getMyAppPermissionGrantView'
-        && property !== 'listMyAppPermissionGrants'
-        && property !== 'requestMyAppPermissionGrant'
-        && property !== 'revokeMyAppPermissionGrant'
-      ) {
-        return undefined;
-      }
-      return Reflect.get(target, property, receiver);
-    },
-  });
+function createPublicRealmGeneratedClient(generated: RealmTypedClient): RealmPublicGeneratedClient {
+  const blocked = new Set<string>(REALM_PRIVATE_GENERATED_METHODS);
+  const publicClient = Object.create(null) as Record<string, unknown>;
+  for (const key of Object.getOwnPropertyNames(RealmTypedClient.prototype)) {
+    if (key === 'constructor' || blocked.has(key)) {
+      continue;
+    }
+    const value = generated[key as RealmTypedMethodName];
+    if (typeof value === 'function') {
+      publicClient[key] = value.bind(generated);
+    }
+  }
+  return Object.freeze(publicClient) as RealmPublicGeneratedClient;
 }

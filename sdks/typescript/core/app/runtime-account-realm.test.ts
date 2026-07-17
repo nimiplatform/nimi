@@ -110,11 +110,11 @@ test('Desktop source-readiness Realm transport maps upstream failure to typed Re
 
 test('Desktop source-readiness Realm transport exposes the exact generated operation vocabulary', async () => {
   assert.deepEqual(NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS, [
-    'WorldCoreController_createSourceMaterializationPacket',
-    'WorldCoreController_getRealmPersona',
+    'WorldCoreController_getPersonaCharacter',
     'WorldCoreController_getWorldCharacter',
     'WorldCoreController_getWorldEntity',
-    'WorldCoreController_listRealmPersonas',
+    'WorldCoreController_listPersonaCharacters',
+    'WorldCoreController_discoverPersonaCharacters',
     'WorldCoreController_listWorldRelationships',
     'WorldPublicController_getWorld',
     'WorldPublicController_getWorldDetailWithCharacters',

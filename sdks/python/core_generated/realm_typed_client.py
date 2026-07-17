@@ -131,9 +131,9 @@ class AppPermissionGrantSupersedeDto:
     reason: str | None = None
     supersededByGrantId: str | None = None
 
-AppPermissionScopeFamily = Literal["account", "data", "realm_source", "ai_spend", "memory", "knowledge", "notification", "file_device", "audit", "ai_profile"]
+AppPermissionScopeFamily = Literal["realm_source"]
 
-AppPermissionScopeName = Literal["account.read", "account.session.read", "data.scope.read", "data.scope.write", "realm_source.snapshot.consume", "realm_source.snapshot.bind", "ai.spend.meter", "ai.spend.delegate", "memory.read.bounded", "memory.write.admitted", "knowledge.read.bounded", "knowledge.write.admitted", "notification.send", "notification.subscribe", "file.read.scoped", "file.write.scoped", "device.use.scoped", "audit.read.scoped", "ai_profile.selection.consume"]
+AppPermissionScopeName = Literal["realm_source.snapshot.consume"]
 
 @dataclass(frozen=True)
 class AssetDetailDto:
@@ -283,38 +283,9 @@ class BundleListDto:
     items: tuple[BundleDetailDto, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class BundleManifestChunkDescriptorV1Dto:
-    chunkSha256: str | None = None
-    componentOffset: float | None = None
-    globalOrdinal: float | None = None
-    length: float | None = None
-
-@dataclass(frozen=True)
-class BundleManifestComponentV1Dto:
-    canonicalByteLength: float | None = None
-    canonicalBytesHash: str | None = None
-    componentId: str | None = None
-    contentHash: str | None = None
-    kind: Literal["worldCharacter", "realmPersona", "worldCore", "worldEntity", "worldRelationship", "coverageManifest"] | None = None
-    revision: float | None = None
-    schemaVersion: str | None = None
-
-@dataclass(frozen=True)
 class BundleMemberDto:
     assetId: str | None = None
     sortOrder: float | None = None
-
-@dataclass(frozen=True)
-class BundleTransportManifestV1Dto:
-    challengeDigest: str | None = None
-    chunkCount: float | None = None
-    chunks: tuple[BundleManifestChunkDescriptorV1Dto, ...] = field(default_factory=tuple)
-    componentCount: float | None = None
-    components: tuple[BundleManifestComponentV1Dto, ...] = field(default_factory=tuple)
-    manifestSchemaVersion: Literal["realm.materialization-bundle-manifest/v1"] | None = None
-    packetId: str | None = None
-    payloadAssemblyVersion: Literal["realm.materialization-assembly/v1"] | None = None
-    totalCanonicalBytes: float | None = None
 
 @dataclass(frozen=True)
 class CanWithdrawDto:
@@ -329,6 +300,154 @@ class ChangeEmailDto:
     emailOtpCode: str | None = None
     newEmail: str | None = None
     password: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDto:
+    assets: CharacterProfileCoreDtoAssets | None = None
+    authoring: CharacterProfileCoreDtoAuthoring | None = None
+    capabilities: CharacterProfileCoreDtoCapabilities | None = None
+    identity: CharacterProfileCoreDtoIdentity | None = None
+    interactionProfile: CharacterProfileCoreDtoInteractionProfile | None = None
+    knowledge: CharacterProfileCoreDtoKnowledge | None = None
+    narrative: CharacterProfileCoreDtoNarrative | None = None
+    presentation: CharacterProfileCoreDtoPresentation | None = None
+    profileCoverage: ProfileCoverageManifestV1Dto | None = None
+    profileHash: str | None = None
+    profileSchemaVersion: Literal["realm.character-profile-core/v1"] | None = None
+    psychology: CharacterProfileCoreDtoPsychology | None = None
+    relationships: tuple[CharacterProfileCoreDtoRelationshipsItem, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoAssets:
+    externalRefs: tuple[CharacterProfileCoreDtoAssetsExternalRefsItem, ...] = field(default_factory=tuple)
+    intents: tuple[CharacterProfileCoreDtoAssetsIntentsItem, ...] = field(default_factory=tuple)
+    resourceRefs: tuple[CharacterProfileCoreDtoAssetsResourceRefsItem, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoAssetsExternalRefsItem:
+    kind: str | None = None
+    label: str | None = None
+    purpose: str | None = None
+    refId: str | None = None
+    uri: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoAssetsIntentsItem:
+    intentId: str | None = None
+    kind: str | None = None
+    summary: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoAssetsResourceRefsItem:
+    kind: str | None = None
+    label: str | None = None
+    purpose: str | None = None
+    refId: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoAuthoring:
+    extensions: Mapping[str, object] = field(default_factory=dict)
+    notes: tuple[str, ...] = field(default_factory=tuple)
+    source: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty:
+    extensionSchemaVersion: str | None = None
+    fields: Mapping[str, object] = field(default_factory=dict)
+    namespace: str | None = None
+    productSemantic: bool | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoCapabilities:
+    tools: tuple[CharacterProfileCoreDtoCapabilitiesToolsItem, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoCapabilitiesToolsItem:
+    name: str | None = None
+    summary: str | None = None
+    toolId: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoIdentity:
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+    handle: str | None = None
+    name: str | None = None
+    summary: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoInteractionProfile:
+    cadence: str | None = None
+    dialogueExemplars: tuple[CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem, ...] = field(default_factory=tuple)
+    greeting: str | None = None
+    greetingVariants: tuple[str, ...] = field(default_factory=tuple)
+    interactionModes: tuple[str, ...] = field(default_factory=tuple)
+    scenario: str | None = None
+    tone: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem:
+    character: str | None = None
+    exemplarId: str | None = None
+    user: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoKnowledge:
+    constraints: tuple[str, ...] = field(default_factory=tuple)
+    topics: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoNarrative:
+    archetype: str | None = None
+    milestones: tuple[CharacterProfileCoreDtoNarrativeMilestonesItem, ...] = field(default_factory=tuple)
+    summary: str | None = None
+    traits: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoNarrativeMilestonesItem:
+    milestoneId: str | None = None
+    sequence: float | None = None
+    summary: str | None = None
+    title: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoPresentation:
+    avatarResourceRef: str | None = None
+    displayName: str | None = None
+    profileCoverResourceRef: str | None = None
+    profileLine: str | None = None
+    shortBio: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoPsychology:
+    boundaries: tuple[str, ...] = field(default_factory=tuple)
+    drives: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoRelationshipsItem:
+    relationType: str | None = None
+    relationshipId: str | None = None
+    summary: str | None = None
+    targetRef: CharacterProfileCoreDtoRelationshipsItemTargetRef | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoRelationshipsItemTargetRef:
+    entityId: str | None = None
+    kind: Literal["worldEntity"] | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreInputDto:
+    assets: Mapping[str, object] = field(default_factory=dict)
+    authoring: Mapping[str, object] = field(default_factory=dict)
+    capabilities: Mapping[str, object] = field(default_factory=dict)
+    identity: Mapping[str, object] = field(default_factory=dict)
+    interactionProfile: Mapping[str, object] = field(default_factory=dict)
+    knowledge: Mapping[str, object] = field(default_factory=dict)
+    narrative: Mapping[str, object] = field(default_factory=dict)
+    presentation: Mapping[str, object] = field(default_factory=dict)
+    profileSchemaVersion: Literal["realm.character-profile-core/v1"] | None = None
+    psychology: Mapping[str, object] = field(default_factory=dict)
+    relationships: tuple[Mapping[str, object], ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ChatEventEnvelopeDto:
@@ -447,53 +566,6 @@ class ConnectOnboardingResponseDto:
 ContentRatingString = Literal["UNRATED", "G", "PG13", "R18", "EXPLICIT"]
 
 @dataclass(frozen=True)
-class CoverageComponentV1Dto:
-    componentId: str | None = None
-    contentHash: str | None = None
-    kind: Literal["worldCharacter", "realmPersona", "worldCore", "worldEntity", "worldRelationship", "coverageManifest"] | None = None
-    revision: float | None = None
-    schemaVersion: str | None = None
-
-@dataclass(frozen=True)
-class CoverageCrossReferenceCheckV1Dto:
-    checkId: str | None = None
-    sourceRef: str | None = None
-    state: Literal["valid", "invalid"] | None = None
-    targetRef: str | None = None
-
-@dataclass(frozen=True)
-class CoverageManifestV1Dto:
-    aggregateStatus: Literal["complete", "incomplete", "invalid"] | None = None
-    closurePolicyVersion: Literal["realm.materialization-closure/v1"] | None = None
-    components: tuple[CoverageComponentV1Dto, ...] = field(default_factory=tuple)
-    coverageManifestHash: str | None = None
-    crossReferenceChecks: tuple[CoverageCrossReferenceCheckV1Dto, ...] = field(default_factory=tuple)
-    manifestSchemaVersion: Literal["realm.materialization-coverage/v1"] | None = None
-    optionalRefs: tuple[CoverageOptionalRefV1Dto, ...] = field(default_factory=tuple)
-    requiredRefs: tuple[CoverageRequiredRefV1Dto, ...] = field(default_factory=tuple)
-    requiredSections: tuple[CoverageRequiredSectionV1Dto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class CoverageOptionalRefV1Dto:
-    omissionReason: Literal["not-declared", "intentionally-absent", "inaccessible-optional-resource"] | None = None
-    path: str | None = None
-    refId: str | None = None
-    refKind: str | None = None
-    state: Literal["resolved", "omitted", "invalid"] | None = None
-
-@dataclass(frozen=True)
-class CoverageRequiredRefV1Dto:
-    path: str | None = None
-    refId: str | None = None
-    refKind: str | None = None
-    state: Literal["resolved", "missing", "invalid"] | None = None
-
-@dataclass(frozen=True)
-class CoverageRequiredSectionV1Dto:
-    path: str | None = None
-    state: Literal["present", "missing", "invalid"] | None = None
-
-@dataclass(frozen=True)
 class CreateAssetDto:
     authorId: str | None = None
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
@@ -558,6 +630,14 @@ class CreateGroupInputDto:
     title: str | None = None
 
 @dataclass(frozen=True)
+class CreatePersonaCharacterCoreDto:
+    id: str | None = None
+    origin: RealmCoreOriginDto | None = None
+    profile: CharacterProfileCoreInputDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
 class CreatePortalSessionDto:
     returnUrl: str | None = None
 
@@ -572,14 +652,6 @@ class CreatePostDto:
     caption: str | None = None
     sourceRef: PostSourceRefDto | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class CreateRealmPersonaDto:
-    core: Mapping[str, object] = field(default_factory=dict)
-    homeWorldId: str | None = None
-    id: str | None = None
-    origin: RealmCoreOriginDto | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 @dataclass(frozen=True)
 class CreateRelationshipDto:
@@ -603,14 +675,15 @@ class CreateReviewDto:
     tags: str | None = None
 
 @dataclass(frozen=True)
-class CreateSourceMaterializationPacketDto:
+class CreateSourceMaterializationPacketV3Dto:
+    accessGrantId: str | None = None
     challengeDigest: str | None = None
     challengeExpiresAt: str | None = None
     challengeId: str | None = None
-    challengeLimits: SourceMaterializationChallengeLimitsDto | None = None
     intendedRuntimeAudience: str | None = None
     materializerAccountId: str | None = None
-    sourceRef: TypedSourceRefDto | None = None
+    publishedLimits: SourceMaterializationPublishedLimitsDto | None = None
+    sourceRef: CharacterSourceRefV3Dto | None = None
 
 @dataclass(frozen=True)
 class CreateSparkCheckoutDto:
@@ -653,7 +726,7 @@ class CreateTextResourceDto:
 class CreateTransitDto:
     context: TransitContextDto | None = None
     fromWorldId: str | None = None
-    sourceRef: TypedSourceRefDto | None = None
+    sourceRef: CharacterSourceRefV3Dto | None = None
     toWorldId: str | None = None
     transitType: Literal["INBOUND", "OUTBOUND"] | None = None
 
@@ -663,10 +736,11 @@ class CreateWithdrawalDto:
 
 @dataclass(frozen=True)
 class CreateWorldCharacterCoreDto:
-    core: Mapping[str, object] = field(default_factory=dict)
-    entityId: str | None = None
     id: str | None = None
     origin: RealmCoreOriginDto | None = None
+    profile: CharacterProfileCoreInputDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    worldEntityRef: WorldEntityRefDto | None = None
 
 @dataclass(frozen=True)
 class CreateWorldCoreDto:
@@ -693,7 +767,7 @@ class CreateWorldRelationshipCoreDto:
 
 @dataclass(frozen=True)
 class CreatorEligibilityResponseDto:
-    canCreateRealmPersona: bool | None = None
+    canCreatePersonaCharacter: bool | None = None
     canCreateWorld: bool | None = None
     isEligible: bool | None = None
     message: str | None = None
@@ -891,7 +965,7 @@ class GroupMessageAuthorDto:
     displayName: str | None = None
     runtimeParticipantSlot: str | None = None
     runtimeSourceRef: str | None = None
-    sourceOwnerId: str | None = None
+    sourceAuthorityAccountId: str | None = None
     sourceRef: GroupSourceRefDto | None = None
     type: Literal["human", "source"] | None = None
 
@@ -921,16 +995,13 @@ class GroupParticipantDto:
     role: Literal["admin", "member"] | None = None
     runtimeParticipantSlot: str | None = None
     runtimeSourceRef: str | None = None
-    sourceOwnerId: str | None = None
+    sourceAuthorityAccountId: str | None = None
     sourceRef: GroupSourceRefDto | None = None
     type: Literal["human", "source"] | None = None
 
 @dataclass(frozen=True)
 class GroupSourceRefDto:
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceContentHash: str | None = None
-    sourceId: str | None = None
-    worldId: str | None = None
+    pass
 
 @dataclass(frozen=True)
 class GroupSourceTriggerEvidenceDto:
@@ -1018,16 +1089,142 @@ class MarkNotificationsReadInputDto:
     markAllBefore: str | None = None
 
 @dataclass(frozen=True)
-class MaterializationContextV1Dto:
-    closurePolicyVersion: Literal["realm.materialization-closure/v1"] | None = None
-    contextSchemaVersion: Literal["realm.materialization-context/v1"] | None = None
-    coverageManifestHash: str | None = None
-    dependencyClosure: MaterializationContextV1DtoDependencyClosure | None = None
+class MaterializationClosureSetManifestV3Dto:
+    challengeDigest: str | None = None
+    chunkCount: float | None = None
+    componentCount: float | None = None
+    manifestSchemaVersion: Literal["realm.materialization-closure-set-manifest/v3"] | None = None
+    orderedComponentSetHash: str | None = None
+    packetId: str | None = None
+    payloadAssemblyVersion: Literal["realm.materialization-assembly/v3"] | None = None
+    publishedLimits: SourceMaterializationPublishedLimitsDto | None = None
+    segmentCount: float | None = None
+    segments: tuple[MaterializationClosureSetSegmentRefV3Dto, ...] = field(default_factory=tuple)
+    totalCanonicalBytes: float | None = None
+
+@dataclass(frozen=True)
+class MaterializationClosureSetSegmentRefV3Dto:
+    chunkCount: float | None = None
+    componentCount: float | None = None
+    firstComponentOrdinal: float | None = None
+    lastComponentOrdinal: float | None = None
+    segmentManifestHash: str | None = None
+    segmentOrdinal: float | None = None
+    totalCanonicalBytes: float | None = None
+
+@dataclass(frozen=True)
+class MaterializationComponentDigestV3Dto:
+    componentId: str | None = None
+    contentHash: str | None = None
+    kind: Literal["worldCharacter", "personaCharacter", "worldCore", "worldEntity", "worldRelationship", "materializationCoverage"] | None = None
+
+@dataclass(frozen=True)
+class MaterializationContextV3Dto:
+    closurePolicyVersion: Literal["realm.materialization-closure/v3"] | None = None
+    contextSchemaVersion: Literal["realm.materialization-context/v3"] | None = None
+    dependencyClosure: MaterializationContextV3DtoDependencyClosure | None = None
     materializationContextHash: str | None = None
+    materializationCoverageHash: str | None = None
     owningWorld: WorldCoreDto | None = None
-    sourceComponentDigests: tuple[SourceMaterializationComponentDigestV1Dto, ...] = field(default_factory=tuple)
-    sourceRef: TypedSourceRefDto | None = None
-    worldAndClosureComponentDigests: tuple[SourceMaterializationComponentDigestV1Dto, ...] = field(default_factory=tuple)
+    sourceComponentDigests: tuple[MaterializationComponentDigestV3Dto, ...] = field(default_factory=tuple)
+    sourceRef: CharacterSourceRefV3Dto | None = None
+    worldAndClosureComponentDigests: tuple[MaterializationComponentDigestV3Dto, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class MaterializationCoverageComponentV3Dto:
+    componentId: str | None = None
+    contentHash: str | None = None
+    kind: Literal["worldCharacter", "personaCharacter", "worldCore", "worldEntity", "worldRelationship", "materializationCoverage"] | None = None
+    revision: float | None = None
+    schemaVersion: str | None = None
+
+@dataclass(frozen=True)
+class MaterializationCoverageManifestV3Dto:
+    aggregateStatus: Literal["complete", "incomplete", "invalid"] | None = None
+    closurePolicyVersion: Literal["realm.materialization-closure/v3"] | None = None
+    components: tuple[MaterializationCoverageComponentV3Dto, ...] = field(default_factory=tuple)
+    crossReferenceChecks: tuple[MaterializationCrossReferenceCheckV3Dto, ...] = field(default_factory=tuple)
+    manifestSchemaVersion: Literal["realm.materialization-coverage/v3"] | None = None
+    materializationCoverageHash: str | None = None
+    optionalRefs: tuple[MaterializationOptionalRefV3Dto, ...] = field(default_factory=tuple)
+    requiredRefs: tuple[MaterializationRequiredRefV3Dto, ...] = field(default_factory=tuple)
+    requiredSections: tuple[MaterializationRequiredSectionV3Dto, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class MaterializationCrossReferenceCheckV3Dto:
+    checkId: str | None = None
+    sourceRef: str | None = None
+    state: Literal["valid", "invalid"] | None = None
+    targetRef: str | None = None
+
+@dataclass(frozen=True)
+class MaterializationDependencyRefV3Dto:
+    contentHash: str | None = None
+    id: str | None = None
+    kind: Literal["worldEntity", "worldRelationship"] | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class MaterializationOptionalRefV3Dto:
+    omissionReason: Literal["not-declared", "intentionally-absent", "inaccessible-optional-resource"] | None = None
+    path: str | None = None
+    refId: str | None = None
+    refKind: str | None = None
+    state: Literal["resolved", "omitted", "invalid"] | None = None
+
+@dataclass(frozen=True)
+class MaterializationRequiredRefV3Dto:
+    path: str | None = None
+    refId: str | None = None
+    refKind: str | None = None
+    state: Literal["resolved", "missing", "invalid"] | None = None
+
+@dataclass(frozen=True)
+class MaterializationRequiredSectionV3Dto:
+    path: str | None = None
+    state: Literal["present", "missing", "invalid"] | None = None
+
+@dataclass(frozen=True)
+class MaterializationSegmentChunkDescriptorV3Dto:
+    chunkSha256: str | None = None
+    componentOffset: float | None = None
+    globalChunkOrdinal: float | None = None
+    globalComponentOrdinal: float | None = None
+    length: float | None = None
+
+@dataclass(frozen=True)
+class MaterializationSegmentLimitsV3Dto:
+    maxChunkBytes: float | None = None
+    maxSegmentBytes: float | None = None
+    maxSegmentChunks: float | None = None
+    maxSegmentComponentCount: float | None = None
+
+@dataclass(frozen=True)
+class MaterializationSegmentManifestComponentV3Dto:
+    canonicalByteLength: float | None = None
+    canonicalBytesHash: str | None = None
+    componentId: str | None = None
+    contentHash: str | None = None
+    globalComponentOrdinal: float | None = None
+    kind: Literal["worldCharacter", "personaCharacter", "worldCore", "worldEntity", "worldRelationship", "materializationCoverage"] | None = None
+    revision: float | None = None
+    schemaVersion: str | None = None
+
+@dataclass(frozen=True)
+class MaterializationSegmentManifestV3Dto:
+    challengeDigest: str | None = None
+    chunkCount: float | None = None
+    chunks: tuple[MaterializationSegmentChunkDescriptorV3Dto, ...] = field(default_factory=tuple)
+    componentCount: float | None = None
+    components: tuple[MaterializationSegmentManifestComponentV3Dto, ...] = field(default_factory=tuple)
+    firstComponentOrdinal: float | None = None
+    lastComponentOrdinal: float | None = None
+    manifestSchemaVersion: Literal["realm.materialization-segment-manifest/v3"] | None = None
+    packetId: str | None = None
+    payloadAssemblyVersion: Literal["realm.materialization-assembly/v3"] | None = None
+    publishedSegmentLimits: MaterializationSegmentLimitsV3Dto | None = None
+    segmentOrdinal: float | None = None
+    totalCanonicalBytes: float | None = None
 
 @dataclass(frozen=True)
 class Me2faOperationResultDto:
@@ -1186,6 +1383,49 @@ class PasswordRegisterDto:
     password: str | None = None
 
 @dataclass(frozen=True)
+class PersonaCharacterCoreDto:
+    contentHash: str | None = None
+    contentRevision: float | None = None
+    createdAt: str | None = None
+    id: str | None = None
+    materializationReadiness: ReadinessResultDto | None = None
+    origin: RealmCoreOriginDto | None = None
+    ownerAccountId: str | None = None
+    profile: CharacterProfileCoreDto | None = None
+    schemaVersion: Literal["realm.persona-character-core/v1"] | None = None
+    sourceHash: str | None = None
+    updatedAt: str | None = None
+    validity: ValidityResultDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class PersonaCharacterDependencyClosureV3Dto:
+    explicitDependencies: tuple[MaterializationDependencyRefV3Dto, ...] = field(default_factory=tuple)
+    explicitEntities: tuple[WorldEntityCoreDto, ...] = field(default_factory=tuple)
+    explicitRelationships: tuple[WorldRelationshipCoreDto, ...] = field(default_factory=tuple)
+    kind: Literal["personaCharacter"] | None = None
+
+@dataclass(frozen=True)
+class PersonaCharacterMaterializationPayloadV3Dto:
+    canonicalSource: PersonaCharacterCoreDto | None = None
+    materializationContext: MaterializationContextV3Dto | None = None
+    materializationContextHash: str | None = None
+    materializationCoverage: MaterializationCoverageManifestV3Dto | None = None
+    materializationCoverageHash: str | None = None
+    payloadAssemblyVersion: Literal["realm.materialization-assembly/v3"] | None = None
+    payloadSchemaVersion: Literal["realm.source-materialization-payload/v3"] | None = None
+    sourceRef: PersonaCharacterSourceRefV3Dto | None = None
+
+@dataclass(frozen=True)
+class PersonaCharacterSourceRefV3Dto:
+    id: str | None = None
+    kind: Literal["personaCharacter"] | None = None
+    ownerAccountId: str | None = None
+    sourceHash: str | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
 class PortalSessionDto:
     url: str | None = None
 
@@ -1208,7 +1448,7 @@ class PostDto:
     attachments: tuple[PostAttachmentDto, ...] = field(default_factory=tuple)
     author: UserLiteDto | None = None
     authorId: str | None = None
-    authorKind: Literal["human", "worldCharacter", "realmPersona"] | None = None
+    authorKind: Literal["human", "worldCharacter", "personaCharacter"] | None = None
     caption: str | None = None
     contentRating: ContentRatingString | None = None
     createdAt: str | None = None
@@ -1229,18 +1469,15 @@ class PostSourceAuthorDto:
     displayName: str | None = None
     handle: str | None = None
     id: str | None = None
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    ownerUserId: str | None = None
+    kind: Literal["worldCharacter", "personaCharacter"] | None = None
     runtimeSourceRef: str | None = None
+    sourceAuthorityAccountId: str | None = None
     sourceRef: PostSourceRefDto | None = None
     worldId: str | None = None
 
 @dataclass(frozen=True)
 class PostSourceRefDto:
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceContentHash: str | None = None
-    sourceId: str | None = None
-    worldId: str | None = None
+    pass
 
 @dataclass(frozen=True)
 class PPSlotConfigDto:
@@ -1260,6 +1497,47 @@ class PPSlotItemDto:
 
 PresenceStatus = Literal["online", "invisible"]
 
+@dataclass(frozen=True)
+class ProfileCoverageManifestV1Dto:
+    aggregateStatus: Literal["complete", "incomplete", "invalid"] | None = None
+    diagnostics: tuple[ProfileCoverageManifestV1DtoDiagnosticsItem, ...] = field(default_factory=tuple)
+    manifestSchemaVersion: Literal["realm.character-profile-coverage/v1"] | None = None
+    optionalRefs: tuple[ProfileCoverageManifestV1DtoOptionalRefsItem, ...] = field(default_factory=tuple)
+    optionalSections: tuple[ProfileCoverageManifestV1DtoOptionalSectionsItem, ...] = field(default_factory=tuple)
+    profileCoverageHash: str | None = None
+    requiredRefs: tuple[ProfileCoverageManifestV1DtoRequiredRefsItem, ...] = field(default_factory=tuple)
+    requiredSections: tuple[ProfileCoverageManifestV1DtoRequiredSectionsItem, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ProfileCoverageManifestV1DtoDiagnosticsItem:
+    code: str | None = None
+    message: str | None = None
+    path: str | None = None
+
+@dataclass(frozen=True)
+class ProfileCoverageManifestV1DtoOptionalRefsItem:
+    path: str | None = None
+    refId: str | None = None
+    refKind: str | None = None
+    state: Literal["resolved", "missing", "empty", "invalid"] | None = None
+
+@dataclass(frozen=True)
+class ProfileCoverageManifestV1DtoOptionalSectionsItem:
+    path: str | None = None
+    state: Literal["present", "missing", "empty", "invalid"] | None = None
+
+@dataclass(frozen=True)
+class ProfileCoverageManifestV1DtoRequiredRefsItem:
+    path: str | None = None
+    refId: str | None = None
+    refKind: str | None = None
+    state: Literal["resolved", "missing", "empty", "invalid"] | None = None
+
+@dataclass(frozen=True)
+class ProfileCoverageManifestV1DtoRequiredSectionsItem:
+    path: str | None = None
+    state: Literal["present", "missing", "empty", "invalid"] | None = None
+
 PublicAccountRole = Literal["USER", "SERVICE_ACC", "SYSTEM_BOT", "ADMIN"]
 
 @dataclass(frozen=True)
@@ -1272,6 +1550,17 @@ class PublicFilterDto:
     viewerCity: str | None = None
     viewerCountryCode: str | None = None
     viewerGenders: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ReadinessBlockerDto:
+    code: str | None = None
+    message: str | None = None
+    path: str | None = None
+
+@dataclass(frozen=True)
+class ReadinessResultDto:
+    blockers: tuple[ReadinessBlockerDto, ...] = field(default_factory=tuple)
+    status: Literal["ready", "blocked", "invalid"] | None = None
 
 @dataclass(frozen=True)
 class RealmCoreOriginDto:
@@ -1289,149 +1578,8 @@ class RealmGroupMessageCandidateCommitResultDto:
     status: Literal["committed", "duplicate"] | None = None
 
 @dataclass(frozen=True)
-class RealmPersonaDependencyClosureV1Dto:
-    explicitDependencies: tuple[SourceMaterializationDependencyRefV1Dto, ...] = field(default_factory=tuple)
-    kind: Literal["realmPersona"] | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaDto:
-    contentHash: str | None = None
-    contentRevision: float | None = None
-    core: Mapping[str, object] = field(default_factory=dict)
-    createdAt: str | None = None
-    homeWorldId: str | None = None
-    id: str | None = None
-    origin: RealmCoreOriginDto | None = None
-    ownerId: str | None = None
-    schemaVersion: str | None = None
-    updatedAt: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationPayloadV2Dto:
-    coverageManifest: CoverageManifestV1Dto | None = None
-    coverageManifestHash: str | None = None
-    materializationContext: MaterializationContextV1Dto | None = None
-    materializationContextHash: str | None = None
-    payloadAssemblyVersion: Literal["realm.materialization-assembly/v1"] | None = None
-    payloadSchemaVersion: Literal["realm.source-materialization-payload/v2"] | None = None
-    source: RealmPersonaMaterializationSourceV2Dto | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2Dto:
-    contentHash: str | None = None
-    contentRevision: float | None = None
-    core: RealmPersonaMaterializationSourceV2DtoCore | None = None
-    createdAt: str | None = None
-    homeWorldId: str | None = None
-    id: str | None = None
-    kind: Literal["realmPersona"] | None = None
-    origin: RealmCoreOriginDto | None = None
-    ownerId: str | None = None
-    schemaVersion: Literal["realm.persona/v1"] | None = None
-    updatedAt: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCore:
-    assets: RealmPersonaMaterializationSourceV2DtoCoreAssets | None = None
-    authoring: RealmPersonaMaterializationSourceV2DtoCoreAuthoring | None = None
-    contentProfile: RealmPersonaMaterializationSourceV2DtoCoreContentProfile | None = None
-    identity: RealmPersonaMaterializationSourceV2DtoCoreIdentity | None = None
-    interactionProfile: RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile | None = None
-    personaStyle: RealmPersonaMaterializationSourceV2DtoCorePersonaStyle | None = None
-    presentation: RealmPersonaMaterializationSourceV2DtoCorePresentation | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreAssets:
-    externalRefs: tuple[RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem, ...] = field(default_factory=tuple)
-    intents: tuple[RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem, ...] = field(default_factory=tuple)
-    resourceRefs: tuple[RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreAssetsExternalRefsItem:
-    kind: str | None = None
-    label: str | None = None
-    purpose: str | None = None
-    refId: str | None = None
-    uri: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreAssetsIntentsItem:
-    intentId: str | None = None
-    kind: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreAssetsResourceRefsItem:
-    kind: str | None = None
-    label: str | None = None
-    purpose: str | None = None
-    refId: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreAuthoring:
-    extensions: Mapping[str, object] = field(default_factory=dict)
-    maintainers: tuple[str, ...] = field(default_factory=tuple)
-    notes: tuple[str, ...] = field(default_factory=tuple)
-    review: RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview | None = None
-    source: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreAuthoringReview:
-    reviewedAt: str | None = None
-    reviewedBy: str | None = None
-    status: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreContentProfile:
-    boundaries: tuple[str, ...] = field(default_factory=tuple)
-    guidelines: tuple[RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem, ...] = field(default_factory=tuple)
-    topics: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreContentProfileGuidelinesItem:
-    guidelineId: str | None = None
-    source: str | None = None
-    statement: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreIdentity:
-    aliases: tuple[str, ...] = field(default_factory=tuple)
-    concept: str | None = None
-    handle: str | None = None
-    name: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCoreInteractionProfile:
-    dialogueExemplars: tuple[str, ...] = field(default_factory=tuple)
-    greeting: str | None = None
-    greetingVariants: tuple[str, ...] = field(default_factory=tuple)
-    homeWorldId: str | None = None
-    interactionModes: tuple[str, ...] = field(default_factory=tuple)
-    scenario: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCorePersonaStyle:
-    archetype: str | None = None
-    communicationStyle: str | None = None
-    dialogueExemplars: tuple[str, ...] = field(default_factory=tuple)
-    pacing: str | None = None
-    traits: tuple[str, ...] = field(default_factory=tuple)
-    voice: str | None = None
-
-@dataclass(frozen=True)
-class RealmPersonaMaterializationSourceV2DtoCorePresentation:
-    avatarResourceRef: str | None = None
-    displayName: str | None = None
-    profileCoverResourceRef: str | None = None
-    profileLine: str | None = None
-    shortBio: str | None = None
-
-@dataclass(frozen=True)
 class RealmSourceCapabilitiesDto:
-    canCreateRealmPersona: bool | None = None
+    canCreatePersonaCharacter: bool | None = None
     canCreateSourceMaterializationPacket: bool | None = None
     canUseWorldCharacterSources: bool | None = None
 
@@ -1459,21 +1607,22 @@ class RelationshipResponseDto:
     type: AccountRelationType | None = None
 
 @dataclass(frozen=True)
-class ReplaceRealmPersonaDto:
+class ReplacePersonaCharacterCoreDto:
     baseContentHash: str | None = None
-    core: Mapping[str, object] = field(default_factory=dict)
-    homeWorldId: str | None = None
     id: str | None = None
     origin: RealmCoreOriginDto | None = None
+    profile: CharacterProfileCoreInputDto | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    worldId: str | None = None
 
 @dataclass(frozen=True)
 class ReplaceWorldCharacterCoreDto:
     baseContentHash: str | None = None
-    core: Mapping[str, object] = field(default_factory=dict)
-    entityId: str | None = None
     id: str | None = None
     origin: RealmCoreOriginDto | None = None
+    profile: CharacterProfileCoreInputDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    worldEntityRef: WorldEntityRefDto | None = None
 
 @dataclass(frozen=True)
 class ReplaceWorldCoreDto:
@@ -1585,9 +1734,18 @@ class RevenueDistributionPreviewDto:
     worldCreatorAmount: str | None = None
 
 @dataclass(frozen=True)
+class RevenueDistributionPreviewRequestDto:
+    amount: str | None = None
+    sourceRef: CharacterSourceRefV3Dto | None = None
+
+@dataclass(frozen=True)
 class RevenueShareConfigDto:
     minShareThreshold: str | None = None
     worldCreatorSharePercent: float | None = None
+
+@dataclass(frozen=True)
+class RevenueSourceOriginRequestDto:
+    sourceRef: CharacterSourceRefV3Dto | None = None
 
 @dataclass(frozen=True)
 class ReviewDto:
@@ -1643,78 +1801,75 @@ class SocialProfileDto:
     verifiedAt: str | None = None
 
 @dataclass(frozen=True)
-class SourceMaterializationChallengeLimitsDto:
-    maxBundleBytes: float | None = None
-    maxChunkBytes: float | None = None
-    maxChunks: float | None = None
-    maxComponentCount: float | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationComponentChunkV1Dto:
-    bytesBase64: str | None = None
-    chunkSha256: str | None = None
-    componentOffset: float | None = None
-    globalOrdinal: float | None = None
-    length: float | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationComponentDigestV1Dto:
-    componentId: str | None = None
-    contentHash: str | None = None
-    kind: Literal["worldCharacter", "realmPersona", "worldCore", "worldEntity", "worldRelationship", "coverageManifest"] | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationComponentV1Dto:
+class SourceMaterializationComponentV3Dto:
     canonicalByteLength: float | None = None
-    canonicalBytes: tuple[SourceMaterializationComponentChunkV1Dto, ...] = field(default_factory=tuple)
+    canonicalBytes: tuple[str, ...] = field(default_factory=tuple)
     canonicalBytesHash: str | None = None
     componentId: str | None = None
     contentHash: str | None = None
-    kind: Literal["worldCharacter", "realmPersona", "worldCore", "worldEntity", "worldRelationship", "coverageManifest"] | None = None
+    kind: Literal["worldCharacter", "personaCharacter", "worldCore", "worldEntity", "worldRelationship", "materializationCoverage"] | None = None
     revision: float | None = None
     schemaVersion: str | None = None
 
 @dataclass(frozen=True)
-class SourceMaterializationDependencyRefV1Dto:
-    contentHash: str | None = None
-    id: str | None = None
-    kind: Literal["worldEntity", "worldRelationship"] | None = None
-    worldId: str | None = None
+class SourceMaterializationPacketProofV3Dto:
+    compactJws: str | None = None
+    signedPayload: str | None = None
 
 @dataclass(frozen=True)
-class SourceMaterializationPacketV2Dto:
+class SourceMaterializationPacketV3Dto:
+    accessPolicyVersionDigest: str | None = None
     algorithm: Literal["RS256"] | None = None
-    bundleManifestHash: str | None = None
-    bundleTransportManifest: BundleTransportManifestV1Dto | None = None
+    authorizationDecisionDigest: str | None = None
     challengeDigest: str | None = None
     challengeId: str | None = None
-    challengeLimits: SourceMaterializationChallengeLimitsDto | None = None
+    closureSetManifest: MaterializationClosureSetManifestV3Dto | None = None
+    closureSetManifestHash: str | None = None
     expiresAt: str | None = None
     intendedRuntimeAudience: str | None = None
     issuedAt: str | None = None
     issuer: str | None = None
     keyId: str | None = None
     keyUse: Literal["sig"] | None = None
+    materializationContextHash: str | None = None
     materializerAccountId: str | None = None
     nonce: str | None = None
-    orderedComponentChunks: tuple[SourceMaterializationComponentV1Dto, ...] = field(default_factory=tuple)
+    orderedSegments: tuple[SourceMaterializationSegmentV3Dto, ...] = field(default_factory=tuple)
     packetHash: str | None = None
     packetId: str | None = None
-    packetProof: str | None = None
-    packetSchemaVersion: Literal["realm.source-materialization-packet/v2"] | None = None
+    packetProof: SourceMaterializationPacketProofV3Dto | None = None
+    packetSchemaVersion: Literal["realm.source-materialization-packet/v3"] | None = None
     payloadHash: str | None = None
-    semanticPayload: SourceMaterializationPacketV2DtoSemanticPayload | None = None
-    sourceRef: TypedSourceRefDto | None = None
+    publishedLimits: SourceMaterializationPublishedLimitsDto | None = None
+    semanticPayload: SourceMaterializationPacketV3DtoSemanticPayload | None = None
+    sourceRef: CharacterSourceRefV3Dto | None = None
+
+@dataclass(frozen=True)
+class SourceMaterializationPublishedLimitsDto:
+    maxChunkBytes: float | None = None
+    maxSegmentBytes: float | None = None
+    maxSegmentChunks: float | None = None
+    maxSegmentComponentCount: float | None = None
+    maxSetBytes: float | None = None
+    maxSetChunks: float | None = None
+    maxSetComponentCount: float | None = None
+    maxSetSegments: float | None = None
+
+@dataclass(frozen=True)
+class SourceMaterializationSegmentV3Dto:
+    orderedComponents: tuple[SourceMaterializationComponentV3Dto, ...] = field(default_factory=tuple)
+    segmentManifest: MaterializationSegmentManifestV3Dto | None = None
+    segmentManifestHash: str | None = None
 
 @dataclass(frozen=True)
 class SourceOriginDto:
     isWorldOwned: bool | None = None
-    ownerId: str | None = None
-    sourceContentHash: str | None = None
+    sourceHash: str | None = None
     sourceId: str | None = None
-    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceRef: Mapping[str, object] = field(default_factory=dict)
-    worldCreatorId: str | None = None
+    sourceKind: Literal["worldCharacter", "personaCharacter"] | None = None
+    sourceOwnerAccountId: str | None = None
+    sourceRef: CharacterSourceRefV3Dto | None = None
+    worldCreatorAccountId: str | None = None
     worldId: str | None = None
 
 @dataclass(frozen=True)
@@ -1807,7 +1962,7 @@ class TransitDetailDto:
     fromWorldId: str | None = None
     id: str | None = None
     runtimeSourceRef: str | None = None
-    sourceRef: TypedSourceRefDto | None = None
+    sourceRef: CharacterSourceRefV3Dto | None = None
     status: Literal["ACTIVE", "COMPLETED", "ABANDONED"] | None = None
     toWorldId: str | None = None
     transitType: Literal["INBOUND", "OUTBOUND"] | None = None
@@ -1824,13 +1979,6 @@ class TranslateResponseDto:
     detectedSourceLang: str | None = None
     original: str | None = None
     translated: str | None = None
-
-@dataclass(frozen=True)
-class TypedSourceRefDto:
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceContentHash: str | None = None
-    sourceId: str | None = None
-    worldId: str | None = None
 
 @dataclass(frozen=True)
 class UnreadNotificationCountDto:
@@ -1955,8 +2103,8 @@ class UpdateUserSettingsDto:
 
 @dataclass(frozen=True)
 class UsePolicyDto:
-    allowedBindingPoints: tuple[Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "WORLD_CHARACTER_AVATAR", "WORLD_CHARACTER_PORTRAIT", "WORLD_CHARACTER_EXPRESSION", "WORLD_CHARACTER_OUTFIT", "WORLD_CHARACTER_CANDIDATE", "WORLD_CHARACTER_VOICE_SAMPLE", "REALM_PERSONA_AVATAR", "REALM_PERSONA_PORTRAIT", "REALM_PERSONA_EXPRESSION", "REALM_PERSONA_OUTFIT", "REALM_PERSONA_CANDIDATE", "REALM_PERSONA_VOICE_SAMPLE"], ...] = field(default_factory=tuple)
-    allowedHostTypes: tuple[Literal["WORLD", "WORLD_CHARACTER", "REALM_PERSONA", "SCENE"], ...] = field(default_factory=tuple)
+    allowedBindingPoints: tuple[Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "WORLD_CHARACTER_AVATAR", "WORLD_CHARACTER_PORTRAIT", "WORLD_CHARACTER_EXPRESSION", "WORLD_CHARACTER_OUTFIT", "WORLD_CHARACTER_CANDIDATE", "WORLD_CHARACTER_VOICE_SAMPLE", "PERSONA_CHARACTER_AVATAR", "PERSONA_CHARACTER_PORTRAIT", "PERSONA_CHARACTER_EXPRESSION", "PERSONA_CHARACTER_OUTFIT", "PERSONA_CHARACTER_CANDIDATE", "PERSONA_CHARACTER_VOICE_SAMPLE"], ...] = field(default_factory=tuple)
+    allowedHostTypes: tuple[Literal["WORLD", "WORLD_CHARACTER", "PERSONA_CHARACTER", "SCENE"], ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class UserCapabilitiesDto:
@@ -2108,6 +2256,17 @@ class UserWalletListResponseDto:
     items: tuple[UserWalletDto, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class ValidityIssueDto:
+    code: str | None = None
+    message: str | None = None
+    path: str | None = None
+
+@dataclass(frozen=True)
+class ValidityResultDto:
+    issues: tuple[ValidityIssueDto, ...] = field(default_factory=tuple)
+    status: Literal["valid", "invalid"] | None = None
+
+@dataclass(frozen=True)
 class VerifyInvitationCodeDto:
     invitationCode: str | None = None
 
@@ -2189,178 +2348,46 @@ class WithdrawalSummaryDto:
 class WorldCharacterCoreDto:
     contentHash: str | None = None
     contentRevision: float | None = None
-    core: Mapping[str, object] = field(default_factory=dict)
     createdAt: str | None = None
     creatorId: str | None = None
-    entityId: str | None = None
     id: str | None = None
+    materializationReadiness: ReadinessResultDto | None = None
     origin: RealmCoreOriginDto | None = None
-    schemaVersion: str | None = None
+    profile: CharacterProfileCoreDto | None = None
+    schemaVersion: Literal["realm.world-character-core/v1"] | None = None
+    sourceHash: str | None = None
     updatedAt: str | None = None
+    validity: ValidityResultDto | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    worldEntityRef: WorldEntityRefDto | None = None
     worldId: str | None = None
 
 @dataclass(frozen=True)
-class WorldCharacterDependencyClosureV1Dto:
+class WorldCharacterDependencyClosureV3Dto:
     boundEntity: WorldEntityCoreDto | None = None
     endpointEntities: tuple[WorldEntityCoreDto, ...] = field(default_factory=tuple)
-    explicitDependencies: tuple[SourceMaterializationDependencyRefV1Dto, ...] = field(default_factory=tuple)
+    explicitDependencies: tuple[MaterializationDependencyRefV3Dto, ...] = field(default_factory=tuple)
+    explicitEntities: tuple[WorldEntityCoreDto, ...] = field(default_factory=tuple)
     incidentRelationships: tuple[WorldRelationshipCoreDto, ...] = field(default_factory=tuple)
     kind: Literal["worldCharacter"] | None = None
 
 @dataclass(frozen=True)
-class WorldCharacterMaterializationPayloadV2Dto:
-    coverageManifest: CoverageManifestV1Dto | None = None
-    coverageManifestHash: str | None = None
-    materializationContext: MaterializationContextV1Dto | None = None
+class WorldCharacterMaterializationPayloadV3Dto:
+    canonicalSource: WorldCharacterCoreDto | None = None
+    materializationContext: MaterializationContextV3Dto | None = None
     materializationContextHash: str | None = None
-    payloadAssemblyVersion: Literal["realm.materialization-assembly/v1"] | None = None
-    payloadSchemaVersion: Literal["realm.source-materialization-payload/v2"] | None = None
-    source: WorldCharacterMaterializationSourceV2Dto | None = None
+    materializationCoverage: MaterializationCoverageManifestV3Dto | None = None
+    materializationCoverageHash: str | None = None
+    payloadAssemblyVersion: Literal["realm.materialization-assembly/v3"] | None = None
+    payloadSchemaVersion: Literal["realm.source-materialization-payload/v3"] | None = None
+    sourceRef: WorldCharacterSourceRefV3Dto | None = None
 
 @dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2Dto:
-    contentHash: str | None = None
-    contentRevision: float | None = None
-    core: WorldCharacterMaterializationSourceV2DtoCore | None = None
-    createdAt: str | None = None
-    creatorId: str | None = None
-    entityId: str | None = None
+class WorldCharacterSourceRefV3Dto:
     id: str | None = None
     kind: Literal["worldCharacter"] | None = None
-    origin: RealmCoreOriginDto | None = None
-    schemaVersion: Literal["realm.world-character-core/v1"] | None = None
-    updatedAt: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCore:
-    assets: WorldCharacterMaterializationSourceV2DtoCoreAssets | None = None
-    authoring: WorldCharacterMaterializationSourceV2DtoCoreAuthoring | None = None
-    biography: WorldCharacterMaterializationSourceV2DtoCoreBiography | None = None
-    capabilities: WorldCharacterMaterializationSourceV2DtoCoreCapabilities | None = None
-    identity: WorldCharacterMaterializationSourceV2DtoCoreIdentity | None = None
-    interactionProfile: WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile | None = None
-    knowledge: WorldCharacterMaterializationSourceV2DtoCoreKnowledge | None = None
-    placement: WorldCharacterMaterializationSourceV2DtoCorePlacement | None = None
-    presentation: WorldCharacterMaterializationSourceV2DtoCorePresentation | None = None
-    psychology: WorldCharacterMaterializationSourceV2DtoCorePsychology | None = None
-    relationships: tuple[WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreAssets:
-    externalRefs: tuple[WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem, ...] = field(default_factory=tuple)
-    intents: tuple[WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem, ...] = field(default_factory=tuple)
-    resourceRefs: tuple[WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreAssetsExternalRefsItem:
-    kind: str | None = None
-    label: str | None = None
-    purpose: str | None = None
-    refId: str | None = None
-    uri: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreAssetsIntentsItem:
-    intentId: str | None = None
-    kind: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreAssetsResourceRefsItem:
-    kind: str | None = None
-    label: str | None = None
-    purpose: str | None = None
-    refId: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreAuthoring:
-    extensions: Mapping[str, object] = field(default_factory=dict)
-    maintainers: tuple[str, ...] = field(default_factory=tuple)
-    notes: tuple[str, ...] = field(default_factory=tuple)
-    review: WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview | None = None
-    source: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreAuthoringReview:
-    reviewedAt: str | None = None
-    reviewedBy: str | None = None
-    status: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreBiography:
-    milestones: tuple[WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem, ...] = field(default_factory=tuple)
-    sourceNotes: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreBiographyMilestonesItem:
-    milestoneId: str | None = None
-    sequence: float | None = None
-    summary: str | None = None
-    title: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreCapabilities:
-    interactionModes: tuple[str, ...] = field(default_factory=tuple)
-    tools: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreIdentity:
-    aliases: tuple[str, ...] = field(default_factory=tuple)
-    name: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreInteractionProfile:
-    cadence: str | None = None
-    dialogueExemplars: tuple[str, ...] = field(default_factory=tuple)
-    greeting: str | None = None
-    greetingVariants: tuple[str, ...] = field(default_factory=tuple)
-    scenario: str | None = None
-    tone: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreKnowledge:
-    constraints: tuple[str, ...] = field(default_factory=tuple)
-    topics: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCorePlacement:
-    entityId: str | None = None
-    faction: str | None = None
-    rank: str | None = None
-    role: str | None = None
-    sceneRefs: tuple[str, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCorePresentation:
-    avatarResourceRef: str | None = None
-    displayName: str | None = None
-    profileCoverResourceRef: str | None = None
-    shortBio: str | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCorePsychology:
-    boundaries: tuple[str, ...] = field(default_factory=tuple)
-    drives: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItem:
-    note: str | None = None
-    relationLabel: str | None = None
-    relationType: str | None = None
-    relationshipId: str | None = None
-    summary: str | None = None
-    targetLabel: str | None = None
-    targetRef: WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef | None = None
-
-@dataclass(frozen=True)
-class WorldCharacterMaterializationSourceV2DtoCoreRelationshipsItemTargetRef:
-    entityId: str | None = None
-    kind: Literal["worldEntity"] | None = None
+    sourceHash: str | None = None
+    worldEntityRef: WorldEntityRefDto | None = None
     worldId: str | None = None
 
 @dataclass(frozen=True)
@@ -2622,6 +2649,12 @@ class WorldEntityCoreDtoCoreIdentity:
     summary: str | None = None
 
 @dataclass(frozen=True)
+class WorldEntityRefDto:
+    entityId: str | None = None
+    kind: Literal["worldEntity"] | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
 class WorldPublicAssetDto:
     durationSec: float | None = None
     height: float | None = None
@@ -2759,8 +2792,8 @@ class WorldPublicSourceCardDto:
     ownership: Literal["worldOwned", "userOwned"] | None = None
     relation: WorldPublicViewerRelationDto | None = None
     role: str | None = None
-    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceRef: WorldPublicSourceRefDto | None = None
+    sourceKind: Literal["worldCharacter", "personaCharacter"] | None = None
+    sourceRef: CharacterSourceRefV3Dto | None = None
     summary: str | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     updatedAt: str | None = None
@@ -2785,22 +2818,15 @@ class WorldPublicSourceMediaDto:
     voiceSampleUrl: str | None = None
 
 @dataclass(frozen=True)
-class WorldPublicSourceRefDto:
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceContentHash: str | None = None
-    sourceId: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
 class WorldPublicSourceSectionsDto:
     characters: tuple[WorldPublicSourceCardDto, ...] = field(default_factory=tuple)
-    personas: tuple[WorldPublicSourceCardDto, ...] = field(default_factory=tuple)
+    personaCharacters: tuple[WorldPublicSourceCardDto, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class WorldPublicStatsDto:
     characterCount: float | None = None
     entityCount: float | None = None
-    personaCount: float | None = None
+    personaCharacterCount: float | None = None
     relationshipCount: float | None = None
     sceneCount: float | None = None
     systemCount: float | None = None
@@ -2894,9 +2920,11 @@ class WorldRelationshipCoreDtoCoreEvidence:
 class WorldRelationshipCoreDtoCorePresentation:
     summary: str | None = None
 
-MaterializationContextV1DtoDependencyClosure = WorldCharacterDependencyClosureV1Dto | RealmPersonaDependencyClosureV1Dto
+CharacterSourceRefV3Dto = WorldCharacterSourceRefV3Dto | PersonaCharacterSourceRefV3Dto
 
-SourceMaterializationPacketV2DtoSemanticPayload = WorldCharacterMaterializationPayloadV2Dto | RealmPersonaMaterializationPayloadV2Dto
+MaterializationContextV3DtoDependencyClosure = WorldCharacterDependencyClosureV3Dto | PersonaCharacterDependencyClosureV3Dto
+
+SourceMaterializationPacketV3DtoSemanticPayload = WorldCharacterMaterializationPayloadV3Dto | PersonaCharacterMaterializationPayloadV3Dto
 
 @dataclass(frozen=True)
 class RealmAddFriendOperationPath:
@@ -3805,7 +3833,7 @@ class RealmEconomyControllerGetSentGiftsOperationRequest:
 
 @dataclass(frozen=True)
 class RealmEconomyControllerGetSourceOriginOperationPath:
-    sourceRef: str
+    pass
 
 
 @dataclass(frozen=True)
@@ -3823,7 +3851,7 @@ class RealmEconomyControllerGetSourceOriginOperationRequest:
     path: RealmEconomyControllerGetSourceOriginOperationPath
     query: RealmEconomyControllerGetSourceOriginOperationQuery | None = None
     headers: RealmEconomyControllerGetSourceOriginOperationHeaders | None = None
-    body: None | None = None
+    body: RevenueSourceOriginRequestDto | None = None
 
 @dataclass(frozen=True)
 class RealmEconomyControllerGetSparkHistoryOperationPath:
@@ -3988,8 +4016,7 @@ class RealmEconomyControllerPreviewRevenueDistributionOperationPath:
 
 @dataclass(frozen=True)
 class RealmEconomyControllerPreviewRevenueDistributionOperationQuery:
-    amount: str | None = None
-    sourceRef: str | None = None
+    pass
 
 
 @dataclass(frozen=True)
@@ -4002,7 +4029,7 @@ class RealmEconomyControllerPreviewRevenueDistributionOperationRequest:
     path: RealmEconomyControllerPreviewRevenueDistributionOperationPath
     query: RealmEconomyControllerPreviewRevenueDistributionOperationQuery | None = None
     headers: RealmEconomyControllerPreviewRevenueDistributionOperationHeaders | None = None
-    body: None | None = None
+    body: RevenueDistributionPreviewRequestDto | None = None
 
 @dataclass(frozen=True)
 class RealmEconomyControllerRejectGiftOperationPath:
@@ -6907,26 +6934,26 @@ class RealmWorldCoreControllerBootstrapOasisWorldOperationRequest:
     body: BootstrapOasisWorldDto | None = None
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRealmPersonaOperationPath:
+class RealmWorldCoreControllerCreatePersonaCharacterOperationPath:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRealmPersonaOperationQuery:
+class RealmWorldCoreControllerCreatePersonaCharacterOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRealmPersonaOperationHeaders:
+class RealmWorldCoreControllerCreatePersonaCharacterOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRealmPersonaOperationRequest:
-    path: RealmWorldCoreControllerCreateRealmPersonaOperationPath
-    query: RealmWorldCoreControllerCreateRealmPersonaOperationQuery | None = None
-    headers: RealmWorldCoreControllerCreateRealmPersonaOperationHeaders | None = None
-    body: CreateRealmPersonaDto | None = None
+class RealmWorldCoreControllerCreatePersonaCharacterOperationRequest:
+    path: RealmWorldCoreControllerCreatePersonaCharacterOperationPath
+    query: RealmWorldCoreControllerCreatePersonaCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerCreatePersonaCharacterOperationHeaders | None = None
+    body: CreatePersonaCharacterCoreDto | None = None
 
 @dataclass(frozen=True)
 class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath:
@@ -6948,7 +6975,7 @@ class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest:
     path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath
     query: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery | None = None
     headers: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders | None = None
-    body: CreateSourceMaterializationPacketDto | None = None
+    body: CreateSourceMaterializationPacketV3Dto | None = None
 
 @dataclass(frozen=True)
 class RealmWorldCoreControllerCreateWorldCharacterOperationPath:
@@ -7039,6 +7066,98 @@ class RealmWorldCoreControllerCreateWorldRelationshipOperationRequest:
     body: CreateWorldRelationshipCoreDto | None = None
 
 @dataclass(frozen=True)
+class RealmWorldCoreControllerDeletePersonaCharacterOperationPath:
+    personaCharacterId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDeletePersonaCharacterOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDeletePersonaCharacterOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDeletePersonaCharacterOperationRequest:
+    path: RealmWorldCoreControllerDeletePersonaCharacterOperationPath
+    query: RealmWorldCoreControllerDeletePersonaCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerDeletePersonaCharacterOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDeleteWorldCharacterOperationPath:
+    characterId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDeleteWorldCharacterOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDeleteWorldCharacterOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDeleteWorldCharacterOperationRequest:
+    path: RealmWorldCoreControllerDeleteWorldCharacterOperationPath
+    query: RealmWorldCoreControllerDeleteWorldCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerDeleteWorldCharacterOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverPersonaCharactersOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverPersonaCharactersOperationQuery:
+    take: float | None = None
+    afterId: str | None = None
+    worldId: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverPersonaCharactersOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest:
+    path: RealmWorldCoreControllerDiscoverPersonaCharactersOperationPath
+    query: RealmWorldCoreControllerDiscoverPersonaCharactersOperationQuery | None = None
+    headers: RealmWorldCoreControllerDiscoverPersonaCharactersOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverWorldCharactersOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverWorldCharactersOperationQuery:
+    take: float | None = None
+    afterId: str | None = None
+    worldId: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverWorldCharactersOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest:
+    path: RealmWorldCoreControllerDiscoverWorldCharactersOperationPath
+    query: RealmWorldCoreControllerDiscoverWorldCharactersOperationQuery | None = None
+    headers: RealmWorldCoreControllerDiscoverWorldCharactersOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmWorldCoreControllerGetOasisWorldOperationPath:
     pass
 
@@ -7061,25 +7180,25 @@ class RealmWorldCoreControllerGetOasisWorldOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerGetRealmPersonaOperationPath:
-    personaId: str
+class RealmWorldCoreControllerGetPersonaCharacterOperationPath:
+    personaCharacterId: str
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerGetRealmPersonaOperationQuery:
+class RealmWorldCoreControllerGetPersonaCharacterOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerGetRealmPersonaOperationHeaders:
+class RealmWorldCoreControllerGetPersonaCharacterOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerGetRealmPersonaOperationRequest:
-    path: RealmWorldCoreControllerGetRealmPersonaOperationPath
-    query: RealmWorldCoreControllerGetRealmPersonaOperationQuery | None = None
-    headers: RealmWorldCoreControllerGetRealmPersonaOperationHeaders | None = None
+class RealmWorldCoreControllerGetPersonaCharacterOperationRequest:
+    path: RealmWorldCoreControllerGetPersonaCharacterOperationPath
+    query: RealmWorldCoreControllerGetPersonaCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetPersonaCharacterOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7171,26 +7290,29 @@ class RealmWorldCoreControllerGetWorldRelationshipOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerListRealmPersonasOperationPath:
+class RealmWorldCoreControllerListPersonaCharactersOperationPath:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerListRealmPersonasOperationQuery:
+class RealmWorldCoreControllerListPersonaCharactersOperationQuery:
     take: float | None = None
+    afterId: str | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    worldId: str | None = None
+    scope: Literal["owned", "public"] | None = None
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerListRealmPersonasOperationHeaders:
+class RealmWorldCoreControllerListPersonaCharactersOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerListRealmPersonasOperationRequest:
-    path: RealmWorldCoreControllerListRealmPersonasOperationPath
-    query: RealmWorldCoreControllerListRealmPersonasOperationQuery | None = None
-    headers: RealmWorldCoreControllerListRealmPersonasOperationHeaders | None = None
+class RealmWorldCoreControllerListPersonaCharactersOperationRequest:
+    path: RealmWorldCoreControllerListPersonaCharactersOperationPath
+    query: RealmWorldCoreControllerListPersonaCharactersOperationQuery | None = None
+    headers: RealmWorldCoreControllerListPersonaCharactersOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7202,6 +7324,7 @@ class RealmWorldCoreControllerListWorldCharactersOperationPath:
 class RealmWorldCoreControllerListWorldCharactersOperationQuery:
     take: float | None = None
     afterId: str | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 
 @dataclass(frozen=True)
@@ -7291,26 +7414,26 @@ class RealmWorldCoreControllerListWorldRelationshipsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerReplaceRealmPersonaOperationPath:
-    personaId: str
+class RealmWorldCoreControllerReplacePersonaCharacterOperationPath:
+    personaCharacterId: str
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerReplaceRealmPersonaOperationQuery:
+class RealmWorldCoreControllerReplacePersonaCharacterOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders:
+class RealmWorldCoreControllerReplacePersonaCharacterOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerReplaceRealmPersonaOperationRequest:
-    path: RealmWorldCoreControllerReplaceRealmPersonaOperationPath
-    query: RealmWorldCoreControllerReplaceRealmPersonaOperationQuery | None = None
-    headers: RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders | None = None
-    body: ReplaceRealmPersonaDto | None = None
+class RealmWorldCoreControllerReplacePersonaCharacterOperationRequest:
+    path: RealmWorldCoreControllerReplacePersonaCharacterOperationPath
+    query: RealmWorldCoreControllerReplacePersonaCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerReplacePersonaCharacterOperationHeaders | None = None
+    body: ReplacePersonaCharacterCoreDto | None = None
 
 @dataclass(frozen=True)
 class RealmWorldCoreControllerReplaceWorldCharacterOperationPath:
@@ -9273,15 +9396,15 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_bootstrapOasisWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
 
-    async def world_core_controller_create_realm_persona(self, request: RealmWorldCoreControllerCreateRealmPersonaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateRealmPersonaOperationResponse:
+    async def world_core_controller_create_persona_character(self, request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreatePersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createRealmPersona", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmPersonaDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createPersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PersonaCharacterCoreDto, raw)
 
     async def world_core_controller_create_source_materialization_packet(self, request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse:
         envelope: dict[str, object] = {
@@ -9291,7 +9414,7 @@ class RealmTypedClient:
             "body": _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createSourceMaterializationPacket", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(SourceMaterializationPacketV2Dto, raw)
+        return _decode_model(SourceMaterializationPacketV3Dto, raw)
 
     async def world_core_controller_create_world_character(self, request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
@@ -9333,6 +9456,46 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldRelationshipCoreDto, raw)
 
+    async def world_core_controller_delete_persona_character(self, request: RealmWorldCoreControllerDeletePersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDeletePersonaCharacterOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_deletePersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PersonaCharacterCoreDto, raw)
+
+    async def world_core_controller_delete_world_character(self, request: RealmWorldCoreControllerDeleteWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDeleteWorldCharacterOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_deleteWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCharacterCoreDto, raw)
+
+    async def world_core_controller_discover_persona_characters(self, request: RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_discoverPersonaCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[PersonaCharacterCoreDto, ...], raw)
+
+    async def world_core_controller_discover_world_characters(self, request: RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_discoverWorldCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldCharacterCoreDto, ...], raw)
+
     async def world_core_controller_get_oasis_world(self, request: RealmWorldCoreControllerGetOasisWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetOasisWorldOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -9343,15 +9506,15 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getOasisWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
 
-    async def world_core_controller_get_realm_persona(self, request: RealmWorldCoreControllerGetRealmPersonaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetRealmPersonaOperationResponse:
+    async def world_core_controller_get_persona_character(self, request: RealmWorldCoreControllerGetPersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetPersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getRealmPersona", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmPersonaDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getPersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PersonaCharacterCoreDto, raw)
 
     async def world_core_controller_get_world_character(self, request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
@@ -9393,15 +9556,15 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldRelationshipCoreDto, raw)
 
-    async def world_core_controller_list_realm_personas(self, request: RealmWorldCoreControllerListRealmPersonasOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListRealmPersonasOperationResponse:
+    async def world_core_controller_list_persona_characters(self, request: RealmWorldCoreControllerListPersonaCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListPersonaCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listRealmPersonas", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[RealmPersonaDto, ...], raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listPersonaCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[PersonaCharacterCoreDto, ...], raw)
 
     async def world_core_controller_list_world_characters(self, request: RealmWorldCoreControllerListWorldCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldCharactersOperationResponse:
         envelope: dict[str, object] = {
@@ -9443,15 +9606,15 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldRelationships", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldRelationshipCoreDto, ...], raw)
 
-    async def world_core_controller_replace_realm_persona(self, request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceRealmPersonaOperationResponse:
+    async def world_core_controller_replace_persona_character(self, request: RealmWorldCoreControllerReplacePersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplacePersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceRealmPersona", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmPersonaDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replacePersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PersonaCharacterCoreDto, raw)
 
     async def world_core_controller_replace_world_character(self, request: RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldCharacterOperationResponse:
         envelope: dict[str, object] = {

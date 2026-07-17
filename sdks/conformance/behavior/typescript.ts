@@ -52,7 +52,7 @@ class FakeTransport implements CoreTransport {
     if (request.methodId === 'WorldCoreController_createSourceMaterializationPacket') {
       if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
         return {
-          packetSchemaVersion: 'realm.source-materialization-packet/v2',
+          packetSchemaVersion: 'realm.source-materialization-packet/v3',
           packetId: 'packet-conformance',
           issuer: 'https://realm.conformance',
           keyId: 'materialization-rs256-conformance',
@@ -64,28 +64,50 @@ class FakeTransport implements CoreTransport {
           intendedRuntimeAudience: 'sdk.conformance',
           challengeId: 'challenge_conformance_0001',
           challengeDigest: 'a'.repeat(64),
-          challengeLimits: {
-            maxBundleBytes: 1_048_576,
-            maxComponentCount: 128,
-            maxChunkBytes: 65_536,
-            maxChunks: 512,
+          publishedLimits: {
+            maxSegmentBytes: 8_388_608,
+            maxSegmentComponentCount: 256,
+            maxSegmentChunks: 4_096,
+            maxChunkBytes: 262_144,
+            maxSetSegments: 64,
+            maxSetBytes: 134_217_728,
+            maxSetComponentCount: 16_384,
+            maxSetChunks: 65_536,
           },
           materializerAccountId: 'account-conformance',
           sourceRef: {
-            kind: 'realmPersona',
+            kind: 'personaCharacter',
             worldId: 'oasis',
-            sourceId: 'persona-conformance',
-            sourceContentHash: 'e'.repeat(64),
+            id: 'persona-conformance',
+            ownerAccountId: 'account-conformance',
+            sourceHash: 'e'.repeat(64),
           },
+          authorizationDecisionDigest: 'f'.repeat(64),
+          accessPolicyVersionDigest: '34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f',
+          materializationContextHash: '1'.repeat(64),
           payloadHash: 'b'.repeat(64),
-          bundleManifestHash: 'c'.repeat(64),
+          closureSetManifestHash: 'c'.repeat(64),
           packetHash: 'd'.repeat(64),
-          packetProof: 'eyJhbGciOiJSUzI1NiJ9..conformance-signature',
-          semanticPayload: { source: { kind: 'realmPersona' } },
-          bundleTransportManifest: { manifestSchemaVersion: 'realm.materialization-bundle-manifest/v1' },
-          orderedComponentChunks: [],
+          packetProof: {
+            compactJws: 'eyJhbGciOiJSUzI1NiJ9..conformance-signature',
+            signedPayload: 'conformance-signed-payload',
+          },
+          semanticPayload: {
+            sourceRef: {
+              kind: 'personaCharacter',
+              worldId: 'oasis',
+              id: 'persona-conformance',
+              ownerAccountId: 'account-conformance',
+              sourceHash: 'e'.repeat(64),
+            },
+          },
+          closureSetManifest: {},
+          orderedSegments: [],
         } as Response;
       }
+      return fixtures.cases.realm_operation.response_body as Response;
+    }
+    if (request.methodId === fixtures.cases.realm_operation.operation_id) {
       return fixtures.cases.realm_operation.response_body as Response;
     }
     throw Object.assign(new Error(`unexpected unary ${request.methodId}`), { code: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
@@ -190,23 +212,29 @@ async function main() {
         challengeId: 'challenge_conformance_0001',
         challengeDigest: 'a'.repeat(64),
         challengeExpiresAt: '2026-01-01T00:05:00.000Z',
-        challengeLimits: {
-          maxBundleBytes: 1_048_576,
-          maxComponentCount: 128,
-          maxChunkBytes: 65_536,
-          maxChunks: 512,
+        accessGrantId: 'grant-conformance',
+        publishedLimits: {
+          maxSegmentBytes: 8_388_608,
+          maxSegmentComponentCount: 256,
+          maxSegmentChunks: 4_096,
+          maxChunkBytes: 262_144,
+          maxSetSegments: 64,
+          maxSetBytes: 134_217_728,
+          maxSetComponentCount: 16_384,
+          maxSetChunks: 65_536,
         },
         sourceRef: {
-          kind: 'realmPersona',
-          sourceId: 'persona-conformance',
-          sourceContentHash: 'e'.repeat(64),
+          kind: 'personaCharacter',
+          id: 'persona-conformance',
+          ownerAccountId: 'account-conformance',
+          sourceHash: 'e'.repeat(64),
           worldId: 'oasis',
         },
       },
     });
-    assert.equal(typedRealmResponse.packetSchemaVersion, 'realm.source-materialization-packet/v2');
+    assert.equal(typedRealmResponse.packetSchemaVersion, 'realm.source-materialization-packet/v3');
     assert.equal(typedRealmResponse.algorithm, 'RS256');
-    assert.equal(typedRealmResponse.semanticPayload.source.kind, 'realmPersona');
+    assert.equal(typedRealmResponse.semanticPayload.sourceRef.kind, 'personaCharacter');
 
     assert.equal(transport.unaryCalls[0].methodId, fixtures.cases.runtime_unary.method_id);
     assert.deepEqual(transport.unaryCalls[0].body, runtimeRequest);
@@ -219,16 +247,22 @@ async function main() {
         challengeId: 'challenge_conformance_0001',
         challengeDigest: 'a'.repeat(64),
         challengeExpiresAt: '2026-01-01T00:05:00.000Z',
-        challengeLimits: {
-          maxBundleBytes: 1_048_576,
-          maxComponentCount: 128,
-          maxChunkBytes: 65_536,
-          maxChunks: 512,
+        accessGrantId: 'grant-conformance',
+        publishedLimits: {
+          maxSegmentBytes: 8_388_608,
+          maxSegmentComponentCount: 256,
+          maxSegmentChunks: 4_096,
+          maxChunkBytes: 262_144,
+          maxSetSegments: 64,
+          maxSetBytes: 134_217_728,
+          maxSetComponentCount: 16_384,
+          maxSetChunks: 65_536,
         },
         sourceRef: {
-          kind: 'realmPersona',
-          sourceId: 'persona-conformance',
-          sourceContentHash: 'e'.repeat(64),
+          kind: 'personaCharacter',
+          id: 'persona-conformance',
+          ownerAccountId: 'account-conformance',
+          sourceHash: 'e'.repeat(64),
           worldId: 'oasis',
         },
       },

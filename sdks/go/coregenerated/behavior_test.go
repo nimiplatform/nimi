@@ -97,8 +97,8 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
 	case "WorldCoreController_createSourceMaterializationPacket":
 		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
-			return json.Marshal(SourceMaterializationPacketV2Dto{
-				PacketSchemaVersion:     "realm.source-materialization-packet/v2",
+			return json.Marshal(SourceMaterializationPacketV3Dto{
+				PacketSchemaVersion:     "realm.source-materialization-packet/v3",
 				PacketId:                "packet-conformance",
 				Issuer:                  "https://realm.conformance",
 				KeyId:                   "materialization-rs256-conformance",
@@ -110,26 +110,35 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 				IntendedRuntimeAudience: "sdk.conformance",
 				ChallengeId:             "challenge_conformance_0001",
 				ChallengeDigest:         strings.Repeat("a", 64),
-				ChallengeLimits: &SourceMaterializationChallengeLimitsDto{
-					MaxBundleBytes: 1048576, MaxComponentCount: 128, MaxChunkBytes: 65536, MaxChunks: 512,
+				PublishedLimits: &SourceMaterializationPublishedLimitsDto{
+					MaxSegmentBytes: 8388608, MaxSegmentComponentCount: 256, MaxSegmentChunks: 4096,
+					MaxChunkBytes: 262144, MaxSetSegments: 64, MaxSetBytes: 134217728,
+					MaxSetComponentCount: 16384, MaxSetChunks: 65536,
 				},
 				MaterializerAccountId: "account-conformance",
-				SourceRef: &TypedSourceRefDto{
-					Kind: "realmPersona", WorldId: "oasis", SourceId: "persona-conformance", SourceContentHash: strings.Repeat("e", 64),
+				SourceRef: &CharacterSourceRefV3Dto{PersonaCharacter: &PersonaCharacterSourceRefV3Dto{
+					Kind: "personaCharacter", WorldId: "oasis", Id: "persona-conformance",
+					OwnerAccountId: "account-conformance", SourceHash: strings.Repeat("e", 64),
+				}},
+				AuthorizationDecisionDigest: strings.Repeat("f", 64),
+				AccessPolicyVersionDigest:   "34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f",
+				MaterializationContextHash:  strings.Repeat("1", 64),
+				PayloadHash:                 strings.Repeat("b", 64),
+				ClosureSetManifestHash:      strings.Repeat("c", 64),
+				PacketHash:                  strings.Repeat("d", 64),
+				PacketProof: &SourceMaterializationPacketProofV3Dto{
+					CompactJws:    "eyJhbGciOiJSUzI1NiJ9..conformance-signature",
+					SignedPayload: "conformance-signed-payload",
 				},
-				PayloadHash:        strings.Repeat("b", 64),
-				BundleManifestHash: strings.Repeat("c", 64),
-				PacketHash:         strings.Repeat("d", 64),
-				PacketProof:        "eyJhbGciOiJSUzI1NiJ9..conformance-signature",
-				SemanticPayload: &SourceMaterializationPacketV2DtoSemanticPayload{
-					RealmPersona: &RealmPersonaMaterializationPayloadV2Dto{
-						Source: &RealmPersonaMaterializationSourceV2Dto{Kind: "realmPersona"},
+				SemanticPayload: &SourceMaterializationPacketV3DtoSemanticPayload{
+					PersonaCharacter: &PersonaCharacterMaterializationPayloadV3Dto{
+						SourceRef: &PersonaCharacterSourceRefV3Dto{
+							Kind: "personaCharacter", WorldId: "oasis", Id: "persona-conformance",
+							OwnerAccountId: "account-conformance", SourceHash: strings.Repeat("e", 64),
+						},
 					},
 				},
-				BundleTransportManifest: &BundleTransportManifestV1Dto{
-					ManifestSchemaVersion: "realm.materialization-bundle-manifest/v1",
-				},
-				OrderedComponentChunks: []SourceMaterializationComponentV1Dto{},
+				OrderedSegments: []SourceMaterializationSegmentV3Dto{},
 			})
 		}
 		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
@@ -305,21 +314,22 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 			context.Background(),
 			RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest{
 				Path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath{},
-				Body: CreateSourceMaterializationPacketDto{
+				Body: CreateSourceMaterializationPacketV3Dto{
 					IntendedRuntimeAudience: "sdk.conformance",
 					MaterializerAccountId:   "account-conformance",
 					ChallengeId:             "challenge_conformance_0001",
 					ChallengeDigest:         strings.Repeat("a", 64),
 					ChallengeExpiresAt:      "2026-01-01T00:05:00.000Z",
-					ChallengeLimits: &SourceMaterializationChallengeLimitsDto{
-						MaxBundleBytes: 1048576, MaxComponentCount: 128, MaxChunkBytes: 65536, MaxChunks: 512,
+					AccessGrantId:           "grant-conformance",
+					PublishedLimits: &SourceMaterializationPublishedLimitsDto{
+						MaxSegmentBytes: 8388608, MaxSegmentComponentCount: 256, MaxSegmentChunks: 4096,
+						MaxChunkBytes: 262144, MaxSetSegments: 64, MaxSetBytes: 134217728,
+						MaxSetComponentCount: 16384, MaxSetChunks: 65536,
 					},
-					SourceRef: &TypedSourceRefDto{
-						Kind:              "realmPersona",
-						SourceId:          "persona-conformance",
-						SourceContentHash: strings.Repeat("e", 64),
-						WorldId:           "oasis",
-					},
+					SourceRef: &CharacterSourceRefV3Dto{PersonaCharacter: &PersonaCharacterSourceRefV3Dto{
+						Kind: "personaCharacter", Id: "persona-conformance", OwnerAccountId: "account-conformance",
+						SourceHash: strings.Repeat("e", 64), WorldId: "oasis",
+					}},
 				},
 			},
 			nil,
@@ -328,10 +338,10 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 		if err != nil {
 			t.Fatalf("typed realm operation: %v", err)
 		}
-		if realmResponse.PacketSchemaVersion != "realm.source-materialization-packet/v2" || realmResponse.Algorithm != "RS256" {
+		if realmResponse.PacketSchemaVersion != "realm.source-materialization-packet/v3" || realmResponse.Algorithm != "RS256" {
 			t.Fatalf("typed realm response mismatch: %#v", realmResponse)
 		}
-		if realmResponse.SemanticPayload == nil || realmResponse.SemanticPayload.RealmPersona == nil {
+		if realmResponse.SemanticPayload == nil || realmResponse.SemanticPayload.PersonaCharacter == nil {
 			t.Fatalf("typed realm discriminated payload mismatch: %#v", realmResponse.SemanticPayload)
 		}
 		if transport.unaryCalls[1].MethodID != "WorldCoreController_createSourceMaterializationPacket" {
@@ -404,26 +414,26 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 	}
 }
 
-func TestSourceMaterializationPacketV2SemanticPayloadDiscriminatorFailsClosed(t *testing.T) {
+func TestSourceMaterializationPacketV3SemanticPayloadDiscriminatorFailsClosed(t *testing.T) {
 	for _, fixture := range []struct {
 		kind        string
 		wantPersona bool
 	}{
-		{kind: "realmPersona", wantPersona: true},
+		{kind: "personaCharacter", wantPersona: true},
 		{kind: "worldCharacter", wantPersona: false},
 	} {
-		var decoded SourceMaterializationPacketV2DtoSemanticPayload
-		payload := []byte(`{"source":{"kind":"` + fixture.kind + `"}}`)
+		var decoded SourceMaterializationPacketV3DtoSemanticPayload
+		payload := []byte(`{"sourceRef":{"kind":"` + fixture.kind + `"}}`)
 		if err := json.Unmarshal(payload, &decoded); err != nil {
 			t.Fatalf("decode admitted %s payload: %v", fixture.kind, err)
 		}
-		if fixture.wantPersona != (decoded.RealmPersona != nil) {
+		if fixture.wantPersona != (decoded.PersonaCharacter != nil) {
 			t.Fatalf("wrong typed variant for %s: %#v", fixture.kind, decoded)
 		}
 	}
-	for _, kind := range []string{"", "profile", "realm.source-materialization-packet/v1"} {
-		var decoded SourceMaterializationPacketV2DtoSemanticPayload
-		if err := json.Unmarshal([]byte(`{"source":{"kind":"`+kind+`"}}`), &decoded); err == nil {
+	for _, kind := range []string{"", "profile", "realmPersona"} {
+		var decoded SourceMaterializationPacketV3DtoSemanticPayload
+		if err := json.Unmarshal([]byte(`{"sourceRef":{"kind":"`+kind+`"}}`), &decoded); err == nil {
 			t.Fatalf("unknown/legacy discriminator %q must fail closed", kind)
 		}
 	}

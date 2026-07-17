@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { checkMode, languages, writeJson } from './lib/context.mjs';
+import { checkMode, languages, realmOnly, writeJson } from './lib/context.mjs';
 import { writeTypescriptClients, writePythonClients, writeGoClients, writeRustClients } from './lib/descriptor-clients.mjs';
 import { writeConformanceFixtures } from './lib/conformance.mjs';
 import { extractErrorCodes, buildExportManifest, languageGeneratedDir, writeSharedArtifacts } from './lib/manifests.mjs';
@@ -59,14 +59,16 @@ function main() {
   const errorCodes = extractErrorCodes();
   const exportsManifest = buildExportManifest(runtime, realm, errorCodes);
 
-  writeTypescriptRuntimeProtobuf();
-  writeTypescriptRuntimeAuthPostureProjection(runtime);
+  if (!realmOnly) {
+    writeTypescriptRuntimeProtobuf();
+    writeTypescriptRuntimeAuthPostureProjection(runtime);
+  }
   writeSharedArtifacts(runtime, realm, errorCodes, exportsManifest);
   writeLanguageArtifacts(runtime, realm, errorCodes, exportsManifest);
   writeConformanceFixtures(runtime, realm, errorCodes, exportsManifest);
 
   const action = checkMode ? 'checked' : 'generated';
-  process.stdout.write(action + ' sdks core manifests: runtime=' + runtime.method_ids.length + ' methods, realm=' + realm.operations.length + ' operations (' + realm.source_state + ')\n');
+  process.stdout.write(action + ' sdks core manifests: mode=' + (realmOnly ? 'realm-only' : 'full') + ', runtime=' + runtime.method_ids.length + ' methods, realm=' + realm.operations.length + ' operations (' + realm.source_state + ')\n');
 }
 
 try {

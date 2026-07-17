@@ -3,10 +3,10 @@ import type {
 } from '../../realm';
 import type {
   RealmWorldCoreControllerGetOasisWorldOperationResponse,
-  RealmWorldCoreControllerGetRealmPersonaOperationResponse,
+  RealmWorldCoreControllerGetPersonaCharacterOperationResponse,
   RealmWorldCoreControllerGetWorldCharacterOperationResponse,
   RealmWorldCoreControllerGetWorldCoreOperationResponse,
-  RealmWorldCoreControllerListRealmPersonasOperationResponse,
+  RealmWorldCoreControllerListPersonaCharactersOperationResponse,
   RealmWorldCoreControllerListWorldCharactersOperationResponse,
   RealmWorldCoreControllerListWorldCoresOperationRequest,
   RealmWorldCoreControllerListWorldCoresOperationResponse,
@@ -22,14 +22,14 @@ export type WorldWorkflowReadKind =
   | 'world-core-list'
   | 'world-character'
   | 'world-character-list'
-  | 'realm-persona'
-  | 'realm-persona-list';
+  | 'persona-character'
+  | 'persona-character-list';
 
 export interface WorldWorkflowReadStep {
   readonly kind: WorldWorkflowReadKind;
   readonly worldId?: string;
   readonly characterId?: string;
-  readonly personaId?: string;
+  readonly personaCharacterId?: string;
   readonly visibility?: WorldWorkflowVisibilityFilter;
   readonly take?: number;
 }
@@ -40,8 +40,8 @@ export type WorldWorkflowReadResult =
   | { readonly kind: 'world-core-list'; readonly worlds: RealmWorldCoreControllerListWorldCoresOperationResponse }
   | { readonly kind: 'world-character'; readonly character: RealmWorldCoreControllerGetWorldCharacterOperationResponse }
   | { readonly kind: 'world-character-list'; readonly characters: RealmWorldCoreControllerListWorldCharactersOperationResponse }
-  | { readonly kind: 'realm-persona'; readonly persona: RealmWorldCoreControllerGetRealmPersonaOperationResponse }
-  | { readonly kind: 'realm-persona-list'; readonly personas: RealmWorldCoreControllerListRealmPersonasOperationResponse };
+  | { readonly kind: 'persona-character'; readonly personaCharacter: RealmWorldCoreControllerGetPersonaCharacterOperationResponse }
+  | { readonly kind: 'persona-character-list'; readonly personaCharacters: RealmWorldCoreControllerListPersonaCharactersOperationResponse };
 
 export interface WorldWorkflowPlan {
   readonly planId: string;
@@ -110,13 +110,15 @@ export async function executeWorldWorkflowStep(
     const characters = await realm.worldCore.worldCoreControllerListWorldCharacters({ path: { worldId: requireWorldId(step.worldId) } });
     return { kind: 'world-character-list', characters };
   }
-  if (step.kind === 'realm-persona') {
-    const persona = await realm.worldCore.worldCoreControllerGetRealmPersona({ path: { personaId: requirePersonaId(step.personaId) } });
-    return { kind: 'realm-persona', persona };
+  if (step.kind === 'persona-character') {
+    const personaCharacter = await realm.worldCore.worldCoreControllerGetPersonaCharacter({
+      path: { personaCharacterId: requirePersonaCharacterId(step.personaCharacterId) },
+    });
+    return { kind: 'persona-character', personaCharacter };
   }
-  if (step.kind === 'realm-persona-list') {
-    const personas = await realm.worldCore.worldCoreControllerListRealmPersonas({ path: {} });
-    return { kind: 'realm-persona-list', personas };
+  if (step.kind === 'persona-character-list') {
+    const personaCharacters = await realm.worldCore.worldCoreControllerListPersonaCharacters({ path: {} });
+    return { kind: 'persona-character-list', personaCharacters };
   }
   const worlds = await realm.worldCore.worldCoreControllerListWorldCores({
     path: {},
@@ -157,19 +159,22 @@ export function listWorldCharactersStep(worldId: string): WorldWorkflowReadStep 
   return { kind: 'world-character-list', worldId: requireWorldId(worldId) };
 }
 
-export function realmPersonaStep(personaId: string): WorldWorkflowReadStep {
-  return { kind: 'realm-persona', personaId: requirePersonaId(personaId) };
+export function personaCharacterStep(personaCharacterId: string): WorldWorkflowReadStep {
+  return {
+    kind: 'persona-character',
+    personaCharacterId: requirePersonaCharacterId(personaCharacterId),
+  };
 }
 
-export function listRealmPersonasStep(): WorldWorkflowReadStep {
-  return { kind: 'realm-persona-list' };
+export function listPersonaCharactersStep(): WorldWorkflowReadStep {
+  return { kind: 'persona-character-list' };
 }
 
 function validateWorldWorkflowStep(step: WorldWorkflowReadStep | null | undefined): void {
   if (!step || typeof step !== 'object') {
     workflowError('SDK_WORLD_WORKFLOW_STEP_INVALID', 'world workflow step is required', 'provide_world_workflow_step');
   }
-  if (!['oasis-world', 'world-core', 'world-core-list', 'world-character', 'world-character-list', 'realm-persona', 'realm-persona-list'].includes(step.kind)) {
+  if (!['oasis-world', 'world-core', 'world-core-list', 'world-character', 'world-character-list', 'persona-character', 'persona-character-list'].includes(step.kind)) {
     workflowError('SDK_WORLD_WORKFLOW_STEP_INVALID', `unsupported world workflow step kind: ${String(step.kind)}`, 'use_supported_world_workflow_step');
   }
   if (step.kind === 'world-core' || step.kind === 'world-character-list') {
@@ -178,8 +183,8 @@ function validateWorldWorkflowStep(step: WorldWorkflowReadStep | null | undefine
   if (step.kind === 'world-character') {
     requireCharacterId(step.characterId);
   }
-  if (step.kind === 'realm-persona') {
-    requirePersonaId(step.personaId);
+  if (step.kind === 'persona-character') {
+    requirePersonaCharacterId(step.personaCharacterId);
   }
   if (step.take !== undefined && (!Number.isInteger(step.take) || step.take < 1)) {
     workflowError('SDK_WORLD_WORKFLOW_STEP_INVALID', 'take must be a positive integer', 'fix_world_core_take');
@@ -194,8 +199,8 @@ function requireCharacterId(value: unknown): string {
   return requireText(value, 'characterId is required', 'provide_world_character_id');
 }
 
-function requirePersonaId(value: unknown): string {
-  return requireText(value, 'personaId is required', 'provide_realm_persona_id');
+function requirePersonaCharacterId(value: unknown): string {
+  return requireText(value, 'personaCharacterId is required', 'provide_persona_character_id');
 }
 
 function requireText(value: unknown, message: string, actionHint: string): string {

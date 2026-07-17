@@ -47,10 +47,19 @@ function parseOpenApiSchema(schema) {
     return withOpenApiNullable({ kind: 'ref', ref: schema.$ref, ref_name: openApiRefName(schema.$ref) }, schema);
   }
   if (schema.enum) {
-    return withOpenApiNullable({ kind: 'enum', values: schema.enum.map(String) }, schema);
+    return withOpenApiNullable({
+      kind: 'enum',
+      values: schema.enum.map(String),
+      type: schema.type || 'string',
+    }, schema);
   }
   if (schema.type === 'array') {
-    return withOpenApiNullable({ kind: 'array', items: parseOpenApiSchema(schema.items) }, schema);
+    return withOpenApiNullable({
+      kind: 'array',
+      items: parseOpenApiSchema(schema.items),
+      min_items: Number.isInteger(schema.minItems) ? schema.minItems : null,
+      max_items: Number.isInteger(schema.maxItems) ? schema.maxItems : null,
+    }, schema);
   }
   if (schema.oneOf || schema.anyOf || schema.allOf) {
     const variants = schema.oneOf || schema.anyOf || schema.allOf;
@@ -63,6 +72,12 @@ function parseOpenApiSchema(schema) {
       discriminator: typeof schema.discriminator?.propertyName === 'string'
         ? schema.discriminator.propertyName
         : null,
+      discriminator_mapping: schema.discriminator?.mapping
+        && typeof schema.discriminator.mapping === 'object'
+        && !Array.isArray(schema.discriminator.mapping)
+        ? Object.fromEntries(Object.entries(schema.discriminator.mapping).sort(([left], [right]) =>
+          left.localeCompare(right)))
+        : {},
     }, schema);
   }
   if (schema.type === 'object' || schema.properties || schema.additionalProperties) {
@@ -74,6 +89,7 @@ function parseOpenApiSchema(schema) {
         required: required.has(name),
         schema: parseOpenApiSchema(property),
       })),
+      required_properties: [...required],
       closed: schema.additionalProperties === false,
       additional_properties: schema.additionalProperties ? parseOpenApiSchema(schema.additionalProperties) : null,
     }, schema);
@@ -82,6 +98,11 @@ function parseOpenApiSchema(schema) {
     kind: 'scalar',
     type: schema.type || 'unknown',
     format: schema.format || null,
+    minimum: typeof schema.minimum === 'number' ? schema.minimum : null,
+    maximum: typeof schema.maximum === 'number' ? schema.maximum : null,
+    min_length: Number.isInteger(schema.minLength) ? schema.minLength : null,
+    max_length: Number.isInteger(schema.maxLength) ? schema.maxLength : null,
+    pattern: typeof schema.pattern === 'string' ? schema.pattern : null,
   }, schema);
 }
 
@@ -114,8 +135,13 @@ function collectParsedSchemaRefs(schema, output) {
   }
 }
 
+const materializationSchemaRoots = [
+  'CreateSourceMaterializationPacketV3Dto',
+  'SourceMaterializationPacketV3Dto',
+];
+
 function materializationModelClosure(modelByName) {
-  const pending = ['CreateSourceMaterializationPacketDto', 'SourceMaterializationPacketV2Dto'];
+  const pending = [...materializationSchemaRoots];
   const selected = new Set();
   while (pending.length > 0) {
     const name = pending.shift();
@@ -132,19 +158,81 @@ function materializationModelClosure(modelByName) {
   return selected;
 }
 
-function promoteClosedInlineSchema(schema, typeName, syntheticModels) {
+function closedEnumPaths(schema, modelByName, segments = [], visitedRefs = new Set(), depth = 0) {
+  if (!schema || typeof schema !== 'object' || depth > 8) return new Map();
+  if (schema.kind === 'ref') {
+    if (!schema.ref_name || visitedRefs.has(schema.ref_name)) return new Map();
+    const target = modelByName.get(schema.ref_name);
+    if (!target) return new Map();
+    const nextVisited = new Set(visitedRefs);
+    nextVisited.add(schema.ref_name);
+    return closedEnumPaths(target, modelByName, segments, nextVisited, depth + 1);
+  }
+  if (schema.kind === 'enum' && schema.values?.length === 1 && typeof schema.values[0] === 'string') {
+    return new Map([[segments.join('.'), schema.values[0]]]);
+  }
+  if (schema.kind !== 'object') return new Map();
+  const output = new Map();
+  for (const property of [...(schema.properties || [])].sort((left, right) => left.name.localeCompare(right.name))) {
+    if (property.required !== true) continue;
+    for (const [candidatePath, value] of closedEnumPaths(
+      property.schema,
+      modelByName,
+      [...segments, property.name],
+      visitedRefs,
+      depth + 1,
+    )) {
+      output.set(candidatePath, value);
+    }
+  }
+  return output;
+}
+
+function inferClosedUnionDiscriminator(variants, modelByName, typeName) {
+  const candidateSets = variants.map((variant) => closedEnumPaths(variant, modelByName));
+  const candidates = [...(candidateSets[0]?.keys() || [])].filter((candidatePath) => {
+    const values = candidateSets.map((candidateSet) => candidateSet.get(candidatePath));
+    return values.every((value) => typeof value === 'string')
+      && new Set(values).size === variants.length;
+  });
+  candidates.sort((left, right) => {
+    const leftSegments = left.split('.');
+    const rightSegments = right.split('.');
+    const leftKind = leftSegments.at(-1) === 'kind' ? 0 : 1;
+    const rightKind = rightSegments.at(-1) === 'kind' ? 0 : 1;
+    return leftKind - rightKind
+      || leftSegments.length - rightSegments.length
+      || left.localeCompare(right);
+  });
+  if (candidates.length === 0) {
+    throw new Error(`Realm materialization union ${typeName} has no required closed discriminator path`);
+  }
+  return candidates[0];
+}
+
+function promoteClosedInlineSchema(schema, typeName, syntheticModels, modelByName) {
   if (!schema || typeof schema !== 'object') return schema;
   if (schema.kind === 'array') {
-    return { ...schema, items: promoteClosedInlineSchema(schema.items, `${typeName}Item`, syntheticModels) };
+    return {
+      ...schema,
+      items: promoteClosedInlineSchema(schema.items, `${typeName}Item`, syntheticModels, modelByName),
+    };
   }
   if (schema.kind === 'union') {
     const promotedUnion = {
       ...schema,
       variants: (schema.variants || []).map((variant, index) =>
-        promoteClosedInlineSchema(variant, `${typeName}Variant${index + 1}`, syntheticModels)),
+        promoteClosedInlineSchema(variant, `${typeName}Variant${index + 1}`, syntheticModels, modelByName)),
     };
     if (!(promotedUnion.variants || []).every((variant) => variant.kind === 'ref')) {
       return promotedUnion;
+    }
+    if (!promotedUnion.discriminator) {
+      promotedUnion.discriminator = inferClosedUnionDiscriminator(
+        promotedUnion.variants,
+        modelByName,
+        typeName,
+      );
     }
     if (syntheticModels.has(typeName)) {
       throw new Error(`duplicate generated Realm materialization inline model: ${typeName}`);
@@ -167,10 +255,16 @@ function promoteClosedInlineSchema(schema, typeName, syntheticModels) {
         property.schema,
         `${typeName}${pascalTypeSegment(property.name)}`,
         syntheticModels,
+        modelByName,
       ),
     })),
     additional_properties: schema.additional_properties
-      ? promoteClosedInlineSchema(schema.additional_properties, `${typeName}AdditionalProperty`, syntheticModels)
+      ? promoteClosedInlineSchema(
+        schema.additional_properties,
+        `${typeName}AdditionalProperty`,
+        syntheticModels,
+        modelByName,
+      )
       : null,
   };
   if (schema.closed !== true) return promotedObject;
@@ -197,6 +291,7 @@ function promoteMaterializationInlineModels(modelSchemas) {
             property.schema,
             `${model.name}${pascalTypeSegment(property.name)}`,
             syntheticModels,
+            modelByName,
           ),
         })),
       },

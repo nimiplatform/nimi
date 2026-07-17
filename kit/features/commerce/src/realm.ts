@@ -1,4 +1,4 @@
-import type { RealmModel, RealmTypedClient } from '@nimiplatform/kit/core/sdk-contract';
+import type { RealmModel, RealmPublicGeneratedClient } from '@nimiplatform/kit/core/sdk-contract';
 import { useMemo } from 'react';
 import {
   normalizeCommerceGiftCatalog,
@@ -59,7 +59,7 @@ export type RealmCommerceGiftService = {
 };
 
 export type RealmCommerceGiftClient = Pick<
-  RealmTypedClient,
+  RealmPublicGeneratedClient,
   | 'economyControllerAcceptGift'
   | 'economyControllerCanWithdraw'
   | 'economyControllerCreateSparkCheckout'

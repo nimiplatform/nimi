@@ -256,8 +256,8 @@ REALM_OPERATIONS = [
   {
     "operation_id": "EconomyController_getSourceOrigin",
     "service": "Economy (Currency & Gifts)",
-    "method": "GET",
-    "path": "/api/economy/revenue-share/source-origin/{sourceRef}"
+    "method": "POST",
+    "path": "/api/economy/revenue-share/source-origin"
   },
   {
     "operation_id": "EconomyController_getSparkHistory",
@@ -304,7 +304,7 @@ REALM_OPERATIONS = [
   {
     "operation_id": "EconomyController_previewRevenueDistribution",
     "service": "Economy (Currency & Gifts)",
-    "method": "GET",
+    "method": "POST",
     "path": "/api/economy/revenue-share/preview"
   },
   {
@@ -1076,10 +1076,10 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/oasis/bootstrap"
   },
   {
-    "operation_id": "WorldCoreController_createRealmPersona",
+    "operation_id": "WorldCoreController_createPersonaCharacter",
     "service": "Realm Core",
     "method": "POST",
-    "path": "/api/realm/core/personas"
+    "path": "/api/realm/core/persona-characters"
   },
   {
     "operation_id": "WorldCoreController_createSourceMaterializationPacket",
@@ -1112,22 +1112,46 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/worlds/{worldId}/relationships"
   },
   {
+    "operation_id": "WorldCoreController_deletePersonaCharacter",
+    "service": "Realm Core",
+    "method": "DELETE",
+    "path": "/api/realm/core/persona-characters/by-id/{personaCharacterId}"
+  },
+  {
+    "operation_id": "WorldCoreController_deleteWorldCharacter",
+    "service": "Realm Core",
+    "method": "DELETE",
+    "path": "/api/realm/core/world-characters/by-id/{characterId}"
+  },
+  {
+    "operation_id": "WorldCoreController_discoverPersonaCharacters",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/persona-characters/discovery"
+  },
+  {
+    "operation_id": "WorldCoreController_discoverWorldCharacters",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/world-characters/discovery"
+  },
+  {
     "operation_id": "WorldCoreController_getOasisWorld",
     "service": "Realm Core",
     "method": "GET",
     "path": "/api/realm/core/oasis"
   },
   {
-    "operation_id": "WorldCoreController_getRealmPersona",
+    "operation_id": "WorldCoreController_getPersonaCharacter",
     "service": "Realm Core",
     "method": "GET",
-    "path": "/api/realm/core/personas/{personaId}"
+    "path": "/api/realm/core/persona-characters/by-id/{personaCharacterId}"
   },
   {
     "operation_id": "WorldCoreController_getWorldCharacter",
     "service": "Realm Core",
     "method": "GET",
-    "path": "/api/realm/core/world-characters/{characterId}"
+    "path": "/api/realm/core/world-characters/by-id/{characterId}"
   },
   {
     "operation_id": "WorldCoreController_getWorldCore",
@@ -1148,10 +1172,10 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/world-relationships/{relationshipId}"
   },
   {
-    "operation_id": "WorldCoreController_listRealmPersonas",
+    "operation_id": "WorldCoreController_listPersonaCharacters",
     "service": "Realm Core",
     "method": "GET",
-    "path": "/api/realm/core/personas"
+    "path": "/api/realm/core/persona-characters"
   },
   {
     "operation_id": "WorldCoreController_listWorldCharacters",
@@ -1178,16 +1202,16 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/worlds/{worldId}/relationships"
   },
   {
-    "operation_id": "WorldCoreController_replaceRealmPersona",
+    "operation_id": "WorldCoreController_replacePersonaCharacter",
     "service": "Realm Core",
     "method": "PUT",
-    "path": "/api/realm/core/personas/{personaId}"
+    "path": "/api/realm/core/persona-characters/by-id/{personaCharacterId}"
   },
   {
     "operation_id": "WorldCoreController_replaceWorldCharacter",
     "service": "Realm Core",
     "method": "PUT",
-    "path": "/api/realm/core/world-characters/{characterId}"
+    "path": "/api/realm/core/world-characters/by-id/{characterId}"
   },
   {
     "operation_id": "WorldCoreController_replaceWorldCore",

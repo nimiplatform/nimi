@@ -57,6 +57,9 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.worldCore.worldCoreControllerGetWorldEntity, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerListWorldRelationships, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerGetWorldRelationship, 'function');
+  assert.equal(typeof realm.worldCore.worldCoreControllerGetPersonaCharacter, 'function');
+  assert.equal(typeof realm.worldCore.worldCoreControllerDiscoverPersonaCharacters, 'function');
+  assert.equal(typeof realm.worldCore.worldCoreControllerDeleteWorldCharacter, 'function');
   assert.equal(typeof realm.worldPublic.worldPublicControllerListWorlds, 'function');
   assert.equal(typeof realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters, 'function');
   assert.equal(typeof realm.generated.worldCoreControllerGetOasisWorld, 'function');
@@ -114,24 +117,20 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(transport.unaryCalls[7]?.methodId, 'WorldPublicController_listWorlds');
 });
 
-test('Realm facade keeps generated core explicit and blocks generated permission bypass', async () => {
+test('Realm facade blocks direct packet issuance and privileged permission lifecycle bypass', async () => {
   const transport = new FakeRealmTransport();
   const realm = new Realm({ transport });
+  const generated = realm.generated as unknown as Record<string, unknown>;
   assert.equal(await realm.generated.getMe({ path: {} }).then((value) => (value as { id?: string }).id), 'user-1');
-  assert.equal(typeof realm.generated.requestMyAppPermissionGrant, 'function');
-  assert.equal(
-    typeof realm.generated.grantMyAppPermissionGrant,
-    'undefined',
-  );
-  await realm.generated.requestMyAppPermissionGrant({
-      path: {},
-      body: {
-        appId: 'app.example',
-        scopeFamily: 'account',
-        scopeName: 'account.read',
-        reason: 'test',
-      },
-    });
+  assert.equal(typeof generated.requestMyAppPermissionGrant, 'undefined');
+  assert.equal(typeof generated.grantMyAppPermissionGrant, 'undefined');
+  assert.equal(typeof generated.getSourceMaterializationJwks, 'undefined');
+  assert.equal(typeof generated.issueRuntimeRealmGrant, 'undefined');
+  assert.equal(typeof generated.worldCoreControllerCreateSourceMaterializationPacket, 'undefined');
+  assert.equal('worldCoreControllerCreateSourceMaterializationPacket' in realm.worldCore, false);
+  assert.equal('core' in realm, false);
+  assert.equal(Object.getPrototypeOf(realm.generated), null);
+  assert.equal(Object.isFrozen(realm.generated), true);
 });
 
 test('Realm facade fails closed when transport is missing', () => {

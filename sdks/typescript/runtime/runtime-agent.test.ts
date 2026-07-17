@@ -49,6 +49,16 @@ const AGENT_IDENTITY = {
 
 test('Runtime Agent facade exposes canonical review status read projection', () => {
   assert.equal(RUNTIME_AGENT_METHODS.includes('getAgentCanonicalMemoryReviewStatus'), true);
+  const publicMethods = new Set<string>(RUNTIME_AGENT_METHODS);
+  for (const removedMethod of [
+    'createSourceMaterializationChallenge',
+    'beginSourceMaterializationUpload',
+    'putSourceMaterializationChunk',
+    'commitSourceMaterialization',
+    'abortSourceMaterializationUpload',
+  ]) {
+    assert.equal(publicMethods.has(removedMethod), false);
+  }
 });
 
 test('Runtime Agent projection reads typed presentation profile and state snapshots', () => {

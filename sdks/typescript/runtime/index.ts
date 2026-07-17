@@ -172,7 +172,6 @@ export * from './runtime-agent-memory-observatory';
 export * from './runtime-agent-identity-safety';
 export * from './runtime-agent-presentation';
 export * from './runtime-agent-lifecycle';
-export * from './runtime-agent-materialization';
 export * from './runtime-agent-delegated';
 export * from './runtime-agent-ai-config';
 export * from './runtime-agent-participation';
@@ -181,18 +180,6 @@ export * from './runtime-agent-inspect';
 export * from './runtime-agent-smoke-verification';
 export * from './scenario-jobs';
 export * from './speech';
-
-export class RuntimeCore {
-  constructor(private readonly client: CoreClient) {}
-
-  unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
-    return this.client.unary<Response, Body>(request);
-  }
-
-  serverStream<Response = unknown, Body = unknown>(request: CoreStreamRequest<Body>): AsyncIterable<Response> {
-    return this.client.serverStream<Response, Body>(request);
-  }
-}
 
 export type RuntimeTransportConfig =
   | CoreTransport
@@ -352,8 +339,8 @@ export class NimiRuntimeUnavailableError extends Error {
 }
 
 export class Runtime {
-  readonly core: CoreClient;
-  readonly generated: RuntimeTypedClient;
+  readonly #core: CoreClient;
+  readonly generated: RuntimePublicGeneratedClient;
   readonly account: RuntimeAccountModule;
   readonly agents: RuntimeAgentModule;
   readonly ai: RuntimeAiModule;
@@ -372,11 +359,12 @@ export class Runtime {
   #runtimeVersion: string | null = null;
   #versionCompatibility: RuntimeVersionCompatibilityStatus = UNKNOWN_RUNTIME_VERSION_COMPATIBILITY;
 
-  constructor(options: RuntimeOptions | CoreClient | RuntimeTypedClient = {}) {
-    this.core = toCoreClient(options, (metadata) => this.#observeResponseMetadata(metadata));
-    const generated = options instanceof RuntimeTypedClient
-      ? options
-      : new RuntimeTypedClient(this.core);
+  constructor(options: RuntimeOptions = {}) {
+    this.#core = new CoreClient(toCoreClientOptions(
+      options,
+      (metadata) => this.#observeResponseMetadata(metadata),
+    ));
+    const generated = new RuntimeTypedClient(this.#core);
     this.generated = createPublicRuntimeGeneratedClient(generated);
     this.account = bindRuntimeModule(this.generated, RUNTIME_ACCOUNT_METHODS);
     this.agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
@@ -408,10 +396,6 @@ export class Runtime {
       throw new NimiRuntimeUnavailableError(health);
     }
     return health;
-  }
-
-  unsafeRawTransport(): CoreTransport {
-    return this.core.unsafeRaw();
   }
 
   runtimeVersion(): string | null {
@@ -482,72 +466,80 @@ export class Runtime {
   }
 }
 
-export function createRuntime(options: RuntimeOptions | CoreClient | RuntimeTypedClient = {}): Runtime {
+export function createRuntime(options: RuntimeOptions = {}): Runtime {
   return new Runtime(options);
 }
 
-function toCoreClient(
-  options: RuntimeOptions | CoreClient | RuntimeTypedClient,
-  responseMetadataObserver: CoreResponseMetadataObserver,
-): CoreClient {
-  if (options instanceof CoreClient) {
-    return options;
-  }
-  if (options instanceof RuntimeTypedClient) {
-    return extractCoreClient(options);
-  }
-  return new CoreClient(toCoreClientOptions(options, responseMetadataObserver));
-}
-
-function extractCoreClient(client: RuntimeTypedClient): CoreClient {
-  const candidate = client as unknown as { readonly core?: unknown };
-  if (candidate.core instanceof CoreClient) {
-    return candidate.core;
-  }
-  throw new Error('RuntimeTypedClient was not constructed with the public CoreClient implementation');
-}
-
 function bindRuntimeModule<const Keys extends readonly RuntimeTypedMethodName[]>(
-  client: RuntimeTypedClient,
+  client: Pick<RuntimeTypedClient, Keys[number]>,
   keys: Keys,
 ): RuntimeMethodModule<Keys> {
   const module: Partial<Record<RuntimeTypedMethodName, unknown>> = {};
+  const typedClient = client as RuntimeMethodModule<Keys>;
   for (const key of keys) {
-    const method = client[key];
+    const typedKey = key as Keys[number];
+    const method = typedClient[typedKey];
     if (typeof method !== 'function') {
-      throw new Error(`Runtime generated client is missing typed method: ${key}`);
+      throw new Error(`Runtime generated client is missing typed method: ${typedKey}`);
     }
-    module[key] = method.bind(client);
+    module[typedKey] = method.bind(client);
   }
   return module as RuntimeMethodModule<Keys>;
 }
 
-function createPublicRuntimeGeneratedClient(client: RuntimeTypedClient): RuntimeTypedClient {
-  return new Proxy(client, {
-    get(target, property, receiver) {
-      if (typeof property === 'string' && RUNTIME_APP_LIFECYCLE_METHOD_SET.has(property)) {
-        return async () => {
-          throw createNimiError({
-            message: `Runtime App lifecycle operation ${property} must run through NimiRuntimeAppLifecycleClient.`,
-            reasonCode: 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
-            actionHint: 'use_runtime_app_lifecycle_client',
-            source: 'sdk',
-          });
-        };
-      }
-      if (typeof property === 'string' && RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS.has(property)) {
-        return async () => {
-          throw createNimiError({
-            message: `Runtime protected method ${property} is unavailable on the public generated client.`,
-            reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
-            actionHint: 'use_admitted_protected_runtime_carrier',
-            source: 'sdk',
-          });
-        };
-      }
-      return Reflect.get(target, property, receiver);
-    },
-  });
+const RUNTIME_PRIVATE_SOURCE_MATERIALIZATION_METHODS = [
+  'createSourceMaterializationChallenge',
+  'beginSourceMaterializationUpload',
+  'putSourceMaterializationChunk',
+  'commitSourceMaterialization',
+  'abortSourceMaterializationUpload',
+] as const satisfies readonly RuntimeTypedMethodName[];
+
+type RuntimePrivateSourceMaterializationMethod =
+  (typeof RUNTIME_PRIVATE_SOURCE_MATERIALIZATION_METHODS)[number];
+
+export type RuntimePublicGeneratedClient = Omit<
+  RuntimeTypedClient,
+  RuntimePrivateSourceMaterializationMethod
+>;
+
+function createPublicRuntimeGeneratedClient(
+  client: RuntimeTypedClient,
+): RuntimePublicGeneratedClient {
+  const privateMethods = new Set<string>(RUNTIME_PRIVATE_SOURCE_MATERIALIZATION_METHODS);
+  const publicClient = Object.create(null) as Record<string, unknown>;
+  for (const property of Object.getOwnPropertyNames(RuntimeTypedClient.prototype)) {
+    if (property === 'constructor' || privateMethods.has(property)) {
+      continue;
+    }
+    if (RUNTIME_APP_LIFECYCLE_METHOD_SET.has(property)) {
+      publicClient[property] = async () => {
+        throw createNimiError({
+          message: `Runtime App lifecycle operation ${property} must run through NimiRuntimeAppLifecycleClient.`,
+          reasonCode: 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
+          actionHint: 'use_runtime_app_lifecycle_client',
+          source: 'sdk',
+        });
+      };
+      continue;
+    }
+    if (RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS.has(property)) {
+      publicClient[property] = async () => {
+        throw createNimiError({
+          message: `Runtime protected method ${property} is unavailable on the public generated client.`,
+          reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+          actionHint: 'use_admitted_protected_runtime_carrier',
+          source: 'sdk',
+        });
+      };
+      continue;
+    }
+    const value = client[property as RuntimeTypedMethodName];
+    if (typeof value === 'function') {
+      publicClient[property] = value.bind(client);
+    }
+  }
+  return Object.freeze(publicClient) as RuntimePublicGeneratedClient;
 }
 
 const RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES = new Set<RuntimeRpcAuthPosture>([

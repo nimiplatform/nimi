@@ -5,29 +5,15 @@ package account
 import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 
 var realmBrokerOperations = map[string]realmUnaryOperation{
-	"WorldCoreController_createSourceMaterializationPacket": {
-		method: "POST",
-		path:   "/api/realm/core/source-materialization-packets",
-		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
-			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
-		},
-		authorizationProfile:   "protected_desktop_source_readiness",
-		allowedPathParameters:  map[string]struct{}{},
-		requiredPathParameters: map[string]struct{}{},
-		allowedQueryParameters: map[string]struct{}{},
-		requestBodyAllowed:     true,
-		requestBodyRequired:    true,
-		responseMaxBytes:       524288,
-	},
-	"WorldCoreController_getRealmPersona": {
+	"WorldCoreController_getPersonaCharacter": {
 		method: "GET",
-		path:   "/api/realm/core/personas/{personaId}",
+		path:   "/api/realm/core/persona-characters/by-id/{personaCharacterId}",
 		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
 			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
 		},
 		authorizationProfile:   "protected_desktop_source_readiness",
-		allowedPathParameters:  map[string]struct{}{"personaId": {}},
-		requiredPathParameters: map[string]struct{}{"personaId": {}},
+		allowedPathParameters:  map[string]struct{}{"personaCharacterId": {}},
+		requiredPathParameters: map[string]struct{}{"personaCharacterId": {}},
 		allowedQueryParameters: map[string]struct{}{},
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
@@ -35,7 +21,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 	},
 	"WorldCoreController_getWorldCharacter": {
 		method: "GET",
-		path:   "/api/realm/core/world-characters/{characterId}",
+		path:   "/api/realm/core/world-characters/by-id/{characterId}",
 		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
 			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
 		},
@@ -61,16 +47,30 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,
 	},
-	"WorldCoreController_listRealmPersonas": {
+	"WorldCoreController_listPersonaCharacters": {
 		method: "GET",
-		path:   "/api/realm/core/personas",
+		path:   "/api/realm/core/persona-characters",
 		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
 			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
 		},
 		authorizationProfile:   "protected_desktop_source_readiness",
 		allowedPathParameters:  map[string]struct{}{},
 		requiredPathParameters: map[string]struct{}{},
-		allowedQueryParameters: map[string]struct{}{"take": {}, "visibility": {}},
+		allowedQueryParameters: map[string]struct{}{"take": {}, "afterId": {}, "visibility": {}, "worldId": {}, "scope": {}},
+		requestBodyAllowed:     false,
+		requestBodyRequired:    false,
+		responseMaxBytes:       1048576,
+	},
+	"WorldCoreController_discoverPersonaCharacters": {
+		method: "GET",
+		path:   "/api/realm/core/persona-characters/discovery",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_source_readiness",
+		allowedPathParameters:  map[string]struct{}{},
+		requiredPathParameters: map[string]struct{}{},
+		allowedQueryParameters: map[string]struct{}{"take": {}, "afterId": {}, "worldId": {}},
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,

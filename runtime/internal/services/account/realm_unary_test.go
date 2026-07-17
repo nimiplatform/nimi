@@ -15,15 +15,15 @@ func TestRealmBrokerOperationSetIsExactDesktopSourceReadinessVocabulary(t *testi
 		method string
 		path   string
 	}{
-		"WorldCoreController_createSourceMaterializationPacket": {method: http.MethodPost, path: "/api/realm/core/source-materialization-packets"},
-		"WorldCoreController_getRealmPersona":                   {method: http.MethodGet, path: "/api/realm/core/personas/{personaId}"},
-		"WorldCoreController_getWorldCharacter":                 {method: http.MethodGet, path: "/api/realm/core/world-characters/{characterId}"},
-		"WorldCoreController_getWorldEntity":                    {method: http.MethodGet, path: "/api/realm/core/world-entities/{entityId}"},
-		"WorldCoreController_listRealmPersonas":                 {method: http.MethodGet, path: "/api/realm/core/personas"},
-		"WorldCoreController_listWorldRelationships":            {method: http.MethodGet, path: "/api/realm/core/worlds/{worldId}/relationships"},
-		"WorldPublicController_getWorld":                        {method: http.MethodGet, path: "/api/world/by-id/{worldId}"},
-		"WorldPublicController_getWorldDetailWithCharacters":    {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
-		"WorldPublicController_listWorlds":                      {method: http.MethodGet, path: "/api/world"},
+		"WorldCoreController_getPersonaCharacter":            {method: http.MethodGet, path: "/api/realm/core/persona-characters/by-id/{personaCharacterId}"},
+		"WorldCoreController_getWorldCharacter":              {method: http.MethodGet, path: "/api/realm/core/world-characters/by-id/{characterId}"},
+		"WorldCoreController_getWorldEntity":                 {method: http.MethodGet, path: "/api/realm/core/world-entities/{entityId}"},
+		"WorldCoreController_listPersonaCharacters":          {method: http.MethodGet, path: "/api/realm/core/persona-characters"},
+		"WorldCoreController_discoverPersonaCharacters":      {method: http.MethodGet, path: "/api/realm/core/persona-characters/discovery"},
+		"WorldCoreController_listWorldRelationships":         {method: http.MethodGet, path: "/api/realm/core/worlds/{worldId}/relationships"},
+		"WorldPublicController_getWorld":                     {method: http.MethodGet, path: "/api/world/by-id/{worldId}"},
+		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
+		"WorldPublicController_listWorlds":                   {method: http.MethodGet, path: "/api/world"},
 	}
 	if len(realmBrokerOperations) != len(expected) {
 		t.Fatalf("Realm broker operation count = %d, want %d", len(realmBrokerOperations), len(expected))
@@ -105,11 +105,11 @@ func TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs(t *testin
 		method      string
 		path        string
 	}{
-		{name: "materialization packet", methodID: "WorldCoreController_createSourceMaterializationPacket", requestJSON: `{"body":{"sourceRef":{"kind":"realmPersona","worldId":"world-1","sourceId":"persona-1","sourceContentHash":"hash-1"}}}`, method: http.MethodPost, path: "/api/realm/core/source-materialization-packets"},
-		{name: "persona detail", methodID: "WorldCoreController_getRealmPersona", requestJSON: `{"path":{"personaId":"persona-1"}}`, method: http.MethodGet, path: "/api/realm/core/personas/persona-1"},
-		{name: "character detail", methodID: "WorldCoreController_getWorldCharacter", requestJSON: `{"path":{"characterId":"character-1"}}`, method: http.MethodGet, path: "/api/realm/core/world-characters/character-1"},
+		{name: "persona detail", methodID: "WorldCoreController_getPersonaCharacter", requestJSON: `{"path":{"personaCharacterId":"persona-1"}}`, method: http.MethodGet, path: "/api/realm/core/persona-characters/by-id/persona-1"},
+		{name: "character detail", methodID: "WorldCoreController_getWorldCharacter", requestJSON: `{"path":{"characterId":"character-1"}}`, method: http.MethodGet, path: "/api/realm/core/world-characters/by-id/character-1"},
 		{name: "entity detail", methodID: "WorldCoreController_getWorldEntity", requestJSON: `{"path":{"entityId":"entity-1"}}`, method: http.MethodGet, path: "/api/realm/core/world-entities/entity-1"},
-		{name: "persona list", methodID: "WorldCoreController_listRealmPersonas", requestJSON: `{}`, method: http.MethodGet, path: "/api/realm/core/personas"},
+		{name: "persona list", methodID: "WorldCoreController_listPersonaCharacters", requestJSON: `{}`, method: http.MethodGet, path: "/api/realm/core/persona-characters"},
+		{name: "persona discovery", methodID: "WorldCoreController_discoverPersonaCharacters", requestJSON: `{}`, method: http.MethodGet, path: "/api/realm/core/persona-characters/discovery"},
 		{name: "relationship list", methodID: "WorldCoreController_listWorldRelationships", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/realm/core/worlds/world-1/relationships"},
 		{name: "world detail", methodID: "WorldPublicController_getWorld", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1"},
 		{name: "world sources", methodID: "WorldPublicController_getWorldDetailWithCharacters", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1/detail-with-characters"},
@@ -137,6 +137,7 @@ func TestInvokeRealmUnaryRejectsEveryUnlistedOperation(t *testing.T) {
 	svc := newRealmUnaryHarnessService(t, "https://realm.example.test")
 	completeLogin(t, svc)
 	for _, operationID := range []string{
+		"WorldCoreController_createSourceMaterializationPacket",
 		"WorldCoreController_listWorldCores",
 		"WorldPublicController_listWorldCharacters",
 		"getExploreFeed",

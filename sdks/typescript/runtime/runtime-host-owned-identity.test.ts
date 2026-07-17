@@ -21,7 +21,7 @@ test('Runtime hostOwnedIdentity omits default app/caller/participant metadata', 
     transport,
   });
 
-  await runtime.core.unary({ service: 'fixture', method: 'noop', body: {} });
+  await runtime.health();
 
   assert.equal(capturedMetadata?.protocolVersion, '1.0.0');
   assert.equal(capturedMetadata?.participantProtocolVersion, '1.0.0');
