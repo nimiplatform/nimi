@@ -327,7 +327,7 @@ export async function persistCoreResult(context) {
     pass('remembered-project-admitted', observations.rememberedApproval.decision === 'allow-remember-project'
       && ['session-zero-grant', 'revoked-grant-history'].includes(observations.rememberedInitialGrantPosture.posture)
       && observations.rememberedAuthorization.state === 'active'
-      && observations.rememberedAuthorization.persistence === 'remember_project', {
+      && observations.rememberedAuthorization.persistence === 'allow-remember-project', {
       initialGrantPosture: observations.rememberedInitialGrantPosture.posture,
     });
     pass('runtime-agent-conversation', firstTurn.evidence.eventNames.includes('runtime.agent.turn.completed') && firstTurn.evidence.transcript.length >= 2, { conversationAnchorId: anchorId });

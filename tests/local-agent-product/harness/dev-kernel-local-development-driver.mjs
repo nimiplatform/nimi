@@ -358,15 +358,20 @@ export async function revokeProjectAuthorization(desktopPage) {
   });
 }
 
-export async function readRememberedAuthorization(desktopPage, { accountId, selector, state } = {}) {
-  const rows = await invokeDesktop(desktopPage, 'local_development_authorizations_list');
-  if (!Array.isArray(rows)) throw new Error('local-development authorizations projection is not an array');
-  const matches = rows.filter((row) => row?.appId === 'nimi.zhiyu'
-    && row?.persistence === 'remember_project'
+export function selectRememberedProjectAuthorizations(rows, { accountId, selector, state } = {}) {
+  const matches = (Array.isArray(rows) ? rows : []).filter((row) => row?.appId === 'nimi.zhiyu'
+    && row?.persistence === 'allow-remember-project'
     && (!accountId || row.accountId === accountId)
     && (!selector || row.selector === selector)
     && (!state || row.state === state));
   matches.sort((left, right) => Number(right?.updatedAtUnixMs || 0) - Number(left?.updatedAtUnixMs || 0));
+  return matches;
+}
+
+export async function readRememberedAuthorization(desktopPage, { accountId, selector, state } = {}) {
+  const rows = await invokeDesktop(desktopPage, 'local_development_authorizations_list');
+  if (!Array.isArray(rows)) throw new Error('local-development authorizations projection is not an array');
+  const matches = selectRememberedProjectAuthorizations(rows, { accountId, selector, state });
   if (matches.length === 0) {
     throw new Error(`remembered local-development authorization is missing${state ? ` in ${state}` : ''}`);
   }

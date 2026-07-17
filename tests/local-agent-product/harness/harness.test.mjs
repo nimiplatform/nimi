@@ -22,7 +22,10 @@ import {
   decodeDesktopRuntimeUnaryResponse,
   probeRealRealmBrowserLoginAuthority,
 } from './dev-kernel-cross-app-driver.mjs';
-import { classifyRememberedInitialGrantPosture } from './dev-kernel-local-development-driver.mjs';
+import {
+  classifyRememberedInitialGrantPosture,
+  selectRememberedProjectAuthorizations,
+} from './dev-kernel-local-development-driver.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { readLocalAgentTestArchitecture } from './registry.mjs';
 import { validateArchitecture, validateJourneyRepeatIsolation, validateJourneyResult } from './validation.mjs';
@@ -356,6 +359,25 @@ test('remembered initial grant posture preserves exact revoked history without a
   ]) {
     assert.equal(classifyRememberedInitialGrantPosture(evidence), null);
   }
+});
+
+test('remembered authorization selection uses the public Electron decision literal', () => {
+  const target = {
+    selector: 'remembered-new',
+    appId: 'nimi.zhiyu',
+    accountId: 'account-primary',
+    persistence: 'allow-remember-project',
+    state: 'active',
+    updatedAtUnixMs: 200,
+  };
+  const selected = selectRememberedProjectAuthorizations([
+    { ...target, selector: 'remembered-old', updatedAtUnixMs: 100 },
+    target,
+    { ...target, selector: 'semantic-name-is-not-the-projection', persistence: 'remember_project' },
+    { ...target, selector: 'run-once', persistence: 'allow-run-once' },
+    { ...target, selector: 'wrong-account', accountId: 'account-secondary' },
+  ], { accountId: 'account-primary', state: 'active' });
+  assert.deepEqual(selected.map((row) => row.selector), ['remembered-new', 'remembered-old']);
 });
 
 test('project revoke checkpoint requires an attempted selected operation and typed denial', () => {
