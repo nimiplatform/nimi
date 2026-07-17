@@ -167,12 +167,52 @@ func TestResolvePublicChatTextBindingResolvesLocalDefaultAlias(t *testing.T) {
 	}
 }
 
+func TestResolvePublicChatTextContextMetadataResolvesLocalDefaultAliasWithoutPinnedTarget(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		DefaultLocalTextModel: "gemma-4-e2b-it-local",
+	})
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:   "local-asset-gemma-default",
+			AssetId:        "local/gemma-4-e2b-it-local",
+			LogicalModelId: "gemma-4-e2b-it-local",
+			Engine:         "llama",
+			Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			Capabilities:   []string{"text.generate"},
+		}},
+	}}}
+
+	route, modelResolved, err := svc.ResolvePublicChatTextBinding(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		"local/default",
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextBinding local/default: %v", err)
+	}
+	window, catalogRevision, modelRevision, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
+		context.Background(),
+		route,
+		modelResolved,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextContextMetadata local/default alias: %v", err)
+	}
+	if window != 32768 || catalogRevision == "" || modelRevision == "" || provider != "local" {
+		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
+	}
+	if resolvedTargetRef.GetLocalRuntime().GetVersion() != "v2" || resolvedTargetRef.GetLocalRuntime().GetProfileBindingId() != "local-runtime:local-asset-gemma-default" {
+		t.Fatalf("resolved target ref = %#v", resolvedTargetRef)
+	}
+}
+
 func TestResolvePublicChatTextContextMetadataUsesResolvedCatalogRow(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
 	targetRef := &runtimev1.RuntimeDurableTargetRef{
 		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
 			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-				Version: "nimi.runtime.target.local/v1",
+				Version: "v2",
 				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
 					ProfileBindingId: "profile-binding-test",
 				},
@@ -180,7 +220,7 @@ func TestResolvePublicChatTextContextMetadataUsesResolvedCatalogRow(t *testing.T
 		},
 	}
 
-	window, catalogRevision, modelRevision, provider, err := svc.ResolvePublicChatTextContextMetadata(
+	window, catalogRevision, modelRevision, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
 		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		"gemma-4-e2b-it-local",
@@ -191,6 +231,9 @@ func TestResolvePublicChatTextContextMetadataUsesResolvedCatalogRow(t *testing.T
 	}
 	if window != 32768 || catalogRevision == "" || modelRevision == "" || provider != "local" {
 		t.Fatalf("context metadata = window:%d catalog:%q model:%q provider:%q", window, catalogRevision, modelRevision, provider)
+	}
+	if resolvedTargetRef.GetLocalRuntime().GetProfileBindingId() != "profile-binding-test" {
+		t.Fatalf("resolved target ref = %#v", resolvedTargetRef)
 	}
 }
 
@@ -209,14 +252,14 @@ func TestResolvePublicChatTextContextMetadataResolvesLocalRuntimeBindingToLogica
 	}}}
 	targetRef := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
 		LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-			Version: "nimi.runtime.target.local/v1",
+			Version: "v2",
 			Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
 				ProfileBindingId: "local-runtime:local-asset-gemma",
 			},
 		},
 	}}
 
-	window, _, _, provider, err := svc.ResolvePublicChatTextContextMetadata(
+	window, _, _, provider, resolvedTargetRef, err := svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
 		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		"local-runtime:local-asset-gemma",
@@ -227,6 +270,9 @@ func TestResolvePublicChatTextContextMetadataResolvesLocalRuntimeBindingToLogica
 	}
 	if window != 32768 || provider != "local" {
 		t.Fatalf("context metadata = window:%d provider:%q", window, provider)
+	}
+	if resolvedTargetRef.GetLocalRuntime().GetProfileBindingId() != "local-runtime:local-asset-gemma" {
+		t.Fatalf("resolved target ref = %#v", resolvedTargetRef)
 	}
 }
 
@@ -266,12 +312,12 @@ voices: []
 		t.Fatalf("create missing-capacity service resolver: %v", err)
 	}
 	svc.speechCatalog = resolver
-	_, _, _, _, err = svc.ResolvePublicChatTextContextMetadata(
+	_, _, _, _, _, err = svc.ResolvePublicChatTextContextMetadata(
 		context.Background(),
 		runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		"missing-context-service-fixture",
 		&runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
-			Version: "nimi.runtime.target.cloud/v1", Provider: "openai", ProviderModelId: "missing-context-service-fixture", ConnectorId: "connector-test", RemoteModelCatalogId: "catalog-test",
+			Version: "v2", Provider: "openai", ProviderModelId: "missing-context-service-fixture", ConnectorId: "connector-test", RemoteModelCatalogId: "catalog-test",
 		}}},
 	)
 	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID {

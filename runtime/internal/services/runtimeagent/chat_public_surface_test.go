@@ -379,10 +379,26 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 					route = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 				}
 			}
+			resolvedTargetRef := clonePublicChatTargetRef(req.TargetRef)
+			if resolvedTargetRef == nil {
+				if route == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+					resolvedTargetRef = &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+						Version:              "v2",
+						ConnectorId:          firstNonEmpty(strings.TrimSpace(req.ConnectorID), "public-chat-test-connector"),
+						RemoteModelCatalogId: "public-chat-test-catalog-v1",
+						ProviderModelId:      strings.TrimSpace(req.ModelID),
+						Provider:             "public-chat-test-provider",
+					}}}
+				} else {
+					resolvedTargetRef = publicChatTestLocalRuntimeTargetRef("local-runtime:public-chat-test")
+				}
+			}
 			return PublicChatBindingResolution{
+				BindingAlias:        strings.TrimSpace(req.BindingAlias),
 				ModelID:             strings.TrimSpace(req.ModelID),
 				RoutePolicy:         route,
 				ConnectorID:         strings.TrimSpace(req.ConnectorID),
+				TargetRef:           resolvedTargetRef,
 				ContextWindowTokens: 32768,
 				CatalogRevision:     "public-chat-test-catalog-v1",
 				ModelRevision:       "public-chat-test-model-v1",

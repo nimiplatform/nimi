@@ -12,17 +12,19 @@ import (
 )
 
 type publicChatExecutionBindingJSON struct {
-	ModelID     string                `json:"ModelID,omitempty"`
-	RoutePolicy runtimev1.RoutePolicy `json:"RoutePolicy,omitempty"`
-	ConnectorID string                `json:"ConnectorID,omitempty"`
-	TargetRef   json.RawMessage       `json:"TargetRef,omitempty"`
+	BindingAlias string                `json:"BindingAlias,omitempty"`
+	ModelID      string                `json:"ModelID,omitempty"`
+	RoutePolicy  runtimev1.RoutePolicy `json:"RoutePolicy,omitempty"`
+	ConnectorID  string                `json:"ConnectorID,omitempty"`
+	TargetRef    json.RawMessage       `json:"TargetRef,omitempty"`
 }
 
 func (b publicChatExecutionBinding) MarshalJSON() ([]byte, error) {
 	out := publicChatExecutionBindingJSON{
-		ModelID:     b.ModelID,
-		RoutePolicy: b.RoutePolicy,
-		ConnectorID: b.ConnectorID,
+		BindingAlias: b.BindingAlias,
+		ModelID:      b.ModelID,
+		RoutePolicy:  b.RoutePolicy,
+		ConnectorID:  b.ConnectorID,
 	}
 	if b.TargetRef != nil && b.TargetRef.GetTarget() != nil {
 		raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(b.TargetRef)
@@ -43,6 +45,7 @@ func (b *publicChatExecutionBinding) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 	var out publicChatExecutionBinding
+	out.BindingAlias = decodePublicChatBindingString(fields, "BindingAlias", "bindingAlias", "binding_alias")
 	out.ModelID = decodePublicChatBindingString(fields, "ModelID", "modelID", "modelId", "model_id")
 	out.ConnectorID = decodePublicChatBindingString(fields, "ConnectorID", "connectorID", "connectorId", "connector_id")
 	route, err := decodePublicChatBindingRoutePolicy(firstPublicChatBindingRaw(fields, "RoutePolicy", "routePolicy", "route_policy", "route"))

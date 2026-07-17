@@ -20,6 +20,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
@@ -256,35 +257,41 @@ func (s *Service) ResolvePublicChatTextBinding(
 	return routeDecision, modelResolved, nil
 }
 
-// ResolvePublicChatTextContextMetadata returns the catalog-owned capacity and
-// revision identity for the exact text route used by Runtime Agent context
-// composition. Missing target/catalog capacity is a fail-closed condition;
-// callers must not substitute a default window.
+// ResolvePublicChatTextContextMetadata returns the catalog-owned capacity,
+// revision identity, and durable target for the exact text route used by
+// Runtime Agent context composition. An alias-bound local route is resolved to
+// its selected Runtime-owned asset and frozen as a v2 target. Malformed or
+// unresolvable targets and missing catalog capacity fail closed; callers must
+// not substitute a default window or target.
 func (s *Service) ResolvePublicChatTextContextMetadata(
 	ctx context.Context,
 	route runtimev1.RoutePolicy,
 	modelID string,
 	targetRef *runtimev1.RuntimeDurableTargetRef,
-) (uint64, string, string, string, error) {
+) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, error) {
 	if s == nil || s.speechCatalog == nil {
-		return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+		return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
 	}
 	provider := ""
 	resolvedModelID := strings.TrimSpace(modelID)
+	resolvedTargetRef := cloneRuntimeDurableTargetRef(targetRef)
 	switch route {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
-		localTarget := targetRef.GetLocalRuntime()
-		if localTarget == nil {
-			return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
 		provider = "local"
-		requestedLocalModelID := strings.TrimSpace(localTarget.GetProfileBindingId())
+		requestedLocalModelID := ""
+		if targetRef != nil {
+			localTarget := targetRef.GetLocalRuntime()
+			if localTarget == nil {
+				return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			}
+			requestedLocalModelID = strings.TrimSpace(localTarget.GetProfileBindingId())
+		}
 		if requestedLocalModelID == "" {
 			requestedLocalModelID = resolvedModelID
 		}
 		plan, resolveErr := s.prepareLocalModelExecutionPlan(ctx, requestedLocalModelID, nil, runtimev1.Modal_MODAL_TEXT, nil)
 		if resolveErr != nil {
-			return 0, "", "", "", resolveErr
+			return 0, "", "", "", nil, resolveErr
 		}
 		if plan != nil && plan.selected != nil {
 			if logicalModelID := strings.TrimSpace(plan.selected.GetLogicalModelId()); logicalModelID != "" {
@@ -292,18 +299,40 @@ func (s *Service) ResolvePublicChatTextContextMetadata(
 			} else if assetID := strings.TrimSpace(plan.selected.GetAssetId()); assetID != "" {
 				resolvedModelID = assetID
 			}
+			if resolvedTargetRef == nil {
+				localAssetID := strings.TrimSpace(plan.selected.GetLocalAssetId())
+				if localAssetID == "" {
+					return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+				}
+				resolvedTargetRef = &runtimev1.RuntimeDurableTargetRef{
+					Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+						LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+							Version: "v2",
+							Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+								ProfileBindingId: "local-runtime:" + localAssetID,
+							},
+						},
+					},
+				}
+			}
 		}
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
-		cloud := targetRef.GetCloud()
+		var cloud *runtimev1.RuntimeDurableCloudTargetRef
+		if targetRef != nil {
+			cloud = targetRef.GetCloud()
+		}
 		if cloud == nil {
-			return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		provider = strings.TrimSpace(cloud.GetProvider())
 		if providerModelID := strings.TrimSpace(cloud.GetProviderModelId()); providerModelID != "" {
 			resolvedModelID = providerModelID
 		}
 	default:
-		return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if err := runtimeidentity.ValidateDurableTargetRef(resolvedTargetRef); err != nil {
+		return 0, "", "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
 	}
 	metadata, err := s.speechCatalog.ResolveTextContextMetadataForSubject(
 		catalogSubjectUserIDFromContext(ctx),
@@ -311,11 +340,11 @@ func (s *Service) ResolvePublicChatTextContextMetadata(
 		resolvedModelID,
 	)
 	if err != nil {
-		return 0, "", "", "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+		return 0, "", "", "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "add_model_context_window_to_runtime_catalog",
 		})
 	}
-	return metadata.ContextWindowTokens, metadata.CatalogVersion, metadata.ModelRevision, metadata.Provider, nil
+	return metadata.ContextWindowTokens, metadata.CatalogVersion, metadata.ModelRevision, metadata.Provider, resolvedTargetRef, nil
 }
 
 // SetLocalProviderEndpoint hot-swaps the in-process local provider backend
