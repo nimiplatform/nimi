@@ -205,11 +205,17 @@ Reconnect 行为：先 snapshot，再按 sequence 投递。replay 不可用时�
 
 ## K-ACCSVC-007 Custody 模型
 
-| 平台 | Primary custody | 不可用时行为 |
-|---|---|---|
-| Windows | fixed non-interactive LocalSystem token user (`S-1-5-18`)；restricted `NT SERVICE\NimiRuntime` service SID；DPAPI-NG `LOCAL=user` protector；service-SID-only state ACL；process DACL grants the service SID full authority, denies interactive sensitive rights, and permits only read-only Runtime peer verification | host token、protector、ACL、active-logon query authority 或 service principal 不匹配时 `unavailable`；authenticated 调用 fail-close |
-| Linux | dedicated non-login Runtime system UID；0600 encrypted store；root-loaded system credential key | dedicated UID、key 或 protected state 不可用时 `unavailable` |
-| macOS | hardened LaunchDaemon Runtime principal；code-identity-ACL system Keychain item bound to the Runtime designated requirement | code identity、Keychain ACL 或 LaunchDaemon principal 不匹配时 `unavailable` |
+Custody 的平台中立语义是：RuntimeAccountService 在隔离的 Runtime 服务主体内
+独占 durable credential material；材料只进入 Runtime-private service call chain；
+写入、轮换、reuse detection、恢复、审计脱敏与不可用时 fail-close 的语义不因
+平台改变。调用方、Desktop、Kit、SDK、renderer 与 app 均不能选择 custody backend、
+key source、protected state location 或 fallback。
+
+`tables/protected-local-custody-profiles.yaml` 是各平台 protected store、key binding、
+durable anchor 与 unavailable disposition 的唯一 machine-readable authority。每个
+profile 通过 `service_principal_profile_ref` 依赖相应隔离主体；profile 中出现的平台
+原语不改变本规则的 owner、material visibility、rotation 或 fail-close 语义。未准入
+profile 只有 requirements，不能据此产生 positive custody chain。
 
 固定规则：
 

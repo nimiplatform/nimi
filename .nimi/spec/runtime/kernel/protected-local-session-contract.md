@@ -16,11 +16,12 @@ manifest, renderer metadata, loopback address, or portable session/bearer is
 self-asserted context and is never origin proof. Protected-local unavailability
 fails closed; public TCP and app-owned metadata are not fallback transports.
 
-Production Runtime account custody, connector/provider credential custody,
-authenticated Realm mediation, protected state, anchor keys, and process memory
-execute under the isolated OS service
-principal selected by
-`tables/protected-local-runtime-principal-profiles.yaml`. That principal is
+Production Runtime protected state and process memory execute under the
+isolated OS service principal selected by
+`tables/protected-local-runtime-principal-profiles.yaml`. Account,
+connector/provider, authenticated Realm, and anchor-key custody additionally
+use the platform custody profile selected by
+`tables/protected-local-custody-profiles.yaml`. That principal is
 distinct from the interactive Desktop user and every bundled, local-app,
 renderer, and app-owned host principal. A same-interactive-user
 Runtime process, user-session generic keyring, user-writable service definition,
@@ -330,9 +331,8 @@ On Windows, volume serial, file ID and `WinVerifyTrust` are evaluated against
 the same opened `hFile`; the leaf signing identity must match the installer-owned
 Nimi signer policy. The production process uses the signed service definition's
 fixed non-interactive LocalSystem host token and the restricted Nimi Runtime
-service SID. DPAPI-NG uses the exact `LOCAL=user` descriptor to bind encrypted
-material to the LocalSystem token user (`S-1-5-18`). State ACLs name only the
-exact restricted service SID. The process DACL gives that service SID full
+service SID. State ACLs name only the exact restricted service SID. The process
+DACL gives that service SID full
 authority, gives interactive callers only the read-only mutual-verification
 mask, and denies interactive VM read/write/operation, handle duplication and
 remote thread creation. Its System-integrity mandatory label carries only
@@ -342,11 +342,9 @@ grants interactive callers only `TOKEN_QUERY | READ_CONTROL`, keeps all
 duplication, impersonation, assignment and adjustment rights unavailable, and
 uses the same System-integrity `NO_WRITE_UP`-only label. Queryable token
 identity is verification evidence, not portable authority or credential
-custody. A
-DPAPI-NG `SID=` descriptor is not Windows local-service authority because its
-key distribution requires an Active Directory principal and fails on
-workgroup machines; `LOCAL=machine` is also forbidden because it widens
-decryption to the machine.
+custody. Credential protection, key binding, prohibited wider protectors, and
+custody-unavailable behavior are owned only by K-ACCSVC-007 and
+`tables/protected-local-custody-profiles.yaml`.
 
 The Windows product requirement is the fixed SCM `NimiRuntime` service under
 LocalSystem with restricted `NT SERVICE\NimiRuntime` service-SID state/process
@@ -363,8 +361,8 @@ and verifies the package/repository signature identity selected by the signed
 system service definition; the service uses
 the dedicated non-login system UID. On macOS,
 `SecCodeCopyGuestWithAttributes` targets the running process and validates its
-dynamic `SecCode`, designated requirement, Team ID and cdhash, while Runtime custody keys use code-identity Keychain
-ACLs. A pathname-only `SecStaticCode` claim is insufficient.
+dynamic `SecCode`, designated requirement, Team ID and cdhash. A pathname-only
+`SecStaticCode` claim is insufficient.
 
 ## K-PLOCAL-006 Desktop Control Session
 
@@ -466,7 +464,7 @@ service-owned transactional database protected by the isolated Runtime
 principal. This database uses a fixed schema, foreign keys, WAL and durable
 transactions; it is not a second credential store and does not HMAC-chain every
 ordinary row. Account and connector/provider credentials remain exclusively in
-the service-owned OS credential store. Production generic user-session
+the custody profile owned by K-ACCSVC-007. Production generic user-session
 keyrings, automatic legacy import, Desktop/app storage and user-writable backup
 restore remain forbidden.
 

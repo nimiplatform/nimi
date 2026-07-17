@@ -44,7 +44,8 @@ forbidden production shapes.
 Runtime writes service-owned non-secret state with fail-closed atomic replace,
 owner-only ACLs, symlink/reparse-point refusal, and durability appropriate to
 the OS profile. Secrets use the protected custody backend defined by
-K-PLOCAL-004 and are never serialized into the non-secret state document.
+K-ACCSVC-007 and `tables/protected-local-custody-profiles.yaml`; they are never
+serialized into the non-secret state document.
 
 ## K-CFG-007 Runtime Command Surface
 

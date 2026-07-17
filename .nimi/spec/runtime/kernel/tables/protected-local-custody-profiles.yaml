@@ -1,0 +1,94 @@
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_protected_local_custody_profiles
+surfaces: [account_tokens, connector_provider_secrets, durable_anchor_keys, authenticated_realm_credentials]
+entries: [windows, linux, macos]
+description: >-
+  Platform-neutral Runtime custody semantics plus closed OS profiles for the
+  protected store, key binding, durable anchor, and fail-closed disposition.
+authority_refs: [K-ACCSVC-007, K-PLOCAL-001, K-PLOCAL-007, K-CFG-005, K-CFG-006]
+neutral_contract:
+  authority_owner: runtime_account_service
+  execution_boundary: isolated_os_service_principal
+  material_visibility: runtime_private_service_call_chain_only
+  durable_material_projection: forbidden
+  atomic_refresh_rotation: commit_new_material_before_discarding_old_material
+  replay_disposition: revoke_local_chain_and_require_reauthentication_or_mark_unavailable
+  audit_secret_values: forbidden
+  unavailable_disposition: authenticated_operations_fail_closed
+  fallback_custody: forbidden
+protected_credential_domains: [account_tokens, connector_provider_secrets, durable_anchor_keys, authenticated_realm_credentials]
+production_user_session_generic_keyring_allowed: false
+interactive_app_state_enumeration: forbidden
+retired_user_keyring_import: forbidden_hardcut_requires_fresh_login_and_connector_credential_reentry
+automatic_backup_restore: forbidden
+durable_anchor_scope: [installer_owned_active_release_generation, credential_custody_generation, explicitly_admitted_revocation_floor]
+forbidden_production_custody:
+  - interactive_user_generic_keyring
+  - credential_manager_or_user_vault
+  - login_keychain
+  - secret_service_or_libsecret_session_store
+  - desktop_secure_store
+  - app_owned_vault
+  - in_memory_durable_account_truth
+platform_admission:
+  closeout_unit: os_platform
+  windows: admitted_fixed_service_custody
+  linux: requirements_only_fail_closed_pending_native_admission
+  macos: requirements_only_fail_closed_pending_native_admission
+  unadmitted_platform_disposition: fail_closed
+  cross_platform_parity_required_before_first_platform_positive_chain: false
+profile_schema:
+  fields:
+    - os
+    - admission
+    - service_principal_profile_ref
+    - primary_custody
+    - protector_or_key_source
+    - protected_state_binding
+    - transaction_store_and_durable_anchor
+    - unavailable_disposition
+    - source_rule
+profiles:
+  - os: windows
+    admission: admitted_fixed_service_custody
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    primary_custody: >-
+      fixed non-interactive LocalSystem token user (`S-1-5-18`); restricted
+      `NT SERVICE\NimiRuntime` service SID; DPAPI-NG `LOCAL=user` protector;
+      service-SID-only state ACL; process DACL grants the service SID full
+      authority, denies interactive sensitive rights, and permits only
+      read-only Runtime peer verification
+    protector_or_key_source: dpapi_ng_local_user_fixed_local_system_host
+    protected_state_binding: exact_restricted_service_sid_only
+    transaction_store_and_durable_anchor: service_sid_acl_transaction_db_plus_dpapi_ng_anchor_only_for_admitted_nonrollbackable_generation
+    unavailable_disposition: >-
+      host token, protector, ACL, active-logon query authority, or service
+      principal mismatch marks custody unavailable and authenticated calls fail closed
+    source_rule: K-ACCSVC-007
+  - os: linux
+    admission: requirements_only_fail_closed_pending_native_admission
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    primary_custody: >-
+      dedicated non-login Runtime system UID; 0600 encrypted store; root-loaded
+      system credential key
+    protector_or_key_source: dedicated_uid_0600_encrypted_store_with_root_loaded_system_credential_key
+    protected_state_binding: dedicated_runtime_system_uid_only
+    transaction_store_and_durable_anchor: dedicated_uid_transaction_db_plus_root_loaded_anchor_only_for_admitted_nonrollbackable_generation
+    unavailable_disposition: >-
+      dedicated UID, key, or protected state unavailable marks custody unavailable
+    source_rule: K-ACCSVC-007
+  - os: macos
+    admission: requirements_only_fail_closed_pending_native_admission
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    primary_custody: >-
+      hardened LaunchDaemon Runtime principal; code-identity-ACL system Keychain
+      item bound to the Runtime designated requirement
+    protector_or_key_source: code_identity_acl_system_keychain_item_for_runtime_designated_requirement
+    protected_state_binding: launchd_runtime_principal_and_runtime_designated_requirement_only
+    transaction_store_and_durable_anchor: launchdaemon_transaction_db_plus_code_identity_keychain_anchor_only_for_admitted_nonrollbackable_generation
+    unavailable_disposition: >-
+      code identity, Keychain ACL, or LaunchDaemon principal mismatch marks
+      custody unavailable
+    source_rule: K-ACCSVC-007
