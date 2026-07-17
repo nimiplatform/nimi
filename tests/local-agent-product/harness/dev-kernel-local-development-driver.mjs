@@ -5,6 +5,7 @@ import path from 'node:path';
 import { startProcess } from './cross-app-driver.mjs';
 import { repoRoot } from './registry.mjs';
 import {
+  comparablePath,
   connectCdp,
   firstVisible,
   invokeDesktop,
@@ -64,6 +65,57 @@ export async function setDeveloperMode(page, enabled) {
     });
   }
   return card.getAttribute('data-developer-mode');
+}
+
+export async function resetLocalDevelopmentProjectAuthorization(page, identity) {
+  const before = await invokeDesktop(page, 'local_development_authorizations_list');
+  if (!Array.isArray(before)) throw new Error('local-development authorization baseline is not an array');
+  const matches = selectLocalDevelopmentProjectAuthorizations(before, identity);
+  let revokedCount = 0;
+  for (const authorization of matches) {
+    if (authorization.state === 'revoked') continue;
+    const selector = String(authorization.selector || '').trim();
+    if (!selector) throw new Error('local-development authorization baseline omitted its Desktop selector');
+    const revoked = await invokeDesktop(page, 'local_development_authorization_revoke', {
+      payload: { selector },
+    });
+    if (revoked?.state !== 'revoked') {
+      throw new Error(`local-development authorization baseline revoke failed for ${selector}`);
+    }
+    revokedCount += 1;
+  }
+  const after = await invokeDesktop(page, 'local_development_authorizations_list');
+  if (!Array.isArray(after)) throw new Error('local-development authorization baseline recheck is not an array');
+  const remaining = selectLocalDevelopmentProjectAuthorizations(after, identity)
+    .filter((authorization) => authorization.state !== 'revoked');
+  if (remaining.length > 0) {
+    throw new Error(`local-development authorization baseline retained ${remaining.length} non-revoked project authorization(s)`);
+  }
+  return { matchingBefore: matches.length, revokedCount, remainingNonRevoked: remaining.length };
+}
+
+export function selectLocalDevelopmentProjectAuthorizations(rows, {
+  accountId,
+  appId,
+  canonicalProjectRoot,
+  shell,
+} = {}) {
+  const expectedRoot = comparableProjectRoot(canonicalProjectRoot);
+  if (!expectedRoot || !accountId || !appId || !shell) {
+    throw new Error('local-development authorization baseline identity is invalid');
+  }
+  return (Array.isArray(rows) ? rows : []).filter((authorization) => (
+    authorization?.accountId === accountId
+    && authorization?.appId === appId
+    && authorization?.shell === shell
+    && comparableProjectRoot(authorization?.canonicalProjectRoot) === expectedRoot
+  ));
+}
+
+function comparableProjectRoot(value) {
+  const candidate = String(value || '').trim().replace(/^\\\\\?\\/u, '');
+  if (/^[a-z]:[\\/]/iu.test(candidate)) return path.win32.resolve(candidate).toLowerCase();
+  return comparablePath(candidate);
 }
 
 export async function approveLocalDevelopment(connection, decision, artifactsDir, captureLayout, browserAuth) {

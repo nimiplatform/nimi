@@ -52,6 +52,7 @@ import {
   grantOpenConversation,
   openConversation,
   readRememberedAuthorization,
+  resetLocalDevelopmentProjectAuthorization,
   revokeOperationGrant,
   sendTurnWithKeyboard,
   setDeveloperMode,
@@ -394,6 +395,16 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     observations.primaryAccountSession = await invokeDesktop(
       desktop.page,
       'runtime_account_session_status',
+    );
+    phase = 'local-development-authorization-baseline';
+    observations.localDevelopmentAuthorizationBaseline = await resetLocalDevelopmentProjectAuthorization(
+      desktop.page,
+      {
+        accountId: fixtureConfig.primaryAccountId,
+        appId: 'nimi.zhiyu',
+        canonicalProjectRoot: path.join(repoRoot, 'apps', 'zhiyu'),
+        shell: 'electron',
+      },
     );
     phase = 'developer-mode-enable';
     observations.developerModeEnabled = await setDeveloperMode(desktop.page, true);

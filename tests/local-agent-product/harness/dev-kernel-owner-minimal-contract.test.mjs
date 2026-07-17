@@ -8,6 +8,7 @@ import {
   validateOwnerMinimalResult,
 } from './dev-kernel-owner-minimal-contract.mjs';
 import { requireReusedReadyDataRoot } from './dev-kernel-first-run-driver.mjs';
+import { selectLocalDevelopmentProjectAuthorizations } from './dev-kernel-local-development-driver.mjs';
 
 function ownerDriverSource() {
   return [
@@ -127,6 +128,34 @@ test('owner-minimal waits for the Runtime-owned Developer Mode projection before
   assert.match(driver, /label: 'Developer Mode Runtime projection'/u);
   assert.match(driver, /developer-mode-retry-button[\s\S]*Developer Mode Runtime projection unavailable/iu);
   assert.match(driver, /card\.getAttribute\('data-developer-mode'\) === expected[\s\S]*button\.isEnabled/iu);
+});
+
+test('owner-minimal clears only the exact account and project authorization before run-once', () => {
+  const driver = ownerDriverSource();
+  assert.match(driver, /local-development-authorization-baseline[\s\S]*resetLocalDevelopmentProjectAuthorization[\s\S]*developer-mode-enable[\s\S]*run-once-local-development-start/iu);
+  assert.match(driver, /local_development_authorizations_list[\s\S]*local_development_authorization_revoke[\s\S]*remainingNonRevoked/iu);
+
+  const identity = {
+    accountId: 'account-primary',
+    appId: 'nimi.zhiyu',
+    canonicalProjectRoot: 'D:\\repo\\apps\\zhiyu',
+    shell: 'electron',
+  };
+  const exact = {
+    ...identity,
+    canonicalProjectRoot: '\\\\?\\D:\\repo\\apps\\zhiyu',
+    selector: 'dev-project:exact',
+    state: 'dormant',
+  };
+  const rows = [
+    exact,
+    { ...exact, accountId: 'account-secondary', selector: 'dev-project:account' },
+    { ...exact, appId: 'nimi.other', selector: 'dev-project:app' },
+    { ...exact, canonicalProjectRoot: 'D:\\repo\\apps\\other', selector: 'dev-project:root' },
+    { ...exact, shell: 'tauri', selector: 'dev-project:shell' },
+  ];
+
+  assert.deepEqual(selectLocalDevelopmentProjectAuthorizations(rows, identity), [exact]);
 });
 
 test('owner-minimal bounds only the exact supervised-host startup transport race', () => {
