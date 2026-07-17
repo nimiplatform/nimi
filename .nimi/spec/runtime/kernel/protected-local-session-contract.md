@@ -32,6 +32,16 @@ cannot open a product protected listener or serve as checkpoint evidence.
 Service acceptance uses the same fixed production service principal with a
 service-owned candidate root defined by the principal-profile table.
 
+Service-principal semantics are platform-neutral: production Runtime is a
+non-interactive OS service principal distinct from the interactive user; only
+the signed installer may establish its fixed service definition; missing
+principal isolation fails before custody or listeners. The same-OS row in
+`tables/protected-local-runtime-principal-profiles.yaml` alone selects the
+service manager, principal constraints, process isolation, control mechanics,
+and acceptance isolation. The Windows row is the admitted current behavior.
+The macOS launchd system-daemon row and Linux system-service row are
+requirements-only and remain fail-closed pending independent native admission.
+
 The signed installer and service updater own Runtime release staging,
 installation, and atomic replacement. Desktop may read verified service status
 and request start/restart only through the typed OS service-control gateway; it
@@ -46,10 +56,11 @@ on the exact `desktop_control` connection after that connection has opened its
 boot-scoped Desktop session. Runtime begins a graceful drain and self-exits;
 the fixed OS service manager, not Desktop, starts the replacement process.
 Success is never the RPC acknowledgement alone: Kit must observe a different
-SCM PID and creation marker, a different `runtime_boot_epoch`, and a fresh
+service-profile process identity and creation marker, a different
+`runtime_boot_epoch`, and a fresh
 mutually verified protected handshake before projecting `running`. Public TCP,
 local-app transports, portable credentials, service-name/path arguments,
-direct SCM stop/start, and caller-selected timeout or recovery policy are
+direct service-manager stop/start, and caller-selected timeout or recovery policy are
 forbidden.
 
 `RuntimeAuthService.RegisterApp` and `RuntimeAuthService.OpenSession` remain
@@ -329,37 +340,17 @@ signer-policy mismatch fails protected control closed.
 
 On Windows, volume serial, file ID and `WinVerifyTrust` are evaluated against
 the same opened `hFile`; the leaf signing identity must match the installer-owned
-Nimi signer policy. The production process uses the signed service definition's
-fixed non-interactive LocalSystem host token and the restricted Nimi Runtime
-service SID. State ACLs name only the exact restricted service SID. The process
-DACL gives that service SID full
-authority, gives interactive callers only the read-only mutual-verification
-mask, and denies interactive VM read/write/operation, handle duplication and
-remote thread creation. Its System-integrity mandatory label carries only
-`NO_WRITE_UP`, so the read-only DACL can be verified by the unelevated Desktop
-without granting any process mutation right. The primary-token object likewise
-grants interactive callers only `TOKEN_QUERY | READ_CONTROL`, keeps all
-duplication, impersonation, assignment and adjustment rights unavailable, and
-uses the same System-integrity `NO_WRITE_UP`-only label. Queryable token
-identity is verification evidence, not portable authority or credential
-custody. Credential protection, key binding, prohibited wider protectors, and
-custody-unavailable behavior are owned only by K-ACCSVC-007 and
-`tables/protected-local-custody-profiles.yaml`.
-
-The Windows product requirement is the fixed SCM `NimiRuntime` service under
-LocalSystem with restricted `NT SERVICE\NimiRuntime` service-SID state/process
-ACLs. Runtime must query the active interactive session and exact logon SID,
-while an unelevated signed peer receives only the minimum read verification
-rights required by the mutual process protocol. A virtual account, interactive
-user process, administrator-only probe result or test service principal cannot
-substitute for this product chain. Compromise of SYSTEM or an administrator is outside the current
-threat boundary and does not authorize weakening protection against renderer,
-third-party app or ordinary same-user processes.
+Nimi signer policy. Service-manager identity, service principal selection,
+process/token ACLs, interactive-user relation, and acceptance isolation are not
+code-signing facts; their sole machine-readable authority is the same-OS row in
+`tables/protected-local-runtime-principal-profiles.yaml`. Credential protection
+and key binding remain solely in `tables/protected-local-custody-profiles.yaml`.
+An unadmitted principal profile, same-user daemon, caller-selected service
+definition, or test principal cannot substitute for the selected product row.
 
 On Linux, Runtime opens `/proc/<pid>/exe`, binds device/inode,
 and verifies the package/repository signature identity selected by the signed
-system service definition; the service uses
-the dedicated non-login system UID. On macOS,
+system service definition. On macOS,
 `SecCodeCopyGuestWithAttributes` targets the running process and validates its
 dynamic `SecCode`, designated requirement, Team ID and cdhash. A pathname-only
 `SecStaticCode` claim is insufficient.

@@ -55,8 +55,8 @@
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  windows:\n    service_name: NimiRuntime",
-      "to": "  windows:\n    service_name: caller_selected_runtime"
+      "from": "    service_control:\n      service_name: NimiRuntime",
+      "to": "    service_control:\n      service_name: caller_selected_runtime"
     }
   },
   {

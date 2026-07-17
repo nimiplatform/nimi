@@ -46,6 +46,8 @@ profile_schema:
     - service_principal_profile_ref
     - primary_custody
     - protector_or_key_source
+    - cryptographic_scope
+    - forbidden_protectors
     - protected_state_binding
     - transaction_store_and_durable_anchor
     - unavailable_disposition
@@ -61,6 +63,10 @@ profiles:
       authority, denies interactive sensitive rights, and permits only
       read-only Runtime peer verification
     protector_or_key_source: dpapi_ng_local_user_fixed_local_system_host
+    cryptographic_scope: local_system_token_user_sid_S-1-5-18
+    forbidden_protectors:
+      - dpapi_ng_sid_descriptor_requires_active_directory_principal_and_fails_on_workgroup_machines
+      - dpapi_ng_local_machine_descriptor_widens_decryption_to_machine
     protected_state_binding: exact_restricted_service_sid_only
     transaction_store_and_durable_anchor: service_sid_acl_transaction_db_plus_dpapi_ng_anchor_only_for_admitted_nonrollbackable_generation
     unavailable_disposition: >-
@@ -74,6 +80,8 @@ profiles:
       dedicated non-login Runtime system UID; 0600 encrypted store; root-loaded
       system credential key
     protector_or_key_source: dedicated_uid_0600_encrypted_store_with_root_loaded_system_credential_key
+    cryptographic_scope: dedicated_runtime_system_uid_and_root_loaded_system_credential_key
+    forbidden_protectors: [interactive_user_session_keyring, app_or_desktop_owned_key]
     protected_state_binding: dedicated_runtime_system_uid_only
     transaction_store_and_durable_anchor: dedicated_uid_transaction_db_plus_root_loaded_anchor_only_for_admitted_nonrollbackable_generation
     unavailable_disposition: >-
@@ -86,6 +94,8 @@ profiles:
       hardened LaunchDaemon Runtime principal; code-identity-ACL system Keychain
       item bound to the Runtime designated requirement
     protector_or_key_source: code_identity_acl_system_keychain_item_for_runtime_designated_requirement
+    cryptographic_scope: runtime_designated_requirement_and_launchd_system_daemon_principal
+    forbidden_protectors: [login_keychain, app_or_desktop_owned_keychain_item]
     protected_state_binding: launchd_runtime_principal_and_runtime_designated_requirement_only
     transaction_store_and_durable_anchor: launchdaemon_transaction_db_plus_code_identity_keychain_anchor_only_for_admitted_nonrollbackable_generation
     unavailable_disposition: >-

@@ -1,16 +1,25 @@
-version: 2
+version: 3
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_principal_profiles
 surfaces: [windows, linux, macos]
 entries: [windows, linux, macos]
-description: Closed production isolation profiles for the Runtime service principal, protected state, process memory, and service control.
-authority_refs: [K-PLOCAL-001, K-PLOCAL-003, K-PLOCAL-007]
-production_runtime_execution_mode: isolated_os_service_principal
-production_same_interactive_user_daemon_allowed: false
-interactive_app_state_enumeration: forbidden
-service_install_authority: signed_nimi_installer_only
-service_update_authority: signed_runtime_release_atomic_service_update_only
+description: Platform-neutral Runtime service-principal semantics plus closed OS principal and service-manager profiles.
+authority_refs: [K-PLOCAL-001, K-PLOCAL-003, K-PLOCAL-007, K-CFG-001]
+neutral_contract:
+  production_runtime_execution_mode: isolated_os_service_principal
+  interactive_user_relation: distinct_os_security_principal
+  same_interactive_user_daemon_allowed: false
+  listener_before_principal_verification: forbidden
+  service_install_authority: signed_nimi_installer_only
+  service_update_authority: signed_runtime_release_atomic_service_update_only
+  environment_or_argv_override: forbidden
+  interactive_app_state_enumeration: forbidden
+  boot_security_configuration_authority: signed_service_definition_and_signed_release_descriptor_only
+  mutable_product_configuration_authority: typed_protected_desktop_control_write_to_service_owned_state_only
+  lifecycle_operation_transaction: validate_bindings_consume_idempotency_key_create_operation_atomic_database_commit
+  ordinary_session_or_lifecycle_row_hmac_chain: forbidden
+  unavailable_disposition: fail_closed_before_custody_or_listener
 desktop_service_control:
   status_authority: os_service_manager_and_verified_runtime_control
   start_or_restart_authority: typed_os_service_control_gateway
@@ -23,54 +32,18 @@ desktop_service_control:
   runtime_binary_selection_by_desktop: forbidden
   common_response_fields: [state, release_id, reason_code, retryable]
   state_values: [stopped, start_pending, running, restart_pending, unavailable]
-  windows:
-    service_name: NimiRuntime
-    status_semantics: scm_query_status_then_verified_runtime_health_when_running
-    start_semantics: scm_start_fixed_service_name_without_binary_path_or_arguments
-    restart_semantics: runtime_self_exit_then_scm_recovery_start_and_new_boot_epoch_verification
-    desktop_scm_access: [SERVICE_QUERY_STATUS, SERVICE_START]
-    desktop_scm_stop_access: forbidden
-    service_binary_path_or_arguments_input: forbidden
-    running_success_requirement: verified_new_or_existing_runtime_process_and_protected_handshake
-    restart_success_requirement: new_pid_creation_marker_and_runtime_boot_epoch_verified
-    hung_runtime_recovery: signed_installer_service_updater_or_administrator_only
-windows_service_host:
-  scm_account: LocalSystem
-  token_user_sid: S-1-5-18
-  dpapi_ng_descriptor: LOCAL=user
-  cryptographic_scope: local_system_token_user_sid_S-1-5-18
-  state_acl_scope: exact_restricted_service_sid_only
-  process_dacl_scope: service_sid_full_authority_interactive_read_only_sync_query_limited_read_control
-  process_mandatory_label_scope: system_integrity_no_write_up_only_read_control_remains_available_for_mutual_verification
-  process_token_dacl_scope: service_sid_full_authority_interactive_token_query_read_control_only
-  process_token_mandatory_label_scope: system_integrity_no_write_up_only_token_query_remains_available_for_mutual_verification
-  active_logon_query_authority: local_system_required_for_cross_session_WTSSessionInfo_and_exact_LSA_logon_record
-  local_machine_descriptor_allowed: false
-  system_or_administrator_compromise: outside_current_threat_boundary
-windows_principal_selection:
-  authority_status: admitted
-  selected_profile: local_system_host_with_restricted_service_sid
-  rationale: exact_active_logon_bootstrap_without_interactive_user_token_retention_requires_LocalSystem_host
-service_acceptance_isolation:
-  service_name: NimiRuntime
-  service_principal: same_production_local_system_and_restricted_service_sid
+service_acceptance_contract:
   service_owned_candidate_root: required
   candidate_binding_source: signed_installer_or_service_owned_acceptance_manifest
   environment_or_argv_root_selection: forbidden
-  candidate_root_acl: restricted_service_sid_only
   candidate_id_in_app_or_renderer: forbidden
-  account_partition: verified_interactive_sid
-  runtime_lifecycle_and_restart: real_scm_service
   cleanup: service_owned_candidate_cleanup_after_all_leases_sessions_and_jobs_end
-  parallel_isolation: candidate_namespace_for_state_audit_and_child_pipes
   test_only_service_principal: forbidden
-production_boot_security_configuration_authority: signed_service_definition_and_signed_release_descriptor_only
-mutable_product_configuration_authority: typed_protected_desktop_control_write_to_service_owned_state_only
-production_environment_or_argv_override: forbidden
-lifecycle_operation_transaction: validate_bindings_consume_idempotency_key_create_operation_atomic_database_commit
-ordinary_session_or_lifecycle_row_hmac_chain: forbidden
 platform_admission:
   closeout_unit: os_platform
+  windows: admitted_fixed_service_principal
+  linux: requirements_only_fail_closed_pending_native_admission
+  macos: requirements_only_fail_closed_pending_native_admission
   unadmitted_platform_disposition: fail_closed
   cross_platform_parity_required_before_first_platform_positive_chain: false
 account_partition_source: verified_interactive_os_principal_and_login_session
@@ -79,35 +52,116 @@ non_product_same_user_fixture:
 profile_schema:
   fields:
     - os
+    - admission
     - production_principal
     - interactive_user_relation
+    - service_manager
     - service_installation
+    - protected_state_location
     - account_partition_derivation
     - process_isolation
-    - endpoint_connect_boundary
+    - principal_constraints
+    - principal_selection
+    - service_control
+    - acceptance_isolation
     - source_rule
 profiles:
   - os: windows
+    admission: admitted_fixed_service_principal
     production_principal: LocalSystem_token_user_with_restricted_NT_SERVICE_NimiRuntime_authorization_principal
     interactive_user_relation: distinct_os_security_principal
+    service_manager: windows_service_control_manager
     service_installation: signed_installer_creates_fixed_local_system_host_with_restricted_windows_service_sid_no_interactive_logon
+    protected_state_location: FOLDERID_ProgramData_plus_Nimi_Runtime_Protected
     account_partition_derivation: verified_pipe_client_user_sid_and_logon_luid
     process_isolation: service_process_dacl_denies_interactive_sensitive_rights_and_allows_only_sync_query_limited_read_control_for_mutual_runtime_verification
-    endpoint_connect_boundary: named_pipe_acl_grants_connect_only_to_active_account_sid_and_service_sid_then_exact_process_token_LSA_and_active_WTS_verification_before_NetConn
+    principal_constraints:
+      scm_account: LocalSystem
+      token_user_sid: S-1-5-18
+      state_acl_scope: exact_restricted_service_sid_only
+      process_dacl_scope: service_sid_full_authority_interactive_read_only_sync_query_limited_read_control
+      process_mandatory_label_scope: system_integrity_no_write_up_only_read_control_remains_available_for_mutual_verification
+      process_token_dacl_scope: service_sid_full_authority_interactive_token_query_read_control_only
+      process_token_mandatory_label_scope: system_integrity_no_write_up_only_token_query_remains_available_for_mutual_verification
+      active_logon_query_authority: local_system_required_for_cross_session_WTSSessionInfo_and_exact_LSA_logon_record
+      system_or_administrator_compromise: outside_current_threat_boundary
+    principal_selection:
+      authority_status: admitted
+      selected_profile: local_system_host_with_restricted_service_sid
+      rationale: exact_active_logon_bootstrap_without_interactive_user_token_retention_requires_LocalSystem_host
+    service_control:
+      service_name: NimiRuntime
+      status_semantics: scm_query_status_then_verified_runtime_health_when_running
+      start_semantics: scm_start_fixed_service_name_without_binary_path_or_arguments
+      restart_semantics: runtime_self_exit_then_scm_recovery_start_and_new_boot_epoch_verification
+      desktop_scm_access: [SERVICE_QUERY_STATUS, SERVICE_START]
+      desktop_scm_stop_access: forbidden
+      service_binary_path_or_arguments_input: forbidden
+      running_success_requirement: verified_new_or_existing_runtime_process_and_protected_handshake
+      restart_success_requirement: new_pid_creation_marker_and_runtime_boot_epoch_verified
+      hung_runtime_recovery: signed_installer_service_updater_or_administrator_only
+    acceptance_isolation:
+      service_name: NimiRuntime
+      service_principal: same_production_local_system_and_restricted_service_sid
+      candidate_root_acl: restricted_service_sid_only
+      account_partition: verified_interactive_sid
+      runtime_lifecycle_and_restart: real_scm_service
+      parallel_isolation: candidate_namespace_for_state_audit_and_child_pipes
     source_rule: K-PLOCAL-007
   - os: linux
+    admission: requirements_only_fail_closed_pending_native_admission
     production_principal: dedicated_nimi_runtime_system_uid
     interactive_user_relation: distinct_os_security_principal
+    service_manager: systemd_system_service_manager
     service_installation: signed_package_creates_systemd_system_service_with_no_login_uid
+    protected_state_location: dedicated_runtime_system_uid_owned_protected_state_selected_by_signed_package
     account_partition_derivation: verified_so_peercred_uid_and_login_session
     process_isolation: systemd_protect_proc_invisible_no_new_privileges_protect_system_strict_private_tmp
-    endpoint_connect_boundary: service_owned_socket_acl_grants_connect_only_to_active_interactive_uid
+    principal_constraints:
+      login_capability: forbidden
+      protected_state_owner: dedicated_nimi_runtime_system_uid
+      interactive_process_access: verification_only
+    principal_selection:
+      authority_status: requirements_only
+      selected_profile: dedicated_non_login_system_uid
+    service_control:
+      status_semantics: systemd_unit_state_then_verified_runtime_health_when_running
+      start_semantics: fixed_signed_system_unit_without_exec_or_argument_selection
+      restart_semantics: runtime_self_exit_then_systemd_restart_and_new_boot_epoch_verification
+      implementation_status: requirements_only
+    acceptance_isolation:
+      service_principal: same_production_dedicated_system_uid
+      candidate_root_acl: dedicated_runtime_uid_only
+      account_partition: verified_interactive_uid_and_login_session
+      runtime_lifecycle_and_restart: real_systemd_system_service
+      parallel_isolation: candidate_namespace_for_state_audit_and_child_sockets
     source_rule: K-PLOCAL-007
   - os: macos
-    production_principal: dedicated_nimi_runtime_launchdaemon_principal
+    admission: requirements_only_fail_closed_pending_native_admission
+    production_principal: dedicated_nimi_runtime_launchd_system_daemon_principal
     interactive_user_relation: distinct_os_security_principal
-    service_installation: signed_installer_creates_hardened_launchdaemon_and_privileged_xpc_service
+    service_manager: launchd_system_domain
+    service_installation: signed_installer_creates_hardened_launchd_system_daemon_with_no_interactive_login
+    protected_state_location: launchd_system_daemon_owned_protected_state_selected_by_signed_installer
     account_partition_derivation: verified_audit_token_euid_and_audit_session
     process_isolation: hardened_runtime_library_validation_and_task_for_pid_denial
-    endpoint_connect_boundary: privileged_xpc_mach_service_validates_client_audit_token_and_code_identity
+    principal_constraints:
+      launch_domain: system
+      protected_state_owner: launchd_runtime_principal
+      service_definition_authority: signed_installer_only
+      interactive_process_access: verification_only
+    principal_selection:
+      authority_status: requirements_only
+      selected_profile: hardened_launchd_system_daemon_principal
+    service_control:
+      status_semantics: launchd_service_state_then_verified_runtime_health_when_running
+      start_semantics: fixed_signed_launchd_service_definition_without_program_or_argument_selection
+      restart_semantics: runtime_self_exit_then_launchd_restart_and_new_boot_epoch_verification
+      implementation_status: requirements_only
+    acceptance_isolation:
+      service_principal: same_production_launchd_system_daemon_principal
+      candidate_root_acl: launchd_runtime_principal_only
+      account_partition: verified_interactive_euid_and_audit_session
+      runtime_lifecycle_and_restart: real_launchd_system_daemon
+      parallel_isolation: candidate_namespace_for_state_audit_and_child_sockets
     source_rule: K-PLOCAL-007

@@ -102,13 +102,14 @@ test('SID anchor and principal, record, and grant stores are structurally separa
 
 test('Windows positive authority is the fixed service and real-service acceptance model', () => {
   const principals = parseAuthority(AUTHORITY_PATHS.runtimePrincipals);
-  assert.equal(principals.production_runtime_execution_mode, 'isolated_os_service_principal');
-  assert.equal(principals.desktop_service_control.windows.service_name, 'NimiRuntime');
+  const windows = principals.profiles.find((row) => row.os === 'windows');
+  assert.equal(principals.neutral_contract.production_runtime_execution_mode, 'isolated_os_service_principal');
+  assert.equal(windows.service_control.service_name, 'NimiRuntime');
   assert.equal(principals.desktop_service_control.desktop_direct_spawn, 'forbidden');
-  assert.equal(principals.windows_service_host.scm_account, 'LocalSystem');
-  assert.equal(principals.windows_service_host.token_user_sid, 'S-1-5-18');
-  assert.equal(principals.service_acceptance_isolation.runtime_lifecycle_and_restart, 'real_scm_service');
-  assert.equal(principals.service_acceptance_isolation.test_only_service_principal, 'forbidden');
+  assert.equal(windows.principal_constraints.scm_account, 'LocalSystem');
+  assert.equal(windows.principal_constraints.token_user_sid, 'S-1-5-18');
+  assert.equal(windows.acceptance_isolation.runtime_lifecycle_and_restart, 'real_scm_service');
+  assert.equal(principals.service_acceptance_contract.test_only_service_principal, 'forbidden');
 });
 
 test('0K package operations are opaque typed-unavailable seams, not active SDK methods', () => {

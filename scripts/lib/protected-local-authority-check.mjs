@@ -268,22 +268,24 @@ function validateFixedService(bundle, issues) {
   const osProfiles = parseYaml(bundle, AUTHORITY_PATHS.osProfiles, issues);
   const windows = (principals?.profiles ?? []).find((row) => row.os === 'windows');
   const windowsOs = (osProfiles?.profiles ?? []).find((row) => row.os === 'windows');
+  const neutral = principals?.neutral_contract;
   const control = principals?.desktop_service_control;
+  const windowsControl = windows?.service_control;
+  const windowsHost = windows?.principal_constraints;
   if (
-    principals?.production_runtime_execution_mode !== 'isolated_os_service_principal'
-    || principals?.production_same_interactive_user_daemon_allowed !== false
-    || principals?.service_install_authority !== 'signed_nimi_installer_only'
-    || principals?.production_environment_or_argv_override !== 'forbidden'
+    neutral?.production_runtime_execution_mode !== 'isolated_os_service_principal'
+    || neutral?.same_interactive_user_daemon_allowed !== false
+    || neutral?.service_install_authority !== 'signed_nimi_installer_only'
+    || neutral?.environment_or_argv_override !== 'forbidden'
     || control?.operations?.join(',') !== 'status,start,restart'
     || control?.product_stop_operation !== 'absent'
     || control?.desktop_direct_spawn !== 'forbidden'
     || control?.desktop_direct_stop !== 'forbidden'
-    || control?.windows?.service_name !== 'NimiRuntime'
-    || control?.windows?.service_binary_path_or_arguments_input !== 'forbidden'
-    || principals?.windows_service_host?.scm_account !== 'LocalSystem'
-    || principals?.windows_service_host?.token_user_sid !== 'S-1-5-18'
-    || principals?.windows_service_host?.state_acl_scope !== 'exact_restricted_service_sid_only'
-    || principals?.windows_service_host?.local_machine_descriptor_allowed !== false
+    || windowsControl?.service_name !== 'NimiRuntime'
+    || windowsControl?.service_binary_path_or_arguments_input !== 'forbidden'
+    || windowsHost?.scm_account !== 'LocalSystem'
+    || windowsHost?.token_user_sid !== 'S-1-5-18'
+    || windowsHost?.state_acl_scope !== 'exact_restricted_service_sid_only'
     || windows?.interactive_user_relation !== 'distinct_os_security_principal'
     || windowsOs?.endpoint_kind !== 'named_pipe'
     || !String(windowsOs?.client_peer_verification ?? '').includes('GetNamedPipeClientProcessId')
@@ -296,17 +298,18 @@ function validateFixedService(bundle, issues) {
     ));
   }
 
-  const acceptance = principals?.service_acceptance_isolation;
+  const acceptanceContract = principals?.service_acceptance_contract;
+  const acceptance = windows?.acceptance_isolation;
   if (
     acceptance?.service_name !== 'NimiRuntime'
     || acceptance?.service_principal !== 'same_production_local_system_and_restricted_service_sid'
-    || acceptance?.service_owned_candidate_root !== 'required'
-    || acceptance?.environment_or_argv_root_selection !== 'forbidden'
     || acceptance?.candidate_root_acl !== 'restricted_service_sid_only'
     || acceptance?.account_partition !== 'verified_interactive_sid'
     || acceptance?.runtime_lifecycle_and_restart !== 'real_scm_service'
     || acceptance?.parallel_isolation !== 'candidate_namespace_for_state_audit_and_child_pipes'
-    || acceptance?.test_only_service_principal !== 'forbidden'
+    || acceptanceContract?.service_owned_candidate_root !== 'required'
+    || acceptanceContract?.environment_or_argv_root_selection !== 'forbidden'
+    || acceptanceContract?.test_only_service_principal !== 'forbidden'
   ) {
     issues.push(issue(
       'SERVICE_ACCEPTANCE_ISOLATION_REQUIRED',
