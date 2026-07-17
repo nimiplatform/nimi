@@ -16,7 +16,7 @@ const (
 var operationSpecs = map[Operation]selectorShape{
 	OperationArtifactRead:          selectorArtifact,
 	OperationConversationOpen:      selectorAgent,
-	OperationConversationTurnSend:  selectorAgentAnchor,
+	OperationConversationTurnSend:  selectorAgentAnchorTurn,
 	OperationConversationSubscribe: selectorAgentAnchor,
 	OperationConversationSnapshot:  selectorAgentAnchor,
 	OperationStorageJSONRead:       selectorStorage,
