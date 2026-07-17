@@ -215,6 +215,77 @@ func TestResolveLocalEnvironmentPlanPromotesFirstRunNvidiaCUDAToRequired(t *test
 	}
 }
 
+func TestResolveLocalEnvironmentPlanUsesEngineCUDASelectionWhenDetailedFirstRunProbeFails(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{
+		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+			DependencyID: cudaUserSpaceRuntimeDependencyID,
+			State:        engine.SharedAcceleratorDependencyMaterializableRequiresConfirmation,
+			Source:       "runtime_managed",
+			Detail:       "nvidia_cuda_user_space_runtime state=materializable_requires_confirmation",
+		},
+	})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:        "local-text",
+		ConsumerScope: "first-run",
+		HostProfile: &runtimev1.LocalDeviceProfile{
+			Os:     "windows",
+			Arch:   "amd64",
+			Gpu:    &runtimev1.LocalGpuProfile{Available: false},
+			Python: &runtimev1.LocalPythonProfile{Available: false},
+		},
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:         "text/test-model",
+	})
+
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if !dep.Required {
+		t.Fatalf("Engine-selected first-run CUDA package must require its shared dependency even when the detailed GPU probe is unavailable: %+v", dep)
+	}
+	if dep.ConsumerScope != "llama.cpp.cuda" {
+		t.Fatalf("CUDA dependency consumer scope = %q, want llama.cpp.cuda: %+v", dep.ConsumerScope, dep)
+	}
+	if dep.State != localEnvironmentStateNeedsConfirmation || !dep.ConfirmationRequired {
+		t.Fatalf("CUDA dependency must remain an explicit first-materialization confirmation: %+v", dep)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanKeepsFirstRunCUDAOptionalWhenEngineSelectionIsUnsupported(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{
+		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+			DependencyID: cudaUserSpaceRuntimeDependencyID,
+			State:        engine.SharedAcceleratorDependencyUnsupported,
+			Source:       "unavailable",
+			Detail:       "host accelerator profile does not admit Windows NVIDIA CUDA dependency",
+		},
+	})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:        "local-text",
+		ConsumerScope: "first-run",
+		HostProfile: &runtimev1.LocalDeviceProfile{
+			Os:     "windows",
+			Arch:   "amd64",
+			Gpu:    &runtimev1.LocalGpuProfile{Available: false},
+			Python: &runtimev1.LocalPythonProfile{Available: false},
+		},
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:         "text/test-model",
+	})
+
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if dep.Required {
+		t.Fatalf("Engine-unsupported first-run CUDA dependency must remain optional: %+v", dep)
+	}
+	if dep.State != localEnvironmentStateUnsupported {
+		t.Fatalf("Engine-unsupported first-run CUDA dependency state = %q, want unsupported: %+v", dep.State, dep)
+	}
+}
+
 func TestResolveLocalEnvironmentPlanKeepsCPUConsumerCUDAOptional(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
