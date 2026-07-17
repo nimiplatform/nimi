@@ -81,7 +81,7 @@ tests:
       - Z-CHAT-001
       - Z-CHAT-002
       - Z-GATE-001
-  - path: apps/zhiyu/test/agent-inventory-world-name.test.mjs
+  - path: apps/zhiyu/test/nimi-app-manifest-authority.test.mjs
     owner: zhiyu
     classification: behavior_unit
     tier: T4
@@ -92,7 +92,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-      - Z-PARTNER-003
+      - Z-AUTH-002
+      - Z-AUTH-003
       - Z-GATE-001
   - path: apps/zhiyu/test/apml-projection-matrix.test.mjs
     owner: zhiyu
