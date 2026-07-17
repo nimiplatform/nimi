@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
-import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -12,6 +11,10 @@ import {
   type NimiElectronLocalDevelopmentDecision,
   type NimiElectronLocalDevelopmentEvaluation,
 } from '@nimiplatform/kit/shell/electron/main';
+import {
+  createDesktopElectronLocalDevelopmentProjectionPublisher,
+  type DesktopElectronLocalDevelopmentProjectionPublisher,
+} from './local-development-authority-summary.js';
 import {
   canonicalElectronMain,
   ElectronLocalDevelopmentPlanError,
@@ -27,7 +30,6 @@ const COMMANDS = new Set([
   'local_development_authorization_revoke',
 ]);
 const MAX_REQUEST_BYTES = 32 * 1024;
-const HEARTBEAT_MS = 3_000;
 const HEALTH_MS = 2_000;
 const REBUILD_DEBOUNCE_MS = 450;
 const LOCAL_DEVELOPMENT_PACKAGE_SCRIPTS = new Set(['build:electron', 'dev:renderer']);
@@ -133,19 +135,18 @@ class ElectronLocalDevelopmentHost {
   private readonly pending = new Map<string, PendingApproval>();
   private readonly authorizationSelectors = new Map<string, string>();
   private server: Server | undefined;
-  private heartbeat: ReturnType<typeof setInterval> | undefined;
-  private readonly startedAt = new Date().toISOString();
   private endpoint = '';
-  private readonly descriptorPath: string;
+  private readonly projectionPublisher: DesktopElectronLocalDevelopmentProjectionPublisher;
 
   constructor(
     private readonly control: NimiElectronLocalDevelopmentControl,
     homeDirectory: string,
     private readonly focusMainWindow: () => Promise<void>,
   ) {
-    this.descriptorPath = path.join(
-      homeDirectory, '.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json',
-    );
+    this.projectionPublisher = createDesktopElectronLocalDevelopmentProjectionPublisher({
+      homeDirectory,
+      control,
+    });
   }
 
   async start(): Promise<void> {
@@ -157,8 +158,7 @@ class ElectronLocalDevelopmentHost {
     const address = this.server.address();
     if (!address || typeof address === 'string') throw new Error('local-development-supervisor-required');
     this.endpoint = `http://127.0.0.1:${address.port}`;
-    await this.writePresence();
-    this.heartbeat = setInterval(() => void this.writePresence().catch(() => undefined), HEARTBEAT_MS);
+    await this.projectionPublisher.start(this.endpoint);
   }
 
   async invoke(command: string, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
@@ -176,12 +176,10 @@ class ElectronLocalDevelopmentHost {
   }
 
   async shutdown(): Promise<void> {
-    if (this.heartbeat) clearInterval(this.heartbeat);
-    this.heartbeat = undefined;
     await Promise.all([...this.runs.values()].map((run) => this.stopRun(run, 'stopped')));
     await new Promise<void>((resolve) => this.server?.close(() => resolve()) ?? resolve());
     this.server = undefined;
-    await rm(this.descriptorPath, { force: true }).catch(() => undefined);
+    await this.projectionPublisher.shutdown();
   }
 
   private async handleHttp(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -549,22 +547,6 @@ class ElectronLocalDevelopmentHost {
     await this.control.terminateHost(run.supervisorRunId).catch(() => undefined);
   }
 
-  private async writePresence(): Promise<void> {
-    const directory = path.dirname(this.descriptorPath);
-    await mkdir(directory, { recursive: true });
-    const temp = path.join(directory, `.presence.${process.pid}.${randomBytes(8).toString('hex')}.tmp`);
-    const document = JSON.stringify({
-      schemaVersion: 1,
-      desktopAppId: 'nimi.desktop',
-      desktopPid: process.pid,
-      endpoint: this.endpoint,
-      startedAt: this.startedAt,
-      lastHeartbeatAt: new Date().toISOString(),
-    });
-    await writeFile(temp, document, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
-    await rm(this.descriptorPath, { force: true });
-    await rename(temp, this.descriptorPath);
-  }
 }
 
 function projectRun(status: RunStatus) {

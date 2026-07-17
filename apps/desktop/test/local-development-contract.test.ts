@@ -59,9 +59,10 @@ test('Desktop owns Tauri build and launch without a project-visible runner secre
 
 test('Desktop Electron owns presence, rebuild, protected launch, health refresh, and cleanup', () => {
   const supervisor = read('src-electron/local-development-host.ts');
+  const authoritySummary = read('src-electron/local-development-authority-summary.ts');
   const plan = read('src-electron/local-development-plan.ts');
   assert.match(supervisor, /createServer/);
-  assert.match(supervisor, /presence\.v1\.json/);
+  assert.match(authoritySummary, /presence\.v1\.json/);
   assert.match(supervisor, /runPackageScript\(run, 'build:electron'\)/);
   assert.match(supervisor, /createNimiElectronLocalDevelopmentControl/);
   assert.match(supervisor, /this\.control\.launch/);
@@ -69,6 +70,14 @@ test('Desktop Electron owns presence, rebuild, protected launch, health refresh,
   assert.match(supervisor, /this\.control\.terminateHost/);
   assert.match(supervisor, /watch\(path\.join\(run\.plan\.projectRoot, 'src-electron'\)/);
   assert.doesNotMatch(supervisor, /sessionProof|sessionSecret|accessToken|refreshToken|authorization:\s*Bearer/u);
+  assert.match(supervisor, /createDesktopElectronLocalDevelopmentProjectionPublisher/);
+  assert.match(authoritySummary, /authority-summary\.v1\.json/);
+  assert.match(authoritySummary, /this\.control\.getAuthoritySummary\(\)/);
+  assert.match(authoritySummary, /this\.removeAuthoritySummary\(\)/);
+  assert.doesNotMatch(
+    authoritySummary,
+    /accountId|authorizationId|grantId|sessionProof|sessionSecret|accessToken|refreshToken/u,
+  );
   assert.match(plan, /nimi-app dev --shell electron/);
   assert.match(plan, /vite --host 127\.0\.0\.1 --port/);
 });

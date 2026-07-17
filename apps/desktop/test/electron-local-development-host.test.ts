@@ -21,6 +21,34 @@ const projectRoot = path.join(repoRoot, 'apps', 'zhiyu');
 const evaluationId = '11'.repeat(32);
 const authorizationId = '22'.repeat(32);
 
+function authoritySummary() {
+  return {
+    developerMode: {
+      availability: 'available' as const,
+      state: 'enabled' as const,
+      unavailableReason: null,
+    },
+    projectAuthorization: {
+      availability: 'available' as const,
+      activeCount: 1,
+      dormantCount: 0,
+      deniedCount: 0,
+      revokedCount: 0,
+      unavailableReason: null,
+    },
+    grantSummary: {
+      availability: 'available' as const,
+      pendingCount: 0,
+      grantedCount: 0,
+      deniedCount: 0,
+      expiredCount: 0,
+      revokedCount: 0,
+      supersededCount: 0,
+      unavailableReason: null,
+    },
+  };
+}
+
 function project(shell: 'electron' | 'tauri' = 'electron') {
   return {
     appId: 'nimi.zhiyu',
@@ -61,6 +89,7 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
     evaluationExpiresAtUnixMs: Date.now() + 30_000,
   };
   const control: NimiElectronLocalDevelopmentControl = {
+    getAuthoritySummary: async () => authoritySummary(),
     evaluate: async () => evaluation,
     decide: async () => authorization('denied'),
     reactivate: async () => authorization('active'),
@@ -214,6 +243,7 @@ test('Electron local-development project equality accepts the Windows extended-l
 test('Electron local-development HTTP bridge rejects browser-originated intents', async () => {
   const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-origin-'));
   const control = {
+    getAuthoritySummary: async () => authoritySummary(),
     evaluate: async () => { throw new Error('not-called'); },
     decide: async () => { throw new Error('not-called'); },
     reactivate: async () => { throw new Error('not-called'); },
