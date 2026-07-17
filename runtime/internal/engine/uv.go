@@ -19,6 +19,8 @@ var (
 	managedPythonPipCommandTimeout     = 45 * time.Minute
 )
 
+const managedUVTransientBuildRetryDelay = 500 * time.Millisecond
+
 func engineVersionDir(baseDir string, kind EngineKind, version string) string {
 	normalizedVersion := strings.TrimSpace(version)
 	if normalizedVersion == "" {
@@ -451,5 +453,65 @@ func uvPipInstall(ctx context.Context, uvPath string, venvRoot string, pythonPat
 	args := []string{"pip", "install", "--python", pythonPath}
 	args = append(args, extraArgs...)
 	args = append(args, packages...)
-	return runCommand(ctx, trimmedVenvRoot, managedPythonRuntimeEnv(trimmedVenvRoot), uvPath, args...)
+	installCtx, cancel := contextWithManagedCommandTimeout(ctx, managedPythonPipCommandTimeout)
+	defer cancel()
+	run := func() error {
+		return runCommand(installCtx, trimmedVenvRoot, managedPythonRuntimeEnv(trimmedVenvRoot), uvPath, args...)
+	}
+	return runUVPipInstallWithTransientBuildRetry(
+		installCtx,
+		currentGOOS(),
+		managedUVTransientBuildRetryDelay,
+		run,
+	)
+}
+
+// runUVPipInstallWithTransientBuildRetry absorbs one narrow Windows build
+// workspace write denial inside an already-confirmed Runtime materializer job.
+// When setuptools reports Errno 13 specifically for the final wheel beneath
+// uv's disposable builds-v0/.tmp* workspace, re-running the idempotent uv
+// transaction once lets the same job reuse its verified downloads and cached
+// build inputs after the first process has released every handle. Every other
+// failure, and a repeated permission failure, remains fail-closed for the job
+// owner to project through its existing recovery disposition.
+func runUVPipInstallWithTransientBuildRetry(
+	ctx context.Context,
+	goos string,
+	delay time.Duration,
+	run func() error,
+) error {
+	if run == nil {
+		return fmt.Errorf("uv pip install command is required")
+	}
+	firstErr := run()
+	if firstErr == nil || !isWindowsUVTransientWheelBuildPermissionError(goos, firstErr) {
+		return firstErr
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+	if retryErr := run(); retryErr != nil {
+		return fmt.Errorf("uv pip install retry after transient wheel-build permission failure: %w", retryErr)
+	}
+	return nil
+}
+
+func isWindowsUVTransientWheelBuildPermissionError(goos string, err error) bool {
+	if err == nil || strings.TrimSpace(goos) != "windows" {
+		return false
+	}
+	detail := strings.ToLower(err.Error())
+	normalizedPathDetail := strings.ReplaceAll(detail, `\`, "/")
+	return strings.Contains(detail, "error: [errno 13] permission denied:") &&
+		strings.Contains(normalizedPathDetail, "/builds-v0/.tmp") &&
+		strings.Contains(normalizedPathDetail, ".whl")
 }
