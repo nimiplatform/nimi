@@ -422,6 +422,7 @@
     "auditReadFailed": "Audit activity is unavailable. Check or update the local Runtime, then try again.",
     "filterDomain": "Filter domain...",
     "auditId": "Audit ID",
+    "requestId": "Request ID",
     "appId": "App ID",
     "subjectUser": "Subject User",
     "domain": "Domain",

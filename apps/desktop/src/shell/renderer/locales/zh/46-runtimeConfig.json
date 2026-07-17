@@ -422,6 +422,7 @@
     "auditReadFailed": "暂时无法读取审计活动。请检查或更新本地运行时后重试。",
     "filterDomain": "筛选 domain...",
     "auditId": "审计 ID",
+    "requestId": "请求 ID",
     "appId": "应用 ID",
     "subjectUser": "主体用户",
     "domain": "域",
