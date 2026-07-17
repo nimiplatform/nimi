@@ -13,8 +13,9 @@
 | `D:\nimi-realm\nimi` | `pnpm dev:runtime` | build/sign → 原地更新已安装 fixed service → 重启 → status；未提权时弹一次 UAC | 仅 Runtime 变更时 |
 | `D:\nimi-realm\nimi` | `pnpm dev:electron:desktop` | 签名 Desktop carrier、持久 profile、renderer HMR、项目/grant 审批宿主 | 联调期间 |
 | `D:\nimi-realm\nimi` | `pnpm dev:electron:zhiyu` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Zhiyu | 联调期间 |
+| `D:\nimi-realm\nimi` | `pnpm dev:electron:tester` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Tester 权限实验室与产品 UI | 联调期间 |
 
-建议顺序：Realm → Web → fixed Runtime status → Desktop → Zhiyu。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
+建议顺序：Realm → Web → fixed Runtime status → Desktop → 目标 App（Zhiyu 或 Tester）。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
 
 需要让连续的 dev-kernel candidate 复用一个既有 `nimi_data` payload 根时，必须由
 operator 在 signed-installer 更新链上显式选择：
@@ -45,6 +46,8 @@ dev-kernel profile 有意使用 candidate-specific fallback root；因此连续�
 | Desktop renderer | Vite HMR，不重启 carrier |
 | Zhiyu renderer | Vite HMR，不重启 host |
 | Zhiyu `src-electron` main/preload | Desktop supervisor 450ms 防抖后运行 `build:electron` 并替换 host |
+| Tester renderer | Vite HMR，不重启 host |
+| Tester `src-electron` main/preload | Desktop supervisor 450ms 防抖后运行 `build:electron` 并替换 host |
 | Desktop main/preload | `build:electron` 后重启签名 carrier；应用 JS 从 repo `dist-electron` 加载，不重签 carrier |
 | Runtime Go | `pnpm dev:runtime`；该命令轮换 boot epoch |
 | SDK/Kit | 单独运行 `pnpm dev:prepare:watch`；350 ms 防抖后串行调用 SDK、Kit canonical build，SDK 变化会继续重建 Kit |

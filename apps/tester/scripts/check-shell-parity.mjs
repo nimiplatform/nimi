@@ -44,14 +44,17 @@ function validateShellParity() {
   const rendererBridge = readRepo('kit/shell/renderer/src/bridge/local-app.ts');
   const productionSources = [sourceTree('src'), sourceTree('src-electron'), tauriProduct].join('\n');
 
-  if (packageJson.scripts.dev !== 'nimi-app dev --shell tauri') {
-    throw new Error('Tester pnpm dev must enter the official Tauri launcher');
+  if (packageJson.scripts.dev !== 'nimi-app dev --shell electron') {
+    throw new Error('Tester pnpm dev must enter the proven Electron launcher');
   }
   if (packageJson.scripts['dev:shell'] !== 'nimi-app dev') {
     throw new Error('Tester dev:shell must enter the official launcher');
   }
   if (packageJson.scripts['dev:electron'] !== 'nimi-app dev --shell electron') {
     throw new Error('Tester Electron development must enter the official launcher');
+  }
+  if (packageJson.scripts['dev:tauri'] !== 'nimi-app dev --shell tauri') {
+    throw new Error('Tester Tauri development must retain the official dual-shell launcher');
   }
 
   requireText(electronMain, 'registerNimiElectronAppBridge', 'Electron local-app host');

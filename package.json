@@ -337,7 +337,7 @@
     "dev:electron:zhiyu": "pnpm --filter @nimiplatform/zhiyu dev:electron",
     "dev:avatar": "node scripts/dev-avatar.mjs",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
-    "dev:tester": "pnpm --filter @nimiplatform/tester dev:shell",
+    "dev:tester": "pnpm --filter @nimiplatform/tester dev",
     "dev:electron:tester": "pnpm --filter @nimiplatform/tester dev:electron",
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
     "docs:build": "pnpm --filter @nimiplatform/docs build",

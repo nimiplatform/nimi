@@ -12,6 +12,8 @@ function read(relativePath) {
 test('tester exposes a first-class shell parity gate', () => {
   const packageJson = JSON.parse(read('package.json'));
   assert.equal(packageJson.scripts['check:shell-static-parity'], 'node scripts/check-shell-parity.mjs');
+  assert.equal(packageJson.scripts.dev, 'nimi-app dev --shell electron');
+  assert.equal(packageJson.scripts['dev:tauri'], 'nimi-app dev --shell tauri');
   assert.equal(packageJson.scripts['test:e2e:tauri'], 'corepack pnpm run test:e2e:tauri:plain-negative');
   assert.equal(packageJson.scripts['test:e2e:tauri:plain-negative'], 'corepack pnpm run build && node scripts/run-tauri-acceptance.mjs');
   assert.equal(packageJson.scripts['check:shell-parity'], 'pnpm run check:shell-static-parity && pnpm run test:e2e:electron && pnpm run test:e2e:tauri');

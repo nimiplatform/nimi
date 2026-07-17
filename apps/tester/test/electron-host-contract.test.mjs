@@ -102,6 +102,8 @@ test('Electron host exposes only the fixed Kit app-host bridge', () => {
   assert.doesNotMatch(mainSource, /createTesterElectronCommandHandlers/);
   assert.doesNotMatch(mainSource, /runtimeEndpoint|NIMI_RUNTIME_GRPC_ADDR|createGrpcClient/);
   assert.match(mainSource, /BrowserWindow/);
+  assert.match(mainSource, /minWidth:\s*360/);
+  assert.match(mainSource, /minHeight:\s*640/);
   assert.match(mainSource, /Menu\.setApplicationMenu\(null\)/);
   assert.match(mainSource, /autoHideMenuBar:\s*true/);
   assert.match(mainSource, /contextIsolation:\s*true/);
