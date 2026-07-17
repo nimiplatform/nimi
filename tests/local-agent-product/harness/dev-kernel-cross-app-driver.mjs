@@ -35,6 +35,7 @@ import {
   setWindowBounds,
   sha256,
   waitForTestId,
+  waitForCdpEndpointRelease,
   waitUntil,
   writeJson,
 } from './dev-kernel-host-driver.mjs';
@@ -542,6 +543,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     }
     await terminateProcessTree(runOnceHandle);
     runOnceHandle = null;
+    await waitForCdpEndpointRelease(zhiyuCdpPort, 'run-once Zhiyu');
 
     phase = 'remembered-local-development-start';
     const rememberedLaunch = beginObservedProcess({
@@ -661,6 +663,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     );
     if (rememberedHandle.child.exitCode === null) await terminateProcessTree(rememberedHandle);
     rememberedHandle = null;
+    await waitForCdpEndpointRelease(zhiyuCdpPort, 'remembered Zhiyu');
     fs.writeFileSync(probePath, originalProbe);
     probeRestored = true;
     observations.modeOn = await setDeveloperMode(desktop.page, true);

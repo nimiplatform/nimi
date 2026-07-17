@@ -200,6 +200,14 @@ export async function connectCdp(port, label, timeoutMs = 240_000, observer = nu
   }, { timeoutMs: 30_000, intervalMs: 25, label: `${label} page` });
 }
 
+export async function waitForCdpEndpointRelease(port, label, timeoutMs = 30_000) {
+  const endpoint = `http://127.0.0.1:${port}/json/version`;
+  await waitUntil(async () => {
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(1_000) }).catch(() => null);
+    return response === null;
+  }, { timeoutMs, intervalMs: 25, label: `${label} CDP endpoint release` });
+}
+
 export function createEarlyCdpObserver(aggregate, {
   initialPhase = 'unclassified',
   classifyConsoleError = undefined,

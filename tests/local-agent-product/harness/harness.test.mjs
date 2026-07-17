@@ -22,6 +22,7 @@ import {
   decodeDesktopRuntimeUnaryResponse,
   probeRealRealmBrowserLoginAuthority,
 } from './dev-kernel-cross-app-driver.mjs';
+import { waitForCdpEndpointRelease } from './dev-kernel-host-driver.mjs';
 import {
   classifyRememberedInitialGrantPosture,
   selectRememberedProjectAuthorizations,
@@ -135,6 +136,28 @@ test('real Realm login preflight requires a web login continuation and rejects a
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
+});
+
+test('CDP endpoint release waits for the prior supervised host to stop serving', async () => {
+  const server = http.createServer((_request, response) => {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{"Browser":"old-host"}');
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  let released = false;
+  const release = waitForCdpEndpointRelease(address.port, 'test host', 2_000).then(() => {
+    released = true;
+  });
+  await new Promise((resolve) => setTimeout(resolve, 75));
+  assert.equal(released, false);
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  await release;
+  assert.equal(released, true);
 });
 
 test('process capture persists full logs while bounding in-memory diagnostics', async () => {
