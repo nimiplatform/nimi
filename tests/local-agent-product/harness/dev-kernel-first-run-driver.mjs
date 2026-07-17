@@ -9,6 +9,7 @@ import {
   classifyFirstRunStorageRecoverySnapshot,
   classifyFirstRunTerminalSnapshot,
   comparablePath,
+  isAuthoritativeFirstRunStorageAdvance,
   isRecoverableFirstRunStorageRestart,
   invokeDesktop,
   invokeDesktopRuntimeUnary,
@@ -129,7 +130,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
         intervalMs: 500,
         label: 'same-candidate fixed service replacement after first-run Storage interruption',
       });
-      await waitUntil(async () => {
+      const protectedCarrierRecovery = await waitUntil(async () => {
         const [lifecycle, productControl] = await Promise.all([
           invokeDesktop(page, RUNTIME_STATUS_COMMAND).catch(() => null),
           readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null),
@@ -138,32 +139,53 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
           && lifecycle?.managed === true
           && typeof productControl?.state === 'string'
           && productControl.state.length > 0
-          ? true
+          ? { lifecycle, productControl }
           : null;
       }, {
         timeoutMs: 60_000,
         intervalMs: 100,
         label: 'first-run Storage protected-carrier re-handshake',
       });
-      await waitUntil(async () => !(await continueStorage.isDisabled().catch(() => true)) || null, {
+      const recoveryDisposition = await waitUntil(async () => {
+        const snapshot = {
+          deviceVisible: await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false),
+          errorVisible: await page.getByTestId('product-first-run-error').isVisible().catch(() => false),
+          pendingAction: await page.getByTestId('product-first-run-workflow')
+            .getAttribute('data-pending-action').catch(() => ''),
+        };
+        if (isAuthoritativeFirstRunStorageAdvance(
+          snapshot,
+          protectedCarrierRecovery.productControl,
+          trial.paths.runtimeData,
+        )) {
+          return 'advanced';
+        }
+        const storageRetryReady = await continueStorage.isVisible().catch(() => false)
+          && !(await continueStorage.isDisabled().catch(() => true));
+        return !snapshot.deviceVisible && storageRetryReady ? 'retry-storage' : null;
+      }, {
         timeoutMs: 30_000,
         intervalMs: 50,
-        label: 'first-run Storage retry enabled after Runtime restart',
+        label: 'first-run canonical state recovery after Runtime restart',
       });
-      await continueStorage.click({ noWaitAfter: true });
-      const retryAcceptance = await waitUntil(async () => classifyFirstRunStorageRecoverySnapshot({
-        deviceVisible: await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false),
-        errorVisible: await page.getByTestId('product-first-run-error').isVisible().catch(() => false),
-        pendingAction: await page.getByTestId('product-first-run-workflow')
-          .getAttribute('data-pending-action').catch(() => ''),
-      }), {
-        timeoutMs: 30_000,
-        intervalMs: 25,
-        label: 'first-run Storage retry accepted after Runtime restart',
-      });
-      storageTransition = retryAcceptance === 'advanced'
-        ? { kind: 'advanced' }
-        : await observeStorageTransition('first-run Storage retry completion after Runtime restart');
+      if (recoveryDisposition === 'advanced') {
+        storageTransition = { kind: 'advanced' };
+      } else {
+        await continueStorage.click({ noWaitAfter: true });
+        const retryAcceptance = await waitUntil(async () => classifyFirstRunStorageRecoverySnapshot({
+          deviceVisible: await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false),
+          errorVisible: await page.getByTestId('product-first-run-error').isVisible().catch(() => false),
+          pendingAction: await page.getByTestId('product-first-run-workflow')
+            .getAttribute('data-pending-action').catch(() => ''),
+        }), {
+          timeoutMs: 30_000,
+          intervalMs: 25,
+          label: 'first-run Storage retry accepted after Runtime restart',
+        });
+        storageTransition = retryAcceptance === 'advanced'
+          ? { kind: 'advanced' }
+          : await observeStorageTransition('first-run Storage retry completion after Runtime restart');
+      }
       storageRestartRecovery = {
         recovered: storageTransition.kind === 'advanced',
         serviceBeforeProcessId: serviceBeforeStorage.processId,

@@ -96,6 +96,7 @@ export {
   connectCdp,
   createEarlyCdpObserver,
   decodeDesktopRuntimeUnaryResponse,
+  isAuthoritativeFirstRunStorageAdvance,
   isRecoverableFirstRunStorageRestart,
   invokeDesktop,
   invokeDesktopRuntimeUnary,

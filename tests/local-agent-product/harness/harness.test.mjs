@@ -21,6 +21,7 @@ import { startProcess } from './cross-app-driver.mjs';
 import {
   decodeDesktopRuntimeUnaryResponse,
   probeRealRealmBrowserLoginAuthority,
+  setWindowBounds,
 } from './dev-kernel-cross-app-driver.mjs';
 import { waitForCdpEndpointRelease } from './dev-kernel-host-driver.mjs';
 import {
@@ -88,6 +89,32 @@ test('Runtime unary decoder accepts a canonical empty protobuf but rejects a mis
     () => decodeDesktopRuntimeUnaryResponse(codec, {}, '/runtime/ListJobs'),
     /returned no response bytes field/u,
   );
+});
+
+test('window resize falls back to an exact emulated viewport when Electron enforces its native minimum', async () => {
+  let emulatedViewport = null;
+  const connection = {
+    context: {
+      async newCDPSession() {
+        return {
+          async send(method) {
+            return method === 'Browser.getWindowForTarget' ? { windowId: 7 } : {};
+          },
+        };
+      },
+    },
+    page: {
+      async evaluate() {
+        return emulatedViewport ?? { clientWidth: 1100, clientHeight: 760 };
+      },
+      async setViewportSize(next) {
+        emulatedViewport = { clientWidth: next.width, clientHeight: next.height };
+      },
+    },
+  };
+
+  assert.equal(await setWindowBounds(connection, 390, 780), 'cdp-viewport-fallback');
+  assert.deepEqual(emulatedViewport, { clientWidth: 390, clientHeight: 780 });
 });
 
 test('dev-kernel Electron journeys isolate real Chrome auth inside the trial root', () => {

@@ -440,6 +440,22 @@ export async function firstVisible(page, selector) {
   return null;
 }
 
+async function readDocumentViewport(page) {
+  return page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    clientHeight: document.documentElement.clientHeight,
+  }));
+}
+
+function nativeViewportMatchesRequest(viewport, width, height) {
+  return Number.isFinite(viewport?.clientWidth)
+    && Number.isFinite(viewport?.clientHeight)
+    && viewport.clientWidth <= width
+    && viewport.clientWidth >= Math.max(1, width - 96)
+    && viewport.clientHeight <= height
+    && viewport.clientHeight >= Math.max(1, height - 128);
+}
+
 export async function setWindowBounds(connection, width, height) {
   try {
     const session = await connection.context.newCDPSession(connection.page);
@@ -449,12 +465,19 @@ export async function setWindowBounds(connection, width, height) {
       bounds: { width, height, windowState: 'normal' },
     });
     await new Promise((resolve) => setTimeout(resolve, 350));
-    return 'native-window-bounds';
+    if (nativeViewportMatchesRequest(await readDocumentViewport(connection.page), width, height)) {
+      return 'native-window-bounds';
+    }
   } catch {
-    await connection.page.setViewportSize({ width, height });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return 'cdp-viewport-fallback';
+    // A failed native resize is handled by the exact viewport fallback below.
   }
+  await connection.page.setViewportSize({ width, height });
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const viewport = await readDocumentViewport(connection.page);
+  if (viewport.clientWidth !== width || viewport.clientHeight !== height) {
+    throw new Error(`viewport resize failed: expected ${width}x${height}, observed ${viewport.clientWidth}x${viewport.clientHeight}`);
+  }
+  return 'cdp-viewport-fallback';
 }
 
 export async function invokeDesktop(page, command, payload = {}) {
@@ -504,6 +527,14 @@ export function classifyFirstRunStorageRecoverySnapshot(snapshot) {
   if (snapshot?.deviceVisible === true) return 'advanced';
   if (snapshot?.errorVisible !== true && String(snapshot?.pendingAction || '').trim()) return 'pending';
   return false;
+}
+
+export function isAuthoritativeFirstRunStorageAdvance(snapshot, productControl, expectedDataRoot) {
+  return snapshot?.deviceVisible === true
+    && snapshot?.errorVisible !== true
+    && String(snapshot?.pendingAction || '').trim() === ''
+    && productControl?.state === 'data_root_selected'
+    && comparablePath(productControl?.record?.dataRoot?.path) === comparablePath(expectedDataRoot);
 }
 
 export function isRecoverableFirstRunStorageRestart(transition, serviceBefore, serviceAfter) {

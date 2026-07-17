@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import {
   ProductControlWorkflow,
+  resolveProductControlActionFailure,
   resolveProjectedDataRootPick,
   resolveProductControlWorkflowError,
 } from '../src/shell/renderer/first-run/product-control-workflow.js';
@@ -55,6 +56,35 @@ test('a local first-run action error survives a clean projection refresh', () =>
     'Runtime-owned projection failed',
   );
   assert.equal(resolveProductControlWorkflowError(null, null, null), null);
+});
+
+test('Runtime-owned data-root advancement resolves only the interrupted Storage action', () => {
+  const interruptedStorage = {
+    message: 'runtime-service-unavailable',
+    state: 'data_root_missing' as const,
+  };
+  assert.equal(
+    resolveProductControlActionFailure(interruptedStorage, 'data_root_missing'),
+    'runtime-service-unavailable',
+  );
+  assert.equal(
+    resolveProductControlActionFailure(interruptedStorage, 'data_root_selected'),
+    null,
+  );
+  assert.equal(
+    resolveProductControlActionFailure(
+      { message: 'runtime-owner-rejected', state: 'data_root_missing' },
+      'data_root_selected',
+    ),
+    'runtime-owner-rejected',
+  );
+  assert.equal(
+    resolveProductControlActionFailure(
+      { message: 'runtime-service-unavailable', state: 'ai_environment_unconfigured' },
+      'local_ai_profile_selected_assets_missing',
+    ),
+    'runtime-service-unavailable',
+  );
 });
 
 test('a successful observer refresh cannot erase an unresolved action failure', () => {

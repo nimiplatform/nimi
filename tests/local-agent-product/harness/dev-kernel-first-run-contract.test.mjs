@@ -7,6 +7,7 @@ import { validateFirstRunConnectivityObservation } from './dev-kernel-first-run-
 import {
   classifyFirstRunStorageRecoverySnapshot,
   classifyFirstRunTerminalSnapshot,
+  isAuthoritativeFirstRunStorageAdvance,
   isRecoverableFirstRunStorageRestart,
   selectLatestBlockingFirstRunDependencyJob,
 } from './dev-kernel-cross-app-driver.mjs';
@@ -166,11 +167,11 @@ test('First Run waits for fixed-service PID replacement after Storage mutation',
   assert.match(driver, /const serviceBeforeStorage = readFixedServiceStatus\(\)[\s\S]*status\.processId !== serviceBeforeStorage\.processId[\s\S]*fixed service PID replacement after first-run Storage sync/iu);
 });
 
-test('First Run generic Storage recovery re-handshakes the protected carrier before one fresh retry', () => {
+test('First Run generic Storage recovery re-handshakes before canonical advance or one fresh retry', () => {
   const source = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-first-run-driver.mjs'), 'utf8');
   assert.match(
     source,
-    /runtime-service-unavailable[\s\S]*isRecoverableFirstRunStorageRestart[\s\S]*RUNTIME_STATUS_COMMAND[\s\S]*PRODUCT_CONTROL_RECORD_METHOD[\s\S]*first-run Storage protected-carrier re-handshake[\s\S]*continueStorage\.click\(\{ noWaitAfter: true \}\)[\s\S]*classifyFirstRunStorageRecoverySnapshot/iu,
+    /runtime-service-unavailable[\s\S]*isRecoverableFirstRunStorageRestart[\s\S]*RUNTIME_STATUS_COMMAND[\s\S]*PRODUCT_CONTROL_RECORD_METHOD[\s\S]*first-run Storage protected-carrier re-handshake[\s\S]*isAuthoritativeFirstRunStorageAdvance[\s\S]*continueStorage\.click\(\{ noWaitAfter: true \}\)[\s\S]*classifyFirstRunStorageRecoverySnapshot/iu,
   );
 });
 
@@ -292,7 +293,7 @@ test('First Run exits on the latest manual owner failure but permits a newer tra
   ]), null);
 });
 
-test('First Run restart recovery advances only after a fresh Storage retry is accepted', () => {
+test('First Run Storage retry classifier rejects error and idle snapshots', () => {
   assert.equal(classifyFirstRunStorageRecoverySnapshot({ deviceVisible: true }), 'advanced');
   assert.equal(classifyFirstRunStorageRecoverySnapshot({
     deviceVisible: false,
@@ -309,6 +310,37 @@ test('First Run restart recovery advances only after a fresh Storage retry is ac
     errorVisible: false,
     pendingAction: '',
   }), false);
+});
+
+test('First Run restart recovery accepts canonical Device scan only with matching Runtime truth', () => {
+  const snapshot = { deviceVisible: true, errorVisible: false, pendingAction: '' };
+  const productControl = {
+    state: 'data_root_selected',
+    record: { dataRoot: { path: 'C:\\NimiData' } },
+  };
+  assert.equal(
+    isAuthoritativeFirstRunStorageAdvance(snapshot, productControl, 'C:\\NimiData'),
+    true,
+  );
+  assert.equal(
+    isAuthoritativeFirstRunStorageAdvance(snapshot, {
+      ...productControl,
+      state: 'data_root_missing',
+    }, 'C:\\NimiData'),
+    false,
+  );
+  assert.equal(
+    isAuthoritativeFirstRunStorageAdvance(snapshot, productControl, 'C:\\OtherData'),
+    false,
+  );
+  assert.equal(
+    isAuthoritativeFirstRunStorageAdvance({ ...snapshot, errorVisible: true }, productControl, 'C:\\NimiData'),
+    false,
+  );
+  assert.equal(
+    isAuthoritativeFirstRunStorageAdvance({ ...snapshot, pendingAction: 'data-root' }, productControl, 'C:\\NimiData'),
+    false,
+  );
 });
 
 test('First Run Storage restart recovery requires the exact typed failure and same healthy candidate replacement', () => {
