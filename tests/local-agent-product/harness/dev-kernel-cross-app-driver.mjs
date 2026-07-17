@@ -366,6 +366,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
           paths: { ...trial.paths, runtimeData: proposedDataRoot },
         }, screenshotsRoot, {
           reuseReadyCandidateId: serviceBefore.runtimeCandidateId,
+          resumeFromDevice: productControl?.state === 'data_root_selected',
         });
         observations.firstRun.reusedReady = false;
       }

@@ -94,6 +94,15 @@ test('owner-minimal reuses a protected ready round after a transient First Run g
   assert.match(driver, /ready-shell-transition[\s\S]*captureReusedReadyFirstRun[\s\S]*reuseReadyCandidateId: serviceBefore\.runtimeCandidateId/iu);
 });
 
+test('core and owner-minimal resume Device only from the protected data_root_selected state', () => {
+  const driver = ownerDriverSource();
+  assert.match(
+    driver,
+    /resumeFromDevice:\s*productControl\?\.state === 'data_root_selected'/iu,
+  );
+  assert.match(driver, /options\.resumeFromDevice === true[\s\S]*first-run-phase-device-scan/iu);
+});
+
 test('owner-minimal binds a reused ready round to the Runtime-selected root, not the unused proposal', () => {
   const candidateId = 'dev-kernel-runtime-0123456789abcdef0123456789abcdef';
   const volumeRoot = path.parse(process.cwd()).root;

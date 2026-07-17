@@ -489,6 +489,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     productControlRecord: record,
     serviceAfterStorage,
     serviceAfterReady,
+    resumedFromDevice: startingPhase === 'device-scan-resume',
     storageRestartRecovery,
     layout: { desktopPath, narrowPath, narrowMethod, narrowMetrics, phaseAcceptance },
   };

@@ -188,6 +188,7 @@ export async function persistCoreResult(context) {
         ],
         narrowMetrics: observations.firstRun.layout.narrowMetrics,
         reusedReady: observations.firstRun.reusedReady === true,
+        resumedFromDevice: observations.firstRun.resumedFromDevice === true,
       },
       productionAccountSession: {
         state: observations.primaryAccountSession?.state || null,
