@@ -442,18 +442,20 @@ export async function firstVisible(page, selector) {
 
 async function readDocumentViewport(page) {
   return page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
     clientWidth: document.documentElement.clientWidth,
     clientHeight: document.documentElement.clientHeight,
   }));
 }
 
 function nativeViewportMatchesRequest(viewport, width, height) {
-  return Number.isFinite(viewport?.clientWidth)
-    && Number.isFinite(viewport?.clientHeight)
-    && viewport.clientWidth <= width
-    && viewport.clientWidth >= Math.max(1, width - 96)
-    && viewport.clientHeight <= height
-    && viewport.clientHeight >= Math.max(1, height - 128);
+  return Number.isFinite(viewport?.innerWidth)
+    && Number.isFinite(viewport?.innerHeight)
+    && viewport.innerWidth <= width
+    && viewport.innerWidth >= Math.max(1, width - 96)
+    && viewport.innerHeight <= height
+    && viewport.innerHeight >= Math.max(1, height - 128);
 }
 
 export async function setWindowBounds(connection, width, height) {
@@ -474,8 +476,10 @@ export async function setWindowBounds(connection, width, height) {
   await connection.page.setViewportSize({ width, height });
   await new Promise((resolve) => setTimeout(resolve, 200));
   const viewport = await readDocumentViewport(connection.page);
-  if (viewport.clientWidth !== width || viewport.clientHeight !== height) {
-    throw new Error(`viewport resize failed: expected ${width}x${height}, observed ${viewport.clientWidth}x${viewport.clientHeight}`);
+  if (viewport.innerWidth !== width || viewport.innerHeight !== height) {
+    throw new Error(
+      `viewport resize failed: expected ${width}x${height}, observed inner ${viewport.innerWidth}x${viewport.innerHeight} (document ${viewport.clientWidth}x${viewport.clientHeight})`,
+    );
   }
   return 'cdp-viewport-fallback';
 }

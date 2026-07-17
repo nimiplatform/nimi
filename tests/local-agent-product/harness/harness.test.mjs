@@ -105,16 +105,31 @@ test('window resize falls back to an exact emulated viewport when Electron enfor
     },
     page: {
       async evaluate() {
-        return emulatedViewport ?? { clientWidth: 1100, clientHeight: 760 };
+        return emulatedViewport ?? {
+          innerWidth: 1100,
+          innerHeight: 760,
+          clientWidth: 1090,
+          clientHeight: 760,
+        };
       },
       async setViewportSize(next) {
-        emulatedViewport = { clientWidth: next.width, clientHeight: next.height };
+        emulatedViewport = {
+          innerWidth: next.width,
+          innerHeight: next.height,
+          clientWidth: next.width - 10,
+          clientHeight: next.height,
+        };
       },
     },
   };
 
   assert.equal(await setWindowBounds(connection, 390, 780), 'cdp-viewport-fallback');
-  assert.deepEqual(emulatedViewport, { clientWidth: 390, clientHeight: 780 });
+  assert.deepEqual(emulatedViewport, {
+    innerWidth: 390,
+    innerHeight: 780,
+    clientWidth: 380,
+    clientHeight: 780,
+  });
 });
 
 test('dev-kernel Electron journeys isolate real Chrome auth inside the trial root', () => {
