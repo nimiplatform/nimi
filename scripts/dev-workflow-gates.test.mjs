@@ -57,12 +57,15 @@ async function zhiyuSources() {
 async function supervisorSources() {
   const files = {
     tsHost: '../apps/desktop/src-electron/local-development-host.ts',
+    tsAuthoritySummary: '../apps/desktop/src-electron/local-development-authority-summary.ts',
     tsPlan: '../apps/desktop/src-electron/local-development-plan.ts',
     rustSupervisor: '../apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs',
     rustMod: '../apps/desktop/src-tauri/src/desktop_local_development/mod.rs',
     rustHttp: '../apps/desktop/src-tauri/src/desktop_local_development/http.rs',
     rustPlan: '../apps/desktop/src-tauri/src/desktop_local_development/plan.rs',
     rustDomain: '../apps/desktop/src-tauri/src/desktop_local_development/domain.rs',
+    rustAuthoritySummary: '../apps/desktop/src-tauri/src/desktop_local_development/authority_summary.rs',
+    doctor: './doctor-dev.mjs',
   };
   return Object.fromEntries(await Promise.all(Object.entries(files).map(async ([key, relativePath]) => [
     key, await readFile(new URL(relativePath, import.meta.url), 'utf8'),
@@ -79,7 +82,7 @@ test('G2 rejects drift in the bounded local-app inventory contract', async () =>
   assert.match(collectZhiyuLocalDevelopmentEntryViolations(drifted).join('\n'), /bounded SDK agent inventory/u);
 });
 
-test('G5 rejects one-sided supervisor timing drift', async () => {
+test('G5 rejects one-sided supervisor timing or authority-summary drift', async () => {
   const sources = await supervisorSources();
   assert.deepEqual(collectLocalDevelopmentSupervisorParityViolations(sources), []);
   const drifted = {
@@ -87,4 +90,28 @@ test('G5 rejects one-sided supervisor timing drift', async () => {
     rustSupervisor: sources.rustSupervisor.replace('Duration::from_millis(450)', 'Duration::from_millis(451)'),
   };
   assert.match(collectLocalDevelopmentSupervisorParityViolations(drifted).join('\n'), /450ms/u);
+
+  const electronSummaryMissing = {
+    ...sources,
+    tsHost: sources.tsHost.replaceAll(
+      'createDesktopElectronLocalDevelopmentProjectionPublisher',
+      'missingElectronAuthoritySummaryPublisher',
+    ),
+  };
+  assert.match(
+    collectLocalDevelopmentSupervisorParityViolations(electronSummaryMissing).join('\n'),
+    /authority summary publisher parity missing/u,
+  );
+
+  const electronSummaryPathDrifted = {
+    ...sources,
+    tsAuthoritySummary: sources.tsAuthoritySummary.replace(
+      "'authority-summary.v1.json'",
+      "'authority-summary.v2.json'",
+    ),
+  };
+  assert.match(
+    collectLocalDevelopmentSupervisorParityViolations(electronSummaryPathDrifted).join('\n'),
+    /authority summary path parity missing/u,
+  );
 });
