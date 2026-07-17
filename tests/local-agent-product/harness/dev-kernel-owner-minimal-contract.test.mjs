@@ -158,6 +158,14 @@ test('owner-minimal clears only the exact account and project authorization befo
   assert.deepEqual(selectLocalDevelopmentProjectAuthorizations(rows, identity), [exact]);
 });
 
+test('core revokes the exact run-once project before reusing its supervised host port', () => {
+  const driver = ownerDriverSource();
+  assert.match(
+    driver,
+    /phase = 'grant-revoke'[\s\S]*runOnceProjectRevocation = await resetLocalDevelopmentProjectAuthorization\([\s\S]*revokedCount !== 1[\s\S]*terminateProcessTree\(runOnceHandle\)[\s\S]*waitForCdpEndpointRelease\(zhiyuCdpPort, 'run-once Zhiyu'\)[\s\S]*phase = 'remembered-local-development-start'/u,
+  );
+});
+
 test('owner-minimal bounds only the exact supervised-host startup transport race', () => {
   const driver = ownerDriverSource();
   assert.match(driver, /latest\?\.state === 'runtime-unavailable'[\s\S]*lastError\?\.reasonCode === 'runtime-service-unavailable'[\s\S]*transientRuntimeUnavailableMs/iu);

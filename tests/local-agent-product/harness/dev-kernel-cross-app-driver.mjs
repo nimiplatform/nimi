@@ -398,15 +398,16 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       desktop.page,
       'runtime_account_session_status',
     );
+    const zhiyuProjectIdentity = {
+      accountId: fixtureConfig.primaryAccountId,
+      appId: 'nimi.zhiyu',
+      canonicalProjectRoot: path.join(repoRoot, 'apps', 'zhiyu'),
+      shell: 'electron',
+    };
     phase = 'local-development-authorization-baseline';
     observations.localDevelopmentAuthorizationBaseline = await resetLocalDevelopmentProjectAuthorization(
       desktop.page,
-      {
-        accountId: fixtureConfig.primaryAccountId,
-        appId: 'nimi.zhiyu',
-        canonicalProjectRoot: path.join(repoRoot, 'apps', 'zhiyu'),
-        shell: 'electron',
-      },
+      zhiyuProjectIdentity,
     );
     phase = 'developer-mode-enable';
     observations.developerModeEnabled = await setDeveloperMode(desktop.page, true);
@@ -540,6 +541,13 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
         observer, desktop, runOnceZhiyu, observedPages, observations, trial, serviceBefore,
         artifactsRoot, screenshotsRoot, sourceState, outputDir, started,
       });
+    }
+    observations.runOnceProjectRevocation = await resetLocalDevelopmentProjectAuthorization(
+      desktop.page,
+      zhiyuProjectIdentity,
+    );
+    if (observations.runOnceProjectRevocation.revokedCount !== 1) {
+      throw new Error(`run-once transition revoked ${observations.runOnceProjectRevocation.revokedCount} active project authorization(s)`);
     }
     await terminateProcessTree(runOnceHandle);
     runOnceHandle = null;
