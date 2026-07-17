@@ -142,7 +142,7 @@ func managedPythonTempDir(root string) string {
 func managedPythonRuntimeEnv(root string) map[string]string {
 	parent := filepath.Dir(filepath.Clean(root))
 	tempDir := managedPythonTempDir(root)
-	return map[string]string{
+	env := map[string]string{
 		"TMP":                    tempDir,
 		"TEMP":                   tempDir,
 		"TMPDIR":                 tempDir,
@@ -153,11 +153,27 @@ func managedPythonRuntimeEnv(root string) map[string]string {
 		"UV_LINK_MODE":           "copy",
 		"UV_PROJECT_ENVIRONMENT": "",
 	}
+	if currentGOOS() == "windows" {
+		// Windows SYSTEM processes use GetTempPath2, which ignores TMP/TEMP
+		// and consults SystemTemp instead. Keep that process-only override on
+		// the same Runtime-managed root as uv's documented temp variables.
+		env["SystemTemp"] = tempDir
+	}
+	return env
+}
+
+func managedCommandTempEnvironmentKeys() []string {
+	keys := []string{"TMP", "TEMP", "TMPDIR"}
+	if currentGOOS() == "windows" {
+		keys = append(keys, "SystemTemp")
+	}
+	return keys
 }
 
 func prepareManagedCommandEnvironment(env map[string]string) error {
-	tempRoots := make([]string, 0, 3)
-	for _, key := range []string{"TMP", "TEMP", "TMPDIR"} {
+	tempKeys := managedCommandTempEnvironmentKeys()
+	tempRoots := make([]string, 0, len(tempKeys))
+	for _, key := range tempKeys {
 		if value := strings.TrimSpace(env[key]); value != "" {
 			tempRoots = append(tempRoots, filepath.Clean(value))
 		}

@@ -171,6 +171,23 @@ func TestPrepareManagedCommandEnvironmentCreatesOneAbsoluteTempRoot(t *testing.T
 	}
 }
 
+func TestManagedPythonRuntimeEnvSetsWindowsSystemTempForLocalSystem(t *testing.T) {
+	if currentGOOS() != "windows" {
+		t.Skip("SystemTemp is the Windows SYSTEM-process GetTempPath2 override")
+	}
+	root := filepath.Join(t.TempDir(), "environments", "speech", "0.1.0-qwen3-asr")
+	env := managedPythonRuntimeEnv(root)
+	want := managedPythonTempDir(root)
+	if env["SystemTemp"] != want {
+		t.Fatalf("SystemTemp = %q, want %q", env["SystemTemp"], want)
+	}
+
+	env["SystemTemp"] = filepath.Join(t.TempDir(), "divergent-system-temp")
+	if err := prepareManagedCommandEnvironment(env); err == nil {
+		t.Fatal("divergent Windows SystemTemp must fail closed")
+	}
+}
+
 func TestRunCommandOutputUsesRuntimeOwnedManagedTemp(t *testing.T) {
 	const helperEnv = "NIMI_TEST_MANAGED_COMMAND_TEMP_CHILD"
 	if os.Getenv(helperEnv) == "1" {
