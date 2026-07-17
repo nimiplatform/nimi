@@ -379,6 +379,7 @@ function validateTransport(bundle, issues) {
   const local = parseYaml(bundle, AUTHORITY_PATHS.localPosture, issues);
   const artifact = parseYaml(bundle, AUTHORITY_PATHS.artifactPosture, issues);
   const rpcMethods = parseYaml(bundle, AUTHORITY_PATHS.rpcMethods, issues);
+  let invalidRoute = false;
   if (!equalArray(matrix?.transport_classes, EXPECTED_TRANSPORTS)) {
     issues.push(issue(
       'FINAL_TRANSPORT_CLASSES_REQUIRED',
@@ -393,6 +394,58 @@ function validateTransport(bundle, issues) {
       `Origin roles must be exactly ${EXPECTED_ROLES.join(', ')}.`,
     ));
   }
+
+  const verifiedTransport = matrix?.verified_platform_transport;
+  const classBindings = matrix?.transport_class_bindings ?? {};
+  const methodBinding = matrix?.method_platform_binding;
+  const g5 = matrix?.g5_supervisor_profile_consistency;
+  const g5ByPlatform = rowsBy(g5?.per_platform, 'os');
+  if (
+    verifiedTransport?.binding_name !== 'verified_platform_transport'
+    || verifiedTransport?.profile_key !== 'os'
+    || verifiedTransport?.custody_profile_ref !== 'protected-local-custody-profiles.yaml#same-os'
+    || verifiedTransport?.service_principal_profile_ref !== 'protected-local-runtime-principal-profiles.yaml#same-os'
+    || verifiedTransport?.transport_profile_ref !== 'protected-local-os-profiles.yaml#same-os'
+    || verifiedTransport?.executable_trust_profile_ref !== '.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os'
+    || verifiedTransport?.launch_session_profile_ref !== 'protected-local-launch-session-profiles.yaml#same-os'
+    || verifiedTransport?.cross_platform_profile_mix !== 'forbidden'
+    || !equalArray(Object.keys(classBindings), EXPECTED_TRANSPORTS)
+    || classBindings.public_tcp?.binding !== 'public_tcp_binding_only'
+    || classBindings.public_tcp?.verified_platform_transport_profile !== 'not_applicable'
+    || ['desktop_control', 'local_app_bootstrap', 'local_app_host'].some((transportClass) => (
+      classBindings[transportClass]?.binding !== 'verified_platform_transport'
+      || classBindings[transportClass]?.carrier_role !== transportClass
+      || classBindings[transportClass]?.profile_bundle_ref !== 'verified_platform_transport'
+    ))
+    || methodBinding?.coverage !== 'every_methods_row'
+    || methodBinding?.selector_field !== 'allowed_transport_classes'
+    || methodBinding?.resolver !== 'transport_class_bindings'
+    || methodBinding?.protected_binding_description !== 'verified_platform_transport'
+    || methodBinding?.profile_resolution !== 'same_os'
+    || methodBinding?.missing_or_ambiguous_binding !== 'fail_generation'
+    || g5?.structure_status !== 'reserved_without_current_assertion_behavior_change'
+    || g5?.profile_key !== 'os'
+    || !equalArray(g5?.profile_components, [
+      'custody_profile_ref',
+      'service_principal_profile_ref',
+      'transport_profile_ref',
+      'executable_trust_profile_ref',
+      'launch_session_profile_ref',
+    ])
+    || g5?.current_assertion?.os !== 'windows'
+    || g5?.current_assertion?.command !== 'pnpm check:local-development-supervisor-parity'
+    || !equalArray(g5?.current_assertion?.implementation_bindings, [
+      'desktop_electron_supervisor',
+      'desktop_tauri_supervisor',
+    ])
+    || g5?.current_assertion?.behavior !== 'unchanged_exact_dual_supervisor_cross_assertion'
+    || g5ByPlatform.get('windows')?.assertion_activation !== 'current'
+    || g5ByPlatform.get('macos')?.admission !== 'requirements_only_fail_closed_pending_native_admission'
+    || !equalArray(g5ByPlatform.get('macos')?.implementation_bindings, [])
+    || g5?.consistency_rules?.single_sided_implementation !== 'reject'
+    || g5?.consistency_rules?.cross_platform_profile_substitution !== 'forbidden'
+    || g5?.consistency_rules?.missing_profile_component !== 'reject'
+  ) invalidRoute = true;
 
   const openWire = matrix?.open_local_app_session_wire;
   const routeByMethod = rowsBy(matrix?.methods, 'method_id');
@@ -433,7 +486,6 @@ function validateTransport(bundle, issues) {
     ['/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant', [['local_app_host'], ['local_app_session']]],
     ['/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes', [['local_app_host'], ['local_app_session']]],
   ]);
-  let invalidRoute = false;
   for (const [methodId, [transports, roles]] of requiredRoutes) {
     const route = routeByMethod.get(methodId);
     const posture = postureByMethod.get(methodId);
@@ -496,11 +548,14 @@ function validateTransport(bundle, issues) {
     const roles = row.required_origin_roles ?? Object.values(row.required_origin_roles_by_transport ?? {}).flat();
     if (
       transports.some((value) => !admittedTransports.has(value))
+      || transports.some((value) => !classBindings[value])
       || roles.some((value) => !admittedRoles.has(value))
       || row.request_may_select_role !== false
       || row.portable_session_allowed !== false
+      || (row.generic_proxy !== undefined && row.generic_proxy !== 'forbidden')
     ) invalidRoute = true;
   }
+  if (matrix?.blocked_or_unadmitted?.generic_proxy !== 'forbidden') invalidRoute = true;
   if (invalidRoute) {
     issues.push(issue(
       'LOCAL_APP_ROUTE_POSTURE_REQUIRED',

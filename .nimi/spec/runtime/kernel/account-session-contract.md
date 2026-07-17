@@ -566,6 +566,12 @@ matrix before state mutation or token/credential access. `InvokeRealmUnary`
 uses broker-consumer admission, not the account-control helper.
 Runtime-private refresh is a non-RPC internal capability and has no public
 local-app caller mode.
+Each `allow_when` row that already requires `protected_desktop_control_origin`
+or `protected_local_app_origin` resolves that requirement through the matrix's
+`platform_transport_binding` to the corresponding abstract protected transport
+class and same-OS profile. Missing or ambiguous resolution fails generation;
+the existing bundled first-party requirement remains outside the protected
+local transport matrix and is unchanged.
 
 ## K-ACCSVC-025 Host-Bound Caller Envelope
 

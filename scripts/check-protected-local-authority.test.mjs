@@ -81,6 +81,32 @@ test('the final transport, role, and request-empty local session shapes are exac
   assert.deepEqual(open.required_origin_roles, ['local_app_process']);
 });
 
+test('every method resolves through one platform-neutral transport binding and G5 keeps current behavior', () => {
+  const matrix = parseAuthority(AUTHORITY_PATHS.transport);
+  assert.equal(matrix.methods.length, 73);
+  assert.equal(matrix.method_platform_binding.coverage, 'every_methods_row');
+  assert.equal(matrix.method_platform_binding.resolver, 'transport_class_bindings');
+  assert.equal(matrix.method_platform_binding.missing_or_ambiguous_binding, 'fail_generation');
+  assert.equal(matrix.verified_platform_transport.transport_profile_ref, 'protected-local-os-profiles.yaml#same-os');
+  assert.equal(matrix.verified_platform_transport.cross_platform_profile_mix, 'forbidden');
+  for (const row of matrix.methods) {
+    for (const transportClass of row.allowed_transport_classes) {
+      assert.ok(matrix.transport_class_bindings[transportClass], `${row.method_id} has no platform binding for ${transportClass}`);
+    }
+    if (row.generic_proxy !== undefined) assert.equal(row.generic_proxy, 'forbidden');
+  }
+  assert.equal(matrix.blocked_or_unadmitted.generic_proxy, 'forbidden');
+  for (const transportClass of ['desktop_control', 'local_app_bootstrap', 'local_app_host']) {
+    assert.equal(matrix.transport_class_bindings[transportClass].binding, 'verified_platform_transport');
+  }
+  assert.equal(matrix.g5_supervisor_profile_consistency.structure_status, 'reserved_without_current_assertion_behavior_change');
+  assert.equal(matrix.g5_supervisor_profile_consistency.current_assertion.command, 'pnpm check:local-development-supervisor-parity');
+  assert.equal(matrix.g5_supervisor_profile_consistency.current_assertion.behavior, 'unchanged_exact_dual_supervisor_cross_assertion');
+  const macos = matrix.g5_supervisor_profile_consistency.per_platform.find((row) => row.os === 'macos');
+  assert.equal(macos.admission, 'requirements_only_fail_closed_pending_native_admission');
+  assert.deepEqual(macos.implementation_bindings, []);
+});
+
 test('SID anchor and principal, record, and grant stores are structurally separate', () => {
   const identity = parseAuthority(AUTHORITY_PATHS.principalRecord);
   const grant = parseAuthority(AUTHORITY_PATHS.grant);

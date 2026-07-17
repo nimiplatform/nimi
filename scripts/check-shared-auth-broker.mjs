@@ -68,6 +68,50 @@ function realmSDKMethodName(operationID) {
 
 function checkRuntimePermissionMatrix() {
   const document = parse(read('.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml'));
+  const platformBinding = document.platform_transport_binding;
+  const protectedOriginBindings = platformBinding?.protected_origin_bindings ?? {};
+  if (document.protected_transport_authority_ref !== 'protected-local-rpc-transport-matrix.yaml') fail('permission matrix protected transport authority ref drift');
+  if (document.protected_transport_profile_ref !== 'protected-local-os-profiles.yaml#same-os') fail('permission matrix same-OS transport profile ref drift');
+  if (platformBinding?.binding_name !== 'verified_platform_transport') fail('permission matrix platform binding is not verified_platform_transport');
+  if (platformBinding?.transport_matrix_ref !== 'protected-local-rpc-transport-matrix.yaml#verified_platform_transport') fail('permission matrix verified transport bundle ref drift');
+  if (platformBinding?.profile_resolution !== 'same_os') fail('permission matrix platform profile resolution is not same_os');
+  if (Object.keys(protectedOriginBindings).sort().join(',') !== 'protected_desktop_control_origin,protected_local_app_origin') fail('permission matrix protected origin binding vocabulary drift');
+  for (const [requirement, transportClass] of [
+    ['protected_desktop_control_origin', 'desktop_control'],
+    ['protected_local_app_origin', 'local_app_host'],
+  ]) {
+    const binding = protectedOriginBindings[requirement];
+    if (binding?.transport_class !== transportClass || binding?.binding !== 'verified_platform_transport' || binding?.carrier_role !== transportClass) {
+      fail(`${requirement} does not resolve to the exact verified platform transport class`);
+    }
+  }
+  if (platformBinding?.coverage?.caller_methods !== 'every_allow_when_method_with_a_resolved_protected_origin_requirement'
+    || platformBinding?.coverage?.broker_consumer_admission !== 'every_row_with_a_resolved_protected_origin_requirement'
+    || platformBinding?.coverage?.missing_or_ambiguous_binding !== 'fail_generation') {
+    fail('permission matrix platform binding coverage is incomplete');
+  }
+  const preservedBundled = platformBinding?.preserved_non_matrix_requirement;
+  if (preservedBundled?.requirement !== 'protected_bundled_origin'
+    || preservedBundled?.disposition !== 'existing_bundled_first_party_authority_unchanged'
+    || preservedBundled?.protected_local_transport_matrix_membership !== 'excluded') {
+    fail('permission matrix bundled first-party authority was reinterpreted as a protected-local transport binding');
+  }
+  const assertProtectedRequirementsResolve = (label, decision) => {
+    for (const requirement of decision?.requirements ?? []) {
+      if ((requirement === 'protected_desktop_control_origin' || requirement === 'protected_local_app_origin')
+        && !protectedOriginBindings[requirement]) {
+        fail(`${label} has no platform transport binding for ${requirement}`);
+      }
+    }
+  };
+  for (const caller of document.callers ?? []) {
+    for (const [method, decision] of Object.entries(caller.methods ?? {})) {
+      if (decision?.decision === 'allow_when') assertProtectedRequirementsResolve(`${caller.caller_class}.${method}`, decision);
+    }
+  }
+  for (const dependency of document.selected_operation_dependencies ?? []) {
+    if (dependency?.decision === 'allow_when') assertProtectedRequirementsResolve(dependency.operation_id ?? dependency.method_id, dependency);
+  }
   const desktop = matrixCaller(document, 'desktop_account_and_local_app_control');
   const firstParty = matrixCaller(document, 'local_first_party_app');
   const localApp = matrixCaller(document, 'local_app');

@@ -1,4 +1,4 @@
-version: 2
+version: 3
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_account_rpc_permission_matrix
@@ -26,6 +26,28 @@ description: >-
   app id, bearer, session identifier, renderer payload or prior success cannot
   satisfy them. Runtime-private refresh is not an RPC posture.
 protected_transport_authority_ref: protected-local-rpc-transport-matrix.yaml
+protected_transport_profile_ref: protected-local-os-profiles.yaml#same-os
+platform_transport_binding:
+  binding_name: verified_platform_transport
+  transport_matrix_ref: protected-local-rpc-transport-matrix.yaml#verified_platform_transport
+  profile_resolution: same_os
+  protected_origin_bindings:
+    protected_desktop_control_origin:
+      transport_class: desktop_control
+      binding: verified_platform_transport
+      carrier_role: desktop_control
+    protected_local_app_origin:
+      transport_class: local_app_host
+      binding: verified_platform_transport
+      carrier_role: local_app_host
+  coverage:
+    caller_methods: every_allow_when_method_with_a_resolved_protected_origin_requirement
+    broker_consumer_admission: every_row_with_a_resolved_protected_origin_requirement
+    missing_or_ambiguous_binding: fail_generation
+  preserved_non_matrix_requirement:
+    requirement: protected_bundled_origin
+    disposition: existing_bundled_first_party_authority_unchanged
+    protected_local_transport_matrix_membership: excluded
 decision_schema:
   fields: [caller_class, runtime_caller_mode, methods, source_rule]
   method_decisions: [allow, deny, allow_when]

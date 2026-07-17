@@ -1,4 +1,4 @@
-version: 9
+version: 10
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
@@ -13,10 +13,11 @@ surfaces:
   - RuntimeDevelopmentService
   - RuntimeLocalService
 description: >-
-  Closed transport and verified-origin admission for Desktop control and the
-  common third-party local-app kernel. Immutable package/install/update/
-  promotion remains typed unavailable; local_development is the only 0K
-  positive third-party trust class.
+  Closed verified-platform-transport and verified-origin admission for Desktop
+  control and the common third-party local-app kernel. Physical carriers are
+  selected only by same-OS profiles. Immutable package/install/update/promotion
+  remains typed unavailable; local_development is the only 0K positive
+  third-party trust class.
 authority_refs:
   - K-PLOCAL-001
   - K-PLOCAL-002
@@ -34,6 +35,38 @@ authority_refs:
   - K-APP-032
   - K-VOICE-021
 transport_classes: [public_tcp, desktop_control, local_app_bootstrap, local_app_host]
+verified_platform_transport:
+  binding_name: verified_platform_transport
+  profile_key: os
+  custody_profile_ref: protected-local-custody-profiles.yaml#same-os
+  service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+  transport_profile_ref: protected-local-os-profiles.yaml#same-os
+  executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+  launch_session_profile_ref: protected-local-launch-session-profiles.yaml#same-os
+  cross_platform_profile_mix: forbidden
+transport_class_bindings:
+  public_tcp:
+    binding: public_tcp_binding_only
+    verified_platform_transport_profile: not_applicable
+  desktop_control:
+    binding: verified_platform_transport
+    carrier_role: desktop_control
+    profile_bundle_ref: verified_platform_transport
+  local_app_bootstrap:
+    binding: verified_platform_transport
+    carrier_role: local_app_bootstrap
+    profile_bundle_ref: verified_platform_transport
+  local_app_host:
+    binding: verified_platform_transport
+    carrier_role: local_app_host
+    profile_bundle_ref: verified_platform_transport
+method_platform_binding:
+  coverage: every_methods_row
+  selector_field: allowed_transport_classes
+  resolver: transport_class_bindings
+  protected_binding_description: verified_platform_transport
+  profile_resolution: same_os
+  missing_or_ambiguous_binding: fail_generation
 platform_admission:
   windows: admitted_fixed_service_and_process_verification
   macos: fail_closed_pending_native_admission
@@ -49,6 +82,38 @@ platform_admission:
     - renderer_ipc
     - portable_bearer
     - raw_executable_self_auth
+g5_supervisor_profile_consistency:
+  structure_status: reserved_without_current_assertion_behavior_change
+  profile_key: os
+  profile_components:
+    - custody_profile_ref
+    - service_principal_profile_ref
+    - transport_profile_ref
+    - executable_trust_profile_ref
+    - launch_session_profile_ref
+  current_assertion:
+    os: windows
+    command: pnpm check:local-development-supervisor-parity
+    implementation_bindings: [desktop_electron_supervisor, desktop_tauri_supervisor]
+    behavior: unchanged_exact_dual_supervisor_cross_assertion
+  per_platform:
+    - os: windows
+      admission: current_assertion_active
+      implementation_bindings: [desktop_electron_supervisor, desktop_tauri_supervisor]
+      assertion_activation: current
+    - os: linux
+      admission: requirements_only_fail_closed_pending_native_admission
+      implementation_bindings: []
+      assertion_activation: pending_complete_native_profile_and_implementation_admission
+    - os: macos
+      admission: requirements_only_fail_closed_pending_native_admission
+      implementation_bindings: []
+      assertion_activation: pending_complete_native_profile_and_implementation_admission
+  consistency_rules:
+    every_implementation_resolves_one_same_os_profile_bundle: required
+    single_sided_implementation: reject
+    cross_platform_profile_substitution: forbidden
+    missing_profile_component: reject
 trust_classes:
   admitted_positive: [local_development]
   opaque_typed_unavailable: [verified, user_imported]

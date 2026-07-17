@@ -85,6 +85,11 @@ row in `tables/protected-local-launch-session-profiles.yaml` alone selects the
 physical launcher, process witness, and carrier. Immutable and development
 execution profiles share the common session contract; distinct
 principals/provenance/process bindings prevent inheritance.
+Every row in `tables/protected-local-rpc-transport-matrix.yaml` resolves its
+`allowed_transport_classes` through the closed `method_platform_binding`
+resolver. Protected classes resolve to `verified_platform_transport` plus one
+same-OS profile bundle; missing, ambiguous, or cross-OS resolution fails
+generation. This adds no per-method transport or role admission.
 Runtime-private refresh is a direct
 in-process helper call and is never a transport class or an invocation of a
 public refresh RPC.
