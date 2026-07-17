@@ -107,7 +107,7 @@ describe('renderer local-app standard-shell surface', () => {
           messageId: 'message-a',
           messageType: 'runtime.agent.turn.text_delta',
           payload: {
-            localAgentRef: 'agent-a',
+            agent_id: 'agent-a',
             conversationAnchorId: 'anchor-a',
             turnId: 'turn-a',
             streamId: 'stream-a',
@@ -140,7 +140,34 @@ describe('renderer local-app standard-shell surface', () => {
           sequence: '5',
           messageId: 'message-a',
           messageType: 'runtime.agent.turn.text_delta',
-          payload: { localAgentRef: 'other-agent', conversationAnchorId: 'anchor-a' },
+          payload: { agent_id: 'other-agent', conversationAnchorId: 'anchor-a' },
+          reasonCode: 1,
+          traceId: '',
+          timestamp: null,
+        }],
+      }),
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().agent.subscribeTurn({
+      agentId: 'agent-a',
+      conversationAnchorId: 'anchor-a',
+      cursor: '3',
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'renderer-standard-shell-result-invalid',
+    });
+  });
+
+  it('rejects the non-canonical local_agent_ref turn-event alias', async () => {
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({
+        cursor: '4',
+        events: [{
+          eventType: 1,
+          sequence: '4',
+          messageId: 'message-a',
+          messageType: 'runtime.agent.turn.text_delta',
+          payload: { local_agent_ref: 'agent-a', conversation_anchor_id: 'anchor-a' },
           reasonCode: 1,
           traceId: '',
           timestamp: null,

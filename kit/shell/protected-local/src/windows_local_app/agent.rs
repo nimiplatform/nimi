@@ -309,8 +309,8 @@ fn validate_turn_event_correlation(
     let anchor = proto_struct_text(payload, "conversation_anchor_id")
         .or_else(|| proto_struct_text(payload, "conversationAnchorId"))
         .ok_or_else(untrusted)?;
-    let agent = proto_struct_text(payload, "local_agent_ref")
-        .or_else(|| proto_struct_text(payload, "localAgentRef"))
+    let agent = proto_struct_text(payload, "agent_id")
+        .or_else(|| proto_struct_text(payload, "agentId"))
         .ok_or_else(untrusted)?;
     if anchor != request.conversation_anchor_id || agent != request.agent_id {
         return Err(untrusted());
@@ -337,4 +337,48 @@ fn project_app_message_event(event: AppMessageEvent) -> Result<JsonValue, LocalA
     });
     validate_safe_projection(&value)?;
     Ok(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request() -> LocalAppAgentSubscribeTurnRequest {
+        LocalAppAgentSubscribeTurnRequest {
+            agent_id: "agent-a".to_string(),
+            conversation_anchor_id: "anchor-a".to_string(),
+            cursor: String::new(),
+        }
+    }
+
+    fn event(payload: JsonValue) -> AppMessageEvent {
+        AppMessageEvent {
+            message_type: "runtime.agent.turn.started".to_string(),
+            payload: Some(proto_struct(payload).expect("valid test payload")),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn turn_event_correlation_uses_canonical_agent_id() {
+        let event = event(json!({
+            "agent_id": "agent-a",
+            "conversation_anchor_id": "anchor-a",
+        }));
+        assert!(validate_turn_event_correlation(&event, &request()).is_ok());
+    }
+
+    #[test]
+    fn turn_event_correlation_rejects_local_agent_ref_alias() {
+        let event = event(json!({
+            "local_agent_ref": "agent-a",
+            "conversation_anchor_id": "anchor-a",
+        }));
+        let error = validate_turn_event_correlation(&event, &request())
+            .expect_err("turn events must not regain a parallel identity field");
+        assert_eq!(
+            error.reason_code(),
+            LocalAppReasonCode::RuntimeServiceUntrusted
+        );
+    }
 }
