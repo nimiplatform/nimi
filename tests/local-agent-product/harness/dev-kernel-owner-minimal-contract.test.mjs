@@ -7,6 +7,7 @@ import {
   DEV_KERNEL_OWNER_MINIMAL_CHECKPOINTS,
   validateOwnerMinimalResult,
 } from './dev-kernel-owner-minimal-contract.mjs';
+import { requireReusedReadyDataRoot } from './dev-kernel-first-run-driver.mjs';
 
 function ownerDriverSource() {
   return [
@@ -86,9 +87,39 @@ test('owner-minimal orchestrator imports its Runtime host dependencies explicitl
 test('owner-minimal reuses a protected ready round after a transient First Run gate', () => {
   const driver = ownerDriverSource();
   assert.match(driver, /primaryLogin\.outcome === 'first-run'[\s\S]*productControl\?\.state === 'ready_for_use'[\s\S]*captureReusedReadyFirstRun/iu);
-  assert.match(driver, /captureReusedReadyFirstRun[\s\S]*requireCheckpointDataRootProposal[\s\S]*waitForTestId\(page, 'main-shell'[\s\S]*PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD/iu);
+  assert.match(driver, /captureReusedReadyFirstRun[\s\S]*requireReusedReadyDataRoot[\s\S]*waitForTestId\(page, 'main-shell'[\s\S]*PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD/iu);
+  assert.match(driver, /requireReusedReadyDataRoot[\s\S]*requireCheckpointDataRootProposal[\s\S]*record\?\.dataRoot\?\.status !== 'ready'/iu);
   assert.match(driver, /current\?\.state !== 'ready_for_use'[\s\S]*page\.reload\(\{ waitUntil: 'domcontentloaded'[\s\S]*waitForTestId\(page, 'main-shell'/iu);
   assert.match(driver, /ready-shell-transition[\s\S]*captureReusedReadyFirstRun[\s\S]*reuseReadyCandidateId: serviceBefore\.runtimeCandidateId/iu);
+});
+
+test('owner-minimal binds a reused ready round to the Runtime-selected root, not the unused proposal', () => {
+  const candidateId = 'dev-kernel-runtime-0123456789abcdef0123456789abcdef';
+  const volumeRoot = path.parse(process.cwd()).root;
+  const selectedRoot = path.join(volumeRoot, 'NimiSelectedData');
+  const proposedRoot = path.join(volumeRoot, 'NimiAcceptance', candidateId, 'Nimi');
+  const productControl = {
+    state: 'ready_for_use',
+    record: {
+      state: 'ready_for_use',
+      dataRoot: { path: selectedRoot, status: 'ready' },
+    },
+    dataRootProposal: {
+      path: proposedRoot,
+      authority: 'runtime_protected_product_control',
+      profile: 'dev_kernel_checkpoint',
+    },
+  };
+
+  assert.equal(requireReusedReadyDataRoot(productControl, candidateId), path.resolve(selectedRoot));
+  assert.notEqual(path.resolve(selectedRoot), path.resolve(proposedRoot));
+  assert.throws(
+    () => requireReusedReadyDataRoot({
+      ...productControl,
+      record: { ...productControl.record, dataRoot: { path: selectedRoot, status: 'selected' } },
+    }, candidateId),
+    /safe Runtime-owned selected data root/u,
+  );
 });
 
 test('owner-minimal waits for the Runtime-owned Developer Mode projection before toggling', () => {

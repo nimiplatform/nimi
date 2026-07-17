@@ -436,10 +436,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
 }
 
 export async function captureReusedReadyFirstRun(page, productControlRecord, candidateId) {
-  if (productControlRecord?.state !== 'ready_for_use') {
-    throw new Error(`Desktop cannot reuse non-ready Product Control: ${JSON.stringify(productControlRecord)}`);
-  }
-  const expectedDataRoot = requireCheckpointDataRootProposal(productControlRecord, candidateId);
+  const expectedDataRoot = requireReusedReadyDataRoot(productControlRecord, candidateId);
   let rendererReloadedForReadyContinuity = false;
   try {
     await waitForTestId(page, 'main-shell', 15_000);
@@ -491,6 +488,21 @@ export async function captureReusedReadyFirstRun(page, productControlRecord, can
     rendererReloadedForReadyContinuity,
     layout: { narrowMetrics: null, phaseAcceptance: null },
   };
+}
+
+export function requireReusedReadyDataRoot(productControlRecord, candidateId) {
+  if (productControlRecord?.state !== 'ready_for_use'
+    || productControlRecord?.record?.state !== 'ready_for_use') {
+    throw new Error(`Desktop cannot reuse non-ready Product Control: ${JSON.stringify(productControlRecord)}`);
+  }
+  requireCheckpointDataRootProposal(productControlRecord, candidateId);
+  const selectedPath = String(productControlRecord.record?.dataRoot?.path || '').trim();
+  if (productControlRecord.record?.dataRoot?.status !== 'ready'
+    || !path.isAbsolute(selectedPath)
+    || comparablePath(selectedPath) === comparablePath(path.parse(selectedPath).root)) {
+    throw new Error('ready Product Control did not project a safe Runtime-owned selected data root');
+  }
+  return path.resolve(selectedPath);
 }
 
 export function selectLatestBlockingFirstRunDependencyJob(jobs) {
