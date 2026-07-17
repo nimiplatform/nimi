@@ -54,5 +54,8 @@ test('Desktop session source contains no bearer-capable Realm transport', () => 
     desktopSource,
     /readonly\s+(?:accessToken|refreshToken)|authorization:\s*`Bearer|loginNimiRealmAuthPassword|createRealmFetchTransport/i,
   );
-  assert.match(desktopSource, /createRuntimeAccountMediatedRealmTransport/);
+  assert.match(
+    desktopSource,
+    /createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport/,
+  );
 });
