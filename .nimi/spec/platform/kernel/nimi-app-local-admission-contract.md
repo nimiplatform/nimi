@@ -91,8 +91,9 @@ presence to reactivate; it never auto-runs. `run_once` ends with the supervisor
 run or any invalidation trigger. Development may use a controlled production
 account through Runtime-mediated APIs but receives no token, bearer, stronger
 permission, or persistent Nimi-managed logon/boot autostart. UI must disclose
-that Nimi grants constrain Nimi APIs, not all ordinary Windows rights of native
-development code.
+that Nimi grants constrain Nimi APIs, not all ordinary OS rights of native
+development code under the selected launch profile. For the admitted Windows
+row this preserves the current disclosure about ordinary Windows rights.
 
 ## P-NAPP-036 — Closed Local Provenance And Principal Relationship
 

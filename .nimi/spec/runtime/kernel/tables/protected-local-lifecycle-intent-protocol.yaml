@@ -1,4 +1,4 @@
-version: 3
+version: 4
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_lifecycle_operation_protocol
@@ -21,7 +21,10 @@ description: >-
   or OpenApp positive path is admitted in 0K.
 authority_refs: [K-PLOCAL-006, K-PLOCAL-007, K-PLOCAL-008, K-APP-011, K-APP-017, K-APP-026]
 platform_admission:
-  windows_local_app_launch: admitted
+  launch_session_profile_ref: protected-local-launch-session-profiles.yaml#same-os
+  windows: admitted_fixed_service_child_carrier
+  linux: requirements_only_fail_closed_pending_native_admission
+  macos: requirements_only_fail_closed_pending_native_admission
   immutable_package_positive: typed_unavailable_until_0p_or_p
   unadmitted_platform_disposition: fail_closed
   localhost_or_same_user_fallback: forbidden
@@ -48,6 +51,7 @@ package_seam:
   fields_authorize: false
   producer_admission: deferred_to_0p_or_p
 local_app_launch:
+  platform_profile_ref: protected-local-launch-session-profiles.yaml#same-os
   prepare_rpc: PrepareLocalAppLaunch
   bind_rpc: BindLocalAppProcess
   security_authority: live_local_app_control_origin

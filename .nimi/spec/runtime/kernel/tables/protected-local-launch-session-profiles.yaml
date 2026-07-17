@@ -1,0 +1,85 @@
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_protected_local_launch_session_profiles
+surfaces: [desktop_control, local_app_bootstrap, local_app_host, local_development]
+entries: [windows, linux, macos]
+description: >-
+  Platform-neutral protected launch/session semantics plus closed OS launcher,
+  process-witness, carrier, and session-equivalent requirements.
+authority_refs: [K-PLOCAL-002, K-PLOCAL-006, K-PLOCAL-008, K-PLOCAL-009, P-NAPP-034]
+neutral_contract:
+  authority_owner: runtime
+  prepare_authority: live_local_app_control_origin
+  lease_owner: runtime_service_private_state
+  lease_use: single_use
+  process_bind: exact_live_process_and_executable
+  session_open_request: empty
+  session_transition: atomically_consume_lease_promote_same_connection_and_insert_private_session
+  session_authority_binding: [local_os_user_anchor, local_app_principal_id, local_app_record_id, provenance_revision, install_or_project_generation, execution_profile_ref, host_executable_digest, payload_root_digest, process_tuple, account_id, account_generation, runtime_boot_epoch]
+  portable_lease_or_session: forbidden
+  renderer_or_app_authority_projection: forbidden
+  public_tcp_fallback: forbidden
+  process_replacement: new_lease_process_bind_and_session_required
+  runtime_restart: revoke_technical_sessions_and_require_new_verified_connection
+platform_admission:
+  closeout_unit: os_platform
+  windows: admitted_fixed_service_child_carrier
+  linux: requirements_only_fail_closed_pending_native_admission
+  macos: requirements_only_fail_closed_pending_native_admission
+  unadmitted_platform_disposition: protected_carrier_required
+profile_schema:
+  fields:
+    - os
+    - admission
+    - launcher_authority
+    - desktop_control_carrier
+    - local_app_bootstrap_carrier
+    - local_app_host_carrier
+    - child_process_witness
+    - launch_session_equivalent
+    - local_development_supervision
+    - verified_transport_profile_ref
+    - service_principal_profile_ref
+    - executable_trust_profile_ref
+    - source_rule
+profiles:
+  - os: windows
+    admission: admitted_fixed_service_child_carrier
+    launcher_authority: verified_nimi_desktop_local_app_control_on_boot_scoped_desktop_session
+    desktop_control_carrier: fixed_service_owned_nimi_runtime_protected_named_pipe
+    local_app_bootstrap_carrier: fixed_service_owned_nimi_runtime_local_app_named_pipe_bound_to_pending_launch_process
+    local_app_host_carrier: same_verified_named_pipe_connection_after_atomic_bootstrap_consumption
+    child_process_witness: retained_process_handle_pid_creation_marker_login_session_locked_executable_identity_code_signing_identity_and_bound_process_policy
+    launch_session_equivalent: PrepareLocalAppLaunch_then_verified_launcher_start_then_BindLocalAppProcess_then_empty_OpenLocalAppSession_atomically_consumes_bootstrap_promotes_same_connection_and_inserts_private_session
+    local_development_supervision: desktop_retains_exact_child_process_witness_and_rebinds_only_inside_current_authorized_supervisor_run
+    verified_transport_profile_ref: protected-local-os-profiles.yaml#same-os
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+    source_rule: K-PLOCAL-008
+  - os: linux
+    admission: requirements_only_fail_closed_pending_native_admission
+    launcher_authority: verified_nimi_desktop_local_app_control_on_boot_scoped_desktop_session
+    desktop_control_carrier: signed_static_no_exec_control_carrier_over_verified_filesystem_uds
+    local_app_bootstrap_carrier: service_owned_filesystem_uds_connection_bound_to_pending_launch_process
+    local_app_host_carrier: same_verified_uds_connection_after_atomic_bootstrap_consumption
+    child_process_witness: pidfd_proc_starttime_opened_proc_exe_identity_package_signing_identity_and_bound_process_policy
+    launch_session_equivalent: same_neutral_prepare_bind_empty_open_atomic_promotion_contract
+    local_development_supervision: desktop_retains_exact_pidfd_backed_child_witness_and_current_authorized_supervisor_run
+    verified_transport_profile_ref: protected-local-os-profiles.yaml#same-os
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+    source_rule: K-PLOCAL-008
+  - os: macos
+    admission: requirements_only_fail_closed_pending_native_admission
+    launcher_authority: verified_signed_nimi_desktop_local_app_control_on_boot_scoped_desktop_session
+    desktop_control_carrier: launchd_system_daemon_owned_filesystem_uds_with_kernel_peer_credentials
+    local_app_bootstrap_carrier: same_launchd_owned_uds_connection_bound_to_pending_launch_audit_token_process
+    local_app_host_carrier: same_verified_uds_connection_after_atomic_bootstrap_consumption
+    child_process_witness: kernel_peer_pid_audit_token_pidversion_dynamic_SecCode_identity_designated_requirement_team_id_cdhash_and_bound_process_policy
+    launch_session_equivalent: PrepareLocalAppLaunch_then_verified_launcher_start_then_BindLocalAppProcess_then_empty_OpenLocalAppSession_atomically_consumes_bootstrap_promotes_same_connection_and_inserts_private_session
+    local_development_supervision: desktop_retains_exact_audit_token_process_witness_and_rebinds_only_inside_current_authorized_supervisor_run
+    verified_transport_profile_ref: protected-local-os-profiles.yaml#same-os
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+    source_rule: K-PLOCAL-008

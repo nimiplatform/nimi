@@ -138,6 +138,7 @@
 - `tables/protected-local-os-profiles.yaml`
 - `tables/protected-local-custody-profiles.yaml`
 - `tables/protected-local-runtime-principal-profiles.yaml`
+- `tables/protected-local-launch-session-profiles.yaml`
 - `tables/protected-local-lifecycle-intent-protocol.yaml`
 - `tables/protected-local-rpc-transport-matrix.yaml`
 - `tables/protected-local-security-limits.yaml`

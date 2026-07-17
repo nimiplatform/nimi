@@ -79,10 +79,12 @@ authority.
 ## K-PLOCAL-002 Transport Classes and Immutable Origin Roles
 
 The closed RPC transport-class vocabulary is `public_tcp`, `desktop_control`,
-`local_app_bootstrap`, and `local_app_host`. Windows local-app launch consumes
-`local_app_bootstrap` and the app process opens `local_app_host`. Immutable and
-development execution profiles share the physical carrier and common session
-contract; distinct principals/provenance/process bindings prevent inheritance.
+`local_app_bootstrap`, and `local_app_host`. Local-app launch consumes
+`local_app_bootstrap` and the app process opens `local_app_host`; the same-OS
+row in `tables/protected-local-launch-session-profiles.yaml` alone selects the
+physical launcher, process witness, and carrier. Immutable and development
+execution profiles share the common session contract; distinct
+principals/provenance/process bindings prevent inheritance.
 Runtime-private refresh is a direct
 in-process helper call and is never a transport class or an invocation of a
 public refresh RPC.
@@ -102,7 +104,15 @@ Desktop control and a local-app host never share a portable session.
 verified child connection and service-owned transaction that consumes the
 launch lease.
 
-## K-PLOCAL-008 Windows Local App Launch Lease And Common Session
+## K-PLOCAL-008 Local App Launch Lease And Common Session
+
+Launch/session semantics are platform-neutral. The Runtime-owned lease,
+exact-process bind, empty session-open request, atomic same-connection
+promotion, private session row, per-operation revalidation, and revocation
+rules do not vary by OS. The same-OS row in
+`tables/protected-local-launch-session-profiles.yaml` may select only the
+launcher, child-process witness, and physical carriers; it must reference the
+same-OS service-principal, verified-transport, and executable-trust profiles.
 
 `PrepareLocalAppLaunch` may create one short-lived service-owned launch lease
 only after protected `local_app_control` resolves the exact OS-user anchor,
@@ -116,8 +126,9 @@ The verified launcher/supervisor starts the Runtime-resolved host, then
 connection. Runtime independently opens/verifies the process, creation marker,
 login session, locked executable identity, code-signing identity, execution
 profile, build/host/payload digest, and record generation before process resume
-or session admission. The child opens the fixed service-owned local-app pipe.
-Runtime requires the native peer PID to match the retained bound process.
+or session admission. The child opens the profile-selected service-owned
+`local_app_bootstrap` carrier. Runtime requires the native peer process witness
+to match the retained bound process.
 PID/bootstrap/path/argv/env/preload/renderer metadata are selectors only.
 
 `OpenLocalAppSession` has an empty request and exists only on the verified
@@ -145,9 +156,10 @@ contains at most a non-authoritative observed grant revision. Every admitted
 operation revalidates the live process, current record/account/grant and owner
 policy; opaque handle, request metadata, or launch-time snapshot is insufficient.
 
-Windows is admitted independently. macOS/Linux remain
-`protected-carrier-required` until their native peer/process profiles are
-admitted.
+The Windows row is admitted independently and carries the current fixed-service
+named-pipe/retained-process-witness behavior. The macOS and Linux rows are
+requirements-only and remain `protected-carrier-required` until their complete
+native principal, transport, trust, launcher, and session chains are admitted.
 
 ## K-PLOCAL-009 Local-Development Authorization And Session
 
@@ -209,9 +221,10 @@ or remote dev-server origin revokes the applicable launch/session before the
 next operation. Account change requires a new confirmation.
 
 The authorization, session, supervisor, reapproval, operation-applicability, and
-non-conversion semantics in this rule are platform-neutral. Windows is the
-first authority-admitted positive platform. macOS/Linux remain fail-closed pending independent native carrier
-admission through their OS profiles. Immutable profiles remain typed
+non-conversion semantics in this rule are platform-neutral. Platform admission
+is owned by `tables/protected-local-launch-session-profiles.yaml`; Windows is
+the first positive row and macOS/Linux remain requirements-only and fail closed.
+Immutable profiles remain typed
 unavailable until 0P/P supplies package mapping and implementation;
 development state cannot be reinterpreted as an immutable record or bundled
 identity.

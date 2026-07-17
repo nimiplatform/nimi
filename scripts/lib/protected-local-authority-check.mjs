@@ -14,6 +14,7 @@ export const AUTHORITY_PATHS = Object.freeze({
   osProfiles: '.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml',
   runtimePrincipals: '.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml',
   transport: '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
+  launchSession: '.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml',
   lifecycle: '.nimi/spec/runtime/kernel/tables/protected-local-lifecycle-intent-protocol.yaml',
   principalRecord: '.nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml',
   grant: '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml',
@@ -511,8 +512,12 @@ function validateTransport(bundle, issues) {
 
 function validatePortableBoundary(bundle, issues) {
   const matrix = parseYaml(bundle, AUTHORITY_PATHS.transport, issues);
+  const launchSession = parseYaml(bundle, AUTHORITY_PATHS.launchSession, issues);
   const lifecycle = parseYaml(bundle, AUTHORITY_PATHS.lifecycle, issues);
   const grant = parseYaml(bundle, AUTHORITY_PATHS.grant, issues);
+  const launchProfiles = rowsBy(launchSession?.profiles, 'os');
+  const windowsLaunch = launchProfiles.get('windows');
+  const macosLaunch = launchProfiles.get('macos');
   const portableOutputs = ['bearer', 'token', 'portable_grant_credential', 'session_proof'];
   if (
     matrix?.portable_privileged_session !== 'forbidden'
@@ -520,6 +525,11 @@ function validatePortableBoundary(bundle, issues) {
     || matrix?.public_tcp_privileged_disposition !== 'deny'
     || lifecycle?.local_app_launch?.portable_lease_or_session !== 'forbidden'
     || lifecycle?.local_app_launch?.renderer_projection !== 'forbidden'
+    || launchSession?.neutral_contract?.portable_lease_or_session !== 'forbidden'
+    || launchSession?.neutral_contract?.renderer_or_app_authority_projection !== 'forbidden'
+    || windowsLaunch?.admission !== 'admitted_fixed_service_child_carrier'
+    || macosLaunch?.admission !== 'requirements_only_fail_closed_pending_native_admission'
+    || !String(macosLaunch?.launch_session_equivalent ?? '').includes('atomically_consumes_bootstrap')
     || !hasEvery(grant?.forbidden_outputs, portableOutputs)
     || (matrix?.methods ?? []).some((row) => row.portable_session_allowed !== false || row.request_may_select_role !== false)
   ) {

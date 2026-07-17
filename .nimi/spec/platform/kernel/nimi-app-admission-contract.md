@@ -721,6 +721,8 @@ renderer/app state. A shortcut invokes the verified Nimi launcher selected by
 the admitted launch profile; it never points at raw app code. Windows is the
 current admitted positive row. macOS and Linux remain requirements-only and
 fail closed until their complete native chains are independently admitted.
+Physical launcher/session selection and that per-platform admission are owned
+by `.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml`.
 
 Desktop is the current protected launcher implementation, not the principal or
 semantic owner. Public names are host-neutral. Ordinary gRPC, endpoint/env
@@ -752,5 +754,6 @@ control remains unchanged and Desktop-specific.
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*`
 - `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-*`
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
+- `.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`

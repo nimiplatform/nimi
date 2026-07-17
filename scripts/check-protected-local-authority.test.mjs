@@ -121,6 +121,22 @@ test('platform profiles preserve the Windows chain and macOS UDS requirement', (
   assert.match(macosTransport.client_peer_verification, /kernel_peer_credentials/u);
 });
 
+test('launch session profiles preserve the admitted Windows chain and macOS atomic requirement', () => {
+  const launchSession = parseAuthority(AUTHORITY_PATHS.launchSession);
+  const windows = launchSession.profiles.find((row) => row.os === 'windows');
+  const macos = launchSession.profiles.find((row) => row.os === 'macos');
+  assert.equal(launchSession.neutral_contract.session_open_request, 'empty');
+  assert.equal(launchSession.neutral_contract.portable_lease_or_session, 'forbidden');
+  assert.equal(launchSession.neutral_contract.renderer_or_app_authority_projection, 'forbidden');
+  assert.equal(windows.admission, 'admitted_fixed_service_child_carrier');
+  assert.match(windows.local_app_bootstrap_carrier, /named_pipe/u);
+  assert.match(windows.launch_session_equivalent, /atomically_consumes_bootstrap/u);
+  assert.equal(macos.admission, 'requirements_only_fail_closed_pending_native_admission');
+  assert.match(macos.desktop_control_carrier, /launchd_system_daemon_owned_filesystem_uds/u);
+  assert.match(macos.child_process_witness, /audit_token_pidversion_dynamic_SecCode/u);
+  assert.match(macos.launch_session_equivalent, /atomically_consumes_bootstrap/u);
+});
+
 test('0K package operations are opaque typed-unavailable seams, not active SDK methods', () => {
   const lifecycle = parseAuthority(AUTHORITY_PATHS.lifecycle);
   const sdk = parseAuthority(AUTHORITY_PATHS.sdkGroups);
