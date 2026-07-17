@@ -37,6 +37,7 @@ entries:
   - P-PERM-011
   - P-PERM-012
   - P-PERM-013
+  - P-PERM-014
 rules:
   - rule_id: P-PERM-001
     evidence_refs:
@@ -105,3 +106,10 @@ rules:
     evidence_scope_note: local principal/record/session/grant separation, trust-class non-effect and exact current operation enforcement require Runtime protected-local and LocalAgent journey evidence.
     test_files:
       - scripts/check-protected-local-authority.mjs
+  - rule_id: P-PERM-014
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: Realm request projection and Runtime-local permission owner separation is enforced by the focused Realm v3 authority gate.
+    test_files:
+      - scripts/check-realm-v3-authority.mjs

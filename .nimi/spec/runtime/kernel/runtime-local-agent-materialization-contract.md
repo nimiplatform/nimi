@@ -34,23 +34,45 @@ Runtime creates the challenge and eight published limits, resolves the current
 canonical Realm base, authenticated account bearer, and exact current
 materialization grant through Runtime-owned account/custody interfaces, and
 calls a constructor-injected private `RealmMaterializationIssuer`. The exact
-grant selector is:
+Realm grant selector is:
 
 - `appId=nimi.avatar`;
-- `scopeFamily=agent`;
-- `scopeName=agent.identity.project`;
-- empty qualifier;
+- `scopeFamily=realm_source`;
+- `scopeName=realm_source.snapshot.consume`;
+- `qualifier=null` and `qualifierKey=""`;
 - `state=GRANTED`; and
 - subject equal to the authenticated Runtime account.
 
-Zero, multiple, stale, expired, revoked, superseded, cross-subject, or
-otherwise mismatched grants return a typed denial before product mutation. The
-issuer is not a generic Realm proxy, does not accept caller-selected headers or
-URLs, and does not transfer credential/profile/custody authority into the
-materialization domain. Realm owns canonical Character/World/grant truth and
-current Packet v3 issuance; Runtime owns acquisition, verification,
+The production lifecycle is exact and internal to Runtime acquisition:
+
+1. `POST /api/human/me/permission-grants` requests that Realm-owned tuple and
+   returns the canonical `PENDING AppPermissionGrant.id` and version; the
+   request omits the optional qualifier field so Realm canonicalizes
+   `qualifier=null` and `qualifierKey=""`;
+2. `POST /api/human/me/permission-grants/by-id/{grantId}/grant` performs an
+   explicit decision on the same id using that returned version as
+   `expectedVersion`; and
+3. `POST /api/realm/core/source-materialization-packets` supplies that same id
+   as `accessGrantId` only after it is canonically `GRANTED`.
+
+This is not a default, seeded, inferred, or automatically granted path. Zero,
+multiple, stale, expired, revoked, denied, pending, superseded, cross-subject,
+wrong-scope, or otherwise mismatched grants return a typed denial before
+product mutation. `realm_source.snapshot.bind` is non-authorizing for Packet
+issuance. The issuer is not a generic Realm proxy, does not accept
+caller-selected grant ids, headers, or URLs, and does not transfer
+credential/profile/custody authority into the materialization domain.
+
+`agent.identity.project` is a separate Runtime-local permission owned by the
+Nimi local grant lifecycle. Runtime checks it only after the complete Packet
+has passed strict verification and immediately before the atomic local identity
+projection. It is never sent in a Realm grant request, never substituted for
+`realm_source.snapshot.consume`, and a Realm grant is never persisted or
+interpreted as Nimi local permission truth. Realm owns canonical
+Character/World/grant truth and current Packet v3 issuance; it has no Agent or
+LocalAgent ontology. Runtime alone owns acquisition, verification,
 transaction, LocalAgent, snapshot, provenance, context compilation, and
-lifecycle.
+lifecycle, and no LocalAgent exists before the verified atomic commit.
 
 Runtime accepts only `realm.source-materialization-packet/v3` with a complete
 `MaterializationClosureSetManifestV3` and ordered segments. Before any

@@ -25,6 +25,10 @@ const files = {
   sdkRuntimeMethods: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
   desktopExplore: '.nimi/spec/desktop/kernel/explore-surface-contract.md',
   desktopActions: '.nimi/spec/desktop/kernel/tables/realm-source-materialization-actions.yaml',
+  platformPermission: '.nimi/spec/platform/kernel/app-permission-contract.md',
+  platformAppRegistry: '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
+  platformPermissionEvidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
+  realmPointer: '.nimi/spec/realm/external-realm.md',
   sentinel: 'config/realm-v3/protected-sentinel.json',
 };
 
@@ -141,6 +145,80 @@ function check(overrides = {}) {
   requireText(materialization, 'one atomic LocalAgent + SnapshotV2 + provenance + safe-result commit', files.materialization);
   requireText(materialization, 'no raw packet/proof/challenge/nonce/TTL/audience', files.materialization);
   requireText(materialization, 'no automatic\nupgrade, interpretation, alias, dual read/write, or on-read migration', files.materialization);
+  for (const token of [
+    '`scopeFamily=realm_source`',
+    '`scopeName=realm_source.snapshot.consume`',
+    '`qualifier=null` and `qualifierKey=""`',
+    '`POST /api/human/me/permission-grants`',
+    '`POST /api/human/me/permission-grants/by-id/{grantId}/grant`',
+    '`POST /api/realm/core/source-materialization-packets`',
+    '`accessGrantId`',
+    '`realm_source.snapshot.bind` is non-authorizing',
+    '`agent.identity.project` is a separate Runtime-local permission',
+    'it has no Agent or\nLocalAgent ontology',
+    'no LocalAgent exists before the verified atomic commit',
+  ]) requireText(materialization, token, files.materialization);
+
+  const platformPermission = read(files.platformPermission, overrides);
+  for (const token of [
+    'P-PERM-014',
+    '`permission_scope_ref` remains exclusively Platform/Runtime-local authority',
+    '`realm_permission_request_refs`',
+    'scopeFamily: realm_source',
+    'scopeName: realm_source.snapshot.consume',
+    'authorizingState: GRANTED',
+    '`realm_source.snapshot.bind` is not current positive Realm\nauthority',
+    '`agent.identity.project` remains a Runtime-local scope',
+  ]) requireText(platformPermission, token, files.platformPermission);
+
+  const appRegistry = parseYaml(read(files.platformAppRegistry, overrides));
+  const registryFields = appRegistry?.app_schema?.fields ?? [];
+  if (!registryFields.includes('permission_scope_ref')
+    || !registryFields.includes('realm_permission_request_refs')) {
+    fail(`${files.platformAppRegistry} does not separate local and Realm permission fields`);
+  }
+  if (appRegistry?.field_owners?.permission_scope_ref?.owner !== 'platform_runtime_local_permission'
+    || appRegistry?.field_owners?.realm_permission_request_refs?.owner !== 'external_realm_permission_grant'
+    || appRegistry?.field_owners?.realm_permission_request_refs?.local_grant_projection !== 'forbidden') {
+    fail(`${files.platformAppRegistry} permission field ownership is not closed`);
+  }
+  for (const app of appRegistry?.apps ?? []) {
+    const localScopes = Array.isArray(app.permission_scope_ref) ? app.permission_scope_ref : [];
+    if (localScopes.some((scope) => scope?.scopeFamily === 'realm' || scope?.scopeFamily === 'realm_source')) {
+      fail(`${files.platformAppRegistry} ${app.app_id} mixes Realm-owned scopes into permission_scope_ref`);
+    }
+    const realmRequests = app.realm_permission_request_refs ?? [];
+    if (!Array.isArray(realmRequests)) {
+      fail(`${files.platformAppRegistry} ${app.app_id} Realm request projection is not an array`);
+    }
+    if (app.app_id !== 'nimi.avatar' && realmRequests.length !== 0) {
+      fail(`${files.platformAppRegistry} ${app.app_id} has a non-admitted Realm request projection`);
+    }
+  }
+  const avatar = (appRegistry?.apps ?? []).find((app) => app.app_id === 'nimi.avatar');
+  const exactRealmRequest = [{
+    appId: 'nimi.avatar',
+    scopeFamily: 'realm_source',
+    scopeName: 'realm_source.snapshot.consume',
+    qualifier: null,
+    qualifierKey: '',
+    authorizingState: 'GRANTED',
+  }];
+  if (JSON.stringify(avatar?.realm_permission_request_refs) !== JSON.stringify(exactRealmRequest)) {
+    fail(`${files.platformAppRegistry} Avatar Realm request selector is not exact`);
+  }
+  const permissionEvidence = parseYaml(read(files.platformPermissionEvidence, overrides));
+  if (!(permissionEvidence?.entries ?? []).includes('P-PERM-014')
+    || !(permissionEvidence?.rules ?? []).some((entry) => entry.rule_id === 'P-PERM-014'
+      && (entry.test_files ?? []).includes('scripts/check-realm-v3-authority.mjs'))) {
+    fail(`${files.platformPermissionEvidence} does not map P-PERM-014 to the focused gate`);
+  }
+  const realmPointer = read(files.realmPointer, overrides);
+  for (const token of [
+    'Realm request projection is kept separate from Platform/Runtime-local',
+    '`agent.identity.project` scope cannot be\nsent to or interpreted by Realm',
+    'Runtime creates no LocalAgent until the Realm\nPacket has been strictly verified and atomically materialized',
+  ]) requireText(realmPointer, token, files.realmPointer);
 
   const context = read(files.context, overrides);
   const lanes = [...context.matchAll(/^\d+\. `([^`]+)`$/gmu)].map((match) => match[1]).slice(0, 11);
@@ -301,6 +379,9 @@ function check(overrides = {}) {
     legacyAuthorityMatches: 0,
     publicLowLevelUploadMethods: 0,
     protectedAuthorityMigrations: 2,
+    realmGrantSelector: exactRealmRequest[0],
+    localIdentityScope: 'agent.identity.project',
+    permissionOwnerSplit: true,
   };
 }
 
@@ -341,6 +422,48 @@ try {
     }
     mutations.push({
       mutation: `remove exact descriptive-capability lane boundary from ${files.context}`,
+      rejected: true,
+      rejectedReason,
+    });
+
+    const materializationSource = read(files.materialization, {});
+    rejectedReason = '';
+    try {
+      check({
+        [files.materialization]: materializationSource.replace(
+          '`scopeName=realm_source.snapshot.consume`',
+          '`scopeName=agent.identity.project`',
+        ),
+      });
+    } catch (error) {
+      rejectedReason = error instanceof Error ? error.message : String(error);
+    }
+    if (!rejectedReason.includes('realm_source.snapshot.consume')) {
+      fail('negative Realm/local selector mutation was not rejected by the owner gate');
+    }
+    mutations.push({
+      mutation: `replace Realm source scope with Runtime-local agent scope in ${files.materialization}`,
+      rejected: true,
+      rejectedReason,
+    });
+
+    const registrySource = read(files.platformAppRegistry, {});
+    rejectedReason = '';
+    try {
+      check({
+        [files.platformAppRegistry]: registrySource.replace(
+          '        scopeFamily: memory\n        scopeName: memory.read.bounded',
+          '        scopeFamily: realm_source\n        scopeName: realm_source.snapshot.consume',
+        ),
+      });
+    } catch (error) {
+      rejectedReason = error instanceof Error ? error.message : String(error);
+    }
+    if (!rejectedReason.includes('mixes Realm-owned scopes')) {
+      fail('negative mixed-owner app-registry mutation was not rejected by the owner gate');
+    }
+    mutations.push({
+      mutation: `place a Realm-owned scope in permission_scope_ref in ${files.platformAppRegistry}`,
       rejected: true,
       rejectedReason,
     });

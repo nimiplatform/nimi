@@ -90,7 +90,8 @@ filesystem、socket 等私有 channel 实现 cross-app 数据访问。
 
 ## P-PERM-007 — Permission Scope Ref Shape
 
-`MUST`：`permission_scope_ref` schema 固定：
+`MUST`：`permission_scope_ref` is the Runtime-local Nimi App permission request
+schema and is fixed as:
 
 ```
 {
@@ -111,8 +112,9 @@ account-and-principal grant for the same scope/resource fingerprint is still
 required on every operation.
 
 `tables/nimi-app-registry.yaml` 的 `permission_scope_ref` 必须解析到该
-schema；`permission_fabric_pending` 是 permission fabric 尚未 admit 具体
-scope set 时的 fail-closed 状态，不能被应用当作 granted scope。
+schema；it must not contain a Realm-owned scope family or scope name.
+`permission_fabric_pending` 是 permission fabric 尚未 admit 具体 scope set
+时的 fail-closed 状态，不能被应用当作 granted scope。
 
 ## P-PERM-008 — Spend Metering
 
@@ -124,7 +126,7 @@ scope set 时的 fail-closed 状态，不能被应用当作 granted scope。
 
 ## P-PERM-009 — First-Party Seed Grant Set
 
-`MUST`：Avatar first-party target 的 grant set admitted 如下：
+`MUST`：Avatar first-party target 的 Runtime-local grant set admitted 如下：
 
 - `nimi.avatar`：`account.session.read`, `agent.identity.project`,
   `memory.read.bounded` (qualifier=persona-scoped),
@@ -248,6 +250,35 @@ policy revision, and expiry. Project trust/reactivation and capability
 expansion use grant presence; operation-time presence remains owned by the
 operation domain. Cancel, expiry, replay, account switch, control disconnect,
 principal change, or policy change fails closed.
+
+## P-PERM-014 — Realm Grant Request And Runtime-Local Grant Owner Split
+
+`permission_scope_ref` remains exclusively Platform/Runtime-local authority.
+The app registry carries Realm grant request intent, when required, in the
+separate `realm_permission_request_refs` field. That field is a typed consumer
+projection over the external Realm permission-grant positive catalog; Platform
+does not own its scope vocabulary or lifecycle, and Runtime local grant stores
+must not ingest, mirror, convert, alias, or infer it as local permission truth.
+
+For Realm source materialization, the only admitted request projection is:
+
+```yaml
+appId: nimi.avatar
+scopeFamily: realm_source
+scopeName: realm_source.snapshot.consume
+qualifier: null
+qualifierKey: ""
+authorizingState: GRANTED
+```
+
+The exact Realm lifecycle is request -> canonical `PENDING` id -> explicit
+version-guarded grant of the same id -> Packet request with the same id as
+`accessGrantId`. `realm_source.snapshot.bind` is not current positive Realm
+authority. `agent.identity.project` remains a Runtime-local scope, is never a
+Realm request, and is checked only after strict Packet verification before
+local identity projection. Realm owns source-snapshot consumption authority
+and has no Agent or LocalAgent ontology; Runtime owns all LocalAgent identity
+and lifecycle truth.
 
 ## Fact Sources
 

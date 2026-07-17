@@ -44,7 +44,7 @@ export function checkLocalAgentConversationReport({ contract, definedRuleIds, fa
     automatic_source_rebase: 'forbidden',
     materializations_per_declared_source: 1,
   })) expectScalar(fail, rel, `${base}.identity_model.${field}`, identity?.[field], expected);
-  expectSet(fail, rel, `${base}.identity_model.source_kinds`, identity?.source_kinds, ['worldCharacter', 'realmPersona']);
+  expectSet(fail, rel, `${base}.identity_model.source_kinds`, identity?.source_kinds, ['worldCharacter', 'personaCharacter']);
   expectSet(fail, rel, `${base}.identity_model.resolved_identity_fields`, identity?.resolved_identity_fields, ['localAgentRef', 'conversationAnchorId']);
   checkRefs(fail, rel, `${base}.identity_model.authority_refs`, identity?.authority_refs, definedRuleIds);
 
@@ -79,13 +79,13 @@ export function checkLocalAgentConversationReport({ contract, definedRuleIds, fa
     retry_policy: 'none',
     full_environment_per_scene_or_turn: 'forbidden',
   })) expectScalar(fail, rel, `${base}.baseline_shape.${field}`, baseline?.[field], expected);
-  if (JSON.stringify(baseline?.source_materialization_count) !== JSON.stringify({ worldCharacter: 1, realmPersona: 1 })) fail(`${rel} ${base}.baseline_shape.source_materialization_count must materialize each source once`);
+  if (JSON.stringify(baseline?.source_materialization_count) !== JSON.stringify({ worldCharacter: 1, personaCharacter: 1 })) fail(`${rel} ${base}.baseline_shape.source_materialization_count must materialize each source once`);
   if (JSON.stringify(baseline?.environment_starts) !== JSON.stringify({ provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1 })) fail(`${rel} ${base}.baseline_shape.environment_starts must describe one environment plus one Runtime restart`);
   checkRefs(fail, rel, `${base}.baseline_shape.authority_refs`, baseline?.authority_refs, definedRuleIds);
 
   const streams = contract?.stream_contract;
   expectObject(fail, rel, `${base}.stream_contract`, streams);
-  expectSet(fail, rel, `${base}.stream_contract.required_source_kinds`, streams?.required_source_kinds, ['worldCharacter', 'realmPersona']);
+  expectSet(fail, rel, `${base}.stream_contract.required_source_kinds`, streams?.required_source_kinds, ['worldCharacter', 'personaCharacter']);
   expectSet(fail, rel, `${base}.stream_contract.required_distinct_fields`, streams?.required_distinct_fields, ['localAgentRef', 'conversationAnchorId', 'sourceSnapshotHash', 'memoryScope']);
   for (const [field, expected] of Object.entries({
     cross_surface_continuity: 'same_localAgentRef_and_conversationAnchorId',

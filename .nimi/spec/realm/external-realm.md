@@ -28,6 +28,14 @@ material or mirrors Realm grant truth into the local-app stores.
 No Realm server/domain definitions, forks, or mirrors are part of this pointer
 under `.nimi/spec/realm/**`.
 
+For source materialization, Nimi consumes the current external Realm permission
+grant catalog and lifecycle through the Runtime-owned acquisition path. The
+Realm request projection is kept separate from Platform/Runtime-local
+`permission_scope_ref`: Realm source-snapshot consumption cannot authorize a
+LocalAgent projection, and the local `agent.identity.project` scope cannot be
+sent to or interpreted by Realm. Runtime creates no LocalAgent until the Realm
+Packet has been strictly verified and atomically materialized.
+
 ## Canonical Nimi Reading Path
 
 1. `.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`
