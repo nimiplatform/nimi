@@ -85,7 +85,7 @@ If Generation Bench returns `no_go`, Nimi2D may still continue as:
 - research generator target
 - Avatar backend runtime target after separate proof
 
-It must not be positioned as the default automatic RealmPersona skin generation
+It must not be positioned as the default automatic PersonaCharacter skin generation
 layer until Generation Bench passes.
 
 ## 3. Gates
@@ -136,7 +136,7 @@ The corpus manifest must include:
 
 The certified-good tier-1 split is the quality gate split.
 
-It must represent the real RealmPersona layer input distribution that Nimi2D aims
+It must represent the real PersonaCharacter layer input distribution that Nimi2D aims
 to serve, after upstream layer input has already satisfied the layer input
 contract.
 
@@ -172,7 +172,7 @@ The certified corpus report must fail closed unless the corpus has:
 - unique content hashes across certified-good tier-1 cases
 - certified-good source evidence refs that are not fixture, demo, generated, or
   synthetic refs
-- certified-good distribution tags covering representative RealmPersona shape,
+- certified-good distribution tags covering representative PersonaCharacter shape,
   expression stress, wardrobe stress, and anchor stress
 
 Certification does not replace Generation Bench execution. It only decides

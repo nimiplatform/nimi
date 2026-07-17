@@ -49,7 +49,7 @@ Nimi2D owns only package generation and package admission evidence. Passing this
 bench must not be promoted into:
 
 - Nimi2D Generation Bench `go`
-- default RealmPersona Nimi2D generation admission
+- default PersonaCharacter Nimi2D generation admission
 - mounted-surface release visual acceptance
 - mesh/deformer renderer admission beyond PixiJS sprite foundation
 - true viseme support

@@ -466,7 +466,7 @@ The gate's admitted condition set is closed and pinned. Avatar auto-launch is
 permitted **only when all eight of the following are true**:
 
 1. user is logged in;
-2. selected target is a LocalAgent, not a bare RealmPersona source;
+2. selected target is a LocalAgent, not a bare PersonaCharacter source;
 3. conversation anchor exists;
 4. local Avatar asset is selected and valid;
 5. backend capability posture is valid;

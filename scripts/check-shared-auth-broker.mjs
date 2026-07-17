@@ -166,11 +166,11 @@ function checkRuntimeBrokerPolicy() {
   const policy = parse(read('.nimi/spec/runtime/kernel/tables/realm-broker-operations.yaml'), { merge: true });
   const operations = policy.operations ?? [];
   const expectedOperationIDs = [
-    'WorldCoreController_createSourceMaterializationPacket',
-    'WorldCoreController_getRealmPersona',
+    'WorldCoreController_discoverPersonaCharacters',
+    'WorldCoreController_getPersonaCharacter',
     'WorldCoreController_getWorldCharacter',
     'WorldCoreController_getWorldEntity',
-    'WorldCoreController_listRealmPersonas',
+    'WorldCoreController_listPersonaCharacters',
     'WorldCoreController_listWorldRelationships',
     'WorldPublicController_getWorld',
     'WorldPublicController_getWorldDetailWithCharacters',

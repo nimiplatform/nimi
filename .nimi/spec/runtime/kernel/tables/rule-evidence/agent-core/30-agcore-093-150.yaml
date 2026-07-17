@@ -281,7 +281,7 @@ rules:
       - runtime_kernel_consistency
     test_files:
       - scripts/check-local-agent-full-chain-hardcut.mjs
-    note: Runtime exclusively owns challenge/replay/upload admission and atomic packet-v2-to-LocalAgent creation; the only ingress is challenge plus Begin/Put/Commit/Abort, proof is dedicated Realm RS256/JWKS materialization-purpose trust, and immutable snapshot/agent state cannot retain raw packet, rebase, write back, or derive authority from app metadata.
+    note: MaterializeRealmSource accepts only CharacterSourceRefV3 plus request intent; Runtime exclusively owns current grant/JWKS acquisition, private challenge/closure-set transaction, Packet v3 verification, atomic SnapshotV2/LocalAgent commit, replay, cleanup, and no-rebase/write-back boundaries.
     evidence_requirement: required
   - rule_id: K-AGCORE-140
     evidence_refs:

@@ -8,26 +8,50 @@ authority_refs:
   - K-AGCORE-151
   - K-AGCORE-152
 states:
-  - state: source_materialization_available
-    source_kinds: [WorldCharacterCore, RealmPersona]
+  - state: materialization_available
+    source_kinds: [worldCharacter, personaCharacter]
     primary_action: Become my partner
     primary_action_zh: 成为我的伙伴
-    emits: source_materialization_intent
-    description: Desktop has a typed WorldCharacterCore or RealmPersona source ref and may emit intent only. Realm owns packet issuance; Runtime owns the opaque challenge/audience, strict validation, immutable snapshot/provenance, and LocalAgent identity.
+    emits: materialize_realm_source_intent
+    runtime_operation: MaterializeRealmSource
+    request_fields: [sourceRef, requestId]
+    description: Desktop has a closed CharacterSourceRefV3 and emits intent only. Runtime owns canonical account/grant/bearer resolution, Packet v3 acquisition and strict validation, SnapshotV2/provenance, and LocalAgent identity.
+  - state: grant_required
+    source_kinds: [worldCharacter, personaCharacter]
+    primary_action: Grant required
+    disabled: true
+    description: Canonical Realm materialization grant is absent; visibility, ownership, or app identity is not permission.
+  - state: grant_pending
+    source_kinds: [worldCharacter, personaCharacter]
+    primary_action: Grant pending
+    disabled: true
+    description: Canonical Realm materialization grant is pending and materialization remains fail closed.
+  - state: grant_denied
+    source_kinds: [worldCharacter, personaCharacter]
+    primary_action: Grant denied
+    disabled: true
+    description: Canonical Realm materialization grant was denied and Desktop must not infer an alternate permission path.
+  - state: materializing
+    source_kinds: [worldCharacter, personaCharacter]
+    primary_action: Materializing
+    disabled: true
+    description: Runtime owns the in-flight idempotent materialization transaction; Desktop cannot construct or upload packet data.
   - state: local_agent_available
-    source_kinds: [WorldCharacterCore, RealmPersona]
+    source_kinds: [worldCharacter, personaCharacter]
     primary_action: Open partner
     description: Bounded Runtime source status plus inventory/provenance has exactly one Runtime-owned LocalAgent for this source; Desktop may open it by opaque localAgentRef.
   - state: local_agent_ambiguous
-    source_kinds: [WorldCharacterCore, RealmPersona]
+    source_kinds: [worldCharacter, personaCharacter]
     primary_action: Open from partners
     description: Runtime inventory/provenance has more than one matching Runtime-owned LocalAgent; Desktop fails closed instead of choosing an arbitrary localAgentRef.
-  - state: runtime_agent_inventory_pending
-    source_kinds: [WorldCharacterCore, RealmPersona]
-    primary_action: Checking partner
-    description: Bounded Runtime source status or inventory is pending; Desktop keeps the partner action disabled until state is known.
-  - state: runtime_agent_inventory_unavailable
-    source_kinds: [WorldCharacterCore, RealmPersona]
+  - state: runtime_unavailable
+    source_kinds: [worldCharacter, personaCharacter]
     primary_action: Runtime unavailable
+    disabled: true
     description: Runtime, SDK lifecycle, auth-backed inventory, or bounded source status is unavailable/unknown/partial; Desktop keeps the action disabled with a readable failure state.
+  - state: materialization_error
+    source_kinds: [worldCharacter, personaCharacter]
+    primary_action: Materialization unavailable
+    disabled: true
+    description: Runtime returned a bounded typed failure reason; Desktop preserves zero partial-success or local identity state.
 transitions: []

@@ -26,7 +26,7 @@ installed shell（`D-HOME-*`）的显式 non-overlap。
 - `Nimi Home` installed shell 的 hosted-shell IA、first-run / return-run
   state machine、surface registry、Apps placement —— 由
   `nimi-home-shell-contract.md`（`D-HOME-001` ~ `D-HOME-012`）拥有；
-- Realm discovery（Worlds / RealmPersona sources / public activity 发现）—— 由
+- Realm discovery（Worlds / PersonaCharacter sources / public activity 发现）—— 由
   `explore-surface-contract.md`（`D-EXPL-001` ~ `D-EXPL-013`）拥有。
 
 本契约只把上述上游真值在 `Home` feed 产品表面上 **如何被呈现、消费、触发**
@@ -84,8 +84,8 @@ ownership —— 这些由 `D-HOME-*` 拥有。`D-HOME-*` 也不得被本契约�
 |---|---|
 | `personal` | 呈现 viewer 本人发布的 Post。 |
 | `friends` | 呈现 viewer 的 ACTIVE human friends 发布的、对 viewer 可见的 Post。 |
-| `persona_activity` | 呈现 RealmPersona 发布的 public activity Post。 |
-| `world_character_activity` | 呈现明确准入的 WorldCharacterCore public activity Post。 |
+| `persona_activity` | 呈现 PersonaCharacter 发布的 public activity Post。 |
+| `world_character_activity` | 呈现明确准入的 WorldCharacter public activity Post。 |
 
 `MUST`：feed scope 的投影语义、可见性过滤、author 归属由 Realm
 `R-FEED-005` ~ `R-FEED-007` 拥有；本规则只固定 `Home` 表面必须呈现且区分
@@ -128,7 +128,7 @@ feed projection 与 Create Post，不执行 AI。
 
 `MUST NOT`：`Home` feed 表面不得携带 `AIScopeRef`、prompt 文本、
 provider/model 选择、或 runtime turn 载荷；不得在 feed read / Create Post
-路径上调用 Runtime AI execution。RealmPersona / WorldCharacterCore public
+路径上调用 Runtime AI execution。PersonaCharacter / WorldCharacter public
 activity 内容如何生成不在本契约范围（`R-FEED-010`）。
 
 ## Fact Sources

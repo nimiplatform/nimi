@@ -36,11 +36,12 @@ mutation, or duplicated response-shape declarations.
 Handwritten SDK facades are allowed only when they wrap generated operations
 with typed fail-closed behavior and do not restore a second Realm contract.
 
-Source materialization uses only the generated Realm packet-v2 and challenge
-transport. The generated operation families own the request, response,
-challenge, packet, manifest, component, closure, and detached-proof shapes.
-SDK and apps must not introduce a handwritten packet-v1 DTO, anonymous source
-payload, fixed audience, raw bundle DTO, or parallel packet decoder.
+Source materialization uses only the generated current Realm Packet v3 and
+`CharacterSourceRefV3` transport shapes. The generated operation families own
+the access-grant request, challenge, packet, ordered closure-set segment,
+component, hash-graph, current-JWKS, and detached-proof shapes. SDK and apps
+must not introduce a handwritten materialization DTO, anonymous source payload,
+fixed audience, raw bundle DTO, or parallel packet decoder.
 
 ## S-REALMAPI-003 SDK Owns Consumer Semantics Only
 
@@ -52,8 +53,9 @@ SDK may own:
 - retry and refresh orchestration
 - generated client composition
 - consumer availability and fail-closed states
-- opaque forwarding of the Runtime-issued challenge and audience through the
-  generated Realm v2 request surface
+- current small Realm readiness and source-record reads
+- high-level authenticated Runtime `MaterializeRealmSource` intent carrying
+  only `CharacterSourceRefV3` and `requestId`
 
 SDK must not own:
 
@@ -74,10 +76,13 @@ When a local projection cannot be reconciled with Realm API output, the
 consumer must fail closed or expose an explicit unavailable/error projection.
 It must not synthesize Realm success.
 
-Runtime/Desktop may submit a Runtime-issued opaque challenge through the
-generated SDK operation and receive the generated packet-v2 result, but may
-not replace the challenge audience, decode raw bundle truth into app-owned
-records, or accept packet-v1/unknown packet schema as a local success path.
+Desktop, Kit, and Web submit only `CharacterSourceRefV3` and `requestId` to the
+high-level authenticated Runtime `MaterializeRealmSource` operation. Runtime
+internally resolves the current account, canonical Realm base, bearer, exact
+current grant, challenge, Packet v3 response, and current JWKS. No app-facing
+facade may receive or persist packet/proof/segment/component bytes, choose an
+audience, decode closure truth into app-owned records, or accept an unknown
+schema, field, enum, segment kind, limit, or hash branch as local success.
 
 ## S-REALMAPI-005 Version Drift Handling
 
@@ -88,9 +93,10 @@ configured Realm OpenAPI input and updating SDK consumer contracts/tests.
 `.nimi/spec/realm/**`, freezing stale DTOs in handwritten clients, or adding
 compatibility aliases that hide server contract changes.
 
-An unknown packet/challenge schema, enum, proof family, component kind, or
-closure branch is version drift and fails closed until the configured Realm
-OpenAPI input is regenerated. Handwritten compatibility readers are forbidden.
+An unknown Packet v3/challenge schema, field, enum, proof family, component or
+segment kind, limit, hash edge, or closure branch is version drift and fails
+closed until the configured Realm OpenAPI input is regenerated. Handwritten
+compatibility readers are forbidden.
 
 ## S-REALMAPI-006 Pointer-Only Realm Subtree
 

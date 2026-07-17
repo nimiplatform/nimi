@@ -33,12 +33,10 @@
     ".nimi/spec/platform/kernel/nimi-app-admission-contract.md",
     ".nimi/spec/platform/kernel/nimi-app-local-admission-contract.md",
     ".nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml",
-    ".nimi/spec/runtime/kernel/account-session-contract.md",
     ".nimi/spec/runtime/kernel/config-contract.md",
     ".nimi/spec/runtime/kernel/index.md",
     ".nimi/spec/runtime/kernel/local-app-principal-record-contract.md",
     ".nimi/spec/runtime/kernel/protected-local-session-contract.md",
-    ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
     ".nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml",
     ".nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml",
     ".nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml",
@@ -49,6 +47,46 @@
     "scripts/check-protected-local-authority.test.mjs",
     "scripts/lib/protected-local-authority-check.mjs",
     "scripts/testdata/protected-local-authority/negative-fixtures.json"
+  ],
+  "authorizedAuthorityMigrations": [
+    {
+      "path": ".nimi/spec/runtime/kernel/account-session-contract.md",
+      "baselineObject": "73e7be3baedf4655b896fe9c33d6b6436390db8b",
+      "authorizedObject": "e16d3fb28e8caee6bf20af05ef3d90fc557dc039",
+      "authorizationState": "NC0_PASS_N1_AUTHORIZED",
+      "authorizationEvidenceSha256": "f66c21582fdab1c04fd1308590c082c51cffea3bb293ca1a774708fc1a3b4daf",
+      "allowedChange": "realm_materialization_operation_vocabulary_only",
+      "requiredUnchangedSemantics": [
+        "caller_identity",
+        "account_profile_ownership",
+        "custody",
+        "authentication_authorization_posture",
+        "protected_transport",
+        "lifecycle",
+        "service_principal",
+        "permission_grant_conditions",
+        "protected_local_behavior"
+      ]
+    },
+    {
+      "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
+      "baselineObject": "0e3a02749932571d0f1d6f9539ffb806f1f008eb",
+      "authorizedObject": "1a3828044ccc88e06a3f35dea96cfa44e6cae92a",
+      "authorizationState": "NC0_PASS_N1_AUTHORIZED",
+      "authorizationEvidenceSha256": "f66c21582fdab1c04fd1308590c082c51cffea3bb293ca1a774708fc1a3b4daf",
+      "allowedChange": "realm_broker_operation_ids_only",
+      "requiredUnchangedSemantics": [
+        "caller_identity",
+        "account_profile_ownership",
+        "custody",
+        "authentication_authorization_posture",
+        "protected_transport",
+        "lifecycle",
+        "service_principal",
+        "permission_grant_conditions",
+        "protected_local_behavior"
+      ]
+    }
   ],
   "narrowException": {
     "path": "scripts/check-shared-auth-broker.mjs",

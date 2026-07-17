@@ -120,47 +120,17 @@ services:
   - RuntimeAiRealtimeService
   - RuntimeCognitionService
 methods:
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
     posture: authenticated_required
-    rationale: challenge issuance binds the authenticated materializer account, Runtime instance, typed source ref, and TTL
+    rationale: Runtime binds the authenticated materializer account to the exact CharacterSourceRefV3 and request id, resolves current Realm credentials and grant internally, verifies Packet v3 privately, and atomically creates the LocalAgent plus SnapshotV2 without caller packet ingress
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
-      - K-AGCORE-151
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload
-    posture: authenticated_required
-    rationale: upload begin leases a challenge and creates an owner-bound durable upload for the authenticated materializer account
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
-      - K-AGCORE-151
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk
-    posture: authenticated_required
-    rationale: chunk ingress mutates the authenticated materializer account's challenge-bound durable upload
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
-      - K-AGCORE-151
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization
-    posture: authenticated_required
-    rationale: commit verifies and atomically materializes an immutable LocalAgent snapshot owned by the authenticated materializer account
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
+      - K-AGCORE-139
       - K-AGCORE-151
       - K-AGCORE-152
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload
-    posture: authenticated_required
-    rationale: abort mutates and terminally invalidates the authenticated materializer account's challenge-bound durable upload
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTHN-006
-      - K-AUTH-001
-      - K-AGCORE-151
+      - K-AGCORE-153
   - method_id: /nimi.runtime.v1.RuntimeAgentService/InitializeAgent
     posture: anonymous_read
     rationale: handler does not lookup JWT identity; subject_user_id is taken from request body

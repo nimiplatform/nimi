@@ -17,12 +17,15 @@ Current scope:
   family.
 - `realm-api-consumer-contract.md` owns Nimi's external Realm API
   consumer boundary; it forbids mirroring Realm authority under
-  `.nimi/spec/realm/**` and binds source materialization to generated packet-v2
-  and challenge transport without handwritten audience/raw-payload DTOs.
+  `.nimi/spec/realm/**`, binds generated Realm core to current Packet v3 and
+  CharacterSourceRefV3 schemas, and keeps packet acquisition Runtime-private.
 - `runtime-contract.md`, `surface-contract.md`, and `boundary-contract.md` own
   the closed SDK consumption boundary for Runtime-admitted
-  `LocalAgentSourceContextStatus` and `AgentTurnContextSummary`; SDK may
-  correlate/render them but never assemble LocalAgent context.
+  `MaterializeRealmSource` through
+  `materializeRealmSource({ sourceRef, requestId })`,
+  `LocalAgentSourceContextStatus`, and `AgentTurnContextSummary`; SDK may
+  submit intent and correlate/render bounded results but never acquire packets
+  or assemble LocalAgent context.
 - `runtime-agent-participation-contract.md` owns the vNext SDK-facing Runtime
   Agent Participation method projection gate.
 - `nimi-proposal-intake-client-contract.md` owns the SDK typed consumer

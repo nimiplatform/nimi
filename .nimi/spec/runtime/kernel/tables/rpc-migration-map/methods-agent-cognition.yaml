@@ -161,29 +161,9 @@ method_mappings:
     proto_method: RequestMemoryEmbeddingRuntimeCutover
     mapping_posture: aligned
   - design_service: RuntimeAgentService
-    design_method: CreateSourceMaterializationChallenge
+    design_method: MaterializeRealmSource
     proto_service: RuntimeAgentService
-    proto_method: CreateSourceMaterializationChallenge
-    mapping_posture: aligned
-  - design_service: RuntimeAgentService
-    design_method: BeginSourceMaterializationUpload
-    proto_service: RuntimeAgentService
-    proto_method: BeginSourceMaterializationUpload
-    mapping_posture: aligned
-  - design_service: RuntimeAgentService
-    design_method: PutSourceMaterializationChunk
-    proto_service: RuntimeAgentService
-    proto_method: PutSourceMaterializationChunk
-    mapping_posture: aligned
-  - design_service: RuntimeAgentService
-    design_method: CommitSourceMaterialization
-    proto_service: RuntimeAgentService
-    proto_method: CommitSourceMaterialization
-    mapping_posture: aligned
-  - design_service: RuntimeAgentService
-    design_method: AbortSourceMaterializationUpload
-    proto_service: RuntimeAgentService
-    proto_method: AbortSourceMaterializationUpload
+    proto_method: MaterializeRealmSource
     mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: InitializeAgent

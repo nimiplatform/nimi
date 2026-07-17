@@ -214,7 +214,7 @@ local_agent_conversation_report:
   contract_version: 1
   identity_model:
     source_owner: realm
-    source_kinds: [worldCharacter, realmPersona]
+    source_kinds: [worldCharacter, personaCharacter]
     source_role_after_materialization: provenance_and_frozen_typed_snapshot
     local_agent_owner: runtime
     conversation_owner: runtime
@@ -242,7 +242,7 @@ local_agent_conversation_report:
     clean_environment_count: 1
     local_agent_stream_count: 2
     lifecycle_timeline_count: 1
-    source_materialization_count: {worldCharacter: 1, realmPersona: 1}
+    source_materialization_count: {worldCharacter: 1, personaCharacter: 1}
     environment_starts: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1}
     runtime_restart_count: 1
     realm_offline_transition_count: 1
@@ -253,7 +253,7 @@ local_agent_conversation_report:
     full_environment_per_scene_or_turn: forbidden
     authority_refs: [P-TEST-014, P-TEST-019]
   stream_contract:
-    required_source_kinds: [worldCharacter, realmPersona]
+    required_source_kinds: [worldCharacter, personaCharacter]
     required_distinct_fields: [localAgentRef, conversationAnchorId, sourceSnapshotHash, memoryScope]
     shared_fields: [ownerAccountId, runtimeEnvironment, providerEnvironment]
     cross_surface_continuity: same_localAgentRef_and_conversationAnchorId

@@ -538,12 +538,14 @@ returns typed unavailable until 0P/P admits a producer.
 `RuntimeAccountService.InvokeRealmUnary` admits only the exact Desktop
 source-readiness operations enumerated by
 `tables/realm-broker-operations.yaml`: world list/detail reads, public source
-detail, RealmPersona list/detail, WorldCharacter detail with its bound entity
-and relationships, and source-materialization packet creation. Each row is
-Desktop-shell-only and requires the verified protected Desktop control origin,
-the `desktop_account_host` role, the host-bound caller envelope, and the current
-authenticated account. An unlisted operation or any non-Desktop caller fails
-with `BROKER_OPERATION_NOT_ADMITTED`; generic proxy behavior is forbidden.
+detail, PersonaCharacter list/get/discovery, and WorldCharacter detail with
+its bound entity and relationships. Packet issuance is not a broker operation;
+RuntimeAgentService acquires it internally for `MaterializeRealmSource`. Each
+broker row remains Desktop-shell-only and requires the verified protected
+Desktop control origin, the `desktop_account_host` role, the host-bound caller
+envelope, and the current authenticated account. An unlisted operation or any
+non-Desktop caller fails with `BROKER_OPERATION_NOT_ADMITTED`; generic proxy
+behavior is forbidden.
 
 Runtime alone selects the configured canonical Realm base, holds and refreshes
 the Realm bearer, injects authorization, validates the row-specific OpenAPI

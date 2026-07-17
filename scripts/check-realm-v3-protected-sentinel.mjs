@@ -46,6 +46,47 @@ function assertNoDiff(baseline, target) {
   };
 }
 
+function worktreeObject(target) {
+  return git('hash-object', '--', target);
+}
+
+function assertAuthorizedAuthorityMigration(baseline, migration) {
+  if (!migration || typeof migration !== 'object') fail('authorized authority migration must be an object');
+  const target = String(migration.path || '').trim();
+  if (!target || path.isAbsolute(target) || target.split(/[\\/]/u).includes('..')) {
+    fail('authorized authority migration path must be repository-relative');
+  }
+  const baselineObject = git('rev-parse', `${baseline}:${target}`);
+  if (baselineObject !== migration.baselineObject) {
+    fail(`authorized authority baseline object mismatch for ${target}: expected=${migration.baselineObject} actual=${baselineObject}`);
+  }
+  const currentWorktreeObject = worktreeObject(target);
+  if (currentWorktreeObject !== migration.authorizedObject) {
+    fail(`protected authority changed outside its exact authorized migration: ${target}: expected=${migration.authorizedObject} actual=${currentWorktreeObject}`);
+  }
+  const untracked = git('ls-files', '--others', '--exclude-standard', '--', target);
+  if (untracked) fail(`authorized authority path contains untracked files: ${target}: ${untracked}`);
+  if (migration.authorizationState !== 'NC0_PASS_N1_AUTHORIZED') {
+    fail(`authorized authority migration has invalid authorization state: ${target}`);
+  }
+  if (!/^[a-f0-9]{64}$/u.test(String(migration.authorizationEvidenceSha256 || ''))) {
+    fail(`authorized authority migration has invalid authorization evidence digest: ${target}`);
+  }
+  if (!Array.isArray(migration.requiredUnchangedSemantics) || migration.requiredUnchangedSemantics.length === 0) {
+    fail(`authorized authority migration has no preserved semantic inventory: ${target}`);
+  }
+  return {
+    path: target,
+    baselineObject,
+    authorizedObject: migration.authorizedObject,
+    currentWorktreeObject,
+    authorizationState: migration.authorizationState,
+    authorizationEvidenceSha256: migration.authorizationEvidenceSha256,
+    allowedChange: migration.allowedChange,
+    requiredUnchangedSemantics: migration.requiredUnchangedSemantics,
+  };
+}
+
 function normalizeBrokerInventory(source) {
   const pattern = /const expectedOperationIDs = \[[\s\S]*?\n  \];/u;
   const matches = source.match(new RegExp(pattern.source, 'gu')) || [];
@@ -69,6 +110,15 @@ function check({ manifestPath }) {
   const immutable = manifest.immutablePaths.map((target) => assertNoDiff(baselineCommit, target));
   const authorityAndValidators = manifest.protectedAuthorityAndValidatorPaths
     .map((target) => assertNoDiff(baselineCommit, target));
+  const migrationPaths = new Set();
+  const authorizedAuthorityMigrations = (manifest.authorizedAuthorityMigrations ?? []).map((migration) => {
+    if (migrationPaths.has(migration.path)) fail(`duplicate authorized authority migration: ${migration.path}`);
+    migrationPaths.add(migration.path);
+    if (manifest.immutablePaths.includes(migration.path) || manifest.protectedAuthorityAndValidatorPaths.includes(migration.path)) {
+      fail(`authorized authority migration duplicates a zero-diff protected path: ${migration.path}`);
+    }
+    return assertAuthorizedAuthorityMigration(baselineCommit, migration);
+  });
 
   const exception = manifest.narrowException;
   const baselineObject = git('rev-parse', `${baselineCommit}:${exception.path}`);
@@ -95,6 +145,7 @@ function check({ manifestPath }) {
     currentTree: git('rev-parse', 'HEAD^{tree}'),
     immutable,
     authorityAndValidators,
+    authorizedAuthorityMigrations,
     narrowException: {
       path: exception.path,
       allowedSection: exception.allowedSection,
@@ -104,6 +155,8 @@ function check({ manifestPath }) {
       requiredUnchangedSemantics: exception.requiredUnchangedSemantics,
     },
     protectedDiffs: 0,
+    authorizedAuthorityDiffs: authorizedAuthorityMigrations.length,
+    unapprovedProtectedDiffs: 0,
   };
 }
 

@@ -142,11 +142,7 @@ Apps may not:
 
 `RuntimeAgentService` admits the following public operations:
 
-- `CreateSourceMaterializationChallenge`
-- `BeginSourceMaterializationUpload`
-- `PutSourceMaterializationChunk`
-- `CommitSourceMaterialization`
-- `AbortSourceMaterializationUpload`
+- `MaterializeRealmSource`
 - `InitializeAgent`
 - `TerminateAgent`
 - `GetAgent`
@@ -189,11 +185,13 @@ owner rule admits them; local-app session validity alone does not broaden this
 list. Bundled first-party callers retain their separately admitted posture and
 are not converted into third-party principals.
 
-The source-materialization operations above register the K-AGCORE-151..153
-semantic surface only. Their concrete Proto messages and fields are not defined
-by this authority iteration; the implementation-facing transport must be added
-through the later Proto/codegen authority cut without weakening the state
-machine, typed limits, immutable record, or public privacy boundary.
+The source-materialization operation above registers the K-AGCORE-139 and
+K-AGCORE-151..153 semantic surface. Its public request contains only
+`AgentRequestContext`, bounded `request_id`, and strict
+`CharacterSourceRefV3`; its bounded response contains no Realm bearer/base,
+grant material, challenge, packet, proof, manifest, segment, component, chunk,
+or source core. Challenge, acquisition, verification, staging, and atomic
+commit remain Runtime-private owner APIs.
 
 Primary semantic outputs on this surface must use Nimi-owned typed messages:
 
@@ -306,7 +304,7 @@ Runtime / SDK must provide admitted coverage for:
 - a close / delete / clear policy for user-visible conversation history
 - message-level delete / redact policy before any app exposes per-message
   deletion or redaction controls
-- a single-active-conversation policy for each SourceMaterializationPacket
+- a single-active-conversation policy for each CharacterSourceRefV3/v3
   provenance / LocalAgent projection
 - explicit rejection of Agent Chat draft persistence, rename/archive
   conversation semantics, and Desktop offline transcript recovery

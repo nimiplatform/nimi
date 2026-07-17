@@ -493,11 +493,7 @@ groups:
       - AgentTurnContextSummary
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
-      - CreateSourceMaterializationChallenge
-      - BeginSourceMaterializationUpload
-      - PutSourceMaterializationChunk
-      - CommitSourceMaterialization
-      - AbortSourceMaterializationUpload
+      - MaterializeRealmSource
       - InitializeAgent
       - TerminateAgent
       - GetAgent

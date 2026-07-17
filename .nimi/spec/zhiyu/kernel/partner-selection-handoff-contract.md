@@ -2,12 +2,13 @@
 
 ## Z-PARTNER-001 No Partner Creation
 
-Zhiyu must not create local partners, local agents, Realm personas, profiles,
-or character materialization truth.
+Zhiyu must not create local partners, local agents, PersonaCharacters,
+profiles, or character materialization truth.
 
 It also must not issue Realm source-materialization packets, obtain/replace the
 Runtime challenge audience, validate/upload packets, create snapshots, or
-derive LocalAgent identity from WorldCharacterCore/RealmPersona/profile data.
+derive LocalAgent identity from CharacterSourceRefV3, WorldCharacter,
+PersonaCharacter, or profile data.
 
 ## Z-PARTNER-002 Desktop/Realm Handoff
 

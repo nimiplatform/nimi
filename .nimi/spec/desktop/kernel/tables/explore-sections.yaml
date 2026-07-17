@@ -9,7 +9,7 @@ entries:
     semantics: Browse admitted Realm Worlds and project selected World context into Chat.
   - id: personas
     name: Personas
-    semantics: Discover RealmPersona sources across Worlds.
+    semantics: Discover PersonaCharacter sources across Worlds.
   - id: activity
     name: Activity
     semantics: Public Realm activity from Worlds, friends, personas, and world characters where admitted.

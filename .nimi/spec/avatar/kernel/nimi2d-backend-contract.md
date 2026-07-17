@@ -332,7 +332,7 @@ This contract does not admit:
   sprite transforms
 - Desktop launch UI for selecting Nimi2D packages
 - Runtime/SDK public backend enum expansion
-- default RealmPersona image-to-Nimi2D generation admission
+- default PersonaCharacter image-to-Nimi2D generation admission
 - adult outfit distribution or age-gated asset loading
 - raw APML, raw APML expansion, or LLM numeric frame control
 

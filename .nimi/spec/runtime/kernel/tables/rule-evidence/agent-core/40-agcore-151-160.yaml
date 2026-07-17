@@ -41,14 +41,14 @@ rules:
       - runtime_kernel_consistency
     test_files:
       - scripts/check-local-agent-full-chain-hardcut.mjs
-    note: Runtime challenge limits and issued-to-terminal ledger plus the sole Begin/Put/Commit/Abort upload state machine define strict RS256/hash/closure admission, idempotency, conflict, atomic rollback, terminal cleanup, and restart recovery without an alternate ingress.
+    note: Runtime-private acquisition and closure-set transaction publishes and verifies all eight limits, current RS256/JWKS and the complete hash graph; public callers supply no packet bytes, while idempotency, conflict, atomic rollback, terminal cleanup, and restart recovery retain one terminal result.
   - rule_id: K-AGCORE-152
     evidence_requirement: required
     evidence_refs:
       - runtime_kernel_consistency
     test_files:
       - scripts/check-local-agent-full-chain-hardcut.mjs
-    note: LocalAgentSourceSnapshotV1 is a strict first-class immutable 1:1 agent record with safe provenance, typed source/world closure, coverage and hashes; its domain-separated semantic hash excludes record/issuance fields and no raw bundle material is retained.
+    note: LocalAgentSourceSnapshotV2 is the only active strict immutable 1:1 agent record, with CharacterSourceRefV3, complete typed source/world/dependency closure, coverage, safe provenance and domain-separated semantic hash; no raw transport, proof, credential, or private context material is retained.
   - rule_id: K-AGCORE-153
     evidence_requirement: required
     evidence_refs:

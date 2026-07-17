@@ -120,7 +120,7 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
-  note: Explore remains the three-section Realm discovery surface; WorldCharacterCore enters through World/detail/source-detail without a new section.
+  note: Explore remains the three-section Realm discovery surface; WorldCharacter enters through World/detail/source-detail without a new section.
   test_files:
   - apps/desktop/test/explore-world-fold.test.ts
 - rule_id: D-EXPL-002
@@ -150,13 +150,13 @@ rules:
 - rule_id: D-EXPL-006
   evidence_refs: *explore_evidence
   evidence_requirement: required
-  note: Canonical source-generic action table covers WorldCharacterCore and RealmPersona, consumes bounded source status, and emits intent only.
+  note: Canonical source-generic action table covers WorldCharacter and PersonaCharacter, consumes bounded source status, and emits CharacterSourceRefV3 intent only.
   test_files:
   - apps/desktop/scripts/run-electron-explore-materialization-acceptance.mjs
 - rule_id: D-EXPL-007
   evidence_refs: *explore_evidence
   evidence_requirement: required
-  note: Desktop handoff carries typed source intent while Realm/Runtime own challenge, packet, snapshot, and LocalAgent identity.
+  note: Desktop handoff carries only CharacterSourceRefV3 and requestId while Runtime owns Realm acquisition, challenge, Packet v3, SnapshotV2, provenance, and LocalAgent identity.
   test_files:
   - apps/desktop/scripts/run-electron-explore-materialization-acceptance.mjs
 - rule_id: D-EXPL-008

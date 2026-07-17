@@ -83,7 +83,7 @@ capabilities:
       - .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-001
       - .nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md#K-AGCORE-139
     login_requirement: realm_login_required
-    public_promise: Realm-owned ecosystem identity covers authenticated social, group, and RealmPersona source identity; Runtime owns local executable LocalAgent identity and materialization from SourceMaterializationPacket.
+    public_promise: Realm-owned ecosystem identity covers authenticated social, group, WorldCharacter, PersonaCharacter, and CharacterSourceRefV3 truth; Runtime alone acquires and verifies Packet v3 and owns local executable LocalAgent identity, SnapshotV2, provenance, context compilation, and lifecycle.
     failure_behavior: Unauthenticated or mismatched owner identity fails closed; localAgentRef is Runtime-owned opaque identity and must not be derived from ownerUserId plus runtimeSourceRef.
     partial_deferred_reason: none
     verification_refs:
@@ -137,8 +137,8 @@ capabilities:
       - .nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md#K-AGCORE-139
       - .nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md#K-AGCORE-141
     login_requirement: realm_login_required
-    public_promise: RuntimeAgentService owns live LocalAgent lifecycle, conversation anchors, hard delete, event log, and local executable materialization from SourceMaterializationPacket input and Runtime-local provenance.
-    failure_behavior: Invalid packet proof, mismatched localAgentRef, substrate deletion failure, or unavailable runtime state fails closed; TerminateAgent cannot leave partial projection truth and source removal must not delete LocalAgent state.
+    public_promise: RuntimeAgentService owns live LocalAgent lifecycle, conversation anchors, hard delete, event log, and local executable materialization from Runtime-acquired Packet v3 into LocalAgentSourceSnapshotV2 and v3 provenance.
+    failure_behavior: Invalid Packet v3 closure/proof, mismatched localAgentRef, substrate deletion failure, or unavailable runtime state fails closed; TerminateAgent cannot leave partial projection truth and source removal must not delete LocalAgent state.
     partial_deferred_reason: none
     verification_refs:
       - runtime/internal/services/runtimeagent/agent_hard_deletion_test.go

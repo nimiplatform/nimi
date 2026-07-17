@@ -10,7 +10,7 @@ standalone primary navigation product surface.
 
 This contract owns Desktop placement and reuse rules for relationship/profile
 components. It does not own shell navigation, Realm discovery, Friendship
-truth, source provenance authority, SourceMaterializationPacket materialization,
+truth, source provenance authority, Packet v3 materialization,
 or LocalAgent Chat identity.
 
 ## D-REL-001 — Contextual Relationship/Profile Surface
@@ -43,7 +43,7 @@ human/source profile modal behavior from contextual consumers.
   profile detail modal overlay governance.
 - `.nimi/spec/desktop/kernel/tables/relationship-categories.yaml` — contextual
   relationship/source categories.
-- `.nimi/spec/desktop/kernel/explore-surface-contract.md` — RealmPersona
+- `.nimi/spec/desktop/kernel/explore-surface-contract.md` — PersonaCharacter
   discovery and source-state primary actions.
-- `.nimi/spec/realm/kernel/social-contract.md` and `.nimi/spec/realm/kernel/core-contract.md` — Friendship and typed source provenance truth.
-- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md` — SourceMaterializationPacket materialization and Runtime-local LocalAgent lifecycle.
+- `.nimi/spec/sdks/kernel/realm-api-consumer-contract.md` — external Realm social and typed source consumer boundary.
+- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md` — Packet v3/SnapshotV2 materialization and Runtime-local LocalAgent lifecycle.

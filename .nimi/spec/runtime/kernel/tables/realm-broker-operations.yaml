@@ -1,13 +1,13 @@
-version: 2
+version: 3
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_realm_broker_operations
 surfaces:
-  - WorldCoreController_createSourceMaterializationPacket
-  - WorldCoreController_getRealmPersona
+  - WorldCoreController_discoverPersonaCharacters
+  - WorldCoreController_getPersonaCharacter
   - WorldCoreController_getWorldCharacter
   - WorldCoreController_getWorldEntity
-  - WorldCoreController_listRealmPersonas
+  - WorldCoreController_listPersonaCharacters
   - WorldCoreController_listWorldRelationships
   - WorldPublicController_getWorld
   - WorldPublicController_getWorldDetailWithCharacters
@@ -23,7 +23,8 @@ description: >
   account host, the host-bound Desktop caller envelope, the current
   authenticated account, Runtime-only Realm bearer custody, the configured
   canonical Realm base, and the row-specific OpenAPI request shape. No other
-  Realm operation is admitted by this table.
+  Realm operation is admitted by this table. Packet issuance and all raw
+  materialization transport stay outside this protected broker.
 
 operation_schema:
   required_fields:
@@ -54,40 +55,20 @@ policy_templates:
     response_max_bytes: 1048576
     credential_response_policy: forbidden
     source_rule: K-ACCSVC-023
-  desktop_source_materialization: &desktop_source_materialization
-    authorization_profile: protected_desktop_source_readiness
-    allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_DESKTOP_SHELL]
-    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
-    realm_base_policy: runtime-configured-canonical-exact
-    response_max_bytes: 524288
-    credential_response_policy: forbidden
-    source_rule: K-ACCSVC-023
-
 operations:
-  - <<: *desktop_source_materialization
-    operation_id: WorldCoreController_createSourceMaterializationPacket
-    http_method: POST
-    path_template: /api/realm/core/source-materialization-packets
-    request_schema_ref: realm-openapi://operation/WorldCoreController_createSourceMaterializationPacket/request
-    response_schema_ref: realm-openapi://operation/WorldCoreController_createSourceMaterializationPacket/response
-    consumer_refs:
-      - sdks/typescript/realm/social.ts
-      - sdks/typescript/runtime/runtime-agent-materialization.ts
-      - apps/desktop/src/shell/renderer/features/explore/realm-persona-source-materialization.ts
-
   - <<: *desktop_source_read
-    operation_id: WorldCoreController_getRealmPersona
+    operation_id: WorldCoreController_getPersonaCharacter
     http_method: GET
-    path_template: /api/realm/core/personas/{personaId}
-    request_schema_ref: realm-openapi://operation/WorldCoreController_getRealmPersona/request
-    response_schema_ref: realm-openapi://operation/WorldCoreController_getRealmPersona/response
+    path_template: /api/realm/core/persona-characters/by-id/{personaCharacterId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/response
     consumer_refs:
       - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_getWorldCharacter
     http_method: GET
-    path_template: /api/realm/core/world-characters/{characterId}
+    path_template: /api/realm/core/world-characters/by-id/{characterId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/response
     consumer_refs:
@@ -103,11 +84,20 @@ operations:
       - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
   - <<: *desktop_source_read
-    operation_id: WorldCoreController_listRealmPersonas
+    operation_id: WorldCoreController_listPersonaCharacters
     http_method: GET
-    path_template: /api/realm/core/personas
-    request_schema_ref: realm-openapi://operation/WorldCoreController_listRealmPersonas/request
-    response_schema_ref: realm-openapi://operation/WorldCoreController_listRealmPersonas/response
+    path_template: /api/realm/core/persona-characters
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/response
+    consumer_refs:
+      - apps/desktop/src/shell/renderer/features/explore/data/realm-explore-data.ts
+
+  - <<: *desktop_source_read
+    operation_id: WorldCoreController_discoverPersonaCharacters
+    http_method: GET
+    path_template: /api/realm/core/persona-characters/discovery
+    request_schema_ref: realm-openapi://operation/WorldCoreController_discoverPersonaCharacters/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_discoverPersonaCharacters/response
     consumer_refs:
       - apps/desktop/src/shell/renderer/features/explore/data/realm-explore-data.ts
 

@@ -410,6 +410,16 @@ historical trust checklist.
 
 Fixed rules:
 
+- the only app-facing source-materialization facade is
+  `materializeRealmSource({ sourceRef, requestId })`, which invokes only the
+  Runtime `MaterializeRealmSource` operation; `sourceRef` is the closed
+  `CharacterSourceRefV3` union (`worldCharacter | personaCharacter`) and the
+  response contains only opaque `localAgentRef`, bounded
+  `LocalAgentSourceContextStatus`, `idempotentReplay`, and typed failure reason
+- the facade must not accept Realm base URL, bearer, grant, challenge,
+  audience, Packet v3, proof, segment, component, chunk, semantic payload,
+  prompt/context, or caller-selected LocalAgent identity; acquisition and the
+  private transaction remain Runtime-owned
 - SDK consumers must provide explicit `agentId` for every localAgent-scoped runtime
   call; construction-time current-localAgent helpers are not canonical truth
 - `conversationAnchorId` is the only admitted cross-surface continuity scope for
@@ -428,7 +438,7 @@ Fixed rules:
   avatar/Desktop surfaces
 - source readiness consumers accept only closed, read-only
   `LocalAgentSourceContextStatus`: ready/state and typed reason; source
-  kind/ref/schema/content hash; snapshot schema/hash/captured-at; world and
+  kind/ref/schema/`sourceHash`; SnapshotV2 schema/hash/captured-at; world and
   materialization-context hashes; and coverage section states/counts
 - turn context consumers accept only closed, read-only
   `AgentTurnContextSummary`: ready/state and typed reason; manifest/compiler

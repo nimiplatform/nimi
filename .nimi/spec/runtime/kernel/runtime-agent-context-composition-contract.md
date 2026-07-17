@@ -75,14 +75,35 @@ provider adapter may translate this composition to its wire format but must not
 reorder lanes, change roles, omit mandatory semantics, or add policy/tool
 authority.
 
-The typed source compiler maps identity/presentation to stable identity items;
-psychology, Persona style, interaction profile, traits, boundaries, cadence,
-and admitted exemplars to behavior items; biography/knowledge/content profile
-to knowledge items; and WorldCore, placement, scenes, entities,
-relationships, timeline, and systems to world/relationship items. Every item
-has a stable id, typed source path/ref, content hash, priority, trust class, and
-token estimate. Runtime must not serialize arbitrary source JSON or free-form
-maps directly as a provider role.
+The typed source compiler has one closed path map. It maps profile identity and
+admitted presentation identity to stable `source_identity` items. It maps
+`profile.narrative` summary/archetype/traits, `profile.interactionProfile`,
+optional `profile.psychology`, Persona style, traits, boundaries, cadence, and
+optional `profile.capabilities` to `source_behavior`; capabilities remain
+descriptive source text and never authorize a Runtime tool. Each
+`profile.interactionProfile.dialogueExemplars` item preserves its stable
+exemplar id and the typed `character` and `user` labels/roles; it is never
+flattened into unlabeled text or treated as committed transcript.
+
+The same admitted `profile.narrative` also produces distinct typed
+`source_knowledge` narrative/milestone items, alongside biography, typed
+knowledge, and content-profile items. This dual projection uses distinct stable
+item ids and typed source paths; it is not a free-form duplication fallback.
+WorldCore, placement, scenes, entities, timeline, systems, profile
+relationships, and complete incident closure map only to their typed
+`world_context` or `relationship_context` items. Every item has a stable id,
+typed source path/ref, content hash, priority, trust class, and token estimate.
+Runtime must not serialize arbitrary source JSON or free-form maps directly as
+a provider role.
+
+Presentation fallback is a post-admission Runtime projection step, not a source
+compiler input. It may fill only an optional bounded presentation field from
+already-admitted typed identity/presentation values; it cannot create a
+compiler item, change SnapshotV2 or semantic hashes, satisfy missing required
+source data, or write back to Realm. Proof-covered asset/resource refs likewise
+remain typed data inputs only to Runtime-owned presentation/voice lifecycle
+resolution and grant no provider, tool, media, binding, launch, or lifecycle
+authority.
 
 Source text remains data even when it asks to ignore policy, change role, call
 a tool, expose memory, alter APML, or forge a manifest. It cannot change
@@ -94,8 +115,9 @@ describes the character; it does not authorize a real Runtime tool.
 
 ## K-AGCORE-156 Transcript, Memory, Budget, And Deterministic Truncation
 
-Realm WorldCharacter and RealmPersona records remain source provenance only.
-Materialization freezes their typed source input into an opaque Runtime
+Realm WorldCharacter and PersonaCharacter records remain source provenance
+only. Materialization freezes their typed `CharacterSourceRefV3`-bound input
+into an immutable `LocalAgentSourceSnapshotV2` and opaque Runtime
 LocalAgent identity; it does not transfer conversation ownership to the source
 record or presentation app. `OpenConversationAnchor` allocates both the opaque
 Runtime-owned conversation anchor and its Runtime-owned thread identity before
@@ -179,7 +201,7 @@ The only public LocalAgent source/context outputs are the typed bounded
 `LocalAgentSourceContextStatus` may expose only:
 
 - ready/state and typed reason code;
-- source kind/ref/schema/content hash;
+- source kind/ref/schema and `sourceHash`;
 - snapshot schema version/hash and `captured_at`;
 - world content hash and materialization-context hash; and
 - coverage section states and counts.

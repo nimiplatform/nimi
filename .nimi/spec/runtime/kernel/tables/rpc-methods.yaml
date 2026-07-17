@@ -560,15 +560,7 @@ services:
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:
-      - name: CreateSourceMaterializationChallenge
-        type: unary
-      - name: BeginSourceMaterializationUpload
-        type: unary
-      - name: PutSourceMaterializationChunk
-        type: unary
-      - name: CommitSourceMaterialization
-        type: unary
-      - name: AbortSourceMaterializationUpload
+      - name: MaterializeRealmSource
         type: unary
       - name: InitializeAgent
         type: unary

@@ -105,8 +105,9 @@ The baseline creates one clean root, starts provider, Realm, Runtime, Desktop,
 and Zhiyu once, materializes each declared Realm source exactly once, and then
 executes two Runtime-owned LocalAgent conversation streams plus one lifecycle
 timeline in that environment. Each stream binds one opaque Runtime-resolved
-`localAgentRef` and one Runtime-owned `conversationAnchorId`; WorldCharacter and
-RealmPersona remain source provenance and frozen typed snapshot input only.
+`localAgentRef` and one Runtime-owned `conversationAnchorId`; WorldCharacter
+and PersonaCharacter remain source provenance and frozen typed SnapshotV2 input
+only.
 Runtime starts a second time only for the declared restart. The run retains
 complete transcripts, per-turn provider
 captures, Runtime/context/memory/relationship state, Voice/Emotion/Activity/
