@@ -96,6 +96,7 @@ export {
   connectCdp,
   createEarlyCdpObserver,
   decodeDesktopRuntimeUnaryResponse,
+  isRecoverableFirstRunStorageRestart,
   invokeDesktop,
   invokeDesktopRuntimeUnary,
   probeRealRealmBrowserLoginAuthority,

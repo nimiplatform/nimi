@@ -7,6 +7,7 @@ import { validateFirstRunConnectivityObservation } from './dev-kernel-first-run-
 import {
   classifyFirstRunStorageRecoverySnapshot,
   classifyFirstRunTerminalSnapshot,
+  isRecoverableFirstRunStorageRestart,
   selectLatestBlockingFirstRunDependencyJob,
 } from './dev-kernel-cross-app-driver.mjs';
 
@@ -165,6 +166,14 @@ test('First Run waits for fixed-service PID replacement after Storage mutation',
   assert.match(driver, /const serviceBeforeStorage = readFixedServiceStatus\(\)[\s\S]*status\.processId !== serviceBeforeStorage\.processId[\s\S]*fixed service PID replacement after first-run Storage sync/iu);
 });
 
+test('First Run generic Storage recovery re-handshakes the protected carrier before one fresh retry', () => {
+  const source = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-first-run-driver.mjs'), 'utf8');
+  assert.match(
+    source,
+    /runtime-service-unavailable[\s\S]*isRecoverableFirstRunStorageRestart[\s\S]*RUNTIME_STATUS_COMMAND[\s\S]*PRODUCT_CONTROL_RECORD_METHOD[\s\S]*first-run Storage protected-carrier re-handshake[\s\S]*continueStorage\.click\(\{ noWaitAfter: true \}\)[\s\S]*classifyFirstRunStorageRecoverySnapshot/iu,
+  );
+});
+
 test('First Run bounds exact Runtime-unavailable Setup recovery without weakening owner failures', () => {
   const driver = firstRunDriverSource();
   assert.match(driver, /setupFailure\.text\.trim\(\) === 'runtime-service-unavailable'/u);
@@ -299,5 +308,31 @@ test('First Run restart recovery advances only after a fresh Storage retry is ac
     deviceVisible: false,
     errorVisible: false,
     pendingAction: '',
+  }), false);
+});
+
+test('First Run Storage restart recovery requires the exact typed failure and same healthy candidate replacement', () => {
+  const serviceBefore = status(200);
+  const serviceAfter = status(300);
+  const unavailable = { kind: 'error', message: 'runtime-service-unavailable' };
+
+  assert.equal(isRecoverableFirstRunStorageRestart(unavailable, serviceBefore, serviceAfter), true);
+  assert.equal(isRecoverableFirstRunStorageRestart(
+    { kind: 'error', message: 'runtime-owner-rejected' },
+    serviceBefore,
+    serviceAfter,
+  ), false);
+  assert.equal(isRecoverableFirstRunStorageRestart(unavailable, serviceBefore, status(200)), false);
+  assert.equal(isRecoverableFirstRunStorageRestart(unavailable, serviceBefore, {
+    ...serviceAfter,
+    runtimeCandidateId: `dev-kernel-runtime-${'f'.repeat(32)}`,
+  }), false);
+  assert.equal(isRecoverableFirstRunStorageRestart(unavailable, serviceBefore, {
+    ...serviceAfter,
+    runtimeBinarySha256: 'f'.repeat(64),
+  }), false);
+  assert.equal(isRecoverableFirstRunStorageRestart(unavailable, serviceBefore, {
+    ...serviceAfter,
+    runtimeBuildRecordMatchesCandidate: false,
   }), false);
 });

@@ -6,8 +6,10 @@ import {
   PRODUCT_CONTROL_RECORD_METHOD,
   PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD,
   RUNTIME_STATUS_COMMAND,
+  classifyFirstRunStorageRecoverySnapshot,
   classifyFirstRunTerminalSnapshot,
   comparablePath,
+  isRecoverableFirstRunStorageRestart,
   invokeDesktop,
   invokeDesktopRuntimeUnary,
   readFixedServiceStatus,
@@ -69,6 +71,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
   let narrowMetrics = null;
   let selectedDataRoot;
   let serviceAfterStorage;
+  let storageRestartRecovery = null;
   if (startingPhase === 'storage-ready') {
     const displayedDataRoot = comparablePath(await page.getByTestId('first-run-storage-path').innerText());
     const hostProfileDataRoot = process.env.USERPROFILE
@@ -98,7 +101,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
       ? await options.beforeStorageContinue({ page, continueStorage }) === true
       : false;
     if (!storageContinueHandled) await continueStorage.click();
-    const storageTransition = await waitUntil(async () => {
+    const observeStorageTransition = (label) => waitUntil(async () => {
       if (await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false)) {
         return { kind: 'advanced' };
       }
@@ -112,7 +115,62 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
         return { kind: 'stalled', message: 'Storage mutation returned without advancing product state' };
       }
       return null;
-    }, { timeoutMs: 120_000, intervalMs: 100, label: 'first-run Storage mutation completion' });
+    }, { timeoutMs: 120_000, intervalMs: 100, label });
+    let storageTransition = await observeStorageTransition('first-run Storage mutation completion');
+    if (storageTransition.kind === 'error'
+      && storageTransition.message.trim() === 'runtime-service-unavailable') {
+      const restartedService = await waitUntil(() => {
+        const status = readFixedServiceStatus();
+        return isRecoverableFirstRunStorageRestart(storageTransition, serviceBeforeStorage, status)
+          ? status
+          : null;
+      }, {
+        timeoutMs: 120_000,
+        intervalMs: 500,
+        label: 'same-candidate fixed service replacement after first-run Storage interruption',
+      });
+      await waitUntil(async () => {
+        const [lifecycle, productControl] = await Promise.all([
+          invokeDesktop(page, RUNTIME_STATUS_COMMAND).catch(() => null),
+          readProductControlJSONProjection(page, PRODUCT_CONTROL_RECORD_METHOD).catch(() => null),
+        ]);
+        return lifecycle?.running === true
+          && lifecycle?.managed === true
+          && typeof productControl?.state === 'string'
+          && productControl.state.length > 0
+          ? true
+          : null;
+      }, {
+        timeoutMs: 60_000,
+        intervalMs: 100,
+        label: 'first-run Storage protected-carrier re-handshake',
+      });
+      await waitUntil(async () => !(await continueStorage.isDisabled().catch(() => true)) || null, {
+        timeoutMs: 30_000,
+        intervalMs: 50,
+        label: 'first-run Storage retry enabled after Runtime restart',
+      });
+      await continueStorage.click({ noWaitAfter: true });
+      const retryAcceptance = await waitUntil(async () => classifyFirstRunStorageRecoverySnapshot({
+        deviceVisible: await page.getByTestId('first-run-phase-device-scan').isVisible().catch(() => false),
+        errorVisible: await page.getByTestId('product-first-run-error').isVisible().catch(() => false),
+        pendingAction: await page.getByTestId('product-first-run-workflow')
+          .getAttribute('data-pending-action').catch(() => ''),
+      }), {
+        timeoutMs: 30_000,
+        intervalMs: 25,
+        label: 'first-run Storage retry accepted after Runtime restart',
+      });
+      storageTransition = retryAcceptance === 'advanced'
+        ? { kind: 'advanced' }
+        : await observeStorageTransition('first-run Storage retry completion after Runtime restart');
+      storageRestartRecovery = {
+        recovered: storageTransition.kind === 'advanced',
+        serviceBeforeProcessId: serviceBeforeStorage.processId,
+        serviceAfterProcessId: restartedService.processId,
+        runtimeCandidateId: restartedService.runtimeCandidateId,
+      };
+    }
     if (storageTransition.kind !== 'advanced') {
       throw new Error(`first-run Storage failed: ${storageTransition.message}`);
     }
@@ -431,6 +489,7 @@ export async function completeDesktopFirstRun(connection, trial, screenshotsRoot
     productControlRecord: record,
     serviceAfterStorage,
     serviceAfterReady,
+    storageRestartRecovery,
     layout: { desktopPath, narrowPath, narrowMethod, narrowMetrics, phaseAcceptance },
   };
 }

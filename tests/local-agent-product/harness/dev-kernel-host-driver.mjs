@@ -8,7 +8,10 @@ import path from 'node:path';
 
 import { inspectNetworkAuthorityMaterial } from './dev-kernel-contract.mjs';
 import { repoRoot } from './registry.mjs';
-import { assertFixedServiceStatus } from './dev-kernel-fixed-service-contract.mjs';
+import {
+  assertFixedServiceStatus,
+  validateFixedServiceStatus,
+} from './dev-kernel-fixed-service-contract.mjs';
 
 const requireFromDesktop = createRequire(path.join(repoRoot, 'apps', 'desktop', 'package.json'));
 const { chromium } = requireFromDesktop('playwright');
@@ -501,6 +504,26 @@ export function classifyFirstRunStorageRecoverySnapshot(snapshot) {
   if (snapshot?.deviceVisible === true) return 'advanced';
   if (snapshot?.errorVisible !== true && String(snapshot?.pendingAction || '').trim()) return 'pending';
   return false;
+}
+
+export function isRecoverableFirstRunStorageRestart(transition, serviceBefore, serviceAfter) {
+  const beforePid = Number(serviceBefore?.processId);
+  const afterPid = Number(serviceAfter?.processId);
+  const beforeCandidateId = String(serviceBefore?.runtimeCandidateId || '').trim();
+  const stableCandidateFields = [
+    'runtimeCandidateId',
+    'runtimeBinarySha256',
+    'runtimeBuildRecordSha256',
+    'sourceDirtyDescriptorSha256',
+    'sourceTreeSha256',
+  ];
+  return transition?.kind === 'error'
+    && String(transition?.message || '').trim() === 'runtime-service-unavailable'
+    && validateFixedServiceStatus(serviceBefore).length === 0
+    && validateFixedServiceStatus(serviceAfter).length === 0
+    && beforePid !== afterPid
+    && beforeCandidateId !== ''
+    && stableCandidateFields.every((field) => serviceAfter[field] === serviceBefore[field]);
 }
 
 export async function readProductControlJSONProjection(page, methodId) {
