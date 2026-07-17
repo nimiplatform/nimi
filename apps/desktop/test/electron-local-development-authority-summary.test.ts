@@ -107,7 +107,9 @@ test('Electron publisher deletes the previous authority summary when the protect
   const publisher = createDesktopElectronLocalDevelopmentProjectionPublisher({
     homeDirectory: home,
     control: control(async () => {
-      if (fails) throw new Error('runtime-service-unavailable');
+      if (fails) throw Object.assign(new Error('bounded failure'), {
+        reasonCode: 'runtime-service-unavailable',
+      });
       return availableSummary();
     }),
     processId: 4_243,
@@ -122,7 +124,7 @@ test('Electron publisher deletes the previous authority summary when the protect
     fails = true;
     await publisher.heartbeat();
     await assert.rejects(access(summaryPath), { code: 'ENOENT' });
-    assert.deepEqual(reports, ['authority summary unavailable']);
+    assert.deepEqual(reports, ['authority summary unavailable: runtime-service-unavailable']);
   } finally {
     await publisher.shutdown();
     await rm(home, { recursive: true, force: true });

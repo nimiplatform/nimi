@@ -152,9 +152,9 @@ implements DesktopElectronLocalDevelopmentProjectionPublisher {
         this.now().toISOString(),
       );
       await writeOwnerPrivateAtomicJson(this.authoritySummaryPath, descriptor);
-    } catch {
+    } catch (error) {
       await this.removeAuthoritySummary();
-      this.report('authority summary unavailable');
+      this.report(`authority summary unavailable: ${authoritySummaryFailureReason(error)}`);
     }
   }
 
@@ -370,4 +370,13 @@ function errorCode(error: unknown): string | undefined {
   return error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
     ? error.code
     : undefined;
+}
+
+function authoritySummaryFailureReason(error: unknown): string {
+  if (error && typeof error === 'object' && 'reasonCode' in error
+    && typeof error.reasonCode === 'string'
+    && /^[A-Za-z][A-Za-z0-9_-]{0,127}$/u.test(error.reasonCode)) {
+    return error.reasonCode;
+  }
+  return AUTHORITY_SUMMARY_UNTRUSTED;
 }
