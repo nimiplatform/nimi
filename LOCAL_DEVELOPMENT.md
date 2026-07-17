@@ -16,6 +16,20 @@
 
 建议顺序：Realm → Web → fixed Runtime status → Desktop → Zhiyu。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
 
+需要让连续的 dev-kernel candidate 复用一个既有 `nimi_data` payload 根时，必须由
+operator 在 signed-installer 更新链上显式选择：
+
+```powershell
+pnpm dev:runtime -- --development-data-root <absolute-existing-nimi-data-root>
+```
+
+该参数只传给 signed installer 写入 candidate-bound protected profile；不会成为
+Runtime argv、环境变量或 renderer 配置。新 candidate 仍重建隔离的 Product Control、
+registry 与 readiness 证据，既有模型、依赖、环境字节只有在当前 catalog hash、
+manifest、compatibility 与 activation 全部重新验证后才复用。省略该参数时，
+dev-kernel profile 有意使用 candidate-specific fallback root；因此连续更换 candidate
+可能重新物化大型 payload。
+
 运行 `pnpm doctor:dev` 可在一屏检查 Realm/Web 可达性、fixed service 完整状态、Desktop local-development presence 的 exact shape/新鲜度、遗留 carrier，以及 SDK/Kit canonical dist stamp。任一 Tier-1 项不满足时命令非零退出。Developer Mode、项目授权与 grant 摘要目前没有获准的 bounded doctor projection，输出固定为“bounded projection 未准入”，不读取 renderer private bridge，也不把缺失投影算作通过。
 
 ## 签名 Desktop dev profile 的一次性 First Run
