@@ -77,7 +77,7 @@ test('resume fails closed on receipt input digest mismatch', () => {
 });
 
 test('resume reuses only validated PASS and reruns failed or missing partitions', async (t) => {
-  const evidenceDir = await mkdtemp(path.join(os.tmpdir(), 'nimi-realm-v3-full-resume-'));
+  const evidenceDir = await mkdtemp(path.join(os.tmpdir(), 'realm-v3-full-resume-'));
   t.after(() => rm(evidenceDir, { recursive: true, force: true }));
   const lock = runLock();
   const value = manifest(lock);
@@ -173,7 +173,7 @@ test('first-party authorization boundary and restart residue claims fail closed 
 });
 
 test('final aggregate uses only live/restart receipts and rejects a missing NC6 identity', async (t) => {
-  const evidenceDir = await mkdtemp(path.join(os.tmpdir(), 'nimi-realm-v3-full-fake-final-'));
+  const evidenceDir = await mkdtemp(path.join(os.tmpdir(), 'realm-v3-full-fake-final-'));
   t.after(() => rm(evidenceDir, { recursive: true, force: true }));
   const lock = runLock({ final: true });
   const value = manifest(lock);

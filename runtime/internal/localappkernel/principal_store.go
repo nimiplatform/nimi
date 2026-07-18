@@ -87,7 +87,7 @@ func (store *PrincipalStore) GetByDevelopmentAuthorizationID(ctx context.Context
 	if err != nil {
 		return Principal{}, fmt.Errorf("query local-app development principal: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if !rows.Next() {
 		if err := rows.Err(); err != nil {
 			return Principal{}, fmt.Errorf("read local-app development principal: %w", err)
@@ -128,7 +128,7 @@ func (store *PrincipalStore) ListDevelopment(ctx context.Context, includeTombsto
 	if err != nil {
 		return nil, fmt.Errorf("list local-app development principals: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	principals := make([]Principal, 0)
 	for rows.Next() {
 		principal, scanErr := scanPrincipal(rows)
@@ -159,7 +159,7 @@ func (store *PrincipalStore) Tombstone(ctx context.Context, principalID string) 
 	if err != nil {
 		return Principal{}, fmt.Errorf("begin tombstone principal: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	principal, err := scanPrincipal(tx.QueryRowContext(ctx, `SELECT
 		local_os_user_anchor, local_app_principal_id, principal_kind, app_id,
 		immutable_lineage_id, development_authorization_id, canonical_project_file_id,

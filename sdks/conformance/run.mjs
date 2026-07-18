@@ -5,10 +5,18 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const languages = ['typescript', 'python', 'go', 'rust'];
+const privateRealmOperationTable = YAML.parse(readFileSync(
+  path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/realm-private-operation-carriers.yaml'),
+  'utf8',
+));
+const privateRealmOperationIds = new Set(
+  (privateRealmOperationTable.operations || []).map((operation) => String(operation.operation_id || '').trim()),
+);
 
 function readJson(rel) {
   const abs = path.join(repoRoot, rel);
@@ -166,7 +174,13 @@ function validateLanguage(language, shared) {
   assert(errors.language === language, `${language} error manifest has wrong language`);
   assert(exportsManifest.language === language, `${language} export manifest has wrong language`);
   assert(runtime.method_ids.length === shared.runtime.method_ids.length, `${language} runtime method parity mismatch`);
-  assert(realm.operations.length === shared.realm.operations.length, `${language} realm operation parity mismatch`);
+  const expectedRealmOperationIds = shared.realm.operations
+    .map((operation) => operation.operation_id)
+    .filter((operationId) => !privateRealmOperationIds.has(operationId));
+  assert(
+    JSON.stringify(realm.operations.map((operation) => operation.operation_id)) === JSON.stringify(expectedRealmOperationIds),
+    `${language} public Realm operation parity mismatch`,
+  );
   assert(errors.values.length === shared.errors.values.length, `${language} error-code parity mismatch`);
 }
 

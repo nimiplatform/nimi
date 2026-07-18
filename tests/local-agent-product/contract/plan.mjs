@@ -1,7 +1,10 @@
 import path from 'node:path';
 import { repoRoot } from '../harness/registry.mjs';
 
-const realmRoot = path.resolve(repoRoot, '..');
+const configuredRealmRoot = String(process.env.REALM_ROOT || '').trim();
+const realmRoot = configuredRealmRoot
+  ? path.resolve(configuredRealmRoot)
+  : path.join(repoRoot, '.external-realm-unconfigured');
 const runtimeRoot = path.join(repoRoot, 'runtime');
 
 function step(owner, command, args, cwd, expectedMarker = '') {
@@ -13,7 +16,7 @@ function runtimeTest(name) {
 }
 
 function realmTest(file, name) {
-  return step('realm', 'pnpm', ['--dir', path.join(realmRoot, 'nimi-backend'), 'exec', 'vitest', 'run', file, '-t', name, '--reporter=verbose'], realmRoot, name);
+  return step('realm', 'pnpm', ['--dir', realmRoot, '--filter', '@nimi/backend', 'exec', 'vitest', 'run', file, '-t', name, '--reporter=verbose'], realmRoot, name);
 }
 
 function sdkTest(name, file = 'runtime-facade.test.ts') {

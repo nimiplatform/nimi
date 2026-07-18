@@ -57,7 +57,7 @@ test('canonical JSON and manifest digest are deterministic', () => {
   assert.equal(validatePartitionManifest(first, lock), first);
 });
 test('disposable runtime root requires the frozen marker and is removed at close', async (t) => {
-  const parent = await mkdtemp(path.join(os.tmpdir(), 'nimi-realm-v3-full-runtime-root-'));
+  const parent = await mkdtemp(path.join(os.tmpdir(), 'realm-v3-full-runtime-root-'));
   t.after(() => rm(parent, { recursive: true, force: true }));
   const runtimeRoot = path.join(await realpath(parent), 'owned-runtime');
   const lock = runLock({ final: true });
@@ -98,17 +98,19 @@ test('disposable runtime root requires the frozen marker and is removed at close
 });
 
 test('runtime and evidence roots reject broad permissions and symlink traversal', async (t) => {
-  const parent = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-realm-v3-full-paths-')));
+  const parent = await realpath(await mkdtemp(path.join(os.tmpdir(), 'realm-v3-full-paths-')));
   t.after(() => rm(parent, { recursive: true, force: true }));
   const nimiRoot = path.join(parent, 'nimi');
   await mkdir(nimiRoot, { mode: 0o700 });
   const wideRuntimeRoot = path.join(parent, 'wide-runtime');
   await mkdir(wideRuntimeRoot, { mode: 0o755 });
   await chmod(wideRuntimeRoot, 0o755);
-  await assert.rejects(
-    __test.initializeRuntimeDataRoot(wideRuntimeRoot, runLock({ final: true }), false),
-    (error) => error instanceof FullDataContractError && error.code === 'unsafe_runtime_data_root',
-  );
+  if (process.platform !== 'win32') {
+    await assert.rejects(
+      __test.initializeRuntimeDataRoot(wideRuntimeRoot, runLock({ final: true }), false),
+      (error) => error instanceof FullDataContractError && error.code === 'unsafe_runtime_data_root',
+    );
+  }
   assert.throws(
     () => __test.validateRuntimeDataRoot(nimiRoot, wideRuntimeRoot, true),
     (error) => error instanceof FullDataContractError && error.code === 'unsafe_runtime_data_root',
@@ -129,7 +131,11 @@ test('runtime and evidence roots reject broad permissions and symlink traversal'
   const outside = path.join(parent, 'outside');
   await mkdir(path.join(nimiRoot, '.nimi', 'local'), { recursive: true });
   await mkdir(outside);
-  await symlink(outside, path.join(nimiRoot, '.nimi', 'local', 'escape'));
+  await symlink(
+    outside,
+    path.join(nimiRoot, '.nimi', 'local', 'escape'),
+    process.platform === 'win32' ? 'junction' : 'dir',
+  );
   assert.throws(
     () => __test.validateEvidenceDirectory(nimiRoot, path.join(nimiRoot, '.nimi', 'local', 'escape', 'run')),
     (error) => error instanceof FullDataContractError && error.code === 'unsafe_evidence_path',
@@ -187,9 +193,9 @@ test('live census proves immutable persistent 470/1, selected disposable 470/1, 
 });
 
 test('dirty final candidate is content-addressed and same-path mutation blocks resume', async (t) => {
-  const repository = await mkdtemp(path.join(os.tmpdir(), 'nimi-realm-v3-full-candidate-'));
+  const repository = await mkdtemp(path.join(os.tmpdir(), 'realm-v3-full-candidate-'));
   const workerDirectory = await realpath(
-    await mkdtemp(path.join(os.tmpdir(), 'nimi-realm-v3-full-worker-')),
+    await mkdtemp(path.join(os.tmpdir(), 'realm-v3-full-worker-')),
   );
   t.after(() => rm(repository, { recursive: true, force: true }));
   t.after(() => rm(workerDirectory, { recursive: true, force: true }));
@@ -220,7 +226,7 @@ test('dirty final candidate is content-addressed and same-path mutation blocks r
   const firstIdentity = await __test.buildCensusExpectation(repository);
   const first = await buildRunLock({
     nimiRoot: repository,
-    runtimeDataRoot: path.join(os.tmpdir(), 'nimi-realm-v3-full-data-runtime-0123456789abcdef'),
+    runtimeDataRoot: path.join(os.tmpdir(), 'realm-v3-full-data-runtime-0123456789abcdef'),
     mode: 'final',
     sourceMode: 'live',
     sourceCensus: sourceCensusForIdentity(firstIdentity, liveEnvironmentAttestationDigest),
@@ -248,7 +254,7 @@ test('dirty final candidate is content-addressed and same-path mutation blocks r
   await writeFile(workerScriptPath, 'child-v2\n');
   const transitiveDrift = await buildRunLock({
     nimiRoot: repository,
-    runtimeDataRoot: path.join(os.tmpdir(), 'nimi-realm-v3-full-data-runtime-0123456789abcdef'),
+    runtimeDataRoot: path.join(os.tmpdir(), 'realm-v3-full-data-runtime-0123456789abcdef'),
     mode: 'final',
     sourceMode: 'live',
     sourceCensus: sourceCensusForIdentity(firstIdentity, liveEnvironmentAttestationDigest),
@@ -286,7 +292,7 @@ test('dirty final candidate is content-addressed and same-path mutation blocks r
   await writeFile(workerPath, '#!/bin/sh\nexit 1\n');
   const workerDrift = await buildRunLock({
     nimiRoot: repository,
-    runtimeDataRoot: path.join(os.tmpdir(), 'nimi-realm-v3-full-data-runtime-0123456789abcdef'),
+    runtimeDataRoot: path.join(os.tmpdir(), 'realm-v3-full-data-runtime-0123456789abcdef'),
     mode: 'final',
     sourceMode: 'live',
     sourceCensus: sourceCensusForIdentity(firstIdentity, liveEnvironmentAttestationDigest),
@@ -326,7 +332,7 @@ test('dirty final candidate is content-addressed and same-path mutation blocks r
   const secondIdentity = await __test.buildCensusExpectation(repository);
   const second = await buildRunLock({
     nimiRoot: repository,
-    runtimeDataRoot: path.join(os.tmpdir(), 'nimi-realm-v3-full-data-runtime-0123456789abcdef'),
+    runtimeDataRoot: path.join(os.tmpdir(), 'realm-v3-full-data-runtime-0123456789abcdef'),
     mode: 'final',
     sourceMode: 'live',
     sourceCensus: sourceCensusForIdentity(secondIdentity, liveEnvironmentAttestationDigest),

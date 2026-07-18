@@ -6,29 +6,21 @@ import {
 import {
   createNimiRuntimeRouteOptionsHostDeps,
   listNimiRuntimeRouteOptionsWithHost,
-  Runtime,
+  type Runtime,
   type NimiListRuntimeRouteOptionsInput,
   type NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
+import { getZhiyuRuntime as getSharedZhiyuRuntime } from '../auth/runtime-platform';
 
-const ZHIYU_RUNTIME_APP_ID = 'nimi.zhiyu';
 const ZHIYU_AGENT_CENTER_ROUTE_OPTIONS_SCOPE = Object.freeze({
   surfaceId: 'zhiyu.agent-center.model-picker',
 });
-
-let zhiyuRuntime: Runtime | null = null;
 
 function getZhiyuRuntime(): Runtime {
   if (typeof window === 'undefined' || !hasElectronRuntime()) {
     throw new Error('Electron Runtime bridge is not available for Zhiyu Agent Center model picker.');
   }
-  if (!zhiyuRuntime) {
-    zhiyuRuntime = new Runtime({
-      appId: ZHIYU_RUNTIME_APP_ID,
-      transport: { type: 'electron-ipc' },
-    });
-  }
-  return zhiyuRuntime;
+  return getSharedZhiyuRuntime();
 }
 
 async function loadZhiyuRuntimeRouteOptions(

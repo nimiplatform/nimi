@@ -564,6 +564,7 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 
 func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	followUpGate := installPublicChatFollowUpGate(t, svc)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
@@ -663,6 +664,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 	firstPostTurn := capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	firstCompleted := capture.waitForMessageType(t, publicChatTurnCompletedType)
 	firstSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-follow-up-first")
+	followUpGate.release(t)
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
 	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)

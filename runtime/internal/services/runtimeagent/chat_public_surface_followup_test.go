@@ -344,6 +344,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 	t.Parallel()
 	localStatePath := t.TempDir() + "/local-state.json"
 	svc, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
+	installPublicChatFollowUpGate(t, svc)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	firstCapture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(firstCapture.emit)
@@ -445,10 +446,12 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 	closeFirst()
 	recoveredSvc, closeRecovered := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	defer closeRecovered()
+	recoveredFollowUpGate := installPublicChatFollowUpGate(t, recoveredSvc)
 	recoveredCapture := newPublicChatEmitCapture()
 	recoveredSvc.SetPublicChatAppEmitter(recoveredCapture.emit)
 	recoveredSvc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	recoveredSvc.SetPublicChatTurnExecutor(executor)
+	recoveredFollowUpGate.release(t)
 	_ = recoveredCapture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = recoveredCapture.waitForMessageType(t, publicChatTurnStartedType)
 	_ = recoveredCapture.waitForMessageType(t, publicChatTurnTextDeltaType)
@@ -486,6 +489,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	installPublicChatFollowUpGate(t, svc)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
@@ -637,7 +641,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 			t.Fatalf("expected canceled hook to preserve anchor id %s, got %#v", anchorID, intent)
 		}
 	}
-	time.Sleep(250 * time.Millisecond)
+	waitForPublicChatAsyncDrain(t, svc)
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	mu.Lock()
 	if callCount != 2 {
@@ -649,13 +653,18 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	followUpGate := installPublicChatFollowUpGate(t, svc)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
+	var acceptedMu sync.Mutex
 	acceptedCount := 0
 	svc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
 		if req.GetMessageType() == publicChatTurnAcceptedType {
+			acceptedMu.Lock()
 			acceptedCount++
-			if acceptedCount == 2 {
+			currentAcceptedCount := acceptedCount
+			acceptedMu.Unlock()
+			if currentAcceptedCount == 2 {
 				return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 					ActionHint: "inspect_local_runtime_model_health",
 					Message:    "local model unavailable before follow-up turn dispatch",
@@ -743,6 +752,7 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 		t.Fatalf("expected snapshot last_turn.follow_up scheduled, got=%v", firstFollowUp)
 	}
 	requirePublicChatPostTurnHookIntent(t, firstPostTurn, "action-follow-up-1", "pending", 20)
+	followUpGate.release(t)
 	// Poll the committed session snapshot until follow-up cancellation lands.
 	// Public chat does not admit a runtime.agent.follow_up.* event family;
 	// cancellation is observed through the unary public chat session
@@ -776,7 +786,7 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	if got := lastTurnFollowUp["message"]; got != "local model unavailable before follow-up turn dispatch" {
 		t.Fatalf("expected snapshot follow_up message, got=%v", lastTurnFollowUp)
 	}
-	time.Sleep(50 * time.Millisecond)
+	waitForPublicChatAsyncDrain(t, svc)
 	mu.Lock()
 	defer mu.Unlock()
 	if callCount != 1 {

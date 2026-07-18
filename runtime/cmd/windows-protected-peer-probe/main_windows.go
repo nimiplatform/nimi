@@ -56,7 +56,7 @@ func main() {
 	if err != nil {
 		fail(fmt.Errorf("connect protected pipe: %w", err))
 	}
-	defer connection.Close()
+	defer func() { _ = connection.Close() }()
 	handleProvider, ok := connection.(interface{ Fd() uintptr })
 	if !ok || handleProvider.Fd() == 0 {
 		fail(fmt.Errorf("connected pipe does not expose its exact native handle"))

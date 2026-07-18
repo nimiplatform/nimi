@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
@@ -23,7 +24,7 @@ func TestAcquireRealmSourceMaterializationCallsOnlyTheFirstPartyPacketOperation(
 			t.Errorf("private Realm headers = authorization %q, encoding %q", request.Header.Get("Authorization"), request.Header.Get("Accept-Encoding"))
 		}
 		response.Header().Set("Content-Type", "application/json")
-		if request.URL.Path != realmSourceMaterializationPacketPath || request.Method != http.MethodPost {
+		if request.URL.Path != realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath || request.Method != http.MethodPost {
 			t.Errorf("unexpected Realm path %s", request.URL.Path)
 			response.WriteHeader(http.StatusNotFound)
 			return
@@ -56,7 +57,7 @@ func TestAcquireRealmSourceMaterializationCallsOnlyTheFirstPartyPacketOperation(
 	if err != nil {
 		t.Fatalf("AcquireRealmSourceMaterialization: %v", err)
 	}
-	defer acquisition.PacketResponse.Body.Close()
+	defer func() { _ = acquisition.PacketResponse.Body.Close() }()
 	if acquisition.AccountLease.AccountID != "acct-1" || acquisition.AccountLease.Generation == 0 || acquisition.PacketResponse.StatusCode != http.StatusCreated {
 		t.Fatalf("acquisition = %+v", acquisition)
 	}
@@ -64,7 +65,7 @@ func TestAcquireRealmSourceMaterializationCallsOnlyTheFirstPartyPacketOperation(
 	if err != nil || !strings.Contains(string(packet), "realm.source-materialization-packet/v3") {
 		t.Fatalf("packet response = %q, %v", packet, err)
 	}
-	wantPaths := []string{http.MethodPost + " " + realmSourceMaterializationPacketPath}
+	wantPaths := []string{http.MethodPost + " " + realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath}
 	if strings.Join(paths, "\n") != strings.Join(wantPaths, "\n") {
 		t.Fatalf("Realm operation sequence = %#v, want %#v", paths, wantPaths)
 	}
@@ -77,7 +78,7 @@ func TestRealmSourceMaterializationAccountGenerationChangeFailsBeforePacketRetur
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		calls++
 		response.Header().Set("Content-Type", "application/json")
-		if request.URL.Path != realmSourceMaterializationPacketPath {
+		if request.URL.Path != realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath {
 			t.Errorf("unexpected call after account generation changed: %s", request.URL.Path)
 		}
 		service.mu.Lock()
@@ -184,7 +185,7 @@ func TestFetchCurrentRealmSourceMaterializationJWKSIsFreshAndBearerFree(t *testi
 	var calls int
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		calls++
-		if request.URL.Path != realmSourceMaterializationJWKSPath || request.Method != http.MethodGet {
+		if request.URL.Path != realmv1.GetSourceMaterializationJwksPath || request.Method != http.MethodGet {
 			t.Errorf("JWKS request = %s %s", request.Method, request.URL.Path)
 		}
 		if request.Header.Get("Authorization") != "" || !headerContainsDirective(request.Header.Values("Cache-Control"), "no-store") || !headerContainsDirective(request.Header.Values("Pragma"), "no-cache") {
@@ -228,7 +229,7 @@ func TestRealmSourceMaterializationHTTPEnvelopeFailsClosed(t *testing.T) {
 		{
 			name: "redirect",
 			handler: http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
-				response.Header().Set("Location", realmSourceMaterializationPacketPath)
+				response.Header().Set("Location", realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath)
 				response.WriteHeader(http.StatusTemporaryRedirect)
 			}),
 			want: ErrRealmSourceMaterializationUnavailable,
@@ -302,7 +303,7 @@ func TestAcquireRealmSourceMaterializationClassifiesPacketStatusWithoutReadingEr
 			var packetCalls int
 			service.realmHTTP = &http.Client{
 				Transport: realmSourceMaterializationTestRoundTripper(func(request *http.Request) (*http.Response, error) {
-					if request.URL.Path != realmSourceMaterializationPacketPath {
+					if request.URL.Path != realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath {
 						t.Fatalf("unexpected Realm request path %q", request.URL.Path)
 						return nil, errors.New("unexpected Realm request")
 					}
@@ -394,7 +395,7 @@ func realmSourceMaterializationRequestFixture(now time.Time) RealmSourceMaterial
 
 func decodeRealmSourceMaterializationRequestBody(t testing.TB, request *http.Request) map[string]any {
 	t.Helper()
-	defer request.Body.Close()
+	defer func() { _ = request.Body.Close() }()
 	decoder := json.NewDecoder(request.Body)
 	var body map[string]any
 	if err := decoder.Decode(&body); err != nil {

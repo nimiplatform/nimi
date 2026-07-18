@@ -96,7 +96,7 @@ assert.equal('createNimiRuntimeInstalledAppSessionMetadataProvider' in runtimeMo
 assert.equal('createNimiDesktopLaunchedNimiAppRuntimeAccountCaller' in runtimeModule, false);
 
 const appModule = await import('@nimiplatform/sdk/app');
-assert.equal(typeof appModule.createNimiAppRuntimePlatformClient, 'function');
+assert.equal('createNimiAppRuntimePlatformClient' in appModule, false);
 assert.equal('createInstalledNimiAppBootstrap' in appModule, false);
 
 const typesModule = await import('@nimiplatform/sdk/types');
@@ -105,7 +105,7 @@ assert.equal(typeof typesModule.ReasonCode.RUNTIME_UNAVAILABLE, 'string');
 `);
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
-import { createNimiClient, type NimiClientConfig } from '@nimiplatform/sdk';
+import { createNimiClient, type NimiClientConfig, type NimiLocalAppStandardShell } from '@nimiplatform/sdk';
 import { createRuntime, type CoreTransport } from '@nimiplatform/sdk/runtime';
 import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { ScenarioType, type ExecuteScenarioRequest } from '@nimiplatform/sdk/runtime/wire-types';
@@ -113,9 +113,7 @@ import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
 import { type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
 import {
   createNimiAppClient,
-  createNimiAppRuntimePlatformClient,
   type NimiAppInventoryEntry,
-  type NimiAppRuntimePlatformStandardShell,
   type NimiAppRow,
 } from '@nimiplatform/sdk/app';
 import { ReasonCode, createNimiError, type JsonObject, type NimiError } from '@nimiplatform/sdk/types';
@@ -177,7 +175,7 @@ const appClient = createNimiAppClient({
   async get(): Promise<NimiAppInventoryEntry> { return appEntry; },
   async status() { return { appId: 'dev.nimi.surface', launchReadiness: 'ready' }; },
 });
-const localAppStandardShell: NimiAppRuntimePlatformStandardShell = {
+const localAppStandardShell: NimiLocalAppStandardShell = {
   session: { async status() { return { state: 'ready', reasonCode: 'ACTION_EXECUTED', retryable: false }; } },
   permission: {
     async status() { return {}; },
@@ -189,7 +187,7 @@ const localAppStandardShell: NimiAppRuntimePlatformStandardShell = {
     async removeJson() { return {}; },
   },
 };
-const localApp = createNimiAppRuntimePlatformClient({ standardShell: localAppStandardShell });
+const localApp = createNimiClient({ localApp: { standardShell: localAppStandardShell } });
 const error: NimiError = createNimiError({ message: 'x', reasonCode: 'SDK_SURFACE', source: 'sdk' });
 const json: JsonObject = { reasonCode: ReasonCode.REALM_UNAVAILABLE };
 const generatedReason = RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED;

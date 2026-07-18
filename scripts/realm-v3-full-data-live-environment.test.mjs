@@ -199,9 +199,9 @@ test('unsafe persistent/disposable cleanup targets fail closed', async () => {
     () => assertSafeStateDirectoryTarget('/tmp/not-random', []),
     /basename is not an admitted random N7 target/u,
   );
-  const safeParent = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-safe-state-parent-'));
+  const safeParent = await mkdtemp(path.join(tmpdir(), 'realm-v3-safe-state-parent-'));
   try {
-    const safe = path.join(safeParent, 'nimi-realm-v3-full-data-0011223344556677');
+    const safe = path.join(safeParent, 'realm-v3-full-data-0011223344556677');
     assert.equal(await assertSafeStateDirectoryTarget(safe, []), path.join(await realpath(safeParent), path.basename(safe)));
   } finally {
     await rm(safeParent, { recursive: true, force: true });
@@ -209,7 +209,7 @@ test('unsafe persistent/disposable cleanup targets fail closed', async () => {
 });
 
 test('cleanup cannot delete arbitrary, symlinked, or renamed same-UID 0700 directories', async () => {
-  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-destructive-target-'));
+  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-destructive-target-'));
   try {
     const arbitrary = path.join(fixtureRoot, 'arbitrary-private-directory');
     await mkdir(arbitrary, { mode: 0o700 });
@@ -221,16 +221,16 @@ test('cleanup cannot delete arbitrary, symlinked, or renamed same-UID 0700 direc
 
     const realTarget = path.join(fixtureRoot, 'real-target');
     await mkdir(realTarget, { mode: 0o700 });
-    const linked = path.join(fixtureRoot, 'nimi-realm-v3-full-data-1111222233334444');
-    await symlink(realTarget, linked);
+    const linked = path.join(fixtureRoot, 'realm-v3-full-data-1111222233334444');
+    await symlink(realTarget, linked, process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(
       () => cleanupLiveEnvironment({ stateDirectory: linked }),
       /state-dir identity\/mode is invalid/u,
     );
     assert.equal((await lstat(realTarget)).isDirectory(), true);
 
-    const original = path.join(fixtureRoot, 'nimi-realm-v3-full-data-5555666677778888');
-    const renamed = path.join(fixtureRoot, 'nimi-realm-v3-full-data-9999aaaabbbbcccc');
+    const original = path.join(fixtureRoot, 'realm-v3-full-data-5555666677778888');
+    const renamed = path.join(fixtureRoot, 'realm-v3-full-data-9999aaaabbbbcccc');
     await mkdir(original, { mode: 0o700 });
     await writeFile(path.join(original, 'state.json'), '{}\n', { mode: 0o600 });
     await rename(original, renamed);
@@ -242,15 +242,61 @@ test('cleanup cannot delete arbitrary, symlinked, or renamed same-UID 0700 direc
 });
 
 test('historical N6 baseline proves only immutable persistent 470/1 and fixed Persona identity', async () => {
-  const baseline = await __test.readFrozenN6Baseline(await realpath('.'));
-  assert.equal(baseline.evidenceClass, 'historical_dataset_identity_only');
-  assert.match(baseline.sha256, /^[0-9a-f]{64}$/u);
-  assert.equal(baseline.personaSourceRef.id, 'persona-character-0716-fullchain-fixture');
-  assert.equal(baseline.personaSourceRef.ownerAccountId, '01J00000000000000000000000');
-  assert.equal(
-    baseline.personaSourceRefHash,
-    domainHash('nimi.realm-v3-full-data-source-ref/v1', baseline.personaSourceRef),
-  );
+  const nimiRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-n6-baseline-'));
+  try {
+    const evidencePath = path.join(
+      nimiRoot,
+      '.nimi',
+      'local',
+      'acceptance',
+      '0717-realm-v3-consumer-hardcut',
+      'N6',
+      'current-realm-live.json',
+    );
+    await mkdir(path.dirname(evidencePath), { recursive: true });
+    const databaseCounts = { worldCharacters: 470, personaCharacters: 1 };
+    await writeFile(evidencePath, JSON.stringify({
+      schemaVersion: 'nimi.realm-v3-current-realm-live-acceptance/v1',
+      verdict: 'PASS',
+      productFailures: 0,
+      authority: {
+        producerCommit: 'a30b2f488806e967ccba9ab8b81fe93935bdf474',
+        producerTree: '3516b4727cbb17602d276e02755aeb36811ed2f2',
+        accessPolicyDigest: '34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f',
+      },
+      sourceDatabase: {
+        name: 'nimi_dev',
+        unchanged: true,
+        before: databaseCounts,
+        after: databaseCounts,
+      },
+      isolationAndCleanup: {
+        persistentSharedDatabaseWrites: 0,
+        rootProductWrites: 0,
+        nimiProductWritesByLiveHarness: 0,
+      },
+      sources: {
+        personaCharacter: {
+          sourceId: 'persona-character-0716-fullchain-fixture',
+          ownerAccountId: '01J00000000000000000000000',
+          worldId: 'cbdb-yuan-literati-academy-world',
+          sourceHash: '5f00937ee6d7ac325c77d5c07a0b6c30d2ee0380fa15a8761dda4528562ed3d1',
+          status: 'PASS',
+        },
+      },
+    }));
+    const baseline = await __test.readFrozenN6Baseline(await realpath(nimiRoot));
+    assert.equal(baseline.evidenceClass, 'historical_dataset_identity_only');
+    assert.match(baseline.sha256, /^[0-9a-f]{64}$/u);
+    assert.equal(baseline.personaSourceRef.id, 'persona-character-0716-fullchain-fixture');
+    assert.equal(baseline.personaSourceRef.ownerAccountId, '01J00000000000000000000000');
+    assert.equal(
+      baseline.personaSourceRefHash,
+      domainHash('nimi.realm-v3-full-data-source-ref/v1', baseline.personaSourceRef),
+    );
+  } finally {
+    await rm(nimiRoot, { recursive: true, force: true });
+  }
 });
 
 test('prepared API/Redis recovery admits only stable generations and exact stopped Redis identity', () => {
@@ -308,11 +354,13 @@ test('prepared API/Redis recovery admits only stable generations and exact stopp
 });
 
 test('runtime dependency closure binds same-path bytes and rejects export-escaping symlinks', async () => {
-  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-runtime-closure-'));
+  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-runtime-closure-'));
   try {
     const exportRoot = path.join(fixtureRoot, 'export');
-    const apiRoot = path.join(exportRoot, 'nimi-backend', 'dist', 'apps', 'api');
-    const backendModulesRoot = path.join(exportRoot, 'nimi-backend', 'node_modules');
+    const producerAPIPackageRelativeRoot = 'producer-api';
+    const producerAPIPackageRoot = path.join(exportRoot, producerAPIPackageRelativeRoot);
+    const apiRoot = path.join(producerAPIPackageRoot, 'dist', 'apps', 'api');
+    const backendModulesRoot = path.join(producerAPIPackageRoot, 'node_modules');
     const modulesRoot = path.join(exportRoot, 'node_modules');
     const tsxRoot = path.join(modulesRoot, '.pnpm', 'tsx@fixture', 'node_modules', 'tsx');
     const pgRoot = path.join(modulesRoot, '.pnpm', 'pg@fixture', 'node_modules', 'pg');
@@ -320,24 +368,43 @@ test('runtime dependency closure binds same-path bytes and rejects export-escapi
     await mkdir(backendModulesRoot, { recursive: true });
     await mkdir(tsxRoot, { recursive: true });
     await mkdir(pgRoot, { recursive: true });
+    await writeFile(
+      path.join(producerAPIPackageRoot, 'package.json'),
+      '{"name":"@nimi/backend"}\n',
+    );
     await writeFile(path.join(apiRoot, 'main.js'), 'export const build = 1;\n');
     await writeFile(path.join(tsxRoot, 'package.json'), '{"name":"tsx"}\n');
     await writeFile(path.join(pgRoot, 'package.json'), '{"name":"pg"}\n');
-    await symlink(path.relative(modulesRoot, tsxRoot), path.join(modulesRoot, 'tsx'));
-    const first = await __test.runtimeDependencyClosureManifest(exportRoot);
+    await symlink(
+      process.platform === 'win32' ? tsxRoot : path.relative(modulesRoot, tsxRoot),
+      path.join(modulesRoot, 'tsx'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
+    const first = await __test.runtimeDependencyClosureManifest(
+      exportRoot,
+      producerAPIPackageRelativeRoot,
+    );
     await writeFile(path.join(apiRoot, 'main.js'), 'export const build = 2;\n');
-    const second = await __test.runtimeDependencyClosureManifest(exportRoot);
+    const second = await __test.runtimeDependencyClosureManifest(
+      exportRoot,
+      producerAPIPackageRelativeRoot,
+    );
     assert.notEqual(first.digest, second.digest);
     assert.ok(first.fileCount >= 3);
     assert.equal(first.symlinkCount, 1);
 
-    const outside = path.join(fixtureRoot, 'outside.js');
-    await writeFile(outside, 'outside\n');
-    await symlink(outside, path.join(modulesRoot, 'escape'));
-    await assert.rejects(
-      () => __test.runtimeDependencyClosureManifest(exportRoot),
-      /escapes the fixed Realm export/u,
-    );
+    if (process.platform !== 'win32') {
+      const outside = path.join(fixtureRoot, 'outside.js');
+      await writeFile(outside, 'outside\n');
+      await symlink(outside, path.join(modulesRoot, 'escape'));
+      await assert.rejects(
+        () => __test.runtimeDependencyClosureManifest(
+          exportRoot,
+          producerAPIPackageRelativeRoot,
+        ),
+        /escapes the fixed Realm export/u,
+      );
+    }
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
@@ -437,18 +504,20 @@ test('canonical helper remains deterministic for runner reuse', () => {
 });
 
 test('private state directory resumes without EEXIST and rejects mode/symlink targets', async () => {
-  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-state-fixture-'));
+  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-state-fixture-'));
   try {
-    const state = path.join(fixtureRoot, 'nimi-realm-v3-full-data-0123456789abcdef');
+    const state = path.join(fixtureRoot, 'realm-v3-full-data-0123456789abcdef');
     await __test.ensurePrivateDirectory(state);
     await __test.ensurePrivateDirectory(state);
-    await chmod(state, 0o755);
-    await assert.rejects(() => __test.ensurePrivateDirectory(state), /mode must be exactly 0700/u);
+    if (process.platform !== 'win32') {
+      await chmod(state, 0o755);
+      await assert.rejects(() => __test.ensurePrivateDirectory(state), /mode must be exactly 0700/u);
+    }
 
     const target = path.join(fixtureRoot, 'real-target');
     await mkdir(target, { mode: 0o700 });
-    const linked = path.join(fixtureRoot, 'nimi-realm-v3-full-data-fedcba9876543210');
-    await symlink(target, linked);
+    const linked = path.join(fixtureRoot, 'realm-v3-full-data-fedcba9876543210');
+    await symlink(target, linked, process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(() => __test.ensurePrivateDirectory(linked), /not a real directory/u);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
@@ -456,30 +525,32 @@ test('private state directory resumes without EEXIST and rejects mode/symlink ta
 });
 
 test('private durable JSON writes enforce 0600 and refuse a mode-drifted target', async () => {
-  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-durable-json-'));
+  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-durable-json-'));
   try {
     await chmod(fixtureRoot, 0o700);
     const target = path.join(fixtureRoot, 'state.json');
     await __test.writePrivateJSON(target, { sequence: 1 });
     await __test.writePrivateJSON(target, { sequence: 2 });
     const info = await lstat(target);
-    assert.equal(info.mode & 0o777, 0o600);
+    if (process.platform !== 'win32') assert.equal(info.mode & 0o777, 0o600);
     assert.deepEqual(JSON.parse(await readFile(target, 'utf8')), { sequence: 2 });
-    await chmod(target, 0o644);
-    await assert.rejects(() => __test.writePrivateJSON(target, { sequence: 3 }), /mode must be exactly 0600/u);
+    if (process.platform !== 'win32') {
+      await chmod(target, 0o644);
+      await assert.rejects(() => __test.writePrivateJSON(target, { sequence: 3 }), /mode must be exactly 0600/u);
+    }
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 });
 
 test('cleanup refuses an unbound marker process when recorded API PID disappeared', async () => {
-  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-api-recovery-'));
+  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-api-recovery-'));
   let child;
   try {
     const entry = path.join(fixtureRoot, 'marker-api.mjs');
     await writeFile(entry, 'setInterval(() => {}, 1000);\n');
-    const marker = 'nimi-realm-v3-full-data-api-0123456789abcdef0123456789abcdef';
-    child = spawn(process.execPath, [entry, `--nimi-realm-v3-full-data-environment=${marker}`], {
+    const marker = 'realm-v3-full-data-api-0123456789abcdef0123456789abcdef';
+    child = spawn(process.execPath, [entry, `--realm-v3-full-data-environment=${marker}`], {
       detached: true,
       stdio: 'ignore',
     });
@@ -501,14 +572,16 @@ test('cleanup refuses an unbound marker process when recorded API PID disappeare
     assert.doesNotThrow(() => process.kill(child.pid, 0));
   } finally {
     if (child?.pid) {
-      try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already absent */ }
+      try {
+        process.kill(process.platform === 'win32' ? child.pid : -child.pid, 'SIGKILL');
+      } catch { /* already absent */ }
     }
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 });
 
 test('attestation/cleanup outputs are confined to canonical Nimi N7 evidence with no symlink ancestors', async () => {
-  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-output-fixture-'));
+  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-output-fixture-'));
   try {
     const rootRealm = path.join(fixtureRoot, 'root-realm');
     const evidence = path.join(
@@ -517,7 +590,7 @@ test('attestation/cleanup outputs are confined to canonical Nimi N7 evidence wit
       '.nimi',
       'local',
       'acceptance',
-      '0717-nimi-realm-v3-consumer-hardcut',
+      '0717-realm-v3-consumer-hardcut',
       'N7',
       'run-001',
     );
@@ -547,7 +620,7 @@ test('attestation/cleanup outputs are confined to canonical Nimi N7 evidence wit
     const foreign = path.join(fixtureRoot, 'foreign');
     await mkdir(foreign);
     const link = path.join(path.dirname(evidence), 'linked-run');
-    await symlink(foreign, link);
+    await symlink(foreign, link, process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(
       () => assertAdmittedEvidenceOutput(
         rootRealm,

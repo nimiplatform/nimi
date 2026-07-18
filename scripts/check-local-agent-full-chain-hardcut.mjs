@@ -328,27 +328,25 @@ async function collectNimiCanonicalRuleIds() {
 }
 
 async function resolveRealmCoreRuleInventory() {
-  const candidates = [process.env.REALM_ROOT, path.dirname(repoRoot)]
-    .filter(Boolean)
-    .map((candidate) => path.resolve(candidate));
-  for (const candidate of [...new Set(candidates)]) {
-    const contractPath = path.join(candidate, '.nimi/spec/realm/kernel/core-contract.md');
-    const tablePath = path.join(candidate, '.nimi/spec/realm/kernel/tables/core-contract.yaml');
-    try {
-      const [contractText, tableText] = await Promise.all([
-        fs.readFile(contractPath, 'utf8'),
-        fs.readFile(tablePath, 'utf8'),
-      ]);
-      const declared = new Set(parseMarkdownRules({
-        relPath: contractPath,
-        text: contractText,
-      }).map((rule) => rule.id));
-      const registered = new Set();
-      collectRuleIdsFromValue(YAML.parse(tableText), registered);
-      return { declared, registered };
-    } catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
-    }
+  const configuredRealmRoot = String(process.env.REALM_ROOT || '').trim();
+  if (!configuredRealmRoot) return null;
+  const realmRoot = path.resolve(configuredRealmRoot);
+  const contractPath = path.join(realmRoot, '.nimi/spec/realm/kernel/core-contract.md');
+  const tablePath = path.join(realmRoot, '.nimi/spec/realm/kernel/tables/core-contract.yaml');
+  try {
+    const [contractText, tableText] = await Promise.all([
+      fs.readFile(contractPath, 'utf8'),
+      fs.readFile(tablePath, 'utf8'),
+    ]);
+    const declared = new Set(parseMarkdownRules({
+      relPath: contractPath,
+      text: contractText,
+    }).map((rule) => rule.id));
+    const registered = new Set();
+    collectRuleIdsFromValue(YAML.parse(tableText), registered);
+    return { declared, registered };
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
   }
   return null;
 }
@@ -396,7 +394,7 @@ async function traceabilityMappingFindings() {
       if (ruleId.startsWith('R-')) {
         if (typeof realmInventory === 'undefined') realmInventory = await resolveRealmCoreRuleInventory();
         if (!realmInventory) {
-          findings.push('[traceability] LAHC-T005 Realm core authority checkout is required via REALM_ROOT or the Nimi parent directory');
+          findings.push('[traceability] LAHC-T005 Realm core authority checkout is required via explicit REALM_ROOT');
           continue;
         }
         if (!realmInventory.declared.has(ruleId)) {

@@ -1,5 +1,5 @@
+import { createNimiClient } from '@nimiplatform/sdk';
 import {
-  Runtime,
   issueNimiRuntimeAgentScopedBinding,
   withNimiRuntimeIdempotencyMetadata,
   type NimiRuntimeAccountCaller,
@@ -45,10 +45,17 @@ export function createZhiyuRuntimeAgentScopedBindingCommandHandler(input: {
 }): NimiElectronCommandHandler {
   const appId = requireText(input.appId, 'appId');
   const runtimeEndpoint = requireText(input.runtimeEndpoint, 'runtimeEndpoint');
-  const ownedRuntime = input.runtime ? null : new Runtime({
+  const ownedClient = input.runtime ? null : createNimiClient({
     appId,
-    transport: { endpoint: runtimeEndpoint },
+    runtime: {
+      appId,
+      transport: { endpoint: runtimeEndpoint },
+    },
+    realm: false,
+    app: false,
+    permissions: false,
   });
+  const ownedRuntime = ownedClient?.runtime ?? null;
   const runtime = input.runtime ?? ownedRuntime!;
   const accountCaller = input.accountCaller ?? createZhiyuElectronRuntimeAccountCaller(appId);
   const appSessionMetadata = input.appSessionMetadata

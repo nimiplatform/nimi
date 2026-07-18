@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import type { CoreTransport } from '../core-client';
+import { ReasonCode } from '../types';
 import { Runtime } from './index';
 
 class FakeRuntimeTransport implements CoreTransport {
@@ -40,7 +41,7 @@ test('public Runtime account presence verification fails closed before transport
       purpose: 'shijing.profile.reveal',
       ttlSeconds: 120,
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
   );
   assert.equal(transport.unaryCalls.length, 0);
 });

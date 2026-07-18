@@ -11,11 +11,11 @@ import {
 import {
   createNimiRuntimeAgentTurnsModule,
   runNimiRuntimeAgentTurn,
-  Runtime,
   type NimiRuntimeAgentTurnRequest,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
 import type { ZhiyuEvidence } from '../app/evidence';
+import { getZhiyuRuntime } from '../auth/runtime-platform';
 import {
   createZhiyuRuntimeAgentBindingScopeRunner,
   resolveZhiyuRuntimeAgentBindingDecision,
@@ -313,10 +313,7 @@ function createElectronRuntimeAgentStreamTurn(
         source: 'renderer',
       });
     }
-    const runtime = new Runtime({
-      appId: 'nimi.zhiyu',
-      transport: { type: 'electron-ipc' },
-    });
+    const runtime = getZhiyuRuntime();
     const turns = createNimiRuntimeAgentTurnsModule({
       runtime: {
         appId: 'nimi.zhiyu',
@@ -360,10 +357,7 @@ function createElectronRuntimeArtifactPreviewResolver(
         source: 'renderer',
       });
     }
-    const runtime = new Runtime({
-      appId: 'nimi.zhiyu',
-      transport: { type: 'electron-ipc' },
-    });
+    const runtime = getZhiyuRuntime();
     const response = await withZhiyuRuntimeAgentBindingScopes(
       runtimeBinding,
       ['runtime.artifact.read-bytes'],

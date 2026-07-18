@@ -4102,19 +4102,6 @@ export interface RealmGetResourceOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetResourceOperationResponse = ResourceDetailDto;
-export interface RealmGetSourceMaterializationJwksOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetSourceMaterializationJwksOperationResponse = Record<string, unknown>;
 export interface RealmGetUnreadCountOperationRequest {
   readonly path: {
 
@@ -5346,19 +5333,6 @@ export interface RealmWorldCoreControllerCreatePersonaCharacterOperationRequest 
   readonly body: CreatePersonaCharacterCoreDto;
 }
 export type RealmWorldCoreControllerCreatePersonaCharacterOperationResponse = PersonaCharacterCoreDto;
-export interface RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateSourceMaterializationPacketV3Dto;
-}
-export type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse = SourceMaterializationPacketV3Dto;
 export interface RealmWorldCoreControllerCreateWorldCharacterOperationRequest {
   readonly path: {
     readonly worldId: string;
@@ -6603,17 +6577,6 @@ export class RealmTypedClient {
     });
   }
 
-  async getSourceMaterializationJwks(request: RealmGetSourceMaterializationJwksOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetSourceMaterializationJwksOperationResponse> {
-    return this.core.unary<RealmGetSourceMaterializationJwksOperationResponse, RealmGetSourceMaterializationJwksOperationRequest>({
-      methodId: "getSourceMaterializationJwks",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async getUnreadCount(request: RealmGetUnreadCountOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetUnreadCountOperationResponse> {
     return this.core.unary<RealmGetUnreadCountOperationResponse, RealmGetUnreadCountOperationRequest>({
       methodId: "getUnreadCount",
@@ -7585,17 +7548,6 @@ export class RealmTypedClient {
   async worldCoreControllerCreatePersonaCharacter(request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreatePersonaCharacterOperationResponse> {
     return this.core.unary<RealmWorldCoreControllerCreatePersonaCharacterOperationResponse, RealmWorldCoreControllerCreatePersonaCharacterOperationRequest>({
       methodId: "WorldCoreController_createPersonaCharacter",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldCoreControllerCreateSourceMaterializationPacket(request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse, RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest>({
-      methodId: "WorldCoreController_createSourceMaterializationPacket",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

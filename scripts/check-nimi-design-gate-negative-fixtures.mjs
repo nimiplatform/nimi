@@ -163,6 +163,9 @@ function buildKitFixture(root) {
           ...(Array.isArray(capabilitySet?.allowed_operations)
             ? capabilitySet.allowed_operations.map((operation) => String(operation || '').trim())
             : []),
+          ...(Array.isArray(capabilitySet?.planned_operations)
+            ? capabilitySet.planned_operations.map((operation) => String(operation || '').trim())
+            : []),
           ...(Array.isArray(capabilitySet?.forbidden_operations)
             ? capabilitySet.forbidden_operations.map((operation) => String(operation || '').trim())
             : []),

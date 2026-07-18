@@ -10,6 +10,7 @@ BIN_DIR="${INSTALL_ROOT}/bin"
 INSTALL_MANIFEST_URL_DEFAULT=""
 DRY_RUN=0
 REQUESTED_VERSION=""
+REQUESTED_TARGET=""
 
 usage() {
   cat <<'EOF'
@@ -17,6 +18,7 @@ Install nimi CLI + runtime from an admitted release manifest.
 
 Usage:
   NIMI_INSTALL_MANIFEST_URL=https://.../runtime/latest.json sh install.sh [--dry-run] [--version v0.2.0]
+  sh install.sh --dry-run --target <darwin-amd64|darwin-arm64|linux-amd64|linux-arm64>
 EOF
 }
 
@@ -210,6 +212,14 @@ while [ "$#" -gt 0 ]; do
       }
       REQUESTED_VERSION="$1"
       ;;
+    --target)
+      shift
+      [ "$#" -gt 0 ] || {
+        usage
+        exit 1
+      }
+      REQUESTED_TARGET="$1"
+      ;;
     --help|-h)
       usage
       exit 0
@@ -222,9 +232,42 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-platform_key="$(detect_platform_key)"
-archive_platform="$(detect_archive_platform)"
-arch="$(detect_arch)"
+if [ -n "$REQUESTED_TARGET" ]; then
+  if [ "$DRY_RUN" -ne 1 ]; then
+    log "--target is admitted only for --dry-run inspection."
+    exit 1
+  fi
+  case "$REQUESTED_TARGET" in
+    darwin-amd64)
+      platform_key="darwin"
+      archive_platform="macos"
+      arch="amd64"
+      ;;
+    darwin-arm64)
+      platform_key="darwin"
+      archive_platform="macos"
+      arch="arm64"
+      ;;
+    linux-amd64)
+      platform_key="linux"
+      archive_platform="linux"
+      arch="amd64"
+      ;;
+    linux-arm64)
+      platform_key="linux"
+      archive_platform="linux"
+      arch="arm64"
+      ;;
+    *)
+      log "Unsupported dry-run target: ${REQUESTED_TARGET}"
+      exit 1
+      ;;
+  esac
+else
+  platform_key="$(detect_platform_key)"
+  archive_platform="$(detect_archive_platform)"
+  arch="$(detect_arch)"
+fi
 if [ -n "$REQUESTED_VERSION" ]; then
   tag="$(normalize_tag "$REQUESTED_VERSION")"
   version="${tag#v}"

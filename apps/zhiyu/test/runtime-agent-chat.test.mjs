@@ -486,12 +486,39 @@ async function buildRuntimeAgentChat() {
     target: 'es2022',
     sourcemap: false,
     logLevel: 'silent',
-    plugins: [workspaceKitSourceAliasPlugin(), workspaceSdkSourceAliasPlugin()],
+    plugins: [
+      workspaceKitSourceAliasPlugin(),
+      workspaceSdkSourceAliasPlugin(),
+      zhiyuRuntimePlatformStubPlugin(),
+    ],
   }).catch(async (error) => {
     const source = await readFile(path.join(root, 'src/shell/agent-chat/runtime-agent-turn-adapter.ts'), 'utf8').catch(() => '');
     throw new Error(`failed to build Zhiyu Runtime Agent chat adapter: ${error.message}\nsource length=${source.length}`);
   });
   return buildDir;
+}
+
+function zhiyuRuntimePlatformStubPlugin() {
+  return {
+    name: 'zhiyu-runtime-platform-stub',
+    setup(buildApi) {
+      buildApi.onResolve({ filter: /auth\/runtime-platform$/ }, () => ({
+        path: 'zhiyu-runtime-platform-stub',
+        namespace: 'zhiyu-runtime-platform-stub',
+      }));
+      buildApi.onLoad({ filter: /.*/, namespace: 'zhiyu-runtime-platform-stub' }, () => ({
+        loader: 'js',
+        contents: `
+          import { Runtime } from '@nimiplatform/sdk/runtime';
+          let runtime;
+          export function getZhiyuRuntime() {
+            runtime ??= new Runtime({ appId: 'nimi.zhiyu', transport: { type: 'test' } });
+            return runtime;
+          }
+        `,
+      }));
+    },
+  };
 }
 
 function workspaceKitSourceAliasPlugin() {
@@ -521,7 +548,7 @@ function workspaceKitSourceAliasPlugin() {
       buildApi.onLoad({ filter: /.*/, namespace: 'workspace-kit-sdk-contract-stub' }, () => ({
         loader: 'js',
         contents: `
-          export function createNimiAppRuntimePlatformClient() {
+          export function createNimiClient() {
             throw new Error('Local-app platform client must be injected only by carrier-specific tests.');
           }
         `,

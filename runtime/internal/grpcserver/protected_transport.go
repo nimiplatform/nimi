@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -18,6 +19,7 @@ import (
 
 const protectedOpenDesktopSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession"
 const protectedRequestRuntimeRestartMethod = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
+const protectedDesktopAuditProjectionMethod = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
 
 func protectedDesktopUnaryMethodAllowed(method string) bool {
 	_, allowed := protectedDesktopMethodRole(method)
@@ -71,7 +73,7 @@ func protectedDesktopRuntimeConsumerMethod(method string) bool {
 		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
 		"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
 		"/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-		"/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
+		protectedDesktopAuditProjectionMethod,
 		"/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
 		"/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
 		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -265,8 +267,20 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		if err := authorizeProtectedDesktopMethod(protectedContext, info.FullMethod, desktopSessions); err != nil {
 			return nil, err
 		}
+		protectedContext = withProtectedDesktopAuthorizationDecision(protectedContext, info.FullMethod)
 		return handler(protectedContext, req)
 	}
+}
+
+func withProtectedDesktopAuthorizationDecision(ctx context.Context, method string) context.Context {
+	if method != protectedDesktopAuditProjectionMethod {
+		return ctx
+	}
+	return envelope.WithValidatedProtectedCapability(
+		ctx,
+		envelope.ProtectedDesktopAppID,
+		envelope.ProtectedDesktopAuditReadCapability,
+	)
 }
 
 type protectedDesktopServerStream struct {

@@ -16,6 +16,7 @@ const IGNORED_DIRS = new Set([
   'build',
   'coverage',
   'dist',
+  'dist-electron',
   'generated',
   'gen',
   'node_modules',

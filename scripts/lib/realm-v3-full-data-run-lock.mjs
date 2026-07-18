@@ -113,6 +113,8 @@ import {
   validateLiveWorkerArgumentTemplate,
   validateSourceCensus,
 } from './realm-v3-full-data-preflight.mjs';
+
+const HAS_POSIX_PERMISSION_BITS = process.platform !== 'win32' && typeof process.getuid === 'function';
 async function loadNC6Evidence(nimiRoot, evidencePath, lock) {
   if (!evidencePath || !path.isAbsolute(evidencePath)) {
     fail('missing_nc6_evidence', 'final full-data acceptance requires an absolute NC6 evidence artifact');
@@ -233,7 +235,7 @@ async function loadLiveEnvironmentAttestation(nimiRoot, attestationPath) {
     '.nimi',
     'local',
     'acceptance',
-    '0717-nimi-realm-v3-consumer-hardcut',
+    '0717-realm-v3-consumer-hardcut',
     'N7',
   );
   const canonicalPath = canonicalPathThroughExistingAncestor(resolvedPath, 'live environment attestation');
@@ -250,8 +252,8 @@ async function loadLiveEnvironmentAttestation(nimiRoot, attestationPath) {
   if (
     !info.isFile() ||
     info.isSymbolicLink() ||
-    (info.mode & 0o077) !== 0 ||
-    (typeof process.getuid === 'function' && info.uid !== process.getuid())
+    (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o077) !== 0) ||
+    (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid())
   ) {
     fail('unsafe_live_environment_path', 'live environment attestation must be a current-user private regular file');
   }

@@ -55,11 +55,11 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
 
   assert.match(main, /installNimiShellRuntimeBridge/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
-  assert.match(localAppClient, /createNimiAppRuntimePlatformClient/);
+  assert.match(localAppClient, /createNimiClient/);
   assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/);
   assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
   assert.match(runtimePlatform, /mode: 'local-app'/);
-  assert.match(runtimePlatform, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+  assert.match(runtimePlatform, /testerLocalAppClient\.auth\.status\(\)/);
   assert.match(runtimePlatform, /status\.sessionBound/);
   assert.doesNotMatch(runtimePlatform, /readonly client:|readonly auth:/);
   assert.doesNotMatch(runtimePlatform, /createNimi(?:DeveloperRegistered|LocalFirstParty)RuntimeAccountCaller/);
@@ -72,10 +72,10 @@ test('tester app-private storage uses the final local-app SDK and Kit carrier', 
   const runtimePlatform = read('src/shell/auth/runtime-platform.ts');
   const client = read('src/shell/local-app-runtime-platform.ts');
 
-  assert.match(runtimePlatform, /testerLocalAppRuntimePlatform\.auth\.status/);
-  assert.match(client, /createNimiAppRuntimePlatformClient/);
+  assert.match(runtimePlatform, /testerLocalAppClient\.auth\.status/);
+  assert.match(client, /createNimiClient/);
   assert.doesNotMatch(client, /artifacts\.readRuntimeBytes|agentInventory|openConversation/);
-  assert.match(client, /createNimiAppRuntimePlatformClient/);
+  assert.match(client, /createNimiClient/);
   assert.doesNotMatch(runtimePlatform, /client\.runtime|new Runtime|runtimeEndpoint/);
   for (const retired of [
     'src/tester/tester-runtime-invokers.ts',

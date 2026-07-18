@@ -218,7 +218,7 @@ function EntryRuntimeBootSurface(props: {
           >
             <EntryNimiLogoMark className="h-24 w-24 drop-shadow-[0_10px_18px_rgba(33,183,181,0.14)]" />
           </div>
-          <div className="mt-6 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_42%,white)] bg-white/55 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg,#5fcbb2)] backdrop-blur-sm">
+          <div className="mt-6 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_42%,white)] bg-[var(--nimi-surface-card,#fff)] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg,#5fcbb2)]">
             Nimi Runtime
           </div>
           <h1 className="mt-4 text-[22px] font-semibold leading-7 tracking-[-0.02em] text-[var(--nimi-text-primary,#111827)]">

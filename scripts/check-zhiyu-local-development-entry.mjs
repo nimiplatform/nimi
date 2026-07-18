@@ -15,12 +15,12 @@ export function collectZhiyuLocalDevelopmentEntryViolations(sources) {
   requirePattern(sources.main, /localDevelopmentPreloadArguments[\s\S]*LOCAL_DEVELOPMENT_PRELOAD_MARKER[\s\S]*localDevelopmentAgentId \? \[`--nimi-dev-agent-id=/u, 'main must omit the optional selector when absent', violations);
   requirePattern(sources.preload, /resolveZhiyuLocalDevelopmentAgentId[\s\S]*exposeInMainWorld\('__nimiZhiyuLocalDevelopment'[\s\S]*isolated-local-development/u, 'preload must expose the bounded local-development shape', violations);
   requirePattern(sources.app, /if \(localDevelopment\?\.agentId\)[\s\S]*ZhiyuLocalDevelopmentJourney[\s\S]*return <ZhiyuBundledApp \/>/u, 'zero selector must route to bundled UI', violations);
-  requirePattern(sources.inventory, /window\.__nimiZhiyuLocalDevelopment[\s\S]*zhiyuLocalAppRuntimePlatform\.agent\.listInventory\(\)[\s\S]*localAgents: inventory\.localAgents/u, 'local development must consume the bounded SDK agent inventory projection', violations);
-  if (/request_bounded_local_app_agent_inventory_authority/u.test(sources.inventory)) {
-    violations.push('local development inventory must not retain the pre-admission unavailable branch');
+  requirePattern(sources.inventory, /if \(!auth\.ready \|\| !auth\.accountId\)[\s\S]*return inventoryUnavailable\([\s\S]*createNimiRuntimeAgentClient/u, 'local development inventory must fail closed before the bundled Runtime Agent client without an account projection', violations);
+  if (/zhiyuLocalAppClient\.agent\.|request_bounded_local_app_agent_inventory_authority/u.test(sources.inventory)) {
+    violations.push('local development inventory must not claim an unadmitted local-app Agent operation');
   }
-  requirePattern(sources.account, /window\.__nimiZhiyuLocalDevelopment[\s\S]*zhiyuLocalAppRuntimePlatform\.auth\.status\(\)[\s\S]*source: 'local-app\.sessionStatus'[\s\S]*accountId: null/u, 'local development account state must use bounded sessionStatus without account projection', violations);
-  requirePattern(sources.platform, /createNimiAppRuntimePlatformClient[\s\S]*createNimiLocalAppStandardShellSurface/u, 'local development must use SDK and Kit public surfaces', violations);
+  requirePattern(sources.account, /window\.__nimiZhiyuLocalDevelopment[\s\S]*zhiyuLocalAppClient\.auth\.status\(\)[\s\S]*source: 'local-app\.sessionStatus'[\s\S]*accountId: null/u, 'local development account state must use bounded sessionStatus without account projection', violations);
+  requirePattern(sources.platform, /createNimiClient[\s\S]*localApp:[\s\S]*createNimiLocalAppStandardShellSurface/u, 'local development must use SDK and Kit public surfaces', violations);
   if (/fetch\(|axios|127\.0\.0\.1:|localhost:/u.test(sources.platform)) {
     violations.push('local development platform must not contain an app-level network bypass');
   }

@@ -38,7 +38,7 @@ func HardenWindowsCurrentTokenIsolation(ctx context.Context, principal WindowsSe
 	if err := windows.OpenProcessToken(windows.CurrentProcess(), hardeningAccess, &token); err != nil {
 		return principalFailure("open Runtime primary token for isolation", err)
 	}
-	defer token.Close()
+	defer func() { _ = token.Close() }()
 
 	serviceSID, err := windows.StringToSid(profile.serviceSID)
 	if err != nil {

@@ -130,7 +130,7 @@ test('fixed service validation fails closed on any missing protected-service inv
 });
 
 test('carrier detection excludes only the active Desktop process tree', () => {
-  const repo = path.resolve('D:/nimi-realm/nimi');
+  const repo = path.resolve('D:/workspace/nimi');
   const carrier = path.join(repo, '.nimi/local/electron-desktop-runtime/42/Nimi Desktop Runtime.exe');
   const rows = [
     { ProcessId: 100, ParentProcessId: 1, Name: 'Nimi Desktop Runtime.exe', ExecutablePath: carrier },

@@ -169,7 +169,7 @@ func VerifyWindowsProductionPipeServer(ctx context.Context, clientPipeHandle uin
 	if err != nil {
 		return WindowsRuntimeProcess{}, windowsProcessTrustStageFailure(windowsProcessOpenFailureStage(err), principalFailure("open Windows pipe server process", err))
 	}
-	defer windows.CloseHandle(process)
+	defer func() { _ = windows.CloseHandle(process) }()
 	principal, err := validateWindowsProductionServiceProcess(ctx, serverPID, process, false)
 	if err != nil {
 		return WindowsRuntimeProcess{}, err
@@ -388,7 +388,7 @@ func verifyWindowsLockedExecutable(ctx context.Context, process windows.Handle, 
 		_ = windows.CloseHandle(handle)
 		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableHandle, windowsExecutableTrustFailure("wrap locked Windows process executable", fmt.Errorf("invalid file handle")))
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	if err := validateWindowsRegularFile(handle); err != nil {
 		return WindowsExecutableEvidence{}, "", windowsProcessTrustStageFailure(WindowsProcessTrustStageExecutableFileType, windowsExecutableTrustFailure("validate locked Windows process executable", err))
 	}

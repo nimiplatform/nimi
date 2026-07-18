@@ -43,6 +43,7 @@ import {
   RoutePolicy,
   ScenarioType,
 } from '../core-generated/runtime-typed-client';
+import { ReasonCode } from '../types';
 
 test('Runtime product-control projection parses first-run state and storage dirs', async () => {
   const state: NimiProductControlState = 'local_ai_assets_downloaded_environment_not_ready';
@@ -328,11 +329,11 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
     ...JSON.parse(productControlEnvelope('data_root_selected').json),
     configMutation: {
       disposition: 'restart_required',
-      reasonCode: 'CONFIG_RESTART_REQUIRED',
+      reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
       actionHint: 'request_typed_runtime_restart',
     },
   });
-  assert.equal(restartProjection.configMutation?.reasonCode, 'CONFIG_RESTART_REQUIRED');
+  assert.equal(restartProjection.configMutation?.reasonCode, ReasonCode.CONFIG_RESTART_REQUIRED);
   assert.equal(parseNimiProductControlSelectedDataRootProjection(JSON.parse(selectedDataRootEnvelope('ready_for_use').json)).dataRoot?.status, 'selected');
   assert.equal(parseNimiProductControlProjectionJson(productControlEnvelope('ready_for_use')).state, 'ready_for_use');
   assert.equal(parseNimiProductControlSelectedDataRootProjectionJson(selectedDataRootEnvelope('ready_for_use')).state, 'ready_for_use');
@@ -394,7 +395,7 @@ test('Runtime product-control parsers fail closed on invalid projection envelope
       dataRootProposal: null,
       configMutation: {
         disposition: 'restart_required',
-        reasonCode: 'CONFIG_APPLIED',
+        reasonCode: ReasonCode.CONFIG_APPLIED,
         actionHint: 'continue_product_setup',
       },
       error: null,

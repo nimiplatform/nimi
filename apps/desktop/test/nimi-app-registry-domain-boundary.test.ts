@@ -34,7 +34,10 @@ describe('Nimi App registry/admission domain boundary', () => {
 
     assert.doesNotMatch(localConfigRegistry, /config_file_id:\s*(?:registry|packages)_json/);
     assert.doesNotMatch(localConfigRegistry, /schema_owner:\s*account_apps_(?:registry|packages)/);
-    assert.match(localConfigRegistry, /Runtime-owned local-app principal, record, grant, session, inventory, and/);
+    assert.match(
+      localConfigRegistry,
+      /Runtime-owned local-app principal, record, permission-decision, session, inventory, and/,
+    );
     assert.match(localConfigRegistry, /retired user-local app projections are not/);
   });
 

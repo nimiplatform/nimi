@@ -43,15 +43,31 @@ import {
 const disposableDatabase = 'nimi_realm_v3_n7_0123456789abcdef0123456789abcdef';
 const containerIdentityDigest = sha256Hex('postgres-container-id');
 const trustedToolNames = ['docker', 'git', 'go', 'pnpm', 'ps', 'tar'];
-const fixtureGitExecutable = await realpath(
-  execFileSync('/usr/bin/which', ['git'], { encoding: 'utf8' }).trim(),
-);
+function resolveFixtureExecutable(name, fallback = '') {
+  if (process.platform !== 'win32') {
+    return execFileSync('/usr/bin/which', [name], { encoding: 'utf8' }).trim();
+  }
+  const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+  const whereExecutable = path.join(systemRoot, 'System32', 'where.exe');
+  try {
+    const [candidate] = execFileSync(whereExecutable, [name], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).split(/\r?\n/u).map((entry) => entry.trim()).filter(Boolean);
+    if (candidate) return candidate;
+  } catch {
+    // Tests that do not execute an unavailable POSIX-only tool bind it to the
+    // already-attested Node executable instead of inventing a fake path.
+  }
+  return fallback;
+}
+const fixtureGitExecutable = await realpath(resolveFixtureExecutable('git'));
 const fixturePSExecutable = await realpath(
-  execFileSync('/usr/bin/which', ['ps'], { encoding: 'utf8' }).trim(),
+  process.platform === 'win32'
+    ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+    : resolveFixtureExecutable('ps'),
 );
-const fixtureGoExecutable = await realpath(
-  execFileSync('/usr/bin/which', ['go'], { encoding: 'utf8' }).trim(),
-);
+const fixtureGoExecutable = await realpath(resolveFixtureExecutable('go'));
 __test.activateTrustedToolPaths({
   docker: process.execPath,
   git: fixtureGitExecutable,
@@ -203,7 +219,8 @@ function liveAttestation(overrides = {}) {
   const snapshots = fixtureSnapshots();
   const baseURL = 'http://127.0.0.1:43127';
   const apiAuthority = {
-    entryPathHash: sha256Hex('/private/export/nimi-backend/dist/apps/api/main.js'),
+    entryPathHash: sha256Hex('/private/export/producer-api/dist/apps/api/main.js'),
+    workingDirectoryHash: sha256Hex('/private/export/producer-api'),
     entrySha256: sha256Hex('api-entry'),
     logPathHash: sha256Hex('/private/state/realm-api.log'),
     markerHash: sha256Hex('private-environment-marker'),
@@ -248,14 +265,15 @@ function liveAttestation(overrides = {}) {
       isolationLabelDigest: sha256Hex('0123456789abcdef0123456789abcdef'),
     },
     api: {
-      processIntentDigest: domainHash('nimi.realm-v3-full-data-api-resource/v2', apiAuthority),
+      processIntentDigest: domainHash('nimi.realm-v3-full-data-api-resource/v3', apiAuthority),
       entryPathHash: apiAuthority.entryPathHash,
+      workingDirectoryHash: apiAuthority.workingDirectoryHash,
       entrySha256: apiAuthority.entrySha256,
       logPathHash: apiAuthority.logPathHash,
       markerHash: apiAuthority.markerHash,
     },
     custody: {
-      directoryDigest: sha256Hex('/tmp/nimi-realm-v3-full-data-fixture'),
+      directoryDigest: sha256Hex('/tmp/realm-v3-full-data-fixture'),
       mode: 'state-dir:0700/files:0600',
       secretFieldsInAttestation: false,
     },

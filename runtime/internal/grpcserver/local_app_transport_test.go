@@ -21,8 +21,8 @@ import (
 
 func TestProtectedLocalAppTransportRejectsOrdinaryConnection(t *testing.T) {
 	serverSide, clientSide := net.Pipe()
-	defer serverSide.Close()
-	defer clientSide.Close()
+	defer func() { _ = serverSide.Close() }()
+	defer func() { _ = clientSide.Close() }()
 	if _, _, err := (protectedLocalAppTransportCredentials{}).ServerHandshake(serverSide); err == nil {
 		t.Fatal("ordinary net.Conn passed protected local-app handshake")
 	}

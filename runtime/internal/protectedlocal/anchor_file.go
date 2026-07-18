@@ -165,7 +165,7 @@ func syncDirectory(path string) error {
 	if err != nil {
 		return fmt.Errorf("open directory: %w", err)
 	}
-	defer directory.Close()
+	defer func() { _ = directory.Close() }()
 	if err := directory.Sync(); err != nil {
 		// Windows does not expose directory FlushFileBuffers through os.File.Sync.
 		// The anchor file itself has already been synced before the atomic rename.

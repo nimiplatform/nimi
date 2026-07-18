@@ -13,7 +13,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -338,7 +337,8 @@ func validateRealmV3FullDataRuntimeRootMarkerV1(
 	want realmV3FullDataRuntimeRootMarkerV1,
 ) error {
 	info, err := os.Lstat(markerPath)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o077 != 0 {
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 ||
+		validateRealmV3FullDataPrivatePathOwnerV1(markerPath, info, false) != nil {
 		return fmt.Errorf("runtime root marker is unavailable or insecure: %w", err)
 	}
 	if info.Size() > 1<<20 {
@@ -503,7 +503,7 @@ func writeRealmV3FullDataPrivateJSONAtomicV1(target string, value any) error {
 		return err
 	}
 	if info, err := os.Lstat(target); err == nil {
-		if err := validateRealmV3FullDataPrivatePathOwnerV1(info, false); err != nil {
+		if err := validateRealmV3FullDataPrivatePathOwnerV1(target, info, false); err != nil {
 			return fmt.Errorf("existing private full-data state is insecure: %w", err)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -547,7 +547,7 @@ func ensureRealmV3FullDataPrivateDirectoryDurableV1(directory string) error {
 	directory = filepath.Clean(directory)
 	info, err := os.Lstat(directory)
 	if err == nil {
-		if err := validateRealmV3FullDataPrivatePathOwnerV1(info, true); err != nil {
+		if err := validateRealmV3FullDataPrivatePathOwnerV1(directory, info, true); err != nil {
 			return fmt.Errorf("private full-data state directory is insecure: %w", err)
 		}
 		return nil
@@ -577,22 +577,18 @@ func ensureRealmV3FullDataPrivateDirectoryDurableV1(directory string) error {
 	return nil
 }
 
-func validateRealmV3FullDataPrivatePathOwnerV1(info os.FileInfo, directory bool) error {
+func validateRealmV3FullDataPrivatePathOwnerV1(target string, info os.FileInfo, directory bool) error {
 	if info == nil || info.Mode()&os.ModeSymlink != 0 {
 		return fmt.Errorf("path is absent or symbolic")
 	}
 	if directory {
-		if !info.IsDir() || info.Mode().Perm()&0o077 != 0 || info.Mode().Perm()&0o700 != 0o700 {
-			return fmt.Errorf("directory is not private owner-only: mode=%#o", info.Mode().Perm())
+		if !info.IsDir() {
+			return fmt.Errorf("private path is not a directory")
 		}
-	} else if !info.Mode().IsRegular() || info.Mode().Perm() != 0o600 {
-		return fmt.Errorf("file is not private 0600")
+	} else if !info.Mode().IsRegular() {
+		return fmt.Errorf("private path is not a regular file")
 	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || int(stat.Uid) != os.Geteuid() {
-		return fmt.Errorf("path is not owned by the current worker uid")
-	}
-	return nil
+	return validateRealmV3FullDataPrivatePathPlatformV1(target, info, directory)
 }
 
 func syncRealmV3FullDataParentDirectoryV1(target string) error {
@@ -604,7 +600,7 @@ func syncRealmV3FullDataDirectoryV1(directoryPath string) error {
 	if err != nil {
 		return fmt.Errorf("open private full-data state directory for sync: %w", err)
 	}
-	syncErr := directory.Sync()
+	syncErr := syncRealmV3FullDataDirectoryPlatformV1(directory)
 	closeErr := directory.Close()
 	if err := errors.Join(syncErr, closeErr); err != nil {
 		return fmt.Errorf("sync private full-data state directory: %w", err)
@@ -620,7 +616,7 @@ type realmV3FullDataRuntimeRootOwnerV1 struct {
 func tryAcquireRealmV3FullDataRuntimeRootOwnerV1(runtimeRoot string) (*realmV3FullDataRuntimeRootOwnerV1, error) {
 	target := filepath.Join(runtimeRoot, realmV3FullDataRuntimeOwnerLockFileV1)
 	if info, err := os.Lstat(target); err == nil {
-		if err := validateRealmV3FullDataPrivatePathOwnerV1(info, false); err != nil {
+		if err := validateRealmV3FullDataPrivatePathOwnerV1(target, info, false); err != nil {
 			return nil, fmt.Errorf("existing full-data runtime-root owner lock is insecure: %w", err)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -630,24 +626,24 @@ func tryAcquireRealmV3FullDataRuntimeRootOwnerV1(runtimeRoot string) (*realmV3Fu
 	if err != nil {
 		return nil, fmt.Errorf("open full-data runtime-root owner lock: %w", err)
 	}
-	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+	if err := lockRealmV3FullDataFilePlatformV1(file); err != nil {
 		_ = file.Close()
 		return nil, fmt.Errorf("full-data runtime root has another live owner: %w", err)
 	}
 	if err := file.Chmod(0o600); err != nil {
-		_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+		_ = unlockRealmV3FullDataFilePlatformV1(file)
 		_ = file.Close()
 		return nil, fmt.Errorf("protect full-data runtime-root owner lock: %w", err)
 	}
 	info, statErr := file.Stat()
-	pathErr := validateRealmV3FullDataPrivatePathOwnerV1(info, false)
+	pathErr := validateRealmV3FullDataPrivatePathOwnerV1(target, info, false)
 	if statErr != nil || pathErr != nil {
-		_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+		_ = unlockRealmV3FullDataFilePlatformV1(file)
 		_ = file.Close()
 		return nil, fmt.Errorf("opened full-data runtime-root owner lock is insecure: %w", errors.Join(statErr, pathErr))
 	}
 	if err := errors.Join(file.Sync(), syncRealmV3FullDataParentDirectoryV1(target)); err != nil {
-		_ = syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
+		_ = unlockRealmV3FullDataFilePlatformV1(file)
 		_ = file.Close()
 		return nil, fmt.Errorf("durably establish full-data runtime-root owner lock: %w", err)
 	}
@@ -663,7 +659,7 @@ func (owner *realmV3FullDataRuntimeRootOwnerV1) release() error {
 	// The lock inode is deliberately stable for the entire disposable runtime
 	// root lifetime. Unlinking after unlock permits a waiter on the old inode and
 	// a new opener on a replacement inode to both hold an exclusive lock.
-	return errors.Join(syscall.Flock(int(file.Fd()), syscall.LOCK_UN), file.Close())
+	return errors.Join(unlockRealmV3FullDataFilePlatformV1(file), file.Close())
 }
 
 func acquireRealmV3FullDataRuntimeRootOwnerV1(t *testing.T, runtimeRoot string) func() {
@@ -685,7 +681,8 @@ func acquireRealmV3FullDataRuntimeRootOwnerV1(t *testing.T, runtimeRoot string) 
 func readRealmV3FullDataPrivateJSONV1(t *testing.T, source string, target any) {
 	t.Helper()
 	info, err := os.Lstat(source)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o077 != 0 {
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 ||
+		validateRealmV3FullDataPrivatePathOwnerV1(source, info, false) != nil {
 		t.Fatalf("private full-data state is unavailable or insecure: %v", err)
 	}
 	if info.Size() > 1<<20 {

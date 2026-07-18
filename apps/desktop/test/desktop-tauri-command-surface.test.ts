@@ -57,10 +57,10 @@ function readDispositionCommands(): string[] {
 test('Desktop Tauri command surface exposes source-derived accounting buckets', () => {
   const report = readCommandSurfaceReport();
 
-  assert.equal(report.registered.length, 106);
+  assert.equal(report.registered.length, 102);
   assert.equal(report.kitRegistered.length, 46);
-  assert.equal(report.appLocalRegistered.length, 60);
-  assert.equal(report.dormant.length, 20);
+  assert.equal(report.appLocalRegistered.length, 56);
+  assert.equal(report.dormant.length, 12);
   for (const retiredAuthCommand of [
     'auth_session_load',
     'auth_session_save',
@@ -68,6 +68,15 @@ test('Desktop Tauri command surface exposes source-derived accounting buckets', 
   ]) {
     assert.equal(report.registered.includes(retiredAuthCommand), false);
     assert.equal(report.kitRegistered.includes(retiredAuthCommand), false);
+  }
+  for (const retiredGrantCommand of [
+    'local_app_grant_pending_list',
+    'local_app_grant_decide',
+    'local_app_grant_list',
+    'local_app_grant_revoke',
+  ]) {
+    assert.equal(report.registered.includes(retiredGrantCommand), false);
+    assert.equal(report.appLocalRegistered.includes(retiredGrantCommand), false);
   }
 
   assert.deepEqual(report.missingActiveSpec, []);

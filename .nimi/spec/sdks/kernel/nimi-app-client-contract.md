@@ -306,11 +306,15 @@ coordinator; `K-APP-*` owns local principal/record truth; `K-GRANT-*` owns local
 grant truth; `K-PLOCAL-*` owns launch leases and process-bound sessions. The
 helper consumes the final host-injected carrier and must not merge those owners.
 
-`MUST` (exported names). SDK admits the following exact public exported names
-for generated Nimi app auth/client construction:
+`MUST` (exported names). SDK admits the root `createNimiClient` composition
+path for generated Nimi app auth/client construction. The local-app branch
+returns only the bounded local-app surface and admits these exact public names:
 
-- `createNimiAppRuntimePlatformClient`;
-- `NimiAppRuntimePlatformClientInput`;
+- `createNimiClient`;
+- `NimiClientConfig`;
+- `NimiClientLocalAppConfig`;
+- `NimiLocalAppClient`;
+- `NimiLocalAppStandardShell`;
 - `NimiAppAuthMode`;
 - `NimiAppAuthProjection`;
 - `NimiAppAuthUnavailable`;

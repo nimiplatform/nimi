@@ -191,7 +191,6 @@ async function resolveDelegationSurface(
   }
 
   const {
-    Runtime,
     createNimiHostRuntimeAgentDelegatedCapabilitySurface,
   } = await import('@nimiplatform/sdk/runtime');
   const {
@@ -199,6 +198,7 @@ async function resolveDelegationSurface(
     resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost,
     scopedBindingForRuntimeAgentRequest,
   } = await import('../agent-chat/runtime-agent-binding');
+  const { getZhiyuRuntime } = await import('../auth/runtime-platform');
   const requiredScopes = [DELEGATION_READ_SCOPE, DELEGATION_WRITE_SCOPE];
   const scopedBindingDecision = await resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost({
     ownerUserId: identity.ownerUserId,
@@ -215,10 +215,7 @@ async function resolveDelegationSurface(
       source: 'renderer',
     });
   }
-  const runtime = new Runtime({
-    appId: APP_ID,
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
   const sdkSurface = (identity: DelegationIdentity) => createNimiHostRuntimeAgentDelegatedCapabilitySurface({
     getRuntime: () => ({
       appId: APP_ID,

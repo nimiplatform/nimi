@@ -25,22 +25,33 @@ func (s *Service) armPublicChatFollowUp(followUp *publicChatFollowUpState) {
 	followUp.Context = ctx
 	followUp.Cancel = cancel
 	followUp.Armed = true
+	waitUntilDue := s.chatFollowUpWait
 	s.chatSurfaceMu.Unlock()
+	if waitUntilDue == nil {
+		waitUntilDue = waitForPublicChatFollowUpDue
+	}
 	if !s.startPublicChatAsync(func() {
-		delay := time.Until(followUp.ScheduledFor)
-		if delay < 0 {
-			delay = 0
-		}
-		timer := time.NewTimer(delay)
-		defer timer.Stop()
-		select {
-		case <-timer.C:
-		case <-followUp.Context.Done():
+		if !waitUntilDue(followUp.Context, followUp.ScheduledFor) {
 			return
 		}
 		s.launchPublicChatFollowUp(followUp.FollowUpID)
 	}) {
 		cancel()
+	}
+}
+
+func waitForPublicChatFollowUpDue(ctx context.Context, scheduledFor time.Time) bool {
+	delay := time.Until(scheduledFor)
+	if delay < 0 {
+		delay = 0
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }
 

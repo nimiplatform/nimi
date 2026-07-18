@@ -527,6 +527,7 @@ export function validateLiveEnvironmentAttestation(attestation) {
     [
       'processIntentDigest',
       'entryPathHash',
+      'workingDirectoryHash',
       'entrySha256',
       'logPathHash',
       'markerHash',
@@ -541,6 +542,7 @@ export function validateLiveEnvironmentAttestation(attestation) {
   for (const field of [
     'processIntentDigest',
     'entryPathHash',
+    'workingDirectoryHash',
     'entrySha256',
     'logPathHash',
     'markerHash',
@@ -552,9 +554,10 @@ export function validateLiveEnvironmentAttestation(attestation) {
   }
   if (
     attestation.api.processIntentDigest !== domainHash(
-      'nimi.realm-v3-full-data-api-resource/v2',
+      'nimi.realm-v3-full-data-api-resource/v3',
       {
         entryPathHash: attestation.api.entryPathHash,
+        workingDirectoryHash: attestation.api.workingDirectoryHash,
         entrySha256: attestation.api.entrySha256,
         logPathHash: attestation.api.logPathHash,
         markerHash: attestation.api.markerHash,

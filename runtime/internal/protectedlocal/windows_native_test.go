@@ -69,7 +69,7 @@ func TestWindowsServiceOnlyFileACLValidationRejectsAdditionalPrincipal(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 
 	serviceEntry := windows.EXPLICIT_ACCESS{
 		AccessPermissions: windows.GENERIC_ALL,

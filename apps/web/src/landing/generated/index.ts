@@ -2,7 +2,7 @@
  * @generated
  * Sources:
  *   .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *     sha256: 6b88f478de96e1a40e07b7d3e1b2c3b81febd3f111b6ce3cf5a3180fc5c71e4c
+ *     sha256: ad725e794a4ec8d3c047631361bed64479bdc92c99debf3f5d0aa94451408745
  *   .nimi/spec/runtime/kernel/tables/provider-capabilities.yaml
  *     sha256: 35b551438417aaa00b46862be04bcdc869abef0a1a6c3487342526f9fb7e78c3
  * Generator: apps/web/scripts/generate-landing-data.mjs

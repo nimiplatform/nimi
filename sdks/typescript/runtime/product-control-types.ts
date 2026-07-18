@@ -12,6 +12,7 @@ import type {
   SelectProductControlDataRootRequest,
   SetProductControlFirstRunInstallLevelRequest,
 } from '../core-generated/runtime-typed-client';
+import { ReasonCode } from '../types';
 
 export const NIMI_PRODUCT_CONTROL_STATES = [
   'not_logged_in',
@@ -103,7 +104,7 @@ export interface NimiProductControlRecordProjection {
 
 export interface NimiProductControlConfigMutation {
   readonly disposition: 'applied' | 'restart_required';
-  readonly reasonCode: 'CONFIG_APPLIED' | 'CONFIG_RESTART_REQUIRED';
+  readonly reasonCode: typeof ReasonCode.CONFIG_APPLIED | typeof ReasonCode.CONFIG_RESTART_REQUIRED;
   readonly actionHint: 'continue_product_setup' | 'request_typed_runtime_restart';
 }
 

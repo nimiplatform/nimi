@@ -6,7 +6,6 @@ import {
 import {
   createNimiRuntimeAgentClient,
   createNimiRuntimeAgentConsumeClient,
-  Runtime,
   type NimiRuntimeAgentConsumeEvent,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
 } from '@nimiplatform/sdk/runtime';
@@ -79,6 +78,7 @@ import {
   scopedBindingForRuntimeAgentRequest,
 } from '../agent-chat/runtime-agent-binding';
 import { probeZhiyuRuntimeAccountStatus } from '../auth/runtime-account-status';
+import { getZhiyuRuntime } from '../auth/runtime-platform';
 import { requestZhiyuDesktopOpenSelectPartner } from '../desktop-open/desktop-open-action';
 import { probeZhiyuRuntimeStatus } from '../runtime/runtime-status';
 import { loadZhiyuSourceContextProjection } from './source-context-loader';
@@ -277,10 +277,7 @@ function ZhiyuBundledApp() {
     let active = true;
     let eventIterator: AsyncIterator<NimiRuntimeAgentConsumeEvent> | null = null;
     void (async () => {
-      const runtime = new Runtime({
-        appId: 'nimi.zhiyu',
-        transport: { type: 'electron-ipc' },
-      });
+      const runtime = getZhiyuRuntime();
       const client = createNimiRuntimeAgentClient({
         runtime,
         appId: 'nimi.zhiyu',

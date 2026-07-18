@@ -668,7 +668,7 @@ async function createDirtyCandidateRepository(root) {
     generated_by: 'test',
     realm: { repository: 'fixture', commit: gitHash('realm-fixture'), tree: gitHash('realm-tree-fixture') },
     openapi: {
-      source_path: 'nimi-backend/api-nimi.yaml',
+      source_path: 'producer/api-nimi.yaml',
       synced_path: 'config/realm-openapi/api-nimi.yaml',
       document_sha256: sha256Hex(openapi),
       fragment_sha256: hash('fixture-fragment'),

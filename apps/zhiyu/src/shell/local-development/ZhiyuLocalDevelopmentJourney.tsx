@@ -16,7 +16,7 @@ import {
   Surface,
 } from '@nimiplatform/kit/ui';
 import type { ZhiyuSelectedLocalDevelopmentTarget } from '../app/evidence-window';
-import { zhiyuLocalAppRuntimePlatform } from './local-app-runtime-platform';
+import { zhiyuLocalAppClient } from './local-app-runtime-platform';
 
 const RESERVED_PERMISSION_ID = 'agents.interact' as const;
 const STORAGE_RELATIVE_PATH = 'zhiyu/local-development-authority-proof.json';
@@ -117,8 +117,8 @@ export function ZhiyuLocalDevelopmentJourney({
     setView((current) => ({ ...current, state: 'loading', busyAction: 'refresh', lastError: null }));
     try {
       const [session, permission] = await Promise.all([
-        zhiyuLocalAppRuntimePlatform.auth.status(),
-        zhiyuLocalAppRuntimePlatform.permissions.status(RESERVED_PERMISSION_ID),
+        zhiyuLocalAppClient.auth.status(),
+        zhiyuLocalAppClient.permissions.status(RESERVED_PERMISSION_ID),
       ]);
       setView((current) => ({
         ...current,
@@ -165,7 +165,7 @@ export function ZhiyuLocalDevelopmentJourney({
   const verifyReservedPermission = useCallback(async () => {
     setView((current) => ({ ...current, busyAction: 'permission', lastError: null }));
     try {
-      const unexpected = await zhiyuLocalAppRuntimePlatform.permissions.request({
+      const unexpected = await zhiyuLocalAppClient.permissions.request({
         permissionId: RESERVED_PERMISSION_ID,
         reason: 'Zhiyu local development verifies reserved-permission fail-close behavior.',
       });
@@ -208,12 +208,12 @@ export function ZhiyuLocalDevelopmentJourney({
         appId: 'nimi.zhiyu',
         purpose: 'app-private-base-entitlement-proof',
       } as const;
-      const written = await zhiyuLocalAppRuntimePlatform.storage.writeJson(STORAGE_RELATIVE_PATH, value);
-      const read = await zhiyuLocalAppRuntimePlatform.storage.readJson(STORAGE_RELATIVE_PATH);
+      const written = await zhiyuLocalAppClient.storage.writeJson(STORAGE_RELATIVE_PATH, value);
+      const read = await zhiyuLocalAppClient.storage.readJson(STORAGE_RELATIVE_PATH);
       if (JSON.stringify(read.value) !== JSON.stringify(value)) {
         throw boundaryError('app-private-storage-readback-mismatch', 'inspect_app_private_storage');
       }
-      const removed = await zhiyuLocalAppRuntimePlatform.storage.removeJson(STORAGE_RELATIVE_PATH);
+      const removed = await zhiyuLocalAppClient.storage.removeJson(STORAGE_RELATIVE_PATH);
       if (!removed.removed) {
         throw boundaryError('app-private-storage-cleanup-failed', 'inspect_app_private_storage');
       }

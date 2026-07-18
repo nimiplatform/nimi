@@ -1,4 +1,4 @@
-import { createNimiAppRuntimePlatformClient } from '@nimiplatform/sdk/app';
+import { createNimiClient } from '@nimiplatform/sdk';
 import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
 
 /**
@@ -6,6 +6,8 @@ import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/
  * projection validation; the app never receives principal, permission-decision,
  * session, or transport authority material.
  */
-export const testerLocalAppRuntimePlatform = createNimiAppRuntimePlatformClient({
-  standardShell: createNimiLocalAppStandardShellSurface(),
+export const testerLocalAppClient = createNimiClient({
+  localApp: {
+    standardShell: createNimiLocalAppStandardShellSurface(),
+  },
 });

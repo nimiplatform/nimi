@@ -7,9 +7,7 @@ use crate::core_generated::realm_client::RealmGeneratedClient;
 use crate::core_generated::runtime_client::RuntimeGeneratedClient;
 use crate::core_generated::typed_clients::{
     AccountCaller, BeginLoginRequest, CharacterSourceRefV3Dto, CoreTypedStream,
-    CreateSourceMaterializationPacketV3Dto, PersonaCharacterSourceRefV3Dto,
-    RealmTypedClient, RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath,
-    RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, RuntimeTypedClient,
+    CreateSourceMaterializationPacketV3Dto, PersonaCharacterSourceRefV3Dto, RuntimeTypedClient,
     SourceMaterializationPacketV3DtoSemanticPayload, SourceMaterializationPublishedLimitsDto,
     SubscribeAccountSessionEventsRequest,
 };
@@ -59,9 +57,6 @@ impl CoreTransport for FakeTransport {
         if std::env::var("SDKS_CONFORMANCE_PROFILE").ok().as_deref() == Some("typed-core") {
             if request.method_id.contains("BeginLogin") {
                 return Ok(b"accepted=true;login_attempt_id=login-conformance;callback_origin=https://app.example".to_vec());
-            }
-            if request.method_id == "WorldCoreController_createSourceMaterializationPacket" {
-                return Ok(b"source=realm-operation;ok=true".to_vec());
             }
         }
         Ok(format!("response:{}", request.method_id).into_bytes())
@@ -156,9 +151,6 @@ fn generated_clients_use_fake_transport() {
         assert_eq!(second.event_id.as_deref(), Some("event-2"));
         assert!(stream.recv().is_none());
 
-        let realm_core =
-            crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
-        let realm = RealmTypedClient::new(realm_core);
         assert!(SourceMaterializationPacketV3DtoSemanticPayload::try_from_discriminator(
             "personaCharacter"
         )
@@ -169,43 +161,45 @@ fn generated_clients_use_fake_transport() {
         .is_ok());
         assert!(SourceMaterializationPacketV3DtoSemanticPayload::try_from_discriminator("profile")
             .is_err());
-        let realm_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            realm.world_core_controller_create_source_materialization_packet(
-                RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
-                    path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath {},
-                    body: CreateSourceMaterializationPacketV3Dto {
-                        intended_runtime_audience: "sdk.conformance".to_string(),
-                        materializer_account_id: "account-conformance".to_string(),
-                        challenge_id: "challenge_conformance_0001".to_string(),
-                        challenge_digest: "a".repeat(64),
-                        challenge_expires_at: "2026-01-01T00:05:00.000Z".to_string(),
-                        published_limits: Box::new(SourceMaterializationPublishedLimitsDto {
-                            max_chunk_bytes: 262_144.0,
-                            max_segment_bytes: 8_388_608.0,
-                            max_segment_chunks: 4_096.0,
-                            max_segment_component_count: 256.0,
-                            max_set_bytes: 134_217_728.0,
-                            max_set_chunks: 65_536.0,
-                            max_set_component_count: 16_384.0,
-                            max_set_segments: 64.0,
-                        }),
-                        source_ref: Box::new(CharacterSourceRefV3Dto::PersonaCharacterSourceRefV3(
-                            Box::new(PersonaCharacterSourceRefV3Dto {
-                                id: "persona-conformance".to_string(),
-                                kind: "personaCharacter".to_string(),
-                                owner_account_id: "account-conformance".to_string(),
-                                source_hash: "e".repeat(64),
-                                world_id: "oasis".to_string(),
-                            }),
-                        )),
-                    },
-                    ..Default::default()
-                },
-                BTreeMap::new(),
-                None,
-            )
-        }));
-        assert!(realm_result.is_err());
+        let packet_request_shape = CreateSourceMaterializationPacketV3Dto {
+            intended_runtime_audience: "sdk.conformance".to_string(),
+            materializer_account_id: "account-conformance".to_string(),
+            challenge_id: "challenge_conformance_0001".to_string(),
+            challenge_digest: "a".repeat(64),
+            challenge_expires_at: "2026-01-01T00:05:00.000Z".to_string(),
+            published_limits: Box::new(SourceMaterializationPublishedLimitsDto {
+                max_chunk_bytes: 262_144.0,
+                max_segment_bytes: 8_388_608.0,
+                max_segment_chunks: 4_096.0,
+                max_segment_component_count: 256.0,
+                max_set_bytes: 134_217_728.0,
+                max_set_chunks: 65_536.0,
+                max_set_component_count: 16_384.0,
+                max_set_segments: 64.0,
+            }),
+            source_ref: Box::new(CharacterSourceRefV3Dto::PersonaCharacterSourceRefV3(
+                Box::new(PersonaCharacterSourceRefV3Dto {
+                    id: "persona-conformance".to_string(),
+                    kind: "personaCharacter".to_string(),
+                    owner_account_id: "account-conformance".to_string(),
+                    source_hash: "e".repeat(64),
+                    world_id: "oasis".to_string(),
+                }),
+            )),
+        };
+        assert_eq!(packet_request_shape.materializer_account_id, "account-conformance");
+        for private_operation_id in [
+            "WorldCoreController_createSourceMaterializationPacket",
+            "getSourceMaterializationJwks",
+        ] {
+            assert!(
+                crate::core_generated::realm_client::REALM_OPERATIONS
+                    .iter()
+                    .all(|operation| operation.operation_id != private_operation_id),
+                "private Realm operation remained in public Rust descriptors: {}",
+                private_operation_id,
+            );
+        }
         let error = runtime
             .begin_login(
                 BeginLoginRequest {

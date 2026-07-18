@@ -46286,29 +46286,6 @@ pub struct RealmGetResourceOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetSourceMaterializationJwksOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetSourceMaterializationJwksOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetSourceMaterializationJwksOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetSourceMaterializationJwksOperationRequest {
-    pub path: RealmGetSourceMaterializationJwksOperationPath,
-    pub query: RealmGetSourceMaterializationJwksOperationQuery,
-    pub headers: RealmGetSourceMaterializationJwksOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetUnreadCountOperationPath {
 
 }
@@ -48430,29 +48407,6 @@ pub struct RealmWorldCoreControllerCreatePersonaCharacterOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
-    pub path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath,
-    pub query: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery,
-    pub headers: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders,
-    pub body: CreateSourceMaterializationPacketV3Dto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerCreateWorldCharacterOperationPath {
     pub world_id: String,
 }
@@ -49443,10 +49397,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getResource");
     }
 
-    pub fn get_source_materialization_jwks(&self, _request: RealmGetSourceMaterializationJwksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getSourceMaterializationJwks");
-    }
-
     pub fn get_unread_count(&self, _request: RealmGetUnreadCountOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UnreadNotificationCountDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getUnreadCount");
     }
@@ -49801,10 +49751,6 @@ where
 
     pub fn world_core_controller_create_persona_character(&self, _request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PersonaCharacterCoreDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createPersonaCharacter");
-    }
-
-    pub fn world_core_controller_create_source_materialization_packet(&self, _request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SourceMaterializationPacketV3Dto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createSourceMaterializationPacket");
     }
 
     pub fn world_core_controller_create_world_character(&self, _request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCharacterCoreDto, T::Error> {

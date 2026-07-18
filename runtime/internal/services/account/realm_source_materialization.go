@@ -14,12 +14,11 @@ import (
 	"strings"
 	"time"
 
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 const (
-	realmSourceMaterializationPacketPath      = "/api/realm/core/source-materialization-packets"
-	realmSourceMaterializationJWKSPath        = "/api/auth/jwks/source-materialization"
 	realmSourceMaterializationJWKSBodyBytes   = 64 * 1024
 	realmSourceMaterializationPacketBodyBytes = 512 * 1024 * 1024
 	realmSourceMaterializationHTTPTimeout     = 30 * time.Second
@@ -102,49 +101,6 @@ type realmSourceMaterializationCredentialLease struct {
 	bearer  string
 }
 
-type realmSourceMaterializationPacketRequest struct {
-	SourceRef               any                                    `json:"sourceRef"`
-	MaterializerAccountID   string                                 `json:"materializerAccountId"`
-	ChallengeID             string                                 `json:"challengeId"`
-	ChallengeDigest         string                                 `json:"challengeDigest"`
-	IntendedRuntimeAudience string                                 `json:"intendedRuntimeAudience"`
-	ChallengeExpiresAt      string                                 `json:"challengeExpiresAt"`
-	PublishedLimits         realmSourceMaterializationLimitsV3JSON `json:"publishedLimits"`
-}
-
-type realmSourceMaterializationLimitsV3JSON struct {
-	MaxSegmentBytes          uint64 `json:"maxSegmentBytes"`
-	MaxSegmentComponentCount uint64 `json:"maxSegmentComponentCount"`
-	MaxChunkBytes            uint64 `json:"maxChunkBytes"`
-	MaxSegmentChunks         uint64 `json:"maxSegmentChunks"`
-	MaxSetSegments           uint64 `json:"maxSetSegments"`
-	MaxSetBytes              uint64 `json:"maxSetBytes"`
-	MaxSetComponentCount     uint64 `json:"maxSetComponentCount"`
-	MaxSetChunks             uint64 `json:"maxSetChunks"`
-}
-
-type realmSourceMaterializationWorldEntityRefV3JSON struct {
-	Kind     string `json:"kind"`
-	WorldID  string `json:"worldId"`
-	EntityID string `json:"entityId"`
-}
-
-type realmSourceMaterializationWorldRefV3JSON struct {
-	Kind           string                                         `json:"kind"`
-	ID             string                                         `json:"id"`
-	WorldID        string                                         `json:"worldId"`
-	WorldEntityRef realmSourceMaterializationWorldEntityRefV3JSON `json:"worldEntityRef"`
-	SourceHash     string                                         `json:"sourceHash"`
-}
-
-type realmSourceMaterializationPersonaRefV3JSON struct {
-	Kind           string `json:"kind"`
-	ID             string `json:"id"`
-	WorldID        string `json:"worldId"`
-	OwnerAccountID string `json:"ownerAccountId"`
-	SourceHash     string `json:"sourceHash"`
-}
-
 // AcquireRealmSourceMaterialization performs the authenticated first-party
 // source operation directly. Realm owns the canonical account/source
 // visibility decision; no app id, permission scope, grant id, or caller-side
@@ -165,7 +121,7 @@ func (s *Service) AcquireRealmSourceMaterialization(ctx context.Context, request
 	if err != nil {
 		return RealmSourceMaterializationAcquisition{}, err
 	}
-	packetResponse, err := s.doRealmSourceMaterializationStream(ctx, credential, http.MethodPost, realmSourceMaterializationPacketPath, packetBody, http.StatusCreated, realmSourceMaterializationPacketBodyBytes, true, false)
+	packetResponse, err := s.doRealmSourceMaterializationStream(ctx, credential, realmv1.WorldCoreControllerCreateSourceMaterializationPacketMethod, realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath, packetBody, http.StatusCreated, realmSourceMaterializationPacketBodyBytes, true, false)
 	if err != nil {
 		return RealmSourceMaterializationAcquisition{}, err
 	}
@@ -185,7 +141,7 @@ func (s *Service) FetchCurrentRealmSourceMaterializationJWKS(ctx context.Context
 	if credential.lease != lease {
 		return RealmSourceMaterializationHTTPResponse{}, ErrRealmSourceMaterializationAccountLease
 	}
-	return s.doRealmSourceMaterializationStream(ctx, credential, http.MethodGet, realmSourceMaterializationJWKSPath, nil, http.StatusOK, realmSourceMaterializationJWKSBodyBytes, false, true)
+	return s.doRealmSourceMaterializationStream(ctx, credential, realmv1.GetSourceMaterializationJwksMethod, realmv1.GetSourceMaterializationJwksPath, nil, http.StatusOK, realmSourceMaterializationJWKSBodyBytes, false, true)
 }
 
 func (s *Service) RevalidateRealmSourceMaterializationAccount(_ context.Context, lease RealmSourceMaterializationAccountLease) error {
@@ -357,7 +313,7 @@ func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, creden
 // input: Realm denial details may contain private policy or source data and are
 // never parsed, logged, or projected by Runtime.
 func realmSourceMaterializationHTTPStatusError(path string, statusCode int) error {
-	if path == realmSourceMaterializationPacketPath {
+	if path == realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath {
 		switch statusCode {
 		case http.StatusBadRequest:
 			return fmt.Errorf("%w: Realm Packet request is invalid", ErrRealmSourceMaterializationInvalidRequest)
@@ -399,27 +355,27 @@ func validateRealmSourceMaterializationIssuanceRequest(request RealmSourceMateri
 	return nil
 }
 
-func buildRealmSourceMaterializationPacketRequest(request RealmSourceMaterializationIssuanceRequest, accountID string) (realmSourceMaterializationPacketRequest, error) {
+func buildRealmSourceMaterializationPacketRequest(request RealmSourceMaterializationIssuanceRequest, accountID string) (realmv1.CreateSourceMaterializationPacketV3Dto, error) {
 	sourceRef, err := realmSourceMaterializationSourceRefJSON(request.SourceRef)
 	if err != nil {
-		return realmSourceMaterializationPacketRequest{}, err
+		return realmv1.CreateSourceMaterializationPacketV3Dto{}, err
 	}
 	limits := request.Limits
-	return realmSourceMaterializationPacketRequest{
-		SourceRef: sourceRef, MaterializerAccountID: accountID,
-		ChallengeID: request.Challenge.ChallengeID, ChallengeDigest: request.Challenge.ChallengeDigest,
+	return realmv1.CreateSourceMaterializationPacketV3Dto{
+		SourceRef: sourceRef, MaterializerAccountId: accountID,
+		ChallengeId: request.Challenge.ChallengeID, ChallengeDigest: request.Challenge.ChallengeDigest,
 		IntendedRuntimeAudience: request.Challenge.IntendedRuntimeAudience,
 		ChallengeExpiresAt:      request.Challenge.ExpiresAt.UTC().Format(time.RFC3339Nano),
-		PublishedLimits: realmSourceMaterializationLimitsV3JSON{
-			MaxSegmentBytes: limits.MaxSegmentBytes, MaxSegmentComponentCount: limits.MaxSegmentComponentCount,
-			MaxChunkBytes: limits.MaxChunkBytes, MaxSegmentChunks: limits.MaxSegmentChunks,
-			MaxSetSegments: limits.MaxSetSegments, MaxSetBytes: limits.MaxSetBytes,
-			MaxSetComponentCount: limits.MaxSetComponentCount, MaxSetChunks: limits.MaxSetChunks,
+		PublishedLimits: &realmv1.SourceMaterializationPublishedLimitsDto{
+			MaxSegmentBytes: float64(limits.MaxSegmentBytes), MaxSegmentComponentCount: float64(limits.MaxSegmentComponentCount),
+			MaxChunkBytes: float64(limits.MaxChunkBytes), MaxSegmentChunks: float64(limits.MaxSegmentChunks),
+			MaxSetSegments: float64(limits.MaxSetSegments), MaxSetBytes: float64(limits.MaxSetBytes),
+			MaxSetComponentCount: float64(limits.MaxSetComponentCount), MaxSetChunks: float64(limits.MaxSetChunks),
 		},
 	}, nil
 }
 
-func realmSourceMaterializationSourceRefJSON(source RealmSourceMaterializationSourceRefV3) (any, error) {
+func realmSourceMaterializationSourceRefJSON(source RealmSourceMaterializationSourceRefV3) (realmv1.CharacterSourceRefV3Dto, error) {
 	if !validRealmSourceMaterializationIdentifier(source.ID, 256) || !validRealmSourceMaterializationIdentifier(source.WorldID, 256) || !isRealmSourceMaterializationLowerSHA256(source.SourceHash) {
 		return nil, fmt.Errorf("%w: source ref is invalid", ErrRealmSourceMaterializationContract)
 	}
@@ -428,15 +384,15 @@ func realmSourceMaterializationSourceRefJSON(source RealmSourceMaterializationSo
 		if source.WorldEntityRef == nil || source.OwnerAccountID != "" || source.WorldEntityRef.WorldID != source.WorldID || !validRealmSourceMaterializationIdentifier(source.WorldEntityRef.EntityID, 256) {
 			return nil, fmt.Errorf("%w: worldCharacter source ref is invalid", ErrRealmSourceMaterializationContract)
 		}
-		return realmSourceMaterializationWorldRefV3JSON{
-			Kind: source.Kind, ID: source.ID, WorldID: source.WorldID, SourceHash: source.SourceHash,
-			WorldEntityRef: realmSourceMaterializationWorldEntityRefV3JSON{Kind: "worldEntity", WorldID: source.WorldID, EntityID: source.WorldEntityRef.EntityID},
+		return &realmv1.WorldCharacterSourceRefV3Dto{
+			Kind: source.Kind, Id: source.ID, WorldId: source.WorldID, SourceHash: source.SourceHash,
+			WorldEntityRef: &realmv1.WorldEntityRefDto{Kind: "worldEntity", WorldId: source.WorldID, EntityId: source.WorldEntityRef.EntityID},
 		}, nil
 	case "personaCharacter":
 		if source.WorldEntityRef != nil || !validRealmSourceMaterializationIdentifier(source.OwnerAccountID, 256) {
 			return nil, fmt.Errorf("%w: personaCharacter source ref is invalid", ErrRealmSourceMaterializationContract)
 		}
-		return realmSourceMaterializationPersonaRefV3JSON{Kind: source.Kind, ID: source.ID, WorldID: source.WorldID, OwnerAccountID: source.OwnerAccountID, SourceHash: source.SourceHash}, nil
+		return &realmv1.PersonaCharacterSourceRefV3Dto{Kind: source.Kind, Id: source.ID, WorldId: source.WorldID, OwnerAccountId: source.OwnerAccountID, SourceHash: source.SourceHash}, nil
 	default:
 		return nil, fmt.Errorf("%w: source ref kind is invalid", ErrRealmSourceMaterializationContract)
 	}

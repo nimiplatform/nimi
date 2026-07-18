@@ -44,7 +44,7 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 	if err != nil {
 		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageSCMOpen, "open Windows service manager", err)
 	}
-	defer windows.CloseServiceHandle(serviceManager)
+	defer func() { _ = windows.CloseServiceHandle(serviceManager) }()
 	serviceName, err := windows.UTF16PtrFromString(profile.serviceName)
 	if err != nil {
 		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageServiceName, "encode fixed NimiRuntime service name", err)
@@ -54,7 +54,7 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageServiceOpen, "open fixed NimiRuntime service definition", err)
 	}
 	service := &mgr.Service{Name: profile.serviceName, Handle: serviceHandle}
-	defer service.Close()
+	defer func() { _ = service.Close() }()
 	configuration, err := service.Config()
 	if err != nil {
 		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageServiceConfig, "query fixed NimiRuntime service definition", err)
@@ -76,7 +76,7 @@ func validateWindowsProductionServiceProcess(ctx context.Context, expectedPID ui
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
 		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenOpen, "open Windows service process token", err)
 	}
-	defer token.Close()
+	defer func() { _ = token.Close() }()
 	user, err := token.GetTokenUser()
 	if err != nil || user == nil || user.User.Sid == nil {
 		return WindowsServicePrincipal{}, windowsPrincipalProbeFailure(WindowsPrincipalStageTokenUserQuery, "query Windows process token user", err)

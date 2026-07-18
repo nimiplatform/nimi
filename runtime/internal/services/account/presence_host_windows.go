@@ -56,13 +56,13 @@ func requestWindowsHelloPresence(ctx context.Context, prompt string) (string, ui
 	if err := windows.WTSQueryUserToken(sessionID, &userToken); err != nil {
 		return "", windowsHelloExitUnavailable, fmt.Errorf("query active Windows session token: %w", err)
 	}
-	defer userToken.Close()
+	defer func() { _ = userToken.Close() }()
 
 	var environment *uint16
 	if err := windows.CreateEnvironmentBlock(&environment, userToken, false); err != nil {
 		return "", windowsHelloExitUnavailable, fmt.Errorf("create active-session environment: %w", err)
 	}
-	defer windows.DestroyEnvironmentBlock(environment)
+	defer func() { _ = windows.DestroyEnvironmentBlock(environment) }()
 
 	pipeSecurity := windows.SecurityAttributes{
 		Length:        uint32(unsafe.Sizeof(windows.SecurityAttributes{})),
@@ -79,7 +79,7 @@ func requestWindowsHelloPresence(ctx context.Context, prompt string) (string, ui
 		_ = windows.CloseHandle(writeHandle)
 		return "", windowsHelloExitUnavailable, fmt.Errorf("open presence result pipe")
 	}
-	defer readFile.Close()
+	defer func() { _ = readFile.Close() }()
 	defer func() {
 		if writeHandle != 0 {
 			_ = windows.CloseHandle(writeHandle)
@@ -141,7 +141,7 @@ func requestWindowsHelloPresence(ctx context.Context, prompt string) (string, ui
 		return "", windowsHelloExitUnavailable, fmt.Errorf("start presence verifier in active Windows session: %w", err)
 	}
 	_ = windows.CloseHandle(process.Thread)
-	defer windows.CloseHandle(process.Process)
+	defer func() { _ = windows.CloseHandle(process.Process) }()
 	_ = windows.CloseHandle(writeHandle)
 	writeHandle = 0
 
@@ -194,13 +194,13 @@ func startWindowsProcessInActiveSession(applicationPath string, args []string) e
 	if err := windows.WTSQueryUserToken(sessionID, &userToken); err != nil {
 		return fmt.Errorf("query active Windows session token: %w", err)
 	}
-	defer userToken.Close()
+	defer func() { _ = userToken.Close() }()
 
 	var environment *uint16
 	if err := windows.CreateEnvironmentBlock(&environment, userToken, false); err != nil {
 		return fmt.Errorf("create active-session environment: %w", err)
 	}
-	defer windows.DestroyEnvironmentBlock(environment)
+	defer func() { _ = windows.DestroyEnvironmentBlock(environment) }()
 
 	applicationName, err := windows.UTF16PtrFromString(applicationPath)
 	if err != nil {

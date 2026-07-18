@@ -35,7 +35,7 @@ func (store *localDevelopmentStore) SetDeveloperMode(ctx context.Context, enable
 	if err != nil {
 		return localDevelopmentModeProjection{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	current, err := scanLocalDevelopmentMode(tx.QueryRowContext(ctx, `SELECT enabled, revision, account_id, account_generation FROM local_development_mode WHERE singleton = 1`))
 	if err != nil {
 		return localDevelopmentModeProjection{}, err
@@ -84,12 +84,12 @@ func (store *localDevelopmentStore) Reactivate(ctx context.Context, authorizatio
 	if err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	mode, err := scanLocalDevelopmentMode(tx.QueryRowContext(ctx, `SELECT enabled, revision, account_id, account_generation FROM local_development_mode WHERE singleton = 1`))
 	if err != nil || !mode.Enabled || mode.AccountID != accountID || mode.AccountGeneration != accountGeneration {
 		return localDevelopmentAuthorization{}, errLocalDevelopmentAuthorization
 	}
-	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
+	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
 	if err != nil || authorization.State != localDevelopmentAuthorizationDormant || authorization.Decision != runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT || authorization.Project.AccountID != accountID {
 		return localDevelopmentAuthorization{}, errLocalDevelopmentAuthorization
 	}

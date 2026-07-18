@@ -71,9 +71,6 @@ export {
   type NimiDesktopSourceReadinessRealmOperationID,
   type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm.js';
-export {
-  createNimiAppRuntimePlatformClient,
-} from './local-app-runtime-platform.js';
 export type {
   NimiAppAuthMode,
   NimiAppAuthProjection,
@@ -82,9 +79,9 @@ export type {
   NimiAppPermissionRequestInput,
   NimiAppPermissionStatus,
   NimiAppPermissionStatusInput,
-  NimiAppRuntimePlatformClient,
-  NimiAppRuntimePlatformClientInput,
-  NimiAppRuntimePlatformStandardShell,
+  NimiLocalAppClient,
+  NimiLocalAppClientInput,
+  NimiLocalAppStandardShell,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform.js';

@@ -74,30 +74,30 @@ export function markdownRelationRequirement(id, relPath, ruleId, relationArgs, i
 export const runtimeRequirements = [
   requirement('LAHC-R001', [
     markdownOwner(ownerPaths.runtimeMaterialization, 'K-AGCORE-139'),
-  ], governingRelation('runtime', 'own', 'source-materialization-challenge-replay-upload-state', 'runtime-owned', 'require', 'owned-by', {
+  ], governingRelation('runtime', 'own', 'realm-source-materialization-acquisition-and-transaction', 'runtime-private', 'require', 'owned-by', {
     subject: 'realm',
     value: 'realm-owned',
   })),
   requirement('LAHC-R002', [
     markdownOwner(ownerPaths.runtimeMaterialization, 'K-AGCORE-139'),
-  ], governingRelation('local-agent-source-snapshot-v1', 'set-mutability', 'execution-state', 'immutable', 'require', 'mutability-set-by', {
+  ], governingRelation('local-agent-source-snapshot-v2', 'set-mutability', 'execution-state', 'immutable', 'require', 'mutability-set-by', {
     value: 'mutable',
   })),
   requirement('LAHC-R003', [
     markdownOwner(ownerPaths.runtimeMaterialization, 'K-AGCORE-139'),
-  ], governingRelation('local-agent-source-snapshot-v1', 'persist', 'raw-source-materialization-packet', 'denied', 'forbid', 'persisted-by', {
+  ], governingRelation('local-agent-source-snapshot-v2', 'persist', 'raw-source-materialization-transport', 'denied', 'forbid', 'persisted-by', {
     value: 'allowed',
     polarity: 'require',
   })),
   requirement('LAHC-R004', [
     markdownOwner(ownerPaths.runtimeMaterialization, 'K-AGCORE-139'),
-  ], governingRelation('local-agent-source-snapshot-v1', 'rebase', 'realm-source-changes', 'denied', 'forbid', 'rebased-by', {
+  ], governingRelation('local-agent-source-snapshot-v2', 'rebase', 'realm-source-changes', 'denied', 'forbid', 'rebased-by', {
     value: 'allowed',
     polarity: 'require',
   })),
   requirement('LAHC-R005', [
     markdownOwner(ownerPaths.runtimeMaterialization, 'K-AGCORE-139'),
-  ], governingRelation('local-agent-source-snapshot-v1', 'write-back', 'realm-source-truth', 'denied', 'forbid', 'written-back-by', {
+  ], governingRelation('local-agent-source-snapshot-v2', 'write-back', 'realm-source-truth', 'denied', 'forbid', 'written-back-by', {
     value: 'allowed',
     polarity: 'require',
   })),

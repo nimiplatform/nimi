@@ -95,53 +95,6 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 		return json.Marshal(t.fixtures.Cases.RuntimeUnary.ResponseBody)
 	case t.fixtures.Cases.RealmOperation.OperationID:
 		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
-	case "WorldCoreController_createSourceMaterializationPacket":
-		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
-			return json.Marshal(SourceMaterializationPacketV3Dto{
-				PacketSchemaVersion:     "realm.source-materialization-packet/v3",
-				PacketId:                "packet-conformance",
-				Issuer:                  "https://realm.conformance",
-				KeyId:                   "materialization-rs256-conformance",
-				Algorithm:               "RS256",
-				KeyUse:                  "sig",
-				IssuedAt:                "2026-01-01T00:00:00Z",
-				ExpiresAt:               "2026-01-01T00:05:00Z",
-				Nonce:                   "nonce-conformance",
-				IntendedRuntimeAudience: "sdk.conformance",
-				ChallengeId:             "challenge_conformance_0001",
-				ChallengeDigest:         strings.Repeat("a", 64),
-				PublishedLimits: &SourceMaterializationPublishedLimitsDto{
-					MaxSegmentBytes: 8388608, MaxSegmentComponentCount: 256, MaxSegmentChunks: 4096,
-					MaxChunkBytes: 262144, MaxSetSegments: 64, MaxSetBytes: 134217728,
-					MaxSetComponentCount: 16384, MaxSetChunks: 65536,
-				},
-				MaterializerAccountId: "account-conformance",
-				SourceRef: &CharacterSourceRefV3Dto{PersonaCharacter: &PersonaCharacterSourceRefV3Dto{
-					Kind: "personaCharacter", WorldId: "oasis", Id: "persona-conformance",
-					OwnerAccountId: "account-conformance", SourceHash: strings.Repeat("e", 64),
-				}},
-				AuthorizationDecisionDigest: strings.Repeat("f", 64),
-				AccessPolicyVersionDigest:   "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa",
-				MaterializationContextHash:  strings.Repeat("1", 64),
-				PayloadHash:                 strings.Repeat("b", 64),
-				ClosureSetManifestHash:      strings.Repeat("c", 64),
-				PacketHash:                  strings.Repeat("d", 64),
-				PacketProof: &SourceMaterializationPacketProofV3Dto{
-					CompactJws:    "eyJhbGciOiJSUzI1NiJ9..conformance-signature",
-					SignedPayload: "conformance-signed-payload",
-				},
-				SemanticPayload: &SourceMaterializationPacketV3DtoSemanticPayload{
-					PersonaCharacter: &PersonaCharacterMaterializationPayloadV3Dto{
-						SourceRef: &PersonaCharacterSourceRefV3Dto{
-							Kind: "personaCharacter", WorldId: "oasis", Id: "persona-conformance",
-							OwnerAccountId: "account-conformance", SourceHash: strings.Repeat("e", 64),
-						},
-					},
-				},
-				OrderedSegments: []SourceMaterializationSegmentV3Dto{},
-			})
-		}
-		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
 	default:
 		return nil, errors.New("unexpected unary")
 	}
@@ -252,7 +205,6 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 
 	if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
 		typedRuntime := NewRuntimeTypedClient(core)
-		typedRealm := NewRealmTypedClient(core)
 		response, err := typedRuntime.BeginLogin(
 			context.Background(),
 			BeginLoginRequest{
@@ -310,41 +262,27 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 			t.Fatalf("expected typed EOF, got %v", err)
 		}
 
-		realmResponse, err := typedRealm.WorldCoreControllerCreateSourceMaterializationPacket(
-			context.Background(),
-			RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest{
-				Path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath{},
-				Body: CreateSourceMaterializationPacketV3Dto{
-					IntendedRuntimeAudience: "sdk.conformance",
-					MaterializerAccountId:   "account-conformance",
-					ChallengeId:             "challenge_conformance_0001",
-					ChallengeDigest:         strings.Repeat("a", 64),
-					ChallengeExpiresAt:      "2026-01-01T00:05:00.000Z",
-					PublishedLimits: &SourceMaterializationPublishedLimitsDto{
-						MaxSegmentBytes: 8388608, MaxSegmentComponentCount: 256, MaxSegmentChunks: 4096,
-						MaxChunkBytes: 262144, MaxSetSegments: 64, MaxSetBytes: 134217728,
-						MaxSetComponentCount: 16384, MaxSetChunks: 65536,
-					},
-					SourceRef: &CharacterSourceRefV3Dto{PersonaCharacter: &PersonaCharacterSourceRefV3Dto{
-						Kind: "personaCharacter", Id: "persona-conformance", OwnerAccountId: "account-conformance",
-						SourceHash: strings.Repeat("e", 64), WorldId: "oasis",
-					}},
-				},
+		packetRequestShape := CreateSourceMaterializationPacketV3Dto{
+			IntendedRuntimeAudience: "sdk.conformance",
+			MaterializerAccountId:   "account-conformance",
+			ChallengeId:             "challenge_conformance_0001",
+			ChallengeDigest:         strings.Repeat("a", 64),
+			ChallengeExpiresAt:      "2026-01-01T00:05:00.000Z",
+			PublishedLimits: &SourceMaterializationPublishedLimitsDto{
+				MaxSegmentBytes: 8388608, MaxSegmentComponentCount: 256, MaxSegmentChunks: 4096,
+				MaxChunkBytes: 262144, MaxSetSegments: 64, MaxSetBytes: 134217728,
+				MaxSetComponentCount: 16384, MaxSetChunks: 65536,
 			},
-			nil,
-			0,
-		)
-		if err != nil {
-			t.Fatalf("typed realm operation: %v", err)
+			SourceRef: &CharacterSourceRefV3Dto{PersonaCharacter: &PersonaCharacterSourceRefV3Dto{
+				Kind: "personaCharacter", Id: "persona-conformance", OwnerAccountId: "account-conformance",
+				SourceHash: strings.Repeat("e", 64), WorldId: "oasis",
+			}},
 		}
-		if realmResponse.PacketSchemaVersion != "realm.source-materialization-packet/v3" || realmResponse.Algorithm != "RS256" {
-			t.Fatalf("typed realm response mismatch: %#v", realmResponse)
+		if packetRequestShape.MaterializerAccountId != "account-conformance" {
+			t.Fatalf("packet DTO shape mismatch: %#v", packetRequestShape)
 		}
-		if realmResponse.SemanticPayload == nil || realmResponse.SemanticPayload.PersonaCharacter == nil {
-			t.Fatalf("typed realm discriminated payload mismatch: %#v", realmResponse.SemanticPayload)
-		}
-		if transport.unaryCalls[1].MethodID != "WorldCoreController_createSourceMaterializationPacket" {
-			t.Fatalf("typed realm operation mismatch: %s", transport.unaryCalls[1].MethodID)
+		if _, err := realmClient.Describe("WorldCoreController_createSourceMaterializationPacket"); err == nil {
+			t.Fatal("private Realm packet operation remained in the public descriptor")
 		}
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()

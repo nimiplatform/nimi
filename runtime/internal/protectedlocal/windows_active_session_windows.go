@@ -100,7 +100,7 @@ func resolveWindowsActiveSessionIdentity(sessionID uint32) (WindowsDesktopIdenti
 	if buffer == nil {
 		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageActiveSessionInfo, "query Windows active-session information", fmt.Errorf("missing session information"))
 	}
-	defer windowsWTSFreeMemory.Call(uintptr(buffer))
+	defer func() { _, _, _ = windowsWTSFreeMemory.Call(uintptr(buffer)) }()
 	if bufferBytes < uint32(unsafe.Sizeof(windowsWTSSessionInfo{})) {
 		return WindowsDesktopIdentity{}, windowsPipeOperationFailure(WindowsPipeStageActiveSessionInfo, "query Windows active-session information", fmt.Errorf("short session information"))
 	}
@@ -160,7 +160,7 @@ func readWindowsLogonSessionIdentity(logonID windows.LUID) (windowsLogonSessionI
 	if dataPointer == nil {
 		return windowsLogonSessionIdentity{}, fmt.Errorf("LSA returned no logon-session data")
 	}
-	defer windowsLSAFreeReturnBuffer.Call(uintptr(dataPointer))
+	defer func() { _, _, _ = windowsLSAFreeReturnBuffer.Call(uintptr(dataPointer)) }()
 	data := (*windowsSecurityLogonSessionData)(dataPointer)
 	minimumDataSize := uint32(unsafe.Offsetof(windowsSecurityLogonSessionData{}.LogonTime) + unsafe.Sizeof(windowsSecurityLogonSessionData{}.LogonTime))
 	if data.Size < minimumDataSize || data.SID == nil {

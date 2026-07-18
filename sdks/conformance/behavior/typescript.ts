@@ -12,7 +12,10 @@ import {
   type BeginLoginRequest,
   WorldEntityRefKindV3,
 } from '../../typescript/core-generated/runtime-typed-client';
-import { RealmTypedClient } from '../../typescript/core-generated/realm-typed-client';
+import {
+  RealmTypedClient,
+  type CreateSourceMaterializationPacketV3Dto,
+} from '../../typescript/core-generated/realm-typed-client';
 import { Runtime } from '../../typescript/runtime/index';
 import {
   AgentLocalSourceContextState,
@@ -53,64 +56,6 @@ class FakeTransport implements CoreTransport {
         idempotentReplay: false,
         reasonCode: RealmSourceMaterializationReasonCode.NONE,
       } as Response;
-    }
-    if (request.methodId === 'WorldCoreController_createSourceMaterializationPacket') {
-      if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
-        return {
-          packetSchemaVersion: 'realm.source-materialization-packet/v3',
-          packetId: 'packet-conformance',
-          issuer: 'https://realm.conformance',
-          keyId: 'materialization-rs256-conformance',
-          algorithm: 'RS256',
-          keyUse: 'sig',
-          issuedAt: '2026-01-01T00:00:00Z',
-          expiresAt: '2026-01-01T00:05:00Z',
-          nonce: 'nonce-conformance',
-          intendedRuntimeAudience: 'sdk.conformance',
-          challengeId: 'challenge_conformance_0001',
-          challengeDigest: 'a'.repeat(64),
-          publishedLimits: {
-            maxSegmentBytes: 8_388_608,
-            maxSegmentComponentCount: 256,
-            maxSegmentChunks: 4_096,
-            maxChunkBytes: 262_144,
-            maxSetSegments: 64,
-            maxSetBytes: 134_217_728,
-            maxSetComponentCount: 16_384,
-            maxSetChunks: 65_536,
-          },
-          materializerAccountId: 'account-conformance',
-          sourceRef: {
-            kind: 'personaCharacter',
-            worldId: 'oasis',
-            id: 'persona-conformance',
-            ownerAccountId: 'account-conformance',
-            sourceHash: 'e'.repeat(64),
-          },
-          authorizationDecisionDigest: 'f'.repeat(64),
-          accessPolicyVersionDigest: '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa',
-          materializationContextHash: '1'.repeat(64),
-          payloadHash: 'b'.repeat(64),
-          closureSetManifestHash: 'c'.repeat(64),
-          packetHash: 'd'.repeat(64),
-          packetProof: {
-            compactJws: 'eyJhbGciOiJSUzI1NiJ9..conformance-signature',
-            signedPayload: 'conformance-signed-payload',
-          },
-          semanticPayload: {
-            sourceRef: {
-              kind: 'personaCharacter',
-              worldId: 'oasis',
-              id: 'persona-conformance',
-              ownerAccountId: 'account-conformance',
-              sourceHash: 'e'.repeat(64),
-            },
-          },
-          closureSetManifest: {},
-          orderedSegments: [],
-        } as Response;
-      }
-      return fixtures.cases.realm_operation.response_body as Response;
     }
     if (request.methodId === fixtures.cases.realm_operation.operation_id) {
       return fixtures.cases.realm_operation.response_body as Response;
@@ -216,36 +161,39 @@ async function main() {
     assert.equal(typedEvents[0].eventType, AccountEventType.LOGIN_STARTED);
     assert.equal(typedEvents[1].eventType, AccountEventType.LOGIN_COMPLETED);
 
-    const typedRealmResponse = await typedRealm.worldCoreControllerCreateSourceMaterializationPacket({
-      path: {},
-      body: {
-        intendedRuntimeAudience: 'sdk.conformance',
-        materializerAccountId: 'account-conformance',
-        challengeId: 'challenge_conformance_0001',
-        challengeDigest: 'a'.repeat(64),
-        challengeExpiresAt: '2026-01-01T00:05:00.000Z',
-        publishedLimits: {
-          maxSegmentBytes: 8_388_608,
-          maxSegmentComponentCount: 256,
-          maxSegmentChunks: 4_096,
-          maxChunkBytes: 262_144,
-          maxSetSegments: 64,
-          maxSetBytes: 134_217_728,
-          maxSetComponentCount: 16_384,
-          maxSetChunks: 65_536,
-        },
-        sourceRef: {
-          kind: 'personaCharacter',
-          id: 'persona-conformance',
-          ownerAccountId: 'account-conformance',
-          sourceHash: 'e'.repeat(64),
-          worldId: 'oasis',
-        },
+    const packetRequestShape: CreateSourceMaterializationPacketV3Dto = {
+      intendedRuntimeAudience: 'sdk.conformance',
+      materializerAccountId: 'account-conformance',
+      challengeId: 'challenge_conformance_0001',
+      challengeDigest: 'a'.repeat(64),
+      challengeExpiresAt: '2026-01-01T00:05:00.000Z',
+      publishedLimits: {
+        maxSegmentBytes: 8_388_608,
+        maxSegmentComponentCount: 256,
+        maxSegmentChunks: 4_096,
+        maxChunkBytes: 262_144,
+        maxSetSegments: 64,
+        maxSetBytes: 134_217_728,
+        maxSetComponentCount: 16_384,
+        maxSetChunks: 65_536,
       },
-    });
-    assert.equal(typedRealmResponse.packetSchemaVersion, 'realm.source-materialization-packet/v3');
-    assert.equal(typedRealmResponse.algorithm, 'RS256');
-    assert.equal(typedRealmResponse.semanticPayload.sourceRef.kind, 'personaCharacter');
+      sourceRef: {
+        kind: 'personaCharacter',
+        id: 'persona-conformance',
+        ownerAccountId: 'account-conformance',
+        sourceHash: 'e'.repeat(64),
+        worldId: 'oasis',
+      },
+    };
+    assert.equal(packetRequestShape.materializerAccountId, 'account-conformance');
+    assert.equal(
+      (typedRealm as unknown as Record<string, unknown>).worldCoreControllerCreateSourceMaterializationPacket,
+      undefined,
+    );
+    assert.throws(
+      () => realm.describe('WorldCoreController_createSourceMaterializationPacket'),
+      (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_CONFIG_INVALID',
+    );
 
     assert.equal(transport.unaryCalls[0].methodId, fixtures.cases.runtime_unary.method_id);
     assert.deepEqual(transport.unaryCalls[0].body, runtimeRequest);
@@ -273,34 +221,6 @@ async function main() {
             },
             sourceHash: '9'.repeat(64),
           },
-        },
-      },
-    });
-    assert.equal(transport.unaryCalls[2].methodId, 'WorldCoreController_createSourceMaterializationPacket');
-    assert.deepEqual(transport.unaryCalls[2].body, {
-      path: {},
-      body: {
-        intendedRuntimeAudience: 'sdk.conformance',
-        materializerAccountId: 'account-conformance',
-        challengeId: 'challenge_conformance_0001',
-        challengeDigest: 'a'.repeat(64),
-        challengeExpiresAt: '2026-01-01T00:05:00.000Z',
-        publishedLimits: {
-          maxSegmentBytes: 8_388_608,
-          maxSegmentComponentCount: 256,
-          maxSegmentChunks: 4_096,
-          maxChunkBytes: 262_144,
-          maxSetSegments: 64,
-          maxSetBytes: 134_217_728,
-          maxSetComponentCount: 16_384,
-          maxSetChunks: 65_536,
-        },
-        sourceRef: {
-          kind: 'personaCharacter',
-          id: 'persona-conformance',
-          ownerAccountId: 'account-conformance',
-          sourceHash: 'e'.repeat(64),
-          worldId: 'oasis',
         },
       },
     });

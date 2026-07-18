@@ -22,7 +22,7 @@ func localDevelopmentCanonicalProjectFileID(projectRoot string) (string, error) 
 	if err != nil {
 		return "", errLocalDevelopmentProjectChanged
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 	var information windows.ByHandleFileInformation
 	if err := windows.GetFileInformationByHandle(handle, &information); err != nil || information.FileAttributes&windows.FILE_ATTRIBUTE_DIRECTORY == 0 || information.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
 		return "", errLocalDevelopmentProjectChanged

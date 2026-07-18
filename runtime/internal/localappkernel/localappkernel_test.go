@@ -62,7 +62,7 @@ func TestPrincipalLineageAndRandomNonReuse(t *testing.T) {
 	entropyB := bytes.Repeat([]byte{0x22}, 32)
 	random := bytes.NewReader(append(append(entropyA, entropyA...), entropyB...))
 	kernel := openTestKernel(t, Options{Random: random, Now: func() time.Time { return testNow }})
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 
 	if _, err := kernel.Principals().Create(ctx, CreatePrincipalInput{
 		Kind: PrincipalKindImmutable, AppID: "com.example.app", ImmutableLineageID: "lineage:one",
@@ -109,12 +109,12 @@ func TestPrincipalLineageAndRandomNonReuse(t *testing.T) {
 
 func TestKernelSchemaContainsIdentityAndProvenanceAuthorityOnly(t *testing.T) {
 	kernel := openTestKernel(t, Options{})
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 	rows, err := kernel.db.Query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('local_app_principals','local_app_records','local_app_grants') ORDER BY name`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var tables []string
 	for rows.Next() {
 		var name string
@@ -141,7 +141,7 @@ func TestKernelSchemaContainsIdentityAndProvenanceAuthorityOnly(t *testing.T) {
 func TestRecordRequiresMatchingPrincipalKindAndOneCurrentRecord(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, Options{})
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 	principal := createDevelopmentPrincipal(t, kernel, "dev-auth:record", "file-id:record", "com.example.record")
 	input := recordInput(principal.LocalAppPrincipalID)
 	input.TrustClass = TrustClassVerified
@@ -168,7 +168,7 @@ func TestRecordRequiresMatchingPrincipalKindAndOneCurrentRecord(t *testing.T) {
 func TestTombstoneRemovesRecordAndNeverInheritsKeys(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, Options{})
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 	oldPrincipal := createDevelopmentPrincipal(t, kernel, "dev-auth:old", "file-id:same", "com.example.same")
 	if _, err := kernel.Records().Create(ctx, recordInput(oldPrincipal.LocalAppPrincipalID)); err != nil {
 		t.Fatal(err)
@@ -205,7 +205,7 @@ func TestTombstoneRemovesRecordAndNeverInheritsKeys(t *testing.T) {
 func TestProvenanceAdvanceAtomicallyRecordsLaunchAndSessionInvalidation(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, Options{Now: func() time.Time { return testNow }})
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 	principal := createDevelopmentPrincipal(t, kernel, "dev-auth:promotion", "file-id:promotion", "com.example.promotion")
 	if _, err := kernel.Records().Create(ctx, recordInput(principal.LocalAppPrincipalID)); err != nil {
 		t.Fatal(err)
@@ -239,7 +239,7 @@ func TestProvenanceAdvanceAtomicallyRecordsLaunchAndSessionInvalidation(t *testi
 func TestSecurityKeysIsolateAccountAndEqualDisplayAppID(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, Options{})
-	defer kernel.Close()
+	defer func() { _ = kernel.Close() }()
 	first := createDevelopmentPrincipal(t, kernel, "dev-auth:key-one", "file-id:key-one", "com.example.same")
 	second := createDevelopmentPrincipal(t, kernel, "dev-auth:key-two", "file-id:key-two", "com.example.same")
 	firstA, err := kernel.SecurityKeys().Derive(ctx, "account-a", first.LocalAppPrincipalID)
@@ -306,7 +306,7 @@ func tableColumns(t *testing.T, db *sql.DB, table string) map[string]struct{} {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	columns := make(map[string]struct{})
 	for rows.Next() {
 		var cid int
@@ -329,7 +329,7 @@ func indexedColumns(t *testing.T, db *sql.DB, table string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var indexes []string
 	for rows.Next() {
 		var sequence int
@@ -353,12 +353,12 @@ func indexedColumns(t *testing.T, db *sql.DB, table string) []string {
 			var cid int
 			var name string
 			if err := info.Scan(&sequence, &cid, &name); err != nil {
-				info.Close()
+				_ = info.Close()
 				t.Fatal(err)
 			}
 			columns = append(columns, name)
 		}
-		info.Close()
+		_ = info.Close()
 	}
 	sort.Strings(columns)
 	return columns

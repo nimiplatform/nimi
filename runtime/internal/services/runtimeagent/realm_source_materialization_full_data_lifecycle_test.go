@@ -543,7 +543,8 @@ func readRealmV3FullDataPrivateJSONFileV1(source string, target any) (bool, erro
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
 	}
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o077 != 0 || info.Size() > 1<<20 {
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() > 1<<20 ||
+		validateRealmV3FullDataPrivatePathOwnerV1(source, info, false) != nil {
 		return false, fmt.Errorf("private full-data state is unavailable or insecure: %w", err)
 	}
 	file, err := os.Open(source)

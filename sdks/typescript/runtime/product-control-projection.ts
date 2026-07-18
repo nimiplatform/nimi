@@ -4,7 +4,7 @@ import {
   type ProductControlProjectionJson,
 } from '../core-generated/runtime-typed-client';
 import type { NimiAIConfigTargetRef } from '../core/ai';
-import { createNimiError } from '../types';
+import { createNimiError, ReasonCode } from '../types';
 import type {
   NimiFirstRunScreen,
   NimiProductControlAdmissionProjection,
@@ -253,10 +253,10 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
     : asRecord(record.configMutation, 'product control configMutation');
   if (configMutation && !(
     (configMutation.disposition === 'applied'
-      && configMutation.reasonCode === 'CONFIG_APPLIED'
+      && configMutation.reasonCode === ReasonCode.CONFIG_APPLIED
       && configMutation.actionHint === 'continue_product_setup')
     || (configMutation.disposition === 'restart_required'
-      && configMutation.reasonCode === 'CONFIG_RESTART_REQUIRED'
+      && configMutation.reasonCode === ReasonCode.CONFIG_RESTART_REQUIRED
       && configMutation.actionHint === 'request_typed_runtime_restart')
   )) {
     throw productControlError({
@@ -281,7 +281,7 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
     configMutation: configMutation
       ? {
         disposition: configMutation.disposition as 'applied' | 'restart_required',
-        reasonCode: configMutation.reasonCode as 'CONFIG_APPLIED' | 'CONFIG_RESTART_REQUIRED',
+        reasonCode: configMutation.reasonCode as typeof ReasonCode.CONFIG_APPLIED | typeof ReasonCode.CONFIG_RESTART_REQUIRED,
         actionHint: configMutation.actionHint as 'continue_product_setup' | 'request_typed_runtime_restart',
       }
       : null,

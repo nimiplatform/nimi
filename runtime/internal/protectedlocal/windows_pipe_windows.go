@@ -342,7 +342,7 @@ func connectWindowsDesktopPipe(ctx context.Context, handle windows.Handle) error
 	if err != nil {
 		return windowsPipeFailure("create Windows pipe connect event", err)
 	}
-	defer windows.CloseHandle(event)
+	defer func() { _ = windows.CloseHandle(event) }()
 	overlapped := windows.Overlapped{HEvent: event}
 	err = windows.ConnectNamedPipe(handle, &overlapped)
 	switch {

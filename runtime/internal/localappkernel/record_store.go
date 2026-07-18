@@ -107,7 +107,7 @@ func (store *RecordStore) UpdateDevelopment(ctx context.Context, input UpdateDev
 	if err != nil {
 		return Record{}, fmt.Errorf("begin development record update: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	current, err := scanRecord(tx.QueryRowContext(ctx, `SELECT
 		local_os_user_anchor, local_app_record_id, local_app_principal_id, trust_class,
 		provenance_attestation_refs_json, provenance_revision, active_release_or_project_identity_ref,
@@ -177,7 +177,7 @@ func (store *RecordStore) AdvanceProvenanceRevision(ctx context.Context, princip
 	if err != nil {
 		return ProvenanceInvalidationFact{}, fmt.Errorf("begin provenance advance: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var recordID string
 	var actualRevision uint64
 	var principalState string
@@ -250,7 +250,7 @@ func (store *RecordStore) ListInvalidationFacts(ctx context.Context, principalID
 	if err != nil {
 		return nil, fmt.Errorf("list provenance invalidation facts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var facts []ProvenanceInvalidationFact
 	for rows.Next() {
 		var fact ProvenanceInvalidationFact

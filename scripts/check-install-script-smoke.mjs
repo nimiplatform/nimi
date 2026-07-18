@@ -1,40 +1,38 @@
 #!/usr/bin/env node
 import http from 'node:http';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const version = '9.9.9';
+const currentPlatformKey = 'linux';
+const currentArchivePlatform = 'linux';
+const currentArch = 'amd64';
+const smokeTarget = `${currentPlatformKey}-${currentArch}`;
 
-function platformKey() {
-  if (process.platform === 'darwin') {
-    return 'darwin';
+function resolvePosixShell() {
+  if (process.platform !== 'win32') {
+    return 'sh';
   }
-  if (process.platform === 'linux') {
-    return 'linux';
+  const gitExecutables = execFileSync('where.exe', ['git.exe'], { encoding: 'utf8' })
+    .split(/\r?\n/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  for (const gitExecutable of gitExecutables) {
+    const gitRoot = path.resolve(path.dirname(gitExecutable), '..');
+    for (const candidate of [path.join(gitRoot, 'bin', 'sh.exe'), path.join(gitRoot, 'usr', 'bin', 'sh.exe')]) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
   }
-  throw new Error(`install script smoke only supports darwin/linux hosts, got ${process.platform}`);
+  throw new Error('install script smoke requires the POSIX shell bundled with Git for Windows');
 }
 
-function archivePlatform() {
-  return platformKey() === 'darwin' ? 'macos' : 'linux';
-}
-
-function archiveArch() {
-  if (process.arch === 'x64') {
-    return 'amd64';
-  }
-  if (process.arch === 'arm64') {
-    return 'arm64';
-  }
-  throw new Error(`unsupported architecture for install script smoke: ${process.arch}`);
-}
-
-const currentPlatformKey = platformKey();
-const currentArchivePlatform = archivePlatform();
-const currentArch = archiveArch();
+const posixShell = resolvePosixShell();
 const archiveName = `nimi-runtime_${version}_${currentArchivePlatform}_${currentArch}.tar.gz`;
 
 const manifestPayload = {
@@ -84,8 +82,8 @@ const manifestUrl = `http://127.0.0.1:${address.port}/runtime/latest.json`;
 
 const result = await new Promise((resolve, reject) => {
   const child = spawn(
-    'sh',
-    ['scripts/install.sh', '--dry-run'],
+    posixShell,
+    ['scripts/install.sh', '--dry-run', '--target', smokeTarget],
     {
       cwd: repoRoot,
       env: {

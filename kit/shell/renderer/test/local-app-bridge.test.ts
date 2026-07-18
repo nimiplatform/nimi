@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createNimiAppRuntimePlatformClient } from '@nimiplatform/kit/core/sdk-contract';
+import { createNimiClient } from '@nimiplatform/kit/core/sdk-contract';
 
 import { createNimiLocalAppStandardShellSurface } from '../src/bridge/index.js';
 
@@ -18,8 +18,10 @@ describe('renderer local-app standard-shell surface', () => {
       },
       listen: () => () => {},
     };
-    const client = createNimiAppRuntimePlatformClient({
-      standardShell: createNimiLocalAppStandardShellSurface(),
+    const client = createNimiClient({
+      localApp: {
+        standardShell: createNimiLocalAppStandardShellSurface(),
+      },
     });
     await expect(client.auth.status()).resolves.toMatchObject({
       mode: 'local-app',

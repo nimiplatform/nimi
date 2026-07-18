@@ -263,7 +263,7 @@ func TestWindowsNamedPipeConnectedHandleTransfersOnceToDeadlineNetConn(t *testin
 			clientDone <- err
 			return
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 		if err := client.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
 			clientDone <- err
 			return
@@ -298,7 +298,7 @@ func TestWindowsNamedPipeConnectedHandleTransfersOnceToDeadlineNetConn(t *testin
 	if err != nil {
 		t.Fatalf("verify isolated stream client: %v", err)
 	}
-	defer liveness.Close()
+	defer func() { _ = liveness.Close() }()
 	if verified.PID != uint32(os.Getpid()) || verified.ExecutableTrustSetID != windowsDesktopE2ETrustSetID {
 		t.Fatalf("verified isolated stream client = %#v", verified)
 	}

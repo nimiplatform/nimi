@@ -15,6 +15,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -25,8 +26,8 @@ import (
 
 func TestProtectedDesktopRPCTransportRejectsOrdinaryConnection(t *testing.T) {
 	serverSide, clientSide := net.Pipe()
-	defer serverSide.Close()
-	defer clientSide.Close()
+	defer func() { _ = serverSide.Close() }()
+	defer func() { _ = clientSide.Close() }()
 	if _, _, err := newProtectedDesktopTransportCredentials().ServerHandshake(serverSide); err == nil {
 		t.Fatal("ordinary net.Conn passed protected Desktop transport handshake")
 	}
@@ -34,7 +35,7 @@ func TestProtectedDesktopRPCTransportRejectsOrdinaryConnection(t *testing.T) {
 
 func TestNativeVerifiedDesktopListenerRejectsOrdinaryConnection(t *testing.T) {
 	serverSide, clientSide := net.Pipe()
-	defer clientSide.Close()
+	defer func() { _ = clientSide.Close() }()
 	listener := &nativeVerifiedDesktopListener{Listener: &protectedDesktopOneShotListener{connection: serverSide}}
 	accepted, err := listener.Accept()
 	if accepted != nil {
@@ -277,8 +278,8 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		t.Fatalf("ListLocalAssets protected carrier: called=%v err=%v", localService.localAssetsCalled, err)
 	}
 	projection, err := auditClient.ListDesktopAuditEvents(context.Background(), &runtimev1.ListDesktopAuditEventsRequest{})
-	if err != nil || projection.GetNextPageToken() != "" || !auditService.projectionCalled {
-		t.Fatalf("ListDesktopAuditEvents protected carrier: called=%v response=%+v err=%v", auditService.projectionCalled, projection, err)
+	if err != nil || projection.GetNextPageToken() != "" || !auditService.projectionCalled || !auditService.authorizationDecisionBound {
+		t.Fatalf("ListDesktopAuditEvents protected carrier: called=%v decision=%v response=%+v err=%v", auditService.projectionCalled, auditService.authorizationDecisionBound, projection, err)
 	}
 	_, err = auditClient.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || auditService.rawCalled {
@@ -376,12 +377,18 @@ type protectedDesktopAccountTestService struct {
 
 type protectedDesktopAuditTestService struct {
 	runtimev1.UnimplementedRuntimeAuditServiceServer
-	projectionCalled bool
-	rawCalled        bool
+	projectionCalled           bool
+	authorizationDecisionBound bool
+	rawCalled                  bool
 }
 
-func (s *protectedDesktopAuditTestService) ListDesktopAuditEvents(context.Context, *runtimev1.ListDesktopAuditEventsRequest) (*runtimev1.ListDesktopAuditEventsResponse, error) {
+func (s *protectedDesktopAuditTestService) ListDesktopAuditEvents(ctx context.Context, _ *runtimev1.ListDesktopAuditEventsRequest) (*runtimev1.ListDesktopAuditEventsResponse, error) {
 	s.projectionCalled = true
+	s.authorizationDecisionBound = envelope.HasValidatedProtectedCapability(
+		ctx,
+		envelope.ProtectedDesktopAppID,
+		envelope.ProtectedDesktopAuditReadCapability,
+	)
 	return &runtimev1.ListDesktopAuditEventsResponse{}, nil
 }
 

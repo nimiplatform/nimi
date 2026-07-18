@@ -26,7 +26,7 @@ func canonicalLocalDevelopmentFilePath(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 
 	buffer := make([]uint16, 512)
 	for {

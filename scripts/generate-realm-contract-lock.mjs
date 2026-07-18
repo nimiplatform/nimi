@@ -7,8 +7,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
-export const REALM_REPOSITORY = 'https://github.com/nimiplatform/nimi-realm.git';
-export const REALM_OPENAPI_SOURCE_PATH = 'nimi-backend/api-nimi.yaml';
+export const REALM_AUTHORITY_ID = 'external-realm';
+export const REALM_OPENAPI_ARTIFACT_ID = 'realm-openapi';
 export const NIMI_OPENAPI_SYNCED_PATH = 'config/realm-openapi/api-nimi.yaml';
 export const MATERIALIZATION_OPERATION_ID =
   'WorldCoreController_createSourceMaterializationPacket';
@@ -16,8 +16,8 @@ export const MATERIALIZATION_OPERATION_PATH = '/api/realm/core/source-materializ
 export const MATERIALIZATION_OPERATION_METHOD = 'post';
 export const FRAGMENT_SCHEMA_VERSION =
   'nimi.realm-openapi-source-materialization-fragment/v1';
-export const LOCK_SCHEMA_VERSION = 'nimi.realm-contract-lock/v4';
-export const ADMISSION_SCHEMA_VERSION = 'nimi.realm-current-producer-admission/v3';
+export const LOCK_SCHEMA_VERSION = 'nimi.realm-contract-lock/v5';
+export const ADMISSION_SCHEMA_VERSION = 'nimi.realm-current-producer-admission/v4';
 export const ACCESS_POLICY_VERSION = 'realm.source-materialization-access-policy/v5';
 export const ACCESS_POLICY_DIGEST =
   '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa';
@@ -78,23 +78,11 @@ function gitBytes(realmRoot, args) {
   });
 }
 
-function normalizeRepositoryUrl(value) {
-  const normalized = String(value || '').trim();
-  if (normalized.startsWith('git@github.com:')) {
-    return `https://github.com/${normalized.slice('git@github.com:'.length)}`;
-  }
-  if (normalized.startsWith('ssh://git@github.com/')) {
-    return `https://github.com/${normalized.slice('ssh://git@github.com/'.length)}`;
-  }
-  return normalized;
-}
-
-export function assertRealmRepository(realmRoot) {
-  const repository = normalizeRepositoryUrl(git(realmRoot, ['remote', 'get-url', 'origin']));
-  if (repository !== REALM_REPOSITORY) {
-    throw new Error(
-      `Realm repository mismatch: expected ${REALM_REPOSITORY}, got ${repository || '<missing>'}`,
-    );
+export function assertRealmCheckout(realmRoot) {
+  const expectedRoot = path.resolve(realmRoot);
+  const actualRoot = path.resolve(git(expectedRoot, ['rev-parse', '--show-toplevel']));
+  if (actualRoot !== expectedRoot) {
+    throw new Error(`Realm checkout root mismatch: expected ${expectedRoot}, got ${actualRoot}`);
   }
 }
 
@@ -154,27 +142,80 @@ export function readAdmission() {
       `unsupported current Realm admission schema: ${admission?.schemaVersion || '<missing>'}`,
     );
   }
-  if (admission.repository !== REALM_REPOSITORY) {
-    throw new Error(`current Realm admission repository mismatch: ${admission.repository}`);
+  if (admission.authorityId !== REALM_AUTHORITY_ID) {
+    throw new Error(`current Realm admission authority mismatch: ${admission.authorityId}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(admission, 'repository')) {
+    throw new Error('current Realm admission must not disclose repository topology');
   }
   if (admission.headPolicy !== 'identical_admitted_inputs') {
     throw new Error(`unsupported current Realm HEAD policy: ${admission.headPolicy}`);
   }
+  const admittedFiles = [
+    ...(Array.isArray(admission.semanticFiles) ? admission.semanticFiles : []),
+    admission.openapi,
+    ...(Array.isArray(admission.compactVectors) ? admission.compactVectors : []),
+  ];
+  for (const file of admittedFiles) {
+    const hasPath = typeof file?.path === 'string' && file.path.trim() !== '';
+    const hasArtifact = typeof file?.artifactId === 'string' && file.artifactId.trim() !== '';
+    if (hasPath === hasArtifact || !/^[a-f0-9]{64}$/u.test(String(file?.sha256 || ''))) {
+      throw new Error(`invalid Realm admission file descriptor ${admittedFileLabel(file || {}) || '<missing>'}`);
+    }
+  }
+  if (
+    admission.openapi?.artifactId !== REALM_OPENAPI_ARTIFACT_ID ||
+    Object.prototype.hasOwnProperty.call(admission.openapi || {}, 'path')
+  ) {
+    throw new Error('current Realm OpenAPI must use its topology-neutral artifact locator');
+  }
   return admission;
 }
 
-function assertAdmittedGitFile(realmRoot, admittedCommit, file) {
-  assertTrackedAuthorityPath(file.path);
-  const admitted = gitBytes(realmRoot, ['show', `${admittedCommit}:${file.path}`]);
-  assertSha256(admitted, file.sha256, `${admittedCommit}:${file.path}`);
-  const head = gitBytes(realmRoot, ['show', `HEAD:${file.path}`]);
-  assertSha256(head, file.sha256, `HEAD:${file.path}`);
-  const workingPath = path.join(realmRoot, file.path);
-  if (!fs.existsSync(workingPath) || !fs.statSync(workingPath).isFile()) {
-    throw new Error(`missing admitted Realm input ${file.path}`);
+function admittedFileLabel(file) {
+  return String(file.path || file.artifactId || '').trim();
+}
+
+function resolveAdmittedGitFile(realmRoot, revision, file) {
+  if (file.path) {
+    assertTrackedAuthorityPath(file.path);
+    const bytes = gitBytes(realmRoot, ['show', `${revision}:${file.path}`]);
+    assertSha256(bytes, file.sha256, `${revision}:${file.path}`);
+    return { bytes, path: file.path };
   }
-  assertSha256(fs.readFileSync(workingPath), file.sha256, `worktree:${file.path}`);
-  return admitted;
+  const artifactId = String(file.artifactId || '').trim();
+  const fileName = String(file.fileName || '').trim();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(artifactId) || !fileName || path.basename(fileName) !== fileName) {
+    throw new Error(`invalid Realm admission artifact locator ${artifactId || '<missing>'}`);
+  }
+  const candidates = git(realmRoot, ['ls-tree', '-r', '--name-only', revision])
+    .split(/\r?\n/u)
+    .filter((candidate) => path.posix.basename(candidate) === fileName);
+  const matches = [];
+  for (const candidate of candidates) {
+    const bytes = gitBytes(realmRoot, ['show', `${revision}:${candidate}`]);
+    if (sha256Hex(bytes) === file.sha256) {
+      matches.push({ bytes, path: candidate });
+    }
+  }
+  if (matches.length !== 1) {
+    throw new Error(
+      `Realm artifact ${artifactId} must resolve exactly once at ${revision}; matched ${matches.length}`,
+    );
+  }
+  return matches[0];
+}
+
+function assertAdmittedGitFile(realmRoot, admittedCommit, file) {
+  const label = admittedFileLabel(file);
+  const admitted = resolveAdmittedGitFile(realmRoot, admittedCommit, file);
+  const head = resolveAdmittedGitFile(realmRoot, 'HEAD', file);
+  const workingPath = path.join(realmRoot, head.path);
+  if (!fs.existsSync(workingPath) || !fs.statSync(workingPath).isFile()) {
+    throw new Error(`missing admitted Realm input ${label}`);
+  }
+  assertSha256(fs.readFileSync(workingPath), file.sha256, `worktree:${label}`);
+  return admitted.bytes;
 }
 
 function exactPacketOperation() {
@@ -271,9 +312,7 @@ function collectNamedValues(value, key, output = []) {
 function assertSemanticInputs(realmRoot, admission, openapiBytes) {
   assertAccessPolicyOpenApi(openapiBytes.toString('utf8'), admission);
   const semanticText = admission.semanticFiles
-    .map((file) =>
-      gitBytes(realmRoot, ['show', `${admission.admittedCommit}:${file.path}`]).toString('utf8'),
-    )
+    .map((file) => assertAdmittedGitFile(realmRoot, admission.admittedCommit, file).toString('utf8'))
     .join('\n');
   for (const token of [
     ACCESS_POLICY_VERSION,
@@ -286,14 +325,14 @@ function assertSemanticInputs(realmRoot, admission, openapiBytes) {
     }
   }
   for (const file of admission.compactVectors.filter(
-    (entry) => !entry.path.endsWith('negative-mutations.json'),
+    (entry) => !(entry.path || entry.fileName).endsWith('negative-mutations.json'),
   )) {
     const value = JSON.parse(
-      gitBytes(realmRoot, ['show', `${admission.admittedCommit}:${file.path}`]).toString('utf8'),
+      assertAdmittedGitFile(realmRoot, admission.admittedCommit, file).toString('utf8'),
     );
     const digests = collectNamedValues(value, 'accessPolicyVersionDigest');
     if (digests.length === 0 || digests.some((digest) => digest !== ACCESS_POLICY_DIGEST)) {
-      throw new Error(`${file.path} access-policy digest mismatch`);
+      throw new Error(`${admittedFileLabel(file)} access-policy digest mismatch`);
     }
   }
 }
@@ -314,7 +353,7 @@ export function collectOperationInventory(document) {
 }
 
 export function validateAdmittedProducer(realmRoot, admission) {
-  assertRealmRepository(realmRoot);
+  assertRealmCheckout(realmRoot);
   const admittedCommit = git(realmRoot, ['rev-parse', `${admission.admittedCommit}^{commit}`]);
   const admittedTree = git(realmRoot, ['rev-parse', `${admission.admittedCommit}^{tree}`]);
   if (admittedCommit !== admission.admittedCommit || admittedTree !== admission.admittedTree) {
@@ -418,12 +457,12 @@ export function renderLock(input) {
     schema_version: LOCK_SCHEMA_VERSION,
     generated_by: 'scripts/generate-realm-contract-lock.mjs',
     realm: {
-      repository: REALM_REPOSITORY,
+      authority_id: REALM_AUTHORITY_ID,
       commit: admission.admittedCommit,
       tree: admission.admittedTree,
     },
     openapi: {
-      source_path: REALM_OPENAPI_SOURCE_PATH,
+      source_artifact_id: REALM_OPENAPI_ARTIFACT_ID,
       synced_path: NIMI_OPENAPI_SYNCED_PATH,
       document_sha256: sha256Hex(input.openapiBytes),
       fragment_schema_version: FRAGMENT_SCHEMA_VERSION,
@@ -455,7 +494,7 @@ export function renderLock(input) {
       retired_endpoints: admission.accessPolicy.retiredEndpoints,
     },
     compact_vectors: Object.fromEntries(
-      admission.compactVectors.map((file) => [path.basename(file.path), file.sha256]),
+      admission.compactVectors.map((file) => [file.fileName || path.basename(file.path), file.sha256]),
     ),
     producer_admission: {
       tracked_only: true,

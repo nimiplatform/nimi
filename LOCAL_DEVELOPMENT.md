@@ -8,12 +8,12 @@
 
 | 工作目录 | 命令 | 职责 | 常驻 |
 |---|---|---|---|
-| `D:\nimi-realm` | `pnpm dev` | Realm API，默认 `localhost:3002` | 是 |
-| `D:\nimi-realm\nimi` | `pnpm dev:web` | Web/login，默认 `localhost:3000` | 是 |
-| `D:\nimi-realm\nimi` | `pnpm dev:runtime` | build/sign → 原地更新已安装 fixed service → 重启 → status；未提权时弹一次 UAC | 仅 Runtime 变更时 |
-| `D:\nimi-realm\nimi` | `pnpm dev:electron:desktop` | 签名 Desktop carrier、持久 profile、renderer HMR、项目/grant 审批宿主 | 联调期间 |
-| `D:\nimi-realm\nimi` | `pnpm dev:electron:zhiyu` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Zhiyu | 联调期间 |
-| `D:\nimi-realm\nimi` | `pnpm dev:electron:tester` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Tester 权限实验室与产品 UI | 联调期间 |
+| `$REALM_ROOT` | `pnpm dev` | Realm API，默认 `localhost:3002` | 是 |
+| `$NIMI_ROOT` | `pnpm dev:web` | Web/login，默认 `localhost:3000` | 是 |
+| `$NIMI_ROOT` | `pnpm dev:runtime` | build/sign → 原地更新已安装 fixed service → 重启 → status；未提权时弹一次 UAC | 仅 Runtime 变更时 |
+| `$NIMI_ROOT` | `pnpm dev:electron:desktop` | 签名 Desktop carrier、持久 profile、renderer HMR、项目/grant 审批宿主 | 联调期间 |
+| `$NIMI_ROOT` | `pnpm dev:electron:zhiyu` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Zhiyu | 联调期间 |
+| `$NIMI_ROOT` | `pnpm dev:electron:tester` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Tester 权限实验室与产品 UI | 联调期间 |
 
 建议顺序：Realm → Web → fixed Runtime status → Desktop → 目标 App（Zhiyu 或 Tester）。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
 
@@ -89,7 +89,7 @@ Runtime 重启后，旧 session、launch lease 与 scoped binding 失效；同�
 
 First Run、owner-minimal、fresh-prepared journey 与 `check:zhiyu-bootstrap` 不是调试启动器。它们要求干净 tracked 树与无 carrier 进程，旧 candidate 的证据不能关闭新 candidate。
 
-运行 owner-minimal、fresh First Run 或完整 core journey 前，需求方维护的 Realm 必须以测试专用策略从 `D:\nimi-realm` 重启；四项环境必须同时成立：`NIMI_REALM_TEST_POLICY=dev_kernel_checkpoint`、`NODE_ENV=development`、`HOST=127.0.0.1`、`CORS_ORIGINS=http://localhost:3000`。该策略只允许回环访问；`GET http://localhost:3002/api/auth/dev-kernel-policy` 必须返回 HTTP 200，缺失或非 200 时 harness fail-closed，不得在 Nimi 侧补固定策略或 fallback。
+运行 owner-minimal、fresh First Run 或完整 core journey 前，需求方维护的 Realm 必须以测试专用策略从显式配置的 `$REALM_ROOT` 重启；四项环境必须同时成立：`NIMI_REALM_TEST_POLICY=dev_kernel_checkpoint`、`NODE_ENV=development`、`HOST=127.0.0.1`、`CORS_ORIGINS=http://localhost:3000`。该策略只允许回环访问；`GET http://localhost:3002/api/auth/dev-kernel-policy` 必须返回 HTTP 200，缺失或非 200 时 harness fail-closed，不得在 Nimi 侧补固定策略或 fallback。
 
 ## 第三方 App 接入 local development 清单
 

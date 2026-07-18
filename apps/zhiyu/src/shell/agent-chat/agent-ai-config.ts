@@ -3,7 +3,6 @@ import {
   createNimiHostRuntimeAgentInspectSurface,
   createNimiHostRuntimeAgentPresentationProfileSurface,
   createNimiRuntimeAgentClient,
-  Runtime,
   type NimiRuntimeAgentAIConfigIntents,
   type NimiRuntimeAgentAIConfigModule,
   type NimiRuntimeAgentAIConfigSnapshot,
@@ -13,6 +12,7 @@ import {
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence, ZhiyuExecutionCapabilityEvidence, ZhiyuAgentAIConfigReadinessState } from '../app/evidence';
+import { getZhiyuRuntime } from '../auth/runtime-platform';
 import {
   createZhiyuRuntimeAgentBindingScopeRunner,
   resolveZhiyuRuntimeAgentBindingDecisionFromHost,
@@ -304,10 +304,7 @@ function zhiyuRuntimeAgentScopedSurface(
   }
   // Fail closed before any RPC when the host custody does not cover the
   // AI Config scopes (Z-CHAT-002 scoped-binding custody path).
-  const runtime = new Runtime({
-    appId: 'nimi.zhiyu',
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
   const withScopes = createZhiyuRuntimeAgentBindingScopeRunner(
     async (scopes) => {
       const resolvedScopes = scopes.length > 0 ? scopes : requiredScopes;

@@ -111,6 +111,7 @@ import {
   inspectDockerContainer,
   observeRedis,
   parseOfflineStoreDirectory,
+  producerAPIExecutionPaths,
   readDatabaseSnapshot,
   readFrozenOfflineStoreDirectory,
   reconcilePreparedRedis,
@@ -184,16 +185,18 @@ async function prepareCredentials(state, options, disposableDatabaseURL, redis, 
 }
 
 async function buildAPIIntent(state, credentials) {
-  const entry = path.join(state.export.exportRoot, 'nimi-backend', 'dist', 'apps', 'api', 'apps', 'api', 'src', 'main.js');
+  const producerAPI = await producerAPIExecutionPaths(state.export);
+  const entry = producerAPI.entry;
   const entrySha256 = await hashFile(entry);
   const logPath = path.join(state.stateDirectory, 'realm-api.log');
-  const marker = `nimi-realm-v3-full-data-api-${state.environmentId}`;
+  const marker = `realm-v3-full-data-api-${state.environmentId}`;
   const loopbackPort = Number(new URL(credentials.apiBaseURL).port);
   if (!Number.isSafeInteger(loopbackPort) || loopbackPort < 1 || loopbackPort > 65535) {
     fail('invalid_api_port', 'API intent loopback port is invalid');
   }
   const authority = {
     entryPathHash: sha256Hex(entry),
+    workingDirectoryHash: sha256Hex(producerAPI.packageRoot),
     entrySha256,
     logPathHash: sha256Hex(logPath),
     markerHash: sha256Hex(marker),
@@ -204,17 +207,26 @@ async function buildAPIIntent(state, credentials) {
   };
   return {
     entry,
+    workingDirectory: producerAPI.packageRoot,
     logPath,
     marker,
     apiBaseURL: credentials.apiBaseURL,
     ...authority,
-    intentDigest: domainHash('nimi.realm-v3-full-data-api-resource/v2', authority),
+    intentDigest: domainHash('nimi.realm-v3-full-data-api-resource/v3', authority),
   };
 }
 
 async function findAPIProcessByIntent(intent) {
-  const output = await runCapture('ps', ['-axo', 'pid=,command=']);
-  const markerArgument = `--nimi-realm-v3-full-data-environment=${intent.marker}`;
+  const output = process.platform === 'win32'
+    ? await runCapture('ps', [
+      '-NoLogo',
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      'Get-CimInstance Win32_Process | ForEach-Object { "{0} {1}" -f $_.ProcessId,$_.CommandLine }',
+    ])
+    : await runCapture('ps', ['-axo', 'pid=,command=']);
+  const markerArgument = `--realm-v3-full-data-environment=${intent.marker}`;
   const matches = output.stdout.split('\n').map((line) => line.trim()).filter((line) =>
     line.includes(intent.entry) && line.includes(markerArgument),
   );
@@ -308,6 +320,7 @@ async function startAPI(state, credentials, intent, statePath) {
       proof: {
         processIntentDigest: intent.intentDigest,
         entryPathHash: intent.entryPathHash,
+        workingDirectoryHash: intent.workingDirectoryHash,
         entrySha256: intent.entrySha256,
         logPathHash: intent.logPathHash,
         markerHash: intent.markerHash,
@@ -345,9 +358,9 @@ async function startAPI(state, credentials, intent, statePath) {
   try {
     child = spawn(
       process.execPath,
-      [entry, `--nimi-realm-v3-full-data-environment=${intent.marker}`],
+      [entry, `--realm-v3-full-data-environment=${intent.marker}`],
       {
-        cwd: path.join(state.export.exportRoot, 'nimi-backend'),
+        cwd: intent.workingDirectory,
         env: closedProcessEnvironment(credentials.custody.apiEnvironment, { allowDatabase: true }),
         detached: true,
         stdio: ['ignore', logFD, logFD],
@@ -377,6 +390,7 @@ async function startAPI(state, credentials, intent, statePath) {
     proof: {
       processIntentDigest: intent.intentDigest,
       entryPathHash: intent.entryPathHash,
+      workingDirectoryHash: intent.workingDirectoryHash,
       entrySha256: intent.entrySha256,
       logPathHash: intent.logPathHash,
       markerHash: intent.markerHash,
@@ -521,11 +535,37 @@ async function verifyFixedProducer(rootRealm) {
 }
 
 async function readProducerDigests(rootRealm) {
+  const producerAdmission = await readJSON(
+    path.join(MODULE_NIMI_ROOT, 'config', 'realm-v3', 'current-producer-admission.json'),
+    'current producer admission',
+  );
+  const openapiFileName = producerAdmission?.openapi?.fileName;
+  if (
+    typeof openapiFileName !== 'string' || openapiFileName.length === 0 ||
+    path.posix.basename(openapiFileName) !== openapiFileName
+  ) {
+    fail('producer_mismatch', 'current Realm admission has no safe OpenAPI artifact file name');
+  }
+  const inventory = await runCapture('git', [
+    '-C',
+    rootRealm,
+    'ls-tree',
+    '-r',
+    '--name-only',
+    FIXED_REALM_COMMIT,
+  ]);
+  const openapiCandidates = inventory.stdout
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0 && path.posix.basename(entry) === openapiFileName);
+  if (openapiCandidates.length !== 1) {
+    fail('producer_mismatch', 'current Realm OpenAPI artifact is missing or ambiguous');
+  }
   const result = await runCapture('git', [
     '-C',
     rootRealm,
     'show',
-    `${FIXED_REALM_COMMIT}:nimi-backend/api-nimi.yaml`,
+    `${FIXED_REALM_COMMIT}:${openapiCandidates[0]}`,
   ]);
   const openapiDigest = sha256Hex(result.stdout);
   if (openapiDigest !== CURRENT_OPENAPI_DIGEST) {

@@ -9,7 +9,7 @@ import {
   ADMISSION_SCHEMA_VERSION,
   LOCK_SCHEMA_VERSION,
   NIMI_OPENAPI_SYNCED_PATH,
-  REALM_REPOSITORY,
+  REALM_AUTHORITY_ID,
   canonicalJson,
   readAdmission,
   renderLock,
@@ -47,7 +47,7 @@ function assertMutationRejected(validLock, expectedLock, label, mutate) {
 
 function runMutationSelfTests(lock, expected) {
   const mutations = [
-    ['repository', (value) => (value.realm.repository = 'https://example.invalid/realm.git')],
+    ['authority id', (value) => (value.realm.authority_id = 'forged-realm')],
     ['commit', (value) => (value.realm.commit = '0'.repeat(40))],
     ['authority class', (value) => (value.access_policy.authority_class = 'user_permission')],
     [
@@ -70,7 +70,7 @@ function main(realmRoot) {
   }
   const { openapiBytes, fragment } = validateAdmittedProducer(realmRoot, admission);
   const lock = YAML.parse(fs.readFileSync(lockPath, 'utf8'));
-  if (lock?.schema_version !== LOCK_SCHEMA_VERSION || lock?.realm?.repository !== REALM_REPOSITORY) {
+  if (lock?.schema_version !== LOCK_SCHEMA_VERSION || lock?.realm?.authority_id !== REALM_AUTHORITY_ID) {
     throw new Error('Realm contract lock identity/schema mismatch');
   }
   const expected = renderLock({ admission, openapiBytes, fragment });

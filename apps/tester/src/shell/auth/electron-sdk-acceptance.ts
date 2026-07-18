@@ -1,6 +1,6 @@
 import { hasElectronRuntime, hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import { getRuntimePlatformProjection } from './runtime-platform.js';
-import { testerLocalAppRuntimePlatform } from '../local-app-runtime-platform.js';
+import { testerLocalAppClient } from '../local-app-runtime-platform.js';
 
 type TesterElectronSdkAcceptanceProbeResult =
   | {
@@ -66,7 +66,7 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
     async localAppAuthStatus() {
       const transport = acceptanceTransport();
       try {
-        const status = await testerLocalAppRuntimePlatform.auth.status();
+        const status = await testerLocalAppClient.auth.status();
         return {
           ok: true,
           transport,
@@ -102,7 +102,7 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
     async localAppStorageWrite() {
       const transport = acceptanceTransport();
       try {
-        const document = await testerLocalAppRuntimePlatform.storage.writeJson(
+        const document = await testerLocalAppClient.storage.writeJson(
           'acceptance/app-private.json',
           { source: 'tester-electron-acceptance' },
         );

@@ -1,8 +1,8 @@
 import { createNimiClient, type NimiClient } from '@nimiplatform/sdk';
 import {
-  Runtime,
   createNimiLocalFirstPartyRuntimeAccountCaller,
   type NimiRuntimeAccountCaller,
+  type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
@@ -52,10 +52,12 @@ export type RuntimePlatformProjection =
 let runtimeProjection: Promise<RuntimePlatformProjection> | null = null;
 let runtimeReadyProjection: RuntimePlatformReadyProjection | null = null;
 let runtimeAccountCaller: NimiRuntimeAccountCaller | null = null;
+let runtimeClient: NimiClient | null = null;
 
 export function clearRuntimePlatformProjection(): void {
   runtimeProjection = null;
   runtimeReadyProjection = null;
+  runtimeClient = null;
 }
 
 export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjection> {
@@ -68,6 +70,20 @@ export function getRuntimeNimiClient(): NimiClient {
     throw new Error('Zhiyu Runtime client is not initialized. Wait for Runtime platform projection to become ready.');
   }
   return runtimeReadyProjection.client;
+}
+
+export function getZhiyuRuntime(): Runtime {
+  runtimeClient ??= createNimiClient({
+    appId,
+    runtime: {
+      appId,
+      transport: { type: 'electron-ipc' },
+    },
+    realm: false,
+    app: false,
+    permissions: false,
+  });
+  return runtimeClient.runtime;
 }
 
 export function getRuntimeAccountCaller(): NimiRuntimeAccountCaller {
@@ -83,17 +99,8 @@ async function createFirstPartyRuntimeProjection(
   mode: RuntimeAuthMode,
 ): Promise<RuntimePlatformProjection> {
   try {
-    const accountRuntime = new Runtime({
-      appId,
-      transport: { type: 'electron-ipc' },
-    });
-    const client = createNimiClient({
-      appId,
-      runtime: accountRuntime,
-      realm: false,
-      app: false,
-      permissions: false,
-    });
+    const accountRuntime = getZhiyuRuntime();
+    const client = runtimeClient!;
     await client.runtime.ready();
     runtimeReadyProjection = {
       status: 'ready',

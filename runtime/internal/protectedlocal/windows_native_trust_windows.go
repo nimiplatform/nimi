@@ -158,8 +158,8 @@ func windowsEmbeddedSignerCertSHA256(path string) ([sha256.Size]byte, error) {
 	); err != nil {
 		return digest, windowsExecutableTrustFailure("read Windows embedded signature", err)
 	}
-	defer windows.CertCloseStore(store, 0)
-	defer procCryptMsgClose.Call(uintptr(message))
+	defer func() { _ = windows.CertCloseStore(store, 0) }()
+	defer func() { _, _, _ = procCryptMsgClose.Call(uintptr(message)) }()
 
 	var size uint32
 	if ok, _, callErr := procCryptMsgGetParam.Call(uintptr(message), cmsgSignerInfoParam, 0, 0, uintptr(unsafe.Pointer(&size))); ok == 0 || size < uint32(unsafe.Sizeof(windowsCMSGSignerInfo{})) {
@@ -182,7 +182,7 @@ func windowsEmbeddedSignerCertSHA256(path string) ([sha256.Size]byte, error) {
 	if err != nil || certificate == nil || certificate.EncodedCert == nil || certificate.Length == 0 {
 		return digest, windowsExecutableTrustFailure("resolve Windows signer certificate", err)
 	}
-	defer windows.CertFreeCertificateContext(certificate)
+	defer func() { _ = windows.CertFreeCertificateContext(certificate) }()
 	encoded := unsafe.Slice(certificate.EncodedCert, certificate.Length)
 	return sha256.Sum256(encoded), nil
 }

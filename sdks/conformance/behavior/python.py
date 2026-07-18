@@ -32,62 +32,6 @@ class FakeTransport:
                     "callback_origin": "https://app.example",
                 }
             return FIXTURES["cases"]["runtime_unary"]["response_body"]
-        if request.method_id == "WorldCoreController_createSourceMaterializationPacket":
-            if os.environ.get("SDKS_CONFORMANCE_PROFILE") == "typed-core":
-                return {
-                    "packetSchemaVersion": "realm.source-materialization-packet/v3",
-                    "packetId": "packet-conformance",
-                    "issuer": "https://realm.conformance",
-                    "keyId": "materialization-rs256-conformance",
-                    "algorithm": "RS256",
-                    "keyUse": "sig",
-                    "issuedAt": "2026-01-01T00:00:00Z",
-                    "expiresAt": "2026-01-01T00:05:00Z",
-                    "nonce": "nonce-conformance",
-                    "intendedRuntimeAudience": "sdk.conformance",
-                    "challengeId": "challenge_conformance_0001",
-                    "challengeDigest": "a" * 64,
-                    "publishedLimits": {
-                        "maxSegmentBytes": 8388608,
-                        "maxSegmentComponentCount": 256,
-                        "maxSegmentChunks": 4096,
-                        "maxChunkBytes": 262144,
-                        "maxSetSegments": 64,
-                        "maxSetBytes": 134217728,
-                        "maxSetComponentCount": 16384,
-                        "maxSetChunks": 65536,
-                    },
-                    "materializerAccountId": "account-conformance",
-                    "sourceRef": {
-                        "kind": "personaCharacter",
-                        "worldId": "oasis",
-                        "id": "persona-conformance",
-                        "ownerAccountId": "account-conformance",
-                        "sourceHash": "e" * 64,
-                    },
-                    "authorizationDecisionDigest": "f" * 64,
-                    "accessPolicyVersionDigest": "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa",
-                    "materializationContextHash": "1" * 64,
-                    "payloadHash": "b" * 64,
-                    "closureSetManifestHash": "c" * 64,
-                    "packetHash": "d" * 64,
-                    "packetProof": {
-                        "compactJws": "eyJhbGciOiJSUzI1NiJ9..conformance-signature",
-                        "signedPayload": "conformance-signed-payload",
-                    },
-                    "semanticPayload": {
-                        "sourceRef": {
-                            "kind": "personaCharacter",
-                            "worldId": "oasis",
-                            "id": "persona-conformance",
-                            "ownerAccountId": "account-conformance",
-                            "sourceHash": "e" * 64,
-                        }
-                    },
-                    "closureSetManifest": {},
-                    "orderedSegments": [],
-                }
-            return FIXTURES["cases"]["realm_operation"]["response_body"]
         if request.method_id == FIXTURES["cases"]["realm_operation"]["operation_id"]:
             return FIXTURES["cases"]["realm_operation"]["response_body"]
         error = RuntimeError(f"unexpected unary {request.method_id}")
@@ -145,40 +89,40 @@ async def main():
         assert events[0].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_STARTED"
         assert events[1].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED"
 
-        realm_request = realm_typed.RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest(
-            path=realm_typed.RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath(),
-            body=realm_typed.CreateSourceMaterializationPacketV3Dto(
-                intendedRuntimeAudience="sdk.conformance",
-                materializerAccountId="account-conformance",
-                challengeId="challenge_conformance_0001",
-                challengeDigest="a" * 64,
-                challengeExpiresAt="2026-01-01T00:05:00.000Z",
-                publishedLimits=realm_typed.SourceMaterializationPublishedLimitsDto(
-                    maxSegmentBytes=8388608,
-                    maxSegmentComponentCount=256,
-                    maxSegmentChunks=4096,
-                    maxChunkBytes=262144,
-                    maxSetSegments=64,
-                    maxSetBytes=134217728,
-                    maxSetComponentCount=16384,
-                    maxSetChunks=65536,
-                ),
-                sourceRef=realm_typed.PersonaCharacterSourceRefV3Dto(
-                    kind="personaCharacter",
-                    id="persona-conformance",
-                    ownerAccountId="account-conformance",
-                    sourceHash="e" * 64,
-                    worldId="oasis",
-                ),
+        packet_request_shape = realm_typed.CreateSourceMaterializationPacketV3Dto(
+            intendedRuntimeAudience="sdk.conformance",
+            materializerAccountId="account-conformance",
+            challengeId="challenge_conformance_0001",
+            challengeDigest="a" * 64,
+            challengeExpiresAt="2026-01-01T00:05:00.000Z",
+            publishedLimits=realm_typed.SourceMaterializationPublishedLimitsDto(
+                maxSegmentBytes=8388608,
+                maxSegmentComponentCount=256,
+                maxSegmentChunks=4096,
+                maxChunkBytes=262144,
+                maxSetSegments=64,
+                maxSetBytes=134217728,
+                maxSetComponentCount=16384,
+                maxSetChunks=65536,
+            ),
+            sourceRef=realm_typed.PersonaCharacterSourceRefV3Dto(
+                kind="personaCharacter",
+                id="persona-conformance",
+                ownerAccountId="account-conformance",
+                sourceHash="e" * 64,
+                worldId="oasis",
             ),
         )
-        realm_response = await typed_realm.world_core_controller_create_source_materialization_packet(realm_request)
-        assert realm_response.packetSchemaVersion == "realm.source-materialization-packet/v3"
-        assert realm_response.algorithm == "RS256"
+        assert packet_request_shape.materializerAccountId == "account-conformance"
+        assert not hasattr(typed_realm, "world_core_controller_create_source_materialization_packet")
+        try:
+            realm.describe("WorldCoreController_createSourceMaterializationPacket")
+        except RuntimeError as error:
+            assert "unknown Realm operation" in str(error)
+        else:
+            raise AssertionError("private Realm packet operation remained in the public descriptor")
         assert transport.unary_calls[0].method_id == FIXTURES["cases"]["runtime_unary"]["method_id"]
         assert transport.unary_calls[0].body["redirect_uri"] == "https://app.example/callback"
-        assert transport.unary_calls[1].method_id == "WorldCoreController_createSourceMaterializationPacket"
-        assert transport.unary_calls[1].body["body"]["sourceRef"]["id"] == "persona-conformance"
         error_request = runtime_typed.BeginLoginRequest(**{**runtime_request.__dict__, "redirect_uri": "force-error"})
         try:
             await typed_runtime.begin_login(error_request)

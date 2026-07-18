@@ -4,7 +4,7 @@
 
 This file records the external Realm authority pointer for Nimi.
 
-`<nimi-realm>` owns Realm server truth, Realm domain semantics, Realm OpenAPI
+`<external-realm-authority>` owns Realm server truth, Realm domain semantics, Realm OpenAPI
 generation, and Realm API compatibility promises.
 
 Realm server/domain product rules are not redefined in this repository.

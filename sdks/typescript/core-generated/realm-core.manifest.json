@@ -4828,168 +4828,6 @@
       ]
     },
     {
-      "operation_id": "getSourceMaterializationJwks",
-      "method": "GET",
-      "path": "/api/auth/jwks/source-materialization",
-      "service": "Jwks",
-      "tags": [
-        "Jwks"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "keys",
-                "required": true,
-                "schema": {
-                  "kind": "array",
-                  "items": {
-                    "kind": "object",
-                    "properties": [
-                      {
-                        "name": "alg",
-                        "required": true,
-                        "schema": {
-                          "kind": "enum",
-                          "values": [
-                            "RS256"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      {
-                        "name": "e",
-                        "required": true,
-                        "schema": {
-                          "kind": "scalar",
-                          "type": "string",
-                          "format": null,
-                          "minimum": null,
-                          "maximum": null,
-                          "min_length": null,
-                          "max_length": null,
-                          "pattern": null
-                        }
-                      },
-                      {
-                        "name": "key_ops",
-                        "required": true,
-                        "schema": {
-                          "kind": "array",
-                          "items": {
-                            "kind": "enum",
-                            "values": [
-                              "verify"
-                            ],
-                            "type": "string"
-                          },
-                          "min_items": 1,
-                          "max_items": 1
-                        }
-                      },
-                      {
-                        "name": "kid",
-                        "required": true,
-                        "schema": {
-                          "kind": "scalar",
-                          "type": "string",
-                          "format": null,
-                          "minimum": null,
-                          "maximum": null,
-                          "min_length": null,
-                          "max_length": null,
-                          "pattern": null
-                        }
-                      },
-                      {
-                        "name": "kty",
-                        "required": true,
-                        "schema": {
-                          "kind": "enum",
-                          "values": [
-                            "RSA"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      {
-                        "name": "n",
-                        "required": true,
-                        "schema": {
-                          "kind": "scalar",
-                          "type": "string",
-                          "format": null,
-                          "minimum": null,
-                          "maximum": null,
-                          "min_length": null,
-                          "max_length": null,
-                          "pattern": null
-                        }
-                      },
-                      {
-                        "name": "purpose",
-                        "required": true,
-                        "schema": {
-                          "kind": "enum",
-                          "values": [
-                            "realm-source-materialization"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      {
-                        "name": "use",
-                        "required": true,
-                        "schema": {
-                          "kind": "enum",
-                          "values": [
-                            "sig"
-                          ],
-                          "type": "string"
-                        }
-                      }
-                    ],
-                    "required_properties": [
-                      "kid",
-                      "use",
-                      "alg",
-                      "kty",
-                      "n",
-                      "e",
-                      "purpose",
-                      "key_ops"
-                    ],
-                    "closed": true,
-                    "additional_properties": null
-                  },
-                  "min_items": 1,
-                  "max_items": null
-                }
-              }
-            ],
-            "required_properties": [
-              "keys"
-            ],
-            "closed": true,
-            "additional_properties": null
-          },
-          "schema_ref": null
-        }
-      ],
-      "response_schema_refs": []
-    },
-    {
       "operation_id": "getUnreadCount",
       "method": "GET",
       "path": "/api/human/notifications/unread-count",
@@ -11714,42 +11552,6 @@
       ]
     },
     {
-      "operation_id": "WorldCoreController_createSourceMaterializationPacket",
-      "method": "POST",
-      "path": "/api/realm/core/source-materialization-packets",
-      "service": "Realm Core",
-      "tags": [
-        "Realm Core"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/CreateSourceMaterializationPacketV3Dto",
-        "ref_name": "CreateSourceMaterializationPacketV3Dto"
-      },
-      "request_schema_ref": "#/components/schemas/CreateSourceMaterializationPacketV3Dto",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/SourceMaterializationPacketV3Dto",
-            "ref_name": "SourceMaterializationPacketV3Dto"
-          },
-          "schema_ref": "#/components/schemas/SourceMaterializationPacketV3Dto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/SourceMaterializationPacketV3Dto"
-        }
-      ]
-    },
-    {
       "operation_id": "WorldCoreController_createWorldCharacter",
       "method": "POST",
       "path": "/api/realm/core/worlds/{worldId}/characters",
@@ -14619,12 +14421,6 @@
       "path": "/api/resources/{resourceId}"
     },
     {
-      "operation_id": "getSourceMaterializationJwks",
-      "service": "Jwks",
-      "method": "GET",
-      "path": "/api/auth/jwks/source-materialization"
-    },
-    {
       "operation_id": "getUnreadCount",
       "service": "Notifications",
       "method": "GET",
@@ -15159,12 +14955,6 @@
       "path": "/api/realm/core/persona-characters"
     },
     {
-      "operation_id": "WorldCoreController_createSourceMaterializationPacket",
-      "service": "Realm Core",
-      "method": "POST",
-      "path": "/api/realm/core/source-materialization-packets"
-    },
-    {
       "operation_id": "WorldCoreController_createWorldCharacter",
       "service": "Realm Core",
       "method": "POST",
@@ -15471,8 +15261,7 @@
     {
       "name": "Jwks",
       "operation_ids": [
-        "getAuthJwks",
-        "getSourceMaterializationJwks"
+        "getAuthJwks"
       ]
     },
     {
@@ -15545,7 +15334,6 @@
       "operation_ids": [
         "WorldCoreController_bootstrapOasisWorld",
         "WorldCoreController_createPersonaCharacter",
-        "WorldCoreController_createSourceMaterializationPacket",
         "WorldCoreController_createWorldCharacter",
         "WorldCoreController_createWorldCore",
         "WorldCoreController_createWorldEntity",

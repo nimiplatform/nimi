@@ -4561,28 +4561,6 @@ class RealmGetResourceOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGetSourceMaterializationJwksOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetSourceMaterializationJwksOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetSourceMaterializationJwksOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetSourceMaterializationJwksOperationRequest:
-    path: RealmGetSourceMaterializationJwksOperationPath
-    query: RealmGetSourceMaterializationJwksOperationQuery | None = None
-    headers: RealmGetSourceMaterializationJwksOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmGetUnreadCountOperationPath:
     pass
 
@@ -6615,28 +6593,6 @@ class RealmWorldCoreControllerCreatePersonaCharacterOperationRequest:
     body: CreatePersonaCharacterCoreDto | None = None
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest:
-    path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath
-    query: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery | None = None
-    headers: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders | None = None
-    body: CreateSourceMaterializationPacketV3Dto | None = None
-
-@dataclass(frozen=True)
 class RealmWorldCoreControllerCreateWorldCharacterOperationPath:
     worldId: str
 
@@ -8055,16 +8011,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
 
-    async def get_source_materialization_jwks(self, request: RealmGetSourceMaterializationJwksOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetSourceMaterializationJwksOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getSourceMaterializationJwks", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(Mapping[str, object], raw)
-
     async def get_unread_count(self, request: RealmGetUnreadCountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetUnreadCountOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8954,16 +8900,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createPersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PersonaCharacterCoreDto, raw)
-
-    async def world_core_controller_create_source_materialization_packet(self, request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createSourceMaterializationPacket", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(SourceMaterializationPacketV3Dto, raw)
 
     async def world_core_controller_create_world_character(self, request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldCharacterOperationResponse:
         envelope: dict[str, object] = {

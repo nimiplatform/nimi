@@ -106,11 +106,11 @@ func main() {
 func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	opts, usage, err := parseCLIOptions(args)
 	if err != nil {
-		fmt.Fprintf(stderr, "runtime-compliance: %v\n\n%s", err, usage)
+		_, _ = fmt.Fprintf(stderr, "runtime-compliance: %v\n\n%s", err, usage)
 		return 2
 	}
 	if opts.Help {
-		fmt.Fprint(stdout, usage)
+		_, _ = fmt.Fprint(stdout, usage)
 		return 0
 	}
 
@@ -188,7 +188,7 @@ func runFullCompliance(
 	}
 
 	if err := emitJSONReport(stdout, opts.OutputPath, report); err != nil {
-		fmt.Fprintf(stderr, "runtime-compliance: emit report: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "runtime-compliance: emit report: %v\n", err)
 		return 1
 	}
 	progress.Slowest(execution.Slowest)
@@ -196,7 +196,7 @@ func runFullCompliance(
 		report.Summary.Total, report.Summary.Passed, report.Summary.Failed, report.AdmissionEligible))
 
 	if opts.Gate && !report.AdmissionEligible {
-		fmt.Fprintf(stderr, "gate failed: %d checklist item(s) did not pass\n", report.Summary.Failed)
+		_, _ = fmt.Fprintf(stderr, "gate failed: %d checklist item(s) did not pass\n", report.Summary.Failed)
 		return 1
 	}
 	return 0
@@ -219,14 +219,14 @@ func runDiagnostic(
 		var err error
 		request, err = diagnosticPackageCollectionRequest(opts.Packages)
 		if err != nil {
-			fmt.Fprintf(stderr, "runtime-compliance: %v\n", err)
+			_, _ = fmt.Fprintf(stderr, "runtime-compliance: %v\n", err)
 			return 2
 		}
 	} else {
 		var err error
 		refs, err = selectDiagnosticRefs(runtimeChecklist(), opts.Packages, opts.Tests)
 		if err != nil {
-			fmt.Fprintf(stderr, "runtime-compliance: %v\n", err)
+			_, _ = fmt.Fprintf(stderr, "runtime-compliance: %v\n", err)
 			return 2
 		}
 		request = diagnosticCollectionRequest(refs)
@@ -238,7 +238,7 @@ func runDiagnostic(
 		commands = runOwnerBatchCommands(ctx, progress)
 		for _, result := range commands {
 			if !result.Passed {
-				fmt.Fprintf(stderr, "runtime-compliance: owner-batch command failed: %s\n", result.Name)
+				_, _ = fmt.Fprintf(stderr, "runtime-compliance: owner-batch command failed: %s\n", result.Name)
 				return 1
 			}
 		}
@@ -314,14 +314,14 @@ func runDiagnostic(
 		Commands: commands,
 	}
 	if err := emitJSONReport(stdout, opts.OutputPath, report); err != nil {
-		fmt.Fprintf(stderr, "runtime-compliance: emit diagnostic report: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "runtime-compliance: emit diagnostic report: %v\n", err)
 		return 1
 	}
 	progress.Slowest(execution.Slowest)
 	progress.Complete(fmt.Sprintf("profile=%s selected_test_refs=%d failed_test_refs=%d test_terminals=%d admission_eligible=false",
 		opts.Profile, report.Summary.SelectedTestRefs, report.Summary.FailedTestRefs, report.Summary.ExecutedTestTerminals))
 	if len(failedRefs) > 0 {
-		fmt.Fprintf(stderr, "runtime-compliance: %d referenced test(s) missing or not passing: %s\n",
+		_, _ = fmt.Fprintf(stderr, "runtime-compliance: %d referenced test(s) missing or not passing: %s\n",
 			len(failedRefs), strings.Join(failedRefs, ", "))
 		return 1
 	}

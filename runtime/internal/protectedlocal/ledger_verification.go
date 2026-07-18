@@ -118,7 +118,7 @@ func (ledger *Ledger) ensureSchema(ctx context.Context) error {
 	if err != nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("begin protected-local schema transaction: %w", err))
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	for _, statement := range protectedLocalSchema {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("apply protected-local schema: %w", err))
@@ -205,7 +205,7 @@ func (ledger *Ledger) loadAndVerifyCommits(ctx context.Context) ([]commitRow, er
 	if err != nil {
 		return nil, fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("read protected-local commit chain: %w", err))
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	result := make([]commitRow, 0)
 	for rows.Next() {
 		var row commitRow

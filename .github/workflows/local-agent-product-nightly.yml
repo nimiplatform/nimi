@@ -23,12 +23,15 @@ jobs:
           fetch-depth: 0
 
       - name: Checkout locked Realm source
+        env:
+          REALM_AUTHORITY_REPOSITORY: ${{ secrets.REALM_AUTHORITY_REPOSITORY }}
         run: |
           REALM_COMMIT="$(awk '/^  commit:/ { print $2; exit }' config/realm-contract-lock.yaml)"
           test "${#REALM_COMMIT}" -eq 40
-          git clone --filter=blob:none https://github.com/nimiplatform/nimi-realm.git "$RUNNER_TEMP/nimi-realm"
-          git -C "$RUNNER_TEMP/nimi-realm" checkout --detach "$REALM_COMMIT"
-          echo "REALM_ROOT=$RUNNER_TEMP/nimi-realm" >> "$GITHUB_ENV"
+          test -n "$REALM_AUTHORITY_REPOSITORY"
+          git clone --filter=blob:none "$REALM_AUTHORITY_REPOSITORY" "$RUNNER_TEMP/external-realm"
+          git -C "$RUNNER_TEMP/external-realm" checkout --detach "$REALM_COMMIT"
+          echo "REALM_ROOT=$RUNNER_TEMP/external-realm" >> "$GITHUB_ENV"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -73,12 +76,15 @@ jobs:
 
       - name: Checkout locked Realm source
         shell: pwsh
+        env:
+          REALM_AUTHORITY_REPOSITORY: ${{ secrets.REALM_AUTHORITY_REPOSITORY }}
         run: |
           $commitLine = Get-Content config/realm-contract-lock.yaml | Where-Object { $_ -match '^\s+commit:\s+' } | Select-Object -First 1
           $realmCommit = ($commitLine -split ':', 2)[1].Trim()
           if ($realmCommit -notmatch '^[0-9a-f]{40}$') { throw 'realm contract lock commit is invalid' }
-          $realmRoot = Join-Path $env:RUNNER_TEMP 'nimi-realm'
-          git clone --filter=blob:none https://github.com/nimiplatform/nimi-realm.git $realmRoot
+          if ([string]::IsNullOrWhiteSpace($env:REALM_AUTHORITY_REPOSITORY)) { throw 'Realm authority repository secret is required' }
+          $realmRoot = Join-Path $env:RUNNER_TEMP 'external-realm'
+          git clone --filter=blob:none $env:REALM_AUTHORITY_REPOSITORY $realmRoot
           if ($LASTEXITCODE -ne 0) { throw 'Realm clone failed' }
           git -C $realmRoot checkout --detach $realmCommit
           if ($LASTEXITCODE -ne 0) { throw 'Realm locked checkout failed' }

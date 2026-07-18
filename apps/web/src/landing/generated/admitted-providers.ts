@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *   sha256: 6b88f478de96e1a40e07b7d3e1b2c3b81febd3f111b6ce3cf5a3180fc5c71e4c
+ *   sha256: ad725e794a4ec8d3c047631361bed64479bdc92c99debf3f5d0aa94451408745
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -366,7 +366,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "volcengine",
     defaultEndpoint: "https://ark.cn-beijing.volces.com/api/v3",
-    defaultTextModel: "doubao-seed-2-0-pro-260215",
+    defaultTextModel: "doubao-seed-2-1-pro-260628",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",

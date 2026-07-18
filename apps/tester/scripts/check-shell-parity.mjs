@@ -65,11 +65,11 @@ function validateShellParity() {
   requireText(tauriProduct, 'RuntimeBridgeLocalAppHost::platform_default()', 'Tauri protected carrier state');
   forbid(tauriProduct, /nimi_shell_tauri_runtime_bridge_handler|runtime_bridge_unary/u, 'Tauri generic Runtime bridge');
 
-  requireText(localAppClient, 'createNimiAppRuntimePlatformClient', 'Renderer SDK client');
+  requireText(localAppClient, 'createNimiClient', 'Renderer SDK client');
   requireText(localAppClient, 'createNimiLocalAppStandardShellSurface', 'Renderer Kit carrier');
-  requireText(runtimePlatform, 'testerLocalAppRuntimePlatform.auth.status()', 'Renderer auth projection');
+  requireText(runtimePlatform, 'testerLocalAppClient.auth.status()', 'Renderer auth projection');
   requireText(runtimePlatform, 'status.sessionBound', 'Renderer session binding');
-  forbid(runtimePlatform, /readonly client:|new Runtime|createNimiClient|[r]untimeEndpoint/u, 'Renderer generic authority');
+  forbid(runtimePlatform, /readonly client:|new Runtime|[r]untimeEndpoint/u, 'Renderer generic authority');
 
   requireText(electronAppBridge, "const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only'", 'Electron protected-local carrier');
   requireText(electronAppBridge, 'electron-local-app-ordinary-grpc-forbidden', 'Electron direct gRPC denial');

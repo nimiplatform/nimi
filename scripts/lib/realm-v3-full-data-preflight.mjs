@@ -26,6 +26,8 @@ import {
   validateLiveEnvironmentExecutionReceipt,
 } from './realm-v3-full-data-live-environment.mjs';
 
+const HAS_POSIX_PERMISSION_BITS = process.platform !== 'win32' && typeof process.getuid === 'function';
+
 import {
   ACCESS_POLICY_VERSION,
   AGGREGATE_SCHEMA,
@@ -333,9 +335,9 @@ async function resolveWorkerExecutable(nimiRoot, command, label) {
     !info.isFile() ||
     info.isSymbolicLink() ||
     resolved !== selected ||
-    (info.mode & 0o111) === 0 ||
-    (info.mode & 0o022) !== 0 ||
-    (typeof process.getuid === 'function' && ![0, process.getuid()].includes(info.uid))
+    (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o111) === 0) ||
+    (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o022) !== 0) ||
+    (HAS_POSIX_PERMISSION_BITS && ![0, process.getuid()].includes(info.uid))
   ) {
     fail(
       'invalid_worker_identity',
@@ -375,8 +377,8 @@ async function buildWorkerInputIdentity(inputPaths, label) {
       info.isSymbolicLink() ||
       canonical !== resolved ||
       seen.has(canonical) ||
-      (info.mode & 0o022) !== 0 ||
-      (typeof process.getuid === 'function' && ![0, process.getuid()].includes(info.uid))
+      (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o022) !== 0) ||
+      (HAS_POSIX_PERMISSION_BITS && ![0, process.getuid()].includes(info.uid))
     ) {
       fail(
         'invalid_worker_identity',
@@ -533,8 +535,8 @@ async function loadLiveExecutionReceipt(receiptPath, expected) {
   if (
     !info.isFile() ||
     info.isSymbolicLink() ||
-    (info.mode & 0o077) !== 0 ||
-    (typeof process.getuid === 'function' && info.uid !== process.getuid())
+    (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o077) !== 0) ||
+    (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid())
   ) {
     fail('invalid_execution_receipt', 'live wrapper execution receipt is not a private regular file');
   }

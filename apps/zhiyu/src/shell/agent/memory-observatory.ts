@@ -76,16 +76,13 @@ async function readRuntimeMemoryObservatory(
   input: ZhiyuMemoryObservatoryReadInput,
 ): Promise<NimiRuntimeAgentMemoryObservatorySnapshot> {
   const {
-    Runtime,
     createNimiRuntimeAgentMemoryObservatory,
   } = await import('@nimiplatform/sdk/runtime');
   const {
     withZhiyuRuntimeAgentBindingRequired,
   } = await import('../agent-chat/runtime-agent-binding');
-  const runtime = new Runtime({
-    appId: APP_ID,
-    transport: { type: 'electron-ipc' },
-  });
+  const { getZhiyuRuntime } = await import('../auth/runtime-platform');
+  const runtime = getZhiyuRuntime();
   return createNimiRuntimeAgentMemoryObservatory({
     appId: APP_ID,
     auth: runtime.auth,

@@ -16,6 +16,11 @@ import {
   type PermissionTransport,
 } from './core/app';
 import {
+  createNimiLocalAppClient,
+  type NimiLocalAppClient,
+  type NimiLocalAppClientInput,
+} from './core/app/local-app-runtime-platform';
+import {
   createNimiRuntimeAIModel,
   createNimiRuntimeAISchedulingClient,
   createNimiRuntimeEmbeddingClient,
@@ -52,13 +57,19 @@ import {
   type WorldWorkflowPlan,
 } from './features/workflow';
 
-export interface NimiClientConfig {
+export interface NimiDirectClientConfig {
   readonly appId?: string;
   readonly runtime?: Runtime | RuntimeOptions;
   readonly realm?: Realm | RealmOptions | false;
   readonly app?: NimiAppClient | NimiAppTransport | false;
   readonly permissions?: PermissionClient | PermissionTransport | false;
 }
+
+export interface NimiClientLocalAppConfig {
+  readonly localApp: NimiLocalAppClientInput;
+}
+
+export type NimiClientConfig = NimiDirectClientConfig | NimiClientLocalAppConfig;
 
 export type NimiClientRuntimeModelOptions =
   Omit<NimiRuntimeAIModelOptions, 'runtime' | 'appId'> & {
@@ -158,7 +169,7 @@ export class NimiClient {
   readonly localAgent: NimiClientLocalAgentSurface;
   readonly features: NimiClientFeatureSurface;
 
-  constructor(config: NimiClientConfig = {}) {
+  constructor(config: NimiDirectClientConfig = {}) {
     this.appId = normalizeText(config.appId) || undefined;
     this.runtime = config.runtime instanceof Runtime ? config.runtime : createRuntime(config.runtime ?? {});
     this.realm = createOptionalRealm(config.realm);
@@ -192,8 +203,30 @@ export class NimiClient {
 
 }
 
-export function createNimiClient(config: NimiClientConfig = {}): NimiClient {
+export function createNimiClient(config: NimiClientLocalAppConfig): NimiLocalAppClient;
+export function createNimiClient(config?: NimiDirectClientConfig): NimiClient;
+export function createNimiClient(config: NimiClientConfig = {}): NimiClient | NimiLocalAppClient {
+  if ('localApp' in config) {
+    assertExactClientConfigKeys(config, ['localApp'], 'local-app NimiClient config');
+    return createNimiLocalAppClient(config.localApp);
+  }
   return new NimiClient(config);
+}
+
+function assertExactClientConfigKeys(
+  value: object,
+  allowedKeys: readonly string[],
+  label: string,
+): void {
+  const actual = Object.keys(value).sort();
+  const expected = [...allowedKeys].sort();
+  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
+    throwClientConfigurationError(
+      'SDK_CLIENT_CONFIG_INVALID',
+      `${label} must contain exactly: ${expected.join(', ')}`,
+      'remove_unadmitted_client_config_fields',
+    );
+  }
 }
 
 function createAiSurface(client: NimiClient): NimiClientAiSurface {
@@ -315,18 +348,18 @@ function createFeatureSurface(client: NimiClient): NimiClientFeatureSurface {
   };
 }
 
-function createOptionalRealm(config: NimiClientConfig['realm']): Realm | undefined {
+function createOptionalRealm(config: NimiDirectClientConfig['realm']): Realm | undefined {
   if (!config) return undefined;
   return config instanceof Realm ? config : createRealm(config);
 }
 
-function createOptionalAppClient(config: NimiClientConfig['app']): NimiAppClient | undefined {
+function createOptionalAppClient(config: NimiDirectClientConfig['app']): NimiAppClient | undefined {
   if (!config) return undefined;
   return config instanceof NimiAppClient ? config : createNimiAppClient(config);
 }
 
 function createOptionalPermissionClient(
-  config: NimiClientConfig['permissions'],
+  config: NimiDirectClientConfig['permissions'],
 ): PermissionClient | undefined {
   if (!config) return undefined;
   return config instanceof PermissionClient ? config : createPermissionClient(config);

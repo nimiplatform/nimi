@@ -1,10 +1,9 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { Runtime } from '@nimiplatform/sdk/runtime';
 import { AccountReasonCode, AccountSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
+import { zhiyuLocalAppClient } from '../local-development/local-app-runtime-platform';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
-import { appId, getRuntimeAccountCaller } from './runtime-platform';
+import { appId, getRuntimeAccountCaller, getZhiyuRuntime } from './runtime-platform';
 
 export type ZhiyuAuthStatus = ZhiyuEvidence['auth'];
 
@@ -21,7 +20,7 @@ export async function probeZhiyuRuntimeAccountStatus(): Promise<ZhiyuAuthStatus>
 
   if (window.__nimiZhiyuLocalDevelopment) {
     try {
-      const status = await zhiyuLocalAppRuntimePlatform.auth.status();
+      const status = await zhiyuLocalAppClient.auth.status();
       return {
         transport: 'electron-ipc',
         ready: status.sessionBound,
@@ -40,10 +39,7 @@ export async function probeZhiyuRuntimeAccountStatus(): Promise<ZhiyuAuthStatus>
     }
   }
 
-  const runtime = new Runtime({
-    appId,
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
 
   try {
     const response = await runtime.account.getAccountSessionStatus({

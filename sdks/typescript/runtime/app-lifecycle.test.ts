@@ -12,6 +12,7 @@ import {
   type GetAppStorageRequest,
 } from '../core-generated/runtime-typed-client';
 import type { CoreStreamRequest, CoreTransport, CoreUnaryRequest } from '../types';
+import { ReasonCode as SdkReasonCode } from '../types';
 import {
   Runtime,
   createNimiRuntimeAppLifecycleClient,
@@ -124,7 +125,7 @@ test('Runtime app lifecycle facade exposes only 0K read projections', async () =
 
 test('package readiness decoder rejects positive or selector-bearing projections', () => {
   const decodeFailure = (error: unknown) =>
-    (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED';
+    (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED;
 
   assert.throws(
     () => decodeNimiRuntimeAppPackageReadinessProjection({

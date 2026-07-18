@@ -360,7 +360,7 @@ func (ledger *Ledger) insertPending(ctx context.Context, row commitRow, mutate f
 	if err != nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("begin protected-local pending transaction: %w", err))
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if _, err := tx.ExecContext(ctx, `INSERT INTO protected_security_commit(commit_sequence, ledger_uuid, previous_chain_head, payload_hash, chain_head, state, event_kind, created_unix_nano, record_hmac) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`, row.sequence, row.ledgerUUID[:], row.previousHead[:], row.payloadHash[:], row.chainHead[:], row.eventKind, row.createdNanos, row.recordMAC[:]); err != nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("insert protected-local pending head: %w", err))
 	}
@@ -384,7 +384,7 @@ func (ledger *Ledger) completePending(ctx context.Context, sequence uint64) erro
 	if err != nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("begin protected-local completion transaction: %w", err))
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	result, err := tx.ExecContext(ctx, `UPDATE protected_security_commit SET state = 'complete' WHERE commit_sequence = ? AND state = 'pending'`, sequence)
 	if err != nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("complete protected-local pending head: %w", err))
@@ -404,7 +404,7 @@ func (ledger *Ledger) discardPending(ctx context.Context, sequence uint64) error
 	if err != nil {
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("begin protected-local pending discard: %w", err))
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if err := ledger.restorePendingRuntimeEpochRevocations(ctx, tx, sequence); err != nil {
 		return err
 	}

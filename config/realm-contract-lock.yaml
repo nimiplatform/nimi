@@ -1,11 +1,11 @@
-schema_version: nimi.realm-contract-lock/v4
+schema_version: nimi.realm-contract-lock/v5
 generated_by: scripts/generate-realm-contract-lock.mjs
 realm:
-  repository: https://github.com/nimiplatform/nimi-realm.git
+  authority_id: external-realm
   commit: 15d96300bf9c4b1305bb68818208682b10e0c7c0
   tree: 0b743e2b5190a470a5e8685eac09a0a3221b41ee
 openapi:
-  source_path: nimi-backend/api-nimi.yaml
+  source_artifact_id: realm-openapi
   synced_path: config/realm-openapi/api-nimi.yaml
   document_sha256: ebf90752f0033779231bbe87cacdca4b079f3c3c976ac5f429b092bc39c9145f
   fragment_schema_version: nimi.realm-openapi-source-materialization-fragment/v1
@@ -132,7 +132,7 @@ compact_vectors:
 producer_admission:
   tracked_only: true
   head_policy: identical_admitted_inputs
-  semantic_file_bundle_sha256: cf9bbff429678b88293e28867cd15942f5c3e922782ee610c36defcbe3fe2954
+  semantic_file_bundle_sha256: 5d3dd64de61b5534096590571bcc005feef39a2296e88e3e4b91fb6d95b12b4c
   semantic_files:
     - path: .nimi/spec/realm/kernel/core-contract.md
       sha256: 3fd077fe3fc8dd7e1dc80ed752f2bd88fa660c7667991969c785c08b7daedc64
@@ -144,7 +144,8 @@ producer_admission:
       sha256: 1af1cfd7fe54fd50469813cdfdc28c945867b9a893099a325b5f6edf088da056
     - path: packages/nimi-forge/src/contracts/realm-character-core.ts
       sha256: 11bd40d34df7b2d1ec558794425540a8a9c37fbbc7ef9a946d28934c185af93b
-    - path: nimi-backend/libs/domains/world/src/source-materialization.service.ts
+    - artifactId: source-materialization-service
+      fileName: source-materialization.service.ts
       sha256: a8000f47420c24d9e730d9667889fa5bdfa85d808417a4db10fae902a58d1eae
     - path: scripts/check-realm-permission-scope-ownership.ts
       sha256: 1e08c15552b7661cc8d08346ec374ff2aa4d1c7933eab94d4cb5ef071127a0ba

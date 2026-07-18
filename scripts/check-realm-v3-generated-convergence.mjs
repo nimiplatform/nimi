@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 import { extractRealmCore } from '../sdks/generators/lib/realm-openapi.mjs';
+import { projectRealmForPublicSdks } from '../sdks/generators/lib/runtime-realm-carrier.mjs';
 import {
   ACCESS_POLICY_AUTHORITY_CLASS,
   ACCESS_POLICY_VERSION,
@@ -25,6 +26,15 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const admissionPath = path.join(repoRoot, 'config', 'realm-v3', 'current-producer-admission.json');
 const lockPath = path.join(repoRoot, 'config', 'realm-contract-lock.yaml');
+const privateOperationTablePath = path.join(
+  repoRoot,
+  '.nimi',
+  'spec',
+  'sdks',
+  'kernel',
+  'tables',
+  'realm-private-operation-carriers.yaml',
+);
 const sourceOnly = process.argv.includes('--source-only');
 const languageManifestPaths = {
   typescript: 'sdks/typescript/core-generated/realm-core.manifest.json',
@@ -47,6 +57,26 @@ function readJson(relativePath) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function snakeCase(value) {
+  return String(value)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((word) => word.toLowerCase())
+    .join('_');
+}
+
+function lowerCamelCase(value) {
+  const words = String(value)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean);
+  return words.map((word, index) => {
+    const normalized = `${word[0].toUpperCase()}${word.slice(1)}`;
+    return index === 0 ? `${normalized[0].toLowerCase()}${normalized.slice(1)}` : normalized;
+  }).join('');
 }
 
 function operationInventory(realm) {
@@ -222,12 +252,74 @@ function assertGeneratedParity(sourceRealm) {
   const sharedPath = 'sdks/generators/shared/generated/realm-core.manifest.json';
   const shared = readJson(sharedPath);
   assertExactStrings(shared, sourceRealm, 'shared generated Realm manifest');
+  const publicSdkRealm = projectRealmForPublicSdks(sourceRealm);
   for (const [language, relativePath] of Object.entries(languageManifestPaths)) {
     const manifest = readJson(relativePath);
     assert(manifest.language === language, `${language} generated manifest language drift`);
     assert(manifest.generated_projection === 'language-core-generated', `${language} projection marker drift`);
-    assertExactStrings(withoutLanguageProjection(manifest), shared, `${language} Realm manifest parity`);
+    assertExactStrings(withoutLanguageProjection(manifest), publicSdkRealm, `${language} public Realm manifest parity`);
   }
+}
+
+function assertPrivateOperationProjection(sourceRealm) {
+  const table = YAML.parse(fs.readFileSync(privateOperationTablePath, 'utf8'));
+  const rows = Array.isArray(table?.operations) ? table.operations : [];
+  assert(rows.length > 0, 'private Realm operation carrier table is empty');
+  assertExactStrings(table.surfaces, rows.map((row) => row.operation_id), 'private operation surface order');
+  const operationById = new Map(sourceRealm.operations.map((operation) => [operation.operation_id, operation]));
+  const generatedSdkSurfaces = {
+    typescript: {
+      descriptor: fs.readFileSync(path.join(repoRoot, 'sdks', 'typescript', 'core-generated', 'realm-client.ts'), 'utf8'),
+      typed: fs.readFileSync(path.join(repoRoot, 'sdks', 'typescript', 'core-generated', 'realm-typed-client.ts'), 'utf8'),
+    },
+    python: {
+      descriptor: fs.readFileSync(path.join(repoRoot, 'sdks', 'python', 'core_generated', 'realm_client.py'), 'utf8'),
+      typed: fs.readFileSync(path.join(repoRoot, 'sdks', 'python', 'core_generated', 'realm_typed_client.py'), 'utf8'),
+    },
+    go: {
+      descriptor: fs.readFileSync(path.join(repoRoot, 'sdks', 'go', 'coregenerated', 'realm_client.go'), 'utf8'),
+      typed: fs.readFileSync(path.join(repoRoot, 'sdks', 'go', 'coregenerated', 'typed_clients.go'), 'utf8'),
+    },
+    rust: {
+      descriptor: fs.readFileSync(path.join(repoRoot, 'sdks', 'rust', 'core_generated', 'realm_client.rs'), 'utf8'),
+      typed: fs.readFileSync(path.join(repoRoot, 'sdks', 'rust', 'core_generated', 'typed_clients.rs'), 'utf8'),
+    },
+  };
+  const runtimeCarrier = fs.readFileSync(
+    path.join(repoRoot, 'runtime', 'gen', 'realm', 'v1', 'source_materialization_openapi.go'),
+    'utf8',
+  );
+  for (const row of rows) {
+    const operation = operationById.get(row.operation_id);
+    assert(operation?.method === row.method && operation?.path === row.path,
+      `private operation method/path drift: ${row.operation_id}`);
+    assert(row.projection === 'runtime_private_generated_carrier' && row.public_sdk_method === 'forbidden',
+      `private operation exposure drift: ${row.operation_id}`);
+    assert(runtimeCarrier.includes(JSON.stringify(row.operation_id))
+      && runtimeCarrier.includes(JSON.stringify(row.method))
+      && runtimeCarrier.includes(JSON.stringify(row.path)),
+    `Runtime private carrier omits ${row.operation_id}`);
+    const methodPatterns = {
+      typescript: `async ${lowerCamelCase(row.operation_id)}(`,
+      python: `async def ${snakeCase(row.operation_id)}(`,
+      go: `func (c RealmTypedClient) ${row.operation_id.replace(/(^|_)([A-Za-z0-9])/g, (_match, _prefix, char) => char.toUpperCase())}(`,
+      rust: `pub fn ${snakeCase(row.operation_id)}(`,
+    };
+    for (const [language, surfaces] of Object.entries(generatedSdkSurfaces)) {
+      assert(!surfaces.descriptor.includes(JSON.stringify(row.operation_id)),
+        `${language} descriptor publicly projects private operation ${row.operation_id}`);
+      assert(!surfaces.typed.includes(methodPatterns[language]),
+        `${language} typed client publicly projects private operation ${row.operation_id}`);
+    }
+  }
+  assert(/MaterializationSchemaClosureSHA256\s+=\s+"[a-f0-9]{64}"/.test(runtimeCarrier),
+    'Runtime private carrier omits generated materialization closure digest');
+  for (const [language, surfaces] of Object.entries(generatedSdkSurfaces)) {
+    assert(surfaces.typed.includes('CreateSourceMaterializationPacketV3Dto')
+      && surfaces.typed.includes('SourceMaterializationPacketV3Dto'),
+    `${language} generated DTO shape projection is incomplete`);
+  }
+  return rows.length;
 }
 
 function assertMutationRejected(sourceRealm, admission, label, mutate) {
@@ -341,9 +433,13 @@ function main() {
   const sourceRealm = extractRealmCore();
   assertSourceRealm(sourceRealm, admission);
   const negativeMutationCount = runNegativeMutations(sourceRealm, admission);
-  if (!sourceOnly) assertGeneratedParity(sourceRealm);
+  let privateOperationCount = 0;
+  if (!sourceOnly) {
+    assertGeneratedParity(sourceRealm);
+    privateOperationCount = assertPrivateOperationProjection(sourceRealm);
+  }
   process.stdout.write(
-    `Realm v3 generated convergence passed: mode=${sourceOnly ? 'source-only' : 'full'} operations=${sourceRealm.operations.length} models=${sourceRealm.model_schemas.length} languages=${sourceOnly ? 'deferred' : '4/4'} negative_mutations=${negativeMutationCount}/${negativeMutationCount}\n`,
+    `Realm v3 generated convergence passed: mode=${sourceOnly ? 'source-only' : 'full'} operations=${sourceRealm.operations.length} models=${sourceRealm.model_schemas.length} shape_languages=${sourceOnly ? 'deferred' : '4/4'} runtime_private_carriers=${sourceOnly ? 'deferred' : `${privateOperationCount}/${privateOperationCount}`} public_sdk_private_operations=${sourceOnly ? 'deferred' : `0/${privateOperationCount}`} public_sdk_languages=${sourceOnly ? 'deferred' : '4/4'} negative_mutations=${negativeMutationCount}/${negativeMutationCount}\n`,
   );
 }
 

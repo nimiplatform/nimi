@@ -476,12 +476,6 @@ REALM_OPERATIONS = [
     "path": "/api/resources/{resourceId}"
   },
   {
-    "operation_id": "getSourceMaterializationJwks",
-    "service": "Jwks",
-    "method": "GET",
-    "path": "/api/auth/jwks/source-materialization"
-  },
-  {
     "operation_id": "getUnreadCount",
     "service": "Notifications",
     "method": "GET",
@@ -1014,12 +1008,6 @@ REALM_OPERATIONS = [
     "service": "Realm Core",
     "method": "POST",
     "path": "/api/realm/core/persona-characters"
-  },
-  {
-    "operation_id": "WorldCoreController_createSourceMaterializationPacket",
-    "service": "Realm Core",
-    "method": "POST",
-    "path": "/api/realm/core/source-materialization-packets"
   },
   {
     "operation_id": "WorldCoreController_createWorldCharacter",

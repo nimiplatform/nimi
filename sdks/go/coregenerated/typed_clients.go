@@ -15310,25 +15310,6 @@ type RealmGetResourceOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmGetSourceMaterializationJwksOperationPath struct {
-
-}
-
-type RealmGetSourceMaterializationJwksOperationQuery struct {
-
-}
-
-type RealmGetSourceMaterializationJwksOperationHeaders struct {
-
-}
-
-type RealmGetSourceMaterializationJwksOperationRequest struct {
-	Path    RealmGetSourceMaterializationJwksOperationPath `json:"path,omitempty"`
-	Query   RealmGetSourceMaterializationJwksOperationQuery `json:"query,omitempty"`
-	Headers RealmGetSourceMaterializationJwksOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmGetUnreadCountOperationPath struct {
 
 }
@@ -17094,25 +17075,6 @@ type RealmWorldCoreControllerCreatePersonaCharacterOperationRequest struct {
 	Body    CreatePersonaCharacterCoreDto `json:"body,omitempty"`
 }
 
-type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath struct {
-
-}
-
-type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery struct {
-
-}
-
-type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders struct {
-
-}
-
-type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest struct {
-	Path    RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath `json:"path,omitempty"`
-	Query   RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders `json:"headers,omitempty"`
-	Body    CreateSourceMaterializationPacketV3Dto `json:"body,omitempty"`
-}
-
 type RealmWorldCoreControllerCreateWorldCharacterOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
@@ -18303,14 +18265,6 @@ func (c RealmTypedClient) GetResource(ctx context.Context, request RealmGetResou
 	return decodeTypedResponse[ResourceDetailDto](raw)
 }
 
-func (c RealmTypedClient) GetSourceMaterializationJwks(ctx context.Context, request RealmGetSourceMaterializationJwksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
-	raw, err := c.operationTyped(ctx, "getSourceMaterializationJwks", request, metadata, timeoutMS)
-	if err != nil {
-		return map[string]any{}, err
-	}
-	return decodeTypedResponse[map[string]any](raw)
-}
-
 func (c RealmTypedClient) GetUnreadCount(ctx context.Context, request RealmGetUnreadCountOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnreadNotificationCountDto, error) {
 	raw, err := c.operationTyped(ctx, "getUnreadCount", request, metadata, timeoutMS)
 	if err != nil {
@@ -19021,14 +18975,6 @@ func (c RealmTypedClient) WorldCoreControllerCreatePersonaCharacter(ctx context.
 		return PersonaCharacterCoreDto{}, err
 	}
 	return decodeTypedResponse[PersonaCharacterCoreDto](raw)
-}
-
-func (c RealmTypedClient) WorldCoreControllerCreateSourceMaterializationPacket(ctx context.Context, request RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SourceMaterializationPacketV3Dto, error) {
-	raw, err := c.operationTyped(ctx, "WorldCoreController_createSourceMaterializationPacket", request, metadata, timeoutMS)
-	if err != nil {
-		return SourceMaterializationPacketV3Dto{}, err
-	}
-	return decodeTypedResponse[SourceMaterializationPacketV3Dto](raw)
 }
 
 func (c RealmTypedClient) WorldCoreControllerCreateWorldCharacter(ctx context.Context, request RealmWorldCoreControllerCreateWorldCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCharacterCoreDto, error) {

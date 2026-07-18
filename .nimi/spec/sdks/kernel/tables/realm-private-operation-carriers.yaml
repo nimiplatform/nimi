@@ -1,0 +1,20 @@
+version: 1
+table_family: protocol_surface
+protocol_id: sdk_realm_private_operation_carriers
+surfaces:
+  - WorldCoreController_createSourceMaterializationPacket
+  - getSourceMaterializationJwks
+owner: .nimi/spec/sdks
+source_rule: S-REALMCORE-001
+status: active
+operations:
+  - operation_id: WorldCoreController_createSourceMaterializationPacket
+    method: POST
+    path: /api/realm/core/source-materialization-packets
+    projection: runtime_private_generated_carrier
+    public_sdk_method: forbidden
+  - operation_id: getSourceMaterializationJwks
+    method: GET
+    path: /api/auth/jwks/source-materialization
+    projection: runtime_private_generated_carrier
+    public_sdk_method: forbidden

@@ -104,8 +104,8 @@ test('Tester app-private storage crosses the final SDK and Kit local-app carrier
     listen() { return () => {}; },
   };
   try {
-    const { testerLocalAppRuntimePlatform } = await importLocalAppRuntimePlatform();
-    const result = await testerLocalAppRuntimePlatform.storage.writeJson('settings/profile.json', { theme: 'calm' });
+    const { testerLocalAppClient } = await importLocalAppRuntimePlatform();
+    const result = await testerLocalAppClient.storage.writeJson('settings/profile.json', { theme: 'calm' });
 
     assert.deepEqual(result, { value: { theme: 'calm' }, sizeBytes: 16 });
     assert.deepEqual(calls, [{

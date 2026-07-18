@@ -1,10 +1,9 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import { createNimiClient } from '@nimiplatform/sdk';
 import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
-import { Realm } from '@nimiplatform/sdk/realm';
-import { Runtime } from '@nimiplatform/sdk/runtime';
 import { resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost } from '../agent-chat/runtime-agent-binding';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
-import { appId, getRuntimeAccountCaller } from './runtime-platform';
+import { appId, getRuntimeAccountCaller, getZhiyuRuntime } from './runtime-platform';
 
 type ZhiyuElectronSdkAcceptanceProbeResult =
   | {
@@ -45,10 +44,7 @@ export function installZhiyuElectronSdkAcceptanceProbe(): void {
   }
   window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__ = {
     async runtimeReady() {
-      const runtime = new Runtime({
-        appId,
-        transport: { type: 'electron-ipc' },
-      });
+      const runtime = getZhiyuRuntime();
       try {
         const health = await runtime.ready();
         return {
@@ -62,16 +58,20 @@ export function installZhiyuElectronSdkAcceptanceProbe(): void {
       }
     },
     async sharedAuthBroker() {
-      const runtime = new Runtime({
+      const runtime = getZhiyuRuntime();
+      const client = createNimiClient({
         appId,
-        transport: { type: 'electron-ipc' },
+        runtime,
+        realm: {
+          transport: createRuntimeAccountMediatedRealmTransport({
+            runtime,
+            accountCaller: getRuntimeAccountCaller(),
+          }),
+        },
+        app: false,
+        permissions: false,
       });
-      const realm = new Realm({
-        transport: createRuntimeAccountMediatedRealmTransport({
-          runtime,
-          accountCaller: getRuntimeAccountCaller(),
-        }),
-      });
+      const realm = client.requireRealm();
       try {
         const response = await realm.worldPublic.worldPublicControllerListWorlds({ path: {} });
         return {

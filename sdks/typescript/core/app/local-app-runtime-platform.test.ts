@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createNimiAppRuntimePlatformClient } from './local-app-runtime-platform';
+import { createNimiClient } from '../../root-client';
+import type { NimiLocalAppClientInput } from './local-app-runtime-platform';
+
+function createLocalAppClient(input: NimiLocalAppClientInput) {
+  return createNimiClient({ localApp: input });
+}
 
 function standardShell(overrides: Record<string, unknown> = {}) {
   return {
@@ -32,7 +37,7 @@ function standardShell(overrides: Record<string, unknown> = {}) {
 }
 
 test('local-app client exposes only auth, product permissions, and app-private storage', async () => {
-  const client = createNimiAppRuntimePlatformClient({ standardShell: standardShell() });
+  const client = createLocalAppClient({ standardShell: standardShell() });
   assert.deepEqual(Object.keys(client).sort(), ['auth', 'permissions', 'storage']);
   assert.deepEqual(await client.auth.status(), {
     mode: 'local-app',
@@ -48,7 +53,7 @@ test('local-app client exposes only auth, product permissions, and app-private s
 
 test('reserved product permission status is visible without leaking internal selectors', async () => {
   const calls: unknown[] = [];
-  const client = createNimiAppRuntimePlatformClient({
+  const client = createLocalAppClient({
     standardShell: standardShell({
       permission: {
         status: async (input: unknown) => {
@@ -80,13 +85,13 @@ test('reserved product permission status is visible without leaking internal sel
 });
 
 test('permission ids and projections are closed to the public catalog', async () => {
-  const client = createNimiAppRuntimePlatformClient({ standardShell: standardShell() });
+  const client = createLocalAppClient({ standardShell: standardShell() });
   await assert.rejects(
     () => client.permissions.status('runtime_agent.conversation.open' as never),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_ID_UNKNOWN',
   );
 
-  const mismatched = createNimiAppRuntimePlatformClient({
+  const mismatched = createLocalAppClient({
     standardShell: standardShell({
       permission: {
         status: async () => ({
@@ -104,7 +109,7 @@ test('permission ids and projections are closed to the public catalog', async ()
 
 test('app-private storage works without a permission request', async () => {
   const calls: unknown[] = [];
-  const client = createNimiAppRuntimePlatformClient({
+  const client = createLocalAppClient({
     standardShell: standardShell({
       storage: {
         readJson: async (path: string) => { calls.push(['read', path]); return { value: { version: 1 }, sizeBytes: 13 }; },
@@ -126,7 +131,7 @@ test('app-private storage works without a permission request', async () => {
 });
 
 test('app-private storage rejects path escape and non-JSON values before transport', async () => {
-  const client = createNimiAppRuntimePlatformClient({ standardShell: standardShell() });
+  const client = createLocalAppClient({ standardShell: standardShell() });
   for (const relativePath of ['../state.json', '/state.json', 'agent\\state.json', 'CON.json', 'state.txt']) {
     await assert.rejects(
       () => client.storage.readJson(relativePath),
@@ -143,12 +148,12 @@ test('app-private storage rejects path escape and non-JSON values before transpo
 
 test('client rejects expanded host namespaces and permission operation selectors', async () => {
   assert.throws(
-    () => createNimiAppRuntimePlatformClient({
+    () => createLocalAppClient({
       standardShell: { ...standardShell(), runtime: { unary: async () => ({}) } },
     } as never),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
   );
-  const client = createNimiAppRuntimePlatformClient({ standardShell: standardShell() });
+  const client = createLocalAppClient({ standardShell: standardShell() });
   await assert.rejects(
     () => client.permissions.request({
       permissionId: 'agents.interact',
@@ -160,7 +165,7 @@ test('client rejects expanded host namespaces and permission operation selectors
 });
 
 test('auth projection rejects host pseudo-success flags', async () => {
-  const client = createNimiAppRuntimePlatformClient({
+  const client = createLocalAppClient({
     standardShell: standardShell({
       session: {
         status: async () => ({

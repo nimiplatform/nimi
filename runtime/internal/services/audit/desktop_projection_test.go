@@ -11,7 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -30,7 +30,11 @@ func newDesktopAuditProjectionService(store *auditlog.Store) *Service {
 }
 
 func protectedDesktopAuditContext(traceID string) context.Context {
-	ctx := protectedlocal.ContextWithDesktopConnection(context.Background(), &protectedlocal.Connection{})
+	ctx := envelope.WithValidatedProtectedCapability(
+		context.Background(),
+		envelope.ProtectedDesktopAppID,
+		envelope.ProtectedDesktopAuditReadCapability,
+	)
 	return metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-trace-id", traceID))
 }
 
@@ -43,14 +47,31 @@ func validDesktopAuditProjectionRequest(now time.Time) *runtimev1.ListDesktopAud
 }
 
 func TestListDesktopAuditEventsRequiresProtectedDesktopOrigin(t *testing.T) {
-	store := auditlog.New(10, 10)
-	svc := newDesktopAuditProjectionService(store)
-	_, err := svc.ListDesktopAuditEvents(context.Background(), validDesktopAuditProjectionRequest(time.Now().UTC()))
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("status = %v, want PermissionDenied: %v", status.Code(err), err)
+	tests := map[string]context.Context{
+		"missing decision": context.Background(),
+		"wrong app": envelope.WithValidatedProtectedCapability(
+			context.Background(),
+			"nimi.avatar",
+			envelope.ProtectedDesktopAuditReadCapability,
+		),
+		"wrong capability": envelope.WithValidatedProtectedCapability(
+			context.Background(),
+			envelope.ProtectedDesktopAppID,
+			"runtime.audit.raw.read",
+		),
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
-		t.Fatalf("reason = %v, ok=%v, want PROTECTED_ORIGIN_ROLE_MISMATCH", reason, ok)
+	for name, ctx := range tests {
+		t.Run(name, func(t *testing.T) {
+			store := auditlog.New(10, 10)
+			svc := newDesktopAuditProjectionService(store)
+			_, err := svc.ListDesktopAuditEvents(ctx, validDesktopAuditProjectionRequest(time.Now().UTC()))
+			if status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("status = %v, want PermissionDenied: %v", status.Code(err), err)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+				t.Fatalf("reason = %v, ok=%v, want PROTECTED_ORIGIN_ROLE_MISMATCH", reason, ok)
+			}
+		})
 	}
 }
 

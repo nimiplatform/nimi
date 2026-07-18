@@ -1,16 +1,18 @@
 import {
-  createNimiAppRuntimePlatformClient,
-  type NimiAppRuntimePlatformClient,
-} from '@nimiplatform/sdk/app';
+  createNimiClient,
+  type NimiLocalAppClient,
+} from '@nimiplatform/sdk';
 import {
   createNimiLocalAppStandardShellSurface,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
-let localAppClient: NimiAppRuntimePlatformClient | null = null;
+let localAppClient: NimiLocalAppClient | null = null;
 
-export function getNimiAppRuntimePlatformClient(): NimiAppRuntimePlatformClient {
-  localAppClient ??= createNimiAppRuntimePlatformClient({
-    standardShell: createNimiLocalAppStandardShellSurface(),
+export function getNimiLocalAppClient(): NimiLocalAppClient {
+  localAppClient ??= createNimiClient({
+    localApp: {
+      standardShell: createNimiLocalAppStandardShellSurface(),
+    },
   });
   return localAppClient;
 }

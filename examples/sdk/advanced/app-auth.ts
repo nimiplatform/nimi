@@ -5,16 +5,16 @@
  */
 
 import {
-  createNimiAppRuntimePlatformClient,
-  type NimiAppRuntimePlatformStandardShell,
-} from '@nimiplatform/sdk/app';
+  createNimiClient,
+  type NimiLocalAppStandardShell,
+} from '@nimiplatform/sdk';
 
 const RESERVED_AGENT_PERMISSION = 'agents.interact';
 
 export async function runAppAuthorizationLifecycle(
-  standardShell: NimiAppRuntimePlatformStandardShell,
+  standardShell: NimiLocalAppStandardShell,
 ): Promise<void> {
-  const app = createNimiAppRuntimePlatformClient({ standardShell });
+  const app = createNimiClient({ localApp: { standardShell } });
   const session = await app.auth.status();
   if (!session.sessionBound) {
     throw new Error(`${session.reasonCode}: ${session.actionHint}`);

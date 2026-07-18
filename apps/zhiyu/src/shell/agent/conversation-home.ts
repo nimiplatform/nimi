@@ -1,10 +1,10 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createNimiRuntimeAgentClient,
-  Runtime,
 } from '@nimiplatform/sdk/runtime';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import type { ZhiyuEvidence } from '../app/evidence';
+import { getZhiyuRuntime } from '../auth/runtime-platform';
 import {
   clearZhiyuAgentConversationAnchorBinding,
   getZhiyuAgentConversationAnchorBinding,
@@ -48,10 +48,7 @@ export async function probeZhiyuRuntimeConversationHome(
     });
   }
 
-  const runtime = new Runtime({
-    appId: 'nimi.zhiyu',
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
   const client = createNimiRuntimeAgentClient({
     runtime,
     appId: 'nimi.zhiyu',

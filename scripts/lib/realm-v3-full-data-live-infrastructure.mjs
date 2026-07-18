@@ -346,12 +346,70 @@ function relativeExecutionPath(exportRoot, candidate, label) {
   return relative.split(path.sep).join('/');
 }
 
-async function runtimeDependencyClosureManifest(rawExportRoot) {
+const PRODUCER_API_PACKAGE_NAME = '@nimi/backend';
+
+async function resolveProducerAPIPackageRoot(rawExportRoot, declaredRelativePath = null) {
   const exportRoot = await realpath(rawExportRoot);
+  let candidate;
+  if (declaredRelativePath !== null) {
+    if (
+      typeof declaredRelativePath !== 'string' || declaredRelativePath.length === 0 ||
+      path.isAbsolute(declaredRelativePath)
+    ) {
+      fail('producer_api_package_invalid', 'producer API package path must be a non-empty relative path');
+    }
+    candidate = path.resolve(exportRoot, declaredRelativePath);
+  } else {
+    const resolved = await runCapture('pnpm', [
+      '--filter',
+      PRODUCER_API_PACKAGE_NAME,
+      '--fail-if-no-match',
+      'exec',
+      process.execPath,
+      '-e',
+      'process.stdout.write(process.cwd())',
+    ], { cwd: exportRoot });
+    candidate = resolved.stdout.trim();
+  }
+  if (!path.isAbsolute(candidate)) {
+    fail('producer_api_package_invalid', 'producer API package resolver returned a non-absolute path');
+  }
+  const packageRoot = await realpath(candidate);
+  relativeExecutionPath(exportRoot, packageRoot, 'producer API package');
+  const packageManifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'));
+  if (packageManifest?.name !== PRODUCER_API_PACKAGE_NAME) {
+    fail('producer_api_package_invalid', 'producer API package identity is not admitted');
+  }
+  return packageRoot;
+}
+
+function producerAPIArtifactRoot(packageRoot) {
+  return path.join(packageRoot, 'dist', 'apps', 'api');
+}
+
+async function producerAPIExecutionPaths(exportProof) {
+  const exportRoot = await realpath(exportProof.exportRoot);
+  const packageRoot = await resolveProducerAPIPackageRoot(
+    exportRoot,
+    exportProof.producerAPIPackageRelativeRoot,
+  );
+  return {
+    packageRoot,
+    artifactRoot: producerAPIArtifactRoot(packageRoot),
+    entry: path.join(producerAPIArtifactRoot(packageRoot), 'apps', 'api', 'src', 'main.js'),
+  };
+}
+
+async function runtimeDependencyClosureManifest(rawExportRoot, declaredProducerAPIPackageRelativeRoot = null) {
+  const exportRoot = await realpath(rawExportRoot);
+  const producerAPIPackageRoot = await resolveProducerAPIPackageRoot(
+    exportRoot,
+    declaredProducerAPIPackageRelativeRoot,
+  );
   const roots = [
-    path.join(exportRoot, 'nimi-backend', 'dist', 'apps', 'api'),
+    producerAPIArtifactRoot(producerAPIPackageRoot),
     path.join(exportRoot, 'node_modules'),
-    path.join(exportRoot, 'nimi-backend', 'node_modules'),
+    path.join(producerAPIPackageRoot, 'node_modules'),
   ];
   const visitedDirectories = new Set();
   const files = new Map();
@@ -464,7 +522,10 @@ async function runtimeDependencyClosureManifest(rawExportRoot) {
 }
 
 async function assertRuntimeDependencyClosure(exportProof) {
-  const observed = await runtimeDependencyClosureManifest(exportProof.exportRoot);
+  const observed = await runtimeDependencyClosureManifest(
+    exportProof.exportRoot,
+    exportProof.producerAPIPackageRelativeRoot,
+  );
   if (
     observed.digest !== exportProof.runtimeDependencyClosureDigest ||
     observed.fileCount !== exportProof.runtimeDependencyFileCount ||
@@ -492,11 +553,26 @@ async function exportAndBuildFixedRealm(state, options) {
   const storeArguments = ['--store-dir', dependency.storeDirectory];
   await runCapture('pnpm', [...storeArguments, 'install', '--offline', '--frozen-lockfile'], { cwd: exportRoot });
   await runCapture('pnpm', [...storeArguments, '--filter', '@nimi/forge', '--fail-if-no-match', 'build'], { cwd: exportRoot });
-  await runCapture('pnpm', [...storeArguments, '--dir', 'nimi-backend', 'build:api'], { cwd: exportRoot });
-  const artifactRoot = path.join(exportRoot, 'nimi-backend', 'dist', 'apps', 'api');
+  await runCapture('pnpm', [
+    ...storeArguments,
+    '--filter',
+    PRODUCER_API_PACKAGE_NAME,
+    '--fail-if-no-match',
+    'build:api',
+  ], { cwd: exportRoot });
+  const producerAPIPackageRoot = await resolveProducerAPIPackageRoot(exportRoot);
+  const producerAPIPackageRelativeRoot = relativeExecutionPath(
+    exportRoot,
+    producerAPIPackageRoot,
+    'producer API package',
+  );
+  const artifactRoot = producerAPIArtifactRoot(producerAPIPackageRoot);
   const artifactManifest = await directoryManifest(artifactRoot);
   if (artifactManifest.length === 0) fail('build_failed', 'fixed Realm API build artifact is empty');
-  const runtimeClosure = await runtimeDependencyClosureManifest(exportRoot);
+  const runtimeClosure = await runtimeDependencyClosureManifest(
+    exportRoot,
+    producerAPIPackageRelativeRoot,
+  );
   const runtimeDependencyClosureManifestPath = path.join(
     state.stateDirectory,
     'runtime-dependency-closure.json',
@@ -506,6 +582,7 @@ async function exportAndBuildFixedRealm(state, options) {
     archivePath,
     exportRoot,
     archiveSha256,
+    producerAPIPackageRelativeRoot,
     manifestDigest: domainHash('nimi.realm-v3-full-data-fixed-export-manifest/v1', treeManifest.stdout),
     buildArtifactDigest: domainHash('nimi.realm-v3-full-data-server-build/v1', artifactManifest),
     dependencyRootDigest: dependency.digest,
@@ -539,7 +616,7 @@ async function buildRedisIntent(environmentId, image) {
   if (typeof image !== 'string' || !image.includes('@sha256:')) {
     fail('unsafe_redis_image', 'Redis image must be content-addressed with @sha256');
   }
-  const name = `nimi-realm-v3-n7-redis-${environmentId}`;
+  const name = `realm-v3-n7-redis-${environmentId}`;
   const imageIdentity = (await runCapture('docker', ['image', 'inspect', '--format', '{{.Id}}', image])).stdout.trim();
   if (!/^sha256:[0-9a-f]{64}$/u.test(imageIdentity)) fail('invalid_redis_identity', 'Redis image identity is invalid');
   return {
@@ -770,6 +847,7 @@ export {
   inspectDockerContainer,
   observeRedis,
   parseOfflineStoreDirectory,
+  producerAPIExecutionPaths,
   readDatabaseSnapshot,
   readFrozenOfflineStoreDirectory,
   reconcilePreparedRedis,

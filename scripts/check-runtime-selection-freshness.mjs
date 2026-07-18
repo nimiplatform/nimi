@@ -50,6 +50,15 @@ function addDays(date, days) {
   return next;
 }
 
+function utcCalendarDay(date) {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+export function isSelectionReviewExpired(reviewedDate, freshnessSLADays, now) {
+  const expiry = addDays(reviewedDate, freshnessSLADays);
+  return utcCalendarDay(expiry) < utcCalendarDay(now);
+}
+
 async function main() {
   const sourceProviders = listProviderSourceDocs(sourceDir);
 
@@ -121,7 +130,7 @@ async function main() {
         continue;
       }
       const expiry = addDays(reviewedDate, freshnessSLADays);
-      if (expiry.getTime() < now.getTime()) {
+      if (isSelectionReviewExpired(reviewedDate, freshnessSLADays, now)) {
         failures.push(`${provider}: selection profile ${profileID} expired on ${expiry.toISOString().slice(0, 10)}`);
       }
       const capabilities = modelIndex.get(modelID.toLowerCase());
@@ -154,7 +163,9 @@ async function main() {
   process.stdout.write('runtime selection freshness check passed\n');
 }
 
-main().catch((error) => {
-  process.stderr.write(`check-runtime-selection-freshness failed: ${String(error)}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`check-runtime-selection-freshness failed: ${String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

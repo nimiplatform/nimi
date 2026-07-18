@@ -215,12 +215,12 @@ func (store *WindowsServiceSecretStore) Store(ctx context.Context, name string, 
 		return windowsCustodyFailure(WindowsCustodyStageTemporaryCreate, "create Windows secret temporary file", err)
 	}
 	if err := store.secureFile(handle); err != nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return windowsCustodyStageFailure(WindowsCustodyStageTemporaryACL, err)
 	}
 	file := os.NewFile(uintptr(handle), temporary)
 	if file == nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return windowsCustodyFailure(WindowsCustodyStageTemporaryWrapper, "create Windows secret file wrapper", fmt.Errorf("invalid file handle"))
 	}
 	if _, err := file.Write(encoded); err != nil {
@@ -276,7 +276,7 @@ func (store *WindowsServiceSecretStore) Delete(ctx context.Context, name string)
 		return windowsCustodyFailure(WindowsCustodyStageDeleteOpen, "open Windows secret for deletion", err)
 	}
 	if err := store.validateFile(handle); err != nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return windowsCustodyStageFailure(WindowsCustodyStageDeleteACL, err)
 	}
 	if err := windows.CloseHandle(handle); err != nil {
@@ -325,16 +325,16 @@ func (store *WindowsServiceSecretStore) readEncoded(name string) ([]byte, error)
 		return nil, windowsCustodyFailure(WindowsCustodyStageReadOpen, "open Windows protected secret", err)
 	}
 	if err := validateWindowsRegularFile(handle); err != nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return nil, windowsCustodyStageFailure(WindowsCustodyStageReadIdentity, err)
 	}
 	if err := store.validateFile(handle); err != nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return nil, windowsCustodyStageFailure(WindowsCustodyStageReadACL, err)
 	}
 	file := os.NewFile(uintptr(handle), path)
 	if file == nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return nil, windowsCustodyFailure(WindowsCustodyStageReadWrapper, "create Windows secret file wrapper", fmt.Errorf("invalid file handle"))
 	}
 	encoded, readErr := io.ReadAll(io.LimitReader(file, windowsSecretHeaderBytes+windowsMaxProtectedBytes+1))
@@ -362,7 +362,7 @@ func (store *WindowsServiceSecretStore) validateStoredFile(path string) error {
 	if err != nil {
 		return windowsCustodyFailure(WindowsCustodyStageStoredReopen, "reopen stored Windows secret", err)
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 	if err := validateWindowsRegularFile(handle); err != nil {
 		return windowsCustodyStageFailure(WindowsCustodyStageStoredIdentity, err)
 	}
@@ -416,7 +416,7 @@ func inspectWindowsStateRoot(path, serviceSID string, expected *windowsFileIdent
 	if err != nil {
 		return windowsFileIdentity{}, custodyFailure("open Windows protected state root", err)
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 	var information windows.ByHandleFileInformation
 	if err := windows.GetFileInformationByHandle(handle, &information); err != nil {
 		return windowsFileIdentity{}, custodyFailure("query Windows state-root identity", err)
@@ -565,7 +565,7 @@ func (protector *windowsDPAPINGProtector) Protect(plaintext []byte) ([]byte, err
 	if status != 0 || descriptorHandle == 0 {
 		return nil, windowsCustodyFailure(WindowsCustodyStageDescriptorCreate, "create DPAPI-NG descriptor", ncryptStatusError(status))
 	}
-	defer protector.close.Call(descriptorHandle)
+	defer func() { _, _, _ = protector.close.Call(descriptorHandle) }()
 	var protectedPointer *byte
 	var protectedBytes uint32
 	status, _, _ = protector.protect.Call(
@@ -581,7 +581,7 @@ func (protector *windowsDPAPINGProtector) Protect(plaintext []byte) ([]byte, err
 	runtime.KeepAlive(plaintext)
 	if status != 0 || protectedPointer == nil || protectedBytes == 0 || protectedBytes > windowsMaxProtectedBytes {
 		if protectedPointer != nil {
-			windows.LocalFree(windows.Handle(unsafe.Pointer(protectedPointer)))
+			_, _ = windows.LocalFree(windows.Handle(unsafe.Pointer(protectedPointer)))
 		}
 		return nil, windowsCustodyFailure(WindowsCustodyStageProtect, "DPAPI-NG protect secret", ncryptStatusError(status))
 	}
@@ -614,18 +614,18 @@ func (protector *windowsDPAPINGProtector) Unprotect(protected []byte) ([]byte, e
 	)
 	runtime.KeepAlive(protected)
 	if descriptorHandle != 0 {
-		defer protector.close.Call(descriptorHandle)
+		defer func() { _, _, _ = protector.close.Call(descriptorHandle) }()
 	}
 	if status != 0 || plaintextPointer == nil || plaintextBytes == 0 || plaintextBytes > windowsMaxSecretBytes {
 		if plaintextPointer != nil {
-			windows.LocalFree(windows.Handle(unsafe.Pointer(plaintextPointer)))
+			_, _ = windows.LocalFree(windows.Handle(unsafe.Pointer(plaintextPointer)))
 		}
 		return nil, windowsCustodyFailure(WindowsCustodyStageUnprotect, "DPAPI-NG unprotect secret", ncryptStatusError(status))
 	}
 	if err := protector.verifyDescriptorHandle(descriptorHandle); err != nil {
 		native := unsafe.Slice(plaintextPointer, int(plaintextBytes))
 		zeroBytes(native)
-		windows.LocalFree(windows.Handle(unsafe.Pointer(plaintextPointer)))
+		_, _ = windows.LocalFree(windows.Handle(unsafe.Pointer(plaintextPointer)))
 		return nil, err
 	}
 	native := unsafe.Slice(plaintextPointer, int(plaintextBytes))
@@ -651,10 +651,10 @@ func (protector *windowsDPAPINGProtector) verifyEmbeddedDescriptor(protected []b
 	)
 	runtime.KeepAlive(protected)
 	if unusedPointer != nil {
-		windows.LocalFree(windows.Handle(unsafe.Pointer(unusedPointer)))
+		_, _ = windows.LocalFree(windows.Handle(unsafe.Pointer(unusedPointer)))
 	}
 	if descriptorHandle != 0 {
-		defer protector.close.Call(descriptorHandle)
+		defer func() { _, _, _ = protector.close.Call(descriptorHandle) }()
 	}
 	if status != 0 || descriptorHandle == 0 {
 		return windowsCustodyRollbackFailure(WindowsCustodyStageDescriptorInspect, "inspect DPAPI-NG descriptor", ncryptStatusError(status))
@@ -676,7 +676,7 @@ func (protector *windowsDPAPINGProtector) verifyDescriptorHandle(descriptorHandl
 	if status != 0 || descriptorPointer == nil {
 		return windowsCustodyRollbackFailure(WindowsCustodyStageDescriptorInspect, "inspect DPAPI-NG descriptor", ncryptStatusError(status))
 	}
-	defer windows.LocalFree(windows.Handle(unsafe.Pointer(descriptorPointer)))
+	defer func() { _, _ = windows.LocalFree(windows.Handle(unsafe.Pointer(descriptorPointer))) }()
 	descriptor := windows.UTF16PtrToString(descriptorPointer)
 	if descriptor != protector.descriptor {
 		return windowsCustodyRollbackFailure(WindowsCustodyStageDescriptorInspect, "inspect DPAPI-NG descriptor", fmt.Errorf("protection descriptor mismatch"))

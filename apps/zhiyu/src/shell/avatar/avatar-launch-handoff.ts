@@ -6,10 +6,10 @@ import {
 } from '@nimiplatform/kit/features/avatar/headless';
 import {
   createNimiRuntimeAgentConsumeClient,
-  Runtime,
   type NimiRuntimeAgentConsumeClient,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
+import { getZhiyuRuntime } from '../auth/runtime-platform';
 import type { ZhiyuAvatarLaunchAction } from './avatar-launch';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 
@@ -139,10 +139,7 @@ export async function invokeZhiyuAvatarLaunchHandoff(
 }
 
 function createDefaultRuntimeAgentClient(): NimiRuntimeAgentConsumeClient {
-  const runtime = new Runtime({
-    appId: APP_ID,
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
   return createNimiRuntimeAgentConsumeClient({
     runtime,
     runtimeAppId: APP_ID,

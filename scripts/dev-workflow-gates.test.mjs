@@ -72,14 +72,14 @@ async function supervisorSources() {
   ])));
 }
 
-test('G2 rejects drift in the bounded local-app inventory contract', async () => {
+test('G2 rejects local-app inventory drift that bypasses the missing account projection', async () => {
   const sources = await zhiyuSources();
   assert.deepEqual(collectZhiyuLocalDevelopmentEntryViolations(sources), []);
   const drifted = {
     ...sources,
-    inventory: sources.inventory.replace('zhiyuLocalAppRuntimePlatform.agent.listInventory()', 'Promise.resolve({})'),
+    inventory: sources.inventory.replace('if (!auth.ready || !auth.accountId)', 'if (false)'),
   };
-  assert.match(collectZhiyuLocalDevelopmentEntryViolations(drifted).join('\n'), /bounded SDK agent inventory/u);
+  assert.match(collectZhiyuLocalDevelopmentEntryViolations(drifted).join('\n'), /fail closed before the bundled Runtime Agent client/u);
 });
 
 test('G5 rejects one-sided supervisor timing or authority-summary drift', async () => {

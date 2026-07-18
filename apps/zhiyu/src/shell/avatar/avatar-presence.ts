@@ -119,17 +119,14 @@ async function readRuntimeAgentPresentationProfile(
   input: ZhiyuAvatarPresenceReadInput,
 ): Promise<ZhiyuRuntimePresentationProfileProjection | null> {
   const {
-    Runtime,
     buildRuntimeAgentRequestContext,
     readNimiRuntimeAgentPresentationProfile,
   } = await import('@nimiplatform/sdk/runtime');
   const {
     withZhiyuRuntimeAgentBindingRequired,
   } = await import('../agent-chat/runtime-agent-binding');
-  const runtime = new Runtime({
-    appId: APP_ID,
-    transport: { type: 'electron-ipc' },
-  });
+  const { getZhiyuRuntime } = await import('../auth/runtime-platform');
+  const runtime = getZhiyuRuntime();
   const context = buildRuntimeAgentRequestContext({
     runtimeAppId: APP_ID,
     subjectUserId: input.ownerUserId,

@@ -158,8 +158,8 @@ describe('Electron local-development protected control', () => {
   const project = {
     appId: 'com.nimi.zhiyu.dev',
     displayName: 'Zhiyu Development',
-    canonicalProjectRoot: 'D:\\nimi-realm\\nimi\\apps\\zhiyu',
-    canonicalManifestPath: 'D:\\nimi-realm\\nimi\\apps\\zhiyu\\nimi.app.yaml',
+    canonicalProjectRoot: 'D:\\workspace\\nimi\\apps\\zhiyu',
+    canonicalManifestPath: 'D:\\workspace\\nimi\\apps\\zhiyu\\nimi.app.yaml',
     shell: 'electron',
     accountId: 'account-a',
     permissionRequirements: [],

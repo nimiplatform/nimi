@@ -1,8 +1,8 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { Runtime } from '@nimiplatform/sdk/runtime';
 import { RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
+import { getZhiyuRuntime } from '../auth/runtime-platform';
+import { zhiyuLocalAppClient } from '../local-development/local-app-runtime-platform';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from './electron-runtime-unavailable';
 
 export type ZhiyuRuntimeStatus = ZhiyuEvidence['runtime'];
@@ -21,7 +21,7 @@ export async function probeZhiyuRuntimeStatus(): Promise<ZhiyuRuntimeStatus> {
 
   if (window.__nimiZhiyuLocalDevelopment) {
     try {
-      const status = await zhiyuLocalAppRuntimePlatform.auth.status();
+      const status = await zhiyuLocalAppClient.auth.status();
       return {
         transport: 'electron-ipc',
         ready: status.sessionBound,
@@ -35,10 +35,7 @@ export async function probeZhiyuRuntimeStatus(): Promise<ZhiyuRuntimeStatus> {
     }
   }
 
-  const runtime = new Runtime({
-    appId: 'nimi.zhiyu',
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
 
   try {
     const health = await runtime.ready();

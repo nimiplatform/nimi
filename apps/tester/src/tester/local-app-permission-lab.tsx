@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import { testerLocalAppRuntimePlatform } from '../shell/local-app-runtime-platform.js';
+import { testerLocalAppClient } from '../shell/local-app-runtime-platform.js';
 
 const RESERVED_PERMISSION_ID = 'agents.interact' as const;
 const STORAGE_RELATIVE_PATH = 'authority-lab/app-private-storage.json';
@@ -42,8 +42,8 @@ export function TesterLocalAppPermissionLab() {
     setBusyAction('refresh');
     try {
       const [session, posture] = await Promise.all([
-        testerLocalAppRuntimePlatform.auth.status(),
-        testerLocalAppRuntimePlatform.permissions.status(RESERVED_PERMISSION_ID),
+        testerLocalAppClient.auth.status(),
+        testerLocalAppClient.permissions.status(RESERVED_PERMISSION_ID),
       ]);
       setSessionState(session.state);
       setSessionBound(session.sessionBound);
@@ -69,7 +69,7 @@ export function TesterLocalAppPermissionLab() {
   const requestReservedPermission = useCallback(async () => {
     setBusyAction('request');
     try {
-      const posture = await testerLocalAppRuntimePlatform.permissions.request({
+      const posture = await testerLocalAppClient.permissions.request({
         permissionId: RESERVED_PERMISSION_ID,
         reason: 'Tester verifies that reserved permissions cannot be requested before atomic admission.',
       });
@@ -98,12 +98,12 @@ export function TesterLocalAppPermissionLab() {
         source: 'nimi.tester',
         purpose: 'app-private-base-entitlement-proof',
       } as const;
-      const written = await testerLocalAppRuntimePlatform.storage.writeJson(STORAGE_RELATIVE_PATH, value);
-      const read = await testerLocalAppRuntimePlatform.storage.readJson(STORAGE_RELATIVE_PATH);
+      const written = await testerLocalAppClient.storage.writeJson(STORAGE_RELATIVE_PATH, value);
+      const read = await testerLocalAppClient.storage.readJson(STORAGE_RELATIVE_PATH);
       if (JSON.stringify(read.value) !== JSON.stringify(value)) {
         throw new Error('App-private storage readback did not match the written value.');
       }
-      const removed = await testerLocalAppRuntimePlatform.storage.removeJson(STORAGE_RELATIVE_PATH);
+      const removed = await testerLocalAppClient.storage.removeJson(STORAGE_RELATIVE_PATH);
       if (!removed.removed) throw new Error('App-private storage cleanup did not remove the written document.');
       setStorage({
         kind: 'success',

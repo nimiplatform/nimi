@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai_codex
-catalog_version: 2026-04-23-openai-codex-subscription-wave1
+catalog_version: 2026-07-18-openai-codex-selection-review
 generated_target: runtime/catalog/providers/openai_codex.yaml
 runtime:
   inventory_mode: static_source
@@ -38,15 +38,15 @@ sources:
     note: Codex CLI features page documenting direct image generation/edit support.
   - source_id: openai_gpt_image_2_doc
     url: https://developers.openai.com/api/docs/models/gpt-image-2
-    retrieved_at: 2026-04-23
+    retrieved_at: 2026-07-18
     note: Official GPT Image 2 model page.
   - source_id: openai_gpt_5_4_doc
     url: https://developers.openai.com/api/docs/models/gpt-5.4
-    retrieved_at: 2026-04-23
+    retrieved_at: 2026-07-18
     note: Official GPT-5.4 model page.
   - source_id: openai_gpt_5_3_codex_doc
     url: https://developers.openai.com/api/docs/models/gpt-5.3-codex
-    retrieved_at: 2026-04-23
+    retrieved_at: 2026-07-18
     note: Official GPT-5.3 Codex model page.
   - source_id: openai_gpt_image_2_changelog
     url: https://developers.openai.com/api/docs/changelog
@@ -57,13 +57,13 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: gpt-5.4
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-18
     freshness_sla_days: 14
     rationale: Codex-backed default text route for general subscription-backed consume.
   - profile_id: image.general
     capability: image.generate
     model_id: gpt-image-2
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-18
     freshness_sla_days: 14
     rationale: Current Codex-backed image generation route.
 

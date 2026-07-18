@@ -102,7 +102,7 @@ func TestWindowsRuntimeSecurityStateComposesPipeLedgerAnchorAndSessionManager(t 
 	if err != nil {
 		t.Fatalf("reopen synthetic security state: %v", err)
 	}
-	defer second.Close()
+	defer func() { _ = second.Close() }()
 	if second.BootEpoch() == (Identifier{}) || second.BootEpoch() == firstEpoch {
 		t.Fatal("restart did not mint a fresh boot epoch")
 	}
@@ -151,7 +151,7 @@ func TestWindowsRuntimeSecurityStateClosesLedgerWhenPipeInitializationFails(t *t
 	if err != nil {
 		t.Fatalf("reopen after pipe initialization failure: %v", err)
 	}
-	defer state.Close()
+	defer func() { _ = state.Close() }()
 }
 
 func TestWindowsRuntimeSecurityStateRejectsMissingProductionCapabilities(t *testing.T) {

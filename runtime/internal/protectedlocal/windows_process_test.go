@@ -108,7 +108,7 @@ func TestWindowsNamedPipeClientProcessUsesExactTokenAndLockedExecutableEvidence(
 	if err != nil {
 		t.Fatalf("verify named-pipe client process: %v", err)
 	}
-	defer liveness.Close()
+	defer func() { _ = liveness.Close() }()
 	if tuple.PID != uint32(os.Getpid()) || tuple.SecurityPrincipal != identity.UserSID() || tuple.OSLoginSession == "" || strings.HasPrefix(tuple.OSLoginSession, "wts:") {
 		t.Fatalf("verified tuple mismatch: %#v", tuple)
 	}
@@ -183,7 +183,7 @@ func TestWindowsRetainedProcessHandleRevokesOnExit(t *testing.T) {
 		_ = command.Wait()
 		t.Fatal(err)
 	}
-	defer liveness.Close()
+	defer func() { _ = liveness.Close() }()
 	if err := command.Wait(); err != nil {
 		t.Fatal(err)
 	}

@@ -142,6 +142,8 @@ import {
   verifyFixedProducer,
   waitForHTTP,
 } from './realm-v3-full-data-live-services.mjs';
+
+const HAS_POSIX_PERMISSION_BITS = process.platform !== 'win32' && typeof process.getuid === 'function';
 export function buildCleanupReceipt(input) {
   validateLiveEnvironmentAttestation(input.attestation);
   assertSHA256(input.runInputDigest, 'runInputDigest');
@@ -210,10 +212,14 @@ async function normalizeStateOnlyOptions(rawOptions, outputKey) {
     [rootRealm, nimiRoot],
   );
   const info = await lstat(stateDirectory);
-  if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o777) !== 0o700) {
+  if (
+    !info.isDirectory() ||
+    info.isSymbolicLink() ||
+    (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o777) !== 0o700)
+  ) {
     fail('unsafe_state_directory', 'state-dir identity/mode is invalid');
   }
-  if (typeof process.getuid === 'function' && info.uid !== process.getuid()) {
+  if (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid()) {
     fail('unsafe_state_directory', 'state-dir owner changed');
   }
   if (outputKey && !path.isAbsolute(rawOptions[outputKey])) fail('invalid_output', `${outputKey} must be absolute`);
@@ -491,6 +497,13 @@ async function processExists(pid) {
   }
 }
 
+function signalBoundAPIProcess(pid, signal) {
+  // POSIX launches the API as a detached process group. Win32 has no negative
+  // process-group PID semantics; Node accepts the verified positive PID and
+  // maps the supported termination signals to process termination.
+  process.kill(process.platform === 'win32' ? pid : -pid, signal);
+}
+
 async function stopBoundAPI(state) {
   if (!state.api?.pid || !state.api?.processIdentity?.digest) fail('cleanup_identity_mismatch', 'API state identity is missing');
   if (!(await processExists(state.api.pid))) {
@@ -499,7 +512,7 @@ async function stopBoundAPI(state) {
   const current = await captureProcessIdentity(state.api.pid);
   if (current.digest !== state.api.processIdentity.digest) fail('cleanup_identity_mismatch', 'API pid was reused by another process');
   try {
-    process.kill(-state.api.pid, 'SIGTERM');
+    signalBoundAPIProcess(state.api.pid, 'SIGTERM');
   } catch (error) {
     if (error?.code !== 'ESRCH') throw error;
   }
@@ -508,7 +521,7 @@ async function stopBoundAPI(state) {
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
   }
   if (await processExists(state.api.pid)) {
-    process.kill(-state.api.pid, 'SIGKILL');
+    signalBoundAPIProcess(state.api.pid, 'SIGKILL');
   }
   const killDeadline = Date.now() + 5_000;
   while (Date.now() < killDeadline && await processExists(state.api.pid)) {

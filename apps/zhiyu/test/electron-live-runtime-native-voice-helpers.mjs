@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { createNimiRuntimeAppSessionMetadataProvider } from '../../../sdks/typescript/runtime/app-session.ts';
 import { Runtime } from '../../../sdks/typescript/runtime/index.ts';
 import {
@@ -52,7 +53,7 @@ export async function assertMidStreamFailureFlow(page, pageProblems, readyEviden
     && globalThis.window.__nimiZhiyuEvidence?.companion?.diagnostics?.runtimeProjectionEvents?.some((event) =>
       event?.eventName === 'runtime.agent.turn.action_failed'
       && event?.detail?.actionId === 'action-mid-stream-failure'
-      && event?.detail?.reasonCode === 'AI_OUTPUT_INVALID'
+      && event?.detail?.reasonCode === ReasonCode.AI_OUTPUT_INVALID
     ),
     'committed message with typed Runtime action failure evidence',
     {

@@ -65,7 +65,7 @@ test('Electron host uses canonical tester app identity for Runtime calls', () =>
   const acceptanceSource = read('test/electron-acceptance.mjs');
 
   assert.match(mainSource, /const APP_ID = 'nimi\.tester'/);
-  assert.match(sdkAcceptanceSource, /testerLocalAppRuntimePlatform/);
+  assert.match(sdkAcceptanceSource, /testerLocalAppClient/);
   assert.doesNotMatch(localAppClientSource, /(?:appId|sessionId|grantId)\s*[:=]/);
   assert.doesNotMatch(mainSource, /com\.nimiplatform\.tester/);
   assert.doesNotMatch(sdkAcceptanceSource, /com\.nimiplatform\.tester/);
@@ -81,7 +81,7 @@ test('Electron local-app host does not synthesize Runtime account authority', ()
   assert.equal(existsSync(path.join(repoRoot, 'kit/shell/electron/src/main/runtime-account-auth.ts')), false);
   assert.doesNotMatch(rendererAuthSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
   assert.doesNotMatch(rendererAuthSource, /local-developer|developerRegistration|getRuntimeAccountCaller/);
-  assert.match(rendererAuthSource, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+  assert.match(rendererAuthSource, /testerLocalAppClient\.auth\.status\(\)/);
   assert.match(rendererAuthSource, /status\.sessionBound/);
   assert.doesNotMatch(rendererAuthSource, /readonly client:|readonly auth:/);
 });

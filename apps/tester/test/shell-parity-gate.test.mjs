@@ -20,7 +20,7 @@ test('tester exposes a first-class shell parity gate', () => {
   assert.equal(existsSync(path.join(root, 'scripts/check-shell-parity.mjs')), true);
   const source = read('scripts/check-shell-parity.mjs');
   assert.match(source, /registerNimiElectronAppBridge/);
-  assert.match(source, /createNimiAppRuntimePlatformClient/);
+  assert.match(source, /createNimiClient/);
   assert.match(source, /createNimiLocalAppStandardShellSurface/);
   assert.match(source, /local_app_session_status/);
   assert.match(source, /storage_write_json/);

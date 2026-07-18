@@ -29,7 +29,7 @@ const (
 	realmV3FullDataAttemptStatusFailedV1    = "failed"
 	realmV3FullDataAttemptStatusCommittedV1 = "committed"
 	realmV3FullDataAccountCustodyFileV1     = ".realm-v3-full-data-account-custody.json"
-	realmV3FullDataRuntimeMarkerFileV1      = ".nimi-realm-v3-full-data-runtime-root.json"
+	realmV3FullDataRuntimeMarkerFileV1      = ".realm-v3-full-data-runtime-root.json"
 	realmV3FullDataRuntimeOwnerLockFileV1   = ".realm-v3-full-data-worker.lock"
 	realmV3FullDataAuditJournalDirectoryV1  = ".realm-v3-full-data-audit"
 	realmV3FullDataAttemptLedgerDirectoryV1 = ".realm-v3-full-data-attempts"
@@ -274,6 +274,9 @@ type realmV3FullDataRestartEvidenceV1 struct {
 func TestRealmV3FullDataPartitionWorker(t *testing.T) {
 	requestPath := os.Getenv("NIMI_REALM_V3_FULL_PARTITION_REQUEST_PATH")
 	receiptPath := os.Getenv("NIMI_REALM_V3_FULL_PARTITION_RECEIPT_PATH")
+	if requestPath == "" && receiptPath == "" {
+		t.Skip("partition worker entrypoint requires a runner-bound request and receipt")
+	}
 	if requestPath == "" || receiptPath == "" {
 		t.Fatal("full-data worker requires explicit request and receipt paths")
 	}

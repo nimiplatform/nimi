@@ -7,7 +7,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -25,7 +24,11 @@ const (
 // protected transport interceptor performs the live process/session check;
 // this method also rejects calls that did not arrive through that context.
 func (s *Service) ListDesktopAuditEvents(ctx context.Context, req *runtimev1.ListDesktopAuditEventsRequest) (*runtimev1.ListDesktopAuditEventsResponse, error) {
-	if _, ok := protectedlocal.DesktopConnectionFromContext(ctx); !ok {
+	if !envelope.HasValidatedProtectedCapability(
+		ctx,
+		envelope.ProtectedDesktopAppID,
+		envelope.ProtectedDesktopAuditReadCapability,
+	) {
 		s.recordDesktopAuditProjectionRead(ctx, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
@@ -122,7 +125,7 @@ func (s *Service) recordDesktopAuditProjectionRead(ctx context.Context, reasonCo
 	}
 	s.store.AppendEvent(&runtimev1.AuditEventRecord{
 		RequestId:  traceID,
-		AppId:      "nimi.desktop",
+		AppId:      envelope.ProtectedDesktopAppID,
 		Domain:     "runtime.audit",
 		Operation:  "desktop_projection.read",
 		ReasonCode: reasonCode,
@@ -130,6 +133,6 @@ func (s *Service) recordDesktopAuditProjectionRead(ctx context.Context, reasonCo
 		Timestamp:  timestamppb.New(time.Now().UTC()),
 		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
 		SurfaceId:  "runtime.activity",
-		Capability: "runtime.audit.desktop.read",
+		Capability: envelope.ProtectedDesktopAuditReadCapability,
 	})
 }

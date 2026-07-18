@@ -50,7 +50,11 @@ export function sourceTreeSha256(repoRoot) {
 }
 
 export function captureSourceState(nimiRoot) {
-  const realmRoot = path.resolve(String(process.env.REALM_ROOT || '').trim() || path.dirname(nimiRoot));
+  const configuredRealmRoot = String(process.env.REALM_ROOT || '').trim();
+  if (!configuredRealmRoot) {
+    throw new Error('REALM_ROOT is required to capture the external Realm authority source state');
+  }
+  const realmRoot = path.resolve(configuredRealmRoot);
   const state = {
     schemaVersion: 'nimi.local-agent-product-source-state/v3',
     nimiCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: nimiRoot, encoding: 'utf8' }).trim(),

@@ -1,4 +1,4 @@
-import { createNimiAppRuntimePlatformClient } from '@nimiplatform/sdk/app';
+import { createNimiClient } from '@nimiplatform/sdk';
 import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
 
 /**
@@ -6,6 +6,8 @@ import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/
  * SDK owns validation and strips principal, permission-decision, session, and
  * transport authority material from the app-visible projection.
  */
-export const zhiyuLocalAppRuntimePlatform = createNimiAppRuntimePlatformClient({
-  standardShell: createNimiLocalAppStandardShellSurface(),
+export const zhiyuLocalAppClient = createNimiClient({
+  localApp: {
+    standardShell: createNimiLocalAppStandardShellSurface(),
+  },
 });

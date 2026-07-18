@@ -344,7 +344,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
 
     assertTauriIconSupport(generated);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
-    assert.match(runtimePlatform, /getNimiAppRuntimePlatformClient/);
+    assert.match(runtimePlatform, /getNimiLocalAppClient/);
     assert.match(runtimePlatform, /\.auth\.status\(\)/);
     assert.match(runtimePlatform, /!status\.sessionBound/);
     assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
@@ -375,11 +375,11 @@ test('tester-reference scaffold keeps the full proof app explicit', () => {
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
     const permissionLab = generated.read('src/tester/local-app-permission-lab.tsx');
-    assert.match(runtimePlatform, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+    assert.match(runtimePlatform, /testerLocalAppClient\.auth\.status\(\)/);
     assert.match(runtimePlatform, /!status\.sessionBound/);
-    assert.match(localAppPlatform, /createNimiAppRuntimePlatformClient/);
+    assert.match(localAppPlatform, /createNimiClient/);
     assert.match(localAppPlatform, /createNimiLocalAppStandardShellSurface/);
-    assert.match(permissionLab, /testerLocalAppRuntimePlatform\.storage\.writeJson/);
+    assert.match(permissionLab, /testerLocalAppClient\.storage\.writeJson/);
     assert.doesNotMatch(runtimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
     assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
     assert.match(generated.read('src-tauri/src/main.rs'), /world_tour/);
@@ -1341,8 +1341,8 @@ test('default profiles generate local-app carrier boundaries without tester or f
 
       assert.doesNotMatch(runtimePlatform, /developer-registered-local-app|developerRegistration/, `${profile} must not retain developer registration`);
       assert.match(runtimePlatform, /'local-app'/, `${profile} keeps the final local-app mode`);
-      assert.match(runtimePlatform, /getNimiAppRuntimePlatformClient/, `${profile} must consume the final SDK client`);
-      assert.match(localAppClient, /createNimiAppRuntimePlatformClient/, `${profile} must consume the SDK local-app owner surface`);
+      assert.match(runtimePlatform, /getNimiLocalAppClient/, `${profile} must consume the final SDK client`);
+      assert.match(localAppClient, /createNimiClient/, `${profile} must consume the SDK local-app owner surface`);
       assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/, `${profile} must compose the Kit local-app shell`);
       assert.match(runtimePlatform, /!status\.sessionBound/, `${profile} must require a bound local-app session without conflating permissions`);
       assert.doesNotMatch(runtimePlatform, /createNimiClient|RuntimeOptions|runtime\.account|runtime\.ai|bootstrapArtifact/i, `${profile} must keep non-carrier operations absent`);

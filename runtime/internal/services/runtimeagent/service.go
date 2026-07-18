@@ -117,6 +117,10 @@ type Service struct {
 	// chat turn at a time across anchors to preserve single-speaker truth.
 	chatActiveByAgent map[string]string
 	chatAsyncWG       sync.WaitGroup
+	// chatFollowUpWait is an injectable scheduling boundary. Production uses
+	// the wall clock; deterministic owner tests replace it before arming any
+	// follow-up so scheduling assertions never depend on host contention.
+	chatFollowUpWait func(context.Context, time.Time) bool
 
 	realmGroupCandidateMu          sync.RWMutex
 	realmGroupCandidateExecutor    RealmGroupMessageCandidateExecutor

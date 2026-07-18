@@ -46,7 +46,7 @@ const N6_BASELINE_REALM_TREE = '3516b4727cbb17602d276e02755aeb36811ed2f2';
 const N6_BASELINE_POLICY_DIGEST = '34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f';
 export const PERSISTENT_DATABASE = 'nimi_dev';
 export const DISPOSABLE_DATABASE_RE = /^nimi_realm_v3_n7_[0-9a-f]{32}$/u;
-export const STATE_DIRECTORY_RE = /^nimi-realm-v3-full-data-[0-9a-f]{16,64}$/u;
+export const STATE_DIRECTORY_RE = /^realm-v3-full-data-[0-9a-f]{16,64}$/u;
 export const STATE_SCHEMA = 'nimi.realm-v3-full-data-live-environment-state/v1';
 export const MARKER_SCHEMA = 'nimi.realm-v3-full-data-live-environment-marker/v1';
 export const ATTESTATION_SCHEMA = 'nimi.realm-v3-full-data-live-environment-attestation/v1';
@@ -56,7 +56,7 @@ export const EVIDENCE_RELATIVE_ROOT = path.join(
   '.nimi',
   'local',
   'acceptance',
-  '0717-nimi-realm-v3-consumer-hardcut',
+  '0717-realm-v3-consumer-hardcut',
   'N7',
 );
 export const CHILD_REGISTRATION_SCHEMA = 'nimi.realm-v3-full-data-live-child-registration/v1';
@@ -68,16 +68,18 @@ export const N6_FROZEN_EVIDENCE_RELATIVE_PATH = path.join(
   '.nimi',
   'local',
   'acceptance',
-  '0717-nimi-realm-v3-consumer-hardcut',
+  '0717-realm-v3-consumer-hardcut',
   'N6',
   'current-realm-live.json',
 );
 const SHA256_RE = /^[0-9a-f]{64}$/u;
 const SAFE_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u;
 const SAFE_EXECUTION_PARTITION_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}$/u;
-const REDIS_CONTAINER_RE = /^nimi-realm-v3-n7-redis-[0-9a-f]{32}$/u;
+const REDIS_CONTAINER_RE = /^realm-v3-n7-redis-[0-9a-f]{32}$/u;
 const MAX_CAPTURE_BYTES = 128 * 1024 * 1024;
 const TRUSTED_TOOL_NAMES = ['docker', 'git', 'go', 'pnpm', 'ps', 'tar'];
+const IS_WINDOWS = process.platform === 'win32';
+const HAS_POSIX_PERMISSION_BITS = !IS_WINDOWS && typeof process.getuid === 'function';
 const MODULE_NIMI_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FORBIDDEN_AMBIENT_CHILD_VARIABLES = [
   'NODE_OPTIONS',
@@ -247,7 +249,12 @@ export async function assertSafeStateDirectoryTarget(stateDirectory, repositoryR
   if (!isInside(temporaryRoot, canonical)) {
     fail('unsafe_state_directory', 'state-dir must be inside the operating-system temporary root');
   }
-  const forbidden = [path.resolve('/'), path.resolve(homedir()), ...repositoryRoots.map((entry) => path.resolve(entry))];
+  const canonicalHome = path.resolve(homedir());
+  const forbidden = [path.resolve('/'), ...repositoryRoots.map((entry) => path.resolve(entry))];
+  // On Windows the per-user OS temp directory is normally below the user
+  // profile. The already-enforced temp-root boundary is narrower than HOME,
+  // so rejecting every HOME descendant would reject the only admitted target.
+  if (!isInside(canonicalHome, temporaryRoot)) forbidden.push(canonicalHome);
   for (const root of forbidden) {
     if (canonical === root || (root !== path.parse(root).root && isInside(root, canonical))) {
       fail('unsafe_state_directory', `state-dir overlaps forbidden root ${root}`);
@@ -264,10 +271,12 @@ async function ensurePrivateDirectory(directory) {
   }
   const info = await lstat(directory);
   if (!info.isDirectory() || info.isSymbolicLink()) fail('unsafe_state_directory', 'state-dir is not a real directory');
-  if (typeof process.getuid === 'function' && info.uid !== process.getuid()) {
+  if (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid()) {
     fail('unsafe_state_directory', 'state-dir is not owned by the current uid');
   }
-  if ((info.mode & 0o777) !== 0o700) fail('unsafe_state_directory', 'state-dir mode must be exactly 0700');
+  if (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o777) !== 0o700) {
+    fail('unsafe_state_directory', 'state-dir mode must be exactly 0700');
+  }
   // Also repeat this on resume so a crash between mkdir and parent fsync is recoverable.
   await syncDirectory(path.dirname(directory));
 }
@@ -277,7 +286,7 @@ async function writePrivateJSON(filePath, value) {
   if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink()) {
     fail('unsafe_output', 'JSON output parent is not a real directory');
   }
-  if (typeof process.getuid === 'function' && parentInfo.uid !== process.getuid()) {
+  if (HAS_POSIX_PERMISSION_BITS && parentInfo.uid !== process.getuid()) {
     fail('unsafe_output', 'JSON output parent is not owned by the current uid');
   }
   if (await pathExists(filePath)) {
@@ -300,13 +309,16 @@ async function writePrivateJSON(filePath, value) {
 async function assertPrivateRegularFile(filePath, label) {
   const info = await lstat(filePath);
   if (!info.isFile() || info.isSymbolicLink()) fail('unsafe_output', `${label} is not a regular non-symlink file`);
-  if (typeof process.getuid === 'function' && info.uid !== process.getuid()) {
+  if (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid()) {
     fail('unsafe_output', `${label} is not owned by the current uid`);
   }
-  if ((info.mode & 0o777) !== 0o600) fail('unsafe_output', `${label} mode must be exactly 0600`);
+  if (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o777) !== 0o600) {
+    fail('unsafe_output', `${label} mode must be exactly 0600`);
+  }
 }
 
 async function syncDirectory(directory) {
+  if (IS_WINDOWS) return;
   const handle = await open(directory, 'r');
   try {
     await handle.sync();
@@ -568,11 +580,13 @@ async function captureTrustedFileIdentity(filePath, label, options = {}) {
     fail('wrapper_identity_invalid', `${label} must be a regular non-symlink file`);
   }
   const mode = info.mode & 0o777;
-  if ((mode & 0o022) !== 0) fail('wrapper_identity_invalid', `${label} is group/world writable`);
-  if (options.executable === true && (mode & 0o111) === 0) {
+  if (HAS_POSIX_PERMISSION_BITS && (mode & 0o022) !== 0) {
+    fail('wrapper_identity_invalid', `${label} is group/world writable`);
+  }
+  if (HAS_POSIX_PERMISSION_BITS && options.executable === true && (mode & 0o111) === 0) {
     fail('wrapper_identity_invalid', `${label} is not executable`);
   }
-  if (options.currentUID === true && typeof process.getuid === 'function' && info.uid !== process.getuid()) {
+  if (HAS_POSIX_PERMISSION_BITS && options.currentUID === true && info.uid !== process.getuid()) {
     fail('wrapper_identity_invalid', `${label} is not owned by the current uid`);
   }
   const sanitized = {

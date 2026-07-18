@@ -231,9 +231,33 @@ async function buildConversationHome() {
       workspaceKitSourceAliasPlugin(),
       workspaceKitCapabilitiesAliasPlugin(),
       workspaceSdkSourceAliasPlugin(),
+      zhiyuRuntimePlatformStubPlugin(),
     ],
   });
   return buildDir;
+}
+
+function zhiyuRuntimePlatformStubPlugin() {
+  return {
+    name: 'zhiyu-runtime-platform-stub',
+    setup(buildApi) {
+      buildApi.onResolve({ filter: /auth\/runtime-platform$/ }, () => ({
+        path: 'zhiyu-runtime-platform-stub',
+        namespace: 'zhiyu-runtime-platform-stub',
+      }));
+      buildApi.onLoad({ filter: /.*/, namespace: 'zhiyu-runtime-platform-stub' }, () => ({
+        loader: 'js',
+        contents: `
+          import { Runtime } from '@nimiplatform/sdk/runtime';
+          let runtime;
+          export function getZhiyuRuntime() {
+            runtime ??= new Runtime({ appId: 'nimi.zhiyu', transport: { type: 'test' } });
+            return runtime;
+          }
+        `,
+      }));
+    },
+  };
 }
 
 function workspaceKitSourceAliasPlugin() {

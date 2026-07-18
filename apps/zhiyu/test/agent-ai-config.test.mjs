@@ -314,6 +314,21 @@ function workspaceStubPlugin() {
   return {
     name: 'workspace-stub',
     setup(buildApi) {
+      buildApi.onResolve({ filter: /auth\/runtime-platform$/ }, () => ({
+        path: 'zhiyu-runtime-platform-stub',
+        namespace: 'zhiyu-runtime-platform-stub',
+      }));
+      buildApi.onLoad({ filter: /.*/, namespace: 'zhiyu-runtime-platform-stub' }, () => ({
+        loader: 'js',
+        contents: `
+          import { Runtime } from '@nimiplatform/sdk/runtime';
+          let runtime;
+          export function getZhiyuRuntime() {
+            runtime ??= new Runtime({ appId: 'nimi.zhiyu', transport: { type: 'test' } });
+            return runtime;
+          }
+        `,
+      }));
       buildApi.onResolve({ filter: /^@nimiplatform\/kit\/shell\/renderer\/bridge$/ }, () => ({
         path: 'workspace-kit-bridge-stub',
         namespace: 'workspace-kit-bridge-stub',

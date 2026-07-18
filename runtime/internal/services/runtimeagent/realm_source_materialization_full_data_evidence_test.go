@@ -179,7 +179,7 @@ func inflateRealmV3FullDataPacketV1(t *testing.T, request realmV3FullDataPartiti
 		gzipReader.Close()
 		t.Fatalf("derive captured Packet v3 wire budget: %v", err)
 	}
-	temporary, err := os.CreateTemp("", "nimi-realm-v3-full-packet-*.json")
+	temporary, err := os.CreateTemp("", "realm-v3-full-packet-*.json")
 	if err != nil {
 		gzipReader.Close()
 		t.Fatalf("create private Packet v3 staging: %v", err)

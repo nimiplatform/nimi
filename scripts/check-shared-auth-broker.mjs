@@ -231,9 +231,11 @@ function checkRuntimeBrokerTokenLeak() {
 function checkSdkLocalAppProtectedCarrier() {
   const client = read('sdks/typescript/core/app/local-app-runtime-platform.ts');
   const appIndex = read('sdks/typescript/core/app/index.ts');
+  const rootClient = read('sdks/typescript/root-client.ts');
   const realm = read('sdks/typescript/core/app/runtime-account-realm.ts');
-  requireMatch(client, /export function createNimiAppRuntimePlatformClient/u, 'local-app client constructor is missing');
-  requireMatch(client, /NimiAppRuntimePlatformStandardShell/u, 'local-app client does not require the typed standard shell');
+  requireMatch(client, /export function createNimiLocalAppClient/u, 'bounded local-app client builder is missing');
+  requireMatch(client, /NimiLocalAppStandardShell/u, 'local-app client does not require the typed standard shell');
+  requireMatch(rootClient, /createNimiClient[\s\S]*'localApp' in config[\s\S]*createNimiLocalAppClient/u, 'root NimiClient composition does not own the local-app branch');
   requireMatch(client, /session-bound/u, 'local-app client does not project the bound identity session');
   requireMatch(client, /createNimiAppRuntimeStorageClient/u, 'local-app client does not expose app-private base-entitlement storage');
   forbidMatch(client, /readRuntimeBytes|agentInventory|openConversation|transcribeVoice/u, 'local-app client exposes an unadmitted Artifact, Agent, conversation, or voice operation');
@@ -243,6 +245,7 @@ function checkSdkLocalAppProtectedCarrier() {
     /createRuntimeAccountMediatedRealmTransport|createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession|accountCaller|authMetadata|developerRegistration|readonly\s+trustClass/u,
     'local-app client exposes renderer-owned account, provenance, or Realm authority',
   );
+  forbidMatch(appIndex, /createNimiAppRuntimePlatformClient/u, 'SDK app subpath retains the retired platform-client constructor');
   forbidMatch(appIndex, /InstalledNimiApp|createInstalledNimiAppBootstrap|installed-app-bootstrap/u, 'SDK app export retains the retired installed-app carrier');
   if (existsSync(path.join(root, 'sdks/typescript/core/app/installed-app-bootstrap.ts'))) {
     fail('retired installed-app bootstrap source still exists');

@@ -7,6 +7,11 @@ import (
 
 type protectedCapabilityContextKey struct{}
 
+const (
+	ProtectedDesktopAppID               = "nimi.desktop"
+	ProtectedDesktopAuditReadCapability = "runtime.audit.desktop.read"
+)
+
 type protectedCapabilityContextValue struct {
 	appID      string
 	capability string

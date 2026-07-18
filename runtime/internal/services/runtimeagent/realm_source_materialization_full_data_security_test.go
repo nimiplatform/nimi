@@ -13,9 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -285,12 +285,12 @@ func TestRealmV3FullDataReceiptContentHashMatchesRunnerCanonicalDomain(t *testin
 func TestRealmV3FullDataRuntimeRootMarkerMatchesRunnerClosedContract(t *testing.T) {
 	domainFixture, err := realmV3FullDataCanonicalDomainHashV1(
 		realmV3FullDataRuntimeMarkerSchemaV1,
-		"/tmp/nimi-realm-v3-cross-contract",
+		"/tmp/realm-v3-cross-contract",
 	)
 	if err != nil {
 		t.Fatalf("hash fixed runner runtime root fixture: %v", err)
 	}
-	if want := "92bf6eb4ffe493b4a716899e551fe7cf2e48ed9bedeef5bba5af22edd19e8c5c"; domainFixture != want {
+	if want := "680c2b687e3ea3c9929b9749e8341ebb52d08f3abca6847720d71c4ebfb6b896"; domainFixture != want {
 		t.Fatalf("runtime root domain hash=%s, want Node runner fixture %s", domainFixture, want)
 	}
 
@@ -351,39 +351,41 @@ func TestRealmV3FullDataCustodyClearEnumeratesCrashTemps(t *testing.T) {
 		t.Fatalf("custody crash temp survived clear: %v", err)
 	}
 
-	unsafeTarget := filepath.Join(runtimeRoot, "unsafe-target")
-	if err := os.WriteFile(unsafeTarget, []byte("not custody"), 0o600); err != nil {
-		t.Fatalf("create custody symlink target: %v", err)
-	}
-	unsafeLink := custody.path + ".tmp-symlink"
-	if err := os.Symlink(unsafeTarget, unsafeLink); err != nil {
-		t.Fatalf("create simulated custody temp symlink: %v", err)
-	}
-	if _, err := custody.residue(); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
-		t.Fatalf("custody residue admitted a symlink temp: %v", err)
-	}
-	if err := custody.Clear(context.Background(), ""); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
-		t.Fatalf("custody clear admitted a symlink temp: %v", err)
-	}
-	if raw, err := os.ReadFile(unsafeTarget); err != nil || string(raw) != "not custody" {
-		t.Fatalf("custody rejection changed symlink target: raw=%q err=%v", raw, err)
-	}
-	if err := os.Remove(unsafeLink); err != nil {
-		t.Fatalf("remove simulated custody temp symlink: %v", err)
-	}
+	if runtime.GOOS != "windows" {
+		unsafeTarget := filepath.Join(runtimeRoot, "unsafe-target")
+		if err := os.WriteFile(unsafeTarget, []byte("not custody"), 0o600); err != nil {
+			t.Fatalf("create custody symlink target: %v", err)
+		}
+		unsafeLink := custody.path + ".tmp-symlink"
+		if err := os.Symlink(unsafeTarget, unsafeLink); err != nil {
+			t.Fatalf("create simulated custody temp symlink: %v", err)
+		}
+		if _, err := custody.residue(); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
+			t.Fatalf("custody residue admitted a symlink temp: %v", err)
+		}
+		if err := custody.Clear(context.Background(), ""); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
+			t.Fatalf("custody clear admitted a symlink temp: %v", err)
+		}
+		if raw, err := os.ReadFile(unsafeTarget); err != nil || string(raw) != "not custody" {
+			t.Fatalf("custody rejection changed symlink target: raw=%q err=%v", raw, err)
+		}
+		if err := os.Remove(unsafeLink); err != nil {
+			t.Fatalf("remove simulated custody temp symlink: %v", err)
+		}
 
-	unsafeMode := custody.path + ".tmp-unsafe-mode"
-	if err := os.WriteFile(unsafeMode, []byte("token"), 0o600); err != nil {
-		t.Fatalf("create simulated custody mode temp: %v", err)
-	}
-	if err := os.Chmod(unsafeMode, 0o640); err != nil {
-		t.Fatalf("weaken simulated custody temp mode: %v", err)
-	}
-	if _, err := custody.residue(); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
-		t.Fatalf("custody residue admitted an unsafe-mode temp: %v", err)
-	}
-	if err := custody.Clear(context.Background(), ""); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
-		t.Fatalf("custody clear admitted an unsafe-mode temp: %v", err)
+		unsafeMode := custody.path + ".tmp-unsafe-mode"
+		if err := os.WriteFile(unsafeMode, []byte("token"), 0o600); err != nil {
+			t.Fatalf("create simulated custody mode temp: %v", err)
+		}
+		if err := os.Chmod(unsafeMode, 0o640); err != nil {
+			t.Fatalf("weaken simulated custody temp mode: %v", err)
+		}
+		if _, err := custody.residue(); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
+			t.Fatalf("custody residue admitted an unsafe-mode temp: %v", err)
+		}
+		if err := custody.Clear(context.Background(), ""); !errors.Is(err, accountservice.ErrCustodyUnavailable) {
+			t.Fatalf("custody clear admitted an unsafe-mode temp: %v", err)
+		}
 	}
 }
 
@@ -616,30 +618,33 @@ func TestRealmV3FullDataPreparedJournalAndGenerationStateFailClosed(t *testing.T
 			t.Fatalf("write parent-synced private state: %v", err)
 		}
 		info, err := os.Lstat(target)
-		if err != nil || !info.Mode().IsRegular() || info.Mode().Perm() != 0o600 {
+		if err != nil || !info.Mode().IsRegular() ||
+			validateRealmV3FullDataPrivatePathOwnerV1(target, info, false) != nil {
 			t.Fatalf("parent-synced private state mode is invalid: info=%v err=%v", info, err)
 		}
 		if err := syncRealmV3FullDataParentDirectoryV1(filepath.Join(t.TempDir(), "missing", "state.json")); err == nil {
 			t.Fatal("parent directory sync silently admitted a missing directory")
 		}
-		permissive := filepath.Join(t.TempDir(), "permissive")
-		if err := os.Mkdir(permissive, 0o700); err != nil || os.Chmod(permissive, 0o755) != nil {
-			t.Fatalf("create permissive directory fixture: %v", err)
-		}
-		if err := writeRealmV3FullDataPrivateJSONAtomicV1(filepath.Join(permissive, "state.json"), map[string]bool{"closed": true}); err == nil {
-			t.Fatal("private state writer admitted a permissive parent directory")
-		}
-		symlinkRoot := t.TempDir()
-		realDirectory := filepath.Join(symlinkRoot, "real")
-		if err := os.Mkdir(realDirectory, 0o700); err != nil {
-			t.Fatalf("create symlink directory fixture: %v", err)
-		}
-		symlinkDirectory := filepath.Join(symlinkRoot, "link")
-		if err := os.Symlink(realDirectory, symlinkDirectory); err != nil {
-			t.Fatalf("create symlink directory fixture: %v", err)
-		}
-		if err := writeRealmV3FullDataPrivateJSONAtomicV1(filepath.Join(symlinkDirectory, "state.json"), map[string]bool{"closed": true}); err == nil {
-			t.Fatal("private state writer admitted a symlink parent directory")
+		if runtime.GOOS != "windows" {
+			permissive := filepath.Join(t.TempDir(), "permissive")
+			if err := os.Mkdir(permissive, 0o700); err != nil || os.Chmod(permissive, 0o755) != nil {
+				t.Fatalf("create permissive directory fixture: %v", err)
+			}
+			if err := writeRealmV3FullDataPrivateJSONAtomicV1(filepath.Join(permissive, "state.json"), map[string]bool{"closed": true}); err == nil {
+				t.Fatal("private state writer admitted a permissive parent directory")
+			}
+			symlinkRoot := t.TempDir()
+			realDirectory := filepath.Join(symlinkRoot, "real")
+			if err := os.Mkdir(realDirectory, 0o700); err != nil {
+				t.Fatalf("create symlink directory fixture: %v", err)
+			}
+			symlinkDirectory := filepath.Join(symlinkRoot, "link")
+			if err := os.Symlink(realDirectory, symlinkDirectory); err != nil {
+				t.Fatalf("create symlink directory fixture: %v", err)
+			}
+			if err := writeRealmV3FullDataPrivateJSONAtomicV1(filepath.Join(symlinkDirectory, "state.json"), map[string]bool{"closed": true}); err == nil {
+				t.Fatal("private state writer admitted a symlink parent directory")
+			}
 		}
 	})
 
@@ -691,15 +696,10 @@ func TestRealmV3FullDataPreparedJournalAndGenerationStateFailClosed(t *testing.T
 		if err != nil {
 			t.Fatalf("owner A acquire: %v", err)
 		}
-		infoA, err := ownerA.file.Stat()
+		identityA, err := realmV3FullDataFileIdentityPlatformV1(ownerA.file)
 		if err != nil {
 			_ = ownerA.release()
-			t.Fatalf("owner A lock stat: %v", err)
-		}
-		statA, ok := infoA.Sys().(*syscall.Stat_t)
-		if !ok {
-			_ = ownerA.release()
-			t.Fatal("owner A lock inode is unavailable")
+			t.Fatalf("owner A lock identity: %v", err)
 		}
 		if ownerB, err := tryAcquireRealmV3FullDataRuntimeRootOwnerV1(root); err == nil {
 			_ = ownerB.release()
@@ -718,13 +718,9 @@ func TestRealmV3FullDataPreparedJournalAndGenerationStateFailClosed(t *testing.T
 				t.Fatalf("owner C release: %v", err)
 			}
 		}()
-		infoC, err := ownerC.file.Stat()
-		if err != nil {
-			t.Fatalf("owner C lock stat: %v", err)
-		}
-		statC, ok := infoC.Sys().(*syscall.Stat_t)
-		if !ok || statA.Ino != statC.Ino {
-			t.Fatalf("owner lock inode changed across A/B/C: A=%d C=%d", statA.Ino, statC.Ino)
+		identityC, err := realmV3FullDataFileIdentityPlatformV1(ownerC.file)
+		if err != nil || identityA != identityC {
+			t.Fatalf("owner lock file identity changed across A/B/C: A=%s C=%s err=%v", identityA, identityC, err)
 		}
 		if _, err := os.Lstat(filepath.Join(root, realmV3FullDataRuntimeOwnerLockFileV1)); err != nil {
 			t.Fatalf("stable runtime-root lock inode was unlinked: %v", err)

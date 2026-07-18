@@ -2,8 +2,10 @@ import path from 'node:path';
 import { repoRoot } from './registry.mjs';
 
 const runtimeRoot = path.join(repoRoot, 'runtime');
-const realmRoot = path.resolve(repoRoot, '..');
-const realmBackendRoot = path.join(realmRoot, 'nimi-backend');
+const configuredRealmRoot = String(process.env.REALM_ROOT || '').trim();
+const realmRoot = configuredRealmRoot
+  ? path.resolve(configuredRealmRoot)
+  : path.join(repoRoot, '.external-realm-unconfigured');
 
 function runtimeStep(stepId, testNames, checkpointMarkers) {
   return {
@@ -32,7 +34,9 @@ function realmAccessStep() {
     command: 'pnpm',
     args: [
       '--dir',
-      realmBackendRoot,
+      realmRoot,
+      '--filter',
+      '@nimi/backend',
       'exec',
       'vitest',
       'run',

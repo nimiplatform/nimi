@@ -375,7 +375,6 @@ export {
   parseNimiDesktopOpenRendererRequest,
   parseNimiDesktopOpenResult,
   safeParseNimiDesktopOpenIntentEnvelope,
-  createNimiAppRuntimePlatformClient,
 } from '@nimiplatform/sdk/app';
 export type {
   ComposeNimiDesktopOpenIntentEnvelopeInput,

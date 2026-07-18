@@ -16,7 +16,7 @@ import {
 import { gunzipSync } from 'node:zlib';
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import YAML from 'yaml';
@@ -110,15 +110,26 @@ const SHA256_RE = /^[0-9a-f]{64}$/;
 const GIT_OBJECT_RE = /^[0-9a-f]{40}$/;
 const REASON_RE = /^[a-z][a-z0-9_]{1,95}$/;
 const SAFE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,511}$/;
-const RUNTIME_DATA_ROOT_RE = /^nimi-realm-v3-full-data-runtime-[0-9a-f]{16,64}$/u;
+const RUNTIME_DATA_ROOT_RE = /^realm-v3-full-data-runtime-[0-9a-f]{16,64}$/u;
+const IS_WINDOWS = process.platform === 'win32';
+const HAS_POSIX_PERMISSION_BITS = !IS_WINDOWS && typeof process.getuid === 'function';
 const CANONICAL_NODE_DIRECTORY = path.dirname(realpathSync(process.execPath));
+const CANONICAL_GIT_EXECUTABLE = (() => {
+  if (!IS_WINDOWS) return '/usr/bin/git';
+  const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+  const whereExecutable = path.join(systemRoot, 'System32', 'where.exe');
+  const [candidate] = execFileSync(whereExecutable, ['git'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).split(/\r?\n/u).map((entry) => entry.trim()).filter(Boolean);
+  if (!candidate) fail('git_unavailable', 'Git executable is unavailable');
+  return realpathSync(candidate);
+})();
 const CLOSED_EXECUTION_PATH = [
   CANONICAL_NODE_DIRECTORY,
-  '/usr/bin',
-  '/bin',
-  '/usr/sbin',
-  '/sbin',
-].join(':');
+  path.dirname(CANONICAL_GIT_EXECUTABLE),
+  ...(!IS_WINDOWS ? ['/usr/bin', '/bin', '/usr/sbin', '/sbin'] : []),
+].join(path.delimiter);
 
 const CONTRACT_EXACT_PATHS = Object.freeze([
   'config/realm-contract-lock.yaml',
@@ -280,11 +291,13 @@ async function writeJSONAtomic(filePath, value) {
     }
     await rename(temporary, filePath);
     await chmod(filePath, 0o600);
-    const committedHandle = await open(filePath, 'r');
-    try {
-      await committedHandle.sync();
-    } finally {
-      await committedHandle.close();
+    if (!IS_WINDOWS) {
+      const committedHandle = await open(filePath, 'r');
+      try {
+        await committedHandle.sync();
+      } finally {
+        await committedHandle.close();
+      }
     }
     await syncDirectory(path.dirname(filePath));
     committed = true;
@@ -294,6 +307,10 @@ async function writeJSONAtomic(filePath, value) {
 }
 
 async function syncDirectory(directory) {
+  // Win32 does not support opening a directory as a file handle for fsync.
+  // The file itself is synced before the atomic rename; POSIX additionally
+  // syncs the parent directory to make the directory entry durable.
+  if (IS_WINDOWS) return;
   const directoryHandle = await open(directory, 'r');
   try {
     await directoryHandle.sync();
@@ -327,8 +344,8 @@ async function loadOptionalPrivateEvidenceArtifact(filePath, label) {
   if (
     !info.isFile() ||
     info.isSymbolicLink() ||
-    (info.mode & 0o077) !== 0 ||
-    (typeof process.getuid === 'function' && info.uid !== process.getuid())
+    (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o077) !== 0) ||
+    (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid())
   ) {
     fail('invalid_evidence_path', `${label} must be a current-user private regular file`);
   }
@@ -361,7 +378,7 @@ function assertNoAmbientNodeInjection() {
 }
 
 function git(nimiRoot, args) {
-  return execFileSync('/usr/bin/git', ['-C', nimiRoot, ...args], {
+  return execFileSync(CANONICAL_GIT_EXECUTABLE, ['-C', nimiRoot, ...args], {
     encoding: 'utf8',
     env: closedExecutionEnvironment({
       HOME: '/var/empty',
@@ -373,7 +390,7 @@ function git(nimiRoot, args) {
 }
 
 function gitBuffer(nimiRoot, args) {
-  return execFileSync('/usr/bin/git', ['-C', nimiRoot, ...args], {
+  return execFileSync(CANONICAL_GIT_EXECUTABLE, ['-C', nimiRoot, ...args], {
     env: closedExecutionEnvironment({
       HOME: '/var/empty',
       GIT_CONFIG_NOSYSTEM: '1',
@@ -457,10 +474,10 @@ async function ensurePrivateEvidenceDirectory(evidenceDir) {
   if (!info.isDirectory() || info.isSymbolicLink()) {
     fail('unsafe_evidence_path', 'evidence-dir must be a regular directory');
   }
-  if (typeof process.getuid === 'function' && info.uid !== process.getuid()) {
+  if (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid()) {
     fail('unsafe_evidence_path', 'evidence-dir is not owned by the current user');
   }
-  if ((info.mode & 0o077) !== 0) {
+  if (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o077) !== 0) {
     fail('unsafe_evidence_path', 'evidence-dir permits group or other access');
   }
   if ((await realpath(evidenceDir)) !== path.resolve(evidenceDir)) {
@@ -486,7 +503,7 @@ function validateRuntimeDataRoot(nimiRoot, runtimeDataRoot, required) {
     fail('unsafe_runtime_data_root', `runtime-data-root parent is unavailable: ${error.message}`);
   }
   const canonical = path.join(canonicalParent, path.basename(resolved));
-  const home = realpathSync(path.resolve(process.env.HOME || '/nonexistent-home'));
+  const home = realpathSync(homedir());
   const repo = realpathSync(path.resolve(nimiRoot));
   const temporaryRoot = realpathSync(tmpdir());
   if (
@@ -504,7 +521,7 @@ function validateRuntimeDataRoot(nimiRoot, runtimeDataRoot, required) {
 }
 
 function runtimeRootMarkerPath(runtimeDataRoot) {
-  return path.join(runtimeDataRoot, '.nimi-realm-v3-full-data-runtime-root.json');
+  return path.join(runtimeDataRoot, '.realm-v3-full-data-runtime-root.json');
 }
 
 function liveEnvironmentDigestForRun(runLock) {
@@ -514,10 +531,10 @@ function liveEnvironmentDigestForRun(runLock) {
 }
 
 function assertPrivateCurrentUserPath(info, label) {
-  if (typeof process.getuid === 'function' && info.uid !== process.getuid()) {
+  if (HAS_POSIX_PERMISSION_BITS && info.uid !== process.getuid()) {
     fail('unsafe_runtime_data_root', `${label} is not owned by the current user`);
   }
-  if ((info.mode & 0o077) !== 0) {
+  if (HAS_POSIX_PERMISSION_BITS && (info.mode & 0o077) !== 0) {
     fail('unsafe_runtime_data_root', `${label} permits group or other access`);
   }
 }

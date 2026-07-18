@@ -17,6 +17,7 @@ import {
   type NimiAIConfig,
   type NimiAIProfile,
 } from '@nimiplatform/sdk/ai';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { restartRuntimeBridge } from './runtime-daemon';
 
 export type {
@@ -71,7 +72,7 @@ export async function selectProductDataRoot(dataRoot: string): Promise<NimiProdu
     const selected = await invokeChecked('product_control_record_select_data_root', {
       payload: { dataRoot },
     }, parseNimiProductControlRecordProjection);
-    if (selected.configMutation?.reasonCode === 'CONFIG_RESTART_REQUIRED') {
+    if (selected.configMutation?.reasonCode === ReasonCode.CONFIG_RESTART_REQUIRED) {
       await restartRuntimeBridge();
       return getProductControlRecord();
     }

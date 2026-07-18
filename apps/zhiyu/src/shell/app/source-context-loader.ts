@@ -1,6 +1,5 @@
 import {
   createNimiRuntimeAgentConsumeClient,
-  Runtime,
 } from '@nimiplatform/sdk/runtime';
 import {
   resolveZhiyuRuntimeAgentBindingDecisionFromHost,
@@ -8,6 +7,7 @@ import {
   withZhiyuRuntimeAgentBindingRequired,
 } from '../agent-chat/runtime-agent-binding';
 import { projectZhiyuRuntimeSourceProjection } from '../agent/source-projection';
+import { getZhiyuRuntime } from '../auth/runtime-platform';
 import type { ZhiyuEvidence } from './evidence';
 
 export async function loadZhiyuSourceContextProjection(identity: {
@@ -16,10 +16,7 @@ export async function loadZhiyuSourceContextProjection(identity: {
   readonly localAgentRef: string;
   readonly conversationAnchorId: string;
 }): Promise<ZhiyuEvidence['source']> {
-  const runtime = new Runtime({
-    appId: 'nimi.zhiyu',
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
   const consume = createNimiRuntimeAgentConsumeClient({
     runtime: { agents: runtime.agents, appMessages: runtime.appMessages },
     runtimeAppId: 'nimi.zhiyu',

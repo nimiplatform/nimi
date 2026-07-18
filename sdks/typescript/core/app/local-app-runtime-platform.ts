@@ -69,7 +69,7 @@ export type NimiAppPermissionStatus = PermissionStatus;
  * shell surface. It exposes session status, product permission status, and
  * app-private JSON storage. It is not a generic Runtime forwarding client.
  */
-export type NimiAppRuntimePlatformStandardShell = {
+export type NimiLocalAppStandardShell = {
   readonly session: {
     readonly status: () => Promise<unknown>;
   };
@@ -84,11 +84,11 @@ export type NimiAppRuntimePlatformStandardShell = {
   };
 };
 
-export type NimiAppRuntimePlatformClientInput = {
-  readonly standardShell: NimiAppRuntimePlatformStandardShell;
+export type NimiLocalAppClientInput = {
+  readonly standardShell: NimiLocalAppStandardShell;
 };
 
-export type NimiAppRuntimePlatformClient = {
+export type NimiLocalAppClient = {
   readonly auth: {
     readonly status: () => Promise<NimiAppAuthProjection>;
   };
@@ -106,9 +106,9 @@ export type NimiAppRuntimePlatformClient = {
   };
 };
 
-export function createNimiAppRuntimePlatformClient(
-  input: NimiAppRuntimePlatformClientInput,
-): NimiAppRuntimePlatformClient {
+export function createNimiLocalAppClient(
+  input: NimiLocalAppClientInput,
+): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
   assertExactKeys(standardShell, ['session', 'permission', 'storage'], 'local-app standardShell');

@@ -311,7 +311,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: volcengine
     default_endpoint: https://ark.cn-beijing.volces.com/api/v3
-    default_text_model: doubao-seed-2-0-pro-260215
+    default_text_model: doubao-seed-2-1-pro-260628
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

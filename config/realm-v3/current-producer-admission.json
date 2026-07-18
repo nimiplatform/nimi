@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "nimi.realm-current-producer-admission/v3",
-  "repository": "https://github.com/nimiplatform/nimi-realm.git",
+  "schemaVersion": "nimi.realm-current-producer-admission/v4",
+  "authorityId": "external-realm",
   "admittedCommit": "15d96300bf9c4b1305bb68818208682b10e0c7c0",
   "admittedTree": "0b743e2b5190a470a5e8685eac09a0a3221b41ee",
   "headPolicy": "identical_admitted_inputs",
@@ -26,7 +26,8 @@
       "sha256": "11bd40d34df7b2d1ec558794425540a8a9c37fbbc7ef9a946d28934c185af93b"
     },
     {
-      "path": "nimi-backend/libs/domains/world/src/source-materialization.service.ts",
+      "artifactId": "source-materialization-service",
+      "fileName": "source-materialization.service.ts",
       "sha256": "a8000f47420c24d9e730d9667889fa5bdfa85d808417a4db10fae902a58d1eae"
     },
     {
@@ -43,7 +44,8 @@
     }
   ],
   "openapi": {
-    "path": "nimi-backend/api-nimi.yaml",
+    "artifactId": "realm-openapi",
+    "fileName": "api-nimi.yaml",
     "sha256": "ebf90752f0033779231bbe87cacdca4b079f3c3c976ac5f429b092bc39c9145f",
     "fragmentSchemaVersion": "nimi.realm-openapi-source-materialization-fragment/v1",
     "fragmentSha256": "f699ba04ffd397d3c992d53416e8f197e561fe05e6d77ef84eba37ddd70fc0dc",

@@ -79,7 +79,7 @@ export function RuntimeLoadingScreen() {
             />
           </div>
 
-          <div className="mt-6 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,white)] bg-white/55 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg)] backdrop-blur-sm">
+          <div className="mt-6 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,white)] bg-[var(--nimi-surface-card)] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg)]">
             Nimi Runtime
           </div>
 

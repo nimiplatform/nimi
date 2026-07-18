@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   runtimeAgentLiveE2EChatScenarioPrompt,
   sendScenarioPrompt,
@@ -32,7 +33,7 @@ test('turn-media-recovery uses one product environment for all recovery checkpoi
     assert.equal(midstream.chat.state, 'completed');
     assert.equal(midstream.companion.diagnostics.runtimeProjectionEvents.some((event) =>
       event?.eventName === 'runtime.agent.turn.action_failed'
-      && event?.detail?.reasonCode === 'AI_OUTPUT_INVALID'
+      && event?.detail?.reasonCode === ReasonCode.AI_OUTPUT_INVALID
     ), true);
     checkpoints['midstream-failure-evidence'] = await captureCheckpoint(context, 'midstream-failure-evidence', { midstream });
 

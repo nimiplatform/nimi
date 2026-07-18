@@ -26,8 +26,14 @@ generated API input, or a consumer projection boundary.
 
 ## S-REALMAPI-002 Generated API Is The Consumer Floor
 
-`MUST`: Stable Realm API consumption must start from the generated Realm SDK
-core sourced from the configured Realm OpenAPI input.
+`MUST`: Stable Realm API consumption must start from a generated Realm carrier
+sourced from the configured Realm OpenAPI input. Public SDK consumption starts
+from the generated Realm SDK core. Runtime must not import `sdks/**`; its
+constructor-injected private `RealmMaterializationIssuer` therefore starts from
+the sibling generated Runtime-private carrier under `runtime/gen/realm/v1`.
+Both projections are emitted by the same SDK generator invocation from the same
+OpenAPI input. The closed private-operation inventory is owned by
+`tables/realm-private-operation-carriers.yaml`.
 
 `MUST NOT`: Consumers must not bypass generated Realm clients with app-local
 REST helpers, hand-authored endpoint strings, global OpenAPI singleton
@@ -43,6 +49,15 @@ component, hash-graph, current-JWKS, and detached-proof shapes. Source
 materialization has no app permission or grant carrier. SDK and apps must not
 introduce a handwritten materialization DTO, anonymous source payload, fixed
 audience, raw bundle DTO, or parallel packet decoder.
+
+Runtime's bounded streaming verifier may own Runtime-private semantic
+validation state, canonical hashing, cryptographic verification, capacity
+accounting, and atomic-commit projections. Those are enforcement semantics,
+not a second Realm transport contract. It must consume generated operation and
+request carriers, and generated OpenAPI closure metadata must gate every
+accepted packet field family. Runtime must not hand-author a Realm path,
+request DTO, alternate response field, compatibility decoder, or public packet
+adapter.
 
 ## S-REALMAPI-003 SDK Owns Consumer Semantics Only
 
@@ -116,6 +131,7 @@ Forbidden under `.nimi/spec/realm/**`:
 ## Traceability
 
 - `.nimi/spec/sdks/kernel/realm-core-contract.md`
+- `.nimi/spec/sdks/kernel/tables/realm-private-operation-carriers.yaml`
 - `.nimi/spec/sdks/kernel/realm-contract.md`
 - `.nimi/spec/sdks/kernel/boundary-contract.md`
 - `sdks/typescript/core-generated/realm-client.ts`

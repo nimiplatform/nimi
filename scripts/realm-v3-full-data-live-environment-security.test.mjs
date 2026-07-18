@@ -105,7 +105,7 @@ test('census SQL fixes pg_catalog search_path/role and schema-qualifies all prod
 });
 
 test('write boundary detects same-path tracked content and untracked content/mode mutation', async () => {
-  const repository = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-boundary-'));
+  const repository = await mkdtemp(path.join(tmpdir(), 'realm-v3-boundary-'));
   try {
     execFileSync('git', ['init', '-q', repository]);
     execFileSync('git', ['-C', repository, 'config', 'user.name', 'N7 Fixture']);
@@ -127,14 +127,16 @@ test('write boundary detects same-path tracked content and untracked content/mod
     await chmod(path.join(repository, 'untracked.txt'), 0o644);
     const modeChanged = await __test.captureRepositoryBoundary(repository, 'fixture');
     assert.equal(contentChanged.statusDigest, modeChanged.statusDigest);
-    assert.notEqual(contentChanged.untrackedPathContentModeDigest, modeChanged.untrackedPathContentModeDigest);
+    if (process.platform !== 'win32') {
+      assert.notEqual(contentChanged.untrackedPathContentModeDigest, modeChanged.untrackedPathContentModeDigest);
+    }
   } finally {
     await rm(repository, { recursive: true, force: true });
   }
 });
 
 test('closed child registration binds CLI, module closure, census, native, Node, and tool identities', async () => {
-  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'nimi-realm-v3-wrapper-trust-'));
+  const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'realm-v3-wrapper-trust-'));
   try {
     const nimiRoot = path.join(fixtureRoot, 'nimi');
     const scripts = path.join(nimiRoot, 'scripts');
@@ -183,7 +185,7 @@ test('closed child registration binds CLI, module closure, census, native, Node,
 
     const initial = await __test.captureWrapperTrust(nimiRoot, registrationPath);
     assert.equal(initial.registration.children.length, 2);
-    assert.doesNotMatch(canonicalJSONStringify(initial.sanitized), new RegExp(fixtureRoot, 'u'));
+    assert.equal(canonicalJSONStringify(initial.sanitized).includes(fixtureRoot), false);
 
     await writeFile(cli, `${cliSource}// drift\n`);
     const cliDrift = await __test.captureWrapperTrust(nimiRoot, registrationPath);
@@ -220,11 +222,13 @@ test('closed child registration binds CLI, module closure, census, native, Node,
       /canonical Node executable/u,
     );
 
-    await chmod(native, 0o722);
-    await assert.rejects(
-      () => __test.captureWrapperTrust(nimiRoot, registrationPath),
-      /group\/world writable/u,
-    );
+    if (process.platform !== 'win32') {
+      await chmod(native, 0o722);
+      await assert.rejects(
+        () => __test.captureWrapperTrust(nimiRoot, registrationPath),
+        /group\/world writable/u,
+      );
+    }
 
     const libraryFixture = path.join(fixtureRoot, 'library.mjs');
     await writeFile(libraryFixture, '// library one\n', { mode: 0o600 });
@@ -385,13 +389,14 @@ test('ambient injection is rejected and helper/API/census tools use the attested
 });
 
 test('offline pnpm store is parsed only from absolute dependency .modules.yaml authority', () => {
+  const absoluteStore = path.resolve(path.parse(process.cwd()).root, 'absolute', 'pnpm', 'store');
   assert.equal(
-    __test.parseOfflineStoreDirectory('{"storeDir":"/absolute/pnpm/store"}'),
-    '/absolute/pnpm/store',
+    __test.parseOfflineStoreDirectory(JSON.stringify({ storeDir: absoluteStore })),
+    absoluteStore,
   );
   assert.equal(
-    __test.parseOfflineStoreDirectory("storeDir: '/absolute/yaml/store'\n"),
-    '/absolute/yaml/store',
+    __test.parseOfflineStoreDirectory(`storeDir: '${absoluteStore}'\n`),
+    absoluteStore,
   );
   assert.throws(
     () => __test.parseOfflineStoreDirectory('storeDir: relative/store\n'),

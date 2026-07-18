@@ -26,11 +26,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if flags.NArg() != 0 {
-		fmt.Fprintln(stderr, "runtime:realm-v3:reset does not accept positional arguments")
+		_, _ = fmt.Fprintln(stderr, "runtime:realm-v3:reset does not accept positional arguments")
 		return 2
 	}
 	if strings.TrimSpace(*dataRoot) == "" {
-		fmt.Fprintln(stderr, "runtime:realm-v3:reset requires --data-root")
+		_, _ = fmt.Fprintln(stderr, "runtime:realm-v3:reset requires --data-root")
 		return 2
 	}
 	report, err := runtimepersistence.ResetRealmSourceMaterializationV3(context.Background(), runtimepersistence.RealmSourceMaterializationResetOptions{
@@ -39,13 +39,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 		Confirmation: *confirmation,
 	})
 	if err != nil {
-		fmt.Fprintf(stderr, "runtime:realm-v3:reset failed: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "runtime:realm-v3:reset failed: %v\n", err)
 		return 1
 	}
 	encoder := json.NewEncoder(stdout)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(report); err != nil {
-		fmt.Fprintf(stderr, "runtime:realm-v3:reset encode report: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "runtime:realm-v3:reset encode report: %v\n", err)
 		return 1
 	}
 	return 0

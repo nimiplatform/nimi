@@ -158,6 +158,54 @@ func waitForPublicChatAgentIdle(t *testing.T, svc *Service, agentID string) {
 	}
 	t.Fatalf("timed out waiting for agent %s to return to idle", agentID)
 }
+
+type publicChatFollowUpGate struct {
+	due chan struct{}
+}
+
+func installPublicChatFollowUpGate(t *testing.T, svc *Service) *publicChatFollowUpGate {
+	t.Helper()
+	gate := &publicChatFollowUpGate{due: make(chan struct{}, 1)}
+	svc.chatSurfaceMu.Lock()
+	if svc.chatFollowUpWait != nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatal("public chat follow-up wait boundary already installed")
+	}
+	svc.chatFollowUpWait = func(ctx context.Context, _ time.Time) bool {
+		select {
+		case <-gate.due:
+			return true
+		case <-ctx.Done():
+			return false
+		}
+	}
+	svc.chatSurfaceMu.Unlock()
+	return gate
+}
+
+func (g *publicChatFollowUpGate) release(t *testing.T) {
+	t.Helper()
+	select {
+	case g.due <- struct{}{}:
+	default:
+		t.Fatal("public chat follow-up gate already released")
+	}
+}
+
+func waitForPublicChatAsyncDrain(t *testing.T, svc *Service) {
+	t.Helper()
+	done := make(chan struct{})
+	go func() {
+		svc.chatAsyncWG.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for public chat async work to drain")
+	}
+}
+
 func publicChatStructuredEnvelopeAPML(messageID string, text string) string {
 	return fmt.Sprintf(`<message id="%s">%s</message>`,
 		messageID,

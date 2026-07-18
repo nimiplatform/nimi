@@ -93,7 +93,7 @@ type localDevelopmentLaunchRow struct {
 	ExpectedHostDigest               protectedlocal.Identifier
 }
 
-const localDevelopmentLaunchSelect = `SELECT launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind, account_id, account_generation, capability_fingerprint,
+const localDevelopmentLaunchSelect = `SELECT launch_id, authorization_id, supervisor_run_id, app_id, project_root, app_manifest_path, shell_kind, account_id, account_generation, capability_fingerprint,
 	local_app_principal_id, local_app_record_id, provenance_revision, project_generation, payload_digest, expected_host_digest,
 	host_executable_path, renderer_origin, runtime_boot_epoch, status, expires_unix_nano, bind_deadline_unix_nano, process_json FROM local_development_launch WHERE launch_id = ?`
 
@@ -129,8 +129,8 @@ func (store *localDevelopmentStore) PrepareLaunch(ctx context.Context, request l
 	if err != nil {
 		return localDevelopmentLaunchTicket{}, err
 	}
-	defer tx.Rollback()
-	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, request.AuthorizationID[:]))
+	defer func() { _ = tx.Rollback() }()
+	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, request.AuthorizationID[:]))
 	if err != nil || authorization.State != localDevelopmentAuthorizationActive {
 		return localDevelopmentLaunchTicket{}, errLocalDevelopmentAuthorization
 	}
@@ -147,7 +147,7 @@ func (store *localDevelopmentStore) PrepareLaunch(ctx context.Context, request l
 		return localDevelopmentLaunchTicket{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO local_development_launch(
-		launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind,
+		launch_id, authorization_id, supervisor_run_id, app_id, project_root, app_manifest_path, shell_kind,
 		account_id, account_generation, capability_fingerprint,
 		local_app_principal_id, local_app_record_id, provenance_revision, project_generation, payload_digest, expected_host_digest,
 		host_executable_path, renderer_origin,
@@ -177,7 +177,7 @@ func (store *localDevelopmentStore) BindLaunch(ctx context.Context, launchID pro
 	if err != nil {
 		return time.Time{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	row, err := scanLocalDevelopmentLaunch(tx.QueryRowContext(ctx, localDevelopmentLaunchSelect, launchID[:]))
 	if err != nil {
 		return time.Time{}, errLocalDevelopmentLaunchMismatch
@@ -213,7 +213,7 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 	if err != nil {
 		return localDevelopmentSessionProjection{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	row, err := scanLocalDevelopmentLaunch(tx.QueryRowContext(ctx, localDevelopmentLaunchSelect, launchID[:]))
 	if err != nil {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentLaunchMismatch
@@ -225,7 +225,7 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 	if row.Process != process {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentLaunchMismatch
 	}
-	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, row.AuthorizationID[:]))
+	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, row.AuthorizationID[:]))
 	if err != nil || authorization.State != localDevelopmentAuthorizationActive || authorization.Project.AppID != row.AppID || authorization.Project.ProjectRoot != row.ProjectRoot || authorization.Project.PermissionRequirementFingerprint != row.PermissionRequirementFingerprint || authorization.Project.AccountID != row.AccountID ||
 		(authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != row.SupervisorRunID) {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentAuthorization
@@ -346,7 +346,7 @@ func (store *localDevelopmentStore) ValidateSession(ctx context.Context, binding
 	if err != nil || process != binding.Process {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentProcessMismatch
 	}
-	authorization, err := scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, parsedAuthorizationID[:]))
+	authorization, err := scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, parsedAuthorizationID[:]))
 	if err != nil || authorization.State != localDevelopmentAuthorizationActive || authorization.Project.AppID != appID || authorization.Project.ProjectRoot != projectRoot || authorization.Project.AccountID != accountID || authorization.Project.PermissionRequirementFingerprint != parsedFingerprint ||
 		(authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != parsedRunID) {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentSessionRevoked
@@ -387,7 +387,7 @@ func (store *localDevelopmentStore) RenewSession(ctx context.Context, binding lo
 	if err != nil {
 		return localDevelopmentSessionProjection{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var revokedAt sql.NullInt64
 	var expiresAt int64
 	if err := tx.QueryRowContext(ctx, `SELECT expires_unix_nano, revoked_unix_nano FROM local_development_session WHERE session_id = ?`, binding.SessionID[:]).Scan(&expiresAt, &revokedAt); err != nil || revokedAt.Valid || !store.now().UTC().Before(time.Unix(0, expiresAt).UTC()) {
@@ -450,8 +450,8 @@ func (store *localDevelopmentStore) EndRun(ctx context.Context, authorizationID 
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
-	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
+	defer func() { _ = tx.Rollback() }()
+	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
 	if err != nil || authorization.State != localDevelopmentAuthorizationActive || (authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != runID) {
 		return errLocalDevelopmentAuthorization
 	}

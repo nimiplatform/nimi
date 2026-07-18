@@ -14,7 +14,7 @@ import {
   writeOwnedProcessTerminal,
 } from './fresh-prepared-electron-runner.mjs';
 
-const repo = 'D:\\nimi-realm\\nimi';
+const repo = 'D:\\workspace\\nimi';
 
 test('fresh-prepared process checkpoint identifies stale Desktop and Zhiyu carriers', () => {
   const rows = [

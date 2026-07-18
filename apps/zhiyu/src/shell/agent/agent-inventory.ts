@@ -1,12 +1,11 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createNimiRuntimeAgentClient,
-  Runtime,
   type NimiRuntimeAgentDiscoveredLocalAgent,
 } from '@nimiplatform/sdk/runtime';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { appId } from '../auth/runtime-platform';
+import { appId, getZhiyuRuntime } from '../auth/runtime-platform';
 
 export type ZhiyuRuntimeAgentInventoryStatus = ZhiyuEvidence['inventory'];
 export type ZhiyuRuntimeAccountStatus = ZhiyuEvidence['auth'];
@@ -32,10 +31,7 @@ export async function probeZhiyuRuntimeAgentInventory(
     });
   }
 
-  const runtime = new Runtime({
-    appId,
-    transport: { type: 'electron-ipc' },
-  });
+  const runtime = getZhiyuRuntime();
   const client = createNimiRuntimeAgentClient({
     runtime,
     appId,

@@ -12,12 +12,12 @@ const electronMainSource = readFileSync(new URL('../src-electron/main.ts', impor
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 
 test('generated app uses one typed local-app carrier for Electron and Tauri development', () => {
-  assert.match(authSource, /getNimiAppRuntimePlatformClient/);
+  assert.match(authSource, /getNimiLocalAppClient/);
   assert.match(authSource, /\.auth\.status\(\)/);
   assert.match(authSource, /status\.state !== 'session-bound'/);
   assert.match(authSource, /'local-app'/);
-  assert.doesNotMatch(authSource, /DeveloperRegistered|developerRegistration|AppSessionMetadataProvider|createNimiClient/);
-  assert.match(localAppClientSource, /createNimiAppRuntimePlatformClient/);
+  assert.doesNotMatch(authSource, /DeveloperRegistered|developerRegistration|AppSessionMetadataProvider/);
+  assert.match(localAppClientSource, /createNimiClient/);
   assert.match(localAppClientSource, /createNimiLocalAppStandardShellSurface/);
   assert.doesNotMatch(localAppClientSource, /InstalledNimiApp|bootstrapArtifact|trustClass/);
   assert.match(authGateSource, /projection\.status !== 'ready'/);

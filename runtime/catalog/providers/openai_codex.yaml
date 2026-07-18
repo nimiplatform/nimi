@@ -1,6 +1,6 @@
 version: 1
 provider: openai_codex
-catalog_version: 2026-04-23-openai-codex-subscription-wave1
+catalog_version: 2026-07-18-openai-codex-selection-review
 inventory_mode: static_source
 default_text_model: gpt-5.4
 models:
@@ -75,13 +75,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: gpt-5.4
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-18
     freshness_sla_days: 14
     rationale: Codex-backed default text route for general subscription-backed consume.
   - provider: openai_codex
     profile_id: image.general
     capability: image.generate
     model_id: gpt-image-2
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-18
     freshness_sla_days: 14
     rationale: Current Codex-backed image generation route.

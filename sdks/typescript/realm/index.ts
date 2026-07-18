@@ -60,14 +60,9 @@ export const REALM_ACCOUNT_METHODS = [
   'updateMySettings',
 ] as const satisfies readonly RealmTypedMethodName[];
 
-const REALM_PRIVATE_GENERATED_METHODS = [
-  'getSourceMaterializationJwks',
-  'worldCoreControllerCreateSourceMaterializationPacket',
-] as const satisfies readonly RealmTypedMethodName[];
-
-type RealmPublicGeneratedBlockedMethod = (typeof REALM_PRIVATE_GENERATED_METHODS)[number];
-
-export type RealmPublicGeneratedClient = Omit<RealmTypedClient, RealmPublicGeneratedBlockedMethod>;
+export type RealmPublicGeneratedClient = Readonly<{
+  [Key in RealmTypedMethodName]: RealmTypedClient[Key];
+}>;
 
 export const REALM_SOCIAL_METHODS = [
   'addFriend',
@@ -267,10 +262,9 @@ function bindRealmModule<Keys extends readonly RealmTypedMethodName[]>(
 }
 
 function createPublicRealmGeneratedClient(generated: RealmTypedClient): RealmPublicGeneratedClient {
-  const blocked = new Set<string>(REALM_PRIVATE_GENERATED_METHODS);
   const publicClient = Object.create(null) as Record<string, unknown>;
   for (const key of Object.getOwnPropertyNames(RealmTypedClient.prototype)) {
-    if (key === 'constructor' || blocked.has(key)) {
+    if (key === 'constructor') {
       continue;
     }
     const value = generated[key as RealmTypedMethodName];

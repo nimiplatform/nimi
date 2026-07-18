@@ -481,12 +481,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/resources/{resourceId}"
   },
   {
-    "operationId": "getSourceMaterializationJwks",
-    "service": "Jwks",
-    "method": "GET",
-    "path": "/api/auth/jwks/source-materialization"
-  },
-  {
     "operationId": "getUnreadCount",
     "service": "Notifications",
     "method": "GET",
@@ -1019,12 +1013,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Realm Core",
     "method": "POST",
     "path": "/api/realm/core/persona-characters"
-  },
-  {
-    "operationId": "WorldCoreController_createSourceMaterializationPacket",
-    "service": "Realm Core",
-    "method": "POST",
-    "path": "/api/realm/core/source-materialization-packets"
   },
   {
     "operationId": "WorldCoreController_createWorldCharacter",

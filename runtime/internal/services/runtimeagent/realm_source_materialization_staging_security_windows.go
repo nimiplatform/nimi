@@ -87,7 +87,7 @@ func openRealmSourceMaterializationPrivateFileV3(path string) (*os.File, error) 
 	}
 	file := os.NewFile(uintptr(handle), path)
 	if file == nil {
-		windows.CloseHandle(handle)
+		_ = windows.CloseHandle(handle)
 		return nil, fmt.Errorf("wrap private Packet staging handle")
 	}
 	if err := validateRealmSourceMaterializationPrivateHandleV3(handle, false); err != nil {
@@ -119,7 +119,7 @@ func validateRealmSourceMaterializationPrivatePathV3(path string, directory bool
 	if err != nil {
 		return err
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 	return validateRealmSourceMaterializationPrivateHandleV3(handle, directory)
 }
 

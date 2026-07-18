@@ -462,7 +462,7 @@ try {
       fail('negative first-party authority mutation was not rejected by the owner gate');
     }
     mutations.push({
-      mutation: `replace first-party Realm source authority with third-party permission in ${files.materialization}`,
+      mutation: `replace first-party Realm issuance authority with third-party permission in ${files.materialization}`,
       rejected: true,
       rejectedReason,
     });

@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   ProductControlWorkflow,
@@ -286,7 +287,7 @@ test('data-root selection consumes Runtime restart disposition through the typed
     path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
     'utf8',
   );
-  assert.match(bridgeSource, /selected\.configMutation\?\.reasonCode === 'CONFIG_RESTART_REQUIRED'/);
+  assert.match(bridgeSource, new RegExp(`selected\\.configMutation\\?\\.reasonCode === ReasonCode\\.${ReasonCode.CONFIG_RESTART_REQUIRED}`));
   assert.match(bridgeSource, /await restartRuntimeBridge\(\)/);
   assert.match(bridgeSource, /return getProductControlRecord\(\)/);
   assert.doesNotMatch(bridgeSource, /Stop-Service|Start-Service|WriteFile|runtimeConfigPath/);

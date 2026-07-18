@@ -238,7 +238,7 @@ func localDevelopmentFileDigest(path string) (protectedlocal.Identifier, error) 
 	if err != nil {
 		return protectedlocal.Identifier{}, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return protectedlocal.Identifier{}, err

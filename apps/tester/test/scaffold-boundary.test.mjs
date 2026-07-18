@@ -17,11 +17,11 @@ const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf
 test('auth glue exposes only the final local-app projection', () => {
   assert.match(authSource, /'local-app'/);
   assert.match(authSource, /runtimeAccountLoginEnabled = false/);
-  assert.match(authSource, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
+  assert.match(authSource, /testerLocalAppClient\.auth\.status\(\)/);
   assert.match(authSource, /status\.sessionBound/);
-  assert.match(localAppPlatformSource, /createNimiAppRuntimePlatformClient/);
+  assert.match(localAppPlatformSource, /createNimiClient/);
   assert.match(localAppPlatformSource, /createNimiLocalAppStandardShellSurface/);
-  assert.doesNotMatch(authSource, /createNimiClient|new Runtime|new Realm/);
+  assert.doesNotMatch(authSource, /new Runtime|new Realm/);
   assert.doesNotMatch(authSource, /readonly client:|readonly auth:/);
   assert.doesNotMatch(authSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
   assert.doesNotMatch(authSource, /getRuntimeAccountCaller|getRuntimeNimiClient|getRuntimeSubjectUserId/);

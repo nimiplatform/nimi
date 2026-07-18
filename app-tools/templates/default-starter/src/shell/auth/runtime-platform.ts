@@ -1,6 +1,6 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { appId } from './app-identity.js';
-import { getNimiAppRuntimePlatformClient } from './local-app-client.js';
+import { getNimiLocalAppClient } from './local-app-client.js';
 
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 
@@ -42,7 +42,7 @@ export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjectio
 
 async function resolveAppHostProjection(): Promise<RuntimePlatformProjection> {
   try {
-    const status = await getNimiAppRuntimePlatformClient().auth.status();
+    const status = await getNimiLocalAppClient().auth.status();
     if (!status.sessionBound) {
       return {
         status: status.state === 'unavailable' ? 'unavailable' : 'action-required',

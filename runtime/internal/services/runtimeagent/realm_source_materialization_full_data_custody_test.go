@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -47,7 +46,8 @@ func (custody *realmV3FullDataSharedAccountCustodyV1) Load(_ context.Context, _ 
 	if errors.Is(err, os.ErrNotExist) {
 		return accountservice.AccountMaterial{}, accountservice.ErrNoStoredAccount
 	}
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o077 != 0 {
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 ||
+		validateRealmV3FullDataPrivatePathOwnerV1(custody.path, info, false) != nil {
 		return accountservice.AccountMaterial{}, accountservice.ErrCustodyUnavailable
 	}
 	raw, err := os.ReadFile(custody.path)
@@ -118,6 +118,10 @@ func (custody *realmV3FullDataSharedAccountCustodyV1) Store(_ context.Context, _
 	if err := os.Chmod(custody.path, 0o600); err != nil {
 		return accountservice.ErrCustodyUnavailable
 	}
+	info, err := os.Lstat(custody.path)
+	if err != nil || validateRealmV3FullDataPrivatePathOwnerV1(custody.path, info, false) != nil {
+		return accountservice.ErrCustodyUnavailable
+	}
 	if err := syncRealmV3FullDataParentDirectoryV1(custody.path); err != nil {
 		return accountservice.ErrCustodyUnavailable
 	}
@@ -177,11 +181,8 @@ func (custody *realmV3FullDataSharedAccountCustodyV1) ownedResiduePathsLocked() 
 		}
 		target := filepath.Join(directory, name)
 		info, err := os.Lstat(target)
-		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm() != 0o600 {
-			return nil, accountservice.ErrCustodyUnavailable
-		}
-		stat, ok := info.Sys().(*syscall.Stat_t)
-		if !ok || int(stat.Uid) != os.Geteuid() {
+		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 ||
+			validateRealmV3FullDataPrivatePathOwnerV1(target, info, false) != nil {
 			return nil, accountservice.ErrCustodyUnavailable
 		}
 		paths = append(paths, target)

@@ -1,6 +1,6 @@
 import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
-import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
+import { zhiyuLocalAppClient } from '../local-development/local-app-runtime-platform';
 
 export type ZhiyuAgentConversationAnchorBinding = {
   ownerUserId: string;
@@ -52,7 +52,7 @@ export async function hydrateZhiyuAgentConversationAnchorBindingsFromStorage(): 
   storageHydration = (async () => {
     let stored: unknown;
     try {
-      stored = (await zhiyuLocalAppRuntimePlatform.storage.readJson(STORAGE_PATH)).value;
+      stored = (await zhiyuLocalAppClient.storage.readJson(STORAGE_PATH)).value;
     } catch (error) {
       if (isShellStorageNotFound(error)) {
         storageHydrated = true;
@@ -75,7 +75,7 @@ export async function hydrateZhiyuAgentConversationAnchorBindingsFromStorage(): 
 }
 
 export async function persistZhiyuAgentConversationAnchorBindingsToStorage(): Promise<void> {
-  await zhiyuLocalAppRuntimePlatform.storage.writeJson(STORAGE_PATH, encodeStoredBindings());
+  await zhiyuLocalAppClient.storage.writeJson(STORAGE_PATH, encodeStoredBindings());
 }
 
 export function clearZhiyuAgentConversationAnchorBinding(

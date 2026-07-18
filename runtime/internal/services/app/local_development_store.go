@@ -126,7 +126,7 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			evaluation_id BLOB PRIMARY KEY CHECK(length(evaluation_id) = 32),
 			supervisor_run_id BLOB NOT NULL CHECK(length(supervisor_run_id) = 32),
 			app_id TEXT NOT NULL, display_name TEXT NOT NULL, project_root TEXT NOT NULL,
-			manifest_path TEXT NOT NULL, shell_kind INTEGER NOT NULL,
+			app_manifest_path TEXT NOT NULL, shell_kind INTEGER NOT NULL,
 			account_id TEXT NOT NULL, account_generation INTEGER NOT NULL CHECK(account_generation > 0),
 			capabilities_json TEXT NOT NULL, capability_fingerprint BLOB NOT NULL CHECK(length(capability_fingerprint) = 32),
 			state TEXT NOT NULL CHECK(state IN ('pending','consumed','denied','expired')),
@@ -136,7 +136,7 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			authorization_id BLOB PRIMARY KEY CHECK(length(authorization_id) = 32),
 			supervisor_run_id BLOB NOT NULL CHECK(length(supervisor_run_id) = 32),
 			app_id TEXT NOT NULL, display_name TEXT NOT NULL, project_root TEXT NOT NULL,
-			manifest_path TEXT NOT NULL, shell_kind INTEGER NOT NULL,
+			app_manifest_path TEXT NOT NULL, shell_kind INTEGER NOT NULL,
 			account_id TEXT NOT NULL, approved_account_generation INTEGER NOT NULL CHECK(approved_account_generation > 0),
 			capabilities_json TEXT NOT NULL, capability_fingerprint BLOB NOT NULL CHECK(length(capability_fingerprint) = 32),
 			decision INTEGER NOT NULL, state TEXT NOT NULL CHECK(state IN ('active','dormant','denied','revoked')),
@@ -154,7 +154,7 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			launch_id BLOB PRIMARY KEY CHECK(length(launch_id) = 32),
 			authorization_id BLOB NOT NULL REFERENCES local_development_authorization(authorization_id),
 			supervisor_run_id BLOB NOT NULL CHECK(length(supervisor_run_id) = 32),
-			app_id TEXT NOT NULL, project_root TEXT NOT NULL, manifest_path TEXT NOT NULL,
+			app_id TEXT NOT NULL, project_root TEXT NOT NULL, app_manifest_path TEXT NOT NULL,
 			shell_kind INTEGER NOT NULL, account_id TEXT NOT NULL,
 			account_generation INTEGER NOT NULL CHECK(account_generation > 0),
 			capability_fingerprint BLOB NOT NULL CHECK(length(capability_fingerprint) = 32),
@@ -243,7 +243,7 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 		return localDevelopmentEvaluation{}, err
 	}
 	if _, err := store.db.ExecContext(ctx, `INSERT INTO local_development_evaluation(
-		evaluation_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind,
+		evaluation_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind,
 		account_id, account_generation, capabilities_json, capability_fingerprint, state, issued_unix_nano, expires_unix_nano
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
 		evaluationID[:], runID[:], project.AppID, project.DisplayName, project.ProjectRoot, project.ManifestPath, int32(project.ShellKind),
@@ -270,8 +270,8 @@ func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID pro
 	if err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
-	defer tx.Rollback()
-	evaluation, state, err := scanLocalDevelopmentEvaluation(tx.QueryRowContext(ctx, `SELECT supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, account_generation, capabilities_json, capability_fingerprint, state, expires_unix_nano FROM local_development_evaluation WHERE evaluation_id = ?`, evaluationID[:]))
+	defer func() { _ = tx.Rollback() }()
+	evaluation, state, err := scanLocalDevelopmentEvaluation(tx.QueryRowContext(ctx, `SELECT supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, account_generation, capabilities_json, capability_fingerprint, state, expires_unix_nano FROM local_development_evaluation WHERE evaluation_id = ?`, evaluationID[:]))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return localDevelopmentAuthorization{}, errLocalDevelopmentEvaluationExpired
@@ -314,7 +314,7 @@ func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID pro
 	}
 	permissionRequirements, _ := json.Marshal(evaluation.Project.PermissionRequirements)
 	if _, err := tx.ExecContext(ctx, `INSERT INTO local_development_authorization(
-		authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind,
+		authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind,
 		account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state,
 		authorization_generation, approved_unix_nano, updated_unix_nano
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -338,11 +338,11 @@ func (store *localDevelopmentStore) List(ctx context.Context) ([]localDevelopmen
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	rows, err := store.db.QueryContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization ORDER BY updated_unix_nano DESC`)
+	rows, err := store.db.QueryContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization ORDER BY updated_unix_nano DESC`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var authorizations []localDevelopmentAuthorization
 	for rows.Next() {
 		authorization, err := scanLocalDevelopmentAuthorization(rows)
@@ -360,7 +360,7 @@ func (store *localDevelopmentStore) GetAuthorization(ctx context.Context, author
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	return scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
+	return scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
 }
 
 func (store *localDevelopmentStore) RevokeAuthorization(ctx context.Context, authorizationID protectedlocal.Identifier) (localDevelopmentAuthorization, error) {
@@ -373,8 +373,8 @@ func (store *localDevelopmentStore) RevokeAuthorization(ctx context.Context, aut
 	if err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
-	defer tx.Rollback()
-	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
+	defer func() { _ = tx.Rollback() }()
+	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
 	if err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
@@ -401,7 +401,7 @@ func (store *localDevelopmentStore) RevokeAccountAuthority(ctx context.Context, 
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	now := store.now().UTC().UnixNano()
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_mode SET enabled = 0, revision = revision + 1, updated_unix_nano = ? WHERE singleton = 1 AND enabled = 1 AND account_id = ?`, now, normalized); err != nil {
 		return err

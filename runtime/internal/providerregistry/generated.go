@@ -1421,7 +1421,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported: true,
 		InlineSupported: true,
 		DefaultEndpoint: "https://ark.cn-beijing.volces.com/api/v3",
-		DefaultTextModel: "doubao-seed-2-0-pro-260215",
+		DefaultTextModel: "doubao-seed-2-1-pro-260628",
 		RequiresExplicitEndpoint: false,
 		InventoryMode: "static_source",
 		DynamicDiscoveryTransport: "",

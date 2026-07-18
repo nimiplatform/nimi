@@ -61,7 +61,9 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 		if appID == "" {
 			appID = appIDFromRequest(req)
 		}
-		reasonCode, actionHint, ok := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", false
+		var reasonCode runtimev1.ReasonCode
+		var actionHint string
+		var ok bool
 		validatedSubjectUserID := ""
 		if identityAuthorizer, supportsIdentity := authorizer.(protectedCapabilityIdentityAuthorizer); supportsIdentity {
 			reasonCode, actionHint, validatedSubjectUserID, ok = identityAuthorizer.ValidateProtectedCapabilityIdentity(appID, tokenID, secret, capability)

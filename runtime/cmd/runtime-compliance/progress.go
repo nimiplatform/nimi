@@ -113,7 +113,7 @@ func (p *progressReporter) writeLocked(now time.Time, detail string) {
 	if item == "" {
 		item = "-"
 	}
-	fmt.Fprintf(p.writer,
+	_, _ = fmt.Fprintf(p.writer,
 		"[runtime-compliance] phase=%s item=%s phase_elapsed=%s total_elapsed=%s %s\n",
 		phase,
 		item,

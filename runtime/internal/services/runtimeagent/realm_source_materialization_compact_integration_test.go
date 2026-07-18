@@ -799,7 +799,7 @@ func assertCompactRealmMaterializationNoOrphansOrRawResidue(t *testing.T, svc *S
 	if err != nil {
 		t.Fatalf("read compact SnapshotV2 rows: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var typed []byte
 		if err := rows.Scan(&typed); err != nil {
