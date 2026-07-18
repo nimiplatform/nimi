@@ -29,10 +29,8 @@ export function buildDesktopReleaseEvidence(input) {
   const tauriRoot = path.join(desktopRoot, 'src-tauri');
   const resourcesRoot = path.join(tauriRoot, 'resources');
   const releaseManifestPath = path.join(resourcesRoot, 'desktop-release-manifest.json');
-  const runtimeManifestPath = path.join(resourcesRoot, 'runtime', 'manifest.json');
 
   const releaseManifest = readJson(releaseManifestPath);
-  const runtimeManifest = readJson(runtimeManifestPath);
   const releaseSyncViolations = collectDesktopReleaseSyncViolations(desktopRoot, expectedVersion);
   const updaterViolations = collectDesktopUpdaterArtifactViolations({
     artifacts: artifactPaths,
@@ -51,7 +49,6 @@ export function buildDesktopReleaseEvidence(input) {
     commit,
     ok: releaseSyncViolations.length === 0 && updaterViolations.length === 0,
     releaseManifest,
-    runtimeManifest,
     latestJsonPath,
     signatureArtifactCount: signatureArtifacts.length,
     artifactPaths,
@@ -75,15 +72,8 @@ export function renderDesktopReleaseEvidenceMarkdown(evidence) {
     '## Release Manifest',
     '',
     `- Desktop version: ${evidence.releaseManifest.desktopVersion}`,
-    `- Runtime version: ${evidence.releaseManifest.runtimeVersion}`,
-    `- Runtime archive path: ${evidence.releaseManifest.runtimeArchivePath}`,
-    `- Runtime sha256: ${evidence.releaseManifest.runtimeSha256}`,
-    '',
-    '## Runtime Manifest',
-    '',
-    `- Platform key: ${evidence.runtimeManifest.platform}`,
-    `- Archive path: ${evidence.runtimeManifest.archivePath}`,
-    `- Binary path: ${evidence.runtimeManifest.binaryPath}`,
+    `- Desktop release id: ${evidence.releaseManifest.desktopReleaseId}`,
+    `- Channel: ${evidence.releaseManifest.channel}`,
     '',
     '## Updater Artifacts',
     '',

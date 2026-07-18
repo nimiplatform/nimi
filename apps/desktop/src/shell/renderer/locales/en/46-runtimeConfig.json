@@ -549,8 +549,16 @@
     "workflows": "Workflows",
     "cpu": "CPU",
     "ram": "RAM",
-    "runtimeBinaryMissingMessage": "Desktop could not stage the bundled `nimi` runtime. Restart the app or reinstall this desktop release.",
-    "runtimeBinaryMissingTitle": "Bundled runtime is unavailable",
+    "runtime_service_unavailableMessage": "The independently installed Runtime service is not running or cannot be reached through its protected carrier.",
+    "runtime_service_unavailableTitle": "Runtime service unavailable",
+    "runtime_service_untrustedMessage": "The running Runtime service does not match the signed release identity. Protected access remains blocked.",
+    "runtime_service_untrustedTitle": "Runtime service identity rejected",
+    "runtime_service_repair_requiredMessage": "The signed Runtime service installation is incomplete or inconsistent. Use the signed service repair flow.",
+    "runtime_service_repair_requiredTitle": "Runtime service repair required",
+    "runtime_restartedMessage": "The old Runtime session is invalid. Desktop must establish a new verified session before continuing.",
+    "runtime_restartedTitle": "Runtime restarted",
+    "process_replacedMessage": "The verified Runtime process changed during use. Protected access remains blocked until re-verification succeeds.",
+    "process_replacedTitle": "Runtime process replaced",
     "vram": "VRAM"
   },
   "profiles": {

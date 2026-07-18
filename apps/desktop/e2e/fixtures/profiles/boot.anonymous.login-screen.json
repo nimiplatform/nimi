@@ -35,11 +35,10 @@
     },
     "desktopReleaseInfo": {
       "desktopVersion": "0.1.0",
-      "runtimeVersion": "0.1.0",
+      "desktopReleaseId": "desktop-0.1.0+e2e-fixture",
       "channel": "stable",
       "commit": "e2e-fixture",
-      "builtAt": "2026-03-15T00:00:00.000Z",
-      "runtimeReady": true
+      "builtAt": "2026-03-15T00:00:00.000Z"
     }
   },
   "artifactPolicy": {

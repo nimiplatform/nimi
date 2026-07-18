@@ -9,13 +9,10 @@ export type {
 
 export type DesktopReleaseInfo = {
   desktopVersion: string;
-  runtimeVersion: string;
+  desktopReleaseId: string;
   channel: string;
   commit: string;
   builtAt: string;
-  runtimeReady: boolean;
-  runtimeStagedPath?: string;
-  runtimeLastError?: string;
   updaterAvailable: boolean;
   updaterUnavailableReason?: string;
 };

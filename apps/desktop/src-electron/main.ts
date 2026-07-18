@@ -27,7 +27,10 @@ const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
-const rendererUrl = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL);
+const nonReleaseShell = !app.isPackaged;
+const rendererUrl = nonReleaseShell
+  ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL)
+  : '';
 // Nimi Desktop has no public Runtime TCP endpoint. Kit uses this non-endpoint
 // label only in lifecycle/error projections; every admitted unary is carried
 // by the native protected Desktop control session.
@@ -52,6 +55,8 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
 });
 let mainWindow: BrowserWindow | undefined;
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
+let quitCleanup: Promise<void> | undefined;
+let quitCleanupComplete = false;
 const devKernelExternalUrlCapture = createDevKernelExternalUrlCapture();
 
 protocol.registerSchemesAsPrivileged([
@@ -109,29 +114,62 @@ void app.whenReady().then(async () => {
       void createMainWindow();
     }
   });
+}).catch((error: unknown) => {
+  process.stderr.write(`[desktop-bootstrap] ${desktopBootstrapFailureCode(error)}\n`);
+  dialog.showErrorBox(
+    'Nimi could not start safely',
+    'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
+  );
+  app.exit(1);
 });
+
+function desktopBootstrapFailureCode(error: unknown): string {
+  if (!error || typeof error !== 'object') return 'desktop-bootstrap-failed';
+  for (const key of ['reasonCode', 'code', 'message'] as const) {
+    const value = (error as Readonly<Record<string, unknown>>)[key];
+    if (typeof value === 'string' && /^[a-z][a-z0-9-]{0,127}$/u.test(value)) return value;
+  }
+  return 'desktop-bootstrap-failed';
+}
 
 function configureDesktopElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  app.quit();
 });
 
-app.on('before-quit', () => {
-  void localDevelopmentHost?.shutdown();
-  localDevelopmentHost = undefined;
+app.on('before-quit', (event) => {
+  if (quitCleanupComplete) return;
+  event.preventDefault();
+  quitCleanup ??= shutdownBeforeQuit()
+    .then(() => {
+      quitCleanupComplete = true;
+      app.quit();
+    })
+    .catch(() => {
+      quitCleanup = undefined;
+      dialog.showErrorBox(
+        'Nimi could not close safely',
+        'A supervised local app did not shut down cleanly. Nimi remains open so you can retry without leaving an orphan process.',
+      );
+    });
 });
+
+async function shutdownBeforeQuit(): Promise<void> {
+  const host = localDevelopmentHost;
+  if (!host) return;
+  await host.shutdown();
+  if (localDevelopmentHost === host) localDevelopmentHost = undefined;
+}
 
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     width: 1440,
     height: 940,
-    minWidth: 1100,
-    minHeight: 760,
+    minWidth: 390,
+    minHeight: 600,
     title: 'Nimi',
     webPreferences: {
       preload: preloadPath,
@@ -141,6 +179,12 @@ async function createMainWindow(): Promise<BrowserWindow> {
     },
   });
   mainWindow = window;
+  window.on('close', (event) => {
+    if (!quitCleanupComplete) {
+      event.preventDefault();
+      app.quit();
+    }
+  });
   window.on('closed', () => {
     if (mainWindow === window) {
       mainWindow = undefined;
@@ -189,7 +233,10 @@ function allowedRendererOrigins(): string[] {
   for (const url of allowedRendererUrls()) {
     origins.add(originForRendererUrl(url));
   }
-  for (const origin of normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_ORIGINS).split(',')) {
+  const configured = nonReleaseShell
+    ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_ORIGINS)
+    : '';
+  for (const origin of configured.split(',')) {
     const normalized = normalizeText(origin);
     if (normalized) {
       origins.add(normalized);
@@ -200,7 +247,10 @@ function allowedRendererOrigins(): string[] {
 
 function allowedRendererUrls(): string[] {
   const urls = new Set<string>([rendererUrl || rendererDistUrl]);
-  for (const url of normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_RENDERER_URLS).split(',')) {
+  const configured = nonReleaseShell
+    ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_RENDERER_URLS)
+    : '';
+  for (const url of configured.split(',')) {
     const normalized = normalizeText(url);
     if (normalized) {
       urls.add(normalized);
@@ -219,12 +269,16 @@ function isDesktopRendererUrl(url: string): boolean {
 }
 
 function resolveStandardDataRoot(): string {
-  const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT);
+  const fromEnv = nonReleaseShell
+    ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT)
+    : '';
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
 }
 
 function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
-  const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
+  const fromEnv = nonReleaseShell
+    ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS)
+    : '';
   if (!fromEnv) {
     return [dataRoot, app.getPath('downloads')].map((filePath) => path.resolve(filePath));
   }

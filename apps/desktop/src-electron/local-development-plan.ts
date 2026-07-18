@@ -16,7 +16,7 @@ export async function resolveElectronLocalDevelopmentPlan(
   expectedAppId: string,
   requestedShell: string,
 ): Promise<ElectronLocalDevelopmentPlan> {
-  if (process.platform !== 'win32') fail('local-development-platform-unsupported');
+  if (process.platform !== 'win32' && process.platform !== 'darwin') fail('local-development-platform-unsupported');
   if (requestedShell !== 'electron') fail('local-development-platform-unsupported');
   const projectRoot = await canonicalDirectory(rawRoot);
   const manifestPath = within(projectRoot, path.join(projectRoot, 'nimi.app.yaml'));
@@ -41,9 +41,11 @@ export async function resolveElectronLocalDevelopmentPlan(
     fail('local-development-project-changed');
   }
 
-  const electronExecutable = await canonicalFile(within(projectRoot, path.join(
-    projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe',
-  )));
+  const electronExecutable = process.platform === 'darwin'
+    ? await canonicalFile('/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host')
+    : await canonicalFile(within(projectRoot, path.join(
+      projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe',
+    )));
   const mainEntry = within(projectRoot, path.join(projectRoot, 'dist-electron', 'main.js'));
   return { appId, displayName, projectRoot, rendererOrigin, electronExecutable, mainEntry };
 }

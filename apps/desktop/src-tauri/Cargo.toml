@@ -1,7 +1,7 @@
 [package]
 name = "nimiplatform-desktop"
 version = "0.1.0"
-description = "Nimi Desktop Runtime Shell (Tauri)"
+description = "Nimi Desktop Shell (Tauri)"
 authors = ["Nimi Team"]
 edition = "2021"
 

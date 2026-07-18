@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, lstat, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, lstat, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -50,7 +50,7 @@ function control(
 }
 
 test('Electron publisher writes the PID-bound bounded authority summary beside presence', async () => {
-  const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-authority-summary-'));
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-authority-summary-')));
   const publisher = createDesktopElectronLocalDevelopmentProjectionPublisher({
     homeDirectory: home,
     control: control(async () => availableSummary()),
@@ -90,7 +90,7 @@ test('Electron publisher writes the PID-bound bounded authority summary beside p
 });
 
 test('Electron publisher deletes the previous authority summary when the protected RPC fails', async () => {
-  const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-authority-failure-'));
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-authority-failure-')));
   let fails = false;
   const reports: string[] = [];
   const publisher = createDesktopElectronLocalDevelopmentProjectionPublisher({

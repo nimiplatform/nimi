@@ -6,19 +6,17 @@ import { resolveDesktopReleaseStripMessage } from '../src/shell/renderer/app-she
 test('desktop release strip resolves desktopReleaseError first', () => {
   assert.equal(
     resolveDesktopReleaseStripMessage({
-      desktopReleaseError: 'bundled runtime staging failed',
-      runtimeLastError: 'runtime version mismatch',
+      desktopReleaseError: 'Desktop release metadata invalid',
     }),
-    'bundled runtime staging failed',
+    'Desktop release metadata invalid',
   );
 });
 
-test('desktop release strip falls back to runtimeLastError', () => {
+test('desktop release strip stays hidden without a Desktop release error', () => {
   assert.equal(
     resolveDesktopReleaseStripMessage({
       desktopReleaseError: '',
-      runtimeLastError: 'runtime version mismatch',
     }),
-    'runtime version mismatch',
+    '',
   );
 });

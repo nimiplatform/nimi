@@ -704,6 +704,7 @@ fn system_taskkill_path() -> Result<PathBuf, String> {
 #[path = "supervisor_tests.rs"]
 mod tests;
 
+#[cfg(target_os = "windows")]
 fn ensure_path_within(root: &Path, path: &Path) -> Result<(), String> {
     let root = root
         .to_string_lossy()
@@ -722,6 +723,14 @@ fn ensure_path_within(root: &Path, path: &Path) -> Result<(), String> {
     Err("local-development-project-changed".to_string())
 }
 
+#[cfg(not(target_os = "windows"))]
+fn ensure_path_within(root: &Path, path: &Path) -> Result<(), String> {
+    if !root.is_absolute() || !path.is_absolute() || path.strip_prefix(root).is_err() {
+        return Err("local-development-project-changed".to_string());
+    }
+    Ok(())
+}
+
 #[cfg(target_os = "windows")]
 fn electron_cli_path(path: &Path) -> Result<String, String> {
     let raw = path.to_string_lossy();
@@ -735,6 +744,17 @@ fn electron_cli_path(path: &Path) -> Result<String, String> {
         return Err("local-development-project-changed".to_string());
     }
     Ok(projected.to_string())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn electron_cli_path(path: &Path) -> Result<String, String> {
+    if !path.is_absolute() {
+        return Err("local-development-project-changed".to_string());
+    }
+    path.to_str()
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| "local-development-project-changed".to_string())
 }
 
 fn is_tauri_source_event(event: &notify::Event) -> bool {

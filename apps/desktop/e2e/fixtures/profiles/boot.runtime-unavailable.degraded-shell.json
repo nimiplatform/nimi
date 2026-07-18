@@ -5,19 +5,17 @@
     "runtimeBridgeStatus": {
       "running": false,
       "managed": true,
-      "launchMode": "RELEASE",
-      "grpcAddr": "127.0.0.1:46371",
+      "launchMode": "INVALID",
+      "grpcAddr": "protected-local",
       "version": "0.1.0",
-      "lastError": "Bundled runtime unavailable (E2E fixture)"
+      "lastError": "runtime-service-unavailable"
     },
     "desktopReleaseInfo": {
       "desktopVersion": "0.1.0",
-      "runtimeVersion": "0.1.0",
+      "desktopReleaseId": "desktop-0.1.0+e2e-fixture",
       "channel": "stable",
       "commit": "e2e-fixture",
-      "builtAt": "2026-03-15T00:00:00.000Z",
-      "runtimeReady": false,
-      "runtimeLastError": "Bundled runtime unavailable (E2E fixture)"
+      "builtAt": "2026-03-15T00:00:00.000Z"
     }
   }
 }

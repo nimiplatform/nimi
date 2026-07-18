@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Nimi Desktop Runtime",
+  "productName": "Nimi",
   "version": "0.1.0",
   "identifier": "ai.nimi.apps.nimi.desktop",
   "build": {
@@ -47,8 +47,7 @@
     "createUpdaterArtifacts": true,
     "targets": "all",
     "resources": [
-      "resources/desktop-release-manifest.json",
-      "resources/runtime"
+      "resources/desktop-release-manifest.json"
     ],
     "icon": [
       "icons/icon.png",

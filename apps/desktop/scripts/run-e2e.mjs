@@ -332,7 +332,7 @@ function spawnLogged(command, args, options = {}) {
 }
 
 async function buildApplication() {
-  await spawnLogged('pnpm', ['--filter', '@nimiplatform/desktop', 'run', 'prepare:runtime-bundle']);
+  await spawnLogged('pnpm', ['--filter', '@nimiplatform/desktop', 'run', 'prepare:desktop-release']);
   await spawnLogged('pnpm', [
     '--filter',
     '@nimiplatform/desktop',

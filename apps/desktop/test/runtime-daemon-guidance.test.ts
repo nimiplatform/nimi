@@ -11,43 +11,41 @@ function createDaemonStatus(input: Partial<RuntimeBridgeDaemonStatus>): RuntimeB
   return {
     running: false,
     managed: false,
-    launchMode: 'RELEASE',
+    launchMode: 'INVALID',
     grpcAddr: NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
     ...input,
   };
 }
 
-test('describeRuntimeDaemonIssue maps missing bundled runtime to actionable guidance', () => {
+for (const [reason, code, title] of [
+  ['runtime-service-unavailable', 'runtime_service_unavailable', 'Runtime service unavailable'],
+  ['runtime-service-untrusted', 'runtime_service_untrusted', 'Runtime service identity rejected'],
+  ['runtime-service-repair-required', 'runtime_service_repair_required', 'Runtime service repair required'],
+  ['runtime-restarted', 'runtime_restarted', 'Runtime restarted'],
+  ['process-replaced', 'process_replaced', 'Runtime process replaced'],
+] as const) {
+  test(`describeRuntimeDaemonIssue preserves ${reason}`, () => {
+    const issue = describeRuntimeDaemonIssue({
+      status: createDaemonStatus({ lastError: `RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: ${reason}` }),
+    });
+    assert.equal(issue?.code, code);
+    assert.equal(issue?.title, title);
+    assert.match(issue?.rawError || '', new RegExp(reason));
+  });
+}
+
+test('describeRuntimeDaemonIssue maps missing protected carrier to repair', () => {
   const issue = describeRuntimeDaemonIssue({
-    status: createDaemonStatus({
-      lastError: 'RUNTIME_BRIDGE_BUNDLED_RUNTIME_UNAVAILABLE: release mode requires a bundled runtime staged under ~/.nimi/runtime',
-    }),
+    runtimeDaemonError: 'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: protected-carrier-required',
   });
-
-  assert.deepEqual(issue, {
-    code: 'runtime_binary_missing',
-    title: 'Bundled runtime is unavailable',
-    message: 'Desktop could not stage the bundled `nimi` runtime. Restart the app or reinstall this desktop release.',
-    rawError: 'RUNTIME_BRIDGE_BUNDLED_RUNTIME_UNAVAILABLE: release mode requires a bundled runtime staged under ~/.nimi/runtime',
-  });
-});
-
-test('describeRuntimeDaemonIssue accepts controller error text even when status is empty', () => {
-  const issue = describeRuntimeDaemonIssue({
-    runtimeDaemonError: 'runtime daemon start failed: RUNTIME_BRIDGE_BUNDLED_RUNTIME_MISSING',
-  });
-
-  assert.equal(issue?.code, 'runtime_binary_missing');
-  assert.match(String(issue?.message || ''), /bundled `nimi` runtime/);
+  assert.equal(issue?.code, 'runtime_service_repair_required');
+  assert.match(issue?.message || '', /protected native carrier/);
 });
 
 test('describeRuntimeDaemonIssue returns null for unrelated runtime errors', () => {
   const issue = describeRuntimeDaemonIssue({
-    status: createDaemonStatus({
-      lastError: 'RUNTIME_BRIDGE_DAEMON_START_TIMEOUT: runtime daemon did not become ready',
-    }),
+    status: createDaemonStatus({ lastError: 'unrelated-error' }),
   });
-
   assert.equal(issue, null);
 });
 
@@ -60,7 +58,6 @@ test('runtime config pages render runtime daemon guidance helper', () => {
     resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-overview.tsx'),
     'utf-8',
   );
-
   assert.match(runtimeOverviewTab, /describeRuntimeDaemonIssue/);
   assert.match(overviewPage, /describeRuntimeDaemonIssue/);
 });

@@ -7,23 +7,19 @@ import {
   parseDesktopUpdateState,
 } from '../src/shell/renderer/bridge/runtime-bridge/types';
 
-test('desktop release info parser accepts bundled runtime metadata', () => {
+test('desktop release info parser accepts Desktop-only release metadata', () => {
   const parsed = parseDesktopReleaseInfo({
     desktopVersion: '0.2.0',
-    runtimeVersion: '0.2.0',
+    desktopReleaseId: 'desktop-0.2.0+abc123',
     channel: 'stable',
     commit: 'abc123',
     builtAt: '2026-03-15T00:00:00Z',
-    runtimeReady: true,
-    runtimeStagedPath: '/tmp/nimi',
     updaterAvailable: false,
     updaterUnavailableReason: 'DESKTOP_UPDATER_UNAVAILABLE: updater public key is not configured at build time or runtime',
   });
 
   assert.equal(parsed.desktopVersion, '0.2.0');
-  assert.equal(parsed.runtimeVersion, '0.2.0');
-  assert.equal(parsed.runtimeReady, true);
-  assert.equal(parsed.runtimeStagedPath, '/tmp/nimi');
+  assert.equal(parsed.desktopReleaseId, 'desktop-0.2.0+abc123');
   assert.equal(parsed.updaterAvailable, false);
   assert.match(parsed.updaterUnavailableReason || '', /DESKTOP_UPDATER_UNAVAILABLE/);
 });

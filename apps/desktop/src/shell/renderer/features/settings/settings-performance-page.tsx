@@ -165,7 +165,6 @@ export function PerformancePage() {
     || desktopUpdateState?.status === 'installing';
   const desktopUpdateAlerts = collectDesktopUpdatePanelAlerts({
     desktopReleaseError,
-    runtimeLastError: desktopReleaseInfo?.runtimeLastError,
     updaterUnavailableReason: desktopReleaseInfo?.updaterUnavailableReason,
     updateLastError: desktopUpdateState?.lastError,
   });
@@ -258,7 +257,7 @@ export function PerformancePage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <InfoCard icon={<DownloadIcon className="h-5 w-5" />} label={t('Performance.desktopVersion')} value={desktopReleaseInfo?.desktopVersion || '-'} />
-              <InfoCard icon={<ServerIcon className="h-5 w-5" />} label={t('Performance.bundledRuntime')} value={desktopReleaseInfo?.runtimeVersion || '-'} />
+              <InfoCard icon={<ServerIcon className="h-5 w-5" />} label={t('Performance.desktopRelease')} value={desktopReleaseInfo?.desktopReleaseId || '-'} />
               <InfoCard icon={<TargetIcon className="h-5 w-5" />} label={t('Performance.updateStatus')} value={updateStatusText} />
               <InfoCard icon={<AwardIcon className="h-5 w-5" />} label={t('Performance.targetVersion')} value={desktopUpdateState?.targetVersion || '-'} />
             </div>

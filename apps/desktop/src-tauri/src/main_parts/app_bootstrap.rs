@@ -101,13 +101,6 @@ fn install_shared_runtime_bridge_hooks() {
         set_action_in_flight: Some(Arc::new(|app, action| {
             crate::menu_bar_shell::set_action_in_flight(app, action);
         })),
-        staged_runtime_binary_path: Some(Arc::new(|| {
-            crate::desktop_release::staged_runtime_binary_path()
-        })),
-        runtime_last_error: Some(Arc::new(|| crate::desktop_release::runtime_last_error())),
-        current_release_version: Some(Arc::new(|| {
-            crate::desktop_release::current_release_version()
-        })),
         resolve_nimi_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_dir)),
         resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
         desktop_account_status_request: Some(desktop_account_status_request),
@@ -312,11 +305,10 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
                     eprintln!(
-                        "[boot:{:}] desktop release initialized version={} runtime={} ready={}",
+                        "[boot:{:}] desktop release initialized version={} release_id={}",
                         now_ms(),
                         info.desktop_version,
-                        info.runtime_version,
-                        info.runtime_ready,
+                        info.desktop_release_id,
                     );
                 }
                 Err(error) => {

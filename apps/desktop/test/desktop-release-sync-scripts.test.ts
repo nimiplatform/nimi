@@ -14,40 +14,28 @@ function makeDesktopFixture(version: string) {
   const desktopRoot = path.join(root, 'apps', 'desktop');
   const tauriRoot = path.join(desktopRoot, 'src-tauri');
   const resourcesRoot = path.join(tauriRoot, 'resources');
-  const runtimeResourcesRoot = path.join(resourcesRoot, 'runtime');
-  const platformDir = path.join(runtimeResourcesRoot, 'darwin-arm64');
-
-  fs.mkdirSync(platformDir, { recursive: true });
+  fs.mkdirSync(path.join(resourcesRoot, 'runtime'), { recursive: true });
+  fs.writeFileSync(path.join(resourcesRoot, 'runtime', '.gitkeep'), '\n');
   fs.writeFileSync(path.join(desktopRoot, 'package.json'), JSON.stringify({ version }, null, 2));
-  fs.writeFileSync(path.join(tauriRoot, 'tauri.conf.json'), JSON.stringify({ version }, null, 2));
-  fs.writeFileSync(path.join(tauriRoot, 'Cargo.toml'), `[package]\nname = "desktop"\nversion = "${version}"\n`);
-
-  const runtimeManifest = {
+  fs.writeFileSync(path.join(tauriRoot, 'tauri.conf.json'), JSON.stringify({
     version,
-    platform: 'darwin-arm64',
-    archivePath: 'runtime/darwin-arm64/nimi-runtime.zip',
-    binaryPath: 'bin/nimi',
-    sha256: 'abc123',
-    builtAt: '2026-03-15T00:00:00Z',
-    commit: 'deadbeef',
-  };
-  const releaseManifest = {
+    bundle: { resources: ['resources/desktop-release-manifest.json'] },
+  }, null, 2));
+  fs.writeFileSync(path.join(tauriRoot, 'Cargo.toml'), `[package]\nname = "desktop"\nversion = "${version}"\n`);
+  const manifest = {
     desktopVersion: version,
-    runtimeVersion: version,
+    desktopReleaseId: `desktop-${version}+deadbeef`,
     channel: 'stable',
     commit: 'deadbeef',
-    runtimeArchivePath: runtimeManifest.archivePath,
-    runtimeSha256: runtimeManifest.sha256,
-    runtimeBinaryPath: runtimeManifest.binaryPath,
-    builtAt: runtimeManifest.builtAt,
+    builtAt: '2026-03-15T00:00:00Z',
   };
-
-  fs.writeFileSync(path.join(resourcesRoot, 'desktop-release-manifest.json'), JSON.stringify(releaseManifest, null, 2));
-  fs.writeFileSync(path.join(runtimeResourcesRoot, 'manifest.json'), JSON.stringify(runtimeManifest, null, 2));
-  fs.writeFileSync(path.join(platformDir, 'manifest.json'), JSON.stringify(runtimeManifest, null, 2));
-  fs.writeFileSync(path.join(resourcesRoot, runtimeManifest.archivePath), 'zip');
-
-  return { desktopRoot, cleanup: () => fs.rmSync(root, { recursive: true, force: true }) };
+  fs.writeFileSync(path.join(resourcesRoot, 'desktop-release-manifest.json'), JSON.stringify(manifest, null, 2));
+  return {
+    desktopRoot,
+    manifestPath: path.join(resourcesRoot, 'desktop-release-manifest.json'),
+    runtimeRoot: path.join(resourcesRoot, 'runtime'),
+    cleanup: () => fs.rmSync(root, { recursive: true, force: true }),
+  };
 }
 
 test('static version sync only checks static version sources', () => {
@@ -59,22 +47,34 @@ test('static version sync only checks static version sources', () => {
   }
 });
 
-test('desktop release sync fails on generated manifest drift', () => {
+test('Desktop release sync accepts Desktop-only metadata', () => {
   const fixture = makeDesktopFixture('1.2.3');
   try {
-    const runtimeManifestPath = path.join(
-      fixture.desktopRoot,
-      'src-tauri',
-      'resources',
-      'runtime',
-      'manifest.json',
-    );
-    const current = JSON.parse(fs.readFileSync(runtimeManifestPath, 'utf8'));
-    current.sha256 = 'def456';
-    fs.writeFileSync(runtimeManifestPath, JSON.stringify(current, null, 2));
+    assert.deepEqual(collectDesktopReleaseSyncViolations(fixture.desktopRoot, '1.2.3'), []);
+  } finally {
+    fixture.cleanup();
+  }
+});
 
+test('Desktop release sync rejects Runtime truth in the manifest', () => {
+  const fixture = makeDesktopFixture('1.2.3');
+  try {
+    const manifest = JSON.parse(fs.readFileSync(fixture.manifestPath, 'utf8'));
+    manifest.runtimeArchivePath = 'runtime/nimi.zip';
+    fs.writeFileSync(fixture.manifestPath, JSON.stringify(manifest, null, 2));
     const violations = collectDesktopReleaseSyncViolations(fixture.desktopRoot, '1.2.3');
-    assert.ok(violations.some((line: string) => line.includes('sha256 mismatch')));
+    assert.ok(violations.some((line: string) => line.includes('forbidden runtimeArchivePath')));
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('Desktop release sync rejects bundled Runtime payloads', () => {
+  const fixture = makeDesktopFixture('1.2.3');
+  try {
+    fs.writeFileSync(path.join(fixture.runtimeRoot, 'nimi'), 'binary');
+    const violations = collectDesktopReleaseSyncViolations(fixture.desktopRoot, '1.2.3');
+    assert.ok(violations.some((line: string) => line.includes('forbidden bundled Runtime payload')));
   } finally {
     fixture.cleanup();
   }

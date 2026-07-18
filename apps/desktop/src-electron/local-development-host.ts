@@ -8,7 +8,6 @@ import {
   createNimiElectronLocalDevelopmentControl,
   type NimiElectronLocalDevelopmentAuthorization,
   type NimiElectronLocalDevelopmentControl,
-  type NimiElectronLocalDevelopmentDecision,
   type NimiElectronLocalDevelopmentEvaluation,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
@@ -21,6 +20,26 @@ import {
   resolveElectronLocalDevelopmentPlan,
   type ElectronLocalDevelopmentPlan,
 } from './local-development-plan.js';
+import {
+  resolveLocalDevelopmentObservationArguments,
+  resolveMacOSLocalAppUserDataArguments,
+} from './local-development-host-arguments.js';
+import {
+  localDevelopmentToolEnvironment,
+  resolveLocalDevelopmentPackageScriptInvocation,
+  terminateLocalDevelopmentProcessTree as terminateTree,
+  type LocalDevelopmentPackageScript,
+  waitForLocalDevelopmentRenderer as waitForRenderer,
+} from './local-development-host-process.js';
+import {
+  exactLocalDevelopmentObject as exact,
+  exactNestedLocalDevelopmentPayload as exactNestedPayload,
+  localDevelopmentDecision as localDecision,
+  localDevelopmentSelector as selector,
+  localDevelopmentText as text,
+  readLocalDevelopmentJsonBody as readJsonBody,
+  writeLocalDevelopmentJson as json,
+} from './local-development-host-protocol.js';
 
 const COMMANDS = new Set([
   'local_development_pending_approvals',
@@ -29,12 +48,8 @@ const COMMANDS = new Set([
   'local_development_runs_list',
   'local_development_authorization_revoke',
 ]);
-const MAX_REQUEST_BYTES = 32 * 1024;
 const HEALTH_MS = 2_000;
 const REBUILD_DEBOUNCE_MS = 450;
-const LOCAL_DEVELOPMENT_PACKAGE_SCRIPTS = new Set(['build:electron', 'dev:renderer']);
-
-type LocalDevelopmentPackageScript = 'build:electron' | 'dev:renderer';
 
 type RunStatus = {
   readonly schemaVersion: 1;
@@ -140,7 +155,7 @@ class ElectronLocalDevelopmentHost {
 
   constructor(
     private readonly control: NimiElectronLocalDevelopmentControl,
-    homeDirectory: string,
+    private readonly homeDirectory: string,
     private readonly focusMainWindow: () => Promise<void>,
   ) {
     this.projectionPublisher = createDesktopElectronLocalDevelopmentProjectionPublisher({
@@ -158,7 +173,15 @@ class ElectronLocalDevelopmentHost {
     const address = this.server.address();
     if (!address || typeof address === 'string') throw new Error('local-development-supervisor-required');
     this.endpoint = `http://127.0.0.1:${address.port}`;
-    await this.projectionPublisher.start(this.endpoint);
+    try {
+      await this.projectionPublisher.start(this.endpoint);
+    } catch (error) {
+      const server = this.server;
+      this.server = undefined;
+      this.endpoint = '';
+      if (server) await closeHttpServer(server);
+      throw error;
+    }
   }
 
   async invoke(command: string, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
@@ -176,10 +199,23 @@ class ElectronLocalDevelopmentHost {
   }
 
   async shutdown(): Promise<void> {
-    await Promise.all([...this.runs.values()].map((run) => this.stopRun(run, 'stopped')));
-    await new Promise<void>((resolve) => this.server?.close(() => resolve()) ?? resolve());
+    const failures: unknown[] = [];
+    const stopped = await Promise.allSettled([...this.runs.values()].map((run) => this.stopRun(run, 'stopped')));
+    for (const result of stopped) {
+      if (result.status === 'rejected') failures.push(result.reason);
+    }
+    try {
+      if (this.server) await closeHttpServer(this.server);
+    } catch (error) {
+      failures.push(error);
+    }
     this.server = undefined;
-    await this.projectionPublisher.shutdown();
+    try {
+      await this.projectionPublisher.shutdown();
+    } catch (error) {
+      failures.push(error);
+    }
+    if (failures.length > 0) throw new AggregateError(failures, 'local-development-supervisor-shutdown-failed');
   }
 
   private async handleHttp(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -410,7 +446,11 @@ class ElectronLocalDevelopmentHost {
       });
     } catch (error) {
       if (!run.stopped) setRunState(run, 'failed', reason(error), reason(error), false);
-      await this.stopRunProcesses(run);
+      try {
+        await this.stopRunProcesses(run);
+      } catch {
+        if (!run.stopped) setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
+      }
     }
   }
 
@@ -437,6 +477,13 @@ class ElectronLocalDevelopmentHost {
   private async launchHost(run: RunContext): Promise<void> {
     if (!run.authorizationId) throw new Error('local-development-authorization-required');
     const mainEntry = await canonicalElectronMain(run.plan);
+    const observationArguments = resolveLocalDevelopmentObservationArguments();
+    const userDataArguments = observationArguments.some((value) => value.startsWith('--user-data-dir='))
+      ? []
+      : await resolveMacOSLocalAppUserDataArguments({
+        authorizationId: run.authorizationId,
+        homeDirectory: this.homeDirectory,
+      });
     setRunState(run, 'starting', 'Starting the supervised Electron host', undefined, false);
     const outcome = await this.control.launch({
       authorizationId: run.authorizationId,
@@ -444,7 +491,12 @@ class ElectronLocalDevelopmentHost {
       shell: 'electron',
       hostExecutablePath: run.plan.electronExecutable,
       rendererOrigin: run.plan.rendererOrigin,
-      hostArguments: [...resolveLocalDevelopmentObservationArguments(), mainEntry, `--nimi-dev-renderer-url=${run.plan.rendererOrigin}`],
+      hostArguments: [
+        ...observationArguments,
+        ...userDataArguments,
+        `--nimi-local-app-main=${mainEntry}`,
+        `--nimi-dev-renderer-url=${run.plan.rendererOrigin}`,
+      ],
       workingDirectory: run.plan.projectRoot,
     });
     run.status.hostGeneration += 1;
@@ -466,13 +518,13 @@ class ElectronLocalDevelopmentHost {
         supervisorRunId: run.supervisorRunId,
       });
       if (evaluation.confirmationRequired) {
-        await this.control.terminateHost(run.supervisorRunId).catch(() => undefined);
+        await this.control.terminateHost(run.supervisorRunId);
         run.authorizationId = undefined;
         await this.queueApproval(run, evaluation);
         return;
       }
       if (!evaluation.authorization || evaluation.authorization.state !== 'active') {
-        await this.control.terminateHost(run.supervisorRunId).catch(() => undefined);
+        await this.control.terminateHost(run.supervisorRunId);
         setRunState(run, 'authorization-required', 'local-development-authorization-required', 'local-development-authorization-required', true);
         return;
       }
@@ -506,9 +558,9 @@ class ElectronLocalDevelopmentHost {
     const invocation = resolveLocalDevelopmentPackageScriptInvocation(script);
     const child = spawn(invocation.command, invocation.args, {
       cwd: run.plan.projectRoot,
-      env: process.env,
+      env: localDevelopmentToolEnvironment(),
       shell: invocation.shell,
-      detached: process.platform === 'win32',
+      detached: true,
       windowsHide: true,
       stdio: 'pipe',
     });
@@ -521,14 +573,28 @@ class ElectronLocalDevelopmentHost {
 
   private async stopRun(run: RunContext, state: string): Promise<void> {
     run.stopped = true;
-    await this.stopRunProcesses(run);
+    const failures: unknown[] = [];
+    try {
+      await this.stopRunProcesses(run);
+    } catch (error) {
+      failures.push(error);
+    }
     if (run.authorizationId) {
-      await this.control.endRun(run.authorizationId, run.supervisorRunId).catch(() => undefined);
+      try {
+        await this.control.endRun(run.authorizationId, run.supervisorRunId);
+      } catch (error) {
+        failures.push(error);
+      }
+    }
+    if (failures.length > 0) {
+      setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
+      throw new AggregateError(failures, 'local-development-process-cleanup-failed');
     }
     setRunState(run, state, 'Development run stopped', undefined, false);
   }
 
   private async stopRunProcesses(run: RunContext): Promise<void> {
+    const failures: unknown[] = [];
     if (run.rebuildTimer) clearTimeout(run.rebuildTimer);
     if (run.healthTimer) clearInterval(run.healthTimer);
     run.rebuildTimer = undefined;
@@ -537,16 +603,46 @@ class ElectronLocalDevelopmentHost {
     run.watcher?.close();
     run.watcher = undefined;
     if (run.buildChild && run.buildChild.exitCode === null && run.buildChild.pid) {
-      await terminateTree(run.buildChild.pid);
+      try {
+        await terminateTree(run.buildChild);
+      } catch (error) {
+        failures.push(error);
+      }
     }
     run.buildChild = undefined;
     if (run.renderer && run.renderer.exitCode === null && run.renderer.pid) {
-      await terminateTree(run.renderer.pid);
+      try {
+        await terminateTree(run.renderer);
+      } catch (error) {
+        failures.push(error);
+      }
     }
     run.renderer = undefined;
-    await this.control.terminateHost(run.supervisorRunId).catch(() => undefined);
+    try {
+      await this.control.terminateHost(run.supervisorRunId);
+    } catch (error) {
+      failures.push(error);
+    }
+    if (failures.length > 0) throw new AggregateError(failures, 'local-development-process-cleanup-failed');
   }
 
+}
+
+async function closeHttpServer(server: Server): Promise<void> {
+  if (!server.listening) return;
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      server.closeAllConnections();
+      reject(new Error('local-development-supervisor-http-shutdown-timeout'));
+    }, 5_000);
+    server.close((error) => {
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve();
+    });
+    server.closeIdleConnections();
+    server.closeAllConnections();
+  });
 }
 
 function projectRun(status: RunStatus) {
@@ -597,7 +693,8 @@ function comparableCanonicalProjectPath(value: string): string {
   } else if (normalized.startsWith(extendedPrefix)) {
     normalized = normalized.slice(extendedPrefix.length);
   }
-  return path.resolve(normalized).toLowerCase();
+  const resolved = path.resolve(normalized);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
 function setRunState(run: RunContext, state: string, message: string, reasonCode: string | undefined, retryable: boolean): void {
@@ -626,122 +723,6 @@ function sanitizeLog(raw: string): string {
     : trimmed;
 }
 
-export function resolveLocalDevelopmentObservationArguments(
-  env: NodeJS.ProcessEnv = process.env,
-): string[] {
-  if (String(env.NIMI_DEV_KERNEL_CHECKPOINT || '').trim() !== '1') return [];
-  const port = Number(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT || 0);
-  const root = String(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || '').trim();
-  const agent = String(env.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID || '').trim();
-  if (!Number.isInteger(port) || port < 1024 || port > 65535 || !path.isAbsolute(root)
-    || (agent && !/^local-agent:runtime-[0-9a-f]{32}$/u.test(agent))) {
-    throw new Error('local-development-observation-config-invalid');
-  }
-  return [
-    '--remote-debugging-address=127.0.0.1',
-    `--remote-debugging-port=${port}`,
-    `--user-data-dir=${path.resolve(root)}`,
-    ...(agent ? [`--nimi-dev-agent-id=${agent}`] : []),
-  ];
-}
-
-async function waitForRenderer(origin: string, child: ChildProcessWithoutNullStreams, stopped: () => boolean): Promise<void> {
-  const deadline = Date.now() + 60_000;
-  while (Date.now() < deadline) {
-    if (stopped()) return;
-    if (child.exitCode !== null) throw new Error(`local-development-dev-server-exited-${child.exitCode}`);
-    try {
-      const response = await fetch(origin, { redirect: 'error', signal: AbortSignal.timeout(2_000) });
-      if (response.status < 500) {
-        await delay(250);
-        if (child.exitCode !== null) throw new Error(`local-development-dev-server-exited-${child.exitCode}`);
-        return;
-      }
-    } catch {
-      // Continue until the bounded readiness deadline.
-    }
-    await delay(350);
-  }
-  throw new Error('local-development-dev-server-unavailable');
-}
-
-async function terminateTree(processId: number): Promise<void> {
-  await new Promise<void>((resolve) => {
-    const child = spawn(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'), [
-      '/pid', String(processId), '/t', '/f',
-    ], { windowsHide: true, stdio: 'ignore' });
-    child.once('exit', () => resolve());
-    child.once('error', () => resolve());
-  });
-}
-
-async function readJsonBody(request: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of request) {
-    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += bytes.length;
-    if (size > MAX_REQUEST_BYTES) throw new Error('local-development-intent-invalid');
-    chunks.push(bytes);
-  }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
-}
-
-function json(response: ServerResponse, body: unknown): void {
-  response.statusCode = 200;
-  response.setHeader('Content-Type', 'application/json; charset=utf-8');
-  response.end(JSON.stringify(body));
-}
-
-function exactNestedPayload(payload: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
-  if (Object.keys(payload).join('|') !== 'payload') throw new Error('local-development-command-payload-invalid');
-  return exact(payload.payload, Object.keys(record(payload.payload)));
-}
-
-function exact(value: unknown, keys: readonly string[]): Record<string, unknown> {
-  const row = record(value);
-  if (Object.keys(row).sort().join('|') !== [...keys].sort().join('|')) throw new Error('local-development-intent-invalid');
-  return row;
-}
-
-function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('local-development-intent-invalid');
-  return value as Record<string, unknown>;
-}
-
-function text(value: unknown): string {
-  if (typeof value !== 'string' || value.length === 0 || value.length > 4096 || value.trim() !== value) {
-    throw new Error('local-development-intent-invalid');
-  }
-  return value;
-}
-
-function selector(value: unknown, prefix: string): string {
-  const selected = text(value);
-  if (!selected.startsWith(`${prefix}-`) || selected.length > 160 || !/^[A-Za-z0-9_-]+$/u.test(selected)) {
-    throw new Error('local-development-selector-invalid');
-  }
-  return selected;
-}
-
-export function resolveLocalDevelopmentPackageScriptInvocation(
-  script: LocalDevelopmentPackageScript,
-  platform: NodeJS.Platform = process.platform,
-): { readonly command: string; readonly args: readonly string[]; readonly shell: boolean } {
-  if (!LOCAL_DEVELOPMENT_PACKAGE_SCRIPTS.has(script)) throw new Error('local-development-supervisor-required');
-  if (platform === 'win32') {
-    return { command: `corepack.cmd pnpm run ${script}`, args: [], shell: true };
-  }
-  return { command: 'corepack', args: ['pnpm', 'run', script], shell: false };
-}
-
-function localDecision(value: unknown): NimiElectronLocalDevelopmentDecision {
-  if (value !== 'deny' && value !== 'allow-run-once' && value !== 'allow-remember-project') {
-    throw new Error('local-development-approval-decision-invalid');
-  }
-  return value;
-}
-
 function randomSelector(prefix: string): string {
   return `${prefix}-${randomBytes(18).toString('base64url')}`;
 }
@@ -757,8 +738,4 @@ function reason(error: unknown): string {
   if (error && typeof error === 'object' && 'reasonCode' in error && typeof error.reasonCode === 'string') return error.reasonCode;
   if (error instanceof Error && /^[A-Za-z][A-Za-z0-9_-]{0,127}$/u.test(error.message)) return error.message;
   return 'local-development-supervisor-required';
-}
-
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

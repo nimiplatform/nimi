@@ -74,8 +74,8 @@ export function SupportUpdatesSection() {
             value={desktopReleaseInfo?.desktopVersion || t('Support.valueUnknown')}
           />
           <SupportInfoRow
-            label={t('Support.updatesBundledRuntime')}
-            value={desktopReleaseInfo?.runtimeVersion || t('Support.valueUnknown')}
+            label={t('Support.updatesDesktopRelease')}
+            value={desktopReleaseInfo?.desktopReleaseId || t('Support.valueUnknown')}
           />
           <SupportInfoRow
             label={t('Support.updatesChannel')}

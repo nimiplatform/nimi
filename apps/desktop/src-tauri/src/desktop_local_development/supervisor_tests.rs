@@ -43,6 +43,28 @@ fn electron_cli_receives_a_drive_path_after_canonical_identity_validation() {
     assert!(electron_cli_path(Path::new(r"\\?\UNC\server\share\main.js")).is_err());
 }
 
+#[cfg(not(target_os = "windows"))]
+#[test]
+fn electron_cli_receives_an_absolute_native_path_after_identity_validation() {
+    assert_eq!(
+        electron_cli_path(Path::new(
+            "/Applications/Nimi.app/Contents/Resources/main.js"
+        ))
+        .expect("projected Electron entry"),
+        "/Applications/Nimi.app/Contents/Resources/main.js"
+    );
+    assert!(electron_cli_path(Path::new("dist-electron/main.js")).is_err());
+}
+
+#[cfg(not(target_os = "windows"))]
+#[test]
+fn path_containment_is_case_sensitive_and_component_aware() {
+    let root = Path::new("/Users/test/project");
+    assert!(ensure_path_within(root, Path::new("/Users/test/project/dist/main.js")).is_ok());
+    assert!(ensure_path_within(root, Path::new("/Users/test/project-copy/main.js")).is_err());
+    assert!(ensure_path_within(root, Path::new("/Users/test/Project/main.js")).is_err());
+}
+
 #[cfg(feature = "dev-kernel-checkpoint")]
 #[test]
 fn dev_kernel_agent_selector_is_opaque_and_strict() {

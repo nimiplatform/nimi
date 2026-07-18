@@ -1,12 +1,10 @@
 use super::{
-    avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
-    confirm_dialog_host_provider, open_avatar_handoff_uri_or_binary,
+    avatar_runtime_env_pairs_from_storage_roots, build_avatar_close_handoff_uri,
+    build_avatar_handoff_uri, confirm_dialog_host_provider, open_avatar_handoff_uri_or_binary,
     require_fresh_inferred_avatar_target, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
     DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
-use nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostHooks;
-use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, path::PathBuf};
 
@@ -189,29 +187,9 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     let home_dir = fixture_dir.join("home");
     let selected_data_root = fixture_dir.join("selected-nimi-data");
     let avatar_app_root = selected_data_root.join("apps").join("nimi.avatar");
-    let avatar_release_root = avatar_app_root.join("releases").join("1.0.0");
-    let avatar_evidence_dir = avatar_release_root.join(".nimi");
     let avatar_data_root = avatar_app_root.join("data");
     let avatar_cache_root = avatar_app_root.join("cache");
     let avatar_temp_root = avatar_app_root.join("tmp");
-    fs::create_dir_all(&avatar_evidence_dir).expect("create avatar install evidence dir");
-    fs::write(
-        avatar_evidence_dir.join("install-evidence.json"),
-        serde_json::to_string_pretty(&serde_json::json!({
-            "appId": "nimi.avatar",
-            "releaseDescriptorRef": "nimi.avatar.bundled-with-nimi",
-            "storagePolicyRef": "nimi-data-app-roots",
-            "installedVersion": "1.0.0",
-            "sha256": "avatar-fixture",
-            "verificationState": "digest-verified",
-            "releaseRoot": avatar_release_root.display().to_string(),
-            "durableDataRoot": avatar_data_root.display().to_string(),
-            "cacheRoot": avatar_cache_root.display().to_string(),
-            "tempRoot": avatar_temp_root.display().to_string()
-        }))
-        .expect("avatar evidence json"),
-    )
-    .expect("write avatar install evidence");
     let fixture_path = fixture_dir.join("fixture.json");
     let selected_data_root_json =
         serde_json::to_string(&selected_data_root.to_string_lossy().to_string())
@@ -307,17 +285,12 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir.join("backend.log").as_os_str(),
     );
-    let _ = nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(
-        RuntimeBridgeHostHooks {
-            unary_override: Some(Arc::new(|payload| {
-                crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
-            })),
-            ..Default::default()
-        },
-    );
-    crate::apps_registry_projection::ensure_apps_registry().expect("ensure app registry");
-
-    let pairs = avatar_runtime_env_pairs().expect("avatar env pairs");
+    let pairs = avatar_runtime_env_pairs_from_storage_roots(
+        avatar_data_root.clone(),
+        avatar_cache_root.clone(),
+        avatar_temp_root.clone(),
+    )
+    .expect("avatar env pairs");
 
     for (key, value) in saved {
         match value {

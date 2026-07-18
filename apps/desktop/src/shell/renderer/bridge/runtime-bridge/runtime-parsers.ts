@@ -25,13 +25,10 @@ export function parseDesktopReleaseInfo(value: unknown): DesktopReleaseInfo {
   const record = assertRecord(value, 'desktop_release_info_get returned invalid payload');
   return {
     desktopVersion: parseRequiredString(record.desktopVersion, 'desktopVersion', 'desktop_release_info_get'),
-    runtimeVersion: parseRequiredString(record.runtimeVersion, 'runtimeVersion', 'desktop_release_info_get'),
+    desktopReleaseId: parseRequiredString(record.desktopReleaseId, 'desktopReleaseId', 'desktop_release_info_get'),
     channel: parseRequiredString(record.channel, 'channel', 'desktop_release_info_get'),
     commit: parseRequiredString(record.commit, 'commit', 'desktop_release_info_get'),
     builtAt: parseRequiredString(record.builtAt, 'builtAt', 'desktop_release_info_get'),
-    runtimeReady: Boolean(record.runtimeReady),
-    runtimeStagedPath: parseOptionalString(record.runtimeStagedPath),
-    runtimeLastError: parseOptionalString(record.runtimeLastError),
     updaterAvailable: Boolean(record.updaterAvailable),
     updaterUnavailableReason: parseOptionalString(record.updaterUnavailableReason),
   };

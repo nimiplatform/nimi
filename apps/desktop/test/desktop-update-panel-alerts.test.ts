@@ -8,32 +8,26 @@ import {
 
 test('desktop update panel surfaces desktop release errors as warnings', () => {
   const alerts = collectDesktopUpdatePanelAlerts({
-    desktopReleaseError: 'bundled runtime staging failed',
-    runtimeLastError: '',
+    desktopReleaseError: 'Desktop release metadata invalid',
     updateLastError: '',
   });
 
   assert.deepEqual(alerts, [
     {
       tone: 'warning',
-      message: 'bundled runtime staging failed',
+      message: 'Desktop release metadata invalid',
     },
   ]);
 });
 
-test('desktop update panel keeps runtime and updater errors visible with distinct tones', () => {
+test('desktop update panel keeps updater errors visible with distinct tones', () => {
   const alerts = collectDesktopUpdatePanelAlerts({
     desktopReleaseError: '',
-    runtimeLastError: 'runtime binary mismatch',
     updaterUnavailableReason: 'Desktop updates are unavailable in the current environment.',
     updateLastError: 'DESKTOP_UPDATER_INSTALL_FAILED: boom',
   });
 
   assert.deepEqual(alerts, [
-    {
-      tone: 'warning',
-      message: 'runtime binary mismatch',
-    },
     {
       tone: 'warning',
       message: 'Desktop updates are unavailable in the current environment.',

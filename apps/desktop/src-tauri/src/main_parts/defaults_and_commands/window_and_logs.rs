@@ -151,21 +151,24 @@ fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
 }
 
 fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
-    let defaults = runtime_defaults()?;
     let avatar_storage_roots = crate::desktop_avatar_instance_registry::avatar_app_storage_roots()?;
+    avatar_runtime_env_pairs_from_storage_roots(
+        avatar_storage_roots.data_root,
+        avatar_storage_roots.cache_root,
+        avatar_storage_roots.temp_root,
+    )
+}
+
+fn avatar_runtime_env_pairs_from_storage_roots(
+    data_root: PathBuf,
+    cache_root: PathBuf,
+    temp_root: PathBuf,
+) -> Result<Vec<(&'static str, String)>, String> {
+    let defaults = runtime_defaults()?;
     let mut pairs = vec![
-        (
-            "NIMI_APP_DATA_ROOT",
-            avatar_storage_roots.data_root.display().to_string(),
-        ),
-        (
-            "NIMI_APP_CACHE_ROOT",
-            avatar_storage_roots.cache_root.display().to_string(),
-        ),
-        (
-            "NIMI_APP_TEMP_ROOT",
-            avatar_storage_roots.temp_root.display().to_string(),
-        ),
+        ("NIMI_APP_DATA_ROOT", data_root.display().to_string()),
+        ("NIMI_APP_CACHE_ROOT", cache_root.display().to_string()),
+        ("NIMI_APP_TEMP_ROOT", temp_root.display().to_string()),
         ("NIMI_TARGET_TYPE", defaults.runtime.target_type),
         ("NIMI_TARGET_ACCOUNT_ID", defaults.runtime.target_account_id),
         ("NIMI_AGENT_ID", defaults.runtime.agent_id),

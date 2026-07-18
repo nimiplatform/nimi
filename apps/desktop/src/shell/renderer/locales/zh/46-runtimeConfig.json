@@ -549,8 +549,16 @@
     "workflows": "工作流",
     "cpu": "CPU",
     "ram": "RAM",
-    "runtimeBinaryMissingMessage": "Desktop 无法完成内置 `nimi` runtime 的落盘准备。请重启应用，或重新安装这个桌面版本。",
-    "runtimeBinaryMissingTitle": "内置 Runtime 不可用",
+    "runtime_service_unavailableMessage": "独立安装的 Runtime 服务未运行，或无法通过受保护 carrier 连接。",
+    "runtime_service_unavailableTitle": "Runtime 服务不可用",
+    "runtime_service_untrustedMessage": "当前 Runtime 服务与签名发布身份不匹配，受保护访问保持阻断。",
+    "runtime_service_untrustedTitle": "Runtime 服务身份被拒绝",
+    "runtime_service_repair_requiredMessage": "签名 Runtime 服务的安装不完整或不一致，请使用签名服务修复流程。",
+    "runtime_service_repair_requiredTitle": "Runtime 服务需要修复",
+    "runtime_restartedMessage": "旧 Runtime session 已失效，Desktop 必须重新建立验证 session。",
+    "runtime_restartedTitle": "Runtime 已重启",
+    "process_replacedMessage": "已验证 Runtime 进程在使用中被替换，重新验证成功前受保护访问保持阻断。",
+    "process_replacedTitle": "Runtime 进程已被替换",
     "vram": "VRAM"
   },
   "profiles": {

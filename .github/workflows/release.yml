@@ -487,35 +487,18 @@ jobs:
         id: macos_signing
         env:
           MATRIX_PLATFORM: ${{ matrix.platform }}
-          CONFIGURED_MODE: ${{ vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id' }}
         run: |
           set -euo pipefail
-          case "${CONFIGURED_MODE}" in
-            developer-id|ad-hoc)
-              ;;
-            *)
-              echo "NIMI_DESKTOP_MACOS_SIGNING_MODE must be developer-id or ad-hoc, got: ${CONFIGURED_MODE}" >&2
-              exit 1
-              ;;
-          esac
-
           if [[ "${MATRIX_PLATFORM}" != 'macos-latest' ]]; then
             mode='not-applicable'
-            use_ad_hoc='false'
-            require_apple='false'
-          elif [[ "${CONFIGURED_MODE}" == 'ad-hoc' ]]; then
-            mode='ad-hoc'
-            use_ad_hoc='true'
             require_apple='false'
           else
             mode='developer-id'
-            use_ad_hoc='false'
             require_apple='true'
           fi
 
           {
             echo "mode=${mode}"
-            echo "use_ad_hoc_signing=${use_ad_hoc}"
             echo "require_apple_credentials=${require_apple}"
           } >> "${GITHUB_OUTPUT}"
 
@@ -568,9 +551,6 @@ jobs:
               exit 1
             fi
           fi
-          if [[ "${MACOS_SIGNING_MODE}" == 'ad-hoc' ]]; then
-            echo "macOS desktop artifacts will use ad-hoc signing and skip Apple notarization"
-          fi
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -578,13 +558,12 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           REQUIRE_APPLE_CREDENTIALS: ${{ steps.macos_signing.outputs.require_apple_credentials }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
-      - name: Prepare bundled runtime resources
+      - name: Prepare Desktop release metadata
         run: |
-          pnpm --filter @nimiplatform/desktop run prepare:runtime-bundle -- \
+          pnpm --filter @nimiplatform/desktop run prepare:desktop-release -- \
             --version "${RELEASE_VERSION}" \
             --channel stable \
             --commit "${GITHUB_SHA}"
@@ -609,29 +588,7 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
           releaseName: ${{ needs.resolve.outputs.publish == 'true' && format('Desktop {0}', needs.resolve.outputs.version) || '' }}
-          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && ((vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id') == 'ad-hoc' && 'Automated desktop bundle built by release workflow. macOS assets use ad-hoc signing and are not Apple notarized.' || 'Automated desktop bundle built by release workflow.') || '' }}
-          releaseDraft: false
-          prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
-          includeUpdaterJson: true
-          updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.conf.json --config src-tauri/target/ci-updater.conf.json --bundles ${{ matrix.extra_args }} --ci
-
-      - name: Build desktop artifacts (macOS ad-hoc)
-        id: tauri_build_macos_ad_hoc
-        if: matrix.platform == 'macos-latest' && steps.macos_signing.outputs.use_ad_hoc_signing == 'true'
-        uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
-          NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: '-'
-        with:
-          projectPath: apps/desktop
-          tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
-          releaseName: ${{ needs.resolve.outputs.publish == 'true' && format('Desktop {0}', needs.resolve.outputs.version) || '' }}
-          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && ((vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id') == 'ad-hoc' && 'Automated desktop bundle built by release workflow. macOS assets use ad-hoc signing and are not Apple notarized.' || 'Automated desktop bundle built by release workflow.') || '' }}
+          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && 'Automated desktop bundle built by release workflow.' || '' }}
           releaseDraft: false
           prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
           includeUpdaterJson: true
@@ -658,7 +615,7 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
           releaseName: ${{ needs.resolve.outputs.publish == 'true' && format('Desktop {0}', needs.resolve.outputs.version) || '' }}
-          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && ((vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id') == 'ad-hoc' && 'Automated desktop bundle built by release workflow. macOS assets use ad-hoc signing and are not Apple notarized.' || 'Automated desktop bundle built by release workflow.') || '' }}
+          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && 'Automated desktop bundle built by release workflow.' || '' }}
           releaseDraft: false
           prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
           includeUpdaterJson: true
@@ -669,11 +626,10 @@ jobs:
         id: tauri_build
         env:
           ARTIFACT_PATHS_NON_MACOS: ${{ steps.tauri_build_non_macos.outputs.artifactPaths }}
-          ARTIFACT_PATHS_MACOS_AD_HOC: ${{ steps.tauri_build_macos_ad_hoc.outputs.artifactPaths }}
           ARTIFACT_PATHS_MACOS_DEVELOPER_ID: ${{ steps.tauri_build_macos_developer_id.outputs.artifactPaths }}
         run: |
           set -euo pipefail
-          artifact_paths="${ARTIFACT_PATHS_NON_MACOS:-${ARTIFACT_PATHS_MACOS_AD_HOC:-${ARTIFACT_PATHS_MACOS_DEVELOPER_ID:-}}}"
+          artifact_paths="${ARTIFACT_PATHS_NON_MACOS:-${ARTIFACT_PATHS_MACOS_DEVELOPER_ID:-}}"
           if [[ -z "${artifact_paths}" ]]; then
             echo "tauri-action did not report artifact paths" >&2
             exit 1

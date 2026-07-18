@@ -14,7 +14,7 @@ const electronExecutablePath = require('electron');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiDesktopElectronAcceptance=1`;
 
-test('Desktop Electron shell boots the Desktop renderer with auth and standard shell bridge coverage', { timeout: 90_000 }, async () => {
+test('unsigned Desktop Electron fails closed without the protected carrier while non-authorizing app-owned surfaces remain available', { timeout: 90_000 }, async () => {
   await withTempDir('acceptance', async (tmpRoot) => {
     const dataRoot = path.join(tmpRoot, 'data');
     const assetRoot = path.join(tmpRoot, 'assets');
@@ -32,26 +32,13 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
     const app = await electron.launch({
       executablePath: electronExecutablePath,
       args: [mainEntry],
-      env: {
-        ...process.env,
-        NIMI_RUNTIME_GRPC_ADDR: '',
+      env: acceptanceEnvironment({
         NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
-        NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT: '127.0.0.1:1',
         NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: assetRoot,
         NIMI_REALM_URL: 'http://localhost',
-        NIMI_REALM_JWKS_URL: '',
-        NIMI_REALM_REVOCATION_URL: '',
-        NIMI_REALM_JWT_ISSUER: '',
-        NIMI_REALM_JWT_AUDIENCE: '',
         NIMI_REALTIME_URL: 'ws://localhost:3003',
-        NIMI_ACCESS_TOKEN: 'desktop-acceptance-token',
-        NIMI_TARGET_TYPE: 'local',
-        NIMI_TARGET_ACCOUNT_ID: 'desktop-acceptance-account',
-        NIMI_AGENT_ID: 'desktop-acceptance-agent',
-        NIMI_WORLD_ID: 'desktop-acceptance-world',
-        NIMI_USER_CONFIRMED_UPLOAD: '1',
-      },
+      }),
     });
     try {
       const page = await app.firstWindow();
@@ -74,17 +61,8 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
       });
 
       const rendererBootstrapSurface = await waitForDesktopRendererBootstrapSurface(page);
-      assert.equal(rendererBootstrapSurface, 'login');
-      const loginScreen = page.getByTestId('login-screen');
-      assert.equal(await loginScreen.getAttribute('data-auth-mode'), 'desktop-browser');
-      await page.getByTestId('login-logo-trigger').click();
-      await page.getByText(
-        /App is still starting|Runtime account service is unavailable|external Runtime daemon/i,
-      ).waitFor({
-        state: 'visible',
-        timeout: 10_000,
-      });
-      assert.doesNotMatch(await page.locator('body').innerText(), /Authentication failed\. Please try again\./);
+      assert.equal(rendererBootstrapSurface, 'error');
+      assert.match(await page.locator('body').innerText(), /Startup failed[\s\S]*protected-carrier-required/u);
 
       const diagnosticsProbe = await invokeShell(page, 'diagnostics.rendererEntryProbe', { stage: 'desktop-electron-acceptance' });
       assert.equal(diagnosticsProbe.ok, true);
@@ -105,18 +83,18 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
           jwtAudience: 'nimi-runtime',
         },
         runtime: {
-          targetType: 'local',
-          targetAccountId: 'desktop-acceptance-account',
-          agentId: 'desktop-acceptance-agent',
-          worldId: 'desktop-acceptance-world',
-          userConfirmedUpload: true,
+          targetType: '',
+          targetAccountId: '',
+          agentId: '',
+          worldId: '',
+          userConfirmedUpload: false,
         },
       });
 
       const statusError = await captureInvokeError(page, 'runtime-lifecycle.status', {});
-      assert.equal(statusError.code, 'external-daemon-required');
-      assert.equal(statusError.reasonCode, 'electron-runtime-endpoint-unavailable');
-      assert.equal(statusError.actionHint, 'start_external_runtime_daemon');
+      assert.equal(statusError.code, 'protected-carrier-required');
+      assert.equal(statusError.reasonCode, 'protected-carrier-required');
+      assert.equal(statusError.actionHint, 'repair_fixed_runtime_service');
 
       const runtimeConfigError = await captureInvokeError(page, 'config.get', {});
       assert.equal(runtimeConfigError.code, 'capability-unavailable');
@@ -162,26 +140,30 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
             };
           }
         }, { retiredCommand: command });
-        assert.equal(error.code, 'external-daemon-required', command);
-        assert.equal(error.reasonCode, 'electron-runtime-account-custody-external', command);
+        assert.equal(error.code, 'invalid-payload', command);
+        assert.equal(error.reasonCode, 'unsupported-electron-shell-command', command);
         assert.equal(error.source, 'electron', command);
       }
 
-      const dataPath = await invokeShell(page, 'data.pathResolve', { relativePath: 'settings/profile.json' });
-      assert.equal(dataPath.path, path.join(dataRoot, 'settings', 'profile.json'));
+      const dataPathError = await captureInvokeError(page, 'data.pathResolve', {
+        relativePath: 'settings/profile.json',
+      });
+      assert.equal(dataPathError.code, 'capability-unavailable');
+      assert.equal(dataPathError.reasonCode, 'electron-standard-data-root-binding-missing');
+      assert.equal(dataPathError.actionHint, 'provide_runtime_attested_standard_data_root_binding');
 
-      const storageWrite = await invokeShell(page, 'storage.writeJson', {
+      const storageWriteError = await captureInvokeError(page, 'storage.writeJson', {
         relativePath: 'settings/profile.json',
         value: { schemaVersion: 1, shell: 'electron-desktop' },
       });
-      assert.equal(storageWrite.path, path.join(dataRoot, 'settings', 'profile.json'));
-      assert.deepEqual(storageWrite.value, { schemaVersion: 1, shell: 'electron-desktop' });
+      assert.equal(storageWriteError.code, 'capability-unavailable');
+      assert.equal(storageWriteError.reasonCode, 'electron-standard-data-root-binding-missing');
 
-      const storageRead = await invokeShell(page, 'storage.readJson', { relativePath: 'settings/profile.json' });
-      assert.deepEqual(storageRead, {
-        path: path.join(dataRoot, 'settings', 'profile.json'),
-        value: { schemaVersion: 1, shell: 'electron-desktop' },
+      const storageReadError = await captureInvokeError(page, 'storage.readJson', {
+        relativePath: 'settings/profile.json',
       });
+      assert.equal(storageReadError.code, 'capability-unavailable');
+      assert.equal(storageReadError.reasonCode, 'electron-standard-data-root-binding-missing');
 
       const assetResult = await page.evaluate(async ({ command, assetPath: inputPath }) => {
         const result = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { path: inputPath });
@@ -252,19 +234,16 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
   });
 });
 
-test('Desktop Electron config.get fails closed with standard not-found when runtime config is absent', { timeout: 90_000 }, async () => {
+test('Desktop Electron config.get cannot fall back to an app-owned runtime config file', { timeout: 90_000 }, async () => {
   await withTempDir('missing-config', async (tmpRoot) => {
     const dataRoot = path.join(tmpRoot, 'data');
     const app = await electron.launch({
       executablePath: electronExecutablePath,
       args: [mainEntry],
-      env: {
-        ...process.env,
-        NIMI_RUNTIME_GRPC_ADDR: '',
+      env: acceptanceEnvironment({
         NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
-        NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT: '127.0.0.1:1',
         NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
-      },
+      }),
     });
     try {
       const page = await app.firstWindow();
@@ -272,9 +251,9 @@ test('Desktop Electron config.get fails closed with standard not-found when runt
       await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
 
       const missingConfig = await captureInvokeError(page, 'config.get', {});
-      assert.equal(missingConfig.code, 'not-found');
-      assert.equal(missingConfig.reasonCode, 'electron-runtime-config-not-found');
-      assert.equal(missingConfig.actionHint, 'create_or_select_runtime_config');
+      assert.equal(missingConfig.code, 'capability-unavailable');
+      assert.equal(missingConfig.reasonCode, 'electron-standard-capability-unavailable');
+      assert.equal(missingConfig.actionHint, 'provide_electron_standard_shell_capability_handler');
       assert.equal(missingConfig.source, 'electron');
     } finally {
       await app.close();
@@ -330,11 +309,17 @@ async function waitForDesktopRendererBootstrapSurface(page) {
     admissionFailed: '[data-testid="desktop-admission-failed"]',
   }, { timeout: 45_000 });
   const surface = await handle.jsonValue();
-  if (surface === 'error') {
-    const bodyText = await page.locator('body').innerText().catch(() => '');
-    assert.fail(`Desktop Electron renderer bootstrap failed:\n${bodyText}`);
-  }
   return surface;
+}
+
+function acceptanceEnvironment(overrides) {
+  return Object.fromEntries(Object.entries({
+    HOME: process.env.HOME,
+    LANG: process.env.LANG || 'en_US.UTF-8',
+    PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+    TMPDIR: '/private/tmp',
+    ...overrides,
+  }).filter(([, value]) => typeof value === 'string' && value.length > 0));
 }
 
 async function withTempDir(prefix, run) {

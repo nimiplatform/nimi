@@ -5,22 +5,17 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export function resolveDesktopReleaseStripMessage(input: {
   desktopReleaseError?: string | null;
-  runtimeLastError?: string | null;
 }): string {
-  return String(
-    input.desktopReleaseError || input.runtimeLastError || '',
-  ).trim();
+  return String(input.desktopReleaseError || '').trim();
 }
 
 export function DesktopReleaseStrip() {
   const { t } = useTranslation();
   const desktopReleaseError = useAppStore((state) => state.desktopReleaseError);
-  const desktopReleaseInfo = useAppStore((state) => state.desktopReleaseInfo);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
 
   const message = resolveDesktopReleaseStripMessage({
     desktopReleaseError,
-    runtimeLastError: desktopReleaseInfo?.runtimeLastError,
   });
   if (!message) {
     return null;
@@ -34,10 +29,10 @@ export function DesktopReleaseStrip() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-medium">
-            {t('DesktopRelease.runtimeUnavailableTitle')}
+            {t('DesktopRelease.releaseUnavailableTitle')}
           </p>
           <p className="text-xs opacity-80">
-            {t('DesktopRelease.runtimeUnavailableBody')}
+            {t('DesktopRelease.releaseUnavailableBody')}
           </p>
           <p className="mt-1 break-words text-xs opacity-80">{message}</p>
         </div>

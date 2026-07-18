@@ -1,0 +1,20 @@
+#!/bin/zsh
+set -euo pipefail
+
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+if [[ "$(/usr/bin/id -u)" != "0" || "$(/usr/bin/id -ru)" != "0" ]]; then
+  print -u2 -- "Nimi installer requires the macOS Installer root context"
+  exit 70
+fi
+
+service_target="system/ai.nimi.runtime"
+if /bin/launchctl print "${service_target}" >/dev/null 2>&1; then
+  /bin/launchctl bootout "${service_target}"
+fi
+if /bin/launchctl print "${service_target}" >/dev/null 2>&1; then
+  print -u2 -- "Nimi Runtime service did not stop before update"
+  exit 71
+fi
+
+exit 0

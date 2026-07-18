@@ -20,11 +20,10 @@ import {
 function createUnavailableReleaseInfo() {
   return {
     desktopVersion: '0.2.0',
-    runtimeVersion: '0.2.0',
+    desktopReleaseId: 'desktop-0.2.0+abc123',
     channel: 'stable',
     commit: 'abc123',
     builtAt: '2026-03-15T00:00:00Z',
-    runtimeReady: true,
     updaterAvailable: false,
     updaterUnavailableReason: 'Desktop updates are unavailable in the current environment.',
   };

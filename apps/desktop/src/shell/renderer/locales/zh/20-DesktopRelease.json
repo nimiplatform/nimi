@@ -1,5 +1,5 @@
 {
-  "runtimeUnavailableTitle": "内置 Runtime 不可用",
-  "runtimeUnavailableBody": "桌面壳已启动，但内置 runtime 未能完成 staging 或版本校验。请打开设置查看发布错误详情。",
+  "releaseUnavailableTitle": "Desktop 发布元数据不可用",
+  "releaseUnavailableBody": "Desktop 壳已启动，但无法验证其签名发布元数据。请打开支持页面检查发布错误。",
   "openUpdates": "打开更新设置"
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { lstat, mkdtemp, mkdir, readFile, realpath, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -11,13 +12,19 @@ import type {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   createDesktopElectronLocalDevelopmentHost,
-  resolveLocalDevelopmentObservationArguments,
-  resolveLocalDevelopmentPackageScriptInvocation,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host';
+import {
+  resolveLocalDevelopmentObservationArguments,
+  resolveMacOSLocalAppUserDataArguments,
+} from '../src-electron/local-development-host-arguments';
+import {
+  resolveLocalDevelopmentPackageScriptInvocation,
+} from '../src-electron/local-development-host-process';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const projectRoot = path.join(repoRoot, 'apps', 'zhiyu');
+const macosLocalAppHost = '/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host';
 const evaluationId = '11'.repeat(32);
 const authorizationId = '22'.repeat(32);
 
@@ -68,8 +75,10 @@ function authorization(
   };
 }
 
-test('Electron local-development host keeps Runtime identifiers behind approval and project selectors', async () => {
-  const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-'));
+test('Electron local-development host keeps Runtime identifiers behind approval and project selectors', {
+  skip: process.platform !== 'win32' && !existsSync(macosLocalAppHost),
+}, async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-')));
   const evaluation: NimiElectronLocalDevelopmentEvaluation = {
     evaluationId,
     project: project(),
@@ -107,7 +116,13 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ schemaVersion: 1, appId: 'nimi.zhiyu', projectRoot, shell: 'electron' }),
     });
-    const started = await response.json() as { run: { runId: string; state: string } };
+    const started = await response.json() as {
+      status: string;
+      reasonCode?: string;
+      run?: { runId: string; state: string };
+    };
+    assert.equal(started.status, 'ok', JSON.stringify(started));
+    assert.ok(started.run);
     assert.equal(started.run.state, 'pending-approval');
 
     const pending = await host.commandHandlers.local_development_pending_approvals!({
@@ -147,6 +162,47 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
   }
 });
 
+test('macOS local-development host fails closed when the exact installed carrier is absent', {
+  skip: process.platform !== 'darwin' || existsSync(macosLocalAppHost),
+}, async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-macos-')));
+  const control = {
+    getAuthoritySummary: async () => authoritySummary(),
+    evaluate: async () => { throw new Error('not-called'); },
+    decide: async () => { throw new Error('not-called'); },
+    reactivate: async () => { throw new Error('not-called'); },
+    listAuthorizations: async () => [],
+    revokeAuthorization: async () => { throw new Error('not-called'); },
+    launch: async () => { throw new Error('not-called'); },
+    hostRunning: async () => false,
+    terminateHost: async () => {},
+    endRun: async () => {},
+  } satisfies NimiElectronLocalDevelopmentControl;
+  const host = await createDesktopElectronLocalDevelopmentHost({
+    homeDirectory: home,
+    focusMainWindow: async () => {},
+    control,
+  });
+  try {
+    const descriptor = JSON.parse(await readFile(path.join(
+      home, '.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json',
+    ), 'utf8')) as { endpoint: string };
+    const response = await fetch(`${descriptor.endpoint}/v1/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schemaVersion: 1, appId: 'nimi.zhiyu', projectRoot, shell: 'electron' }),
+    });
+    assert.deepEqual(await response.json(), {
+      status: 'error',
+      reasonCode: 'local-development-project-changed',
+      actionHint: 'use_official_nimi_app_dev_launcher',
+    });
+  } finally {
+    await host.shutdown();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test('Electron local-development package scripts use a fixed Windows shell allowlist', () => {
   assert.deepEqual(resolveLocalDevelopmentPackageScriptInvocation('build:electron', 'win32'), {
     command: 'corepack.cmd pnpm run build:electron',
@@ -164,7 +220,7 @@ test('Electron local-development package scripts use a fixed Windows shell allow
   );
 });
 
-test('Electron local-development observation arguments require the explicit checkpoint switch', () => {
+test('ordinary Electron builds cannot enable observation from environment input', () => {
   const observation = {
     NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT: '19472',
     NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT: path.join(repoRoot, '.nimi', 'local', 'zhiyu-observation'),
@@ -174,29 +230,66 @@ test('Electron local-development observation arguments require the explicit chec
   assert.deepEqual(resolveLocalDevelopmentObservationArguments({
     ...observation,
     NIMI_DEV_KERNEL_CHECKPOINT: '1',
-  }), [
-    '--remote-debugging-address=127.0.0.1',
-    '--remote-debugging-port=19472',
-    `--user-data-dir=${path.resolve(observation.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT)}`,
-    `--nimi-dev-agent-id=${observation.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID}`,
-  ]);
-  assert.deepEqual(resolveLocalDevelopmentObservationArguments({
-    ...observation,
-    NIMI_DEV_KERNEL_CHECKPOINT: '1',
-    NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID: '',
-  }), [
-    '--remote-debugging-address=127.0.0.1',
-    '--remote-debugging-port=19472',
-    `--user-data-dir=${path.resolve(observation.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT)}`,
-  ]);
-  assert.throws(
-    () => resolveLocalDevelopmentObservationArguments({
-      ...observation,
-      NIMI_DEV_KERNEL_CHECKPOINT: '1',
-      NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID: 'local-agent:runtime-invalid',
-    }),
-    /local-development-observation-config-invalid/u,
-  );
+  }), []);
+});
+
+test('macOS local-app Chromium data is opaque, private, and authorization-partitioned', async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-user-data-')));
+  try {
+    const first = await resolveMacOSLocalAppUserDataArguments({
+      authorizationId,
+      homeDirectory: home,
+      platform: 'darwin',
+      uid: process.getuid?.() ?? 0,
+    });
+    const repeated = await resolveMacOSLocalAppUserDataArguments({
+      authorizationId,
+      homeDirectory: home,
+      platform: 'darwin',
+      uid: process.getuid?.() ?? 0,
+    });
+    const changed = await resolveMacOSLocalAppUserDataArguments({
+      authorizationId: '44'.repeat(32),
+      homeDirectory: home,
+      platform: 'darwin',
+      uid: process.getuid?.() ?? 0,
+    });
+    assert.deepEqual(repeated, first);
+    assert.notDeepEqual(changed, first);
+    assert.doesNotMatch(first[0]!, new RegExp(authorizationId, 'u'));
+    const profileRoot = first[0]!.slice('--user-data-dir='.length);
+    const metadata = await lstat(profileRoot);
+    assert.equal(metadata.isDirectory(), true);
+    assert.equal(metadata.mode & 0o777, 0o700);
+    assert.deepEqual(await resolveMacOSLocalAppUserDataArguments({
+      authorizationId,
+      homeDirectory: home,
+      platform: 'win32',
+    }), []);
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('macOS local-app Chromium data rejects a symlinked profile ancestor', async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-user-data-link-')));
+  const target = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-user-data-target-')));
+  try {
+    await mkdir(path.join(home, 'Library'), { mode: 0o700 });
+    await symlink(target, path.join(home, 'Library', 'Application Support'));
+    await assert.rejects(
+      resolveMacOSLocalAppUserDataArguments({
+        authorizationId,
+        homeDirectory: home,
+        platform: 'darwin',
+        uid: process.getuid?.() ?? 0,
+      }),
+      /local-development-user-data-partition-untrusted/u,
+    );
+  } finally {
+    await rm(home, { recursive: true, force: true });
+    await rm(target, { recursive: true, force: true });
+  }
 });
 
 test('Electron local-development project equality accepts the Windows extended-length canonical path', {
@@ -231,7 +324,7 @@ test('Electron local-development project equality accepts the Windows extended-l
 });
 
 test('Electron local-development HTTP bridge rejects browser-originated intents', async () => {
-  const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-origin-'));
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-local-development-origin-')));
   const control = {
     getAuthoritySummary: async () => authoritySummary(),
     evaluate: async () => { throw new Error('not-called'); },
