@@ -92,6 +92,7 @@ type agentTurnContextItem struct {
 	Rank            int64
 	Mandatory       bool
 	TruncationClass agentTurnContextTruncationClass
+	OmissionReason  string
 	Segments        []agentTurnContextSegment
 	Media           []agentTurnContextMedia
 	ContentHash     string
@@ -211,18 +212,26 @@ type agentTurnContextBudgetManifestV1 struct {
 	UsedTokens            uint64 `json:"usedTokens"`
 }
 
+type agentTurnContextOmissionManifestV1 struct {
+	StableID       string `json:"stableId"`
+	SourcePath     string `json:"sourcePath"`
+	ContentHash    string `json:"contentHash"`
+	OmissionReason string `json:"omissionReason"`
+}
+
 type agentTurnContextLaneManifestV1 struct {
-	LaneID             agentTurnContextLaneID          `json:"laneId"`
-	AuthorityOwner     agentTurnContextAuthority       `json:"authorityOwner"`
-	TrustClass         agentTurnContextTrustClass      `json:"trustClass"`
-	SourceRefs         []agentTurnContextItemSourceRef `json:"sourceRefs"`
-	ItemContentHashes  []string                        `json:"itemContentHashes"`
-	ContentHash        string                          `json:"contentHash"`
-	AllocatedTokens    uint64                          `json:"allocatedTokens"`
-	UsedTokens         uint64                          `json:"usedTokens"`
-	IncludedItemCount  uint32                          `json:"includedItemCount"`
-	OmittedItemCount   uint32                          `json:"omittedItemCount"`
-	TruncatedItemCount uint32                          `json:"truncatedItemCount"`
+	LaneID             agentTurnContextLaneID               `json:"laneId"`
+	AuthorityOwner     agentTurnContextAuthority            `json:"authorityOwner"`
+	TrustClass         agentTurnContextTrustClass           `json:"trustClass"`
+	SourceRefs         []agentTurnContextItemSourceRef      `json:"sourceRefs"`
+	ItemContentHashes  []string                             `json:"itemContentHashes"`
+	Omissions          []agentTurnContextOmissionManifestV1 `json:"omissions,omitempty"`
+	ContentHash        string                               `json:"contentHash"`
+	AllocatedTokens    uint64                               `json:"allocatedTokens"`
+	UsedTokens         uint64                               `json:"usedTokens"`
+	IncludedItemCount  uint32                               `json:"includedItemCount"`
+	OmittedItemCount   uint32                               `json:"omittedItemCount"`
+	TruncatedItemCount uint32                               `json:"truncatedItemCount"`
 }
 
 type agentTurnContextTranscriptManifestV1 struct {

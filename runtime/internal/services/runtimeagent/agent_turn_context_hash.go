@@ -20,6 +20,7 @@ type agentTurnContextItemSemanticV1 struct {
 	AuthorityOwner agentTurnContextAuthority     `json:"authorityOwner"`
 	TrustClass     agentTurnContextTrustClass    `json:"trustClass"`
 	Priority       int64                         `json:"priority"`
+	OmissionReason string                        `json:"omissionReason,omitempty"`
 	Segments       []agentTurnContextSegment     `json:"segments"`
 	Media          []agentTurnContextMedia       `json:"media"`
 }
@@ -44,6 +45,7 @@ func agentTurnContextItemSemantic(item agentTurnContextItem) agentTurnContextIte
 		AuthorityOwner: item.AuthorityOwner,
 		TrustClass:     item.TrustClass,
 		Priority:       item.Priority,
+		OmissionReason: item.OmissionReason,
 		Segments:       append([]agentTurnContextSegment(nil), item.Segments...),
 		Media:          append([]agentTurnContextMedia(nil), item.Media...),
 	}

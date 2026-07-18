@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 type agentTurnContextBudgetResult struct {
@@ -42,6 +43,16 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 		lane.AllocatedTokens = 0
 		for itemIndex := range lane.Items {
 			item := &lane.Items[itemIndex]
+			if item.OmissionReason != "" {
+				if strings.TrimSpace(item.OmissionReason) != item.OmissionReason || item.Mandatory ||
+					item.TruncationClass != agentTurnContextTruncationNone || item.TokenEstimate != 0 ||
+					len(item.Segments) != 0 || len(item.Media) != 0 || !validSHA256Hex(item.ContentHash) {
+					return agentTurnContextBudgetResult{}, fmt.Errorf("agent turn context omission item %q is invalid", item.StableID)
+				}
+				item.Included = false
+				item.Truncated = false
+				continue
+			}
 			item.Included = true
 			item.Truncated = false
 			var ok bool

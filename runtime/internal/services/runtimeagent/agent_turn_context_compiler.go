@@ -343,10 +343,18 @@ func buildAgentTurnContextLaneManifest(lanes []agentTurnContextLane) ([]agentTur
 		}
 		seenRefs := make(map[string]struct{}, len(lane.Items))
 		for _, item := range lane.Items {
-			if !item.Included {
+			if item.OmissionReason != "" {
+				entry.Omissions = append(entry.Omissions, agentTurnContextOmissionManifestV1{
+					StableID: item.StableID, SourcePath: item.SourcePath,
+					ContentHash: item.ContentHash, OmissionReason: item.OmissionReason,
+				})
+			}
+			if !item.Included && item.OmissionReason == "" {
 				continue
 			}
-			entry.ItemContentHashes = append(entry.ItemContentHashes, item.ContentHash)
+			if item.Included {
+				entry.ItemContentHashes = append(entry.ItemContentHashes, item.ContentHash)
+			}
 			refKey := item.SourceRef.Kind + "\x00" + item.SourceRef.WorldID + "\x00" + item.SourceRef.RefID + "\x00" + item.SourceRef.SchemaVersion + "\x00" + item.SourceRef.ContentHash
 			if _, exists := seenRefs[refKey]; !exists {
 				seenRefs[refKey] = struct{}{}

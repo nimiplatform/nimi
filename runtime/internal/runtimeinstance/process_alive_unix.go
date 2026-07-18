@@ -1,13 +1,13 @@
 //go:build !windows
 
-package entrypoint
+package runtimeinstance
 
 import (
 	"os"
 	"syscall"
 )
 
-func runtimeProcessAlive(pid int) bool {
+func processAlive(pid int) bool {
 	if pid <= 0 {
 		return false
 	}

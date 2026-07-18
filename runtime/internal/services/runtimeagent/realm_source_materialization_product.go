@@ -12,18 +12,19 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/realmsourcecontract"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
-	localAgentSourceSnapshotSchemaVersionV2     = "nimi.runtime.local-agent-source-snapshot/v2"
-	localAgentSourceNormalizationVersionV3      = "nimi.runtime.source-materialization-normalization/v3"
-	localAgentSourceCompilerCompatibilityV3     = "realm-character-v3"
+	localAgentSourceSnapshotSchemaVersionV2     = realmsourcecontract.SnapshotSchemaVersion
+	localAgentSourceNormalizationVersionV3      = realmsourcecontract.NormalizationVersion
+	localAgentSourceCompilerCompatibilityV3     = realmsourcecontract.CompilerCompatibilityVersion
 	localAgentSourceSnapshotHashDomainV2        = "nimi.runtime.local-agent-source-snapshot/v2\x00"
 	localAgentRealmSourceProvenanceHashDomainV3 = "nimi.runtime.realm-source-provenance/v3\x00"
 	localAgentRealmRuntimeSourceRefHashDomainV3 = "nimi.runtime.realm-source-ref/v3\x00"
-	localAgentRealmRuntimeSourceRefPrefixV3     = "runtime-source:realm-v3:"
+	localAgentRealmRuntimeSourceRefPrefixV3     = realmsourcecontract.RuntimeSourceRefV3Prefix
 )
 
 // localAgentRealmCharacterSourceV3 is the normalized semantic Character

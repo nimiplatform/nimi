@@ -30,7 +30,6 @@ const (
 
 	realmSourceMaterializationEpochMetaKey = "realm_source_materialization_contract_epoch"
 	realmSourceMaterializationEpochV3      = "v3"
-
 	retiredSourceSnapshotNoUpdateTrigger   = "runtime_local_agent_source_snapshot_no_update"
 	retiredSourceProvenanceNoUpdateTrigger = "runtime_local_agent_source_provenance_no_update"
 	retiredSourceChunkTable                = "runtime_source_materialization_chunk"
@@ -41,6 +40,8 @@ const (
 	retiredSourceProvenanceTable           = "runtime_local_agent_source_provenance"
 	retiredSourceSnapshotTable             = "runtime_local_agent_source_snapshot"
 )
+
+var ErrRealmSourceMaterializationDataResetRequired = errors.New("source_materialization_data_reset_required")
 
 func retiredRealmSourceMaterializationTriggers() []string {
 	return []string{
@@ -124,6 +125,10 @@ func Open(logger *slog.Logger, localStatePath string) (*Backend, error) {
 		writeDone: make(chan struct{}),
 	}
 	if err := backend.ensureHealthyOrRestore(); err != nil {
+		_ = writeDB.Close()
+		return nil, err
+	}
+	if err := backend.requireRealmSourceMaterializationResetAbsent(); err != nil {
 		_ = writeDB.Close()
 		return nil, err
 	}
@@ -603,10 +608,79 @@ func (b *Backend) ensureSchema() error {
 	if _, err := b.writeDB.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err
 	}
-	return b.ensureRealmSourceMaterializationEpochV3()
+	return b.initializeRealmSourceMaterializationEpochV3()
 }
 
-func (b *Backend) ensureRealmSourceMaterializationEpochV3() error {
+func (b *Backend) requireRealmSourceMaterializationResetAbsent() error {
+	var metaTableCount int
+	if err := b.writeDB.QueryRow(`SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'runtime_local_agent_meta'`).Scan(&metaTableCount); err != nil {
+		return fmt.Errorf("inspect Realm source materialization metadata table: %w", err)
+	}
+
+	retiredObjects, err := countRetiredRealmSourceMaterializationObjects(b.writeDB)
+	if err != nil {
+		return err
+	}
+	runtimeSourceRefs, err := collectRealmSourceMaterializationRuntimeAgentRefs(b.writeDB)
+	if err != nil {
+		return err
+	}
+	staleSnapshotRefs, err := collectPreV3RealmSourceSnapshotRefs(b.writeDB)
+	if err != nil {
+		return err
+	}
+	legacyAgentCount := len(runtimeSourceRefs.legacy)
+	staleSnapshotCount := len(staleSnapshotRefs)
+	if metaTableCount == 0 {
+		if retiredObjects > 0 || legacyAgentCount > 0 || staleSnapshotCount > 0 {
+			return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=missing", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount)
+		}
+		if len(runtimeSourceRefs.currentV3) > 0 {
+			return fmt.Errorf("Realm source materialization v3 agents exist without contract epoch")
+		}
+		return nil
+	}
+
+	var epoch string
+	err = b.writeDB.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, realmSourceMaterializationEpochMetaKey).Scan(&epoch)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		if retiredObjects > 0 || legacyAgentCount > 0 || staleSnapshotCount > 0 {
+			return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=missing", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount)
+		}
+		if len(runtimeSourceRefs.currentV3) > 0 {
+			return fmt.Errorf("Realm source materialization v3 agents exist without contract epoch")
+		}
+		return nil
+	case err != nil:
+		return fmt.Errorf("read Realm source materialization epoch: %w", err)
+	case epoch == "v1" || epoch == "v2":
+		return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=%s", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount, epoch)
+	case epoch != realmSourceMaterializationEpochV3:
+		return fmt.Errorf("unsupported Realm source materialization epoch %q", epoch)
+	case retiredObjects > 0 || legacyAgentCount > 0 || staleSnapshotCount > 0:
+		return fmt.Errorf("%w: retired_objects=%d legacy_agents=%d stale_snapshots=%d epoch=%s", ErrRealmSourceMaterializationDataResetRequired, retiredObjects, legacyAgentCount, staleSnapshotCount, epoch)
+	default:
+		return nil
+	}
+}
+
+func countRetiredRealmSourceMaterializationObjects(db *sql.DB) (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("inspect retired Realm source materialization objects: database is required")
+	}
+	count := 0
+	for _, name := range append(retiredRealmSourceMaterializationTriggers(), retiredRealmSourceMaterializationTables()...) {
+		var objectCount int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_schema WHERE name = ?`, name).Scan(&objectCount); err != nil {
+			return 0, fmt.Errorf("inspect retired Realm source materialization object %s: %w", name, err)
+		}
+		count += objectCount
+	}
+	return count, nil
+}
+
+func (b *Backend) initializeRealmSourceMaterializationEpochV3() error {
 	err := b.executeWrite(context.Background(), func(tx *sql.Tx) error {
 		var epoch string
 		err := tx.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, realmSourceMaterializationEpochMetaKey).Scan(&epoch)
@@ -614,30 +688,22 @@ func (b *Backend) ensureRealmSourceMaterializationEpochV3() error {
 		case errors.Is(err, sql.ErrNoRows):
 		case err != nil:
 			return fmt.Errorf("read Realm source materialization epoch: %w", err)
-		case epoch != "v1" && epoch != "v2" && epoch != realmSourceMaterializationEpochV3:
+		case epoch == "v1" || epoch == "v2":
+			return fmt.Errorf("%w: epoch=%s", ErrRealmSourceMaterializationDataResetRequired, epoch)
+		case epoch != realmSourceMaterializationEpochV3:
 			return fmt.Errorf("unsupported Realm source materialization epoch %q", epoch)
 		}
 
-		for _, name := range retiredRealmSourceMaterializationTriggers() {
-			if _, err := tx.Exec("DROP TRIGGER IF EXISTS " + name); err != nil {
-				return fmt.Errorf("drop retired Realm source materialization trigger %s: %w", name, err)
-			}
-		}
-		for _, name := range retiredRealmSourceMaterializationTables() {
-			if _, err := tx.Exec("DROP TABLE IF EXISTS " + name); err != nil {
-				return fmt.Errorf("drop retired Realm source materialization table %s: %w", name, err)
-			}
-		}
 		if _, err := tx.Exec(`
 			INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?)
-			ON CONFLICT(key) DO UPDATE SET value=excluded.value
+			ON CONFLICT(key) DO NOTHING
 		`, realmSourceMaterializationEpochMetaKey, realmSourceMaterializationEpochV3); err != nil {
 			return fmt.Errorf("persist Realm source materialization epoch: %w", err)
 		}
 		return verifyRealmSourceMaterializationEpochV3(tx)
 	})
 	if err != nil {
-		return fmt.Errorf("ensure Realm source materialization v3 epoch: %w", err)
+		return fmt.Errorf("initialize Realm source materialization v3 epoch: %w", err)
 	}
 	return nil
 }

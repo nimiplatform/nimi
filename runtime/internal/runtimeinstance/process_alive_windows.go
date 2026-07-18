@@ -1,6 +1,6 @@
 //go:build windows
 
-package entrypoint
+package runtimeinstance
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 
 const windowsStillActiveExitCode = 259
 
-func runtimeProcessAlive(pid int) bool {
+func processAlive(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
@@ -21,9 +21,7 @@ func runtimeProcessAlive(pid int) bool {
 		}
 		return false
 	}
-	defer func() {
-		_ = windows.CloseHandle(process)
-	}()
+	defer func() { _ = windows.CloseHandle(process) }()
 
 	var exitCode uint32
 	if err := windows.GetExitCodeProcess(process, &exitCode); err != nil {

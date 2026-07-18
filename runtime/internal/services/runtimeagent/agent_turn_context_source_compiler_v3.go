@@ -26,7 +26,7 @@ type realmSourceCompilerProfileV3 struct {
 	Relationships        *[]realmSourceCompilerProfileRelationshipV3 `json:"relationships,omitempty"`
 	Capabilities         *realmSourceCompilerProfileCapabilitiesV3   `json:"capabilities,omitempty"`
 	InteractionProfile   realmSourceCompilerInteractionProfileV3     `json:"interactionProfile"`
-	Assets               sourceMaterializationJSONValue              `json:"assets"`
+	Assets               realmSourceCompilerProfileAssetsV3          `json:"assets"`
 	Authoring            sourceMaterializationJSONValue              `json:"authoring"`
 	ProfileCoverage      sourceMaterializationJSONValue              `json:"profileCoverage"`
 	ProfileHash          string                                      `json:"profileHash"`
@@ -86,6 +86,26 @@ type realmSourceCompilerProfileToolV3 struct {
 	ToolID  string  `json:"toolId"`
 	Name    *string `json:"name,omitempty"`
 	Summary *string `json:"summary,omitempty"`
+}
+
+type realmSourceCompilerProfileAssetsV3 struct {
+	ResourceRefs []realmSourceCompilerProfileAssetRefV3    `json:"resourceRefs"`
+	ExternalRefs *[]realmSourceCompilerProfileAssetRefV3   `json:"externalRefs,omitempty"`
+	Intents      []realmSourceCompilerProfileAssetIntentV3 `json:"intents"`
+}
+
+type realmSourceCompilerProfileAssetRefV3 struct {
+	RefID   string  `json:"refId"`
+	Kind    string  `json:"kind"`
+	URI     *string `json:"uri,omitempty"`
+	Purpose *string `json:"purpose,omitempty"`
+	Label   *string `json:"label,omitempty"`
+}
+
+type realmSourceCompilerProfileAssetIntentV3 struct {
+	IntentID string  `json:"intentId"`
+	Kind     string  `json:"kind"`
+	Summary  *string `json:"summary,omitempty"`
 }
 
 type realmSourceCompilerInteractionProfileV3 struct {
@@ -303,7 +323,7 @@ func decodeRealmSourceCompilerProfileV3(value sourceMaterializationJSONValue) (r
 		!isLowerSHA256V3(profile.ProfileHash) || strings.TrimSpace(profile.Identity.Name) == "" ||
 		strings.TrimSpace(profile.Identity.Summary) == "" || strings.TrimSpace(profile.Presentation.DisplayName) == "" ||
 		strings.TrimSpace(profile.Narrative.Summary) == "" || profile.InteractionProfile.InteractionModes == nil ||
-		profile.Assets.Kind != sourceMaterializationJSONObject || profile.Authoring.Kind != sourceMaterializationJSONObject ||
+		profile.Assets.ResourceRefs == nil || profile.Assets.Intents == nil || profile.Authoring.Kind != sourceMaterializationJSONObject ||
 		profile.ProfileCoverage.Kind != sourceMaterializationJSONObject {
 		return realmSourceCompilerProfileV3{}, fmt.Errorf("SnapshotV2 CharacterProfileCoreV1 required fields are invalid")
 	}
@@ -338,69 +358,85 @@ func decodeRealmSourceCompilerWorldCoreV3(value sourceMaterializationJSONValue) 
 func compileRealmSourceProfileV3(snapshot localAgentSourceSnapshotV2, profile realmSourceCompilerProfileV3, items map[agentTurnContextLaneID][]agentTurnContextItem) error {
 	ref := realmSourceCompilerSourceRefV3(snapshot)
 	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceIdentity,
-		"source.identity.core", "source.profile.identity", ref, agentTurnContextV3PriorityIdentity, true, agentTurnContextTruncationNone,
-		agentTurnContextTypedContent("Realm Character identity",
+		"source.identity", "semanticPayload.canonicalSource.profile.identity", ref, agentTurnContextV3PriorityIdentity, true, agentTurnContextTruncationNone,
+		agentTurnContextTypedContent("Source identity",
 			agentTurnContextTextField{Name: "name", Values: []string{profile.Identity.Name}},
 			agentTurnContextTextField{Name: "summary", Values: []string{profile.Identity.Summary}},
-			agentTurnContextTextField{Name: "handle", Values: agentTurnContextOptionalString(profile.Identity.Handle)},
 			agentTurnContextTextField{Name: "aliases", Values: agentTurnContextOptionalStrings(profile.Identity.Aliases)},
+			agentTurnContextTextField{Name: "handle", Values: agentTurnContextOptionalString(profile.Identity.Handle)},
 		)); err != nil {
 		return err
 	}
 	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceIdentity,
-		"source.identity.presentation", "source.profile.presentation", ref, agentTurnContextV3PriorityIdentity-10, true, agentTurnContextTruncationNone,
-		agentTurnContextTypedContent("Realm Character presentation identity",
+		"source.presentation", "semanticPayload.canonicalSource.profile.presentation", ref, agentTurnContextV3PriorityIdentity-10, true, agentTurnContextTruncationNone,
+		agentTurnContextTypedContent("Source presentation",
 			agentTurnContextTextField{Name: "display_name", Values: []string{profile.Presentation.DisplayName}},
-			agentTurnContextTextField{Name: "short_bio", Values: agentTurnContextOptionalString(profile.Presentation.ShortBio)},
 			agentTurnContextTextField{Name: "profile_line", Values: agentTurnContextOptionalString(profile.Presentation.ProfileLine)},
+			agentTurnContextTextField{Name: "short_bio", Values: agentTurnContextOptionalString(profile.Presentation.ShortBio)},
+			agentTurnContextTextField{Name: "avatar_resource_ref", Values: agentTurnContextOptionalString(profile.Presentation.AvatarResourceRef)},
+			agentTurnContextTextField{Name: "profile_cover_resource_ref", Values: agentTurnContextOptionalString(profile.Presentation.ProfileCoverResourceRef)},
+		)); err != nil {
+		return err
+	}
+	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceIdentity,
+		"source.asset-intents", "semanticPayload.canonicalSource.profile.assets", ref, agentTurnContextV3PriorityIdentity-20, true, agentTurnContextTruncationNone,
+		agentTurnContextTypedContent("Proof-covered source asset intents",
+			agentTurnContextTextField{Name: "resource_refs", Values: realmSourceCompilerProfileAssetRefsV3(profile.Assets.ResourceRefs)},
+			agentTurnContextTextField{Name: "intents", Values: realmSourceCompilerProfileAssetIntentsV3(profile.Assets.Intents)},
+			agentTurnContextTextField{Name: "external_refs", Values: realmSourceCompilerProfileOptionalAssetRefsV3(profile.Assets.ExternalRefs)},
 		)); err != nil {
 		return err
 	}
 	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceBehavior,
-		"source.behavior.narrative", "source.profile.narrative", ref, agentTurnContextV3PriorityCoreBehavior, true, agentTurnContextTruncationNone,
-		agentTurnContextTypedContent("Realm Character narrative behavior",
+		"source.behavior.narrative", "semanticPayload.canonicalSource.profile.narrative", ref, agentTurnContextV3PriorityCoreBehavior, true, agentTurnContextTruncationNone,
+		agentTurnContextTypedContent("Source narrative behavior",
 			agentTurnContextTextField{Name: "summary", Values: []string{profile.Narrative.Summary}},
 			agentTurnContextTextField{Name: "archetype", Values: agentTurnContextOptionalString(profile.Narrative.Archetype)},
 			agentTurnContextTextField{Name: "traits", Values: agentTurnContextOptionalStrings(profile.Narrative.Traits)},
 		)); err != nil {
 		return err
 	}
+	interaction := profile.InteractionProfile
+	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceBehavior,
+		"source.behavior.interaction", "semanticPayload.canonicalSource.profile.interactionProfile", ref, agentTurnContextV3PriorityCoreBehavior-10, true, agentTurnContextTruncationNone,
+		agentTurnContextTypedContent("Source interaction behavior",
+			agentTurnContextTextField{Name: "interaction_modes", Values: interaction.InteractionModes},
+			agentTurnContextTextField{Name: "tone", Values: agentTurnContextOptionalString(interaction.Tone)},
+			agentTurnContextTextField{Name: "cadence", Values: agentTurnContextOptionalString(interaction.Cadence)},
+			agentTurnContextTextField{Name: "scenario", Values: agentTurnContextOptionalString(interaction.Scenario)},
+		)); err != nil {
+		return err
+	}
+	// Greeting values remain immutable proof-covered SnapshotV2 data. They are
+	// deliberately not part of the per-turn provider context: only the
+	// Runtime-owned new-conversation lifecycle may surface one greeting.
 	if profile.Psychology != nil {
 		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceBehavior,
-			"source.behavior.psychology", "source.profile.psychology", ref, agentTurnContextV3PriorityCoreBehavior-10, true, agentTurnContextTruncationNone,
-			agentTurnContextTypedContent("Realm Character psychology",
+			"source.behavior.psychology", "semanticPayload.canonicalSource.profile.psychology", ref, agentTurnContextV3PriorityCoreBehavior-20, true, agentTurnContextTruncationNone,
+			agentTurnContextTypedContent("Source psychology",
 				agentTurnContextTextField{Name: "drives", Values: agentTurnContextOptionalStrings(profile.Psychology.Drives)},
 				agentTurnContextTextField{Name: "boundaries", Values: agentTurnContextOptionalStrings(profile.Psychology.Boundaries)},
 			)); err != nil {
 			return err
 		}
-	}
-	interaction := profile.InteractionProfile
-	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceBehavior,
-		"source.behavior.interaction", "source.profile.interactionProfile", ref, agentTurnContextV3PriorityCoreBehavior-20, true, agentTurnContextTruncationNone,
-		agentTurnContextTypedContent("Realm Character interaction profile",
-			agentTurnContextTextField{Name: "interaction_modes", Values: interaction.InteractionModes},
-			agentTurnContextTextField{Name: "tone", Values: agentTurnContextOptionalString(interaction.Tone)},
-			agentTurnContextTextField{Name: "cadence", Values: agentTurnContextOptionalString(interaction.Cadence)},
-			agentTurnContextTextField{Name: "scenario", Values: agentTurnContextOptionalString(interaction.Scenario)},
-			agentTurnContextTextField{Name: "greeting", Values: agentTurnContextOptionalString(interaction.Greeting)},
-			agentTurnContextTextField{Name: "greeting_variants", Values: agentTurnContextOptionalStrings(interaction.GreetingVariants)},
-		)); err != nil {
+	} else if err := appendRealmSourceCompilerOmittedItemV3(items, agentTurnContextLaneSourceBehavior,
+		"source.behavior.psychology", "semanticPayload.canonicalSource.profile.psychology", ref,
+		agentTurnContextV3PriorityCoreBehavior-20, "optional_source_section_absent"); err != nil {
 		return err
 	}
-	if profile.Capabilities != nil && profile.Capabilities.Tools != nil {
-		for _, tool := range append([]realmSourceCompilerProfileToolV3(nil), (*profile.Capabilities.Tools)...) {
-			if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceBehavior,
-				"source.behavior.descriptive-capability."+tool.ToolID,
-				"source.profile.capabilities.tools."+tool.ToolID, ref, agentTurnContextV3PriorityCoreBehavior-30, true, agentTurnContextTruncationNone,
-				agentTurnContextTypedContent("Descriptive Realm source capability; this does not grant a Runtime tool",
-					agentTurnContextTextField{Name: "tool_id", Values: []string{tool.ToolID}},
-					agentTurnContextTextField{Name: "name", Values: agentTurnContextOptionalString(tool.Name)},
-					agentTurnContextTextField{Name: "summary", Values: agentTurnContextOptionalString(tool.Summary)},
-				)); err != nil {
-				return err
-			}
+	if profile.Capabilities != nil {
+		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceBehavior,
+			"source.behavior.descriptive-capabilities", "semanticPayload.canonicalSource.profile.capabilities", ref,
+			agentTurnContextV3PriorityCoreBehavior-30, true, agentTurnContextTruncationNone,
+			agentTurnContextTypedContent("Descriptive source capabilities; these grant no Runtime tool",
+				agentTurnContextTextField{Name: "tools", Values: realmSourceCompilerProfileToolsV3(profile.Capabilities.Tools)},
+			)); err != nil {
+			return err
 		}
+	} else if err := appendRealmSourceCompilerOmittedItemV3(items, agentTurnContextLaneSourceBehavior,
+		"source.behavior.descriptive-capabilities", "semanticPayload.canonicalSource.profile.capabilities", ref,
+		agentTurnContextV3PriorityCoreBehavior-30, "optional_source_section_absent"); err != nil {
+		return err
 	}
 	if interaction.DialogueExemplars != nil {
 		for _, exemplar := range append([]realmSourceCompilerDialogueExemplarV3(nil), (*interaction.DialogueExemplars)...) {
@@ -411,7 +447,7 @@ func compileRealmSourceProfileV3(snapshot localAgentSourceSnapshotV2, profile re
 	}
 	if profile.Relationships != nil {
 		for _, relationship := range append([]realmSourceCompilerProfileRelationshipV3(nil), (*profile.Relationships)...) {
-			content := agentTurnContextTypedContent("Realm Character declared relationship",
+			content := agentTurnContextTypedContent("Declared source relationship",
 				agentTurnContextTextField{Name: "relationship_id", Values: []string{relationship.RelationshipID}},
 				agentTurnContextTextField{Name: "target_kind", Values: []string{relationship.TargetRef.Kind}},
 				agentTurnContextTextField{Name: "target_world_id", Values: []string{relationship.TargetRef.WorldID}},
@@ -421,51 +457,48 @@ func compileRealmSourceProfileV3(snapshot localAgentSourceSnapshotV2, profile re
 			)
 			if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneRelationshipContext,
 				"source.relationship.profile."+relationship.RelationshipID,
-				"source.profile.relationships."+relationship.RelationshipID, ref,
+				"semanticPayload.canonicalSource.profile.relationships."+relationship.RelationshipID, ref,
 				agentTurnContextV3PriorityRelationship, true, agentTurnContextTruncationNone, content); err != nil {
 				return err
 			}
 		}
 	}
 	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceKnowledge,
-		"source.knowledge.narrative.summary", "source.profile.narrative.summary", ref,
+		"source.knowledge.narrative", "semanticPayload.canonicalSource.profile.narrative", ref,
 		agentTurnContextV3PriorityKnowledge, false, agentTurnContextTruncationKnowledge,
-		agentTurnContextTypedContent("Realm Character source narrative",
+		agentTurnContextTypedContent("Source narrative knowledge",
 			agentTurnContextTextField{Name: "summary", Values: []string{profile.Narrative.Summary}},
+			agentTurnContextTextField{Name: "archetype", Values: agentTurnContextOptionalString(profile.Narrative.Archetype)},
+			agentTurnContextTextField{Name: "traits", Values: agentTurnContextOptionalStrings(profile.Narrative.Traits)},
 		)); err != nil {
+		return err
+	}
+	if profile.Knowledge != nil {
+		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceKnowledge,
+			"source.knowledge.typed", "semanticPayload.canonicalSource.profile.knowledge", ref,
+			agentTurnContextV3PriorityKnowledge+100, false, agentTurnContextTruncationKnowledge,
+			agentTurnContextTypedContent("Typed source knowledge",
+				agentTurnContextTextField{Name: "topics", Values: agentTurnContextOptionalStrings(profile.Knowledge.Topics)},
+				agentTurnContextTextField{Name: "constraints", Values: agentTurnContextOptionalStrings(profile.Knowledge.Constraints)},
+			)); err != nil {
+			return err
+		}
+	} else if err := appendRealmSourceCompilerOmittedItemV3(items, agentTurnContextLaneSourceKnowledge,
+		"source.knowledge.typed", "semanticPayload.canonicalSource.profile.knowledge", ref,
+		agentTurnContextV3PriorityKnowledge+100, "optional_source_section_absent"); err != nil {
 		return err
 	}
 	if profile.Narrative.Milestones != nil {
 		for _, milestone := range append([]realmSourceCompilerProfileMilestoneV3(nil), (*profile.Narrative.Milestones)...) {
-			content := agentTurnContextTypedContent("Realm Character narrative milestone",
-				agentTurnContextTextField{Name: "milestone_id", Values: []string{milestone.MilestoneID}},
+			content := agentTurnContextTypedContent("Source narrative milestone",
 				agentTurnContextTextField{Name: "sequence", Values: realmSourceCompilerOptionalFloatV3(milestone.Sequence)},
 				agentTurnContextTextField{Name: "title", Values: agentTurnContextOptionalString(milestone.Title)},
 				agentTurnContextTextField{Name: "summary", Values: agentTurnContextOptionalString(milestone.Summary)},
 			)
 			if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceKnowledge,
-				"source.knowledge.narrative.milestone."+milestone.MilestoneID,
-				"source.profile.narrative.milestones."+milestone.MilestoneID, ref,
+				"source.knowledge.milestone."+milestone.MilestoneID,
+				"semanticPayload.canonicalSource.profile.narrative.milestones."+milestone.MilestoneID, ref,
 				agentTurnContextV3PriorityOptional, false, agentTurnContextTruncationKnowledge, content); err != nil {
-				return err
-			}
-		}
-	}
-	if profile.Knowledge != nil {
-		for _, topic := range agentTurnContextOptionalStrings(profile.Knowledge.Topics) {
-			if err := appendRealmSourceCompilerDynamicItemV3(items, agentTurnContextLaneSourceKnowledge,
-				"source.knowledge.topic", "source.profile.knowledge.topics", ref,
-				agentTurnContextV3PriorityKnowledge-10, false, agentTurnContextTruncationKnowledge,
-				agentTurnContextTypedContent("Realm Character source knowledge topic", agentTurnContextTextField{Name: "topic", Values: []string{topic}})); err != nil {
-				return err
-			}
-		}
-		constraints := agentTurnContextOptionalStrings(profile.Knowledge.Constraints)
-		if len(constraints) > 0 {
-			if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneSourceKnowledge,
-				"source.knowledge.constraints", "source.profile.knowledge.constraints", ref,
-				agentTurnContextV3PriorityKnowledge+100, true, agentTurnContextTruncationNone,
-				agentTurnContextTypedContent("Realm Character source knowledge constraints", agentTurnContextTextField{Name: "constraints", Values: constraints})); err != nil {
 				return err
 			}
 		}
@@ -480,93 +513,76 @@ func compileRealmSourceWorldV3(snapshot localAgentSourceSnapshotV2, world realmS
 		SchemaVersion: snapshot.Semantic.OwningWorld.SchemaVersion,
 		ContentHash:   snapshot.Semantic.OwningWorld.ContentHash,
 	}
-	baseline := agentTurnContextTypedContent("Canonical Realm WorldCore baseline",
-		agentTurnContextTextField{Name: "world_id", Values: []string{snapshot.Semantic.OwningWorld.ID}},
+	baseline := agentTurnContextTypedContent("Canonical owning world baseline",
 		agentTurnContextTextField{Name: "name", Values: []string{world.Identity.Name}},
 		agentTurnContextTextField{Name: "summary", Values: []string{world.Identity.Summary}},
 		agentTurnContextTextField{Name: "world_type", Values: agentTurnContextOptionalString(world.Identity.WorldType)},
-		agentTurnContextTextField{Name: "tagline", Values: agentTurnContextOptionalString(world.Identity.Tagline)},
+		agentTurnContextTextField{Name: "tagline", Values: realmSourceCompilerFirstOptionalStringV3(world.Identity.Tagline, world.Presentation.Tagline)},
 		agentTurnContextTextField{Name: "genre", Values: agentTurnContextOptionalString(world.Identity.Genre)},
 		agentTurnContextTextField{Name: "themes", Values: agentTurnContextOptionalStrings(world.Identity.Themes)},
 		agentTurnContextTextField{Name: "era", Values: agentTurnContextOptionalString(world.Identity.Era)},
-		agentTurnContextTextField{Name: "divergences", Values: agentTurnContextOptionalStrings(world.Identity.Divergences)},
 		agentTurnContextTextField{Name: "entity_kinds", Values: world.Ontology.EntityKinds},
 		agentTurnContextTextField{Name: "relationship_types", Values: world.Ontology.RelationshipTypes},
 		agentTurnContextTextField{Name: "time_mode", Values: []string{world.TimeModel.Mode}},
 		agentTurnContextTextField{Name: "time_flow_ratio", Values: []string{strconv.FormatFloat(world.TimeModel.FlowRatio, 'g', -1, 64)}},
 	)
 	if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneWorldContext,
-		"source.world.baseline", "world.core.baseline", ref,
+		"source.world.baseline", "semanticPayload.materializationContext.owningWorld.core", ref,
 		agentTurnContextV3PriorityWorldBaseline, true, agentTurnContextTruncationNone, baseline); err != nil {
 		return err
 	}
+	if snapshot.Semantic.SourceRef.Kind == "worldCharacter" {
+		placement := snapshot.Semantic.SourceRef.WorldEntityRef
+		if placement == nil {
+			return fmt.Errorf("compile Realm WorldCharacter placement: sourceRef.worldEntityRef is absent")
+		}
+		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneWorldContext,
+			"source.world.character-placement", "sourceRef.worldEntityRef", realmSourceCompilerSourceRefV3(snapshot),
+			agentTurnContextV3PriorityWorldBaseline-10, true, agentTurnContextTruncationNone,
+			agentTurnContextTypedContent("WorldCharacter placement",
+				agentTurnContextTextField{Name: "world_id", Values: []string{snapshot.Semantic.SourceRef.WorldID}},
+				agentTurnContextTextField{Name: "entity_id", Values: []string{placement.EntityID}},
+				agentTurnContextTextField{Name: "entity_kind", Values: []string{placement.Kind}},
+			)); err != nil {
+			return err
+		}
+	}
 	for _, system := range realmSourceCompilerSortedByIDV3(world.Systems, func(value realmSourceCompilerWorldSystemV3) string { return value.SystemID }) {
-		content := agentTurnContextTypedContent("Canonical Realm world system",
-			agentTurnContextTextField{Name: "system_id", Values: []string{system.SystemID}},
+		content := agentTurnContextTypedContent("Canonical world system",
 			agentTurnContextTextField{Name: "name", Values: []string{system.Name}},
 			agentTurnContextTextField{Name: "summary", Values: []string{system.Summary}},
 			agentTurnContextTextField{Name: "principles", Values: agentTurnContextOptionalStrings(system.Principles)},
 		)
 		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneWorldContext,
-			"source.world.system."+system.SystemID, "world.core.systems."+system.SystemID,
+			"source.world.system."+system.SystemID, "semanticPayload.materializationContext.owningWorld.core.system."+system.SystemID,
 			ref, agentTurnContextV3PriorityOptional, false, agentTurnContextTruncationWorldDetail, content); err != nil {
 			return err
 		}
 	}
 	for _, scene := range realmSourceCompilerSortedByIDV3(world.Scenes, func(value realmSourceCompilerWorldSceneV3) string { return value.SceneID }) {
-		content := agentTurnContextTypedContent("Canonical Realm world scene",
-			agentTurnContextTextField{Name: "scene_id", Values: []string{scene.SceneID}},
+		content := agentTurnContextTypedContent("Canonical world scene",
 			agentTurnContextTextField{Name: "name", Values: []string{scene.Name}},
 			agentTurnContextTextField{Name: "summary", Values: []string{scene.Summary}},
 			agentTurnContextTextField{Name: "entity_refs", Values: agentTurnContextOptionalStrings(scene.EntityRefs)},
 		)
 		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneWorldContext,
-			"source.world.scene."+scene.SceneID, "world.core.scenes."+scene.SceneID,
-			ref, agentTurnContextV3PriorityOptional-10, false, agentTurnContextTruncationWorldDetail, content); err != nil {
+			"source.world.scene."+scene.SceneID, "semanticPayload.materializationContext.owningWorld.core.scene."+scene.SceneID,
+			ref, agentTurnContextV3PriorityOptional, false, agentTurnContextTruncationWorldDetail, content); err != nil {
 			return err
 		}
 	}
 	for _, event := range realmSourceCompilerSortedByIDV3(world.Timeline.Events, func(value realmSourceCompilerWorldEventV3) string { return value.EventID }) {
-		content := agentTurnContextTypedContent("Canonical Realm world timeline event",
-			agentTurnContextTextField{Name: "event_id", Values: []string{event.EventID}},
+		content := agentTurnContextTypedContent("Canonical world timeline",
 			agentTurnContextTextField{Name: "title", Values: []string{event.Title}},
 			agentTurnContextTextField{Name: "summary", Values: agentTurnContextOptionalString(event.Summary)},
-			agentTurnContextTextField{Name: "sequence", Values: realmSourceCompilerOptionalFloatV3(event.Sequence)},
+			agentTurnContextTextField{Name: "entity_refs", Values: agentTurnContextOptionalStrings(event.EntityRefs)},
 			agentTurnContextTextField{Name: "timestamp", Values: agentTurnContextOptionalString(event.Timestamp)},
 			agentTurnContextTextField{Name: "starts_at", Values: agentTurnContextOptionalString(event.StartsAt)},
 			agentTurnContextTextField{Name: "ends_at", Values: agentTurnContextOptionalString(event.EndsAt)},
 		)
 		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneWorldContext,
-			"source.world.timeline."+event.EventID, "world.core.timeline.events."+event.EventID,
-			ref, agentTurnContextV3PriorityOptional-20, false, agentTurnContextTruncationWorldDetail, content); err != nil {
-			return err
-		}
-	}
-	for _, entity := range realmSourceCompilerSortedByIDV3(world.Entities, func(value realmSourceCompilerWorldEntityRefV3) string { return value.EntityID }) {
-		content := agentTurnContextTypedContent("Canonical Realm WorldCore entity reference",
-			agentTurnContextTextField{Name: "entity_id", Values: []string{entity.EntityID}},
-			agentTurnContextTextField{Name: "kind", Values: []string{entity.Kind}},
-			agentTurnContextTextField{Name: "label", Values: agentTurnContextOptionalString(entity.Label)},
-			agentTurnContextTextField{Name: "summary", Values: agentTurnContextOptionalString(entity.Summary)},
-		)
-		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneWorldContext,
-			"source.world.entity-ref."+entity.EntityID, "world.core.entities."+entity.EntityID,
-			ref, agentTurnContextV3PriorityOptional-30, false, agentTurnContextTruncationWorldDetail, content); err != nil {
-			return err
-		}
-	}
-	for _, relationship := range realmSourceCompilerSortedByIDV3(world.Relationships, func(value realmSourceCompilerWorldRelationshipV3) string { return value.RelationshipID }) {
-		content := agentTurnContextTypedContent("Canonical Realm WorldCore relationship reference",
-			agentTurnContextTextField{Name: "relationship_id", Values: []string{relationship.RelationshipID}},
-			agentTurnContextTextField{Name: "source_entity_id", Values: []string{relationship.SourceEntityID}},
-			agentTurnContextTextField{Name: "target_entity_id", Values: []string{relationship.TargetEntityID}},
-			agentTurnContextTextField{Name: "type", Values: []string{relationship.Type}},
-			agentTurnContextTextField{Name: "summary", Values: agentTurnContextOptionalString(relationship.Summary)},
-		)
-		if err := appendRealmSourceCompilerItemV3(items, agentTurnContextLaneRelationshipContext,
-			"source.world.relationship-ref."+relationship.RelationshipID,
-			"world.core.relationships."+relationship.RelationshipID, ref,
-			agentTurnContextV3PriorityOptional, false, agentTurnContextTruncationWorldDetail, content); err != nil {
+			"source.world.timeline."+event.EventID, "semanticPayload.materializationContext.owningWorld.core.timeline."+event.EventID,
+			ref, agentTurnContextV3PriorityOptional, false, agentTurnContextTruncationWorldDetail, content); err != nil {
 			return err
 		}
 	}
@@ -580,16 +596,29 @@ func compileRealmSourceClosureV3(snapshot localAgentSourceSnapshotV2, items map[
 		if closure.BoundEntity == nil || closure.IncidentRelationships == nil || closure.EndpointEntities == nil || closure.ExplicitRelationships != nil {
 			return fmt.Errorf("compile Realm WorldCharacter closure: typed closure branch is invalid")
 		}
-		if err := appendRealmSourceCompilerEntityV3(items, *closure.BoundEntity, "source.closure.boundEntity", "source.world.entity.bound.", true); err != nil {
+		bound := *closure.BoundEntity
+		if err := appendRealmSourceCompilerEntityV3(items, bound,
+			"semanticPayload.materializationContext.dependencyClosure.entities."+bound.ID,
+			"source.world.entity.", true); err != nil {
 			return err
 		}
-		for _, entity := range realmSourceCompilerSortedByIDV3(*closure.EndpointEntities, func(value sourceMaterializationEntityRecordV3) string { return value.ID }) {
-			if err := appendRealmSourceCompilerEntityV3(items, entity, "source.closure.endpointEntities."+entity.ID, "source.world.entity.endpoint.", false); err != nil {
+		entities := append(append([]sourceMaterializationEntityRecordV3(nil), (*closure.EndpointEntities)...), closure.ExplicitEntities...)
+		seen := map[string]struct{}{bound.ID: {}}
+		for _, entity := range realmSourceCompilerSortedByIDV3(entities, func(value sourceMaterializationEntityRecordV3) string { return value.ID }) {
+			if _, duplicate := seen[entity.ID]; duplicate {
+				continue
+			}
+			seen[entity.ID] = struct{}{}
+			if err := appendRealmSourceCompilerEntityV3(items, entity,
+				"semanticPayload.materializationContext.dependencyClosure.entities."+entity.ID,
+				"source.world.entity.", false); err != nil {
 				return err
 			}
 		}
 		for _, relationship := range realmSourceCompilerSortedByIDV3(*closure.IncidentRelationships, func(value sourceMaterializationRelationshipRecordV3) string { return value.ID }) {
-			if err := appendRealmSourceCompilerRelationshipV3(items, relationship, "source.closure.incidentRelationships."+relationship.ID, "source.relationship.incident.", true); err != nil {
+			if err := appendRealmSourceCompilerRelationshipV3(items, relationship,
+				"semanticPayload.materializationContext.dependencyClosure.relationships."+relationship.ID,
+				"source.relationship.world.", true); err != nil {
 				return err
 			}
 		}
@@ -598,15 +627,27 @@ func compileRealmSourceClosureV3(snapshot localAgentSourceSnapshotV2, items map[
 			return fmt.Errorf("compile Realm PersonaCharacter closure: typed closure branch is invalid")
 		}
 		for _, relationship := range realmSourceCompilerSortedByIDV3(*closure.ExplicitRelationships, func(value sourceMaterializationRelationshipRecordV3) string { return value.ID }) {
-			if err := appendRealmSourceCompilerRelationshipV3(items, relationship, "source.closure.explicitRelationships."+relationship.ID, "source.relationship.explicit.", true); err != nil {
+			if err := appendRealmSourceCompilerRelationshipV3(items, relationship,
+				"semanticPayload.materializationContext.dependencyClosure.relationships."+relationship.ID,
+				"source.relationship.world.", true); err != nil {
+				return err
+			}
+		}
+		for _, entity := range realmSourceCompilerSortedByIDV3(closure.ExplicitEntities, func(value sourceMaterializationEntityRecordV3) string { return value.ID }) {
+			if err := appendRealmSourceCompilerEntityV3(items, entity,
+				"semanticPayload.materializationContext.dependencyClosure.entities."+entity.ID,
+				"source.world.entity.", false); err != nil {
 				return err
 			}
 		}
 	default:
 		return fmt.Errorf("compile Realm source closure: kind %q is not admitted", closure.Kind)
 	}
-	for _, entity := range realmSourceCompilerSortedByIDV3(closure.ExplicitEntities, func(value sourceMaterializationEntityRecordV3) string { return value.ID }) {
-		if err := appendRealmSourceCompilerEntityV3(items, entity, "source.closure.explicitEntities."+entity.ID, "source.world.entity.explicit.", false); err != nil {
+	if len(items[agentTurnContextLaneRelationshipContext]) == 0 {
+		if err := appendRealmSourceCompilerOmittedItemV3(items, agentTurnContextLaneRelationshipContext,
+			"source.relationship.none", "semanticPayload.canonicalSource.profile.relationships",
+			realmSourceCompilerSourceRefV3(snapshot), agentTurnContextV3PriorityOptional,
+			"no_source_or_closure_relationships"); err != nil {
 			return err
 		}
 	}
@@ -625,8 +666,7 @@ func appendRealmSourceCompilerEntityV3(items map[agentTurnContextLaneID][]agentT
 		priority = agentTurnContextV3PriorityWorldBaseline - 20
 		class = agentTurnContextTruncationNone
 	}
-	content := agentTurnContextTypedContent("Canonical Realm world entity",
-		agentTurnContextTextField{Name: "entity_id", Values: []string{entity.ID}},
+	content := agentTurnContextTypedContent("Canonical world entity",
 		agentTurnContextTextField{Name: "name", Values: []string{core.Identity.Name}},
 		agentTurnContextTextField{Name: "summary", Values: []string{core.Identity.Summary}},
 		agentTurnContextTextField{Name: "kind", Values: []string{core.Identity.Kind}},
@@ -674,8 +714,7 @@ func appendRealmSourceCompilerRelationshipV3(items map[agentTurnContextLaneID][]
 		priority = agentTurnContextV3PriorityRelationship - 10
 		class = agentTurnContextTruncationNone
 	}
-	content := agentTurnContextTypedContent("Canonical Realm world relationship",
-		agentTurnContextTextField{Name: "relationship_id", Values: []string{relationship.ID}},
+	content := agentTurnContextTypedContent("Canonical world relationship",
 		agentTurnContextTextField{Name: "source_entity_id", Values: []string{relationship.SourceEntityID}},
 		agentTurnContextTextField{Name: "target_entity_id", Values: []string{relationship.TargetEntityID}},
 		agentTurnContextTextField{Name: "type", Values: []string{relationship.Type}},
@@ -710,19 +749,19 @@ func appendRealmSourceCompilerExemplarV3(items map[agentTurnContextLaneID][]agen
 	segments := make([]agentTurnContextSegment, 0, 2)
 	if exemplar.User != nil {
 		segments = append(segments, agentTurnContextSegment{Role: "user", Content: agentTurnContextTypedContent(
-			"Realm source dialogue exemplar user role",
+			"Source dialogue exemplar user role; not transcript",
 			agentTurnContextTextField{Name: "exemplar_id", Values: []string{exemplar.ExemplarID}},
 			agentTurnContextTextField{Name: "utterance", Values: []string{*exemplar.User}},
 		)})
 	}
 	segments = append(segments, agentTurnContextSegment{Role: "assistant", Content: agentTurnContextTypedContent(
-		"Realm source dialogue exemplar character role",
+		"Source dialogue exemplar character role; not transcript",
 		agentTurnContextTextField{Name: "exemplar_id", Values: []string{exemplar.ExemplarID}},
 		agentTurnContextTextField{Name: "utterance", Values: []string{exemplar.Character}},
 	)})
 	item, err := newAgentTurnContextItem(
-		agentTurnContextLaneSourceBehavior, "source.behavior.dialogue-exemplar."+exemplar.ExemplarID,
-		"source.profile.interactionProfile.dialogueExemplars."+exemplar.ExemplarID,
+		agentTurnContextLaneSourceBehavior, "source.behavior.exemplar."+exemplar.ExemplarID,
+		"semanticPayload.canonicalSource.profile.interactionProfile.dialogueExemplars."+exemplar.ExemplarID,
 		ref, agentTurnContextAuthorityRealmSnapshot, agentTurnContextTrustValidatedSource,
 		agentTurnContextV3PriorityOptional, 0, false, agentTurnContextTruncationExemplar, segments, nil,
 	)
@@ -738,6 +777,41 @@ func appendRealmSourceCompilerDynamicItemV3(items map[agentTurnContextLaneID][]a
 		return err
 	}
 	return appendRealmSourceCompilerItemV3(items, laneID, prefix+"."+digest[:16], path+"."+digest[:16], ref, priority, mandatory, class, content)
+}
+
+func appendRealmSourceCompilerOmittedItemV3(
+	items map[agentTurnContextLaneID][]agentTurnContextItem,
+	laneID agentTurnContextLaneID,
+	stableID string,
+	path string,
+	ref agentTurnContextItemSourceRef,
+	priority int64,
+	omissionReason string,
+) error {
+	omissionReason = strings.TrimSpace(omissionReason)
+	if omissionReason == "" {
+		return fmt.Errorf("Realm source compiler omission reason is empty")
+	}
+	item, err := newAgentTurnContextItem(
+		laneID, stableID, path, ref, agentTurnContextAuthorityRealmSnapshot,
+		agentTurnContextTrustValidatedSource, priority, 0, false,
+		agentTurnContextTruncationNone,
+		[]agentTurnContextSegment{{Role: "system", Content: omissionReason}}, nil,
+	)
+	if err != nil {
+		return err
+	}
+	item.OmissionReason = omissionReason
+	item.Segments = []agentTurnContextSegment{}
+	item.Media = []agentTurnContextMedia{}
+	item.TokenEstimate = 0
+	item.Included = false
+	item.Truncated = false
+	item.ContentHash, err = hashAgentTurnContextItem(item)
+	if err != nil {
+		return fmt.Errorf("hash omitted Realm source item %s: %w", stableID, err)
+	}
+	return appendRealmSourceCompilerUniqueItemV3(items, item)
 }
 
 func appendRealmSourceCompilerItemV3(items map[agentTurnContextLaneID][]agentTurnContextItem, laneID agentTurnContextLaneID, stableID, path string, ref agentTurnContextItemSourceRef, priority int64, mandatory bool, class agentTurnContextTruncationClass, content string) error {
@@ -772,6 +846,56 @@ func realmSourceCompilerSourceRefV3(snapshot localAgentSourceSnapshotV2) agentTu
 		RefID: snapshot.Semantic.SourceRef.ID, SchemaVersion: snapshot.Semantic.Source.SchemaVersion,
 		ContentHash: snapshot.Semantic.Source.ContentHash,
 	}
+}
+
+func realmSourceCompilerFirstOptionalStringV3(values ...*string) []string {
+	for _, value := range values {
+		if result := agentTurnContextOptionalString(value); len(result) > 0 {
+			return result
+		}
+	}
+	return nil
+}
+
+func realmSourceCompilerProfileAssetRefsV3(values []realmSourceCompilerProfileAssetRefV3) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		result = append(result, value.RefID+":"+value.Kind+":"+realmSourceCompilerOptionalStringValueV3(value.Purpose))
+	}
+	return result
+}
+
+func realmSourceCompilerProfileOptionalAssetRefsV3(values *[]realmSourceCompilerProfileAssetRefV3) []string {
+	if values == nil {
+		return nil
+	}
+	return realmSourceCompilerProfileAssetRefsV3(*values)
+}
+
+func realmSourceCompilerProfileAssetIntentsV3(values []realmSourceCompilerProfileAssetIntentV3) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		result = append(result, value.IntentID+":"+value.Kind+":"+realmSourceCompilerOptionalStringValueV3(value.Summary))
+	}
+	return result
+}
+
+func realmSourceCompilerProfileToolsV3(values *[]realmSourceCompilerProfileToolV3) []string {
+	if values == nil {
+		return nil
+	}
+	result := make([]string, 0, len(*values))
+	for _, value := range *values {
+		result = append(result, value.ToolID+":"+realmSourceCompilerOptionalStringValueV3(value.Name)+":"+realmSourceCompilerOptionalStringValueV3(value.Summary))
+	}
+	return result
+}
+
+func realmSourceCompilerOptionalStringValueV3(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
 }
 
 func realmSourceCompilerOptionalFloatV3(value *float64) []string {
