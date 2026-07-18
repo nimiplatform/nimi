@@ -43,6 +43,10 @@ Realm grant selector is:
 - `state=GRANTED`; and
 - subject equal to the authenticated Runtime account.
 
+The `appId=nimi.avatar` value above is only a field of this fixed external
+Realm grant selector. It is not a caller identity, a Runtime-local app
+principal, an Avatar seed grant, or evidence of any Nimi local permission.
+
 The production lifecycle is exact and internal to Runtime acquisition:
 
 1. `POST /api/human/me/permission-grants` requests that Realm-owned tuple. The
@@ -74,16 +78,18 @@ for Packet issuance. The issuer is not a generic Realm proxy,
 does not accept caller-selected grant ids, headers, or URLs, and does not
 transfer credential/profile/custody authority into the materialization domain.
 
-`agent.identity.project` is a separate Runtime-local permission owned by the
-Nimi local grant lifecycle. Runtime checks it only after the complete Packet
-has passed strict verification and immediately before the atomic local identity
-projection. It is never sent in a Realm grant request, never substituted for
-`realm_source.snapshot.consume`, and a Realm grant is never persisted or
-interpreted as Nimi local permission truth. Realm owns canonical
-Character/World/grant truth and current Packet v3 issuance; it has no Agent or
-LocalAgent ontology. Runtime alone owns acquisition, verification,
-transaction, LocalAgent, snapshot, provenance, context compilation, and
-lifecycle, and no LocalAgent exists before the verified atomic commit.
+`MaterializeRealmSource` does not establish, infer, request, or check a
+Runtime-local app grant or first-party local app principal. In particular,
+`agent.identity.project` and any Avatar local seed grant are not inputs,
+authorization gates, or outputs of this operation. This exclusion does not
+convert the Realm grant into local permission truth: the exact
+`realm_source.snapshot.consume` grant authorizes only Realm Packet issuance
+for the authenticated account and is never persisted, mirrored, aliased, or
+interpreted as a Nimi local grant. Realm owns canonical Character/World/grant
+truth and current Packet v3 issuance; it has no Agent or LocalAgent ontology.
+Runtime alone owns acquisition, verification, transaction, LocalAgent,
+snapshot, provenance, context compilation, and lifecycle, and no LocalAgent
+exists before the verified atomic commit.
 
 Runtime accepts only `realm.source-materialization-packet/v3` with a complete
 `MaterializationClosureSetManifestV3` and ordered segments. Before any

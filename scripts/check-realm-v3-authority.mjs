@@ -47,6 +47,13 @@ const forbiddenPublicMethods = [
   'CommitSourceMaterialization',
   'AbortSourceMaterializationUpload',
 ];
+const forbiddenMaterializationLocalAuthorityAssertions = [
+  'Runtime checks `agent.identity.project`',
+  'Runtime checks it only after the complete Packet',
+  'requires `agent.identity.project`',
+  'requires an Avatar local seed grant',
+  'uses an Avatar local seed grant as a commit gate',
+];
 const exactBrokerOperations = [
   'WorldCoreController_discoverPersonaCharacters',
   'WorldCoreController_getPersonaCharacter',
@@ -158,10 +165,14 @@ function check(overrides = {}) {
     'fresh Runtime challenge, nonce, TTL, Packet v3 proof',
     'durable-grant reuse, not a\ndefault, seeded, inferred, automatically granted, or pseudo-success path',
     '`realm_source.snapshot.bind` is non-authorizing',
-    '`agent.identity.project` is a separate Runtime-local permission',
-    'it has no Agent or\nLocalAgent ontology',
-    'no LocalAgent exists before the verified atomic commit',
+    '`MaterializeRealmSource` does not establish, infer, request, or check a',
+    '`agent.identity.project` and any Avatar local seed grant are not inputs,',
+    'it has no Agent or LocalAgent ontology',
+    'no LocalAgent\nexists before the verified atomic commit',
   ]) requireText(materialization, token, files.materialization);
+  for (const token of forbiddenMaterializationLocalAuthorityAssertions) {
+    forbidText(materialization, token, files.materialization);
+  }
 
   const platformPermission = read(files.platformPermission, overrides);
   for (const token of [
@@ -174,7 +185,8 @@ function check(overrides = {}) {
     'canonical current `GRANTED` record is durable scope authorization',
     'fresh Runtime challenge, nonce, TTL, proof',
     '`realm_source.snapshot.bind` is not current positive Realm\nauthority',
-    '`agent.identity.project` remains a Runtime-local scope',
+    '`agent.identity.project` remains in the Runtime-local Platform taxonomy',
+    'does not use any Avatar local seed grant as a commit gate',
   ]) requireText(platformPermission, token, files.platformPermission);
 
   const appRegistry = parseYaml(read(files.platformAppRegistry, overrides));
@@ -386,7 +398,7 @@ function check(overrides = {}) {
     publicLowLevelUploadMethods: 0,
     protectedAuthorityMigrations: 2,
     realmGrantSelector: exactRealmRequest[0],
-    localIdentityScope: 'agent.identity.project',
+    localIdentityAuthorization: 'not_participating',
     permissionOwnerSplit: true,
   };
 }
@@ -469,6 +481,29 @@ try {
     }
     mutations.push({
       mutation: `remove durable-GRANTED decision-call prohibition from ${files.materialization}`,
+      rejected: true,
+      rejectedReason,
+    });
+
+    const contradictoryLocalGate = [
+      '`agent.identity.project` is a separate Runtime-local permission owned by the',
+      'Nimi local grant lifecycle. Runtime checks it only after the complete Packet',
+      'has passed strict verification and immediately before the atomic local identity',
+      'projection.',
+    ].join('\n');
+    rejectedReason = '';
+    try {
+      check({
+        [files.materialization]: `${materializationSource}\n\n${contradictoryLocalGate}\n`,
+      });
+    } catch (error) {
+      rejectedReason = error instanceof Error ? error.message : String(error);
+    }
+    if (!rejectedReason.includes('Runtime checks it only after the complete Packet')) {
+      fail('negative Avatar/local commit-gate mutation was not rejected by the owner gate');
+    }
+    mutations.push({
+      mutation: `append contradictory Avatar/local commit-gate authority to ${files.materialization}`,
       rejected: true,
       rejectedReason,
     });

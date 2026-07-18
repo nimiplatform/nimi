@@ -271,6 +271,11 @@ qualifierKey: ""
 authorizingState: GRANTED
 ```
 
+The `appId=nimi.avatar` value is solely part of this fixed Realm-owned request
+selector. It does not identify a Runtime-local app principal, activate an
+Avatar first-party seed grant, or provide evidence for any Nimi local
+permission.
+
 The exact Realm lifecycle is request -> canonical active record. A canonical
 `PENDING` record requires an explicit version-guarded grant of the same id. A
 canonical current `GRANTED` record is durable scope authorization and is
@@ -280,11 +285,13 @@ fresh Runtime challenge, nonce, TTL, proof, and Realm-side authorization
 evaluation. Every other state or selector/subject/version mismatch fails
 closed. `realm_source.snapshot.bind` is not current positive Realm
 authority.
-`agent.identity.project` remains a Runtime-local scope, is never a Realm
-request, and is checked only after strict Packet verification before local
-identity projection. Realm owns source-snapshot consumption authority and has
-no Agent or LocalAgent ontology; Runtime owns all LocalAgent identity
-and lifecycle truth.
+`agent.identity.project` remains in the Runtime-local Platform taxonomy, but
+Realm source materialization does not establish, infer, request, or check that
+scope and does not use any Avatar local seed grant as a commit gate. The Realm
+grant must never be ingested, mirrored, converted, aliased, or inferred as a
+substitute local grant. Realm owns source-snapshot consumption authority and
+has no Agent or LocalAgent ontology; Runtime owns all LocalAgent identity and
+lifecycle truth.
 
 ## Fact Sources
 
