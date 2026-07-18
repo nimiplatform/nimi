@@ -8,7 +8,10 @@ import path from 'node:path';
 
 import { inspectNetworkAuthorityMaterial } from './dev-kernel-contract.mjs';
 import { repoRoot } from './registry.mjs';
-import { assertFixedServiceStatus } from './dev-kernel-fixed-service-contract.mjs';
+import {
+  assertFixedServiceStatus,
+  validateFixedServiceStatus,
+} from './dev-kernel-fixed-service-contract.mjs';
 
 const requireFromDesktop = createRequire(path.join(repoRoot, 'apps', 'desktop', 'package.json'));
 const { chromium } = requireFromDesktop('playwright');
@@ -198,6 +201,14 @@ export async function connectCdp(port, label, timeoutMs = 240_000, observer = nu
     if (page) observer?.attachPage(page, label);
     return page ? { browser, context, page, endpoint } : null;
   }, { timeoutMs: 30_000, intervalMs: 25, label: `${label} page` });
+}
+
+export async function waitForCdpEndpointRelease(port, label, timeoutMs = 30_000) {
+  const endpoint = `http://127.0.0.1:${port}/json/version`;
+  await waitUntil(async () => {
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(1_000) }).catch(() => null);
+    return response === null;
+  }, { timeoutMs, intervalMs: 25, label: `${label} CDP endpoint release` });
 }
 
 export function createEarlyCdpObserver(aggregate, {
@@ -429,6 +440,24 @@ export async function firstVisible(page, selector) {
   return null;
 }
 
+async function readDocumentViewport(page) {
+  return page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+    clientWidth: document.documentElement.clientWidth,
+    clientHeight: document.documentElement.clientHeight,
+  }));
+}
+
+function nativeViewportMatchesRequest(viewport, width, height) {
+  return Number.isFinite(viewport?.innerWidth)
+    && Number.isFinite(viewport?.innerHeight)
+    && viewport.innerWidth <= width
+    && viewport.innerWidth >= Math.max(1, width - 96)
+    && viewport.innerHeight <= height
+    && viewport.innerHeight >= Math.max(1, height - 128);
+}
+
 export async function setWindowBounds(connection, width, height) {
   try {
     const session = await connection.context.newCDPSession(connection.page);
@@ -438,12 +467,21 @@ export async function setWindowBounds(connection, width, height) {
       bounds: { width, height, windowState: 'normal' },
     });
     await new Promise((resolve) => setTimeout(resolve, 350));
-    return 'native-window-bounds';
+    if (nativeViewportMatchesRequest(await readDocumentViewport(connection.page), width, height)) {
+      return 'native-window-bounds';
+    }
   } catch {
-    await connection.page.setViewportSize({ width, height });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return 'cdp-viewport-fallback';
+    // A failed native resize is handled by the exact viewport fallback below.
   }
+  await connection.page.setViewportSize({ width, height });
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const viewport = await readDocumentViewport(connection.page);
+  if (viewport.innerWidth !== width || viewport.innerHeight !== height) {
+    throw new Error(
+      `viewport resize failed: expected ${width}x${height}, observed inner ${viewport.innerWidth}x${viewport.innerHeight} (document ${viewport.clientWidth}x${viewport.clientHeight})`,
+    );
+  }
+  return 'cdp-viewport-fallback';
 }
 
 export async function invokeDesktop(page, command, payload = {}) {
@@ -493,6 +531,34 @@ export function classifyFirstRunStorageRecoverySnapshot(snapshot) {
   if (snapshot?.deviceVisible === true) return 'advanced';
   if (snapshot?.errorVisible !== true && String(snapshot?.pendingAction || '').trim()) return 'pending';
   return false;
+}
+
+export function isAuthoritativeFirstRunStorageAdvance(snapshot, productControl, expectedDataRoot) {
+  return snapshot?.deviceVisible === true
+    && snapshot?.errorVisible !== true
+    && String(snapshot?.pendingAction || '').trim() === ''
+    && productControl?.state === 'data_root_selected'
+    && comparablePath(productControl?.record?.dataRoot?.path) === comparablePath(expectedDataRoot);
+}
+
+export function isRecoverableFirstRunStorageRestart(transition, serviceBefore, serviceAfter) {
+  const beforePid = Number(serviceBefore?.processId);
+  const afterPid = Number(serviceAfter?.processId);
+  const beforeCandidateId = String(serviceBefore?.runtimeCandidateId || '').trim();
+  const stableCandidateFields = [
+    'runtimeCandidateId',
+    'runtimeBinarySha256',
+    'runtimeBuildRecordSha256',
+    'sourceDirtyDescriptorSha256',
+    'sourceTreeSha256',
+  ];
+  return transition?.kind === 'error'
+    && String(transition?.message || '').trim() === 'runtime-service-unavailable'
+    && validateFixedServiceStatus(serviceBefore).length === 0
+    && validateFixedServiceStatus(serviceAfter).length === 0
+    && beforePid !== afterPid
+    && beforeCandidateId !== ''
+    && stableCandidateFields.every((field) => serviceAfter[field] === serviceBefore[field]);
 }
 
 export async function readProductControlJSONProjection(page, methodId) {

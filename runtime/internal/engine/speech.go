@@ -52,7 +52,7 @@ func speechDriverCommand(root string, driverPath func(string) string) string {
 	if trimmedRoot == "" {
 		return ""
 	}
-	return shellQuote(managedPythonPath(trimmedRoot)) + " " + shellQuote(driverPath(trimmedRoot))
+	return shellQuote(managedPythonLaunchPath(trimmedRoot)) + " " + shellQuote(driverPath(trimmedRoot))
 }
 
 func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {

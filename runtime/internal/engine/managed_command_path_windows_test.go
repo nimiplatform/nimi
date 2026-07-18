@@ -37,6 +37,39 @@ func TestManagedCommandExecutablePathUsesVerbatimFormBeyondLegacyLimit(t *testin
 	}
 }
 
+func TestManagedCommandPreferredPathUsesShortAliasBelowLegacyLimit(t *testing.T) {
+	windowsDirectory := strings.TrimSpace(os.Getenv("WINDIR"))
+	if windowsDirectory == "" {
+		t.Skip("WINDIR is unavailable")
+	}
+	source := filepath.Join(windowsDirectory, "System32", "cmd.exe")
+	root := filepath.Join(t.TempDir(), "managed command launch path with spaces")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, "python.exe")
+	payload, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, payload, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if len(target) >= windowsLegacyMaxPath {
+		t.Fatalf("test executable path length = %d, want below %d", len(target), windowsLegacyMaxPath)
+	}
+	if got := managedCommandExecutablePath(target); got != target {
+		t.Fatalf("ordinary executable normalization changed a below-limit path: got=%q want=%q", got, target)
+	}
+	shortPath, ok := windowsShortCommandPath(target)
+	if !ok || len(shortPath) >= len(target) {
+		t.Skip("volume does not expose a shorter 8.3 alias for the test executable")
+	}
+	if got := managedCommandPreferredPath(target); got != shortPath {
+		t.Fatalf("preferred executable path = %q, want short alias %q", got, shortPath)
+	}
+}
+
 func TestRunCommandOutputStartsExecutableBeyondLegacyPathLimit(t *testing.T) {
 	windowsDirectory := strings.TrimSpace(os.Getenv("WINDIR"))
 	if windowsDirectory == "" {

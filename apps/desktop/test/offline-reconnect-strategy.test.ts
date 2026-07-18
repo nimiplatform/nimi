@@ -88,7 +88,10 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /probeRealmReachability:\s*async \(\) => \{/);
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /await realmSocialData\.loadCurrentUser\(\)/);
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /configureDesktopRuntimeRealmSession\(\{/);
-    assert.match(runtimeSessionSource, /createRuntimeAccountMediatedRealmTransport\(\{/);
+    assert.match(
+      runtimeSessionSource,
+      /createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport\(\{/,
+    );
     assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /createObservedRealmFetch|realmFetchImpl/);
     assert.doesNotMatch(runtimeSessionSource, /getAccessToken|resolveAuthToken|Authorization|Bearer/);
     assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('request\.success'/);

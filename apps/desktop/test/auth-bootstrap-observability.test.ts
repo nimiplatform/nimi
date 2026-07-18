@@ -54,7 +54,10 @@ test('desktop Realm transport is Runtime-mediated and never calls public token r
     'utf8',
   );
   assert.match(desktopSessionSource, /from '@nimiplatform\/sdk\/app'/);
-  assert.match(desktopSessionSource, /createRuntimeAccountMediatedRealmTransport\(\{/);
+  assert.match(
+    desktopSessionSource,
+    /createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport\(\{/,
+  );
   assert.doesNotMatch(desktopSessionSource, /createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession/);
   assert.match(sdkRuntimeAccountRealmSource, /input\.runtime\.account\.invokeRealmUnary\(\{/);
   assert.doesNotMatch(sdkRuntimeAccountRealmSource, /refreshAccountSession/);

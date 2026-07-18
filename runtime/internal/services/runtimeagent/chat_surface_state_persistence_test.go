@@ -329,15 +329,17 @@ func TestPublicChatSurfaceStateRoundTripsDurableTargetRef(t *testing.T) {
 			CallerAppID:          "nimi.zhiyu",
 			SubjectUserID:        "user-1",
 			Binding: publicChatExecutionBinding{
-				ModelID:     "local.chat.gemma",
-				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-				TargetRef:   targetRef,
+				BindingAlias: "local/default",
+				ModelID:      "local.chat.gemma",
+				RoutePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				TargetRef:    targetRef,
 			},
 			Bindings: publicChatExecutionBindings{
 				"text.generate": {
-					ModelID:     "local.chat.gemma",
-					RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-					TargetRef:   targetRef,
+					BindingAlias: "local/default",
+					ModelID:      "local.chat.gemma",
+					RoutePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+					TargetRef:    targetRef,
 				},
 			},
 		}},
@@ -360,6 +362,9 @@ func TestPublicChatSurfaceStateRoundTripsDurableTargetRef(t *testing.T) {
 	}
 	assertPublicChatBindingProfileTarget(t, restored.Anchors[0].Binding, "local-runtime:profile-1")
 	assertPublicChatBindingProfileTarget(t, restored.Anchors[0].Bindings["text.generate"], "local-runtime:profile-1")
+	if restored.Anchors[0].Binding.BindingAlias != "local/default" || restored.Anchors[0].Bindings["text.generate"].BindingAlias != "local/default" {
+		t.Fatalf("public chat state lost alias binding: %#v", restored.Anchors[0])
+	}
 }
 
 func TestPublicChatSurfaceStateRoundTripsDurableReadinessTargetRef(t *testing.T) {

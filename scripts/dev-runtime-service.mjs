@@ -43,6 +43,10 @@ export function assertRuntimeServiceHealthy(status) {
 }
 
 export function rejectBinaryOnlyRequest(args) {
+  parseDevRuntimeArguments(args);
+}
+
+export function parseDevRuntimeArguments(args, platform = process.platform) {
   if (args.includes('--binary-only')) {
     throw workflowError(
       'Binary-only Runtime replacement is not admitted because installer resource/layout equivalence is not proven.',
@@ -50,13 +54,19 @@ export function rejectBinaryOnlyRequest(args) {
       'run_full_dev_runtime_service_update',
     );
   }
-  if (args.length > 0) {
+  if (args.length === 0) {
+    return { developmentDataRoot: '' };
+  }
+  if (args.length !== 2 || args[0] !== '--development-data-root') {
     throw workflowError(
       `Unsupported dev:runtime argument: ${args[0]}`,
       'dev-runtime-argument-invalid',
-      'run_pnpm_dev_runtime_without_arguments',
+      'run_pnpm_dev_runtime_with_optional_development_data_root',
     );
   }
+  return {
+    developmentDataRoot: normalizeDevelopmentDataRoot(args[1], platform),
+  };
 }
 
 export function parseFirstJsonDocument(output, reasonCode) {
@@ -133,6 +143,10 @@ export async function runDevRuntimeService(input = {}) {
       'use_windows_fixed_runtime_service_host',
     );
   }
+  const developmentDataRoot = normalizeDevelopmentDataRoot(
+    input.developmentDataRoot ?? '',
+    platform,
+  );
   const now = input.now ?? (() => performance.now());
   const queryInstalled = input.queryInstalled ?? queryInstalledService;
   const buildRuntime = input.buildRuntime ?? (() => runChecked(process.execPath, ['scripts/build-runtime.mjs', '--dev-kernel-checkpoint']));
@@ -156,7 +170,7 @@ export async function runDevRuntimeService(input = {}) {
   assertRuntimeServiceInstalled(candidateStatus);
 
   started = now();
-  const installStatus = await install();
+  const installStatus = await install({ developmentDataRoot });
   timings.serviceInstallAndRestartMs = elapsed(now, started);
 
   started = now();
@@ -172,6 +186,17 @@ export async function runDevRuntimeService(input = {}) {
     runtimeCandidateId: effectiveStatus.runtimeCandidateId,
     runtimeBinarySha256: effectiveStatus.runtimeBinarySha256,
     signatureStatus: effectiveStatus.signatureStatus,
+    developmentDataRootBinding: developmentDataRoot
+      ? {
+          path: developmentDataRoot,
+          authority: 'signed_installer_explicit_operator_selection',
+          disposition: 'runtime_validated_candidate_payload_root',
+        }
+      : {
+          path: null,
+          authority: 'runtime_candidate_isolated_fallback',
+          disposition: 'candidate_specific_payload_root',
+        },
     timings,
     totalMs: Object.values(timings).reduce((sum, value) => sum + value, 0),
     consequence: 'Runtime boot epoch rotated; Desktop/local-app sessions and bindings must reopen through their existing supervisors. Login and durable grants remain Runtime-owned.',
@@ -193,22 +218,28 @@ async function queryGeneratedInstallerStatus() {
   return parseJsonOutput(result.stdout, 'dev-runtime-status-invalid');
 }
 
-async function installGeneratedCandidate() {
+async function installGeneratedCandidate({ developmentDataRoot = '' } = {}) {
   if (isAdministrator()) {
-    const result = runCaptured('powershell.exe', installerArguments('Install'));
+    const result = runCaptured(
+      'powershell.exe',
+      installerArguments('Install', { developmentDataRoot }),
+    );
     return parseJsonOutput(result.stdout, 'dev-runtime-install-result-invalid');
   }
-  return installGeneratedCandidateElevated();
+  return installGeneratedCandidateElevated({ developmentDataRoot });
 }
 
-function installGeneratedCandidateElevated() {
+function installGeneratedCandidateElevated({ developmentDataRoot = '' } = {}) {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-runtime-service-'));
   const stdoutPath = path.join(tempRoot, 'stdout.txt');
   const stderrPath = path.join(tempRoot, 'stderr.txt');
+  const developmentDataRootArgument = developmentDataRoot
+    ? ` -DevelopmentDataRoot '${powerShellLiteral(developmentDataRoot)}'`
+    : '';
   const innerCommand = [
     `$ErrorActionPreference = 'Stop'`,
     'try {',
-    `$output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint -Json 2> '${powerShellLiteral(stderrPath)}'`,
+    `$output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint${developmentDataRootArgument} -Json 2> '${powerShellLiteral(stderrPath)}'`,
     '$exitCode = $LASTEXITCODE',
     "if ($exitCode -ne 0) { exit $exitCode }",
     '$raw = ($output | Out-String).Trim()',
@@ -255,13 +286,41 @@ function installGeneratedCandidateElevated() {
   }
 }
 
-function installerArguments(mode) {
+function installerArguments(mode, { developmentDataRoot = '' } = {}) {
   return [
     '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', installerPath,
     '-Mode', mode,
-    ...(mode === 'Install' ? ['-DevKernelCheckpoint'] : []),
+    ...(mode === 'Install'
+      ? [
+          '-DevKernelCheckpoint',
+          ...(developmentDataRoot ? ['-DevelopmentDataRoot', developmentDataRoot] : []),
+        ]
+      : []),
     '-Json',
   ];
+}
+
+function normalizeDevelopmentDataRoot(value, platform) {
+  const candidate = String(value ?? '').trim();
+  if (!candidate) return '';
+  const pathApi = platform === 'win32' ? path.win32 : path.posix;
+  if (!pathApi.isAbsolute(candidate)) {
+    throw workflowError(
+      'Development data root must be an explicit absolute non-volume-root path.',
+      'dev-runtime-development-data-root-invalid',
+      'select_existing_absolute_nimi_data_root',
+    );
+  }
+  const normalized = pathApi.normalize(candidate);
+  const volumeRoot = pathApi.parse(normalized).root;
+  if (!volumeRoot || normalized === volumeRoot) {
+    throw workflowError(
+      'Development data root must be an explicit absolute non-volume-root path.',
+      'dev-runtime-development-data-root-invalid',
+      'select_existing_absolute_nimi_data_root',
+    );
+  }
+  return normalized.replace(/[\\/]+$/u, '');
 }
 
 function isAdministrator() {
@@ -346,8 +405,8 @@ function isMainModule() {
 
 if (isMainModule()) {
   try {
-    rejectBinaryOnlyRequest(process.argv.slice(2));
-    const result = await runDevRuntimeService();
+    const options = parseDevRuntimeArguments(process.argv.slice(2));
+    const result = await runDevRuntimeService(options);
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } catch (error) {
     const failure = {

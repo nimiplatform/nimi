@@ -60,6 +60,44 @@ func TestAuthorizeLocalAppProtectedOperationAllowsOnlyExactLiveProcessAndGrant(t
 	}
 }
 
+func TestAuthorizeLocalAppSendTurnRequiresExactCorrelationSelector(t *testing.T) {
+	fixture := newLocalAppGrantFixture(t)
+	const operationID = "runtime_agent.conversation.turn_send"
+	const resourceRef = "agent:agent:matrix/conversation:anchor:matrix"
+	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{
+		OperationId: operationID,
+		ResourceRef: resourceRef,
+		Purpose:     "Send a turn to the selected conversation",
+	})
+	if err != nil || pending.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_PENDING {
+		t.Fatalf("request send-turn grant = (%+v, %v)", pending, err)
+	}
+	granted, err := fixture.service.DecideLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.DecideLocalAppGrantRequest{
+		RequestId:           pending.GetProjection().GetRequestId(),
+		Approved:            true,
+		PresenceChallengeId: fixture.control.challenge.PresenceChallengeID,
+	})
+	if err != nil || granted.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_GRANTED {
+		t.Fatalf("grant send-turn operation = (%+v, %v)", granted, err)
+	}
+
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	selector := localappop.Selector{
+		AgentID:              "agent:matrix",
+		ConversationAnchorID: "anchor:matrix",
+		TurnID:               "client-turn:1",
+	}
+	decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationSendConversationTurn, selector)
+	if err != nil || decision.LocalAppPrincipalID != fixture.resolver.binding.LocalAppPrincipalID || decision.Operation != LocalAppOperationSendConversationTurn {
+		t.Fatalf("exact send-turn decision = (%+v, %v)", decision, err)
+	}
+
+	selector.TurnID = ""
+	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationSendConversationTurn, selector); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+		t.Fatalf("missing turn correlation reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
+	}
+}
+
 func TestAuthorizeLocalAppStorageRejectsInvalidPathBeforeGrantLookup(t *testing.T) {
 	fixture := newLocalAppGrantFixture(t)
 	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)

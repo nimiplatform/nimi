@@ -7,6 +7,8 @@ import {
   DEV_KERNEL_OWNER_MINIMAL_CHECKPOINTS,
   validateOwnerMinimalResult,
 } from './dev-kernel-owner-minimal-contract.mjs';
+import { requireReusedReadyDataRoot } from './dev-kernel-first-run-driver.mjs';
+import { selectLocalDevelopmentProjectAuthorizations } from './dev-kernel-local-development-driver.mjs';
 
 function ownerDriverSource() {
   return [
@@ -86,9 +88,48 @@ test('owner-minimal orchestrator imports its Runtime host dependencies explicitl
 test('owner-minimal reuses a protected ready round after a transient First Run gate', () => {
   const driver = ownerDriverSource();
   assert.match(driver, /primaryLogin\.outcome === 'first-run'[\s\S]*productControl\?\.state === 'ready_for_use'[\s\S]*captureReusedReadyFirstRun/iu);
-  assert.match(driver, /captureReusedReadyFirstRun[\s\S]*requireCheckpointDataRootProposal[\s\S]*waitForTestId\(page, 'main-shell'[\s\S]*PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD/iu);
+  assert.match(driver, /captureReusedReadyFirstRun[\s\S]*requireReusedReadyDataRoot[\s\S]*waitForTestId\(page, 'main-shell'[\s\S]*PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD/iu);
+  assert.match(driver, /requireReusedReadyDataRoot[\s\S]*requireCheckpointDataRootProposal[\s\S]*record\?\.dataRoot\?\.status !== 'ready'/iu);
   assert.match(driver, /current\?\.state !== 'ready_for_use'[\s\S]*page\.reload\(\{ waitUntil: 'domcontentloaded'[\s\S]*waitForTestId\(page, 'main-shell'/iu);
   assert.match(driver, /ready-shell-transition[\s\S]*captureReusedReadyFirstRun[\s\S]*reuseReadyCandidateId: serviceBefore\.runtimeCandidateId/iu);
+});
+
+test('core and owner-minimal resume Device only from the protected data_root_selected state', () => {
+  const driver = ownerDriverSource();
+  assert.match(
+    driver,
+    /resumeFromDevice:\s*productControl\?\.state === 'data_root_selected'/iu,
+  );
+  assert.match(driver, /options\.resumeFromDevice === true[\s\S]*first-run-phase-device-scan/iu);
+});
+
+test('owner-minimal binds a reused ready round to the Runtime-selected root, not the unused proposal', () => {
+  const candidateId = 'dev-kernel-runtime-0123456789abcdef0123456789abcdef';
+  const volumeRoot = path.parse(process.cwd()).root;
+  const selectedRoot = path.join(volumeRoot, 'NimiSelectedData');
+  const proposedRoot = path.join(volumeRoot, 'NimiAcceptance', candidateId, 'Nimi');
+  const productControl = {
+    state: 'ready_for_use',
+    record: {
+      state: 'ready_for_use',
+      dataRoot: { path: selectedRoot, status: 'ready' },
+    },
+    dataRootProposal: {
+      path: proposedRoot,
+      authority: 'runtime_protected_product_control',
+      profile: 'dev_kernel_checkpoint',
+    },
+  };
+
+  assert.equal(requireReusedReadyDataRoot(productControl, candidateId), path.resolve(selectedRoot));
+  assert.notEqual(path.resolve(selectedRoot), path.resolve(proposedRoot));
+  assert.throws(
+    () => requireReusedReadyDataRoot({
+      ...productControl,
+      record: { ...productControl.record, dataRoot: { path: selectedRoot, status: 'selected' } },
+    }, candidateId),
+    /safe Runtime-owned selected data root/u,
+  );
 });
 
 test('owner-minimal waits for the Runtime-owned Developer Mode projection before toggling', () => {
@@ -96,6 +137,42 @@ test('owner-minimal waits for the Runtime-owned Developer Mode projection before
   assert.match(driver, /label: 'Developer Mode Runtime projection'/u);
   assert.match(driver, /developer-mode-retry-button[\s\S]*Developer Mode Runtime projection unavailable/iu);
   assert.match(driver, /card\.getAttribute\('data-developer-mode'\) === expected[\s\S]*button\.isEnabled/iu);
+});
+
+test('owner-minimal clears only the exact account and project authorization before run-once', () => {
+  const driver = ownerDriverSource();
+  assert.match(driver, /local-development-authorization-baseline[\s\S]*resetLocalDevelopmentProjectAuthorization[\s\S]*developer-mode-enable[\s\S]*run-once-local-development-start/iu);
+  assert.match(driver, /local_development_authorizations_list[\s\S]*local_development_authorization_revoke[\s\S]*remainingNonRevoked/iu);
+
+  const identity = {
+    accountId: 'account-primary',
+    appId: 'nimi.zhiyu',
+    canonicalProjectRoot: 'D:\\repo\\apps\\zhiyu',
+    shell: 'electron',
+  };
+  const exact = {
+    ...identity,
+    canonicalProjectRoot: '\\\\?\\D:\\repo\\apps\\zhiyu',
+    selector: 'dev-project:exact',
+    state: 'dormant',
+  };
+  const rows = [
+    exact,
+    { ...exact, accountId: 'account-secondary', selector: 'dev-project:account' },
+    { ...exact, appId: 'nimi.other', selector: 'dev-project:app' },
+    { ...exact, canonicalProjectRoot: 'D:\\repo\\apps\\other', selector: 'dev-project:root' },
+    { ...exact, shell: 'tauri', selector: 'dev-project:shell' },
+  ];
+
+  assert.deepEqual(selectLocalDevelopmentProjectAuthorizations(rows, identity), [exact]);
+});
+
+test('core revokes the exact run-once project before reusing its supervised host port', () => {
+  const driver = ownerDriverSource();
+  assert.match(
+    driver,
+    /phase = 'grant-revoke'[\s\S]*runOnceProjectRevocation = await resetLocalDevelopmentProjectAuthorization\([\s\S]*revokedCount !== 1[\s\S]*terminateProcessTree\(runOnceHandle\)[\s\S]*waitForCdpEndpointRelease\(zhiyuCdpPort, 'run-once Zhiyu'\)[\s\S]*phase = 'remembered-local-development-start'/u,
+  );
 });
 
 test('owner-minimal bounds only the exact supervised-host startup transport race', () => {

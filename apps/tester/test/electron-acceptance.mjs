@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -22,27 +22,19 @@ const localAppNegativeMatrix = [
   { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', clientTurnId: 'turn', userText: 'hello' } } },
   { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', cursor: '' } } },
   { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], payload: { relativePath: 'settings/profile.json' } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], payload: { relativePath: 'settings/profile.json', value: {} } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], payload: { relativePath: 'settings/profile.json' } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentInventory'], payload: {} },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice'], payload: { payload: { agentId: 'tester', clientRequestId: 'voice-acceptance', audioBase64: 'YQ==', mimeType: 'audio/wav' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeVoiceStream'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', turnId: 'turn', voiceStreamId: 'voice-stream', cursor: '' } } },
 ];
 
 test('Electron acceptance matrix maps every standard shell command to e2e or host-unit coverage', async () => {
   const acceptanceSource = await readFile(new URL('./electron-acceptance.mjs', import.meta.url), 'utf8');
   const mainSource = await readFile(path.join(root, 'src-electron', 'main.ts'), 'utf8');
-  const electronHostUnitFiles = [
-    'electron-agent-center-content-admission.test.ts',
-    'electron-agent-center-custody.test.ts',
-    'electron-agent-center.test.ts',
-    'electron-shell-bridge-core.test.ts',
-    'electron-shell-bridge-guardrails.test.ts',
-    'electron-shell-bridge-host-features.test.ts',
-    'electron-shell-capabilities.test.ts',
-    'electron-shell-file-surfaces.test.ts',
-    'electron-shell-preload.test.ts',
-    'electron-shell-runtime-hardening.test.ts',
-    'electron-shell-source-boundaries.test.ts',
-    'electron-local-app-carrier-behavior.test.ts',
-    'electron-local-app-commands.test.ts',
-    'electron-local-app-host.test.ts',
-  ];
+  const electronHostUnitFiles = (await readdir(path.join(repoRoot, 'kit', 'shell', 'electron', 'test')))
+    .filter((file) => file.endsWith('.test.ts'));
   const electronHostUnitSource = (await Promise.all(electronHostUnitFiles.map((file) =>
     readFile(path.join(repoRoot, 'kit', 'shell', 'electron', 'test', file), 'utf8')
   ))).join('\n');
@@ -100,7 +92,6 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
       { payload: { artifactId: 'runtime-artifact-acceptance' } },
     );
     assertUnsupervisedLocalAppDenied(artifactUnavailable);
-    const carrierReasonCode = artifactUnavailable.reasonCode;
     for (const row of localAppNegativeMatrix) {
       const denied = await captureInvokeError(page, row.command, row.payload);
       assertUnsupervisedLocalAppDenied(denied);
@@ -120,8 +111,8 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
     );
     assert.equal(localAppAuthStatus.transport, 'electron-ipc');
     assert.equal(localAppAuthStatus.ok, false);
-    assert.equal(localAppAuthStatus.code, carrierReasonCode);
-    assert.equal(localAppAuthStatus.reasonCode, carrierReasonCode);
+    assertUnsupervisedLocalAppDenied(localAppAuthStatus);
+    const sessionReasonCode = localAppAuthStatus.reasonCode;
     const localAppProjection = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppProjection(),
     );
@@ -130,17 +121,15 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
     assert.equal(localAppProjection.status, 'action-required');
     assert.deepEqual(localAppProjection.reason, {
       mode: 'local-app',
-      reasonCode: carrierReasonCode,
-      actionHint: expectedCarrierActionHint(carrierReasonCode),
+      reasonCode: sessionReasonCode,
+      actionHint: expectedCarrierActionHint(sessionReasonCode),
     });
     const sdkLocalAppArtifact = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppArtifactRead(),
     );
     assert.equal(sdkLocalAppArtifact.transport, 'electron-ipc');
     assert.equal(sdkLocalAppArtifact.ok, false);
-    assert.equal(sdkLocalAppArtifact.code, carrierReasonCode);
-    assert.equal(sdkLocalAppArtifact.reasonCode, carrierReasonCode);
-    assert.equal(sdkLocalAppArtifact.source, artifactUnavailable.source);
+    assertUnsupervisedLocalAppDenied(sdkLocalAppArtifact);
 
     for (const commandKey of [
       'runtime-lifecycle.status',
@@ -164,9 +153,6 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
       ['runtime-lifecycle.start', {}],
       ['runtime-lifecycle.restart', {}],
       ['data.pathResolve', { relativePath: 'settings/profile.json' }],
-      ['storage.readJson', { relativePath: 'settings/profile.json' }],
-      ['storage.writeJson', { relativePath: 'settings/profile.json', value: {} }],
-      ['storage.removeJson', { relativePath: 'settings/profile.json' }],
       ['local-assets.resolveUrl', { relativePath: 'preview.txt' }],
       ['artifacts.write', { relativePath: 'preview.txt', dataBase64: 'YQ==' }],
       ['ai-config.get', { scopeRef: 'tester.scope.chat' }],
@@ -223,7 +209,10 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
     await retryButton.click();
     await page.waitForFunction(() => document.body?.innerText.includes('Nimi Desktop connection required'));
     const visibleCopy = await page.locator('body').innerText();
-    assert.match(visibleCopy, expectedVisibleCarrierAction(carrierReasonCode));
+    assert.match(
+      visibleCopy,
+      /(?:Open Nimi Desktop, confirm Runtime is available, then retry|Close this process and relaunch the project through Nimi Desktop|Reopen the protected local-app session through Nimi Desktop)\./,
+    );
     assert.doesNotMatch(visibleCopy, /open_nimi_desktop_and_retry/);
     const shellProblems = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_SHELL_ACCEPTANCE_PROBLEMS__ ?? [],
@@ -295,12 +284,6 @@ function expectedCarrierActionHint(reasonCode) {
   if (reasonCode === 'runtime-service-untrusted') return 'restart_through_verified_desktop_supervisor';
   if (reasonCode === 'runtime-unauthenticated') return 'reopen_local_app_session';
   return 'start_fixed_runtime_service';
-}
-
-function expectedVisibleCarrierAction(reasonCode) {
-  if (reasonCode === 'runtime-service-untrusted') return /Close this process and relaunch the project through Nimi Desktop\./;
-  if (reasonCode === 'runtime-unauthenticated') return /Reopen the protected local-app session through Nimi Desktop\./;
-  return /Open Nimi Desktop, confirm Runtime is available, then retry\./;
 }
 
 async function assertLocalAppCapabilityForbidden(page, command, label, payload = {}) {

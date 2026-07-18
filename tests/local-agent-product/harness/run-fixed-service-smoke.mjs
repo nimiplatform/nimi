@@ -26,6 +26,7 @@ import {
 } from './dev-kernel-fixed-service-contract.mjs';
 import { startProcess, terminateProcessTree } from './cross-app-driver.mjs';
 import { registerTrialProcessIdentity } from './sandbox-hygiene.mjs';
+import { captureSourceState } from './source-state.mjs';
 import { createIsolatedJourneyRoot, removeIsolatedTrialRoot } from './trial-root.mjs';
 import { repoRoot } from './registry.mjs';
 
@@ -47,6 +48,7 @@ const trial = createIsolatedJourneyRoot({
   batch: 'developer-smoke',
   repeatIndex: 1,
 });
+const sourceState = captureSourceState(repoRoot);
 const lock = acquireFixedServiceLock();
 const artifactRoot = path.join(trial.paths.artifacts, 'fixed-service-smoke');
 const logsRoot = path.join(artifactRoot, 'process-logs');
@@ -84,6 +86,7 @@ try {
     NIMI_LOCAL_AGENT_PRODUCT_TRIAL_ROOT: trial.paths.root,
     NIMI_LOCAL_AGENT_PRODUCT_DESKTOP_USER_DATA_ROOT: trial.paths.desktopUserData,
     NIMI_LOCAL_AGENT_PRODUCT_DESKTOP_CDP_PORT: String(cdpPort),
+    NIMI_LOCAL_AGENT_PRODUCT_SOURCE_DIGEST: sourceState.sourceDigest,
     HOME: trial.paths.root,
     USERPROFILE: trial.paths.root,
     APPDATA: trial.paths.appDataRoaming,

@@ -13,9 +13,10 @@ const supervisor = readFileSync(
 );
 
 test('Tester uses the same official one-command launcher as generated local apps', () => {
-  assert.equal(packageJson.scripts.dev, 'nimi-app dev --shell tauri');
+  assert.equal(packageJson.scripts.dev, 'nimi-app dev --shell electron');
   assert.equal(packageJson.scripts['dev:shell'], 'nimi-app dev');
   assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
+  assert.equal(packageJson.scripts['dev:tauri'], 'nimi-app dev --shell tauri');
   for (const removed of [
     'scripts/run-tauri-dev.mjs',
     'scripts/run-electron-dev.mjs',

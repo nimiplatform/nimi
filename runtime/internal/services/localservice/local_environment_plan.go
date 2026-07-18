@@ -167,6 +167,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		}
 		modelResolution[family] = deps
 	}
+	firstRunLlamaCUDARequired := s.localEnvironmentFirstRunLlamaCUDARequired(def, consumerScope)
 
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(def.RequiredDependencyFamilies)+len(def.OptionalDependencyFamilies))
 	for _, family := range def.RequiredDependencyFamilies {
@@ -174,7 +175,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
-		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope)
+		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
 		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
 			dependencies = append(dependencies, resolved...)
 			continue
@@ -182,8 +183,8 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope, req))
 	}
 	for _, family := range def.OptionalDependencyFamilies {
-		required := localEnvironmentOptionalDependencyRequiredForConsumer(def, family, hostState, consumerScope)
-		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope)
+		required := localEnvironmentOptionalDependencyRequiredForConsumer(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
+		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope, firstRunLlamaCUDARequired)
 		if resolved, ok := modelResolution[family]; ok {
 			dependencies = append(dependencies, resolved...)
 			continue
@@ -425,7 +426,9 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 		return dep
 	}
 
-	if family == localEnvironmentFamilyCUDA && !localEnvironmentHostSupportsCUDA(hostState) {
+	if family == localEnvironmentFamilyCUDA &&
+		!localEnvironmentHostSupportsCUDA(hostState) &&
+		!localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope) {
 		dep.State = localEnvironmentStateUnsupported
 		dep.SourceKind = localEnvironmentSourceUnavailable
 		dep.ConfirmationRequired = false
@@ -515,7 +518,21 @@ func localSpeechPlanConsumers(consumerScope string) []string {
 	}
 }
 
-func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string) bool {
+func (s *Service) localEnvironmentFirstRunLlamaCUDARequired(def localComputePackDefinition, consumerScope string) bool {
+	if def.PackID != "local-text" || !localEnvironmentFirstRunConsumerScope(consumerScope) {
+		return false
+	}
+	// The managed llama package selector and the shared CUDA dependency
+	// resolver are both Engine-owned and use the same current-host accelerator
+	// detection. Consult that resolver when the detailed device-profile probe
+	// could not execute nvidia-smi: otherwise first-run may install the CUDA
+	// llama package while omitting its required shared dependency from the
+	// confirmed materialization plan.
+	status := s.resolveSharedCUDADependencyStatus("llama.cpp.cuda")
+	return status.State != engine.SharedAcceleratorDependencyUnsupported
+}
+
+func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string, firstRunLlamaCUDARequired bool) bool {
 	if family != localEnvironmentFamilyCUDA {
 		return false
 	}
@@ -524,11 +541,11 @@ func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackD
 		return true
 	}
 	return def.PackID == "local-text" &&
-		localEnvironmentHostSupportsCUDA(hostState) &&
+		(localEnvironmentHostSupportsCUDA(hostState) || firstRunLlamaCUDARequired) &&
 		localEnvironmentFirstRunConsumerScope(scope)
 }
 
-func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string) string {
+func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string, firstRunLlamaCUDARequired bool) string {
 	scope := strings.TrimSpace(consumerScope)
 	if !localEnvironmentFirstRunConsumerScope(scope) {
 		return scope
@@ -539,7 +556,7 @@ func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, fam
 		case localEnvironmentFamilyNativeLlama:
 			return "llama.cpp.cpu"
 		case localEnvironmentFamilyCUDA:
-			if localEnvironmentHostSupportsCUDA(hostState) {
+			if localEnvironmentHostSupportsCUDA(hostState) || firstRunLlamaCUDARequired {
 				return "llama.cpp.cuda"
 			}
 		}

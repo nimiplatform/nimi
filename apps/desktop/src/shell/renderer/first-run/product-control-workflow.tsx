@@ -60,6 +60,26 @@ export function resolveProductControlWorkflowError(
   return actionError ?? observerError ?? projectionError ?? null;
 }
 
+type ProductControlActionFailure = Readonly<{
+  message: string;
+  state: NimiProductControlState;
+}>;
+
+export function resolveProductControlActionFailure(
+  failure: ProductControlActionFailure | null,
+  currentState: NimiProductControlState,
+): string | null {
+  if (!failure) return null;
+  if (
+    failure.message === 'runtime-service-unavailable'
+    && failure.state === 'data_root_missing'
+    && currentState === 'data_root_selected'
+  ) {
+    return null;
+  }
+  return failure.message;
+}
+
 const SETUP_STEP_LABEL_DEFAULTS: Record<FirstRunSetupStepId, string> = {
   download: 'Downloading local models',
   verify: 'Verifying files',
@@ -99,10 +119,22 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const notifyProjectionChange = props.onProjectionChange;
 
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
+  const currentStateRef = useRef(state);
+  currentStateRef.current = state;
+  const actionStateRef = useRef<NimiProductControlState>(state);
+  const setError = useCallback((next: string | null): void => {
+    if (next === null) actionStateRef.current = currentStateRef.current;
+    setActionErrorMessage(next);
+  }, []);
+  const actionError = resolveProductControlActionFailure(
+    actionErrorMessage
+      ? { message: actionErrorMessage, state: actionStateRef.current }
+      : null,
+    state,
+  );
   const [observerError, setObserverError] = useState<string | null>(null);
   const error = resolveProductControlWorkflowError(actionError, observerError, projection?.error);
-  const setError = setActionError;
   const runtimeDataRootProposal = projection?.dataRootProposal?.path ?? null;
   const pickedPathAuthorityRef = useRef<FirstRunDataRootPickAuthority>(
     projection?.record?.dataRoot?.path

@@ -1,16 +1,26 @@
 use std::error::Error;
-use std::ffi::OsString;
+use std::ffi::{c_void, OsString};
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::os::windows::ffi::OsStringExt;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::ptr::{null_mut, NonNull};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+use windows_sys::Win32::Foundation::{GetLastError, LocalFree, ERROR_SUCCESS};
+use windows_sys::Win32::Security::Authorization::{
+    ConvertStringSidToSidW, GetNamedSecurityInfoW, SE_FILE_OBJECT,
+};
+use windows_sys::Win32::Security::{
+    EqualSid, GetAce, ACCESS_ALLOWED_ACE, ACL, CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION,
+    OBJECT_INHERIT_ACE, PSECURITY_DESCRIPTOR, PSID,
+};
+use windows_sys::Win32::Storage::FileSystem::{FILE_ALL_ACCESS, FILE_ATTRIBUTE_REPARSE_POINT};
 use windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW;
+use windows_sys::Win32::System::SystemServices::{ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE};
 
 #[cfg(not(feature = "windows-e2e-fixture"))]
 const FIXED_RUNTIME_SERVICE_SID: &str =
@@ -100,12 +110,120 @@ fn service_acl_grant() -> String {
     format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)F")
 }
 
-/// Prepares a user-selected Windows data-plane root for the fixed Runtime
-/// service. The caller remains the owner; only an inheritable ACE for the
-/// exact production service SID is added or replaced. Runtime still owns the
-/// subsequent layout validation and service-state mutation.
-pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
-    validate_selected_root(path)?;
+struct LocalAllocation(NonNull<c_void>);
+
+impl LocalAllocation {
+    fn new(value: *mut c_void) -> Option<Self> {
+        NonNull::new(value).map(Self)
+    }
+}
+
+impl Drop for LocalAllocation {
+    fn drop(&mut self) {
+        // SAFETY: both GetNamedSecurityInfoW and ConvertStringSidToSidW return
+        // LocalAlloc-owned memory that must be released exactly once.
+        unsafe {
+            let _ = LocalFree(self.0.as_ptr());
+        }
+    }
+}
+
+fn wide_null(value: &std::ffi::OsStr) -> Vec<u16> {
+    value.encode_wide().chain(std::iter::once(0)).collect()
+}
+
+fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeDataRootError> {
+    let path_wide = wide_null(path.as_os_str());
+    let mut dacl: *mut ACL = null_mut();
+    let mut descriptor: PSECURITY_DESCRIPTOR = null_mut();
+    // SAFETY: all output pointers are valid for the duration of the call and
+    // path_wide is a nul-terminated Windows path. The returned descriptor is
+    // held by descriptor_allocation until the DACL inspection completes.
+    let status = unsafe {
+        GetNamedSecurityInfoW(
+            path_wide.as_ptr(),
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            &mut dacl,
+            null_mut(),
+            &mut descriptor,
+        )
+    };
+    if status != ERROR_SUCCESS {
+        return Err(FixedRuntimeDataRootError::new(
+            "inspect-service-root-acl",
+            format!("GetNamedSecurityInfoW failed with {status}"),
+        ));
+    }
+    let _descriptor_allocation = LocalAllocation::new(descriptor).ok_or_else(|| {
+        FixedRuntimeDataRootError::new(
+            "inspect-service-root-acl",
+            "GetNamedSecurityInfoW returned no security descriptor",
+        )
+    })?;
+    if dacl.is_null() {
+        return Ok(false);
+    }
+
+    let service_sid_wide = wide_null(std::ffi::OsStr::new(FIXED_RUNTIME_SERVICE_SID));
+    let mut service_sid: PSID = null_mut();
+    // SAFETY: service_sid_wide is nul-terminated and service_sid is a valid
+    // output pointer. The returned SID is held by sid_allocation.
+    if unsafe { ConvertStringSidToSidW(service_sid_wide.as_ptr(), &mut service_sid) } == 0 {
+        // SAFETY: GetLastError is read immediately after the failed Win32 call.
+        let error = unsafe { GetLastError() };
+        return Err(FixedRuntimeDataRootError::new(
+            "inspect-service-root-acl",
+            format!("ConvertStringSidToSidW failed with {error}"),
+        ));
+    }
+    let _sid_allocation = LocalAllocation::new(service_sid).ok_or_else(|| {
+        FixedRuntimeDataRootError::new(
+            "inspect-service-root-acl",
+            "ConvertStringSidToSidW returned no SID",
+        )
+    })?;
+
+    let expected_flags = (OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE) as u8;
+    let mut matching_entries = 0usize;
+    let mut exact_entry = false;
+    // SAFETY: dacl belongs to the live security descriptor allocation. GetAce
+    // validates each index, and standard allow/deny ACEs share the inspected
+    // ACCESS_ALLOWED_ACE prefix containing Mask and SidStart.
+    unsafe {
+        for index in 0..u32::from((*dacl).AceCount) {
+            let mut raw_ace: *mut c_void = null_mut();
+            if GetAce(dacl, index, &mut raw_ace) == 0 || raw_ace.is_null() {
+                let error = GetLastError();
+                return Err(FixedRuntimeDataRootError::new(
+                    "inspect-service-root-acl",
+                    format!("GetAce({index}) failed with {error}"),
+                ));
+            }
+            let ace = &*(raw_ace.cast::<ACCESS_ALLOWED_ACE>());
+            let ace_type = u32::from(ace.Header.AceType);
+            if ace_type != ACCESS_ALLOWED_ACE_TYPE && ace_type != ACCESS_DENIED_ACE_TYPE {
+                continue;
+            }
+            let ace_sid = std::ptr::addr_of!(ace.SidStart).cast_mut().cast::<c_void>();
+            if EqualSid(ace_sid, service_sid) == 0 {
+                continue;
+            }
+            matching_entries += 1;
+            if ace_type == ACCESS_ALLOWED_ACE_TYPE
+                && ace.Header.AceFlags == expected_flags
+                && ace.Mask == FILE_ALL_ACCESS
+            {
+                exact_entry = true;
+            }
+        }
+    }
+    Ok(exact_entry && matching_entries == 1)
+}
+
+fn grant_fixed_runtime_service_acl(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
     let mut child = Command::new(system_icacls_path()?)
         .arg(path)
         .arg("/grant:r")
@@ -142,6 +260,28 @@ pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDa
         }
         thread::sleep(ACL_TOOL_POLL_INTERVAL);
     }
+}
+
+fn prepare_fixed_runtime_data_root_with<F>(
+    path: &Path,
+    grant: F,
+) -> Result<(), FixedRuntimeDataRootError>
+where
+    F: FnOnce(&Path) -> Result<(), FixedRuntimeDataRootError>,
+{
+    validate_selected_root(path)?;
+    if fixed_runtime_service_acl_is_exact(path)? {
+        return Ok(());
+    }
+    grant(path)
+}
+
+/// Prepares a user-selected Windows data-plane root for the fixed Runtime
+/// service. The caller remains the owner; only an inheritable ACE for the
+/// exact production service SID is added or replaced. Runtime still owns the
+/// subsequent layout validation and service-state mutation.
+pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
+    prepare_fixed_runtime_data_root_with(path, grant_fixed_runtime_service_acl)
 }
 
 #[cfg(test)]
@@ -203,5 +343,67 @@ mod tests {
         })();
         fs::remove_dir_all(&root).expect("remove test root");
         result.expect("prepare fixed Runtime data root");
+    }
+
+    #[test]
+    fn exact_existing_service_acl_is_idempotent_without_mutation() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "nimi-fixed-runtime-data-root-idempotent-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create test root");
+        let result = (|| {
+            prepare_fixed_runtime_data_root(&root)?;
+            if !fixed_runtime_service_acl_is_exact(&root)? {
+                return Err(FixedRuntimeDataRootError::new(
+                    "verify-service-root-acl",
+                    "fresh fixed-service ACL did not read back exactly",
+                ));
+            }
+            prepare_fixed_runtime_data_root_with(&root, |_| {
+                panic!("exact existing ACL must not invoke the mutation tool")
+            })
+        })();
+        fs::remove_dir_all(&root).expect("remove test root");
+        result.expect("reuse exact fixed Runtime data-root ACL");
+    }
+
+    #[test]
+    fn insufficient_existing_service_acl_still_requires_mutation() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "nimi-fixed-runtime-data-root-insufficient-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create test root");
+        let status = Command::new(system_icacls_path().expect("resolve icacls"))
+            .arg(&root)
+            .arg("/grant:r")
+            .arg(format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)RX"))
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .expect("grant insufficient service ACL");
+        assert!(status.success(), "grant insufficient service ACL failed");
+        assert!(
+            !fixed_runtime_service_acl_is_exact(&root).expect("inspect insufficient service ACL"),
+            "read-only service ACL must not satisfy fixed Runtime preparation"
+        );
+        let mutation_called = std::cell::Cell::new(false);
+        prepare_fixed_runtime_data_root_with(&root, |_| {
+            mutation_called.set(true);
+            Ok(())
+        })
+        .expect("insufficient ACL should route to the mutation owner");
+        assert!(mutation_called.get(), "mutation owner was not invoked");
+        fs::remove_dir_all(&root).expect("remove test root");
     }
 }

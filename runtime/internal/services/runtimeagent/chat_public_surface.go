@@ -57,6 +57,7 @@ const publicChatTurnTrackLabel = "chat"
 
 type publicChatAppMessageEmitter func(context.Context, *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error)
 type publicChatExecutionBinding struct {
+	BindingAlias        string
 	ModelID             string
 	RoutePolicy         runtimev1.RoutePolicy
 	ConnectorID         string

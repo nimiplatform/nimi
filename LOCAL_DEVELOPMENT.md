@@ -13,8 +13,23 @@
 | `D:\nimi-realm\nimi` | `pnpm dev:runtime` | build/sign → 原地更新已安装 fixed service → 重启 → status；未提权时弹一次 UAC | 仅 Runtime 变更时 |
 | `D:\nimi-realm\nimi` | `pnpm dev:electron:desktop` | 签名 Desktop carrier、持久 profile、renderer HMR、项目/grant 审批宿主 | 联调期间 |
 | `D:\nimi-realm\nimi` | `pnpm dev:electron:zhiyu` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Zhiyu | 联调期间 |
+| `D:\nimi-realm\nimi` | `pnpm dev:electron:tester` | `nimi-app dev --shell electron`，经 Desktop 完成项目准入并启动 Tester 权限实验室与产品 UI | 联调期间 |
 
-建议顺序：Realm → Web → fixed Runtime status → Desktop → Zhiyu。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
+建议顺序：Realm → Web → fixed Runtime status → Desktop → 目标 App（Zhiyu 或 Tester）。不要启动第二个前台 Runtime；`dev:runtime` 只更新 SCM 管理的 `NimiRuntime`。
+
+需要让连续的 dev-kernel candidate 复用一个既有 `nimi_data` payload 根时，必须由
+operator 在 signed-installer 更新链上显式选择：
+
+```powershell
+pnpm dev:runtime -- --development-data-root <absolute-existing-nimi-data-root>
+```
+
+该参数只传给 signed installer 写入 candidate-bound protected profile；不会成为
+Runtime argv、环境变量或 renderer 配置。新 candidate 仍重建隔离的 Product Control、
+registry 与 readiness 证据，既有模型、依赖、环境字节只有在当前 catalog hash、
+manifest、compatibility 与 activation 全部重新验证后才复用。省略该参数时，
+dev-kernel profile 有意使用 candidate-specific fallback root；因此连续更换 candidate
+可能重新物化大型 payload。
 
 运行 `pnpm doctor:dev` 可在一屏检查 Realm/Web 可达性、fixed service 完整状态、Desktop local-development presence 的 exact shape/新鲜度、遗留 carrier，以及 SDK/Kit canonical dist stamp。任一 Tier-1 项不满足时命令非零退出。Developer Mode、项目授权与 grant 摘要目前没有获准的 bounded doctor projection，输出固定为“bounded projection 未准入”，不读取 renderer private bridge，也不把缺失投影算作通过。
 
@@ -31,6 +46,8 @@
 | Desktop renderer | Vite HMR，不重启 carrier |
 | Zhiyu renderer | Vite HMR，不重启 host |
 | Zhiyu `src-electron` main/preload | Desktop supervisor 450ms 防抖后运行 `build:electron` 并替换 host |
+| Tester renderer | Vite HMR，不重启 host |
+| Tester `src-electron` main/preload | Desktop supervisor 450ms 防抖后运行 `build:electron` 并替换 host |
 | Desktop main/preload | `build:electron` 后重启签名 carrier；应用 JS 从 repo `dist-electron` 加载，不重签 carrier |
 | Runtime Go | `pnpm dev:runtime`；该命令轮换 boot epoch |
 | SDK/Kit | 单独运行 `pnpm dev:prepare:watch`；350 ms 防抖后串行调用 SDK、Kit canonical build，SDK 变化会继续重建 Kit |
@@ -71,6 +88,8 @@ Runtime 重启后，旧 session、launch lease 与 scoped binding 失效；同�
 - 最终 candidate-bound close：一次 fresh-prepared 完整 journey。
 
 First Run、owner-minimal、fresh-prepared journey 与 `check:zhiyu-bootstrap` 不是调试启动器。它们要求干净 tracked 树与无 carrier 进程，旧 candidate 的证据不能关闭新 candidate。
+
+运行 owner-minimal、fresh First Run 或完整 core journey 前，需求方维护的 Realm 必须以测试专用策略从 `D:\nimi-realm` 重启；四项环境必须同时成立：`NIMI_REALM_TEST_POLICY=dev_kernel_checkpoint`、`NODE_ENV=development`、`HOST=127.0.0.1`、`CORS_ORIGINS=http://localhost:3000`。该策略只允许回环访问；`GET http://localhost:3002/api/auth/dev-kernel-policy` 必须返回 HTTP 200，缺失或非 200 时 harness fail-closed，不得在 Nimi 侧补固定策略或 fallback。
 
 ## 第三方 App 接入 local development 清单
 

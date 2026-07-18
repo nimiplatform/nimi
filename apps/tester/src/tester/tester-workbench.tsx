@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
-import { Tooltip } from '@nimiplatform/kit/ui';
+import { Button, OverlayShell, Tooltip } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
@@ -28,6 +28,7 @@ import {
   type TesterPreferences,
 } from './tester-preferences.js';
 import { testerTestIds } from './tester-test-ids.js';
+import { TesterLocalAppPermissionLab } from './local-app-permission-lab.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
 import type { WorkbenchView } from './workbench/workbench-context.js';
@@ -146,6 +147,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
   const [preferences] = useState<TesterPreferences>(() => loadTesterPreferences().preferences);
   const [localAppProjection, setLocalAppProjection] = useState<RuntimePlatformReadyProjection | null>(null);
+  const [permissionLabOpen, setPermissionLabOpen] = useState(false);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
   const runtimeState = useMemo(() => runtimeBadge(summary), [summary]);
@@ -361,15 +363,18 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                       content={<TopbarStatusTooltip title="Protected local app" rows={localAppTooltipRows} />}
                       placement="bottom"
                     >
-                      <span
-                        className={`workbench-topbar__attachment workbench-topbar__attachment--${localAppProjection
+                      <button
+                        type="button"
+                        className={`workbench-topbar__attachment workbench-topbar__attachment--button workbench-topbar__attachment--${localAppProjection
                           ? (localAppProjection.localAppSession.operationAllowed ? 'success' : 'warning')
                           : 'neutral'}`}
                         data-testid="tester-local-app-status"
+                        aria-label="打开 Local App 权限测试"
+                        onClick={() => setPermissionLabOpen(true)}
                       >
                         <span className="workbench-topbar__dot" aria-hidden="true" />
                         <span>Local app</span>
-                      </span>
+                      </button>
                     </Tooltip>
                     <Tooltip
                       content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
@@ -387,6 +392,24 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           </div>
         </div>
       </div>
+      <OverlayShell
+        open={permissionLabOpen}
+        kind="drawer"
+        size="S"
+        onClose={() => setPermissionLabOpen(false)}
+        title="Local App 权限测试"
+        description="验证 zero-grant、精确请求、Desktop 批准、成功写入，以及撤销后的即时拒绝。"
+        panelClassName="flex flex-col overflow-hidden"
+        contentClassName="min-h-0 min-w-0 flex-1 overflow-y-auto"
+        footer={(
+          <Button type="button" tone="secondary" onClick={() => setPermissionLabOpen(false)}>
+            关闭
+          </Button>
+        )}
+        dataTestId="tester-local-app-permission-drawer"
+      >
+        <TesterLocalAppPermissionLab />
+      </OverlayShell>
     </main>
   );
 }

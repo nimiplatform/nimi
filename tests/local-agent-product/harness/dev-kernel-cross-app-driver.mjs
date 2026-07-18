@@ -35,6 +35,7 @@ import {
   setWindowBounds,
   sha256,
   waitForTestId,
+  waitForCdpEndpointRelease,
   waitUntil,
   writeJson,
 } from './dev-kernel-host-driver.mjs';
@@ -52,6 +53,7 @@ import {
   grantOpenConversation,
   openConversation,
   readRememberedAuthorization,
+  resetLocalDevelopmentProjectAuthorization,
   revokeOperationGrant,
   sendTurnWithKeyboard,
   setDeveloperMode,
@@ -59,6 +61,7 @@ import {
   startZhiyuDev,
   summarizeProviderRequests,
   waitForRebuiltZhiyu,
+  waitRememberedInitialGrantPosture,
   waitZhiyuEvidence,
 } from './dev-kernel-local-development-driver.mjs';
 import { persistOwnerMinimalResult } from './dev-kernel-result-driver.mjs';
@@ -93,6 +96,8 @@ export {
   connectCdp,
   createEarlyCdpObserver,
   decodeDesktopRuntimeUnaryResponse,
+  isAuthoritativeFirstRunStorageAdvance,
+  isRecoverableFirstRunStorageRestart,
   invokeDesktop,
   invokeDesktopRuntimeUnary,
   probeRealRealmBrowserLoginAuthority,
@@ -362,6 +367,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
           paths: { ...trial.paths, runtimeData: proposedDataRoot },
         }, screenshotsRoot, {
           reuseReadyCandidateId: serviceBefore.runtimeCandidateId,
+          resumeFromDevice: productControl?.state === 'data_root_selected',
         });
         observations.firstRun.reusedReady = false;
       }
@@ -394,6 +400,17 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     observations.primaryAccountSession = await invokeDesktop(
       desktop.page,
       'runtime_account_session_status',
+    );
+    const zhiyuProjectIdentity = {
+      accountId: fixtureConfig.primaryAccountId,
+      appId: 'nimi.zhiyu',
+      canonicalProjectRoot: path.join(repoRoot, 'apps', 'zhiyu'),
+      shell: 'electron',
+    };
+    phase = 'local-development-authorization-baseline';
+    observations.localDevelopmentAuthorizationBaseline = await resetLocalDevelopmentProjectAuthorization(
+      desktop.page,
+      zhiyuProjectIdentity,
     );
     phase = 'developer-mode-enable';
     observations.developerModeEnabled = await setDeveloperMode(desktop.page, true);
@@ -528,8 +545,16 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
         artifactsRoot, screenshotsRoot, sourceState, outputDir, started,
       });
     }
+    observations.runOnceProjectRevocation = await resetLocalDevelopmentProjectAuthorization(
+      desktop.page,
+      zhiyuProjectIdentity,
+    );
+    if (observations.runOnceProjectRevocation.revokedCount !== 1) {
+      throw new Error(`run-once transition revoked ${observations.runOnceProjectRevocation.revokedCount} active project authorization(s)`);
+    }
     await terminateProcessTree(runOnceHandle);
     runOnceHandle = null;
+    await waitForCdpEndpointRelease(zhiyuCdpPort, 'run-once Zhiyu');
 
     phase = 'remembered-local-development-start';
     const rememberedLaunch = beginObservedProcess({
@@ -554,7 +579,10 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     });
     activeZhiyuConnection = zhiyu;
     await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
-    await waitZhiyuEvidence(zhiyu.page, { state: 'session-bound-zero-grant' }, 'remembered zero-grant session');
+    observations.rememberedInitialGrantPosture = await waitRememberedInitialGrantPosture(
+      zhiyu.page,
+      'remembered initial grant posture',
+    );
     observations.rememberedAuthorization = await waitUntil(
       () => readRememberedAuthorization(desktop.page, {
         accountId: fixtureConfig.primaryAccountId,
@@ -646,6 +674,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     );
     if (rememberedHandle.child.exitCode === null) await terminateProcessTree(rememberedHandle);
     rememberedHandle = null;
+    await waitForCdpEndpointRelease(zhiyuCdpPort, 'remembered Zhiyu');
     fs.writeFileSync(probePath, originalProbe);
     probeRestored = true;
     observations.modeOn = await setDeveloperMode(desktop.page, true);

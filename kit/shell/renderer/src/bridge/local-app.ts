@@ -472,9 +472,9 @@ function parseTurnEventPage(
     throw new Error(`${command}: event is outside the selected RuntimeAgent turn family`);
   }
   const projection = assertRecord(event.payload, `${command}: event payload is invalid`);
-  const localAgentRef = projection.localAgentRef ?? projection.local_agent_ref;
+  const agentId = projection.agentId ?? projection.agent_id;
   const conversationAnchorId = projection.conversationAnchorId ?? projection.conversation_anchor_id;
-  if (localAgentRef !== input.agentId || conversationAnchorId !== input.conversationAnchorId) {
+  if (agentId !== input.agentId || conversationAnchorId !== input.conversationAnchorId) {
     throw new Error(`${command}: event correlation is invalid`);
   }
   const traceId = canonicalText(event.traceId, command, 'traceId');

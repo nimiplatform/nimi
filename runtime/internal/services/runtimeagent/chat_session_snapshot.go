@@ -490,6 +490,9 @@ func publicChatExecutionBindingProjectionPayload(binding publicChatExecutionBind
 		"route":    publicChatRouteLabel(binding.RoutePolicy),
 		"model_id": strings.TrimSpace(binding.ModelID),
 	}
+	if strings.TrimSpace(binding.BindingAlias) != "" {
+		out["binding_alias"] = strings.TrimSpace(binding.BindingAlias)
+	}
 	if strings.TrimSpace(binding.ConnectorID) != "" {
 		out["connector_id"] = strings.TrimSpace(binding.ConnectorID)
 	}

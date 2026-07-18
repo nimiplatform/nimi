@@ -323,6 +323,19 @@ func TestCoordinatorRejectsUnsupportedOrMalformedRequestBeforeResolution(t *test
 	if called {
 		t.Fatal("whitespace selector alias reached the resolver")
 	}
+
+	missingTurnCorrelation := coordinator.Evaluate(context.Background(), Request{
+		NativeConnectionRef: "connection:1",
+		Operation:           OperationConversationTurnSend,
+		Selector: Selector{
+			AgentID:              "agent:1",
+			ConversationAnchorID: "anchor:1",
+		},
+	})
+	assertDecision(t, missingTurnCorrelation, OutcomeDenied, ReasonProtocolEnvelopeInvalid)
+	if called {
+		t.Fatal("send-turn selector without turn correlation reached the resolver")
+	}
 }
 
 func TestCoordinatorFailsClosedWhenResolverIsUnavailable(t *testing.T) {
@@ -452,7 +465,9 @@ func selectorFor(operation Operation) Selector {
 		return Selector{ArtifactID: "artifact:1"}
 	case OperationConversationOpen:
 		return Selector{AgentID: "agent:1"}
-	case OperationConversationTurnSend, OperationConversationSnapshot:
+	case OperationConversationTurnSend:
+		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1", TurnID: "turn:1"}
+	case OperationConversationSnapshot:
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}
 	case OperationConversationSubscribe:
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1"}

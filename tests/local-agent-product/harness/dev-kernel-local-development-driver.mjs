@@ -5,6 +5,7 @@ import path from 'node:path';
 import { startProcess } from './cross-app-driver.mjs';
 import { repoRoot } from './registry.mjs';
 import {
+  comparablePath,
   connectCdp,
   firstVisible,
   invokeDesktop,
@@ -64,6 +65,57 @@ export async function setDeveloperMode(page, enabled) {
     });
   }
   return card.getAttribute('data-developer-mode');
+}
+
+export async function resetLocalDevelopmentProjectAuthorization(page, identity) {
+  const before = await invokeDesktop(page, 'local_development_authorizations_list');
+  if (!Array.isArray(before)) throw new Error('local-development authorization baseline is not an array');
+  const matches = selectLocalDevelopmentProjectAuthorizations(before, identity);
+  let revokedCount = 0;
+  for (const authorization of matches) {
+    if (authorization.state === 'revoked') continue;
+    const selector = String(authorization.selector || '').trim();
+    if (!selector) throw new Error('local-development authorization baseline omitted its Desktop selector');
+    const revoked = await invokeDesktop(page, 'local_development_authorization_revoke', {
+      payload: { selector },
+    });
+    if (revoked?.state !== 'revoked') {
+      throw new Error(`local-development authorization baseline revoke failed for ${selector}`);
+    }
+    revokedCount += 1;
+  }
+  const after = await invokeDesktop(page, 'local_development_authorizations_list');
+  if (!Array.isArray(after)) throw new Error('local-development authorization baseline recheck is not an array');
+  const remaining = selectLocalDevelopmentProjectAuthorizations(after, identity)
+    .filter((authorization) => authorization.state !== 'revoked');
+  if (remaining.length > 0) {
+    throw new Error(`local-development authorization baseline retained ${remaining.length} non-revoked project authorization(s)`);
+  }
+  return { matchingBefore: matches.length, revokedCount, remainingNonRevoked: remaining.length };
+}
+
+export function selectLocalDevelopmentProjectAuthorizations(rows, {
+  accountId,
+  appId,
+  canonicalProjectRoot,
+  shell,
+} = {}) {
+  const expectedRoot = comparableProjectRoot(canonicalProjectRoot);
+  if (!expectedRoot || !accountId || !appId || !shell) {
+    throw new Error('local-development authorization baseline identity is invalid');
+  }
+  return (Array.isArray(rows) ? rows : []).filter((authorization) => (
+    authorization?.accountId === accountId
+    && authorization?.appId === appId
+    && authorization?.shell === shell
+    && comparableProjectRoot(authorization?.canonicalProjectRoot) === expectedRoot
+  ));
+}
+
+function comparableProjectRoot(value) {
+  const candidate = String(value || '').trim().replace(/^\\\\\?\\/u, '');
+  if (/^[a-z]:[\\/]/iu.test(candidate)) return path.win32.resolve(candidate).toLowerCase();
+  return comparablePath(candidate);
 }
 
 export async function approveLocalDevelopment(connection, decision, artifactsDir, captureLayout, browserAuth) {
@@ -167,6 +219,34 @@ export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_0
       if (!transientRuntimeUnavailable) {
         throw new Error(`${label} failed with evidence: ${JSON.stringify(latest)}`);
       }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`${label} timed out with evidence: ${JSON.stringify(latest)}`);
+}
+
+export function classifyRememberedInitialGrantPosture(evidence) {
+  if (evidence?.state === 'session-bound-zero-grant') return 'session-zero-grant';
+  if (evidence?.state === 'access-lost' && evidence?.lastError?.reasonCode === 'grant-revoked') {
+    return 'revoked-grant-history';
+  }
+  return null;
+}
+
+export async function waitRememberedInitialGrantPosture(page, label, timeoutMs = 90_000) {
+  const deadline = Date.now() + timeoutMs;
+  let latest = null;
+  while (Date.now() < deadline) {
+    const evidence = await page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
+    latest = evidence ? {
+      state: evidence.state,
+      openPermission: evidence.openPermission,
+      lastError: evidence.lastError,
+    } : null;
+    const posture = classifyRememberedInitialGrantPosture(evidence);
+    if (posture) return { posture, evidence };
+    if (latest?.lastError && ['error', 'access-lost', 'runtime-unavailable'].includes(latest.state)) {
+      throw new Error(`${label} failed with evidence: ${JSON.stringify(latest)}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -278,15 +358,20 @@ export async function revokeProjectAuthorization(desktopPage) {
   });
 }
 
-export async function readRememberedAuthorization(desktopPage, { accountId, selector, state } = {}) {
-  const rows = await invokeDesktop(desktopPage, 'local_development_authorizations_list');
-  if (!Array.isArray(rows)) throw new Error('local-development authorizations projection is not an array');
-  const matches = rows.filter((row) => row?.appId === 'nimi.zhiyu'
-    && row?.persistence === 'remember_project'
+export function selectRememberedProjectAuthorizations(rows, { accountId, selector, state } = {}) {
+  const matches = (Array.isArray(rows) ? rows : []).filter((row) => row?.appId === 'nimi.zhiyu'
+    && row?.persistence === 'allow-remember-project'
     && (!accountId || row.accountId === accountId)
     && (!selector || row.selector === selector)
     && (!state || row.state === state));
   matches.sort((left, right) => Number(right?.updatedAtUnixMs || 0) - Number(left?.updatedAtUnixMs || 0));
+  return matches;
+}
+
+export async function readRememberedAuthorization(desktopPage, { accountId, selector, state } = {}) {
+  const rows = await invokeDesktop(desktopPage, 'local_development_authorizations_list');
+  if (!Array.isArray(rows)) throw new Error('local-development authorizations projection is not an array');
+  const matches = selectRememberedProjectAuthorizations(rows, { accountId, selector, state });
   if (matches.length === 0) {
     throw new Error(`remembered local-development authorization is missing${state ? ` in ${state}` : ''}`);
   }

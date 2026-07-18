@@ -10,6 +10,7 @@ import {
   invokeDesktop,
   readFixedServiceStatus,
   setWindowBounds,
+  waitForCdpEndpointRelease,
   waitForTestId,
   waitUntil,
 } from './dev-kernel-host-driver.mjs';
@@ -182,6 +183,7 @@ export async function runCoreReactivationJourney({
   if (reactivatedHandle.child.exitCode === null) await terminateProcessTree(reactivatedHandle);
   reactivatedHandle = null;
   setReactivatedHandle(null);
+  await waitForCdpEndpointRelease(zhiyuCdpPort, 'secondary-account Zhiyu');
 
   setPhase('primary-account-restore');
   const restoredPrimaryLogin = await loginDesktop(

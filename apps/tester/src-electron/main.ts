@@ -51,9 +51,10 @@ async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     width: 1440,
     height: 940,
-    minWidth: 1100,
-    minHeight: 760,
+    minWidth: 360,
+    minHeight: 640,
     title: 'Nimi Tester',
+    backgroundColor: '#f6f8fb',
     autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,

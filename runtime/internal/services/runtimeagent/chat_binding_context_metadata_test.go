@@ -13,6 +13,7 @@ type contextMetadataBindingAIStub struct {
 	catalogRevision string
 	modelRevision   string
 	providerID      string
+	resolvedTarget  *runtimev1.RuntimeDurableTargetRef
 	metadataErr     error
 }
 
@@ -20,13 +21,16 @@ func (s contextMetadataBindingAIStub) ResolvePublicChatTextBinding(_ context.Con
 	return route, modelID, nil
 }
 
-func (s contextMetadataBindingAIStub) ResolvePublicChatTextContextMetadata(context.Context, runtimev1.RoutePolicy, string, *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, error) {
-	return s.window, s.catalogRevision, s.modelRevision, s.providerID, s.metadataErr
+func (s contextMetadataBindingAIStub) ResolvePublicChatTextContextMetadata(_ context.Context, _ runtimev1.RoutePolicy, _ string, targetRef *runtimev1.RuntimeDurableTargetRef) (uint64, string, string, string, *runtimev1.RuntimeDurableTargetRef, error) {
+	if s.resolvedTarget != nil {
+		targetRef = s.resolvedTarget
+	}
+	return s.window, s.catalogRevision, s.modelRevision, s.providerID, clonePublicChatTargetRef(targetRef), s.metadataErr
 }
 
 func TestPublicChatBindingResolutionBindsCatalogCapacityAndRouteDigest(t *testing.T) {
 	targetRef := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
-		Version: "nimi.runtime.target.local/v1",
+		Version: "v2",
 		Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "profile-binding-a"},
 	}}}
 	resolver := NewAIBackedPublicChatBindingResolver(contextMetadataBindingAIStub{
@@ -62,6 +66,32 @@ func TestPublicChatBindingResolutionBindsCatalogCapacityAndRouteDigest(t *testin
 	}
 	if changed.RouteDigest == first.RouteDigest {
 		t.Fatal("route digest must bind the durable target identity")
+	}
+}
+
+func TestPublicChatBindingResolutionFreezesResolvedAliasTarget(t *testing.T) {
+	resolvedTarget := &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+		Version: "v2",
+		Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "local-runtime:local-asset-a"},
+	}}}
+	resolver := NewAIBackedPublicChatBindingResolver(contextMetadataBindingAIStub{
+		window: 32768, catalogRevision: "catalog-v1", modelRevision: "model-v1", providerID: "local", resolvedTarget: resolvedTarget,
+	})
+
+	resolved, err := resolver.ResolvePublicChatBinding(context.Background(), PublicChatBindingResolutionRequest{
+		BindingAlias: "local/default", ModelID: "gemma-4-e2b-it-local", RouteHint: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	if err != nil {
+		t.Fatalf("ResolvePublicChatBinding alias: %v", err)
+	}
+	if resolved.BindingAlias != "local/default" {
+		t.Fatalf("binding alias = %q", resolved.BindingAlias)
+	}
+	if got := resolved.TargetRef.GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:local-asset-a" {
+		t.Fatalf("resolved target = %q", got)
+	}
+	if resolved.RouteDigest == "" {
+		t.Fatal("resolved alias route digest is empty")
 	}
 }
 

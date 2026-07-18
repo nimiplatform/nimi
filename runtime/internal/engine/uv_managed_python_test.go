@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -137,5 +139,80 @@ func TestManagedPythonRuntimeEnvKeepsUVCacheBesideManagedVenv(t *testing.T) {
 	}
 	if strings.Contains(strings.ToLower(env["UV_CACHE_DIR"]), "systemprofile") {
 		t.Fatalf("UV cache escaped to system profile: %q", env["UV_CACHE_DIR"])
+	}
+	wantTemp := filepath.Join(`D:\DataNimi`, "environments", "speech", "_tmp")
+	for _, key := range []string{"TMP", "TEMP", "TMPDIR"} {
+		if env[key] != wantTemp {
+			t.Fatalf("%s = %q, want %q", key, env[key], wantTemp)
+		}
+	}
+}
+
+func TestPrepareManagedCommandEnvironmentCreatesOneAbsoluteTempRoot(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "environments", "speech", "0.1.0-qwen3-asr")
+	env := managedPythonRuntimeEnv(root)
+	if err := prepareManagedCommandEnvironment(env); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(env["TEMP"]); err != nil || !info.IsDir() {
+		t.Fatalf("managed temp root was not created: info=%v err=%v", info, err)
+	}
+	if err := prepareManagedCommandEnvironment(map[string]string{
+		"TMP":  "relative-temp",
+		"TEMP": "relative-temp",
+	}); err == nil {
+		t.Fatal("relative managed temp root must fail closed")
+	}
+	if err := prepareManagedCommandEnvironment(map[string]string{
+		"TMP":  filepath.Join(t.TempDir(), "one"),
+		"TEMP": filepath.Join(t.TempDir(), "two"),
+	}); err == nil {
+		t.Fatal("divergent managed temp roots must fail closed")
+	}
+}
+
+func TestManagedPythonRuntimeEnvSetsWindowsSystemTempForLocalSystem(t *testing.T) {
+	if currentGOOS() != "windows" {
+		t.Skip("SystemTemp is the Windows SYSTEM-process GetTempPath2 override")
+	}
+	root := filepath.Join(t.TempDir(), "environments", "speech", "0.1.0-qwen3-asr")
+	env := managedPythonRuntimeEnv(root)
+	want := managedPythonTempDir(root)
+	if env["SystemTemp"] != want {
+		t.Fatalf("SystemTemp = %q, want %q", env["SystemTemp"], want)
+	}
+
+	env["SystemTemp"] = filepath.Join(t.TempDir(), "divergent-system-temp")
+	if err := prepareManagedCommandEnvironment(env); err == nil {
+		t.Fatal("divergent Windows SystemTemp must fail closed")
+	}
+}
+
+func TestRunCommandOutputUsesRuntimeOwnedManagedTemp(t *testing.T) {
+	const helperEnv = "NIMI_TEST_MANAGED_COMMAND_TEMP_CHILD"
+	if os.Getenv(helperEnv) == "1" {
+		_, _ = fmt.Fprint(os.Stdout, os.TempDir())
+		os.Exit(0)
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(t.TempDir(), "environments", "speech", "0.1.0-qwen3-asr")
+	env := managedPythonRuntimeEnv(root)
+	env[helperEnv] = "1"
+	output, err := runCommandOutput(
+		context.Background(),
+		"",
+		env,
+		executable,
+		"-test.run=^TestRunCommandOutputUsesRuntimeOwnedManagedTemp$",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Clean(managedCommandEnvironmentValue(env["TEMP"]))
+	if filepath.Clean(output) != want {
+		t.Fatalf("child temp root = %q, want %q", output, want)
 	}
 }

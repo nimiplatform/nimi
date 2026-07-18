@@ -13,3 +13,7 @@ permissions:
     - scope: data.scope.read
       qualifier: runtime.artifacts
       purpose: Read Runtime-owned bootstrap artifacts through the typed app-host surface.
+local_development:
+  electron:
+    renderer_origin: http://127.0.0.1:1468
+    execution_profile_ref: opaque:windows-native-electron-development-v1

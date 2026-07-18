@@ -27,8 +27,6 @@ func checkpointProductControlDataRootProposal(profileRoot string, acceptance *co
 		"AppData",
 		"Local",
 		"Nimi",
-		"dev-kernel-checkpoint",
-		"acceptance-runs",
 		acceptance.TrialID,
 		acceptance.RuntimeCandidateID,
 		"Nimi",

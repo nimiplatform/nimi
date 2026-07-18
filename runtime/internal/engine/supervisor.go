@@ -239,7 +239,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 			cancel()
 			return fmt.Errorf("binary path required for engine %s", s.cfg.Kind)
 		}
-		cmd = exec.Command(s.cfg.BinaryPath, s.cfg.CommandArgs...)
+		cmd = exec.Command(supervisorCommandExecutablePath(s.cfg), s.cfg.CommandArgs...)
 	}
 	if strings.TrimSpace(s.cfg.WorkingDir) != "" {
 		cmd.Dir = s.cfg.WorkingDir
@@ -388,6 +388,18 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	go s.monitor(runCtx, epoch)
 
 	return nil
+}
+
+func supervisorCommandExecutablePath(cfg EngineConfig) string {
+	switch cfg.Kind {
+	case EngineMedia, EngineSpeech:
+		// Keep BinaryPath canonical for status and process-identity projections.
+		// Only the Windows process launch adapter consumes the shorter alias so
+		// CPython derives a legacy-safe sys.prefix for deeply nested packages.
+		return managedCommandPreferredPath(cfg.BinaryPath)
+	default:
+		return cfg.BinaryPath
+	}
 }
 
 func mergeSupervisorCommandEnv(base []string, overrides map[string]string) []string {

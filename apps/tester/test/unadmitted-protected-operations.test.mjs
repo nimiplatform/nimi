@@ -24,6 +24,19 @@ test('Tester consumes only the final typed local-app operation set', () => {
   assert.doesNotMatch(platform, /localhost|127\.0\.0\.1|access[_-]?token|refresh[_-]?token|launch[_-]?ticket|session[_-]?token/i);
 });
 
+test('Tester exposes an exact fail-closed permission regression surface', () => {
+  const permissionLab = read('src/tester/local-app-permission-lab.tsx');
+
+  assert.match(permissionLab, /'app_storage\.json\.write'/);
+  assert.match(permissionLab, /'local-development\/launch-permission-proof\.json'/);
+  assert.match(permissionLab, /testerLocalAppRuntimePlatform\.permissions\.posture/);
+  assert.match(permissionLab, /testerLocalAppRuntimePlatform\.permissions\.request/);
+  assert.match(permissionLab, /testerLocalAppRuntimePlatform\.storage\.writeJson/);
+  assert.match(permissionLab, /reasonCode/);
+  assert.match(permissionLab, /actionHint/);
+  assert.doesNotMatch(permissionLab, /localhost|127\.0\.0\.1|access[_-]?token|refresh[_-]?token|launch[_-]?ticket|session[_-]?token|new Runtime|createNimiClient/i);
+});
+
 test('Tester default Realm, model catalog, and local asset paths fail closed', () => {
   const settingsRoute = read('src/shell/routes/settings-route.tsx');
   const modelProvider = read('src/tester/tester-runtime-model-provider.ts');

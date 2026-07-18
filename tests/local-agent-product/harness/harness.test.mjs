@@ -21,7 +21,13 @@ import { startProcess } from './cross-app-driver.mjs';
 import {
   decodeDesktopRuntimeUnaryResponse,
   probeRealRealmBrowserLoginAuthority,
+  setWindowBounds,
 } from './dev-kernel-cross-app-driver.mjs';
+import { waitForCdpEndpointRelease } from './dev-kernel-host-driver.mjs';
+import {
+  classifyRememberedInitialGrantPosture,
+  selectRememberedProjectAuthorizations,
+} from './dev-kernel-local-development-driver.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { readLocalAgentTestArchitecture } from './registry.mjs';
 import { validateArchitecture, validateJourneyRepeatIsolation, validateJourneyResult } from './validation.mjs';
@@ -85,6 +91,47 @@ test('Runtime unary decoder accepts a canonical empty protobuf but rejects a mis
   );
 });
 
+test('window resize falls back to an exact emulated viewport when Electron enforces its native minimum', async () => {
+  let emulatedViewport = null;
+  const connection = {
+    context: {
+      async newCDPSession() {
+        return {
+          async send(method) {
+            return method === 'Browser.getWindowForTarget' ? { windowId: 7 } : {};
+          },
+        };
+      },
+    },
+    page: {
+      async evaluate() {
+        return emulatedViewport ?? {
+          innerWidth: 1100,
+          innerHeight: 760,
+          clientWidth: 1090,
+          clientHeight: 760,
+        };
+      },
+      async setViewportSize(next) {
+        emulatedViewport = {
+          innerWidth: next.width,
+          innerHeight: next.height,
+          clientWidth: next.width - 10,
+          clientHeight: next.height,
+        };
+      },
+    },
+  };
+
+  assert.equal(await setWindowBounds(connection, 390, 780), 'cdp-viewport-fallback');
+  assert.deepEqual(emulatedViewport, {
+    innerWidth: 390,
+    innerHeight: 780,
+    clientWidth: 380,
+    clientHeight: 780,
+  });
+});
+
 test('dev-kernel Electron journeys isolate real Chrome auth inside the trial root', () => {
   for (const source of [devKernelCrossAppDriverSource, firstRunConnectivitySource]) {
     assert.match(source, /NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: browserCaptureFile/u);
@@ -131,6 +178,28 @@ test('real Realm login preflight requires a web login continuation and rejects a
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
+});
+
+test('CDP endpoint release waits for the prior supervised host to stop serving', async () => {
+  const server = http.createServer((_request, response) => {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{"Browser":"old-host"}');
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  let released = false;
+  const release = waitForCdpEndpointRelease(address.port, 'test host', 2_000).then(() => {
+    released = true;
+  });
+  await new Promise((resolve) => setTimeout(resolve, 75));
+  assert.equal(released, false);
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  await release;
+  assert.equal(released, true);
 });
 
 test('process capture persists full logs while bounding in-memory diagnostics', async () => {
@@ -338,6 +407,42 @@ test('process-mismatch checkpoint distinguishes stale supervised and raw uncarri
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'protected-carrier-required' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'no-grant' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch(null), false);
+});
+
+test('remembered initial grant posture preserves exact revoked history without admitting other terminal states', () => {
+  assert.equal(classifyRememberedInitialGrantPosture({ state: 'session-bound-zero-grant' }), 'session-zero-grant');
+  assert.equal(classifyRememberedInitialGrantPosture({
+    state: 'access-lost',
+    lastError: { reasonCode: 'grant-revoked' },
+  }), 'revoked-grant-history');
+  for (const evidence of [
+    { state: 'error', lastError: { reasonCode: 'grant-revoked' } },
+    { state: 'access-lost', lastError: { reasonCode: 'revoked' } },
+    { state: 'access-lost', lastError: { reasonCode: 'grant-superseded' } },
+    { state: 'access-lost', lastError: { reasonCode: 'account-changed' } },
+    { state: 'runtime-unavailable', lastError: { reasonCode: 'runtime-service-unavailable' } },
+  ]) {
+    assert.equal(classifyRememberedInitialGrantPosture(evidence), null);
+  }
+});
+
+test('remembered authorization selection uses the public Electron decision literal', () => {
+  const target = {
+    selector: 'remembered-new',
+    appId: 'nimi.zhiyu',
+    accountId: 'account-primary',
+    persistence: 'allow-remember-project',
+    state: 'active',
+    updatedAtUnixMs: 200,
+  };
+  const selected = selectRememberedProjectAuthorizations([
+    { ...target, selector: 'remembered-old', updatedAtUnixMs: 100 },
+    target,
+    { ...target, selector: 'semantic-name-is-not-the-projection', persistence: 'remember_project' },
+    { ...target, selector: 'run-once', persistence: 'allow-run-once' },
+    { ...target, selector: 'wrong-account', accountId: 'account-secondary' },
+  ], { accountId: 'account-primary', state: 'active' });
+  assert.deepEqual(selected.map((row) => row.selector), ['remembered-new', 'remembered-old']);
 });
 
 test('project revoke checkpoint requires an attempted selected operation and typed denial', () => {

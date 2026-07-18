@@ -117,6 +117,7 @@ test('manifest remains submitted input', () => {
   assert.match(manifest, /scope: file\.read\.scoped/);
   assert.match(manifest, /scope: file\.write\.scoped/);
   assert.match(manifest, /scope: data\.scope\.read\s+qualifier: runtime\.artifacts/);
+  assert.match(manifest, /local_development:\s+electron:\s+renderer_origin: http:\/\/127\.0\.0\.1:1468\s+execution_profile_ref: opaque:windows-native-electron-development-v1/);
   assert.doesNotMatch(manifest, /scope: app\.local\.drafts/);
 });
 
