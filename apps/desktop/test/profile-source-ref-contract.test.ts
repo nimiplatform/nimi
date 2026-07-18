@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { parsePersonaSources } from '../src/shell/renderer/features/explore/explore-persona-source-projection.js';
-import { resolveRealmCoreSourceRef } from '../src/shell/renderer/features/explore/realm-persona-source-materialization.js';
+import { resolveCharacterSourceRefV3 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
 import { buildRelationshipProfileSeed } from '../src/shell/renderer/features/chat/chat-relationship-hover-card.js';
 import { toProfileData } from '../src/shell/renderer/features/profile/profile-model.js';
 import { toFriendContact } from '../src/shell/renderer/features/relationship/relationship-model.js';
@@ -12,10 +12,11 @@ import { toFriendContact } from '../src/shell/renderer/features/relationship/rel
 const repoRoot = join(import.meta.dirname, '../../..');
 
 const sourceRef = {
-  kind: 'realmPersona' as const,
+  kind: 'personaCharacter' as const,
+  id: 'persona-a',
   worldId: 'world-a',
-  sourceId: 'persona-a',
-  sourceContentHash: 'hash-a',
+  ownerAccountId: 'account-a',
+  sourceHash: 'a'.repeat(64),
 };
 
 function readRepo(relativePath: string): string {
@@ -23,22 +24,18 @@ function readRepo(relativePath: string): string {
 }
 
 test('shared Realm source materialization rejects nested sourceRef that does not match display identity', () => {
-  assert.deepEqual(resolveRealmCoreSourceRef({
+  assert.deepEqual(resolveCharacterSourceRefV3({
     id: 'persona-a',
-    sourceKind: 'realmPersona',
-    sourceWorldId: 'world-a',
-    sourceContentHash: 'hash-a',
+    sourceKind: 'personaCharacter',
     sourceRef,
   }), sourceRef);
 
-  assert.equal(resolveRealmCoreSourceRef({
+  assert.equal(resolveCharacterSourceRefV3({
     id: 'persona-a',
-    sourceKind: 'realmPersona',
-    sourceWorldId: 'world-a',
-    sourceContentHash: 'hash-a',
+    sourceKind: 'personaCharacter',
     sourceRef: {
       ...sourceRef,
-      sourceId: 'persona-b',
+      id: 'persona-b',
     },
   }), null);
 });
@@ -49,14 +46,13 @@ test('explore, relationship, and profile projections fail closed on display/sour
     displayName: 'Persona A',
     handle: '~persona-a',
     isSource: true,
-    sourceKind: 'realmPersona',
+    sourceKind: 'personaCharacter',
     sourceId: 'persona-a',
     sourceWorldId: 'world-a',
     worldId: 'world-a',
-    sourceContentHash: 'hash-a',
     sourceRef: {
       ...sourceRef,
-      sourceId: 'persona-b',
+      id: 'persona-b',
     },
   };
 
@@ -74,12 +70,12 @@ test('profile data preserves WorldEntityCore projection for world character sour
     sourceKind: 'worldCharacter',
     sourceId: 'character-a',
     sourceWorldId: 'world-a',
-    sourceContentHash: 'character-hash-a',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'character-a',
       worldId: 'world-a',
-      sourceId: 'character-a',
-      sourceContentHash: 'character-hash-a',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-a', entityId: 'entity-a' },
+      sourceHash: 'b'.repeat(64),
     },
     entityId: 'entity-a',
     entityContentHash: 'entity-hash-a',
@@ -109,41 +105,41 @@ test('profile data preserves WorldEntityCore projection for world character sour
 
 test('chat relationship profile seed requires hash-bearing sourceRef for agent targets', () => {
   assert.equal(buildRelationshipProfileSeed({
-    id: 'local-agent:user-a:runtime-source:realmPersona:world-a:persona-a:hash-a',
+    id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
     source: 'agent',
     canonicalSessionId: 'conversation-a',
     title: 'Persona A',
     handle: '~persona-a',
     metadata: {
-      runtimeSourceRef: 'runtime-source:realmPersona:world-a:persona-a:hash-a',
+      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
     },
   }), null);
 
   const target = buildRelationshipProfileSeed({
-    id: 'local-agent:user-a:runtime-source:realmPersona:world-a:persona-a:hash-a',
+    id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
     source: 'agent',
     canonicalSessionId: 'conversation-a',
     title: 'Persona A',
     handle: '~persona-a',
     avatarUrl: '/avatar.png',
     metadata: {
-      runtimeSourceRef: 'runtime-source:realmPersona:world-a:persona-a:hash-a',
+      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
       sourceRef,
     },
   });
 
   assert.equal(target?.profileId, 'persona-a');
   assert.deepEqual(target?.seed.sourceRef, sourceRef);
-  assert.equal(target?.seed.runtimeSourceRef, 'runtime-source:realmPersona:world-a:persona-a:hash-a');
+  assert.equal(target?.seed.runtimeSourceRef, 'runtime-source:personaCharacter:world-a:persona-a');
 });
 
 test('profile detail modal source branch loads by hash-bearing sourceRef instead of bare id', () => {
   const modalSource = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
   const profileDetailViewSource = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-view-content.tsx');
 
-  assert.match(modalSource, /realmSourceRefKey/);
+  assert.match(modalSource, /characterSourceRefKey/);
   assert.match(modalSource, /loadRealmSourceDetailsBySourceRef\(sourceRef/);
-  assert.match(modalSource, /sourceRef \? realmSourceRefKey\(sourceRef\) : 'missing-source-ref'/);
+  assert.match(modalSource, /sourceRef \? characterSourceRefKey\(sourceRef\) : 'missing-source-ref'/);
   assert.doesNotMatch(modalSource, /loadRealmSourceDetailsForDisplay\(props\.profileId\)/);
   assert.match(profileDetailViewSource, /profile\.entity/);
   assert.match(profileDetailViewSource, /profile\.entity\.facts/);

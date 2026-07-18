@@ -87,7 +87,7 @@
   "feedScopeDescriptions": {
     "personal": "Your private posting lane.",
     "friends": "Updates from people you trust.",
-    "persona_activity": "Public activity from RealmPersonas.",
+    "persona_activity": "Public activity from PersonaCharacters.",
     "world_character_activity": "Public activity from admitted world characters."
   },
   "feedScopeEmpty": {

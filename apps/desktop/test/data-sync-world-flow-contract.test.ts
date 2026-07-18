@@ -103,9 +103,10 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
     worldName: 'Song Continuum',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'character-1',
       worldId: 'world-1',
-      sourceId: 'character-1',
-      sourceContentHash: 'character-hash-1',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-character-1' },
+      sourceHash: 'a'.repeat(64),
     },
     displayName: 'Song Steward',
     handle: null,
@@ -128,13 +129,14 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
 function worldPersonaPayload(overrides: Record<string, unknown> = {}) {
   return worldCharacterPayload({
     id: 'persona-1',
-    sourceKind: 'realmPersona',
+    sourceKind: 'personaCharacter',
     ownership: 'userOwned',
     sourceRef: {
-      kind: 'realmPersona',
+      kind: 'personaCharacter',
+      id: 'persona-1',
       worldId: 'world-1',
-      sourceId: 'persona-1',
-      sourceContentHash: 'persona-hash-1',
+      ownerAccountId: 'account-1',
+      sourceHash: 'b'.repeat(64),
     },
     displayName: 'Mira Vale',
     handle: 'mira',
@@ -261,14 +263,15 @@ test('loadWorldCharacters projects public source cards', async () => {
   assert.equal(result[0]?.sourceKind, 'worldCharacter');
   assert.deepEqual(result[0]?.sourceRef, {
     kind: 'worldCharacter',
+    id: 'character-1',
     worldId: 'world-1',
-    sourceId: 'character-1',
-    sourceContentHash: 'character-hash-1',
+    worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-character-1' },
+    sourceHash: 'a'.repeat(64),
   });
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldCharacters fails close when public sourceRef is missing sourceContentHash', async () => {
+test('loadWorldCharacters fails close when public sourceRef is missing sourceHash', async () => {
   const errors: RealmWorldDataError[] = [];
 
   await assertRejectsWithReasonCode(
@@ -277,8 +280,9 @@ test('loadWorldCharacters fails close when public sourceRef is missing sourceCon
         worldCharacterPayload({
           sourceRef: {
             kind: 'worldCharacter',
+            id: 'character-1',
             worldId: 'world-1',
-            sourceId: 'character-1',
+            worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-character-1' },
           },
         }),
       ]),
@@ -301,9 +305,10 @@ test('loadWorldCharacters fails close when public sourceRef points at a differen
         worldCharacterPayload({
           sourceRef: {
             kind: 'worldCharacter',
+            id: 'character-2',
             worldId: 'world-1',
-            sourceId: 'character-2',
-            sourceContentHash: 'character-hash-1',
+            worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-character-2' },
+            sourceHash: 'a'.repeat(64),
           },
         }),
       ]),

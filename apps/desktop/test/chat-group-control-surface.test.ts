@@ -30,9 +30,10 @@ test('group source slot controls require Realm admin projection at visibility an
   assert.match(participantPanelSource, /const canManageSourceSlots = Boolean\(/);
   assert.match(participantPanelSource, /humans\.some\(\(p\) => p\.accountId === currentUserId && p\.role === 'admin'\)/);
   assert.match(participantPanelSource, /const showAddSourcePicker = addSourceOpen && canManageSourceSlots;/);
-  assert.match(participantPanelSource, /listAgents/);
-  assert.match(participantPanelSource, /fromNimiRuntimeProtoStruct/);
-  assert.match(participantPanelSource, /sourceMaterialization/);
+  assert.match(participantPanelSource, /fetchLocalAgentList/);
+  assert.match(participantPanelSource, /readCharacterSourceRefV3/);
+  assert.match(participantPanelSource, /LocalAgentListItem/);
+  assert.doesNotMatch(participantPanelSource, /sourceMaterialization/);
   assert.match(participantPanelSource, /runtimeSources\.filter/);
   assert.doesNotMatch(participantPanelSource, /\(\[\] as SourceFromSnapshot\[\]\)/);
   assert.match(participantPanelSource, /if \(addSourceOpen && !canManageSourceSlots\) \{\s*setAddSourceOpen\(false\);/s);
@@ -61,7 +62,7 @@ test('group adapter feeds committed runtime source slots into split candidate ha
   assert.match(groupAdapterSource, /<ChatGroupComposer[\s\S]*sourceParticipants=\{participants\}/);
   assert.match(groupAdapterSource, /realmGroupChatData\.sendGroupMessage\(chatId, content\)/);
   assert.match(groupAdapterSource, /resolveInvokableGroupSourceMention/);
-  assert.match(groupAdapterSource, /normalizeText\(participant\.sourceOwnerId\) === userId/);
+  assert.match(groupAdapterSource, /normalizeText\(participant\.sourceAuthorityAccountId\) === userId/);
   assert.match(groupAdapterSource, /realmGroupChatData\.commitRealmGroupSourceMessageCandidate/);
   assert.doesNotMatch(groupAdapterSource, /sendGroupSourceMessage|sendGroupSourceChatMessage/);
   assert.doesNotMatch(groupAdapterSource, /candidate output|runtime\.orchestration|GROUP_LIMITED/);

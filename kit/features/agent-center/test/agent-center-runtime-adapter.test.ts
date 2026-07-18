@@ -84,11 +84,11 @@ describe('Agent Center Runtime adapter', () => {
       async loadSourceContextStatus(identity) {
         calls.push(`source.${identity.localAgentRef}`);
         return {
-          schemaVersion: 'v1',
+          schemaVersion: 'v2',
           ready: false,
           state: 'not_materialized',
           reasonCode: 'source_not_materialized',
-          localAgentRef: identity.localAgentRef,
+          localAgentRef: String(identity.localAgentRef),
           sourceRef: null,
           sourceSchemaVersion: null,
           snapshotSchemaVersion: null,

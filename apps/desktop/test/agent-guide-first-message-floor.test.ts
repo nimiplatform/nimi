@@ -18,7 +18,7 @@ import { createEmptyAgentThreadBundle } from '../src/shell/renderer/features/cha
 // Product first-message floor for the source-core `greeting`; W3 must render it
 // byte-identical without turning it into a persisted assistant transcript row.
 const MANUAL_ARCHIVIST_FLOOR =
-  'Welcome to Nimi. I am Archivist, your guide to this world. I can help you set up Runtime, understand profiles, find Worlds and RealmPersonas, and bring a persona into a Runtime-backed partner conversation. What would you like to do first?';
+  'Welcome to Nimi. I am Archivist, your guide to this world. I can help you set up Runtime, understand profiles, find Worlds and PersonaCharacters, and bring a persona into a Runtime-backed partner conversation. What would you like to do first?';
 
 function sampleThread(id: string): AgentLocalThreadRecord {
   return {

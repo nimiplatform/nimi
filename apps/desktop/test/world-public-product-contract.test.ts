@@ -113,9 +113,10 @@ function publicSource(overrides: PublicSource = {}) {
     ownership: 'worldOwned',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: 'source-hash-1',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-source-1' },
+      sourceHash: 'a'.repeat(64),
     },
     displayName: 'Archivist Liora',
     handle: 'liora',
@@ -284,13 +285,14 @@ test('World detail consumes public source sections for characters and personas',
   const errors: RealmWorldDataError[] = [];
   const persona = publicSource({
     id: 'persona-1',
-    sourceKind: 'realmPersona',
+    sourceKind: 'personaCharacter',
     ownership: 'userOwned',
     sourceRef: {
-      kind: 'realmPersona',
+      kind: 'personaCharacter',
+      id: 'persona-1',
       worldId: 'world-1',
-      sourceId: 'persona-1',
-      sourceContentHash: 'persona-hash-1',
+      ownerAccountId: 'account-1',
+      sourceHash: 'b'.repeat(64),
     },
     displayName: 'Mira Vale',
     handle: 'mira',
@@ -318,14 +320,15 @@ test('World detail consumes public source sections for characters and personas',
   assert.equal(result?.personaCount, 1);
   assert.equal(result?.characters.length, 2);
   assert.equal(result?.characters[0]?.sourceKind, 'worldCharacter');
-  assert.equal(result?.characters[1]?.sourceKind, 'realmPersona');
+  assert.equal(result?.characters[1]?.sourceKind, 'personaCharacter');
   assert.equal(result?.characters[1]?.avatarUrl, 'https://cdn.example.com/mira-avatar.png');
   assert.equal(result?.characters[1]?.profileCoverUrl, 'https://cdn.example.com/mira-cover.png');
   assert.deepEqual(result?.characters[1]?.sourceRef, {
-    kind: 'realmPersona',
+    kind: 'personaCharacter',
+    id: 'persona-1',
     worldId: 'world-1',
-    sourceId: 'persona-1',
-    sourceContentHash: 'persona-hash-1',
+    ownerAccountId: 'account-1',
+    sourceHash: 'b'.repeat(64),
   });
   assert.equal(errors.length, 0);
 });
@@ -334,13 +337,14 @@ test('World detail projects public source sections into atlas recommended people
   const errors: RealmWorldDataError[] = [];
   const persona = publicSource({
     id: 'persona-1',
-    sourceKind: 'realmPersona',
+    sourceKind: 'personaCharacter',
     ownership: 'userOwned',
     sourceRef: {
-      kind: 'realmPersona',
+      kind: 'personaCharacter',
+      id: 'persona-1',
       worldId: 'world-1',
-      sourceId: 'persona-1',
-      sourceContentHash: 'persona-hash-1',
+      ownerAccountId: 'account-1',
+      sourceHash: 'b'.repeat(64),
     },
     displayName: 'Mira Vale',
     handle: 'mira',

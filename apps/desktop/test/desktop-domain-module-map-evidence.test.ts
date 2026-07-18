@@ -51,7 +51,7 @@ const runtimePageSource = readRepo('apps/desktop/src/shell/renderer/features/run
 const settingsPagesSource = readRepo('apps/desktop/src/shell/renderer/features/settings/settings-pages.tsx');
 
 test('Source Detail module map resolves to live Realm source feature-data evidence', () => {
-  assert.match(realmSourceDetailDataSource, /export async function loadRealmSourceDetailsForDisplay/);
+  assert.match(realmSourceDetailDataSource, /async function loadRealmSourceDetailsBySourceRef/);
   assertRepoFile('apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts');
   assert.equal(
     fs.existsSync(path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/world/data/runtime-source-create-data.ts')),
@@ -81,13 +81,13 @@ test('Source Detail materializes Realm source through sourceRef packet admission
   assert.match(panelSource, /setSelectedTargetForSource/);
   assert.match(panelSource, /setChatMode/);
   assert.match(panelSource, /setActiveTab/);
-  assert.match(panelSource, /realmPersonaSourceMaterializationMessage/);
-  assert.doesNotMatch(panelSource, /realmPersonaSourceHandoffMessage/);
+  assert.match(panelSource, /characterSourceMaterializationMessage/);
+  assert.doesNotMatch(panelSource, /characterSourceHandoffMessage/);
   assert.doesNotMatch(panelSource, new RegExp(`connect${['Realm', 'Persona', 'Source'].join('')}`));
-  assert.doesNotMatch(panelSource, /realmPersonaSourceAdmissionQueryKey/);
+  assert.doesNotMatch(panelSource, /characterSourceAdmissionQueryKey/);
 
   assert.doesNotMatch(viewSource, /onOpenChat/);
-  assert.match(viewSource, /describeRealmPersonaPrimaryAction/);
+  assert.match(viewSource, /describeCharacterPrimaryAction/);
   assert.doesNotMatch(viewSource, legacyLaunchPattern);
 });
 

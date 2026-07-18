@@ -19,7 +19,14 @@ export const liBaiRaw = {
   worldId: 'cbdb-tang-literati-world',
   sourceKind: 'worldCharacter',
   sourceId: 'cbdb-person-32540',
-  sourceContentHash: 'hash-li-bai',
+  sourceHash: 'a'.repeat(64),
+  sourceRef: {
+    kind: 'worldCharacter',
+    id: 'cbdb-person-32540',
+    worldId: 'cbdb-tang-literati-world',
+    worldEntityRef: { kind: 'worldEntity', worldId: 'cbdb-tang-literati-world', entityId: 'cbdb-person-32540' },
+    sourceHash: 'a'.repeat(64),
+  },
   source: {
     state: 'source_materialization_available',
     authoring: {
@@ -57,7 +64,14 @@ export const ouYangDeRaw = {
   worldId: 'cbdb-ming-lettered-networks-world',
   sourceKind: 'worldCharacter',
   sourceId: 'cbdb-world-character-cbdb-ming-lettered-networks-world-cbdb-person-99984',
-  sourceContentHash: 'hash-ou-yang-de',
+  sourceHash: 'b'.repeat(64),
+  sourceRef: {
+    kind: 'worldCharacter',
+    id: 'cbdb-world-character-cbdb-ming-lettered-networks-world-cbdb-person-99984',
+    worldId: 'cbdb-ming-lettered-networks-world',
+    worldEntityRef: { kind: 'worldEntity', worldId: 'cbdb-ming-lettered-networks-world', entityId: 'cbdb-person-99984' },
+    sourceHash: 'b'.repeat(64),
+  },
   entity: {
     id: 'cbdb-person-99984',
     kind: 'person',

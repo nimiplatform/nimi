@@ -31,11 +31,11 @@ export function sourceCount(characters: readonly WorldCharacter[]): number {
 }
 
 export function personaCount(characters: readonly WorldCharacter[]): number {
-  return characters.filter((character) => character.ownership === 'userOwned' || character.sourceKind === 'realmPersona').length;
+  return characters.filter((character) => character.ownership === 'userOwned' || character.sourceKind === 'personaCharacter').length;
 }
 
 export function worldCharacterCount(characters: readonly WorldCharacter[]): number {
-  return characters.filter((character) => character.ownership !== 'userOwned' && character.sourceKind !== 'realmPersona').length;
+  return characters.filter((character) => character.ownership !== 'userOwned' && character.sourceKind !== 'personaCharacter').length;
 }
 
 export function displayTags(world: WorldDetailData): string[] {

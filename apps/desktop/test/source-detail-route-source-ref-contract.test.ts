@@ -15,16 +15,16 @@ test('source detail route state carries typed sourceRef instead of bare profile 
   const sourcePanel = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-panel.tsx');
   const sourceQueries = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-queries.ts');
 
-  assert.match(storeTypes, /selectedSourceRef:\s*NimiRealmCoreSourceRef \| null/);
-  assert.match(storeTypes, /navigateToSourceDetail:\s*\(sourceRef:\s*NimiRealmCoreSourceRef\) => void/);
+  assert.match(storeTypes, /selectedSourceRef:\s*CharacterSourceRefV3 \| null/);
+  assert.match(storeTypes, /navigateToSourceDetail:\s*\(sourceRef:\s*CharacterSourceRefV3\) => void/);
   assert.match(uiSlice, /selectedSourceRef:\s*null/);
   assert.match(uiSlice, /navigateToSourceDetail:\s*\(sourceRef\) =>/);
   assert.match(sourcePanel, /const selectedSourceRef = useAppStore\(\(state\) => state\.selectedSourceRef\);/);
-  assert.match(sourcePanel, /fetchSourceDisplayDetail\(selectedSourceRef \?\? sourceIdentifier\)/);
-  assert.match(sourcePanel, /sourceDisplayDetailQueryKey\(sourceSelection\)/);
+  assert.match(sourcePanel, /fetchSourceDisplayDetail\(selectedSourceRef\)/);
+  assert.match(sourcePanel, /sourceDisplayDetailQueryKey\(selectedSourceRef\)/);
   assert.match(sourcePanel, /materializeSourceContactLaunchTarget\(source, ownerUserId\)/);
   assert.match(sourcePanel, /ensureRuntimeAgentExists\(target\)/);
-  assert.doesNotMatch(sourcePanel, /invalidateQueries\(\{ queryKey: sourceDisplayDetailQueryKey\(sourceSelection\) \}\)/);
+  assert.doesNotMatch(sourcePanel, /invalidateQueries\(\{ queryKey: sourceDisplayDetailQueryKey\(selectedSourceRef\) \}\)/);
   assert.match(sourceQueries, /loadRealmSourceDetailsBySourceRef\(normalizedSourceRef/);
   assert.doesNotMatch(sourcePanel, /fetchSourceDisplayDetail\(sourceIdentifier\)/);
   assert.doesNotMatch(sourcePanel, /sourceDisplayDetailQueryKey\(sourceIdentifier\)/);

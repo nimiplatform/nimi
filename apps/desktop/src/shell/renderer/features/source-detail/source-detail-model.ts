@@ -1,6 +1,9 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { RealmPersonaSourceState } from '@renderer/features/explore/realm-persona-source-materialization';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceState } from '@renderer/features/explore/character-source-materialization';
+import {
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 import {
   readExternalAssetUri,
   readOptionalString,
@@ -44,18 +47,18 @@ export type SourceDetailData = {
   visibility: string | null;
   ownershipType: string | null;
   worldId: string | null;
-  sourceKind: NimiRealmCoreSourceRef['kind'] | null;
+  sourceKind: CharacterSourceRefV3['kind'] | null;
   sourceId: string | null;
-  sourceContentHash: string | null;
+  sourceHash: string | null;
   runtimeSourceRef: string | null;
-  sourceRef: NimiRealmCoreSourceRef | null;
+  sourceRef: CharacterSourceRefV3 | null;
   entity: SourceDetailEntity | null;
   worldCharacter: SourceDetailWorldCharacter | null;
   relationshipClues: SourceDetailRelationshipClue[];
   works: SourceDetailWorkCollection[];
   worksAvailability: 'available' | 'unavailable';
   isFriend: boolean;
-  sourceState: RealmPersonaSourceState;
+  sourceState: CharacterSourceState;
   worldBannerUrl: string | null;
 };
 
@@ -317,37 +320,16 @@ function simplifyWorldCharacterSourceDetailData(detail: SourceDetailData): Sourc
 
 export function toSourceDetailData(
   raw: JsonObject,
-  sourceState: RealmPersonaSourceState,
+  sourceState: CharacterSourceState,
 ): SourceDetailData {
   const sourceRecord = parseOptionalJsonObject(raw.source);
   const world = parseOptionalJsonObject(raw.world);
   const personaStyle = parseOptionalJsonObject(sourceRecord?.personaStyle);
-  const sourceKindRaw = String(raw.sourceKind || '').trim();
-  const sourceKind: NimiRealmCoreSourceRef['kind'] | null = sourceKindRaw === 'worldCharacter' || sourceKindRaw === 'realmPersona'
-    ? sourceKindRaw
-    : null;
-  const worldId = (
-    (sourceRecord && typeof sourceRecord.worldId === 'string' ? sourceRecord.worldId : null)
-    || (typeof raw.homeWorldId === 'string' ? raw.homeWorldId : null)
-    || (typeof raw.worldId === 'string' ? raw.worldId : null)
-  );
-  const sourceId = typeof raw.sourceId === 'string' && raw.sourceId.trim()
-    ? raw.sourceId.trim()
-    : String(raw.id || '').trim() || null;
-  const sourceContentHash = (
-    (typeof raw.sourceContentHash === 'string' ? raw.sourceContentHash.trim() : '')
-    || (typeof raw.contentHash === 'string' ? raw.contentHash.trim() : '')
-    || readOptionalString(sourceRecord, 'sourceContentHash')
-    || readOptionalString(sourceRecord, 'contentHash')
-  );
-  const sourceRef: NimiRealmCoreSourceRef | null = sourceKind && worldId && sourceId && sourceContentHash
-    ? {
-        kind: sourceKind,
-        worldId,
-        sourceId,
-        sourceContentHash,
-      }
-    : null;
+  const sourceRef = readCharacterSourceRefV3(raw.sourceRef);
+  const sourceKind = sourceRef?.kind ?? null;
+  const worldId = sourceRef?.worldId ?? null;
+  const sourceId = sourceRef?.id ?? null;
+  const sourceHash = sourceRef?.sourceHash ?? '';
   const displayName = typeof raw.displayName === 'string' ? raw.displayName.trim() : '';
   if (!displayName) {
     throw new Error('Source detail projection requires displayName from Realm Core');
@@ -408,7 +390,7 @@ export function toSourceDetailData(
     worldId,
     sourceKind,
     sourceId,
-    sourceContentHash,
+    sourceHash,
     runtimeSourceRef: (
       (typeof raw.runtimeSourceRef === 'string' ? raw.runtimeSourceRef.trim() : '')
       || null

@@ -29,26 +29,25 @@ test('CBDB legacy friend local chat path is removed from active Desktop sources'
   assert.doesNotMatch(threadModel, new RegExp(['parse', 'Agent', 'Friend', 'Target'].join('')));
 });
 
-test('CBDB RealmPersona source materialization uses the SDK terminal materialization surface', () => {
-  const materialization = readDesktopSource('features/explore/realm-persona-source-materialization.ts');
+test('CBDB character source materialization uses the SDK terminal materialization surface', () => {
+  const materialization = readDesktopSource('features/explore/character-source-materialization.ts');
   const sourceIdentity = readDesktopSource('features/realm-source/realm-source-identity.ts');
   const materializationSurface = `${materialization}\n${sourceIdentity}`;
-  assert.match(materialization, /createNimiHostRuntimeAgentMaterializationSurface/);
+  assert.match(materialization, /getDesktopRuntime\(\)\.materializeRealmSource/);
   assert.match(materialization, /materializeRealmSource/);
   assert.doesNotMatch(materialization, /intendedRuntimeAudience/);
   assert.doesNotMatch(materialization, /connectNimiRealmSource/);
   assert.doesNotMatch(materialization, new RegExp(['list', 'Nimi', 'Realm', 'Source', 'Connections'].join('')));
-  assert.match(materialization, /resolveRealmCoreSourceRef/);
-  assert.match(materializationSurface, /sourceContentHash/);
+  assert.match(materialization, /resolveCharacterSourceRefV3/);
+  assert.match(materializationSurface, /sourceHash/);
   assert.doesNotMatch(materializationSurface, /source_core_handoff_required/);
   assert.doesNotMatch(materializationSurface, new RegExp(['Agent', 'Friend'].join('')));
 });
 
-test('CBDB RealmPersona source materialization maps runtime failures before showing UI feedback', () => {
-  const materialization = readDesktopSource('features/explore/realm-persona-source-materialization.ts');
-  assert.match(materialization, /realmPersonaSourceMaterializationFailureMessage/);
-  assert.match(materialization, /realmPersonaSourceMaterializationVerifierUnavailableMessage/);
-  assert.match(materialization, /realmPersonaSourceMaterializationRejectedMessage/);
+test('CBDB character source materialization maps runtime failures before showing UI feedback', () => {
+  const materialization = readDesktopSource('features/explore/character-source-materialization.ts');
+  assert.match(materialization, /characterSourceMaterializationFailureMessage/);
+  assert.match(materialization, /characterSourceMaterializationRejectedMessage/);
 
   const uiSources = [
     'features/explore/explore-panel.tsx',
@@ -58,11 +57,11 @@ test('CBDB RealmPersona source materialization maps runtime failures before show
     'features/world/world-detail.tsx',
   ].map((path) => readDesktopSource(path));
   for (const source of uiSources) {
-    assert.match(source, /realmPersonaSourceMaterializationFailureMessage/);
+    assert.match(source, /characterSourceMaterializationFailureMessage/);
   }
   assert.doesNotMatch(
     uiSources.join('\n'),
-    /message:\s*error instanceof Error \? error\.message : realmPersonaSourceMaterializationMessage\(\)/,
+    /message:\s*error instanceof Error \? error\.message : characterSourceMaterializationMessage\(\)/,
   );
 });
 

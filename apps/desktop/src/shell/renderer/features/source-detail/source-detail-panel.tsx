@@ -3,12 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
-  discoverRealmSourceLocalAgents,
-  realmPersonaSourceMaterializationFailureMessage,
-  realmPersonaSourceMaterializationMessage,
-  resolveRealmPersonaSourceState,
-  type RealmSourceDiscoveredLocalAgent,
-} from '@renderer/features/explore/realm-persona-source-materialization';
+  characterSourceMaterializationFailureMessage,
+  characterSourceMaterializationMessage,
+  characterSourceRefKey,
+  discoverCharacterSourceLocalAgents,
+  resolveCharacterSourceState,
+  type CharacterSourceDiscoveredLocalAgent,
+} from '@renderer/features/explore/character-source-materialization';
 import {
   materializeSourceContactLaunchTarget,
   toSourceContactLaunchTarget,
@@ -31,7 +32,6 @@ export function SourceDetailPanel() {
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const selectedSourceRef = useAppStore((state) => state.selectedSourceRef);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
@@ -43,13 +43,12 @@ export function SourceDetailPanel() {
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
-  const sourceIdentifier = String(selectedProfileId || '').trim();
-  const sourceSelection = selectedSourceRef ?? sourceIdentifier;
-
   const profileQuery = useQuery({
-    queryKey: sourceDisplayDetailQueryKey(sourceSelection),
-    queryFn: async () => fetchSourceDisplayDetail(selectedSourceRef ?? sourceIdentifier),
-    enabled: authStatus === 'authenticated' && Boolean(selectedSourceRef || sourceIdentifier),
+    queryKey: selectedSourceRef
+      ? sourceDisplayDetailQueryKey(selectedSourceRef)
+      : ['source-display-detail', 'missing-character-source-ref-v3'],
+    queryFn: async () => selectedSourceRef ? fetchSourceDisplayDetail(selectedSourceRef) : null,
+    enabled: authStatus === 'authenticated' && Boolean(selectedSourceRef),
   });
   const source = useMemo(() => {
     if (!profileQuery.data) return null;
@@ -61,11 +60,11 @@ export function SourceDetailPanel() {
       'source-detail-local-agents',
       ownerUserId,
       source?.sourceRef
-        ? `${source.sourceRef.kind}:${source.sourceRef.worldId}:${source.sourceRef.sourceId}:${source.sourceRef.sourceContentHash}`
+        ? characterSourceRefKey(source.sourceRef)
         : source?.id ?? 'missing-source-ref',
       source?.runtimeSourceRef ?? '',
     ],
-    queryFn: async () => (source ? discoverRealmSourceLocalAgents(source, ownerUserId) : []),
+    queryFn: async () => (source ? discoverCharacterSourceLocalAgents(source, ownerUserId) : []),
     enabled: authStatus === 'authenticated' && Boolean(source) && Boolean(ownerUserId),
     staleTime: 10_000,
   });
@@ -78,7 +77,7 @@ export function SourceDetailPanel() {
   });
 
   const sourceRuntimeLocalAgents = useMemo(() => {
-    const byLocalAgentRef = new Map<string, RealmSourceDiscoveredLocalAgent>();
+    const byLocalAgentRef = new Map<string, CharacterSourceDiscoveredLocalAgent>();
     for (const agent of sourceLocalAgentsQuery.data ?? []) {
       if (agent.localAgentRef) {
         byLocalAgentRef.set(agent.localAgentRef, agent);
@@ -99,7 +98,7 @@ export function SourceDetailPanel() {
     }
     return {
       ...source,
-      sourceState: resolveRealmPersonaSourceState(
+      sourceState: resolveCharacterSourceState(
         source,
         sourceRuntimeLocalAgents,
         {
@@ -129,7 +128,7 @@ export function SourceDetailPanel() {
 
   const resolveSourceContactTarget = async () => {
     if (!source) {
-      throw new Error(realmPersonaSourceMaterializationMessage());
+      throw new Error(characterSourceMaterializationMessage());
     }
 
     const existingAgent = sourceRuntimeLocalAgents.length === 1 ? sourceRuntimeLocalAgents[0] : null;
@@ -154,14 +153,14 @@ export function SourceDetailPanel() {
       await resolveSourceContactTarget();
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
+        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
           defaultValue: 'Local agent created on this device.',
         }),
       });
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: realmPersonaSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error),
       });
     }
   };
@@ -183,12 +182,12 @@ export function SourceDetailPanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: realmPersonaSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error),
       });
     }
   };
 
-  if (!selectedSourceRef && !sourceIdentifier) {
+  if (!selectedSourceRef) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
         {i18n.t('SourceDetail.noSourceSelected', { defaultValue: 'No source selected' })}

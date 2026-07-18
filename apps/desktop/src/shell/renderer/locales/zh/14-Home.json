@@ -87,7 +87,7 @@
   "feedScopeDescriptions": {
     "personal": "你的个人发布流。",
     "friends": "来自可信好友的更新。",
-    "persona_activity": "来自 RealmPersona 的公开动态。",
+    "persona_activity": "来自 PersonaCharacter 的公开动态。",
     "world_character_activity": "来自已准入世界角色的公开动态。"
   },
   "feedScopeEmpty": {

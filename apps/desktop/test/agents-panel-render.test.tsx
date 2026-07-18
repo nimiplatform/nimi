@@ -32,9 +32,10 @@ const AGENT_ITEMS: LocalAgentListItem[] = [
     displayName: '赵孟頫',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'char-zhao',
       worldId: 'world-1',
-      sourceId: 'char-zhao',
-      sourceContentHash: 'hash-a',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-zhao' },
+      sourceHash: 'a'.repeat(64),
     },
     sourceKey: 'worldCharacter:world-1:char-zhao:hash-a',
   },
@@ -44,12 +45,13 @@ const AGENT_ITEMS: LocalAgentListItem[] = [
     runtimeSourceRef: 'runtime-source:b',
     displayName: 'Kaelis',
     sourceRef: {
-      kind: 'realmPersona',
+      kind: 'personaCharacter',
+      id: 'char-kaelis',
       worldId: 'world-2',
-      sourceId: 'char-kaelis',
-      sourceContentHash: 'hash-b',
+      ownerAccountId: 'account-kaelis',
+      sourceHash: 'b'.repeat(64),
     },
-    sourceKey: 'realmPersona:world-2:char-kaelis:hash-b',
+    sourceKey: `personaCharacter:world-2:char-kaelis:account-kaelis:${'b'.repeat(64)}`,
   },
 ];
 

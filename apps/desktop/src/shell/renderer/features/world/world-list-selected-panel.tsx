@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import {
   ArrowRight,
   Check,
@@ -33,7 +33,7 @@ type PreviewPerson = {
   name: string;
   blurb: string;
   avatarUrl: string | null;
-  sourceRef: NimiRealmCoreSourceRef | null;
+  sourceRef: CharacterSourceRefV3 | null;
   character: WorldCharacter | null;
 };
 
@@ -103,7 +103,7 @@ export function SelectedWorldPanel({
 }: {
   world: WorldListItem;
   onOpen: () => void;
-  onOpenPerson?: (sourceRef: NimiRealmCoreSourceRef) => void;
+  onOpenPerson?: (sourceRef: CharacterSourceRefV3) => void;
   onMaterializePerson?: (character: WorldCharacter) => Promise<void> | void;
   followed?: boolean;
   followAvailable?: boolean;
@@ -139,7 +139,7 @@ export function SelectedWorldPanel({
         type="button"
         className="max-w-full truncate text-left text-sm font-semibold text-[var(--world-explorer-text)] hover:text-[var(--world-explorer-brand)]"
         aria-label={t('World.atlas.preview.people.openProfile', { name: person.name })}
-        onClick={() => onOpenPerson(person.sourceRef as NimiRealmCoreSourceRef)}
+        onClick={() => onOpenPerson(person.sourceRef as CharacterSourceRefV3)}
       >
         {person.name}
       </button>
@@ -149,7 +149,7 @@ export function SelectedWorldPanel({
         type="button"
         className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--world-explorer-brand)] focus-visible:ring-offset-2"
         aria-label={t('World.atlas.preview.people.openProfile', { name: person.name })}
-        onClick={() => onOpenPerson(person.sourceRef as NimiRealmCoreSourceRef)}
+        onClick={() => onOpenPerson(person.sourceRef as CharacterSourceRefV3)}
       >
         <Avatar
           alt={person.name}

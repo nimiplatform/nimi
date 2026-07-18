@@ -48,7 +48,7 @@ function isInvokableGroupLocalAgentParticipant(
 ): boolean {
   return (
     participant.type === 'source'
-    && normalizeText(participant.sourceOwnerId) === userId
+    && normalizeText(participant.sourceAuthorityAccountId) === userId
     && Boolean(normalizeText(participant.runtimeParticipantSlot))
     && Boolean(normalizeText(participant.runtimeSourceRef))
   );

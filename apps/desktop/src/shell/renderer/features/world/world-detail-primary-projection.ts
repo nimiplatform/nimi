@@ -6,6 +6,7 @@ import type {
 } from './world-detail-types.js';
 import { toWorldListItem, type WorldListItem } from './world-list-model.js';
 import type { WorldPrimaryDetailRecord, WorldPrimaryDisplayDetail } from './world-detail-query-types.js';
+import { readCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import {
   asRecord,
   readPublicMediaAsset,
@@ -120,19 +121,8 @@ export function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt:
   const display = asRecord(character.display);
   const stats = asRecord(character.stats);
   const importance = readStringValue(character.importance);
-  const sourceRef = asRecord(character.sourceRef);
-  const sourceKind = readString(sourceRef, 'kind');
-  const sourceWorldId = readString(sourceRef, 'worldId');
-  const sourceId = readString(sourceRef, 'sourceId');
-  const sourceContentHash = readString(sourceRef, 'sourceContentHash');
-  if (
-    (sourceKind !== 'worldCharacter' && sourceKind !== 'realmPersona')
-    || !sourceWorldId
-    || !sourceId
-    || !sourceContentHash
-  ) {
-    throw new Error('World source display requires a hash-bearing sourceRef');
-  }
+  const sourceRef = readCharacterSourceRefV3(character.sourceRef);
+  if (!sourceRef) throw new Error('World source display requires CharacterSourceRefV3');
   const relation = asRecord(character.relation);
   const relationState = readString(relation, 'state');
   const projectedRelationState = relationState === 'connected'
@@ -145,13 +135,8 @@ export function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt:
     name: readString(character, 'name', 'displayName') || 'Unknown',
     handle: readString(character, 'handle'),
     bio: readString(character, 'bio', 'description'),
-    sourceRef: {
-      kind: sourceKind,
-      worldId: sourceWorldId,
-      sourceId,
-      sourceContentHash,
-    },
-    sourceKind,
+    sourceRef,
+    sourceKind: sourceRef.kind,
     ownership: ownership === 'userOwned' ? 'userOwned' : 'worldOwned',
     relation: {
       state: projectedRelationState,

@@ -1,10 +1,13 @@
 import { realmSourceDetailData } from './data/realm-source-detail-data';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
-  realmSourceRefKey,
-  resolveRealmPersonaSourceState,
-} from '@renderer/features/explore/realm-persona-source-materialization';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+  characterSourceRefKey,
+  resolveCharacterSourceState,
+} from '@renderer/features/explore/character-source-materialization';
+import {
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 import type { SourceDetailData } from './source-detail-model.js';
 import { toSourceDetailData } from './source-detail-model.js';
 
@@ -20,7 +23,7 @@ export type SourceDisplayDetail = {
   worldScore: number;
 };
 
-export type SourceDisplayDetailSelection = string | NimiRealmCoreSourceRef;
+export type SourceDisplayDetailSelection = CharacterSourceRefV3;
 
 function normalizeSourceStats(raw: JsonObject): SourceDetailStats | null {
   const statsData = parseOptionalJsonObject(raw.stats) as (JsonObject & {
@@ -43,51 +46,19 @@ function normalizeWorldScore(raw: JsonObject): number {
   );
 }
 
-function isCoreSourceRefSelection(value: SourceDisplayDetailSelection): value is NimiRealmCoreSourceRef {
-  return typeof value === 'object'
-    && value !== null
-    && (value.kind === 'worldCharacter' || value.kind === 'realmPersona')
-    && typeof value.worldId === 'string'
-    && typeof value.sourceId === 'string'
-    && typeof value.sourceContentHash === 'string';
-}
-
-function normalizeSourceRefSelection(value: SourceDisplayDetailSelection): NimiRealmCoreSourceRef | null {
-  if (!isCoreSourceRefSelection(value)) {
-    return null;
-  }
-  const worldId = String(value.worldId || '').trim();
-  const sourceId = String(value.sourceId || '').trim();
-  const sourceContentHash = String(value.sourceContentHash || '').trim();
-  if (!worldId || !sourceId || !sourceContentHash) {
-    return null;
-  }
-  return {
-    kind: value.kind,
-    worldId,
-    sourceId,
-    sourceContentHash,
-  };
-}
-
 export function sourceDisplayDetailQueryKey(selection: SourceDisplayDetailSelection) {
-  const normalizedSourceRef = normalizeSourceRefSelection(selection);
+  const normalizedSourceRef = readCharacterSourceRefV3(selection);
   return [
     'source-display-detail',
-    normalizedSourceRef ? realmSourceRefKey(normalizedSourceRef) : String(selection || '').trim(),
+    normalizedSourceRef ? characterSourceRefKey(normalizedSourceRef) : 'invalid-character-source-ref-v3',
   ] as const;
 }
 
 export async function fetchSourceDisplayDetail(selection: SourceDisplayDetailSelection): Promise<SourceDisplayDetail | null> {
-  const normalizedSourceRef = normalizeSourceRefSelection(selection);
-  const normalizedIdentifier = normalizedSourceRef ? '' : String(selection || '').trim();
-  if (!normalizedSourceRef && !normalizedIdentifier) {
-    return null;
-  }
-  const sourceResult = normalizedSourceRef
-    ? await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(normalizedSourceRef)
-    : await realmSourceDetailData.loadRealmSourceDetailsForDisplay(normalizedIdentifier);
-  const sourceState = resolveRealmPersonaSourceState(sourceResult);
+  const normalizedSourceRef = readCharacterSourceRefV3(selection);
+  if (!normalizedSourceRef) return null;
+  const sourceResult = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(normalizedSourceRef);
+  const sourceState = resolveCharacterSourceState(sourceResult);
   return {
     source: toSourceDetailData(sourceResult, sourceState),
     stats: normalizeSourceStats(sourceResult),

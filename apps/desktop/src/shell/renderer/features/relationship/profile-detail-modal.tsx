@@ -23,15 +23,15 @@ import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agen
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import { materializeSourceContactLaunchTarget } from './source-contact-launch-target.js';
 import { startChatWithTarget } from '@renderer/features/chat/data/realm-human-chat-data';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import {
-  describeRealmPersonaPrimaryAction,
-  discoverRealmSourceLocalAgents,
-  realmPersonaSourceMaterializationFailureMessage,
-  realmPersonaSourceMaterializationMessage,
-  realmSourceRefKey,
-  resolveRealmPersonaSourceState,
-} from '@renderer/features/explore/realm-persona-source-materialization';
+  characterSourceMaterializationFailureMessage,
+  characterSourceMaterializationMessage,
+  characterSourceRefKey,
+  describeCharacterPrimaryAction,
+  discoverCharacterSourceLocalAgents,
+  resolveCharacterSourceState,
+} from '@renderer/features/explore/character-source-materialization';
 
 export type ProfileDetailSeed = {
   id: string;
@@ -59,11 +59,11 @@ export type ProfileDetailSeed = {
   sourcePacing?: string | null;
   sourceOwnershipType?: string | null;
   sourceWorldId?: string | null;
-  sourceKind?: NimiRealmCoreSourceRef['kind'];
+  sourceKind?: CharacterSourceRefV3['kind'];
   sourceId?: string;
-  sourceContentHash?: string;
+  sourceHash?: string;
   runtimeSourceRef?: string;
-  sourceRef?: NimiRealmCoreSourceRef;
+  sourceRef?: CharacterSourceRefV3;
 };
 
 type ProfileDetailModalProps = {
@@ -92,7 +92,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [removeMutationPending, setRemoveMutationPending] = useState(false);
   const sourceRef = props.profileSeed?.isSource ? props.profileSeed.sourceRef ?? null : null;
-  const sourceRefKey = sourceRef ? realmSourceRefKey(sourceRef) : 'missing-source-ref';
+  const sourceRefKey = sourceRef ? characterSourceRefKey(sourceRef) : 'missing-source-ref';
 
   useEffect(() => {
     if (!props.open) {
@@ -130,7 +130,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         let result: unknown;
         if (props.profileSeed?.isSource) {
           if (!sourceRef) {
-            throw new Error(realmPersonaSourceMaterializationMessage());
+            throw new Error(characterSourceMaterializationMessage());
           }
           result = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(sourceRef, {
             runtimeSourceRef: props.profileSeed.runtimeSourceRef,
@@ -166,15 +166,15 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     queryKey: [
       'profile-source-local-agents',
       ownerUserId,
-      profile?.sourceRef ? realmSourceRefKey(profile.sourceRef) : sourceRefKey,
+      profile?.sourceRef ? characterSourceRefKey(profile.sourceRef) : sourceRefKey,
       profile?.runtimeSourceRef ?? '',
     ],
-    queryFn: async () => (profile ? discoverRealmSourceLocalAgents(profile, ownerUserId) : []),
+    queryFn: async () => (profile ? discoverCharacterSourceLocalAgents(profile, ownerUserId) : []),
     enabled: props.open && Boolean(profile?.isSource) && Boolean(ownerUserId),
     staleTime: 10_000,
   });
   const sourceAction = profile?.isSource
-    ? describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(
+    ? describeCharacterPrimaryAction(resolveCharacterSourceState(
         profile,
         profileSourceLocalAgentsQuery.data ?? [],
         {
@@ -185,7 +185,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     : null;
   const sourceMaterializationUnavailable = sourceAction?.disabled === true;
   const sourceMaterializationHint = sourceMaterializationUnavailable
-    ? sourceAction?.hint ?? realmPersonaSourceMaterializationMessage()
+    ? sourceAction?.hint ?? characterSourceMaterializationMessage()
     : null;
 
   const handleConnectSource = useCallback(async () => {
@@ -194,7 +194,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     }
     try {
       if (sourceMaterializationUnavailable) {
-        throw new Error(sourceMaterializationHint || realmPersonaSourceMaterializationMessage());
+        throw new Error(sourceMaterializationHint || characterSourceMaterializationMessage());
       }
       const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
       await ensureRuntimeAgentExists(target);
@@ -209,7 +209,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       });
       setFeedback({
         kind: 'success',
-        message: t('Explore.realmPersonaSourceMaterializedFeedback', {
+        message: t('Explore.characterSourceMaterializedFeedback', {
           defaultValue: 'Your partner is ready. Opening chat.',
         }),
       });
@@ -217,7 +217,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: realmPersonaSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error),
       });
     }
   }, [
@@ -246,7 +246,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     try {
       if (profile.isSource) {
         if (sourceMaterializationUnavailable) {
-          throw new Error(realmPersonaSourceMaterializationMessage());
+          throw new Error(characterSourceMaterializationMessage());
         }
         const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
         await ensureRuntimeAgentExists(target);
@@ -281,7 +281,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: profile.isSource ? realmPersonaSourceMaterializationFailureMessage(error) : toChatErrorMessage(error),
+        message: profile.isSource ? characterSourceMaterializationFailureMessage(error) : toChatErrorMessage(error),
       });
     }
   }, [

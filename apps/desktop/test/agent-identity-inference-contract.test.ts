@@ -102,7 +102,7 @@ test('Realm source detail loading rejects legacy @ and ~ prefixes', async () => 
   const sourceRuntimeFlowSource = readSource('../src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts');
   const sourceDetailModelSource = readSource('../src/shell/renderer/features/source-detail/source-detail-model.ts');
 
-  assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetRealmPersona/);
+  assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetPersonaCharacter/);
   assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetWorldCharacter/);
   assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetWorldEntity/);
   assert.match(sourceRuntimeFlowSource, /WorldCharacterCore entity world mismatch/);

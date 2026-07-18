@@ -66,19 +66,20 @@ async function flush() {
 
 function readyPersonaSourceStatus(): NonNullable<AgentCenterStateInput['sourceContextStatus']> {
   return {
-    schemaVersion: 'v1',
+    schemaVersion: 'v2',
     ready: true,
     state: 'ready',
     reasonCode: 'none',
     localAgentRef: 'local-agent:owner:agent',
     sourceRef: {
-      kind: 'realmPersona',
+      kind: 'personaCharacter',
+      id: 'persona-safe',
       worldId: 'world-safe',
-      sourceId: 'persona-safe',
-      sourceContentHash: 'a'.repeat(64),
+      ownerAccountId: 'owner-safe',
+      sourceHash: 'a'.repeat(64),
     },
-    sourceSchemaVersion: 'realm.persona/v1',
-    snapshotSchemaVersion: 'v1',
+    sourceSchemaVersion: 'realm.persona-character-core/v1',
+    snapshotSchemaVersion: 'v2',
     snapshotHash: 'b'.repeat(64),
     capturedAt: '2026-07-11T01:02:03.000Z',
     worldContentHash: 'c'.repeat(64),
@@ -113,7 +114,7 @@ describe('AgentCenter UI', () => {
     const advanced = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:advanced"]');
     click(advanced);
     expect(node.textContent).toContain('Read-only diagnostics provided by Runtime.');
-    expect(node.textContent).toContain('Realm persona');
+    expect(node.textContent).toContain('Persona character');
     expect(node.textContent).toContain('world-safe / persona-safe');
     expect(node.textContent).toContain('a'.repeat(64));
     expect(node.textContent).toContain('b'.repeat(64));

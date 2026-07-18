@@ -17,6 +17,17 @@ import {
 import type { LocalAgentListItem } from '../src/shell/renderer/features/agents/local-agent-list-model.js';
 import type { SourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model.js';
 
+const SOURCE_HASH = 'a'.repeat(64);
+function worldSourceRef(id: string, worldId = 'world-1') {
+  return {
+    kind: 'worldCharacter' as const,
+    id,
+    worldId,
+    worldEntityRef: { kind: 'worldEntity' as const, worldId, entityId: `entity-${id}` },
+    sourceHash: SOURCE_HASH,
+  };
+}
+
 test('human target contract collapses multiple chats for the same other user into one canonical target', () => {
   const chats = [
     {
@@ -131,7 +142,7 @@ test('agent sidebar targets derive only from materialized Realm source contacts'
         worldName: 'World One',
         sourceKind: 'worldCharacter',
         sourceId: 'source-1',
-        sourceContentHash: 'hash-1',
+        sourceRef: worldSourceRef('source-1'),
         runtimeSourceRef: 'runtime-source-1',
         localAgentRef: 'local-agent:opaque-archivist-1',
       },
@@ -142,7 +153,7 @@ test('agent sidebar targets derive only from materialized Realm source contacts'
         worldId: 'world-1',
         sourceKind: 'worldCharacter',
         sourceId: 'source-unmaterialized',
-        sourceContentHash: 'hash-2',
+        sourceRef: worldSourceRef('source-unmaterialized'),
       },
       {
         id: 'human-1',
@@ -167,12 +178,7 @@ test('agent sidebar targets include Runtime ListAgents items even without Realm 
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
     displayName: 'Yan Zhenqing',
-    sourceRef: {
-      kind: 'worldCharacter',
-      worldId: 'world-tang',
-      sourceId: 'yan-zhenqing',
-      sourceContentHash: 'hash-1',
-    },
+    sourceRef: worldSourceRef('yan-zhenqing', 'world-tang'),
     sourceKey: 'worldCharacter:world-tang:yan-zhenqing:hash-1',
   } satisfies LocalAgentListItem], new Map([['world-tang', 'Tang Literati']]));
 
@@ -209,12 +215,7 @@ test('agent sidebar targets rehydrate Runtime worldCharacter items from source d
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
     displayName: 'Yan Zhenqing',
-    sourceRef: {
-      kind: 'worldCharacter',
-      worldId: 'world-tang',
-      sourceId: 'yan-zhenqing',
-      sourceContentHash: 'hash-1',
-    },
+    sourceRef: worldSourceRef('yan-zhenqing', 'world-tang'),
     sourceKey: 'worldCharacter:world-tang:yan-zhenqing:hash-1',
   } satisfies LocalAgentListItem;
 
@@ -241,7 +242,7 @@ test('agent sidebar targets rehydrate Runtime worldCharacter items from source d
     worldId: 'world-tang',
     sourceKind: 'worldCharacter',
     sourceId: 'yan-zhenqing',
-    sourceContentHash: 'hash-1',
+    sourceHash: SOURCE_HASH,
     runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
     sourceRef: localAgent.sourceRef,
     entity: null,
@@ -296,12 +297,7 @@ test('agent sidebar merges Runtime ListAgents with richer source contact targets
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'runtime-source-1',
     displayName: 'Runtime Archivist',
-    sourceRef: {
-      kind: 'worldCharacter',
-      worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: 'hash-1',
-    },
+    sourceRef: worldSourceRef('source-1'),
     sourceKey: 'worldCharacter:world-1:source-1:hash-1',
   } satisfies LocalAgentListItem], new Map([['world-1', 'Runtime World']]));
   const contactTargets = toAgentTargetsFromSocialSnapshot({
@@ -316,7 +312,7 @@ test('agent sidebar merges Runtime ListAgents with richer source contact targets
       worldName: 'World One',
       sourceKind: 'worldCharacter',
       sourceId: 'source-1',
-      sourceContentHash: 'hash-1',
+      sourceRef: worldSourceRef('source-1'),
       runtimeSourceRef: 'runtime-source-1',
       localAgentRef: 'local-agent:opaque-archivist-1',
     }],
@@ -346,7 +342,7 @@ test('agent sidebar target metadata restores the local target snapshot for selec
         worldName: 'World One',
         sourceKind: 'worldCharacter',
         sourceId: 'source-1',
-        sourceContentHash: 'hash-1',
+        sourceRef: worldSourceRef('source-1'),
         runtimeSourceRef: 'runtime-source-1',
         localAgentRef: 'local-agent:opaque-archivist-1',
       },

@@ -194,16 +194,17 @@ describe('desktop human chat filtering', () => {
           {
             id: 'source-ref-chat',
             sourceRef: {
-              kind: 'realmPersona',
+              kind: 'personaCharacter',
+              id: 'persona-1',
               worldId: 'oasis',
-              sourceId: 'persona-1',
-              sourceContentHash: 'hash-1',
+              ownerAccountId: 'account-1',
+              sourceHash: 'a'.repeat(64),
             },
             otherUser: { id: 'persona-1' },
           },
           {
             id: 'runtime-source-chat',
-            runtimeSourceRef: 'runtime-source:realmPersona:oasis:persona-2:hash-2',
+            runtimeSourceRef: 'runtime-source:personaCharacter:oasis:persona-2',
             otherUser: { id: 'persona-2' },
           },
           { id: 'human-2', otherUser: { id: 'user-3' } },

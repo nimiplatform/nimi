@@ -4,8 +4,10 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { type ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
-import { resolveRealmCoreSourceRef } from '@renderer/features/realm-source/realm-source-identity.js';
+import {
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 
 export type RelationshipHoverCardPosition = {
   top: number;
@@ -66,20 +68,14 @@ function resolveProfileTargetId(target: ConversationTargetSummary): string {
   if (target.source === 'human') {
     return getMetadataText(target, 'otherUserId') || target.id;
   }
-  return resolveProfileSourceRef(target)?.sourceId ?? '';
+  return resolveProfileSourceRef(target)?.id ?? '';
 }
 
-function resolveProfileSourceRef(target: ConversationTargetSummary): NimiRealmCoreSourceRef | null {
+function resolveProfileSourceRef(target: ConversationTargetSummary): CharacterSourceRefV3 | null {
   if (target.source !== 'agent') {
     return null;
   }
-  return resolveRealmCoreSourceRef({
-    sourceRef: getMetadataValue(target, 'sourceRef'),
-    sourceKind: getMetadataText(target, 'sourceKind'),
-    sourceWorldId: getMetadataText(target, 'sourceWorldId') || getMetadataText(target, 'worldId'),
-    sourceId: getMetadataText(target, 'sourceId'),
-    sourceContentHash: getMetadataText(target, 'sourceContentHash'),
-  });
+  return readCharacterSourceRefV3(getMetadataValue(target, 'sourceRef'));
 }
 
 export function buildRelationshipProfileSeed(target: ConversationTargetSummary): { profileId: string; seed: ProfileDetailSeed } | null {
@@ -111,8 +107,8 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
       worldName: getMetadataText(target, 'worldName') || null,
       sourceWorldId: sourceRef?.worldId ?? null,
       sourceKind: sourceRef?.kind,
-      sourceId: sourceRef?.sourceId,
-      sourceContentHash: sourceRef?.sourceContentHash,
+      sourceId: sourceRef?.id,
+      sourceHash: sourceRef?.sourceHash,
       runtimeSourceRef: runtimeSourceRef || undefined,
       ...(sourceRef ? { sourceRef } : {}),
       sourceOwnershipType: ownershipType || null,

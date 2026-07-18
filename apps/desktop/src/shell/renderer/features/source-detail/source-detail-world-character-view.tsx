@@ -4,7 +4,7 @@ import { ScrollArea, Tooltip, TooltipProvider } from '@nimiplatform/kit/ui';
 import { ArrowLeft, CirclePlus, MessageCircle } from 'lucide-react';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { toSafeBackgroundImage } from '@renderer/features/explore/explore-background-image.js';
-import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-materialization';
+import { describeCharacterPrimaryAction } from '@renderer/features/explore/character-source-materialization';
 import type { SourceDetailData, SourceDetailWorldCharacterMilestone } from './source-detail-model.js';
 import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
 import {
@@ -539,7 +539,7 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
   const bannerImage = toSafeBackgroundImage(
     source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl,
   );
-  const primaryAction = describeRealmPersonaPrimaryAction(source.sourceState);
+  const primaryAction = describeCharacterPrimaryAction(source.sourceState);
   const canStartChat = primaryAction.action === 'open_partner';
   const dynastyLabel = worldCharacterHeroSubtitle(source);
   const heroDescription = worldCharacterHeroDescription(source, dynastyLabel);

@@ -71,7 +71,7 @@ function requireSourceParticipant(participant: GroupParticipantDto): {
 } {
   const runtimeParticipantSlot = normalizeText(participant.runtimeParticipantSlot);
   const runtimeSourceRef = normalizeText(participant.runtimeSourceRef);
-  const ownerUserId = normalizeText(participant.sourceOwnerId);
+  const ownerUserId = normalizeText(participant.sourceAuthorityAccountId);
   if (
     participant.type !== 'source'
     || !runtimeParticipantSlot
@@ -305,8 +305,7 @@ export async function addGroupChatSource(
   } catch (error) {
     emitRealmGroupChatError('add-group-source', error, {
       chatId,
-      sourceRef: normalizeText(input.sourceRef?.sourceContentHash),
-      sourceId: normalizeText(input.sourceRef?.sourceId),
+      sourceRef: JSON.stringify(input.sourceRef),
     });
     throw error;
   }

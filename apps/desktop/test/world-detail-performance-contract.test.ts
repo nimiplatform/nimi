@@ -106,9 +106,10 @@ const primaryWorldFixture = {
     ownership: 'worldOwned',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'character-primary',
       worldId: 'world-primary',
-      sourceId: 'character-primary',
-      sourceContentHash: 'hash-character-primary',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-primary', entityId: 'entity-primary' },
+      sourceHash: 'a'.repeat(64),
     },
     relation: {
       state: 'connectable',

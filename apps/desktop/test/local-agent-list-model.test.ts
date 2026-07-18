@@ -6,19 +6,20 @@ import { toLocalAgentListItem } from '../src/shell/renderer/features/agents/loca
 
 const OWNER = 'user-1';
 const READY_SOURCE_STATUS: NimiRuntimeAgentSourceContextStatus = {
-  schemaVersion: 'v1',
+  schemaVersion: 'v2',
   ready: true,
   state: 'ready',
   reasonCode: 'none',
   localAgentRef: 'local-agent:01ABC',
   sourceRef: {
     kind: 'worldCharacter',
+    id: 'char-1',
     worldId: 'world-1',
-    sourceId: 'char-1',
-    sourceContentHash: 'hash-1',
+    worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' },
+    sourceHash: 'a'.repeat(64),
   },
   sourceSchemaVersion: 'realm.world-character-core/v1',
-  snapshotSchemaVersion: 'v1',
+  snapshotSchemaVersion: 'v2',
   snapshotHash: 'a'.repeat(64),
   capturedAt: '2026-07-11T00:00:00.000Z',
   worldContentHash: 'b'.repeat(64),
@@ -45,9 +46,10 @@ test('Characters tab maps a source-materialized runtime agent record', () => {
   assert.equal(item.runtimeSourceRef, 'runtime-source:xyz');
   assert.deepEqual(item.sourceRef, {
     kind: 'worldCharacter',
+    id: 'char-1',
     worldId: 'world-1',
-    sourceId: 'char-1',
-    sourceContentHash: 'hash-1',
+    worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' },
+    sourceHash: 'a'.repeat(64),
   });
 });
 

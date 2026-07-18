@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { getSemanticSourcePalette } from '@renderer/components/source-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-materialization';
+import { describeCharacterPrimaryAction } from '@renderer/features/explore/character-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
 import { getStateBadgeColor } from './source-detail-model.js';
 import { SourceDetailPrimaryActionIcon } from './source-detail-view-primitives.js';
@@ -111,7 +111,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
     description: source.bio || source.archetype,
     tags: source.tags,
   });
-  const primaryAction = describeRealmPersonaPrimaryAction(source.sourceState);
+  const primaryAction = describeCharacterPrimaryAction(source.sourceState);
   const handlePrimaryAction = () => {
     props.onPrimaryAction();
   };

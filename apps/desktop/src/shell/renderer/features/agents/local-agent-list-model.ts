@@ -2,13 +2,13 @@ import {
   createNimiHostRuntimeAgentLifecycleSurface,
   isRuntimeLocalAgentRef,
   type NimiRuntimeAgentSourceContextStatus,
+  type NimiRuntimeAgentSourceRef,
 } from '@nimiplatform/sdk/runtime';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import {
   getDesktopHostRuntimeAgentClient,
   withDesktopRuntimeProtectedScopes,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { realmSourceRefKey } from '@renderer/features/explore/realm-persona-source-materialization';
+import { characterSourceRefKey } from '@renderer/features/realm-source/realm-source-identity.js';
 
 // The Characters tab (D-SHELL-001 `agents`) projects runtime ListAgents
 // authority: source-materialized LocalAgents owned by the signed-in account.
@@ -18,7 +18,7 @@ export type LocalAgentListItem = {
   ownerUserId: string;
   runtimeSourceRef: string;
   displayName: string;
-  sourceRef: NimiRealmCoreSourceRef;
+  sourceRef: NimiRuntimeAgentSourceRef;
   sourceKey: string;
 };
 
@@ -26,29 +26,22 @@ export type LocalAgentSourceDiscoveryProjection = {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
-  readonly sourceKind: NimiRealmCoreSourceRef['kind'];
+  readonly sourceKind: NimiRuntimeAgentSourceRef['kind'];
   readonly sourceWorldId: string;
   readonly sourceId: string;
-  readonly sourceContentHash: string;
+  readonly sourceHash: string;
 };
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function toCoreSourceRefFromStatus(status: NimiRuntimeAgentSourceContextStatus | null | undefined): NimiRealmCoreSourceRef | null {
+function toCharacterSourceRefFromStatus(status: NimiRuntimeAgentSourceContextStatus | null | undefined): NimiRuntimeAgentSourceRef | null {
   if (status?.ready !== true || !status.sourceRef) return null;
-  const kind = status.sourceRef.kind;
   const worldId = normalizeText(status.sourceRef.worldId);
-  const sourceId = normalizeText(status.sourceRef.sourceId);
-  const sourceContentHash = normalizeText(status.sourceRef.sourceContentHash);
-  if (!worldId || !sourceId || !sourceContentHash) return null;
-  return {
-    kind,
-    worldId,
-    sourceId,
-    sourceContentHash,
-  };
+  const id = normalizeText(status.sourceRef.id);
+  const sourceHash = normalizeText(status.sourceRef.sourceHash);
+  return worldId && id && sourceHash ? status.sourceRef : null;
 }
 
 type RuntimeAgentRecordLike = {
@@ -68,15 +61,15 @@ export function toLocalAgentListItem(
   if (!isRuntimeLocalAgentRef(agent.localAgentRef)) return null;
   const runtimeSourceRef = normalizeText(agent.runtimeSourceRef);
   if (!runtimeSourceRef) return null;
-  const sourceRef = toCoreSourceRefFromStatus(agent.sourceContextStatus);
+  const sourceRef = toCharacterSourceRefFromStatus(agent.sourceContextStatus);
   if (!sourceRef) return null;
   return {
     localAgentRef: String(agent.localAgentRef),
     ownerUserId,
     runtimeSourceRef,
-    displayName: normalizeText(agent.displayName) || sourceRef.sourceId,
+    displayName: normalizeText(agent.displayName) || sourceRef.id,
     sourceRef,
-    sourceKey: realmSourceRefKey(sourceRef),
+    sourceKey: characterSourceRefKey(sourceRef),
   };
 }
 
@@ -86,25 +79,22 @@ export function localAgentListQueryKey(ownerUserId: string) {
 
 export function toLocalAgentSourceDiscoveryProjections(
   agents: readonly LocalAgentListItem[],
-  sourceRef: NimiRealmCoreSourceRef | null | undefined,
+  sourceRef: NimiRuntimeAgentSourceRef | null | undefined,
 ): LocalAgentSourceDiscoveryProjection[] {
   if (!sourceRef) {
     return [];
   }
   return agents
     .filter((agent) =>
-      agent.sourceRef.kind === sourceRef.kind
-      && agent.sourceRef.worldId === sourceRef.worldId
-      && agent.sourceRef.sourceId === sourceRef.sourceId
-      && agent.sourceRef.sourceContentHash === sourceRef.sourceContentHash)
+      characterSourceRefKey(agent.sourceRef) === characterSourceRefKey(sourceRef))
     .map((agent) => ({
       ownerUserId: agent.ownerUserId,
       runtimeSourceRef: agent.runtimeSourceRef,
       localAgentRef: agent.localAgentRef,
       sourceKind: agent.sourceRef.kind,
       sourceWorldId: agent.sourceRef.worldId,
-      sourceId: agent.sourceRef.sourceId,
-      sourceContentHash: agent.sourceRef.sourceContentHash,
+      sourceId: agent.sourceRef.id,
+      sourceHash: agent.sourceRef.sourceHash,
     }));
 }
 

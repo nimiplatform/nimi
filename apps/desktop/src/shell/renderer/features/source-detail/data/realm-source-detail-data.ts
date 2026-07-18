@@ -1,43 +1,11 @@
-import { type NimiRealmCoreSourceRef, type Realm } from '@nimiplatform/sdk/realm';
-import {
-  isRealmOfflineErrorLike as isRealmOfflineError,
-  type JsonObject,
-} from '@nimiplatform/sdk/types';
-import { emitRealmDataError, type RealmDataErrorEmitter } from '@renderer/infra/realm/realm-api';
+import { type Realm } from '@nimiplatform/sdk/realm';
+import { type JsonObject } from '@nimiplatform/sdk/types';
 import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-
-// Module-level TTL cache for profile lookups.
-const profileCache = new Map<string, { value: unknown; expiresAt: number }>();
-
-function cacheGet(key: string): unknown | null {
-  const entry = profileCache.get(key);
-  if (!entry || Date.now() > entry.expiresAt) {
-    profileCache.delete(key);
-    return null;
-  }
-  return entry.value;
-}
-
-function cacheSet(key: string, value: unknown, ttlMs: number) {
-  profileCache.set(key, { value, expiresAt: Date.now() + ttlMs });
-}
-
-async function applyRealmSourceProfileReadFilters(input: {
-  emitRealmSourceDetailError: RealmDataErrorEmitter;
-  viewerUserId?: string;
-  worldId?: string;
-  profile: JsonObject;
-}): Promise<JsonObject> {
-  void input.emitRealmSourceDetailError;
-  void input.viewerUserId;
-  void input.worldId;
-  return {
-    ...input.profile,
-  };
-}
+import {
+  characterSourceRefKey,
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 
 function toNonEmptyString(value: unknown): string {
   return String(value || '').trim();
@@ -145,12 +113,12 @@ function projectWorldRelationshipCore(relationship: {
 async function loadBoundWorldEntityProjection(
   realm: Realm,
   character: {
-    entityId?: string;
+    worldEntityRef?: { entityId?: string };
     worldId?: string;
   },
   worldId: string,
 ): Promise<JsonObject> {
-  const entityId = toNonEmptyString(character.entityId);
+  const entityId = toNonEmptyString(character.worldEntityRef?.entityId);
   if (!entityId) {
     throw new Error('WorldCharacterCore source detail requires entityId');
   }
@@ -225,7 +193,7 @@ function projectPublicSourceMedia(media: JsonObject | null): JsonObject {
 
 async function loadPublicSourceMedia(
   realm: Realm,
-  sourceRef: NimiRealmCoreSourceRef,
+  sourceRef: CharacterSourceRefV3,
 ): Promise<JsonObject | null> {
   const detail = await realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters({
     path: { worldId: sourceRef.worldId },
@@ -234,14 +202,11 @@ async function loadPublicSourceMedia(
   const sources = asRecord(detail.sources);
   const sourceRows = [
     ...(Array.isArray(sources.characters) ? sources.characters : []),
-    ...(Array.isArray(sources.personas) ? sources.personas : []),
+    ...(Array.isArray(sources.personaCharacters) ? sources.personaCharacters : []),
   ].map(asRecord);
   const matched = sourceRows.find((source) => {
-    const rowRef = asRecord(source.sourceRef);
-    return toNonEmptyString(rowRef.kind) === sourceRef.kind
-      && toNonEmptyString(rowRef.worldId) === sourceRef.worldId
-      && toNonEmptyString(rowRef.sourceId) === sourceRef.sourceId
-      && toNonEmptyString(rowRef.sourceContentHash) === sourceRef.sourceContentHash;
+    const rowRef = readCharacterSourceRefV3(source.sourceRef);
+    return rowRef !== null && characterSourceRefKey(rowRef) === characterSourceRefKey(sourceRef);
   });
   if (!matched) {
     return null;
@@ -249,7 +214,7 @@ async function loadPublicSourceMedia(
   return asRecord(matched.media);
 }
 
-function projectRealmPersonaCore(core: JsonObject, publicMedia: JsonObject | null = null): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'portraitUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceSampleUrl' | 'voiceSample' | 'media' | 'mediaAssets' | 'voiceDesign' | 'bio' | 'archetype' | 'pacing'> {
+function projectPersonaCharacterProfile(core: JsonObject, publicMedia: JsonObject | null = null): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'portraitUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceSampleUrl' | 'voiceSample' | 'media' | 'mediaAssets' | 'voiceDesign' | 'bio' | 'archetype' | 'pacing'> {
   const identity = asRecord(core.identity);
   const presentation = asRecord(core.presentation);
   const personaStyle = asRecord(core.personaStyle);
@@ -262,7 +227,7 @@ function projectRealmPersonaCore(core: JsonObject, publicMedia: JsonObject | nul
   return {
     displayName: requireProjectedText(
       displayName,
-      'RealmPersona source detail requires presentation.displayName or identity.name',
+      'PersonaCharacter source detail requires presentation.displayName or identity.name',
     ),
     handle: toNonEmptyString(identity.handle),
     media: media.media,
@@ -281,7 +246,7 @@ function projectRealmPersonaCore(core: JsonObject, publicMedia: JsonObject | nul
     pacing: toNonEmptyString(personaStyle.pacing) || null,
     bio: requireProjectedText(
       bio,
-      'RealmPersona source detail requires identity.summary or presentation profile copy',
+      'PersonaCharacter source detail requires identity.summary or presentation profile copy',
     ),
   };
 }
@@ -337,55 +302,55 @@ function isTypedNotFoundError(error: unknown): boolean {
 }
 
 async function loadRealmSourceDetailsBySourceRef(
-  sourceRef: NimiRealmCoreSourceRef,
+  sourceRef: CharacterSourceRefV3,
   context?: { runtimeSourceRef?: string | null },
 ): Promise<JsonObject> {
   const realm = getDesktopRealm();
   const runtimeSourceRef = toNonEmptyString(context?.runtimeSourceRef) || null;
-  if (sourceRef.kind === 'realmPersona') {
-    const persona = await realm.worldCore.worldCoreControllerGetRealmPersona({
-      path: { personaId: sourceRef.sourceId },
+  if (sourceRef.kind === 'personaCharacter') {
+    const persona = await realm.worldCore.worldCoreControllerGetPersonaCharacter({
+      path: { personaCharacterId: sourceRef.id },
     });
-    const worldId = toNonEmptyString(persona.homeWorldId);
-    const contentHash = toNonEmptyString(persona.contentHash);
-    if (worldId !== sourceRef.worldId || contentHash !== sourceRef.sourceContentHash) {
-      throw new Error('RealmPersona sourceRef is stale or mismatched');
+    const worldId = toNonEmptyString(persona.worldId);
+    const sourceHash = toNonEmptyString(persona.sourceHash);
+    const ownerAccountId = toNonEmptyString(persona.ownerAccountId);
+    if (worldId !== sourceRef.worldId
+      || sourceHash !== sourceRef.sourceHash
+      || ownerAccountId !== sourceRef.ownerAccountId) {
+      throw new Error('PersonaCharacter sourceRef is stale or mismatched');
     }
-    const core = asRecord(persona.core);
+    const core = asRecord(persona.profile);
     const publicMedia = await loadPublicSourceMedia(realm, sourceRef);
     return {
       id: persona.id,
-      ...projectRealmPersonaCore(core, publicMedia),
+      ...projectPersonaCharacterProfile(core, publicMedia),
       source: core,
       createdAt: persona.createdAt,
       updatedAt: persona.updatedAt,
       visibility: persona.visibility,
       homeWorldId: worldId,
-      ownerId: persona.ownerId,
-      sourceKind: 'realmPersona',
+      ownerId: persona.ownerAccountId,
+      sourceKind: 'personaCharacter',
       sourceId: persona.id,
-      contentHash,
-      sourceContentHash: contentHash,
-      sourceRef: {
-        kind: sourceRef.kind,
-        worldId: sourceRef.worldId,
-        sourceId: sourceRef.sourceId,
-        sourceContentHash: sourceRef.sourceContentHash,
-      },
+      contentHash: persona.contentHash,
+      sourceHash,
+      sourceRef,
       runtimeSourceRef,
     };
   }
 
   const character = await realm.worldCore.worldCoreControllerGetWorldCharacter({
-    path: { characterId: sourceRef.sourceId },
+    path: { characterId: sourceRef.id },
   });
   const worldId = toNonEmptyString(character.worldId);
-  const contentHash = toNonEmptyString(character.contentHash);
-  if (worldId !== sourceRef.worldId || contentHash !== sourceRef.sourceContentHash) {
+  const sourceHash = toNonEmptyString(character.sourceHash);
+  if (worldId !== sourceRef.worldId
+    || sourceHash !== sourceRef.sourceHash
+    || toNonEmptyString(character.worldEntityRef.entityId) !== sourceRef.worldEntityRef.entityId) {
     throw new Error('WorldCharacterCore sourceRef is stale or mismatched');
   }
-  const core = asRecord(character.core);
-  const entityId = toNonEmptyString(character.entityId);
+  const core = asRecord(character.profile);
+  const entityId = toNonEmptyString(character.worldEntityRef.entityId);
   if (!entityId) {
     throw new Error('WorldCharacterCore source detail requires entityId');
   }
@@ -407,174 +372,16 @@ async function loadRealmSourceDetailsBySourceRef(
     worldId,
     sourceKind: 'worldCharacter',
     sourceId: character.id,
-    contentHash,
-    sourceContentHash: contentHash,
-    sourceRef: {
-      kind: sourceRef.kind,
-      worldId: sourceRef.worldId,
-      sourceId: sourceRef.sourceId,
-      sourceContentHash: sourceRef.sourceContentHash,
-    },
+    contentHash: character.contentHash,
+    sourceHash,
+    sourceRef,
     runtimeSourceRef,
   };
 }
 
-async function loadRealmSourceDetails(identifier: string): Promise<JsonObject> {
-  const realm = getDesktopRealm();
-  try {
-    const persona = await realm.worldCore.worldCoreControllerGetRealmPersona({
-      path: { personaId: identifier },
-    });
-    const core = asRecord(persona.core);
-    const worldId = toNonEmptyString(persona.homeWorldId);
-    const contentHash = toNonEmptyString(persona.contentHash);
-    const sourceRef: NimiRealmCoreSourceRef = {
-      kind: 'realmPersona',
-      worldId,
-      sourceId: persona.id,
-      sourceContentHash: contentHash,
-    };
-    const publicMedia = await loadPublicSourceMedia(realm, sourceRef);
-    const projectedCore = projectRealmPersonaCore(core, publicMedia);
-    return {
-      id: persona.id,
-      ...projectedCore,
-      source: core,
-      createdAt: persona.createdAt,
-      updatedAt: persona.updatedAt,
-      visibility: persona.visibility,
-      homeWorldId: worldId,
-      ownerId: persona.ownerId,
-      sourceKind: 'realmPersona',
-      sourceId: persona.id,
-      contentHash,
-      sourceContentHash: contentHash,
-      sourceRef: {
-        ...sourceRef,
-      },
-      runtimeSourceRef: null,
-    };
-  } catch (error) {
-    if (!isTypedNotFoundError(error)) {
-      throw error;
-    }
-    const character = await realm.worldCore.worldCoreControllerGetWorldCharacter({
-      path: { characterId: identifier },
-    });
-    const core = asRecord(character.core);
-    const worldId = toNonEmptyString(character.worldId);
-    const contentHash = toNonEmptyString(character.contentHash);
-    const sourceRef: NimiRealmCoreSourceRef = {
-      kind: 'worldCharacter',
-      worldId,
-      sourceId: character.id,
-      sourceContentHash: contentHash,
-    };
-    const publicMedia = await loadPublicSourceMedia(realm, sourceRef);
-    const projectedCore = projectWorldCharacterCore(core, publicMedia);
-    const entityId = toNonEmptyString(character.entityId);
-    if (!entityId) {
-      throw new Error('WorldCharacterCore source detail requires entityId', { cause: error });
-    }
-    const [entity, relationships] = await Promise.all([
-      loadBoundWorldEntityProjection(realm, character, worldId),
-      loadWorldCharacterRelationshipProjections(realm, entityId, worldId),
-    ]);
-    return {
-      id: character.id,
-      ...projectedCore,
-      source: core,
-      entityId,
-      entityContentHash: toNonEmptyString(entity.contentHash),
-      entity,
-      relationships,
-      createdAt: character.createdAt,
-      updatedAt: character.updatedAt,
-      worldId,
-      sourceKind: 'worldCharacter',
-      sourceId: character.id,
-      contentHash,
-      sourceContentHash: contentHash,
-      sourceRef: {
-        ...sourceRef,
-      },
-      runtimeSourceRef: null,
-    };
-  }
-}
-
-export async function loadRealmSourceDetailsForDisplay(
-  emitRealmSourceDetailError: RealmDataErrorEmitter,
-  sourceIdentifier: string,
-  context?: {
-    viewerUserId?: string;
-    worldId?: string;
-  },
-) {
-  const normalizedIdentifier = toNonEmptyString(sourceIdentifier);
-
-  try {
-    const cacheKey = `source-profile:${normalizedIdentifier}`;
-    const cached = cacheGet(cacheKey);
-    if (cached && typeof cached === 'object') {
-      return applyRealmSourceProfileReadFilters({
-        emitRealmSourceDetailError,
-        viewerUserId: context?.viewerUserId,
-        worldId: context?.worldId,
-        profile: cached as JsonObject,
-      });
-    }
-
-    const enrichedProfile = await loadRealmSourceDetails(normalizedIdentifier);
-
-    const resolvedId = toNonEmptyString(enrichedProfile.id);
-    if (resolvedId) {
-      cacheSet(`source-profile:${resolvedId}`, enrichedProfile, 5 * 60 * 1000);
-    }
-    const resolvedHandle = toNonEmptyString(enrichedProfile.handle);
-    if (resolvedHandle) {
-      cacheSet(`source-profile:${resolvedHandle}`, enrichedProfile, 5 * 60 * 1000);
-    }
-    cacheSet(cacheKey, enrichedProfile, 5 * 60 * 1000);
-    const cache = await getOfflineCacheManager();
-    await cache.syncProfileMetadata(cacheKey, enrichedProfile);
-    if (resolvedId) {
-      await cache.syncProfileMetadata(`source-profile:${resolvedId}`, enrichedProfile);
-    }
-    if (resolvedHandle) {
-      await cache.syncProfileMetadata(`source-profile:${resolvedHandle}`, enrichedProfile);
-    }
-    return applyRealmSourceProfileReadFilters({
-      emitRealmSourceDetailError,
-      viewerUserId: context?.viewerUserId,
-      worldId: context?.worldId,
-      profile: enrichedProfile,
-    });
-  } catch (error) {
-    if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedProfileMetadata<JsonObject>(`source-profile:${normalizedIdentifier}`);
-      if (cached) {
-        getOfflineCoordinator().markCacheFallbackUsed();
-        return applyRealmSourceProfileReadFilters({
-          emitRealmSourceDetailError,
-          viewerUserId: context?.viewerUserId,
-          worldId: context?.worldId,
-          profile: cached,
-        });
-      }
-    }
-    emitRealmSourceDetailError('load-realm-source-details', error, { sourceIdentifier: normalizedIdentifier });
-    throw error;
-  }
-}
-
 export const realmSourceDetailData = {
-  loadRealmSourceDetailsForDisplay: (sourceIdentifier: string) =>
-    loadRealmSourceDetailsForDisplay(emitRealmDataError, sourceIdentifier, {
-      viewerUserId: String(useAppStore.getState().auth.user?.id || '').trim() || undefined,
-    }),
   loadRealmSourceDetailsBySourceRef: (
-    sourceRef: NimiRealmCoreSourceRef,
+    sourceRef: CharacterSourceRefV3,
     context?: { runtimeSourceRef?: string | null },
   ) =>
     loadRealmSourceDetailsBySourceRef(sourceRef, context),

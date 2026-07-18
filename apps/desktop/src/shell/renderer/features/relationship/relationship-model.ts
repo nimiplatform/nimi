@@ -1,9 +1,7 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import {
-  assertRealmCoreSourceRefMatchesOuterIdentity,
-  normalizeRealmSourceKind,
-  readRealmCoreSourceRef,
+  resolveCharacterSourceRefV3,
+  type CharacterSourceRefV3,
 } from '@renderer/features/realm-source/realm-source-identity.js';
 
 export type ContactRecord = {
@@ -16,11 +14,11 @@ export type ContactRecord = {
   friendsSince: string | null;
   sourceOwnershipType?: 'MASTER_OWNED' | 'WORLD_OWNED' | null;
   sourceCreatorId?: string | null;
-  sourceKind?: NimiRealmCoreSourceRef['kind'];
+  sourceKind?: CharacterSourceRefV3['kind'];
   sourceId?: string;
-  sourceContentHash?: string;
+  sourceHash?: string;
   runtimeSourceRef?: string;
-  sourceRef?: NimiRealmCoreSourceRef;
+  sourceRef?: CharacterSourceRefV3;
   // World info
   worldId?: string | null;
   worldName?: string | null;
@@ -44,17 +42,16 @@ function hasRealmSourceIdentity(item: ContactPayload, sourceRecord: JsonObject |
   return sourceRecord !== null;
 }
 
-function normalizeSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | undefined {
-  return normalizeRealmSourceKind(value) ?? undefined;
-}
-
 export function toFriendContact(item: ContactPayload): ContactRecord {
   const handle = String(item.handle || '');
   
   const sourceRecord = parseOptionalJsonObject(item.source) ?? null;
   const isSource = hasRealmSourceIdentity(item, sourceRecord);
-  const sourceRefFromPayload = readRealmCoreSourceRef(item.sourceRef) ?? undefined;
-  const sourceKind = sourceRefFromPayload?.kind ?? normalizeSourceKind(item.sourceKind || sourceRecord?.sourceKind);
+  const sourceRefFromPayload = resolveCharacterSourceRefV3(item) ?? undefined;
+  if (item.sourceRef && !sourceRefFromPayload) {
+    throw new Error('Relationship sourceRef mismatch');
+  }
+  const sourceKind = sourceRefFromPayload?.kind;
   const ownershipRaw = String(item.ownershipType || sourceRecord?.ownershipType || '').trim();
   const sourceOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
     ? ownershipRaw
@@ -94,33 +91,9 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
   const worldId = sourceRefFromPayload?.worldId ?? payloadWorldId;
   const worldName = typeof item.worldName === 'string' ? item.worldName : 
     typeof worldData?.name === 'string' ? worldData.name : null;
-  const outerSourceId = String(item.sourceId || item.id || '').trim() || undefined;
-  const outerSourceContentHash = String(
-    item.sourceContentHash
-      || item.contentHash
-      || sourceRecord?.sourceContentHash
-      || sourceRecord?.contentHash
-      || '',
-  ).trim() || undefined;
-  if (sourceRefFromPayload) {
-    assertRealmCoreSourceRefMatchesOuterIdentity({
-      ...item,
-      sourceKind: item.sourceKind || sourceRecord?.sourceKind,
-      sourceWorldId: payloadWorldId ?? sourceRecord?.worldId,
-      sourceId: outerSourceId,
-      sourceContentHash: outerSourceContentHash,
-    }, sourceRefFromPayload, 'Relationship contact source');
-  }
-  const sourceId = sourceRefFromPayload?.sourceId ?? outerSourceId;
-  const sourceContentHash = sourceRefFromPayload?.sourceContentHash ?? outerSourceContentHash;
-  const sourceRef: NimiRealmCoreSourceRef | undefined = sourceRefFromPayload ?? (sourceKind && worldId && sourceId && sourceContentHash
-    ? {
-        kind: sourceKind,
-        worldId,
-        sourceId,
-        sourceContentHash,
-      }
-    : undefined);
+  const sourceId = sourceRefFromPayload?.id;
+  const sourceHash = sourceRefFromPayload?.sourceHash;
+  const sourceRef = sourceRefFromPayload;
   const worldBannerUrl = typeof item.worldBannerUrl === 'string'
     ? item.worldBannerUrl
     : typeof sourceRecord?.worldBannerUrl === 'string'
@@ -139,7 +112,7 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
     sourceOwnershipType,
     sourceKind,
     sourceId,
-    sourceContentHash,
+    sourceHash,
     runtimeSourceRef: typeof item.runtimeSourceRef === 'string' ? item.runtimeSourceRef : undefined,
     sourceRef,
     friendsSince: typeof item.friendsSince === 'string' ? item.friendsSince : null,

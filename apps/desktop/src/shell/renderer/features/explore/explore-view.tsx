@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -45,7 +45,7 @@ type ExploreViewProps = {
   onPersonaSourceOpen?: (sourceId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
   onWorldOpen?: (worldId: string, options?: WorldDetailNavigationOptions) => void;
-  onWorldCharacterOpen?: (sourceRef: NimiRealmCoreSourceRef) => void;
+  onWorldCharacterOpen?: (sourceRef: CharacterSourceRefV3) => void;
   onWorldCharacterMaterialize?: (character: WorldCharacter) => Promise<void> | void;
 };
 
@@ -53,7 +53,7 @@ function ExploreSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-3xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] ${className}`} />;
 }
 
-// RealmPersona section: a full browsable discovery grid across Worlds.
+// PersonaCharacter section: a full browsable discovery grid across Worlds.
 function ExplorePersonaSourcesSection({
   personaSources,
   onPersonaSourceManage,

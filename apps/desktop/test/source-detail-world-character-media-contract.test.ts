@@ -89,7 +89,14 @@ function sourceDetailRaw() {
     worldId: 'world-song',
     sourceKind: 'worldCharacter',
     sourceId: 'char-song-scholar',
-    sourceContentHash: 'a'.repeat(64),
+    sourceHash: 'a'.repeat(64),
+    sourceRef: {
+      kind: 'worldCharacter',
+      id: 'char-song-scholar',
+      worldId: 'world-song',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-song', entityId: 'entity-song-scholar' },
+      sourceHash: 'a'.repeat(64),
+    },
     entity: {
       id: 'entity-song-scholar',
       kind: 'person',

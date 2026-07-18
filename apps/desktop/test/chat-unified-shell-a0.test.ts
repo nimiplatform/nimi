@@ -181,9 +181,10 @@ test('A0 nested world character detail back returns to the world list origin', (
   state.navigateToWorld('world-alpha');
   harness.getState().navigateToSourceDetail({
     kind: 'worldCharacter',
+    id: 'character-alpha',
     worldId: 'world-alpha',
-    sourceId: 'character-alpha',
-    sourceContentHash: 'character-alpha-hash',
+    worldEntityRef: { kind: 'worldEntity', worldId: 'world-alpha', entityId: 'entity-alpha' },
+    sourceHash: 'a'.repeat(64),
   });
 
   harness.getState().navigateBack();

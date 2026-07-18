@@ -17,13 +17,13 @@ import {
 } from '@renderer/features/relationship/profile-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import {
-  describeRealmPersonaPrimaryAction,
-  discoverRealmSourceLocalAgents,
-  realmPersonaSourceMaterializationFailureMessage,
-  realmPersonaSourceMaterializationMessage,
-  realmSourceRefKey,
-  resolveRealmPersonaSourceState,
-} from '@renderer/features/explore/realm-persona-source-materialization';
+  characterSourceMaterializationFailureMessage,
+  characterSourceMaterializationMessage,
+  characterSourceRefKey,
+  describeCharacterPrimaryAction,
+  discoverCharacterSourceLocalAgents,
+  resolveCharacterSourceState,
+} from '@renderer/features/explore/character-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
@@ -134,7 +134,7 @@ export function ProfilePanel() {
     }
     return null;
   }, [isOwnProfile, currentUser, profileQuery.data]);
-  const profileSourceRefKey = profile?.sourceRef ? realmSourceRefKey(profile.sourceRef) : 'missing-source-ref';
+  const profileSourceRefKey = profile?.sourceRef ? characterSourceRefKey(profile.sourceRef) : 'missing-source-ref';
   const profileSourceLocalAgentsQuery = useQuery({
     queryKey: [
       'profile-source-local-agents',
@@ -142,7 +142,7 @@ export function ProfilePanel() {
       profileSourceRefKey,
       profile?.runtimeSourceRef ?? '',
     ],
-    queryFn: async () => (profile ? discoverRealmSourceLocalAgents(profile, ownerUserId) : []),
+    queryFn: async () => (profile ? discoverCharacterSourceLocalAgents(profile, ownerUserId) : []),
     enabled: authStatus === 'authenticated' && Boolean(profile?.isSource) && Boolean(ownerUserId),
     staleTime: 10_000,
   });
@@ -150,7 +150,7 @@ export function ProfilePanel() {
     if (!profile?.isSource) {
       return null;
     }
-    return describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(
+    return describeCharacterPrimaryAction(resolveCharacterSourceState(
       profile,
       profileSourceLocalAgentsQuery.data ?? [],
       {
@@ -171,10 +171,10 @@ export function ProfilePanel() {
   const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
   const addFriendBlocked = Boolean(profile?.isSource && sourceAction?.disabled);
   const addFriendHint = profile?.isSource && sourceAction?.disabled
-    ? sourceAction.hint ?? realmPersonaSourceMaterializationMessage()
+    ? sourceAction.hint ?? characterSourceMaterializationMessage()
     : null;
   const addFriendLabel = profile?.isSource
-    ? sourceAction?.label || i18n.t('Explore.realmPersonaSourceMaterialize', { defaultValue: 'Become my partner' })
+    ? sourceAction?.label || i18n.t('Explore.characterSourceMaterialize', { defaultValue: 'Become my partner' })
     : undefined;
 
   const onMessage = async () => {
@@ -209,7 +209,7 @@ export function ProfilePanel() {
     try {
       if (profile.isSource) {
         if (addFriendBlocked) {
-          throw new Error(addFriendHint || realmPersonaSourceMaterializationMessage());
+          throw new Error(addFriendHint || characterSourceMaterializationMessage());
         }
         const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
         await ensureRuntimeAgentExists(target);
@@ -224,7 +224,7 @@ export function ProfilePanel() {
         });
         setFeedback({
           kind: 'success',
-          message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
+          message: i18n.t('Explore.characterSourceMaterializedFeedback', {
             defaultValue: 'Your partner is ready. Opening chat.',
           }),
         });
@@ -244,7 +244,7 @@ export function ProfilePanel() {
       setFeedback({
         kind: 'error',
         message: profile.isSource
-          ? realmPersonaSourceMaterializationFailureMessage(error)
+          ? characterSourceMaterializationFailureMessage(error)
           : toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
       });
     }

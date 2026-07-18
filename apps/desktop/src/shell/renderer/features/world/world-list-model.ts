@@ -1,4 +1,4 @@
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import { isMainWorldType } from './shared';
 
 type LooseObject = { [key: string]: unknown };
@@ -12,8 +12,8 @@ type WorldCharacterSummaryDto = {
   avatarUrl?: string | null;
   profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef?: NimiRealmCoreSourceRef | null;
-  sourceKind?: 'worldCharacter' | 'realmPersona';
+  sourceRef?: CharacterSourceRefV3 | null;
+  sourceKind?: 'worldCharacter' | 'personaCharacter';
   ownership?: 'worldOwned' | 'userOwned';
   display?: LooseObject | null;
 };
@@ -26,8 +26,8 @@ export type WorldCharacterItem = {
   avatarUrl?: string | null;
   profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef?: NimiRealmCoreSourceRef | null;
-  sourceKind?: 'worldCharacter' | 'realmPersona';
+  sourceRef?: CharacterSourceRefV3 | null;
+  sourceKind?: CharacterSourceRefV3['kind'];
   ownership?: 'worldOwned' | 'userOwned';
   role?: string | null;
   tags?: string[];

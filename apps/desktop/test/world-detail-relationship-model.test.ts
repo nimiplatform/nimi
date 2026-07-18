@@ -48,9 +48,10 @@ function character(id: string, name: string, tags: readonly string[] = []): Worl
     bio: `${name} bio`,
     sourceRef: {
       kind: 'worldCharacter',
+      id,
       worldId: 'world-1',
-      sourceId: id,
-      sourceContentHash: `${id}-hash`,
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: `entity-${id}` },
+      sourceHash: 'a'.repeat(64),
     },
     sourceKind: 'worldCharacter',
     ownership: 'worldOwned',

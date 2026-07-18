@@ -1,13 +1,9 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
-import {
-  assertRealmCoreSourceRefMatchesOuterIdentity,
-  normalizeRealmSourceKind,
-  readRealmCoreSourceRef,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+import { resolveCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 
 type SourceWorldProjection = {
   bannerUrl: string | null;
@@ -53,14 +49,6 @@ function toNumberMap(value: unknown): Record<string, number> | undefined {
   return output;
 }
 
-function toSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | undefined {
-  return normalizeRealmSourceKind(value) ?? undefined;
-}
-
-function toRealmCoreSourceRef(value: unknown): NimiRealmCoreSourceRef | undefined {
-  return readRealmCoreSourceRef(value) ?? undefined;
-}
-
 function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): ExplorePersonaSourceCardData | null {
   const source = toRecord(raw);
   if (!source) {
@@ -86,22 +74,13 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     || null;
   const isSource = source.isSource === true || Boolean(sourceRecord);
   const isOnline = source.isOnline === true;
-  const sourceRef = toRealmCoreSourceRef(source.sourceRef);
-  if (sourceRef) {
-    assertRealmCoreSourceRefMatchesOuterIdentity({
-      ...source,
-      sourceKind: source.sourceKind ?? sourceRecord?.sourceKind,
-      sourceWorldId: source.worldId ?? source.homeWorldId ?? sourceRecord?.worldId,
-      sourceId: source.sourceId ?? source.id,
-      sourceContentHash: source.sourceContentHash ?? source.contentHash,
-    }, sourceRef, 'Explore persona source');
+  const sourceRef = resolveCharacterSourceRefV3(source) ?? undefined;
+  if (source.sourceRef && !sourceRef) {
+    throw new Error('PersonaCharacter sourceRef mismatch');
   }
-  const sourceKind = toSourceKind(source.sourceKind) ?? sourceRef?.kind;
-  const sourceId = asString(source.sourceId).trim() || sourceRef?.sourceId || id;
-  const sourceContentHash = asString(source.sourceContentHash).trim()
-    || asString(source.contentHash).trim()
-    || sourceRef?.sourceContentHash
-    || '';
+  const sourceKind = sourceRef?.kind;
+  const sourceId = sourceRef?.id || id;
+  const sourceHash = sourceRef?.sourceHash || '';
 
   const personaStyle = toRecord(sourceRecord?.personaStyle);
   const archetype = asString(source.archetype).trim()
@@ -154,7 +133,7 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     isSource,
     sourceKind,
     sourceId,
-    sourceContentHash,
+    sourceHash,
     runtimeSourceRef: asString(source.runtimeSourceRef).trim() || undefined,
     ...(sourceRef ? { sourceRef } : {}),
     worldId,
@@ -210,7 +189,7 @@ export function toProfileTargetFromPersonaSource(source: ExplorePersonaSourceCar
     sourceWorldId: source.worldId,
     sourceKind: source.sourceKind,
     sourceId: source.sourceId,
-    sourceContentHash: source.sourceContentHash,
+    sourceHash: source.sourceHash,
     runtimeSourceRef: source.runtimeSourceRef,
     sourceRef: source.sourceRef,
   };

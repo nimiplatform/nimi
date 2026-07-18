@@ -34,8 +34,9 @@ those projections to five product states: `ready`, `blocked`, `truncated`,
 `conversationAnchorId` on `AgentCenterRuntimeLoadInput` selects the turn summary
 to read; it does not grant context assembly or mutation authority.
 
-Overview shows a human-readable, read-only status. Advanced shows only admitted
-source identity/hash/coverage and turn lane/count/budget/digest summaries. Raw
+Overview shows a human-readable, read-only status. Advanced shows only the
+admitted `CharacterSourceRefV3` identity (`worldCharacter | personaCharacter`),
+source/snapshot hashes, coverage, and turn lane/count/budget/digest summaries. Raw
 source or world content, prompt/lane text, transcript/private memory, packet or
 proof material, provider payloads, and tool arguments/results are not Agent
 Center props or state. The Behavior section remains exclusively Runtime

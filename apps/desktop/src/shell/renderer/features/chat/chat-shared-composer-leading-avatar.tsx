@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { realmSourceDetailData } from '@renderer/features/source-detail/data/realm-source-detail-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
@@ -122,12 +121,10 @@ function ChatComposerAvatarHoverPreview(props: {
   const profileQuery = useQuery({
     queryKey: ['chat-composer-avatar-preview', props.kind, props.targetId],
     queryFn: async () => {
-      const result = props.kind === 'agent'
-        ? await realmSourceDetailData.loadRealmSourceDetailsForDisplay(props.targetId)
-        : await realmSocialData.loadUserProfile(props.targetId);
+      const result = await realmSocialData.loadUserProfile(props.targetId);
       return result as Record<string, unknown>;
     },
-    enabled: open && authStatus === 'authenticated' && Boolean(props.targetId),
+    enabled: open && authStatus === 'authenticated' && props.kind === 'human' && Boolean(props.targetId),
     staleTime: 60_000,
   });
 

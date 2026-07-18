@@ -1,12 +1,8 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { SourceDetailEntity } from '@renderer/features/source-detail/source-detail-model.js';
-import {
-  assertRealmCoreSourceRefMatchesOuterIdentity,
-  normalizeRealmSourceKind,
-  readRealmCoreSourceRef,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+import { resolveCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 
 export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts' | 'FollowedWorlds';
 
@@ -48,11 +44,11 @@ export type ProfileData = {
   sourcePacing: string | null;
   sourceOwnershipType: string | null;
   sourceWorldId: string | null;
-  sourceKind: NimiRealmCoreSourceRef['kind'] | null;
+  sourceKind: CharacterSourceRefV3['kind'] | null;
   sourceId: string | null;
-  sourceContentHash: string | null;
+  sourceHash: string | null;
   runtimeSourceRef: string | null;
-  sourceRef: NimiRealmCoreSourceRef | null;
+  sourceRef: CharacterSourceRefV3 | null;
   entityId: string | null;
   entityContentHash: string | null;
   entity: SourceDetailEntity | null;
@@ -109,7 +105,6 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   id?: string;
   isSource?: boolean;
   sourceRef?: unknown;
-  sourceContentHash?: string | null;
   runtimeSourceRef?: string | null;
   sourceKind?: string | null;
   sourceId?: string | null;
@@ -153,10 +148,6 @@ function hasRealmSourceIdentity(raw: ProfileSource): boolean {
   return Boolean(raw.source);
 }
 
-function normalizeSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | null {
-  return normalizeRealmSourceKind(value);
-}
-
 function readObjectRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -170,10 +161,6 @@ function readOptionalStringRecord(value: unknown, key: string): string | null {
   }
   const entry = record[key];
   return typeof entry === 'string' && entry.trim() ? entry.trim() : null;
-}
-
-function readSourceRef(value: unknown): NimiRealmCoreSourceRef | null {
-  return readRealmCoreSourceRef(value);
 }
 
 function readStringArray(value: unknown): string[] {
@@ -216,28 +203,11 @@ export function toProfileData(raw: ProfileSource): ProfileData {
   const stats = raw.stats;
   const giftStats = raw.giftStats;
   const world = raw.world;
-  const sourceRefFromPayload = readSourceRef(raw.sourceRef);
-  const outerSourceId = typeof raw.sourceId === 'string' ? raw.sourceId.trim() : '';
-  const outerSourceContentHash = (
-    (typeof raw.sourceContentHash === 'string' ? raw.sourceContentHash.trim() : '')
-    || readOptionalStringRecord(sourceRecord, 'sourceContentHash')
-    || readOptionalStringRecord(sourceRecord, 'contentHash')
-  );
-  if (sourceRefFromPayload) {
-    assertRealmCoreSourceRefMatchesOuterIdentity({
-      ...raw,
-      sourceKind: raw.sourceKind ?? readOptionalStringRecord(sourceRecord, 'sourceKind'),
-      sourceWorldId: (
-        readOptionalStringRecord(sourceRecord, 'worldId')
-        || (typeof raw.sourceWorldId === 'string' ? raw.sourceWorldId.trim() : '')
-      ),
-      sourceId: outerSourceId || raw.id,
-      sourceContentHash: outerSourceContentHash,
-    }, sourceRefFromPayload, 'Profile source');
+  const sourceRefFromPayload = resolveCharacterSourceRefV3(raw);
+  if (raw.sourceRef && !sourceRefFromPayload) {
+    throw new Error('Profile sourceRef mismatch');
   }
-  const sourceKind = sourceRefFromPayload?.kind
-    ?? normalizeSourceKind(raw.sourceKind)
-    ?? normalizeSourceKind(readOptionalStringRecord(sourceRecord, 'sourceKind'));
+  const sourceKind = sourceRefFromPayload?.kind ?? null;
   const sourceWorldId = (
     sourceRefFromPayload?.worldId
     || readOptionalStringRecord(sourceRecord, 'worldId')
@@ -247,23 +217,11 @@ export function toProfileData(raw: ProfileSource): ProfileData {
     ? sourceRecord.personaStyle
     : null;
   const sourceId = (
-    sourceRefFromPayload?.sourceId
-    || outerSourceId
-    || raw.id
+    sourceRefFromPayload?.id
     || null
   );
-  const sourceContentHash = (
-    sourceRefFromPayload?.sourceContentHash
-    || outerSourceContentHash
-  );
-  const sourceRef = sourceRefFromPayload ?? (sourceKind && sourceWorldId && sourceId && sourceContentHash
-    ? {
-        kind: sourceKind,
-        worldId: sourceWorldId,
-        sourceId,
-        sourceContentHash,
-      }
-    : null);
+  const sourceHash = sourceRefFromPayload?.sourceHash ?? null;
+  const sourceRef = sourceRefFromPayload;
 
   const parsedGiftStats: Record<string, number> = {};
   if (giftStats) {
@@ -323,7 +281,7 @@ export function toProfileData(raw: ProfileSource): ProfileData {
     sourceWorldId,
     sourceKind,
     sourceId,
-    sourceContentHash,
+    sourceHash,
     runtimeSourceRef: (
       (typeof raw.runtimeSourceRef === 'string' ? raw.runtimeSourceRef.trim() : '')
       || null

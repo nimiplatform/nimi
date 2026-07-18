@@ -1,128 +1,112 @@
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { NimiRuntimeAgentSourceRef } from '@nimiplatform/sdk/runtime';
 
-type SourceIdentityField = keyof NimiRealmCoreSourceRef;
+export type CharacterSourceRefV3 = NimiRuntimeAgentSourceRef;
 
-function asRecord(value: unknown): Record<string, unknown> | null {
+function asRecord(value: unknown): Readonly<Record<string, unknown>> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? value as Readonly<Record<string, unknown>>
     : null;
 }
 
-function readText(value: unknown): string {
-  return String(value || '').trim();
-}
-
-function readRecordText(record: Record<string, unknown>, key: string): string {
+function readText(record: Readonly<Record<string, unknown>>, key: string): string {
   const value = record[key];
   return typeof value === 'string' ? value.trim() : '';
 }
 
-export function normalizeRealmSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | null {
-  const normalized = readText(value);
-  if (normalized === 'worldCharacter' || normalized === 'WORLD_CHARACTER') {
-    return 'worldCharacter';
-  }
-  if (normalized === 'realmPersona' || normalized === 'REALM_PERSONA') {
-    return 'realmPersona';
-  }
-  return null;
+function hasExactFields(record: Readonly<Record<string, unknown>>, fields: readonly string[]): boolean {
+  const admitted = new Set(fields);
+  return Object.keys(record).every((field) => admitted.has(field));
 }
 
-export function realmSourceRefKey(sourceRef: NimiRealmCoreSourceRef): string {
-  return `${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`;
+function isSourceHash(value: string): boolean {
+  return /^[a-f0-9]{64}$/u.test(value);
 }
 
-export function readRealmCoreSourceRef(value: unknown): NimiRealmCoreSourceRef | null {
+export function readCharacterSourceRefV3(value: unknown): CharacterSourceRefV3 | null {
   const record = asRecord(value);
-  if (!record) {
-    return null;
-  }
-  const kind = normalizeRealmSourceKind(record.kind);
-  const worldId = readRecordText(record, 'worldId');
-  const sourceId = readRecordText(record, 'sourceId');
-  const sourceContentHash = readRecordText(record, 'sourceContentHash');
-  if (!kind || !worldId || !sourceId || !sourceContentHash) {
-    return null;
-  }
-  return { kind, worldId, sourceId, sourceContentHash };
-}
+  if (!record) return null;
 
-function readOuterSourceIdentity(record: Record<string, unknown>): Partial<NimiRealmCoreSourceRef> {
-  const kind = normalizeRealmSourceKind(record.sourceKind ?? record.kind ?? record.originKind);
-  const worldId = readRecordText(record, 'sourceWorldId')
-    || readRecordText(record, 'worldId')
-    || readRecordText(record, 'homeWorldId');
-  const sourceId = readRecordText(record, 'sourceId') || readRecordText(record, 'id');
-  const sourceContentHash = readRecordText(record, 'sourceContentHash')
-    || readRecordText(record, 'contentHash');
-  return {
-    ...(kind ? { kind } : {}),
-    ...(worldId ? { worldId } : {}),
-    ...(sourceId ? { sourceId } : {}),
-    ...(sourceContentHash ? { sourceContentHash } : {}),
-  };
-}
+  const kind = readText(record, 'kind');
+  const id = readText(record, 'id');
+  const worldId = readText(record, 'worldId');
+  const sourceHash = readText(record, 'sourceHash');
+  if (!id || !worldId || !isSourceHash(sourceHash)) return null;
 
-function findSourceRefMismatch(
-  outer: Partial<NimiRealmCoreSourceRef>,
-  sourceRef: NimiRealmCoreSourceRef,
-): SourceIdentityField | null {
-  const fields: readonly SourceIdentityField[] = ['kind', 'worldId', 'sourceId', 'sourceContentHash'];
-  for (const field of fields) {
-    if (outer[field] && outer[field] !== sourceRef[field]) {
-      return field;
+  if (kind === 'worldCharacter') {
+    if (!hasExactFields(record, ['kind', 'id', 'worldId', 'worldEntityRef', 'sourceHash'])) {
+      return null;
     }
+    const worldEntityRef = asRecord(record.worldEntityRef);
+    if (!worldEntityRef
+      || !hasExactFields(worldEntityRef, ['kind', 'worldId', 'entityId'])
+      || readText(worldEntityRef, 'kind') !== 'worldEntity') {
+      return null;
+    }
+    const entityWorldId = readText(worldEntityRef, 'worldId');
+    const entityId = readText(worldEntityRef, 'entityId');
+    if (entityWorldId !== worldId || !entityId) return null;
+    return {
+      kind: 'worldCharacter',
+      id,
+      worldId,
+      worldEntityRef: { kind: 'worldEntity', worldId: entityWorldId, entityId },
+      sourceHash,
+    };
   }
+
+  if (kind === 'personaCharacter') {
+    if (!hasExactFields(record, ['kind', 'id', 'worldId', 'ownerAccountId', 'sourceHash'])) {
+      return null;
+    }
+    const ownerAccountId = readText(record, 'ownerAccountId');
+    if (!ownerAccountId) return null;
+    return { kind: 'personaCharacter', id, worldId, ownerAccountId, sourceHash };
+  }
+
   return null;
 }
 
-export function assertRealmCoreSourceRefMatchesOuterIdentity(
-  input: unknown,
-  sourceRef: NimiRealmCoreSourceRef | null | undefined,
-  label?: string,
-): void {
-  if (!sourceRef) {
-    return;
-  }
+export function resolveCharacterSourceRefV3(input: unknown): CharacterSourceRefV3 | null {
   const record = asRecord(input);
-  if (!record) {
-    return;
+  if (!record) return null;
+  const nested = asRecord(record.sourceRef);
+  const sourceRef = readCharacterSourceRefV3(nested ?? record);
+  if (!sourceRef || !nested) return sourceRef;
+  const claimedId = readText(record, 'id') || readText(record, 'sourceId');
+  const claimedKind = readText(record, 'sourceKind');
+  const claimedWorldId = readText(record, 'sourceWorldId') || readText(record, 'worldId');
+  const claimedSourceHash = readText(record, 'sourceHash');
+  if ((claimedId && claimedId !== sourceRef.id)
+    || (claimedKind && claimedKind !== sourceRef.kind)
+    || (claimedWorldId && claimedWorldId !== sourceRef.worldId)
+    || (claimedSourceHash && claimedSourceHash !== sourceRef.sourceHash)) {
+    return null;
   }
-  const mismatch = findSourceRefMismatch(readOuterSourceIdentity(record), sourceRef);
-  if (mismatch) {
-    const labelPrefix = label ? `${label} ` : '';
-    throw new Error(`${labelPrefix}sourceRef mismatch: ${mismatch}`);
-  }
+  return sourceRef;
 }
 
-export function resolveRealmCoreSourceRef(input: unknown): NimiRealmCoreSourceRef | null {
-  const record = asRecord(input);
-  if (!record) {
-    return null;
+export function characterSourceRefKey(sourceRef: CharacterSourceRefV3): string {
+  if (sourceRef.kind === 'worldCharacter') {
+    return [
+      sourceRef.kind,
+      sourceRef.worldId,
+      sourceRef.id,
+      sourceRef.worldEntityRef.entityId,
+      sourceRef.sourceHash,
+    ].join(':');
   }
+  return [
+    sourceRef.kind,
+    sourceRef.worldId,
+    sourceRef.id,
+    sourceRef.ownerAccountId,
+    sourceRef.sourceHash,
+  ].join(':');
+}
 
-  const nestedSourceRefRecord = asRecord(record.sourceRef);
-  if (nestedSourceRefRecord) {
-    const sourceRef = readRealmCoreSourceRef(nestedSourceRefRecord);
-    if (!sourceRef) {
-      return null;
-    }
-    try {
-      assertRealmCoreSourceRefMatchesOuterIdentity(record, sourceRef);
-    } catch {
-      return null;
-    }
-    return sourceRef;
-  }
-
-  const outer = readOuterSourceIdentity(record);
-  if (!outer.kind || !outer.worldId || !outer.sourceId || !outer.sourceContentHash) {
-    return null;
-  }
-  return {
-    kind: outer.kind,
-    worldId: outer.worldId,
-    sourceId: outer.sourceId,
-    sourceContentHash: outer.sourceContentHash,
-  };
+export function characterSourceRefsEqual(
+  left: CharacterSourceRefV3,
+  right: CharacterSourceRefV3,
+): boolean {
+  return characterSourceRefKey(left) === characterSourceRefKey(right);
 }

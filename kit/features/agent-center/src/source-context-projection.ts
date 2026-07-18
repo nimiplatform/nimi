@@ -17,7 +17,9 @@ const SOURCE_FIELDS = new Set([
   'sourceSchemaVersion', 'snapshotSchemaVersion', 'snapshotHash', 'capturedAt',
   'worldContentHash', 'materializationContextHash', 'coverageSections',
 ]);
-const SOURCE_REF_FIELDS = new Set(['kind', 'worldId', 'sourceId', 'sourceContentHash']);
+const WORLD_SOURCE_REF_FIELDS = new Set(['kind', 'id', 'worldId', 'worldEntityRef', 'sourceHash']);
+const PERSONA_SOURCE_REF_FIELDS = new Set(['kind', 'id', 'worldId', 'ownerAccountId', 'sourceHash']);
+const WORLD_ENTITY_REF_FIELDS = new Set(['kind', 'worldId', 'entityId']);
 const COVERAGE_FIELDS = new Set([
   'section', 'state', 'requiredCount', 'resolvedCount', 'omittedCount',
 ]);
@@ -55,18 +57,35 @@ function enumName(prefix: string, value: unknown): string {
 
 function sourceKindName(value: unknown): string {
   return value === 'worldCharacter'
-    ? 'AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER'
-    : value === 'realmPersona'
-      ? 'AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA'
-      : `AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_${String(value).toUpperCase()}`;
+    ? 'CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER'
+    : value === 'personaCharacter'
+      ? 'CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER'
+      : `CHARACTER_SOURCE_KIND_V3_${String(value).toUpperCase()}`;
 }
 
 function sourceRefForDecoder(value: NimiRuntimeAgentSourceContextStatus['sourceRef']): unknown {
   if (!value) return undefined;
-  if (!hasOnlyFields(value, SOURCE_REF_FIELDS)) throw new Error('source ref is not bounded');
+  if (value.kind === 'worldCharacter') {
+    if (!hasOnlyFields(value, WORLD_SOURCE_REF_FIELDS)
+      || !hasOnlyFields(value.worldEntityRef, WORLD_ENTITY_REF_FIELDS)) {
+      throw new Error('world character source ref is not bounded');
+    }
+    return {
+      worldCharacter: {
+        ...value,
+        kind: sourceKindName(value.kind),
+        worldEntityRef: {
+          ...value.worldEntityRef,
+          kind: 'WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY',
+        },
+      },
+    };
+  }
+  if (!hasOnlyFields(value, PERSONA_SOURCE_REF_FIELDS)) {
+    throw new Error('persona character source ref is not bounded');
+  }
   return {
-    ...value,
-    kind: sourceKindName(value.kind),
+    personaCharacter: { ...value, kind: sourceKindName(value.kind) },
   };
 }
 
@@ -77,8 +96,8 @@ function decodeCanonicalSource(
   if (!hasOnlyFields(value, SOURCE_FIELDS) || !Array.isArray(value.coverageSections)) {
     throw new Error('source projection is not bounded');
   }
-  if (value.schemaVersion !== 'v1'
-    || value.snapshotSchemaVersion !== null && value.snapshotSchemaVersion !== 'v1') {
+  if (value.schemaVersion !== 'v2'
+    || value.snapshotSchemaVersion !== null && value.snapshotSchemaVersion !== 'v2') {
     throw new Error('source projection version is not admitted');
   }
   const coverageSections = value.coverageSections.map((section) => {
@@ -90,7 +109,7 @@ function decodeCanonicalSource(
     };
   });
   return decodeNimiRuntimeAgentSourceContextStatus({
-    schemaVersion: 'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1',
+    schemaVersion: 'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2',
     ready: value.ready,
     state: enumName('AGENT_LOCAL_SOURCE_CONTEXT_STATE_', value.state),
     reasonCode: enumName('AGENT_CONTEXT_PROJECTION_REASON_CODE_', value.reasonCode),
@@ -98,7 +117,7 @@ function decodeCanonicalSource(
     ...(value.sourceRef ? { sourceRef: sourceRefForDecoder(value.sourceRef) } : {}),
     ...(value.sourceSchemaVersion ? { sourceSchemaVersion: value.sourceSchemaVersion } : {}),
     ...(value.snapshotSchemaVersion ? {
-      snapshotSchemaVersion: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1',
+      snapshotSchemaVersion: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2',
     } : {}),
     ...(value.snapshotHash ? { snapshotHash: value.snapshotHash } : {}),
     ...(value.capturedAt ? { capturedAt: value.capturedAt } : {}),
@@ -112,8 +131,7 @@ function decodeCanonicalSource(
 
 function turnSourceRefForDecoder(value: NimiRuntimeAgentTurnContextSummary['sourceRef']): unknown {
   if (!value) return undefined;
-  if (!hasOnlyFields(value, SOURCE_REF_FIELDS)) throw new Error('turn source ref is not bounded');
-  return { ...value, kind: sourceKindName(value.kind) };
+  return sourceRefForDecoder(value);
 }
 
 /** Re-encodes the SDK canonical union through its own strict decoder. */
@@ -223,8 +241,8 @@ function sourceSummary(
     schemaVersion: source.schemaVersion,
     sourceSchemaVersion: source.sourceSchemaVersion,
     worldId: source.sourceRef.worldId,
-    sourceId: source.sourceRef.sourceId,
-    sourceContentHash: source.sourceRef.sourceContentHash,
+    sourceId: source.sourceRef.id,
+    sourceHash: source.sourceRef.sourceHash,
     snapshotHash: source.snapshotHash,
     worldContentHash: source.worldContentHash,
     materializationContextHash: source.materializationContextHash,

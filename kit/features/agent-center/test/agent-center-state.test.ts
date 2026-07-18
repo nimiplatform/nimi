@@ -31,19 +31,20 @@ function stateInput(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStat
 
 function readySourceStatus(): NonNullable<AgentCenterStateInput['sourceContextStatus']> {
   return {
-    schemaVersion: 'v1',
+    schemaVersion: 'v2',
     ready: true,
     state: 'ready',
     reasonCode: 'none',
     localAgentRef: 'local-agent:owner:agent',
     sourceRef: {
-      kind: 'realmPersona',
+      kind: 'personaCharacter',
+      id: 'persona-1',
       worldId: 'world-1',
-      sourceId: 'persona-1',
-      sourceContentHash: 'a'.repeat(64),
+      ownerAccountId: 'owner-1',
+      sourceHash: 'a'.repeat(64),
     },
-    sourceSchemaVersion: 'realm.persona/v1',
-    snapshotSchemaVersion: 'v1',
+    sourceSchemaVersion: 'realm.persona-character-core/v1',
+    snapshotSchemaVersion: 'v2',
     snapshotHash: 'b'.repeat(64),
     capturedAt: '2026-07-11T01:02:03.000Z',
     worldContentHash: 'c'.repeat(64),
@@ -82,8 +83,8 @@ describe('Agent Center state', () => {
 
     expect(state.sourceContext.status).toBe('unknown');
     expect(state.sourceContext.source).toMatchObject({
-      kind: 'realmPersona',
-      sourceContentHash: 'a'.repeat(64),
+      kind: 'personaCharacter',
+      sourceHash: 'a'.repeat(64),
     });
     expect(state.baseTextReady).toBe(true);
     expect(state.runtimeStatus).toBe('ready');

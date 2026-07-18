@@ -127,7 +127,7 @@ const DEFAULT_ADVANCED_COPY: Required<AgentCenterAdvancedCopy> = {
   sourceKindLabel: 'Source kind',
   sourceReferenceLabel: 'Source reference',
   sourceSchemaLabel: 'Source schema',
-  sourceContentHashLabel: 'Source content hash',
+  sourceHashLabel: 'Source hash',
   sourceSnapshotLabel: 'Source snapshot',
   sourceCoverageLabel: 'Source coverage',
   contextLanesLabel: 'Context lanes',
@@ -142,7 +142,7 @@ const DEFAULT_ADVANCED_COPY: Required<AgentCenterAdvancedCopy> = {
   sourceContextFailedValue: 'Unavailable',
   sourceContextUnknownValue: 'Not projected',
   worldCharacterValue: 'World character',
-  realmPersonaValue: 'Realm persona',
+  personaCharacterValue: 'Persona character',
   sourceCoverageFormat: '{{complete}} of {{total}} sections complete',
   contextLanesFormat: '{{included}} included, {{total}} total',
   contextBudgetFormat: '{{used}} of {{budget}} tokens used',
@@ -347,7 +347,7 @@ function AgentCenterAdvanced({
           <Kv
             label={copy.sourceKindLabel}
             value={source
-              ? source.kind === 'worldCharacter' ? copy.worldCharacterValue : copy.realmPersonaValue
+              ? source.kind === 'worldCharacter' ? copy.worldCharacterValue : copy.personaCharacterValue
               : copy.unavailableValue}
           />
           <Kv
@@ -356,7 +356,7 @@ function AgentCenterAdvanced({
             mono={Boolean(source)}
           />
           <Kv label={copy.sourceSchemaLabel} value={source?.sourceSchemaVersion || copy.unavailableValue} mono={Boolean(source)} />
-          <Kv label={copy.sourceContentHashLabel} value={source?.sourceContentHash || copy.unavailableValue} mono={Boolean(source)} />
+          <Kv label={copy.sourceHashLabel} value={source?.sourceHash || copy.unavailableValue} mono={Boolean(source)} />
           <Kv label={copy.sourceSnapshotLabel} value={source?.snapshotHash || copy.unavailableValue} mono={Boolean(source)} />
           <Kv
             label={copy.sourceCoverageLabel}

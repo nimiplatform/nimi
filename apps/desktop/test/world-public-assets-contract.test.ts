@@ -83,9 +83,10 @@ test('fetchWorldPublicAssets decodes canonical WorldCore asset references withou
           relation: { state: 'connectable', connectionId: null, runtimeSourceRef: null },
           sourceRef: {
             kind: 'worldCharacter',
-            sourceId: 'world-character-wukong',
+            id: 'world-character-wukong',
             worldId: 'world-1',
-            sourceContentHash: 'hash-wukong',
+            worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-wukong' },
+            sourceHash: 'a'.repeat(64),
           },
         }],
         relatedEvents: [{

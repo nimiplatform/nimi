@@ -7,8 +7,8 @@ import {
   type LocalAgentListItem,
 } from '../src/shell/renderer/features/agents/local-agent-list-model.js';
 import {
-  resolveRealmPersonaSourceState,
-} from '../src/shell/renderer/features/explore/realm-persona-source-materialization.js';
+  resolveCharacterSourceState,
+} from '../src/shell/renderer/features/explore/character-source-materialization.js';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
 
@@ -35,37 +35,38 @@ test('source materialization launch paths refresh Runtime localAgent list before
 
 test('Source Detail can derive local_agent_available from Runtime ListAgents projection', () => {
   const sourceRef = {
-    kind: 'realmPersona' as const,
+    kind: 'personaCharacter' as const,
+    id: 'persona-1',
     worldId: 'world-1',
-    sourceId: 'persona-1',
-    sourceContentHash: 'hash-1',
+    ownerAccountId: 'account-1',
+    sourceHash: 'a'.repeat(64),
   };
   const [projection] = toLocalAgentSourceDiscoveryProjections([{
     localAgentRef: 'local-agent:runtime-0123456789abcdef0123456789abcdef',
     ownerUserId: 'owner-1',
-    runtimeSourceRef: 'runtime-source:realmPersona:world-1:persona-1:hash-1',
+    runtimeSourceRef: 'runtime-source:personaCharacter:world-1:persona-1',
     displayName: 'Persona One',
     sourceRef,
-    sourceKey: 'realmPersona:world-1:persona-1:hash-1',
+    sourceKey: `personaCharacter:world-1:persona-1:account-1:${'a'.repeat(64)}`,
   } satisfies LocalAgentListItem], sourceRef);
 
   assert.deepEqual(projection, {
     ownerUserId: 'owner-1',
-    runtimeSourceRef: 'runtime-source:realmPersona:world-1:persona-1:hash-1',
+    runtimeSourceRef: 'runtime-source:personaCharacter:world-1:persona-1',
     localAgentRef: 'local-agent:runtime-0123456789abcdef0123456789abcdef',
-    sourceKind: 'realmPersona',
+    sourceKind: 'personaCharacter',
     sourceWorldId: 'world-1',
     sourceId: 'persona-1',
-    sourceContentHash: 'hash-1',
+    sourceHash: 'a'.repeat(64),
   });
   assert.equal(
-    resolveRealmPersonaSourceState({
+    resolveCharacterSourceState({
       id: 'persona-1',
       sourceRef,
       sourceKind: sourceRef.kind,
       sourceWorldId: sourceRef.worldId,
-      sourceId: sourceRef.sourceId,
-      sourceContentHash: sourceRef.sourceContentHash,
+      sourceId: sourceRef.id,
+      sourceHash: sourceRef.sourceHash,
       runtimeSourceRef: null,
     }, projection ? [projection] : []),
     'local_agent_available',

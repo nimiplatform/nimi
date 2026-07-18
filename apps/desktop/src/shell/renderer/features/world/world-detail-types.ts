@@ -1,4 +1,4 @@
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 
 export type WorldRecommendedCharacterDisplay = {
   readonly role?: string | null;
@@ -13,7 +13,7 @@ export type WorldRecommendedCharacter = {
   readonly name: string;
   readonly handle?: string | null;
   readonly avatarUrl?: string | null;
-  readonly sourceRef?: NimiRealmCoreSourceRef | null;
+  readonly sourceRef?: CharacterSourceRefV3 | null;
   readonly importance?: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | null;
   readonly display?: WorldRecommendedCharacterDisplay | null;
 };
@@ -94,8 +94,8 @@ export type WorldCharacter = {
   readonly name: string;
   readonly handle: string;
   readonly bio: string;
-  readonly sourceRef: NimiRealmCoreSourceRef;
-  readonly sourceKind?: 'worldCharacter' | 'realmPersona';
+  readonly sourceRef: CharacterSourceRefV3;
+  readonly sourceKind?: CharacterSourceRefV3['kind'];
   readonly ownership?: 'worldOwned' | 'userOwned';
   readonly relation?: {
     readonly state: 'connectable' | 'connected' | 'unavailable';

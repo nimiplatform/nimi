@@ -5,23 +5,21 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
-  fromNimiRuntimeProtoStruct,
-  isRuntimeLocalAgentRef,
-} from '@nimiplatform/sdk/runtime';
-import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
+  characterSourceRefKey,
+  readCharacterSourceRefV3,
+  type CharacterSourceRefV3,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 import {
-  getDesktopRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { realmSourceRefKey } from '@renderer/features/explore/realm-persona-source-materialization';
+  fetchLocalAgentList,
+  type LocalAgentListItem,
+} from '@renderer/features/agents/local-agent-list-model.js';
 import { realmGroupChatData, type GroupSourceParticipantInput } from './data/realm-group-chat-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
-type GroupSourceRef = GroupSourceParticipantInput['sourceRef'];
-
 type SourceFromSnapshot = {
   sourceKey: string;
   ownerUserId: string;
+  sourceRef: CharacterSourceRefV3;
   input: GroupSourceParticipantInput;
   displayName: string;
   handle: string;
@@ -32,58 +30,26 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function toGroupSourceRefFromMaterialization(value: unknown): GroupSourceRef | null {
-  const record = readRecord(value);
-  if (!record) return null;
-  const kind = normalizeText(record.sourceKind);
-  if (kind !== 'worldCharacter' && kind !== 'realmPersona') return null;
-  const worldId = normalizeText(record.sourceWorldId);
-  const sourceId = normalizeText(record.sourceId);
-  const sourceContentHash = normalizeText(record.sourceContentHash);
-  if (!worldId || !sourceId || !sourceContentHash) return null;
-  return {
-    kind,
-    worldId,
-    sourceId,
-    sourceContentHash,
-  };
-}
-
-function toSourceFromRuntimeAgent(agent: {
-  readonly displayName?: string;
-  readonly localAgentRef?: string;
-  readonly metadata?: Parameters<typeof fromNimiRuntimeProtoStruct>[0];
-  readonly ownerUserId?: string;
-  readonly runtimeSourceRef?: string;
-}, currentUserId: string): SourceFromSnapshot | null {
+function toSourceFromRuntimeAgent(agent: LocalAgentListItem, currentUserId: string): SourceFromSnapshot | null {
   const ownerUserId = normalizeText(agent.ownerUserId);
   if (ownerUserId !== currentUserId) return null;
-  if (!isRuntimeLocalAgentRef(agent.localAgentRef)) return null;
-  const metadata = fromNimiRuntimeProtoStruct(agent.metadata);
-  const sourceRef = toGroupSourceRefFromMaterialization(metadata.sourceMaterialization);
-  if (!sourceRef) return null;
-  const sourceKey = realmSourceRefKey(sourceRef);
-  const displayName = normalizeText(agent.displayName) || sourceRef.sourceId;
+  const sourceRef = agent.sourceRef;
+  const sourceKey = characterSourceRefKey(sourceRef);
+  const displayName = normalizeText(agent.displayName) || sourceRef.id;
   return {
     sourceKey,
     ownerUserId,
+    sourceRef,
     input: { sourceRef },
     displayName,
-    handle: sourceRef.sourceId,
+    handle: sourceRef.id,
     avatarUrl: null,
   };
 }
 
 function sourceParticipantKey(participant: GroupParticipantDto): string {
-  if (participant.sourceRef) {
-    return realmSourceRefKey(participant.sourceRef);
-  }
+  const sourceRef = readCharacterSourceRefV3(participant.sourceRef);
+  if (sourceRef) return characterSourceRefKey(sourceRef);
   return normalizeText(participant.runtimeSourceRef) || normalizeText(participant.runtimeParticipantSlot);
 }
 
@@ -152,16 +118,9 @@ export function ChatGroupParticipantPanel(props: {
       };
     }
     setSourcePickerLoading(true);
-    void withDesktopRuntimeProtectedScopes(
-      ['runtime.agent.read'],
-      (callOptions) => getDesktopRuntime().agents.listAgents({
-        lifecycleFilter: AgentLifecycleStatus.ACTIVE,
-        pageSize: 200,
-        pageToken: '',
-      }, callOptions),
-    ).then((response) => {
+    void fetchLocalAgentList(currentUserId).then((agents) => {
       if (cancelled) return;
-      setRuntimeSources((response.agents || [])
+      setRuntimeSources(agents
         .map((agent) => toSourceFromRuntimeAgent(agent, currentUserId))
         .filter((source): source is SourceFromSnapshot => Boolean(source)));
     }).catch((error) => {
@@ -217,7 +176,7 @@ export function ChatGroupParticipantPanel(props: {
         details: {
           chatId,
           runtimeSourceRef: source.sourceKey,
-          sourceId: source.input.sourceRef.sourceId,
+          sourceId: source.sourceRef.id,
         },
       });
     } finally {

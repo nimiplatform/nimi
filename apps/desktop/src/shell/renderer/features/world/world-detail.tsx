@@ -6,7 +6,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { realmPersonaSourceMaterializationFailureMessage } from '@renderer/features/explore/realm-persona-source-materialization';
+import { characterSourceMaterializationFailureMessage } from '@renderer/features/explore/character-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import {
@@ -208,8 +208,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         displayName: character.name,
         sourceWorldId: character.sourceRef.worldId,
         sourceKind: character.sourceRef.kind,
-        sourceId: character.sourceRef.sourceId,
-        sourceContentHash: character.sourceRef.sourceContentHash,
+        sourceId: character.sourceRef.id,
+        sourceHash: character.sourceRef.sourceHash,
       }, ownerUserId);
       await ensureRuntimeAgentExists(target);
       setFeedback({
@@ -217,7 +217,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         message: `${character.name} is ready as your partner.`,
       });
     } catch (error) {
-      const message = realmPersonaSourceMaterializationFailureMessage(error);
+      const message = characterSourceMaterializationFailureMessage(error);
       setFeedback({ kind: 'error', message });
     }
   };

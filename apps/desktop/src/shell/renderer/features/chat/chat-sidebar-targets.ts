@@ -165,7 +165,7 @@ export function toAgentTargetsFromLocalAgentList(
         runtimeSourceRef: agent.runtimeSourceRef,
         localAgentRef: agent.localAgentRef,
         displayName: source?.displayName || agent.displayName,
-        handle: source?.handle || agent.sourceRef.sourceId,
+        handle: source?.handle || agent.sourceRef.id,
         avatarUrl: source?.avatarUrl ?? null,
         worldId: source?.worldId || agent.sourceRef.worldId,
         worldName: worldNameById.get(source?.worldId || agent.sourceRef.worldId) || null,

@@ -27,7 +27,7 @@ import type {
 } from '@renderer/features/chat/conversation-capability';
 import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -104,7 +104,7 @@ export type AppStoreState = {
   selectedChatId: string | null;
   selectedProfileId: string | null;
   selectedProfileIsSource: boolean | null;
-  selectedSourceRef: NimiRealmCoreSourceRef | null;
+  selectedSourceRef: CharacterSourceRefV3 | null;
   selectedWorldId: string | null;
   selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
   selectedGiftTransactionId: string | null;
@@ -152,7 +152,7 @@ export type AppStoreState = {
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
   setSelectedProfileIsSource: (isSource: boolean | null) => void;
-  setSelectedSourceRef: (sourceRef: NimiRealmCoreSourceRef | null) => void;
+  setSelectedSourceRef: (sourceRef: CharacterSourceRefV3 | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
   setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
   setExploreActiveSection: (section: ExploreSectionId) => void;
@@ -161,7 +161,7 @@ export type AppStoreState = {
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string | null, tab: 'profile' | 'source-detail') => void;
-  navigateToSourceDetail: (sourceRef: NimiRealmCoreSourceRef) => void;
+  navigateToSourceDetail: (sourceRef: CharacterSourceRefV3) => void;
   navigateToWorld: (worldId: string, options?: WorldDetailNavigationOptions) => void;
   navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;

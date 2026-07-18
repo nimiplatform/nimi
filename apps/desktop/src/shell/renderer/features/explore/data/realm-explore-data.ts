@@ -53,25 +53,25 @@ function readExternalAssetUri(core: Record<string, unknown>, kinds: readonly str
   return undefined;
 }
 
-function failRealmPersonaContract(reasonCode: string, message: string): never {
+function failPersonaCharacterContract(reasonCode: string, message: string): never {
   const error = new Error(message) as Error & { reasonCode?: string };
   error.reasonCode = reasonCode;
   throw error;
 }
 
-function requireRealmPersonaCore(value: unknown): Record<string, unknown> {
+function requirePersonaCharacterCore(value: unknown): Record<string, unknown> {
   const persona = asRecord(value);
   if (!persona.id || typeof persona.id !== 'string') {
-    failRealmPersonaContract(
-      'SDK_REALM_PERSONA_CORE_CONTRACT_INVALID',
-      'RealmPersona payload is missing id',
+    failPersonaCharacterContract(
+      'SDK_REALM_PERSONA_CHARACTER_CORE_CONTRACT_INVALID',
+      'PersonaCharacter payload is missing id',
     );
   }
-  const core = asRecord(persona.core);
-  if (Object.keys(core).length === 0) {
-    failRealmPersonaContract(
-      'SDK_REALM_PERSONA_CORE_CONTRACT_INVALID',
-      `RealmPersona ${persona.id} payload is missing core object`,
+  const profile = asRecord(persona.profile);
+  if (Object.keys(profile).length === 0) {
+    failPersonaCharacterContract(
+      'SDK_REALM_PERSONA_CHARACTER_CORE_CONTRACT_INVALID',
+      `PersonaCharacter ${persona.id} payload is missing profile object`,
     );
   }
   return persona;
@@ -88,36 +88,38 @@ export async function loadExplorePersonas(
   return callApi(
     async (realm) => {
       void emitRealmExploreError;
-      const rows = await realm.worldCore.worldCoreControllerListRealmPersonas({
+      const rows = await realm.worldCore.worldCoreControllerListPersonaCharacters({
         path: {},
         query: { take: limit, visibility: 'public' },
       });
       if (!Array.isArray(rows)) {
-        failRealmPersonaContract(
-          'SDK_REALM_PERSONA_CORE_LIST_CONTRACT_INVALID',
-          'RealmPersona list payload must be an array',
+        failPersonaCharacterContract(
+          'SDK_REALM_PERSONA_CHARACTER_CORE_LIST_CONTRACT_INVALID',
+          'PersonaCharacter list payload must be an array',
         );
       }
       const normalizedQuery = query?.toLowerCase();
       const normalizedTag = tag?.toLowerCase();
       const items = rows.map((row) => {
-        const persona = requireRealmPersonaCore(row);
-        const core = asRecord(persona.core);
-        const identity = asRecord(core.identity);
-        const presentation = asRecord(core.presentation);
-        const interactionProfile = asRecord(core.interactionProfile);
-        const contentProfile = asRecord(core.contentProfile);
-        const personaStyle = asRecord(core.personaStyle);
+        const persona = requirePersonaCharacterCore(row);
+        const profile = asRecord(persona.profile);
+        const identity = asRecord(profile.identity);
+        const presentation = asRecord(profile.presentation);
+        const interactionProfile = asRecord(profile.interactionProfile);
+        const contentProfile = asRecord(profile.contentProfile);
+        const personaStyle = asRecord(profile.personaStyle);
         const origin = asRecord(persona.origin);
-        const homeWorldId = normalizeText(persona.homeWorldId)
+        const homeWorldId = normalizeText(persona.worldId)
           ?? normalizeText(interactionProfile.homeWorldId);
-        const contentHash = normalizeText(persona.contentHash);
-        const sourceRef = homeWorldId && contentHash
+        const sourceHash = normalizeText(persona.sourceHash);
+        const ownerAccountId = normalizeText(persona.ownerAccountId);
+        const sourceRef = homeWorldId && sourceHash && ownerAccountId
           ? {
-              kind: 'realmPersona' as const,
+              kind: 'personaCharacter' as const,
+              id: String(persona.id),
               worldId: homeWorldId,
-              sourceId: String(persona.id),
-              sourceContentHash: contentHash,
+              ownerAccountId,
+              sourceHash,
             }
           : null;
         const displayName = normalizeText(presentation.displayName)
@@ -134,17 +136,17 @@ export async function loadExplorePersonas(
           name: displayName,
           handle,
           avatarUrl: normalizeText(presentation.avatarResourceRef)
-            ?? readExternalAssetUri(core, ['avatar', 'referenceImage'])
+            ?? readExternalAssetUri(profile, ['avatar', 'referenceImage'])
             ?? null,
           bio: normalizeText(identity.summary)
             ?? normalizeText(presentation.profileLine)
             ?? normalizeText(presentation.shortBio)
             ?? null,
           tags,
-          source: core,
-          sourceKind: 'realmPersona',
+          source: profile,
+          sourceKind: 'personaCharacter',
           sourceId: persona.id,
-          sourceContentHash: contentHash ?? null,
+          sourceHash: sourceHash ?? null,
           sourceRef,
           runtimeSourceRef: null,
           visibility: normalizeText(persona.visibility) ?? null,
@@ -168,7 +170,7 @@ export async function loadExplorePersonas(
       });
       return { items };
     },
-    '加载 RealmPersona 探索失败',
+    '加载 PersonaCharacter 探索失败',
   );
 }
 

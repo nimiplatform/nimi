@@ -63,11 +63,10 @@ const world = {
   updatedAt: '2026-06-19T00:00:00.000Z',
 };
 
-function source(kind: 'worldCharacter' | 'realmPersona', id: string) {
+function source(kind: 'worldCharacter' | 'personaCharacter', id: string) {
   const ownership: 'worldOwned' | 'userOwned' = kind === 'worldCharacter' ? 'worldOwned' : 'userOwned';
   const importance: 'PRIMARY' | 'SECONDARY' = kind === 'worldCharacter' ? 'PRIMARY' : 'SECONDARY';
   const relationState = 'connectable' as const;
-  const sourceContentHash = `${kind}-hash-${id}`;
   return {
     id,
     name: kind === 'worldCharacter' ? 'Archivist Liora' : 'Mira Vale',
@@ -76,12 +75,21 @@ function source(kind: 'worldCharacter' | 'realmPersona', id: string) {
     avatarUrl: null,
     sourceKind: kind,
     ownership,
-    sourceRef: {
-      kind,
-      worldId: 'world-1',
-      sourceId: id,
-      sourceContentHash,
-    },
+    sourceRef: kind === 'worldCharacter'
+      ? {
+          kind,
+          id,
+          worldId: 'world-1',
+          worldEntityRef: { kind: 'worldEntity' as const, worldId: 'world-1', entityId: `entity-${id}` },
+          sourceHash: 'a'.repeat(64),
+        }
+      : {
+          kind,
+          id,
+          worldId: 'world-1',
+          ownerAccountId: 'account-1',
+          sourceHash: 'b'.repeat(64),
+        },
     relation: {
       state: relationState,
       connectionId: null,
@@ -120,7 +128,7 @@ test('World detail display keeps world characters and public personas as source 
           worldName: 'Eldoria',
         },
       },
-      source('realmPersona', 'persona-1'),
+      source('personaCharacter', 'persona-1'),
     ],
   });
   realmWorldData.loadWorldHistory = async () => ({ items: [] });
@@ -133,11 +141,11 @@ test('World detail display keeps world characters and public personas as source 
     const sources = detail.characters as Array<{ id: string; sourceKind?: string; ownership?: string }>;
     assert.equal(sources.length, 2);
     assert.equal(sources[0]?.sourceKind, 'worldCharacter');
-    assert.equal(sources[1]?.sourceKind, 'realmPersona');
+    assert.equal(sources[1]?.sourceKind, 'personaCharacter');
     assert.equal(sources[1]?.ownership, 'userOwned');
     assert.equal(
-      (detail.characters[0]?.sourceRef as { sourceContentHash?: string } | undefined)?.sourceContentHash,
-      'worldCharacter-hash-character-1',
+      detail.characters[0]?.sourceRef.sourceHash,
+      'a'.repeat(64),
     );
     assert.deepEqual(detail.characters[0]?.tags, ['与许有壬有交往。']);
   } finally {
@@ -152,7 +160,7 @@ test('World detail display keeps world characters and public personas as source 
 test('World detail source cards stay Realm sources without connection overlay state', () => {
   const characters = [
     source('worldCharacter', 'character-1'),
-    source('realmPersona', 'persona-1'),
+    source('personaCharacter', 'persona-1'),
   ];
 
   assert.equal(characters[0]?.relation?.state, 'connectable');

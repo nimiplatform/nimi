@@ -33,15 +33,14 @@ test('Desktop has no Realm source to LocalAgent courier', () => {
   }
 });
 
-test('source chat launch delegates challenge, packet v2, chunks, and terminal Commit to SDK', () => {
+test('source chat launch delegates CharacterSourceRefV3 and request id to the SDK facade', () => {
   const launchTarget = readRenderer('features/relationship/source-contact-launch-target.ts');
-  const materialization = readRenderer('features/explore/realm-persona-source-materialization.ts');
+  const materialization = readRenderer('features/explore/character-source-materialization.ts');
   const launcher = readRenderer('features/chat/agent-conversation-launcher.ts');
   const adapterState = readRenderer('features/chat/chat-agent-shell-adapter-state.ts');
   const alignmentTest = read('apps/desktop/test/contact-agent-local-launch-alignment.test.ts');
 
-  assert.match(launchTarget, /materializeRealmSourceLocalAgent/);
-  assert.match(launchTarget, /materialized\.runtimeSourceRef/);
+  assert.match(launchTarget, /materializeCharacterSourceLocalAgent/);
   assert.doesNotMatch(launchTarget, new RegExp(['initialize', 'Local', 'Agent'].join('')));
   assert.doesNotMatch(launchTarget, new RegExp(['source', 'Materialization', 'Packet'].join('')));
   assert.match(launchTarget, /normalizeRequiredText\(\s*source\.runtimeSourceRef,\s*'runtimeSourceRef'/);
@@ -50,8 +49,10 @@ test('source chat launch delegates challenge, packet v2, chunks, and terminal Co
   assert.doesNotMatch(launchTarget, /runtime-source:\$\{/);
   assert.doesNotMatch(launchTarget, /source\.id\s+as\s+runtimeSourceRef/);
 
-  assert.match(materialization, /createNimiHostRuntimeAgentMaterializationSurface/);
+  assert.match(materialization, /getDesktopRuntime\(\)\.materializeRealmSource/);
   assert.match(materialization, /materializeRealmSource/);
+  assert.match(materialization, /sourceRef,/);
+  assert.match(materialization, /requestId: createMaterializationRequestId\(\)/);
   assert.doesNotMatch(materialization, /intendedRuntimeAudience/);
   assert.doesNotMatch(materialization, new RegExp(['active', 'Source', 'Connections'].join('')));
   assert.doesNotMatch(materialization, /runtimeSourceRef:\s*source\.id/);

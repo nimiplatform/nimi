@@ -59,18 +59,18 @@ test('Explore fold mounts complete Worlds catalog under Explore', () => {
   assert.match(explorePanelSource, /worldsError=\{worldsQuery\.isError\}/);
 });
 
-test('Explore fold keeps RealmPersona discovery as Explore-owned discovery without direct source chat', () => {
+test('Explore fold keeps PersonaCharacter discovery as Explore-owned discovery without direct source chat', () => {
   assert.match(explorePanelSource, /realmExploreData\.loadExplorePersonas/);
-  assert.match(realmExploreDataSource, /worldCoreControllerListRealmPersonas/);
+  assert.match(realmExploreDataSource, /worldCoreControllerListPersonaCharacters/);
   assert.match(realmExploreDataSource, /loadNimiRealmExploreFeedItems/);
   assert.doesNotMatch(realmExploreDataSource, /realm\.generated\.searchIndexedUsers/);
   assert.doesNotMatch(realmExploreDataSource, /realm\.generated\.getExploreFeed/);
   assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('personas'\)\}/);
   assert.match(exploreViewSource, /<PersonaSourceCard/);
   assert.match(personaSourceCardSource, /worldName/);
-  // RealmPersona cards render source materialization handoff state, never an
+  // PersonaCharacter cards render source materialization state, never an
   // unconditional Add Friend or direct source chat affordance.
-  assert.match(personaSourceCardSource, /describeRealmPersonaPrimaryAction/);
+  assert.match(personaSourceCardSource, /describeCharacterPrimaryAction/);
   assert.doesNotMatch(exploreViewSource, /<ExploreAgentCard/);
   // No source direct-chat path: world-detail's handleChatAgent declaration
   // and onChatAgent prop binding drift is removed (T3 / D-EXPL-006).

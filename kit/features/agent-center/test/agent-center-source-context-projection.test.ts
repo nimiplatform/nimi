@@ -29,19 +29,20 @@ const LANE_IDS = [
 
 function readySource(): NimiRuntimeAgentSourceContextStatus {
   return {
-    schemaVersion: 'v1',
+    schemaVersion: 'v2',
     ready: true,
     state: 'ready',
     reasonCode: 'none',
     localAgentRef: 'local-agent:owner:agent',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'character-1',
       worldId: 'world-1',
-      sourceId: 'character-1',
-      sourceContentHash: HASH_A,
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' },
+      sourceHash: HASH_A,
     },
     sourceSchemaVersion: 'realm.world-character-core/v1',
-    snapshotSchemaVersion: 'v1',
+    snapshotSchemaVersion: 'v2',
     snapshotHash: HASH_B,
     capturedAt: '2026-07-11T01:02:03.000Z',
     worldContentHash: HASH_C,
@@ -79,9 +80,10 @@ function readyTurn(): NimiRuntimeAgentTurnContextSummary {
     sourceSnapshotHash: HASH_B,
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'character-1',
       worldId: 'world-1',
-      sourceId: 'character-1',
-      sourceContentHash: HASH_A,
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' },
+      sourceHash: HASH_A,
     },
     worldContentHash: HASH_C,
     materializationContextHash: HASH_D,
@@ -122,7 +124,7 @@ function unavailableSource(
     ? 'source_validation_pending'
     : state === 'invalid' ? 'source_snapshot_invalid' : 'source_not_materialized';
   return {
-    schemaVersion: 'v1',
+    schemaVersion: 'v2',
     ready: false,
     state,
     reasonCode,
@@ -147,7 +149,7 @@ describe('Agent Center source/context projection', () => {
     expect(ready.status).toBe('ready');
     expect(ready.source).toMatchObject({
       kind: 'worldCharacter',
-      sourceContentHash: HASH_A,
+      sourceHash: HASH_A,
       snapshotHash: HASH_B,
     });
     expect(ready.context?.lanes).toHaveLength(11);
@@ -237,7 +239,7 @@ describe('Agent Center source/context projection', () => {
 
   it('fails closed for partial, unknown, raw, and cross-source input', () => {
     const partial = { ...readySource(), snapshotHash: null } as unknown as NimiRuntimeAgentSourceContextStatus;
-    const unknown = { ...readySource(), schemaVersion: 'v2' } as unknown as NimiRuntimeAgentSourceContextStatus;
+    const unknown = { ...readySource(), schemaVersion: 'v3' } as unknown as NimiRuntimeAgentSourceContextStatus;
     const raw = {
       ...readySource(),
       worldCoreRaw: 'RAW_WORLD_CANARY',

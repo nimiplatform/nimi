@@ -273,7 +273,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     navigateToSourceDetail: (sourceRef) =>
       set((state) => ({
         navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, 'source-detail'),
-        selectedProfileId: sourceRef.sourceId,
+        selectedProfileId: sourceRef.id,
         selectedProfileIsSource: true,
         selectedSourceRef: sourceRef,
         selectedGiftTransactionId: null,

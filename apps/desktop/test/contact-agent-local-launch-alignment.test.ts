@@ -3,12 +3,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  describeRealmPersonaPrimaryAction,
-  resolveRealmPersonaSourceState,
-} from '../src/shell/renderer/features/explore/realm-persona-source-materialization.js';
+  describeCharacterPrimaryAction,
+  resolveCharacterSourceState,
+} from '../src/shell/renderer/features/explore/character-source-materialization.js';
 import { toSourceContactLaunchTarget } from '../src/shell/renderer/features/relationship/source-contact-launch-target.js';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
+const SOURCE_HASH = 'a'.repeat(64);
+const WORLD_SOURCE_REF = {
+  kind: 'worldCharacter' as const,
+  id: 'character-1',
+  worldId: 'oasis',
+  worldEntityRef: { kind: 'worldEntity' as const, worldId: 'oasis', entityId: 'entity-1' },
+  sourceHash: SOURCE_HASH,
+};
 
 function readRepo(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -20,7 +28,7 @@ test('profile detail modal materializes source chat without Realm connection evi
 
   assert.match(source, /launchAgentConversationFromDisplay/);
   assert.match(source, /materializeSourceContactLaunchTarget\(profile,\s*ownerUserId\)/);
-  assert.match(launchTarget, /materializeRealmSourceLocalAgent/);
+  assert.match(launchTarget, /materializeCharacterSourceLocalAgent/);
   assert.doesNotMatch(launchTarget, new RegExp(['initialize', 'Local', 'Agent'].join('')));
   assert.doesNotMatch(launchTarget, new RegExp(['source', 'Materialization', 'Packet'].join('')));
   assert.match(launchTarget, /materialized\.localAgentRef/);
@@ -86,7 +94,8 @@ test('source contact launch target fails closed and requires Runtime-owned local
     worldId: 'oasis',
     sourceKind: 'worldCharacter',
     sourceId: 'character-1',
-    sourceContentHash: 'hash-1',
+    sourceHash: SOURCE_HASH,
+    sourceRef: WORLD_SOURCE_REF,
     runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     localAgentRef: 'local-agent:opaque-character-1',
     worldName: 'OASIS',
@@ -152,7 +161,7 @@ test('source contact launch target fails closed and requires Runtime-owned local
       worldId: 'oasis',
       sourceKind: 'worldCharacter',
       sourceId: 'character-1',
-      sourceContentHash: 'hash-1',
+      sourceRef: WORLD_SOURCE_REF,
     }, 'user-1');
   }, /requires runtimeSourceRef/);
 
@@ -167,7 +176,7 @@ test('source contact launch target fails closed and requires Runtime-owned local
       worldId: 'oasis',
       sourceKind: 'worldCharacter',
       sourceId: 'character-1',
-      sourceContentHash: 'hash-1',
+      sourceRef: WORLD_SOURCE_REF,
       runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     }, 'user-1');
   }, /requires localAgentRef/);
@@ -183,7 +192,7 @@ test('source contact launch target fails closed and requires Runtime-owned local
       worldId: 'oasis',
       sourceKind: 'worldCharacter',
       sourceId: 'character-1',
-      sourceContentHash: 'hash-1',
+      sourceRef: WORLD_SOURCE_REF,
       runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
       localAgentRef: 'agent-1',
     }, 'user-1');
@@ -201,38 +210,37 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
     worldId: 'oasis',
     sourceKind: 'worldCharacter',
     sourceId: 'character-1',
-    sourceContentHash: 'hash-1',
+    sourceHash: SOURCE_HASH,
+    sourceRef: WORLD_SOURCE_REF,
     runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
   };
 
-  assert.equal(resolveRealmPersonaSourceState(source), 'source_materialization_available');
-  const availableAction = describeRealmPersonaPrimaryAction('source_materialization_available');
+  assert.equal(resolveCharacterSourceState(source), 'source_materialization_available');
+  const availableAction = describeCharacterPrimaryAction('source_materialization_available');
   assert.equal(availableAction.action, 'become_partner');
   assert.equal(availableAction.label, 'Become my partner');
 
-  assert.equal(resolveRealmPersonaSourceState({
+  assert.equal(resolveCharacterSourceState({
     ...source,
     runtimeSourceRef: null,
   }, [{
-    ownerUserId: 'user-1',
     runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     localAgentRef: 'local-agent:runtime-owned-existing',
     sourceKind: 'worldCharacter',
     sourceWorldId: 'oasis',
     sourceId: 'character-1',
-    sourceContentHash: 'hash-1',
+    sourceHash: SOURCE_HASH,
   }]), 'local_agent_available');
 
-  assert.equal(resolveRealmPersonaSourceState(source, [{
-    ownerUserId: 'user-1',
+  assert.equal(resolveCharacterSourceState(source, [{
     runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     localAgentRef: 'local-agent:runtime-owned-existing',
     sourceKind: 'worldCharacter',
     sourceWorldId: 'oasis',
     sourceId: 'character-1',
-    sourceContentHash: 'hash-1',
+    sourceHash: SOURCE_HASH,
   }]), 'local_agent_available');
-  const existingAction = describeRealmPersonaPrimaryAction('local_agent_available');
+  const existingAction = describeCharacterPrimaryAction('local_agent_available');
   assert.equal(existingAction.action, 'open_partner');
   assert.equal(existingAction.label, 'Open partner');
 
@@ -244,7 +252,7 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
       sourceKind: 'worldCharacter',
       sourceWorldId: 'oasis',
       sourceId: 'character-1',
-      sourceContentHash: 'hash-1',
+      sourceHash: SOURCE_HASH,
     },
     {
       ownerUserId: 'user-1',
@@ -253,39 +261,38 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
       sourceKind: 'worldCharacter',
       sourceWorldId: 'oasis',
       sourceId: 'character-1',
-      sourceContentHash: 'hash-1',
+      sourceHash: SOURCE_HASH,
     },
   ];
-  assert.equal(resolveRealmPersonaSourceState(source, duplicateAgents), 'local_agent_ambiguous');
-  const ambiguousAction = describeRealmPersonaPrimaryAction('local_agent_ambiguous');
+  assert.equal(resolveCharacterSourceState(source, duplicateAgents), 'local_agent_ambiguous');
+  const ambiguousAction = describeCharacterPrimaryAction('local_agent_ambiguous');
   assert.equal(ambiguousAction.action, 'partner_ambiguous');
   assert.equal(ambiguousAction.disabled, true);
 
   assert.equal(
-    resolveRealmPersonaSourceState(source, [], { runtimeInventoryUnavailable: true }),
+    resolveCharacterSourceState(source, [], { runtimeInventoryUnavailable: true }),
     'runtime_agent_inventory_unavailable',
   );
-  const runtimeFailureAction = describeRealmPersonaPrimaryAction('runtime_agent_inventory_unavailable');
+  const runtimeFailureAction = describeCharacterPrimaryAction('runtime_agent_inventory_unavailable');
   assert.equal(runtimeFailureAction.action, 'partner_runtime_unavailable');
   assert.equal(runtimeFailureAction.disabled, true);
 
-  assert.equal(resolveRealmPersonaSourceState({
+  assert.equal(resolveCharacterSourceState({
     ...source,
-    sourceContentHash: '',
+    sourceRef: null,
     runtimeSourceRef: '',
   }, [{
-    ownerUserId: 'user-1',
     runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     localAgentRef: 'local-agent:runtime-owned-existing',
     sourceKind: 'worldCharacter',
     sourceWorldId: 'oasis',
     sourceId: 'character-1',
-    sourceContentHash: 'hash-1',
+    sourceHash: SOURCE_HASH,
   }]), 'source_materialization_unavailable');
 });
 
-test('Realm persona materialization UI copy uses partner relationship semantics', () => {
-  const materialization = readRepo('apps/desktop/src/shell/renderer/features/explore/realm-persona-source-materialization.ts');
+test('character source materialization UI copy uses partner relationship semantics', () => {
+  const materialization = readRepo('apps/desktop/src/shell/renderer/features/explore/character-source-materialization.ts');
   const exploreEn = readRepo('apps/desktop/src/shell/renderer/locales/en/11-Explore.json');
   const exploreZh = readRepo('apps/desktop/src/shell/renderer/locales/zh/11-Explore.json');
   const relationshipEn = readRepo('apps/desktop/src/shell/renderer/locales/en/24-Relationship.json');
@@ -294,7 +301,7 @@ test('Realm persona materialization UI copy uses partner relationship semantics'
   for (const source of [materialization, exploreEn, exploreZh, relationshipEn, relationshipZh]) {
     assert.doesNotMatch(source, /Create local agent|创建 local agent|创建本地伙伴/);
   }
-  assert.match(exploreZh, /"realmPersonaSourceMaterialize": "成为我的伙伴"/);
-  assert.match(exploreZh, /"realmPersonaSourceOpenLocalAgent": "打开伙伴"/);
+  assert.match(exploreZh, /"characterSourceMaterialize": "成为我的伙伴"/);
+  assert.match(exploreZh, /"characterSourceOpenLocalAgent": "打开伙伴"/);
   assert.match(relationshipZh, /"createLocalAgent": "成为我的伙伴"/);
 });

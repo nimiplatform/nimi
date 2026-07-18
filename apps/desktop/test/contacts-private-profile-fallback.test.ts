@@ -43,5 +43,5 @@ test('Contact detail renders restricted profiles as private content, not error c
   assert.match(profileModalSource, /!isBlockedProfile/);
   assert.match(profileModalSource, /sourceAction\?\.label/);
   assert.match(profileModalSource, /sourceAction\?\.disabled === true/);
-  assert.match(profileModalSource, /describeRealmPersonaPrimaryAction/);
+  assert.match(profileModalSource, /describeCharacterPrimaryAction/);
 });

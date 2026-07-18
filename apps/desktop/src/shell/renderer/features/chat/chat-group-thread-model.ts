@@ -160,7 +160,7 @@ export function groupMessageToCanonical(
       senderId: String(msg.senderId || ''),
       authorAccountId: author?.accountId || null,
       authorType: author?.type || null,
-      sourceOwnerId: author?.sourceOwnerId || null,
+      sourceOwnerId: author?.sourceAuthorityAccountId || null,
     },
   };
 }

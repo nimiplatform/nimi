@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
@@ -23,11 +23,11 @@ import {
 } from '../world/world-detail-queries.js';
 import type { WorldCharacter } from '../world/world-detail-types.js';
 import {
-  discoverRealmSourceLocalAgents,
-  realmPersonaSourceMaterializationFailureMessage,
-  realmSourceRefKey,
-  resolveRealmPersonaSourceState,
-} from './realm-persona-source-materialization';
+  characterSourceMaterializationFailureMessage,
+  characterSourceRefKey,
+  discoverCharacterSourceLocalAgents,
+  resolveCharacterSourceState,
+} from './character-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
@@ -95,7 +95,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   const personaSourceDiscoveryKey = useMemo(
     () => personaSourceBase
-      .map((source) => source.sourceRef ? realmSourceRefKey(source.sourceRef) : source.id)
+      .map((source) => source.sourceRef ? characterSourceRefKey(source.sourceRef) : source.id)
       .join('|'),
     [personaSourceBase],
   );
@@ -103,7 +103,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const personaSourceLocalAgentsQuery = useQuery({
     queryKey: ['explore-personas-local-agents', ownerUserId, personaSourceDiscoveryKey],
     queryFn: async () => (await Promise.all(
-      personaSourceBase.map((source) => discoverRealmSourceLocalAgents(source, ownerUserId)),
+      personaSourceBase.map((source) => discoverCharacterSourceLocalAgents(source, ownerUserId)),
     )).flat(),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && personaSourceBase.length > 0,
     staleTime: 10_000,
@@ -122,7 +122,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const personaSources = useMemo(
     () => personaSourceBase.map((personaSource) => ({
       ...personaSource,
-      sourceState: resolveRealmPersonaSourceState(
+      sourceState: resolveCharacterSourceState(
         personaSource,
         personaSourceLocalAgentsQuery.data ?? [],
         {
@@ -194,7 +194,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       });
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
+        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
           defaultValue: 'Your partner is ready. Opening chat.',
         }),
       });
@@ -206,7 +206,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: realmPersonaSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error),
       });
     }
   }, [
@@ -253,7 +253,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   );
 
   const onWorldCharacterOpen = useCallback(
-    (sourceRef: NimiRealmCoreSourceRef) => {
+    (sourceRef: CharacterSourceRefV3) => {
       navigateToSourceDetail(sourceRef);
     },
     [navigateToSourceDetail],
@@ -267,8 +267,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
         displayName: character.name,
         sourceWorldId: character.sourceRef.worldId,
         sourceKind: character.sourceRef.kind,
-        sourceId: character.sourceRef.sourceId,
-        sourceContentHash: character.sourceRef.sourceContentHash,
+        sourceId: character.sourceRef.id,
+        sourceHash: character.sourceRef.sourceHash,
       }, ownerUserId);
       await ensureRuntimeAgentExists(target);
       await queryClient.invalidateQueries({
@@ -286,7 +286,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: realmPersonaSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error),
       });
     }
   }, [ownerUserId, queryClient]);

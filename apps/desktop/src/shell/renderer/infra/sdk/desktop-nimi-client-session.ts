@@ -75,6 +75,10 @@ export async function configureDesktopRuntimeRealmSession(
   const platformClient = createNimiRuntimePlatformClient({
     appId,
     transport,
+    getSubjectUserId: async () => {
+      const status = await getRuntimeAccountSessionStatusResponse();
+      return status.accountProjection?.accountId;
+    },
   });
   const { runtime, accountRuntime: publicAccountRuntime } = platformClient;
   const accountRuntime = createDesktopProtectedAccountRuntime(publicAccountRuntime.auth);

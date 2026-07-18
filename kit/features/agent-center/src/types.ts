@@ -197,7 +197,7 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly sourceKindLabel: string;
   readonly sourceReferenceLabel: string;
   readonly sourceSchemaLabel: string;
-  readonly sourceContentHashLabel: string;
+  readonly sourceHashLabel: string;
   readonly sourceSnapshotLabel: string;
   readonly sourceCoverageLabel: string;
   readonly contextLanesLabel: string;
@@ -212,7 +212,7 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly sourceContextFailedValue: string;
   readonly sourceContextUnknownValue: string;
   readonly worldCharacterValue: string;
-  readonly realmPersonaValue: string;
+  readonly personaCharacterValue: string;
   readonly sourceCoverageFormat: string;
   readonly contextLanesFormat: string;
   readonly contextBudgetFormat: string;
@@ -324,11 +324,11 @@ export interface AgentCenterSourceCoverageSummary {
 
 export interface AgentCenterSourceProjectionSummary {
   readonly kind: AgentCenterSourceKind;
-  readonly schemaVersion: 'v1';
-  readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona/v1';
+  readonly schemaVersion: 'v2';
+  readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona-character-core/v1';
   readonly worldId: string;
   readonly sourceId: string;
-  readonly sourceContentHash: string;
+  readonly sourceHash: string;
   readonly snapshotHash: string;
   readonly worldContentHash: string;
   readonly materializationContextHash: string;

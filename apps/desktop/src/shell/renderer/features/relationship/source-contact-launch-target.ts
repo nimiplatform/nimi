@@ -6,11 +6,11 @@ import {
   normalizeNimiRuntimeAgentText,
 } from '@nimiplatform/sdk/runtime';
 import {
-  discoverRealmSourceLocalAgents,
-  materializeRealmSourceLocalAgent,
-  realmPersonaSourceAmbiguousMessage,
-  resolveRealmCoreSourceRef,
-} from '@renderer/features/explore/realm-persona-source-materialization';
+  characterSourceAmbiguousMessage,
+  discoverCharacterSourceLocalAgents,
+  materializeCharacterSourceLocalAgent,
+  resolveCharacterSourceRefV3,
+} from '@renderer/features/explore/character-source-materialization';
 
 type SourceContactLaunchSource = {
   id: string;
@@ -25,7 +25,7 @@ type SourceContactLaunchSource = {
   sourceWorldId?: string | null;
   sourceKind?: string | null;
   sourceId?: string | null;
-  sourceContentHash?: string | null;
+  sourceHash?: string | null;
   runtimeSourceRef?: string | null;
   localAgentRef?: string | null;
   sourceRef?: object | null;
@@ -53,18 +53,18 @@ async function discoverSourceContactLaunchTarget(
   source: SourceContactLaunchSource,
   ownerUserId: string,
 ): Promise<AgentLocalTargetSnapshot | null> {
-  const sourceRef = resolveRealmCoreSourceRef(source);
+  const sourceRef = resolveCharacterSourceRefV3(source);
   const runtimeSourceRef = normalizeNimiRuntimeAgentText(source.runtimeSourceRef);
   if (!sourceRef) {
     return null;
   }
-  const existing = await discoverRealmSourceLocalAgents({
+  const existing = await discoverCharacterSourceLocalAgents({
     ...source,
     runtimeSourceRef,
     sourceRef,
   }, ownerUserId);
   if (existing.length > 1) {
-    throw new Error(realmPersonaSourceAmbiguousMessage());
+    throw new Error(characterSourceAmbiguousMessage());
   }
   const first = existing[0];
   if (!first) {
@@ -85,7 +85,7 @@ export function toSourceContactLaunchTarget(
     throw new Error('source conversation launch requires a Realm source contact');
   }
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
-  const sourceRef = resolveRealmCoreSourceRef(source);
+  const sourceRef = resolveCharacterSourceRefV3(source);
   if (!sourceRef) {
     throw new Error('source conversation launch requires hash-bearing sourceRef');
   }
@@ -111,7 +111,7 @@ export function toSourceContactLaunchTarget(
     worldName: source.worldName || null,
     bio: source.bio || null,
     ownershipType: normalizeOwnershipType(source.sourceOwnershipType || source.ownershipType),
-    // Contact-launch sources carry identity only, not RealmPersona profile
+    // Contact-launch sources carry identity only, not PersonaCharacter profile
     // content. `greeting` / `builtinDocsContext` are supplied by the live
     // Realm/SDK source projection (the chat-surface targets) and overlaid onto
     // the chat target at chat time; a relationship-launch target leaves them null.
@@ -129,11 +129,18 @@ export async function materializeSourceContactLaunchTarget(
   if (discovered) {
     return discovered;
   }
-  const materialized = await materializeRealmSourceLocalAgent(source, ownerUserId);
+  const materialized = await materializeCharacterSourceLocalAgent(source);
+  const discoveredAfterCommit = await discoverCharacterSourceLocalAgents(source, ownerUserId);
+  const materializedAgent = discoveredAfterCommit.find(
+    (agent) => agent.localAgentRef === materialized.localAgentRef,
+  );
+  if (!materializedAgent) {
+    throw new Error('Runtime materialization committed without a discoverable LocalAgent projection.');
+  }
   return toSourceContactLaunchTarget({
     ...source,
-    runtimeSourceRef: materialized.runtimeSourceRef,
-    localAgentRef: materialized.localAgentRef,
+    runtimeSourceRef: materializedAgent.runtimeSourceRef,
+    localAgentRef: materializedAgent.localAgentRef,
   }, ownerUserId);
 }
 

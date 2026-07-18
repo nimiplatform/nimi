@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { ChevronDown, Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, LoadingSkeleton, NimiText, ScrollArea, Surface } from '@nimiplatform/kit/ui';
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import type { WorldDetailNavigationOptions } from '@renderer/app-shell/providers/store-types';
 import { formatNum } from './world-list-atoms';
 import { categoryMatches, isWorldVisibleInAtlas, matchesQuery, selectFeaturedWorlds, selectInitialWorld, sortWorlds, type CategoryId, type SortId, type ViewMode } from './world-list-catalog-model';
@@ -85,7 +85,7 @@ export function WorldCatalogContent({
 }: {
   worlds: WorldListItem[];
   onOpenWorld: (worldId: string, options?: WorldDetailNavigationOptions) => void;
-  onOpenPerson?: (sourceRef: NimiRealmCoreSourceRef) => void;
+  onOpenPerson?: (sourceRef: CharacterSourceRefV3) => void;
   onMaterializePerson?: (character: WorldCharacter) => Promise<void> | void;
   embedded?: boolean;
   searchQuery?: string;

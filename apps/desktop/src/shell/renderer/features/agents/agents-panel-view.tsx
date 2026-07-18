@@ -36,7 +36,7 @@ function LocalAgentCard({
   });
   const source = detailQuery.data?.source ?? null;
   const displayName = source?.displayName || item.displayName;
-  const handle = source?.handle || item.sourceRef.sourceId;
+  const handle = source?.handle || item.sourceRef.id;
   const bio = source?.bio ?? null;
 
   return (
@@ -100,7 +100,7 @@ export function AgentsPanelView(props: AgentsPanelViewProps) {
     return props.agents.filter((item) => {
       const worldName = props.worldNameById.get(item.sourceRef.worldId) || '';
       return item.displayName.toLowerCase().includes(query)
-        || item.sourceRef.sourceId.toLowerCase().includes(query)
+        || item.sourceRef.id.toLowerCase().includes(query)
         || worldName.toLowerCase().includes(query);
     });
   }, [props.agents, props.worldNameById, searchText]);

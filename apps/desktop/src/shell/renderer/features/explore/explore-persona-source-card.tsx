@@ -6,9 +6,9 @@ import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
 import {
-  describeRealmPersonaPrimaryAction,
-  type RealmPersonaSourceState,
-} from './realm-persona-source-materialization';
+  describeCharacterPrimaryAction,
+  type CharacterSourceState,
+} from './character-source-materialization';
 
 // Hash an identifier into a stable 12-point curve in [0.3, 1]. This powers the
 // decorative activity sparkline on the persona source card - we have no time-series
@@ -48,7 +48,7 @@ function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?
     </svg>
   );
 }
-function sourcePillStyle(state: RealmPersonaSourceState): CSSProperties {
+function sourcePillStyle(state: CharacterSourceState): CSSProperties {
   if (state === 'source_materialization_available' || state === 'local_agent_available') {
     return {
       background: 'var(--nimi-accent-soft)',
@@ -67,7 +67,7 @@ function formatCompact(n: number): string {
   if (n >= 1_000) return `${(n / 1000).toFixed(2).replace(/\.?0+$/, '')}k`;
   return String(n);
 }
-function PrimaryActionIcon({ action: _action }: { action: RealmPersonaPrimaryActionGlyph }) {
+function PrimaryActionIcon({ action: _action }: { action: CharacterPrimaryActionGlyph }) {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
@@ -75,7 +75,7 @@ function PrimaryActionIcon({ action: _action }: { action: RealmPersonaPrimaryAct
     </svg>
   );
 }
-type RealmPersonaPrimaryActionGlyph = ReturnType<typeof describeRealmPersonaPrimaryAction>['action'];
+type CharacterPrimaryActionGlyph = ReturnType<typeof describeCharacterPrimaryAction>['action'];
 // Compact Persona Source Card for horizontal scrolling recommendation section.
 // Layout: rank kicker + Public pill · aurora blob · glyph tile + name/role ·
 // Origin meta row · footer (sparkline + count + source action). Every
@@ -105,8 +105,8 @@ export function PersonaSourceCard({
   const postsCount = typeof source.postsCount === 'number' ? source.postsCount : 0;
   const isPublic = source.visibility === 'public';
   const glyph = source.name ? source.name.trim().charAt(0).toUpperCase() : '·';
-  const sourceState: RealmPersonaSourceState = source.sourceState ?? 'source_materialization_unavailable';
-  const primaryAction = describeRealmPersonaPrimaryAction(sourceState);
+  const sourceState: CharacterSourceState = source.sourceState ?? 'source_materialization_unavailable';
+  const primaryAction = describeCharacterPrimaryAction(sourceState);
   const handlePrimaryActionClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     void onPrimaryAction?.();

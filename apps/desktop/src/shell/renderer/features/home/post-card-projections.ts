@@ -2,6 +2,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { i18n } from '@renderer/i18n';
 import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import type { EditablePostSeed } from '@renderer/features/profile/create-post-modal-helpers.js';
+import { readCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import {
   normalizeMediaType,
   resolveMediaUrl,
@@ -145,6 +146,13 @@ export function buildPostCardAuthorProjection(input: {
 }
 
 function buildSourceAuthorProfileSeed(sourceAuthor: PostSourceAuthorDto): ProfileDetailSeed {
+  const sourceRef = readCharacterSourceRefV3(sourceAuthor.sourceRef);
+  if (!sourceRef
+    || sourceRef.kind !== sourceAuthor.kind
+    || sourceRef.worldId !== sourceAuthor.worldId
+    || sourceRef.id !== sourceAuthor.id) {
+    throw new Error('Post source author requires a matching CharacterSourceRefV3');
+  }
   return {
     id: sourceAuthor.id,
     displayName: sourceAuthor.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
@@ -162,10 +170,10 @@ function buildSourceAuthorProfileSeed(sourceAuthor: PostSourceAuthorDto): Profil
     sourcePacing: null,
     sourceOwnershipType: null,
     sourceWorldId: sourceAuthor.worldId,
-    sourceKind: sourceAuthor.sourceRef.kind,
-    sourceId: sourceAuthor.sourceRef.sourceId,
-    sourceContentHash: sourceAuthor.sourceRef.sourceContentHash,
+    sourceKind: sourceRef.kind,
+    sourceId: sourceRef.id,
+    sourceHash: sourceRef.sourceHash,
     runtimeSourceRef: sourceAuthor.runtimeSourceRef,
-    sourceRef: sourceAuthor.sourceRef,
+    sourceRef,
   };
 }
