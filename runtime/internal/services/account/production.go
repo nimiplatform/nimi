@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -77,6 +80,18 @@ type realmTokenResponse struct {
 	RealmEnvironmentID   string                          `json:"realm_environment_id"`
 	WorkspaceMemberships []realmWorkspaceMembershipShape `json:"workspace_memberships,omitempty"`
 }
+
+// realmRefreshTokenResponse is deliberately separate from the OAuth login
+// response. Realm's current /api/auth/refresh contract rotates only the token
+// quartet; authenticated account identity remains owned by Runtime custody.
+type realmRefreshTokenResponse struct {
+	AccessToken  string       `json:"accessToken"`
+	RefreshToken string       `json:"refreshToken"`
+	TokenType    string       `json:"tokenType"`
+	ExpiresIn    *json.Number `json:"expiresIn"`
+}
+
+const realmRefreshTokenResponseMaxBytes int64 = 1 << 20
 
 type realmWorkspaceMembershipShape struct {
 	WorkspaceID        string            `json:"workspace_id"`
@@ -214,7 +229,7 @@ func (r realmOAuthExchanger) exchangeForm(ctx context.Context, form url.Values) 
 }
 
 func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMaterial) (AccountMaterial, error) {
-	if strings.TrimSpace(r.tokenURL) == "" || strings.TrimSpace(material.RefreshToken) == "" {
+	if strings.TrimSpace(r.tokenURL) == "" || strings.TrimSpace(material.RefreshToken) == "" || r.httpClient == nil {
 		return AccountMaterial{}, ErrLoginExchangeFailure
 	}
 	body, _ := json.Marshal(map[string]string{"refreshToken": material.RefreshToken})
@@ -223,21 +238,138 @@ func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMateri
 		return AccountMaterial{}, ErrLoginExchangeFailure
 	}
 	req.Header.Set("content-type", "application/json")
-	resp, err := r.httpClient.Do(req)
+	client := *r.httpClient
+	client.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	next, err := materialFromTokenResponse(resp)
+	return materialFromRefreshTokenResponse(resp, material)
+}
+
+func materialFromRefreshTokenResponse(resp *http.Response, current AccountMaterial) (AccountMaterial, error) {
+	if resp == nil || resp.Body == nil {
+		return AccountMaterial{}, fmt.Errorf("%w: refresh response is unavailable", ErrLoginExchangeFailure)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return AccountMaterial{}, fmt.Errorf("%w: http %d", ErrLoginExchangeFailure, resp.StatusCode)
+	}
+	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return AccountMaterial{}, fmt.Errorf("%w: refresh response content type is invalid", ErrLoginExchangeFailure)
+	}
+	limited := &io.LimitedReader{R: resp.Body, N: realmRefreshTokenResponseMaxBytes + 1}
+	payload, err := io.ReadAll(limited)
 	if err != nil {
-		return AccountMaterial{}, err
+		return AccountMaterial{}, fmt.Errorf("%w: read refresh response", ErrLoginExchangeFailure)
 	}
-	if next.AccountID == "" {
-		next.AccountID = material.AccountID
-		next.DisplayName = material.DisplayName
-		next.RealmEnvironmentID = material.RealmEnvironmentID
+	if int64(len(payload)) > realmRefreshTokenResponseMaxBytes {
+		return AccountMaterial{}, fmt.Errorf("%w: refresh response exceeds fixed bound", ErrLoginExchangeFailure)
 	}
+	if err := rejectRealmRefreshDuplicateJSONKeys(payload); err != nil {
+		return AccountMaterial{}, fmt.Errorf("%w: refresh response JSON is invalid", ErrLoginExchangeFailure)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	decoder.UseNumber()
+	var parsed realmRefreshTokenResponse
+	if err := decoder.Decode(&parsed); err != nil {
+		return AccountMaterial{}, fmt.Errorf("%w: decode refresh response", ErrLoginExchangeFailure)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		return AccountMaterial{}, fmt.Errorf("%w: refresh response has trailing JSON", ErrLoginExchangeFailure)
+	}
+
+	accessToken := strings.TrimSpace(parsed.AccessToken)
+	refreshToken := strings.TrimSpace(parsed.RefreshToken)
+	if accessToken == "" || accessToken != parsed.AccessToken ||
+		refreshToken == "" || refreshToken != parsed.RefreshToken ||
+		parsed.TokenType != "Bearer" || parsed.ExpiresIn == nil ||
+		refreshToken == strings.TrimSpace(current.RefreshToken) ||
+		current.RefreshTokenHashes[refreshHash(refreshToken)] {
+		return AccountMaterial{}, fmt.Errorf("%w: invalid refresh response", ErrLoginExchangeFailure)
+	}
+	expiresIn, err := strconv.ParseInt(parsed.ExpiresIn.String(), 10, 64)
+	maxExpiresInSeconds := int64((time.Duration(1<<63 - 1)) / time.Second)
+	if err != nil || expiresIn <= 0 || expiresIn > maxExpiresInSeconds {
+		return AccountMaterial{}, fmt.Errorf("%w: invalid refresh response", ErrLoginExchangeFailure)
+	}
+
+	// Preserve every Runtime-custodied identity projection. Only the rotated
+	// token pair and its expiry may change here; refresh_internal commits the
+	// resulting material to custody before exposing the authenticated state.
+	next := current
+	next.WorkspaceMemberships = cloneWorkspaceMemberships(current.WorkspaceMemberships)
+	next.RefreshTokenHashes = copyRefreshHashes(current.RefreshTokenHashes)
+	next.AccessToken = accessToken
+	next.AccessTokenExpires = time.Now().UTC().Add(time.Duration(expiresIn) * time.Second)
+	next.RefreshToken = refreshToken
 	return next, nil
+}
+
+func rejectRealmRefreshDuplicateJSONKeys(raw []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if err := scanRealmRefreshJSONValue(decoder); err != nil {
+		return err
+	}
+	if token, err := decoder.Token(); !errors.Is(err, io.EOF) || token != nil {
+		return fmt.Errorf("trailing JSON")
+	}
+	return nil
+}
+
+func scanRealmRefreshJSONValue(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	delimiter, ok := token.(json.Delim)
+	if !ok {
+		return nil
+	}
+	switch delimiter {
+	case '{':
+		seen := make(map[string]struct{})
+		for decoder.More() {
+			keyToken, keyErr := decoder.Token()
+			if keyErr != nil {
+				return keyErr
+			}
+			key, ok := keyToken.(string)
+			if !ok {
+				return fmt.Errorf("object key is not a string")
+			}
+			if _, duplicate := seen[key]; duplicate {
+				return fmt.Errorf("duplicate object key")
+			}
+			seen[key] = struct{}{}
+			if err := scanRealmRefreshJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		end, err := decoder.Token()
+		if err != nil || end != json.Delim('}') {
+			return fmt.Errorf("object is not closed")
+		}
+	case '[':
+		for decoder.More() {
+			if err := scanRealmRefreshJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		end, err := decoder.Token()
+		if err != nil || end != json.Delim(']') {
+			return fmt.Errorf("array is not closed")
+		}
+	default:
+		return fmt.Errorf("invalid JSON delimiter")
+	}
+	return nil
 }
 
 func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {

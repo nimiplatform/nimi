@@ -644,9 +644,9 @@ func (s *Service) ObserveRefreshToken(ctx context.Context, token string) (runtim
 
 func (s *Service) recoverFromCustody(ctx context.Context) {
 	material, err := s.custody.Load(ctx, s.partition)
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if err != nil {
+		s.mu.Lock()
+		defer s.mu.Unlock()
 		if errors.Is(err, ErrNoStoredAccount) {
 			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
 			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
@@ -659,10 +659,27 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 	}
 	material = normalizeMaterial(material)
 	if material.AccountID == "" || material.RefreshToken == "" || material.AccessToken == "" {
+		s.mu.Lock()
+		defer s.mu.Unlock()
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
 		return
 	}
+	if material.RefreshTokenHashes[refreshHash(material.RefreshToken)] {
+		// A self-hash is the durable pre-refresh marker. It means the process may
+		// have exited after Realm consumed the token, so this material can never
+		// become authenticated again. Clear is best-effort; its failure does not
+		// weaken the recovery verdict.
+		_ = s.custody.Clear(ctx, s.partition)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if !material.AccessTokenExpires.IsZero() && !material.AccessTokenExpires.After(s.now().UTC()) {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
 		s.material = material

@@ -45,17 +45,32 @@ func (s *Service) refreshAccountSessionInternal(ctx context.Context, force bool)
 	s.mu.Unlock()
 	s.publish(startEvent)
 
-	next, err := s.refresher.Refresh(ctx, current)
+	// Persist a consumed-active-token marker before the refresh request leaves
+	// Runtime. If the process exits after Realm rotates the token but before the
+	// new pair commits, restart recovery will reject this marked material rather
+	// than resurrecting an uncertain refresh token.
+	markedCurrent := current
+	markedCurrent.WorkspaceMemberships = cloneWorkspaceMemberships(current.WorkspaceMemberships)
+	markedCurrent.RefreshTokenHashes = copyRefreshHashes(current.RefreshTokenHashes)
+	markedCurrent.RefreshTokenHashes[refreshHash(current.RefreshToken)] = true
+	if err := s.custody.Store(ctx, s.partition, markedCurrent); err != nil {
+		s.markCustodyUnavailable()
+		return &refreshAccountSessionResult{
+			accepted:          false,
+			state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+			reasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+			accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
+		}, nil
+	}
+
+	next, err := s.refresher.Refresh(ctx, markedCurrent)
 	if err != nil {
-		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE)
-		return &refreshAccountSessionResult{accepted: false, state: s.currentState(), reasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE}, nil
+		return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE), nil
 	}
 	next = normalizeMaterial(next)
-	next.RefreshTokenHashes = copyRefreshHashes(current.RefreshTokenHashes)
-	next.RefreshTokenHashes[refreshHash(current.RefreshToken)] = true
+	next.RefreshTokenHashes = copyRefreshHashes(markedCurrent.RefreshTokenHashes)
 	if next.RefreshToken == "" || next.AccessToken == "" || next.AccountID != current.AccountID {
-		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE)
-		return &refreshAccountSessionResult{accepted: false, state: s.currentState(), reasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE}, nil
+		return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE), nil
 	}
 	if err := s.custody.Store(ctx, s.partition, next); err != nil {
 		s.markCustodyUnavailable()
@@ -88,4 +103,31 @@ func (s *Service) refreshAccountSessionInternal(ctx context.Context, force bool)
 	s.publish(refreshEvent)
 	s.publish(statusEvent)
 	return &refreshAccountSessionResult{accepted: true, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, accountProjection: projection, reasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
+}
+
+// failRefreshAndClearCustody runs while identityMutationMu is held. Durable
+// material is removed before the in-memory failure transition is published, so
+// another account mutation cannot race a stale authenticated restart into the
+// failed refresh epoch. A custody clear failure is itself an unavailable
+// authority state and must not be reported as an ordinary reauthentication.
+func (s *Service) failRefreshAndClearCustody(
+	ctx context.Context,
+	reason runtimev1.AccountReasonCode,
+) *refreshAccountSessionResult {
+	if err := s.custody.Clear(ctx, s.partition); err != nil {
+		s.markCustodyUnavailable()
+		return &refreshAccountSessionResult{
+			accepted:          false,
+			state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+			reasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+			accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
+		}
+	}
+	s.transitionToReauthRequired(reason)
+	return &refreshAccountSessionResult{
+		accepted:          false,
+		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED,
+		reasonCode:        runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+		accountReasonCode: reason,
+	}
 }
