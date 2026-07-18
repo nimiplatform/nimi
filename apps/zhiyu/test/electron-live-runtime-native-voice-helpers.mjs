@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createNimiRuntimeAppSessionMetadataProvider } from '../../../sdks/typescript/runtime/app-session.ts';
+import { Runtime } from '../../../sdks/typescript/runtime/index.ts';
 import {
   VoiceOutputMode,
   VoicePlaybackState,
@@ -8,10 +9,6 @@ import { createNimiRuntimeAgentClient } from '../../../sdks/typescript/runtime/r
 import { createNimiRuntimeAgentTurnsModule } from '../../../sdks/typescript/runtime/runtime-agent-turns.ts';
 import { withNimiRuntimeAgentScopes } from '../../../sdks/typescript/runtime/runtime-agent-protected.ts';
 import { createNimiRuntimeAgentVoiceModule } from '../../../sdks/typescript/runtime/runtime-agent-voice.ts';
-import { createRuntimeForEndpoint } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
-import {
-  runtimeAgentLiveE2EChatScenarioPrompt,
-} from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts';
 import {
   captureLiveRuntimeEvidence,
   escapeRegExp,
@@ -35,7 +32,7 @@ const zhiyuRuntimeProtectedScopes = [
   'ai.spend.meter',
 ];
 export async function assertMidStreamFailureFlow(page, pageProblems, readyEvidence) {
-  const failurePrompt = `${runtimeAgentLiveE2EChatScenarioPrompt('b-mid-stream-failure')} Please trigger Zhiyu mid-stream failure after committed text.`;
+  const failurePrompt = '[[scenario:b-mid-stream-failure]] Please trigger Zhiyu mid-stream failure after committed text.';
   const expectedPartialText = 'Committed before induced action failure.';
   await page.locator('[data-chat-composer-textarea="true"]').fill(failurePrompt);
   await page.waitForFunction(() =>
@@ -672,7 +669,6 @@ function createZhiyuLiveRuntimeAgentClient(fixture, runtimeAuthBinding) {
     runtime: {
       appId: zhiyuAppId,
       auth: runtime.auth,
-      appAuth: runtime.grants,
       agents: runtime.agents,
       appMessages: runtime.appMessages,
     },
@@ -688,7 +684,6 @@ function createZhiyuLiveRuntimeAgentVoiceModule(fixture, runtimeAuthBinding) {
     runtime: {
       appId: zhiyuAppId,
       auth: runtime.auth,
-      appAuth: runtime.grants,
       agents: runtime.agents,
       artifacts: runtime.artifacts,
     },
@@ -703,7 +698,6 @@ function createZhiyuLiveRuntimeAgentTurnsModule(fixture, runtimeAuthBinding) {
     runtime: {
       appId: zhiyuAppId,
       auth: runtime.auth,
-      appAuth: runtime.grants,
       agents: {
         getPublicChatSessionSnapshot: (request, options) =>
           runtime.agents.getPublicChatSessionSnapshot(request, options),
@@ -731,8 +725,6 @@ function createZhiyuRuntimeAuthBindingScopeRunner(fixture, runtime, runtimeAuthB
     withNimiRuntimeAgentScopes({
       runtime: {
         appId: zhiyuAppId,
-        auth: runtime.auth,
-        appAuth: runtime.grants,
       },
       subjectUserId: fixture.ownerUserId,
     }, scopes, async (callOptions) =>
@@ -848,6 +840,16 @@ async function interruptLiveRuntimeFixtureVoicePlayback(fixture, input) {
       ...zhiyuRuntimeAuthBindingMetadata(input.runtimeAuthBinding),
       idempotencyKey,
       'x-nimi-idempotency-key': idempotencyKey,
+    },
+  });
+}
+
+function createRuntimeForEndpoint(endpoint, appId) {
+  return new Runtime({
+    appId,
+    transport: {
+      type: 'node-grpc',
+      endpoint,
     },
   });
 }
