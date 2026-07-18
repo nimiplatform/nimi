@@ -104,6 +104,7 @@ test('Electron host exposes only the fixed Kit app-host bridge', () => {
   assert.match(mainSource, /BrowserWindow/);
   assert.match(mainSource, /minWidth:\s*360/);
   assert.match(mainSource, /minHeight:\s*640/);
+  assert.match(mainSource, /backgroundColor:\s*'#f6f8fb'/);
   assert.match(mainSource, /Menu\.setApplicationMenu\(null\)/);
   assert.match(mainSource, /autoHideMenuBar:\s*true/);
   assert.match(mainSource, /contextIsolation:\s*true/);

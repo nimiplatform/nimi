@@ -398,8 +398,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         size="S"
         onClose={() => setPermissionLabOpen(false)}
         title="Local App 权限测试"
-        description="验证 zero-grant、精确请求、Desktop 批准、成功写入与撤销后拒绝。"
-        contentClassName="min-w-0 overflow-y-auto"
+        description="验证 zero-grant、精确请求、Desktop 批准、成功写入，以及撤销后的即时拒绝。"
+        panelClassName="flex flex-col overflow-hidden"
+        contentClassName="min-h-0 min-w-0 flex-1 overflow-y-auto"
         footer={(
           <Button type="button" tone="secondary" onClick={() => setPermissionLabOpen(false)}>
             关闭
