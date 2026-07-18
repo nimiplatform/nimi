@@ -6,4 +6,3 @@ permissions: []
 local_development:
   electron:
     renderer_origin: http://127.0.0.1:1468
-    execution_profile_ref: opaque:windows-native-electron-development-v1

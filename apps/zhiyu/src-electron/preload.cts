@@ -3,10 +3,6 @@ import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electr
 import { DEV_KERNEL_RESTART_PROBE } from './dev-kernel-restart-probe.js';
 import { resolveZhiyuLocalDevelopmentAgentId } from './local-development-contract.js';
 
-const ZHIYU_AVATAR_LAUNCH_HANDOFF_CHANNEL = 'zhiyu:avatar-launch-handoff';
-const ZHIYU_AVATAR_LAUNCH_HANDOFF_COMMANDS = new Set([
-  'avatar.launch',
-]);
 const LOCAL_DEVELOPMENT_PRELOAD_MARKER = '--nimi-local-development=1';
 
 installNimiElectronRuntimeBridge({
@@ -26,29 +22,11 @@ if (localDevelopment) {
     buildMarker: DEV_KERNEL_RESTART_PROBE,
   }));
 }
-contextBridge.exposeInMainWorld('__nimiZhiyuRuntimeAgentBinding', localDevelopment ? {
+contextBridge.exposeInMainWorld('__nimiZhiyuRuntimeAgentBinding', {
   localAppCarrier: {
     evidenceRef: 'runtime-sdk-authority:kit-electron-local-app-host',
     authority: 'local-app-carrier',
     failureSemantics: 'fail-closed',
-  },
-} : {
-  hostEquivalence: {
-    evidenceRef: 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
-    authority: 'runtime-sdk',
-    failureSemantics: 'fail-closed',
-  },
-});
-
-contextBridge.exposeInMainWorld('__nimiZhiyuAvatarLaunchHandoff', {
-  invoke(command: string, payload: Record<string, unknown>) {
-    if (!ZHIYU_AVATAR_LAUNCH_HANDOFF_COMMANDS.has(command)) {
-      throw new Error(`Unsupported Zhiyu Avatar launch handoff command: ${command}`);
-    }
-    return ipcRenderer.invoke(ZHIYU_AVATAR_LAUNCH_HANDOFF_CHANNEL, {
-      command,
-      payload,
-    });
   },
 });
 

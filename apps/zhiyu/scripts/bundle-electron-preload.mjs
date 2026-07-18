@@ -17,7 +17,6 @@ await build({
   format: 'esm',
   external: [
     'electron',
-    '@grpc/grpc-js',
     '@nimiplatform/kit',
     '@nimiplatform/kit/*',
     '@nimiplatform/sdk',

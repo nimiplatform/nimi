@@ -796,9 +796,9 @@ test('dev accepts the package-manager argument separator used by dev:shell', () 
     assert.doesNotMatch(result.stderr, /Unknown option: --/);
     assert.match(
       result.stderr,
-      process.platform === 'win32'
+      process.platform === 'win32' || process.platform === 'darwin'
         ? /nimi\.app\.yaml is required/
-        : /currently admitted on Windows only/,
+        : /not admitted on this platform/,
     );
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });

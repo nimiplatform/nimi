@@ -77,9 +77,10 @@ test('Zhiyu local-development build consumes only the final Kit Electron app bri
   const source = await readFile(electronMainPath, 'utf8');
   assert.match(
     source,
-    /if \(isLocalDevelopmentBuild\) \{\s*registerNimiElectronAppBridge\(\{\s*appId: APP_ID,\s*allowedRendererUrls: allowedRendererUrls\(\),\s*ipcMain,\s*\}\);\s*\} else \{/u,
+    /registerNimiElectronAppBridge\(\{\s*appId: APP_ID,\s*allowedRendererUrls: allowedRendererUrls\(\),\s*ipcMain,\s*\}\);/u,
   );
   assert.doesNotMatch(source, /createNimiElectronLocalAppHost/u);
+  assert.doesNotMatch(source, /registerNimiElectronRuntimeBridge|NIMI_RUNTIME_GRPC_ADDR|runtimeEndpoint/u);
   const appBridgeCall = source.match(/registerNimiElectronAppBridge\(\{([\s\S]*?)\}\);/u)?.[1] || '';
   assert.doesNotMatch(appBridgeCall, /endpoint|runtimeEndpoint|trustedRuntimeMetadataProvider|standardShellHost/u);
 });

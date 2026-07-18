@@ -19,13 +19,8 @@ const TERMINAL_STATES = new Set([
 ]);
 
 export async function runDevShell(cwd, options = {}) {
-  if (process.platform !== 'win32') {
-    throw new DevShellError(
-      'local-development-platform-unsupported',
-      'Nimi protected local development is currently admitted on Windows only.',
-    );
-  }
   const shell = normalizeShell(options.shell || 'tauri');
+  assertLocalDevelopmentPlatform(process.platform, shell);
   const projectRoot = await canonicalProjectRoot(cwd, options.dir);
   const appId = await readAppId(projectRoot);
   const descriptorPath = options.descriptorPath
@@ -103,6 +98,21 @@ export async function runDevShell(cwd, options = {}) {
   } finally {
     removeSignalHandlers();
   }
+}
+
+export function assertLocalDevelopmentPlatform(platform, shell) {
+  if (platform === 'win32') return;
+  if (platform === 'darwin' && shell === 'electron') return;
+  if (platform === 'darwin') {
+    throw new DevShellError(
+      'local-development-platform-unsupported',
+      'Nimi macOS local development currently accepts only the independently verified Electron carrier; Tauri remains fail-closed.',
+    );
+  }
+  throw new DevShellError(
+    'local-development-platform-unsupported',
+    'Nimi protected local development is not admitted on this platform.',
+  );
 }
 
 export class DevShellError extends Error {

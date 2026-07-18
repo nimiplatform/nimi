@@ -21,7 +21,6 @@
     "test": "node --import tsx --test test/*.test.mjs"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.4",
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "lucide-react": "^0.577.0",

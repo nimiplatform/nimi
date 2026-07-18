@@ -22,9 +22,11 @@ and writes app-scaffold admission/build-profile/lock state. It does not use
 
 `pnpm dev` enters the official `nimi-app dev` launcher and selects Tauri by
 default. `pnpm dev:shell -- --shell electron` and `pnpm dev:shell -- --shell
-tauri` select a shell explicitly. On the first Windows run, Nimi Desktop shows
-the canonical project, app identity, shell, current account, and requested
-capabilities. The user may allow only this run, remember the project, or deny.
+tauri` select a shell explicitly. On Windows, both admitted shell intents are
+accepted. On macOS, only `--shell electron` is accepted; the independent Tauri
+carrier remains fail-closed. Nimi Desktop shows the canonical project, app
+identity, shell, current account, and requested capabilities. The user may
+allow only this run, remember the project, or deny.
 Desktop then owns the dev server and native host lifecycle; ordinary direct
 shell launches remain untrusted.
 
@@ -36,8 +38,9 @@ session material never enter the project, terminal, or renderer. The current
 local-development surface admits only typed Runtime artifact reads requested in
 `nimi.app.yaml`; other protected surfaces remain fail-closed. Local-development
 authorization is not listing admission, a production release, installed-app
-truth, signing evidence, or a permission grant. Non-Windows development
-admission currently fails closed.
+truth, signing evidence, or a permission grant. macOS intent submission does
+not make the carrier positive: signed Runtime/Desktop/host and native live
+admission still fail closed until their conjunctive gate passes.
 
 When `--profile tester-reference` is used, the generator emits the explicit
 non-first-party developer reference tester product surface: Runtime-authenticated

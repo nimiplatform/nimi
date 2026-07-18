@@ -114,7 +114,8 @@ test('settings route avoids file directory collisions and keeps relative ESM imp
 test('manifest remains submitted input', () => {
   assert.match(manifest, /manifest_role: submitted-input/);
   assert.match(manifest, /permissions:\s*\[\]/);
-  assert.match(manifest, /local_development:\s+electron:\s+renderer_origin: http:\/\/127\.0\.0\.1:1468\s+execution_profile_ref: opaque:windows-native-electron-development-v1/);
+  assert.match(manifest, /local_development:\s+electron:\s+renderer_origin: http:\/\/127\.0\.0\.1:1468/);
+  assert.doesNotMatch(manifest, /execution_profile_ref/);
   assert.doesNotMatch(manifest, /declared_nimi_api_scopes|scope:|qualifier:/);
 });
 

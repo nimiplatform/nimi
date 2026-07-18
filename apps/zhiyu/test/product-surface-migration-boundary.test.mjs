@@ -101,7 +101,7 @@ test('hardcut checkpoint replaces ZM0 shared-API-only migration assumptions', as
   }
 });
 
-test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime evidence', async () => {
+test('Zhiyu Electron acceptance covers unsupervised authority denial and checkpoint-scoped live evidence', async () => {
   const noRuntimeAcceptance = await readFile(path.join(appRoot, 'test', 'e2e', 'electron-acceptance.test.mjs'), 'utf8');
   const liveRuntimeAcceptance = await readAppFiles([
     'test/scenario/run-context-helpers.mjs',
@@ -113,10 +113,12 @@ test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime 
     'test/electron-live-runtime-acceptance-helpers.mjs',
   ]);
 
-  assert.match(noRuntimeAcceptance, /NIMI_ZHIYU_EVIDENCE_CHECKPOINT/);
+  assert.match(noRuntimeAcceptance, /--user-data-dir=/);
   assert.match(noRuntimeAcceptance, /trackPageProblems/);
   assert.match(noRuntimeAcceptance, /assertNoPageProblems/);
-  assert.match(noRuntimeAcceptance, /product-home-evidence\.json/);
+  assert.match(noRuntimeAcceptance, /assertAppOwnedDatabase/);
+  assert.match(noRuntimeAcceptance, /boot_count/);
+  assert.match(noRuntimeAcceptance, /unsupported-electron-shell-command/);
   assert.match(liveRuntimeAcceptance, /NIMI_ZHIYU_EVIDENCE_CHECKPOINT/);
   assert.match(liveRuntimeAcceptance, /trackPageProblems/);
   assert.match(liveRuntimeAcceptance, /assertNoPageProblems/);

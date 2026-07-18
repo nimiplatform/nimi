@@ -28,7 +28,6 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   const runtimeAccountAuthSource = read('src/shell/auth/runtime-account-auth.ts');
   const runtimeLoginSource = read('src/shell/auth/runtime-login-page.tsx');
   const runtimePlatformSource = read('src/shell/auth/runtime-platform.ts');
-  const hostAccountCallerSource = read('src-electron/runtime-account-caller.ts');
   const electronMainSource = read('src-electron/main.ts');
   const liveAcceptanceSource = read('test/scenario/run-context-helpers.mjs');
 
@@ -45,10 +44,9 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   assert.match(runtimePlatformSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.match(runtimePlatformSource, /deviceId:\s*runtimeAccountDeviceId/);
   assert.match(runtimePlatformSource, /export const appTitle = '织羽 Zhiyu'/);
-  assert.match(hostAccountCallerSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
-  assert.match(hostAccountCallerSource, /deviceId:\s*runtimeAccountDeviceId/);
-  assert.match(hostAccountCallerSource, /const runtimeAccountDeviceId = `\$\{clientIdPrefix\}-local-first-party-device`/);
-  assert.doesNotMatch(electronMainSource, /trustedRuntimeMetadataProvider|runtime-auth\.js/);
+  assert.equal(existsSync(path.join(root, 'src-electron/runtime-account-caller.ts')), false);
+  assert.doesNotMatch(electronMainSource, /trustedRuntimeMetadataProvider|runtime-auth\.js|registerNimiElectronRuntimeBridge|NIMI_RUNTIME_GRPC_ADDR|runtimeEndpoint/);
+  assert.match(electronMainSource, /registerNimiElectronAppBridge/);
   assert.match(liveAcceptanceSource, /admitLocalFirstPartyRuntimeAccountCaller/);
   assert.match(liveAcceptanceSource, /appInstanceId:\s*`\$\{zhiyuAppId\}\.scenario-suite`/);
   assert.match(liveAcceptanceSource, /deviceId:\s*'nimi-zhiyu-scenario-suite-device'/);

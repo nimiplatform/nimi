@@ -130,12 +130,13 @@ test('Desktop Agent Chat hardcut does not keep a production provenance map as mi
   assert.equal(existsSync(sourceMapPath), false, `${sourceMapPath} must not remain in production source`);
 });
 
-test('Desktop Agent Chat Runtime binding host equivalence is Electron-host owned and fail-closed', async () => {
+test('Desktop Agent Chat binding uses only the supervised local-app carrier and fails closed', async () => {
   const preloadSource = await readFile(path.join(appRoot, 'src-electron', 'preload.cts'), 'utf8');
   assert.match(preloadSource, /__nimiZhiyuRuntimeAgentBinding/);
-  assert.match(preloadSource, /runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host/);
-  assert.match(preloadSource, /authority:\s*['"]runtime-sdk['"]/);
+  assert.match(preloadSource, /runtime-sdk-authority:kit-electron-local-app-host/);
+  assert.match(preloadSource, /authority:\s*['"]local-app-carrier['"]/);
   assert.match(preloadSource, /failureSemantics:\s*['"]fail-closed['"]/);
+  assert.doesNotMatch(preloadSource, /hostEquivalence|local-first-party-host/);
 });
 
 test('local-development identity reaches the sandbox preload only through fixed additional arguments', async () => {

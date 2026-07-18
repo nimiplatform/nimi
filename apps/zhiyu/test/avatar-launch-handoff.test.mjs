@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { buildSync } from 'esbuild';
@@ -139,46 +139,18 @@ test('Zhiyu registers the Runtime live instance before invoking the Avatar host'
   }
 });
 
-test('Zhiyu Avatar host bridge prepares only the minimal Avatar Electron environment', async () => {
-  const { buildZhiyuAvatarElectronLaunchEnvironment } = await loadSourceModule('src-electron/avatar-launch-handoff.ts');
-
-  const env = buildZhiyuAvatarElectronLaunchEnvironment({
-    runtimeEndpoint: '127.0.0.1:46371',
-    dataRoot: 'D:/tmp/zhiyu-standard',
-    payload: {
-      agentId: 'local-agent:owner-1:agent-1',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'runtime-source:owner-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
-      avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
-      launchSource: 'zhiyu',
-    },
-  });
-
-  assert.equal(env.NIMI_RUNTIME_GRPC_ADDR, '127.0.0.1:46371');
-  assert.equal(env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_OWNER_USER_ID, 'user-1');
-  assert.equal(env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF, 'runtime-source:owner-1');
-  assert.equal(env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF, 'local-agent:owner-1:agent-1');
-  assert.equal(env.NIMI_AVATAR_ELECTRON_AVATAR_INSTANCE_ID, 'zhiyu-avatar-local-agent-owner-1-agent-1');
-  assert.equal(env.NIMI_AVATAR_ELECTRON_LAUNCH_SOURCE, 'zhiyu');
-  assert.ok(env.NIMI_AVATAR_ELECTRON_AGENT_CENTER_DATA_ROOT.endsWith('tmp\\zhiyu-standard') || env.NIMI_AVATAR_ELECTRON_AGENT_CENTER_DATA_ROOT.endsWith('tmp/zhiyu-standard'));
-  assert.ok(env.NIMI_AVATAR_ELECTRON_STANDARD_DATA_ROOT.includes('zhiyu-avatar-local-agent-owner-1-agent-1'));
-  assert.doesNotMatch(JSON.stringify(env), /conversationAnchorId|accessToken|subjectUserId|runtimeAppId/);
-});
-
-test('Zhiyu Avatar source keeps the launch handoff public and does not import Desktop private bridge truth', () => {
+test('Zhiyu keeps Avatar payload projection but removes the unsupervised Electron handoff carrier', () => {
   const avatarLaunch = readFileSync(path.join(root, 'src/shell/avatar/avatar-launch.ts'), 'utf8');
   const handoff = readFileSync(path.join(root, 'src/shell/avatar/avatar-launch-handoff.ts'), 'utf8');
-  const electron = readFileSync(path.join(root, 'src-electron/avatar-launch-handoff.ts'), 'utf8');
+  const electronMain = readFileSync(path.join(root, 'src-electron/main.ts'), 'utf8');
   const preload = readFileSync(path.join(root, 'src-electron/preload.cts'), 'utf8');
-  const all = `${avatarLaunch}\n${handoff}\n${electron}\n${preload}`;
-  const avatarHandoffSurfaces = `${avatarLaunch}\n${handoff}\n${electron}`;
+  const all = `${avatarLaunch}\n${handoff}\n${electronMain}\n${preload}`;
 
   assert.match(avatarLaunch, /buildAvatarLaunchInstanceId/);
   assert.match(handoff, /buildAvatarLaunchHandoffPayload/);
-  assert.match(electron, /parseAvatarLaunchHandoffPayload/);
-  assert.match(preload, /__nimiZhiyuAvatarLaunchHandoff/);
+  assert.equal(existsSync(path.join(root, 'src-electron/avatar-launch-handoff.ts')), false);
+  assert.doesNotMatch(preload, /__nimiZhiyuAvatarLaunchHandoff|zhiyu:avatar-launch-handoff/);
+  assert.doesNotMatch(electronMain, /registerZhiyuAvatarLaunchHandoffBridge|runtimeEndpoint|NIMI_RUNTIME_GRPC_ADDR/);
   assert.doesNotMatch(all, /apps\/desktop|@renderer\/|desktop_avatar_launch_handoff|runtime\/internal/);
-  assert.doesNotMatch(all, /conversationAnchorId:\s*payload|NIMI_AVATAR_ELECTRON_CONVERSATION|accessToken/);
-  assert.doesNotMatch(avatarHandoffSurfaces, /scopedBinding/);
+  assert.doesNotMatch(all, /NIMI_AVATAR_ELECTRON_RUNTIME_ENDPOINT|accessToken/);
 });

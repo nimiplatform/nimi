@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { runDevShell } from '../scripts/dev-shell.mjs';
+import { assertLocalDevelopmentPlatform, runDevShell } from '../scripts/dev-shell.mjs';
 
 function fixture() {
-  const root = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-shell-'));
+  const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-shell-')));
   const project = path.join(root, 'project');
   const descriptorPath = path.join(root, 'presence.v1.json');
   mkdirSync(project, { recursive: true });
@@ -45,7 +45,7 @@ function runStatus(state = 'running') {
 }
 
 test('official dev launcher sends only project intent and keeps technical material out of the CLI', {
-  skip: process.platform !== 'win32',
+  skip: !['win32', 'darwin'].includes(process.platform),
 }, async () => {
   const input = fixture();
   const requests = [];
@@ -83,7 +83,7 @@ test('official dev launcher sends only project intent and keeps technical materi
 });
 
 test('official dev launcher stays attached while Desktop recovers a Runtime restart', {
-  skip: process.platform !== 'win32',
+  skip: !['win32', 'darwin'].includes(process.platform),
 }, async () => {
   const input = fixture();
   const controller = new AbortController();
@@ -125,14 +125,14 @@ test('official dev launcher stays attached while Desktop recovers a Runtime rest
 });
 
 test('official dev launcher rejects stale or non-loopback Desktop presence before any request', {
-  skip: process.platform !== 'win32',
+  skip: !['win32', 'darwin'].includes(process.platform),
 }, async () => {
   const input = fixture();
   let called = false;
   try {
     await assert.rejects(
       runDevShell(input.project, {
-        shell: 'tauri',
+        shell: 'electron',
         descriptorPath: input.descriptorPath,
         now: () => Date.parse('2026-07-12T00:01:00.000Z'),
         fetch: async () => { called = true; },
@@ -144,4 +144,19 @@ test('official dev launcher rejects stale or non-loopback Desktop presence befor
   } finally {
     rmSync(input.root, { recursive: true, force: true });
   }
+});
+
+test('platform matrix admits macOS Electron intent but keeps macOS Tauri and Linux fail-closed', () => {
+  assert.doesNotThrow(() => assertLocalDevelopmentPlatform('win32', 'electron'));
+  assert.doesNotThrow(() => assertLocalDevelopmentPlatform('win32', 'tauri'));
+  assert.doesNotThrow(() => assertLocalDevelopmentPlatform('darwin', 'electron'));
+  assert.throws(
+    () => assertLocalDevelopmentPlatform('darwin', 'tauri'),
+    (error) => error?.reasonCode === 'local-development-platform-unsupported'
+      && /Tauri remains fail-closed/u.test(error.message),
+  );
+  assert.throws(
+    () => assertLocalDevelopmentPlatform('linux', 'electron'),
+    (error) => error?.reasonCode === 'local-development-platform-unsupported',
+  );
 });
